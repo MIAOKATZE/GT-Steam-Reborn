@@ -1,0 +1,4038 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DR-11",
+  "name": "锈祷者",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 1.2276718128688,
+    "h": 2.5,
+    "d": 0.85024
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        0.053201720900042715,
+        0.0,
+        -0.050400000000000056
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "torso",
+      "parent": "body",
+      "pivot": [
+        0.053201720900042715,
+        1.02,
+        -0.0004000000000000531
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "mask",
+      "parent": "torso",
+      "pivot": [
+        0.053201720900042715,
+        2.1,
+        -0.15040000000000006
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_staff",
+      "parent": "torso",
+      "pivot": [
+        -0.3467982790999573,
+        1.84,
+        -0.050400000000000056
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_free",
+      "parent": "torso",
+      "pivot": [
+        0.4632017209000427,
+        1.83,
+        -0.030400000000000055
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "staff",
+      "parent": "body",
+      "pivot": [
+        -0.6067982790999573,
+        0.075,
+        -0.25040000000000007
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "lower_husk",
+      "parent": "body",
+      "pivot": [
+        0.053201720900042715,
+        0.24,
+        0.029599999999999946
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "prayer_glint_0",
+      "parent": "mask",
+      "pivot": [
+        -0.011798279099957287,
+        2.32,
+        -0.31040000000000006
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "prayer_glint_1",
+      "parent": "mask",
+      "pivot": [
+        0.11820172090004272,
+        2.225,
+        -0.31040000000000006
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "prayer_glint_2",
+      "parent": "mask",
+      "pivot": [
+        -0.006798279099957283,
+        2.14,
+        -0.31040000000000006
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "robe_0",
+      "parent": "body",
+      "pivot": [
+        -0.1294982790999573,
+        1.35,
+        -0.18040000000000006
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "rust_debris_0",
+      "parent": "body",
+      "pivot": [
+        -0.17879827909995727,
+        0.63,
+        -0.3354000000000001
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "robe_1",
+      "parent": "body",
+      "pivot": [
+        0.21070172090004272,
+        1.35,
+        -0.19340000000000007
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "rust_debris_1",
+      "parent": "body",
+      "pivot": [
+        0.2532017209000427,
+        0.79,
+        -0.35540000000000005
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "robe_2",
+      "parent": "body",
+      "pivot": [
+        -0.2365982790999573,
+        1.35,
+        -0.011400000000000056
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "rust_debris_2",
+      "parent": "body",
+      "pivot": [
+        -0.31479827909995733,
+        0.95,
+        -0.07540000000000006
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "robe_3",
+      "parent": "body",
+      "pivot": [
+        0.3430017209000427,
+        1.35,
+        0.0015999999999999487
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "rust_debris_3",
+      "parent": "body",
+      "pivot": [
+        0.42120172090004276,
+        0.63,
+        -0.05540000000000006
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "robe_4",
+      "parent": "body",
+      "pivot": [
+        -0.1294982790999573,
+        1.35,
+        0.17059999999999997
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "rust_debris_4",
+      "parent": "body",
+      "pivot": [
+        -0.17879827909995727,
+        0.79,
+        0.20459999999999995
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "robe_5",
+      "parent": "body",
+      "pivot": [
+        0.21700172090004272,
+        1.35,
+        0.17709999999999992
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "rust_debris_5",
+      "parent": "body",
+      "pivot": [
+        0.26120172090004273,
+        0.95,
+        0.2145999999999999
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "robe_6",
+      "parent": "body",
+      "pivot": [
+        0.028001720900042715,
+        1.35,
+        -0.24540000000000006
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "rust_debris_6",
+      "parent": "body",
+      "pivot": [
+        0.021201720900042714,
+        0.63,
+        -0.43540000000000006
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "robe_7",
+      "parent": "body",
+      "pivot": [
+        0.06580172090004272,
+        1.35,
+        0.20309999999999995
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "rust_debris_7",
+      "parent": "body",
+      "pivot": [
+        0.06920172090004272,
+        0.79,
+        0.25459999999999994
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "prayer_glint_0__glow",
+      "parent": "prayer_glint_0",
+      "pivot": [
+        -0.011798279099957287,
+        2.32,
+        -0.31040000000000006
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "prayer_glint_1__glow",
+      "parent": "prayer_glint_1",
+      "pivot": [
+        0.11820172090004272,
+        2.225,
+        -0.31040000000000006
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "prayer_glint_2__glow",
+      "parent": "prayer_glint_2",
+      "pivot": [
+        -0.006798279099957283,
+        2.14,
+        -0.31040000000000006
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "idle": {
+      "loop": true,
+      "frames": 48,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "torso",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.43
+            ],
+            [
+              24,
+              -0.445
+            ],
+            [
+              48,
+              -0.43
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "torso",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -23
+            ],
+            [
+              24,
+              -25
+            ],
+            [
+              48,
+              -23
+            ]
+          ]
+        },
+        {
+          "group": "mask",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -12
+            ],
+            [
+              24,
+              -14
+            ],
+            [
+              48,
+              -12
+            ]
+          ]
+        },
+        {
+          "group": "prayer_glint_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              48,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "prayer_glint_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              48,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "prayer_glint_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              48,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "walk": {
+      "loop": true,
+      "frames": 16,
+      "speed": 0.6,
+      "tracks": [
+        {
+          "group": "torso",
+          "channel": "translate",
+          "keys": [
+            [
+              0.0,
+              -0.42
+            ],
+            [
+              8.0,
+              -0.38
+            ],
+            [
+              16.0,
+              -0.42
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "torso",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              -21
+            ],
+            [
+              8.0,
+              -25
+            ],
+            [
+              16.0,
+              -21
+            ]
+          ]
+        },
+        {
+          "group": "mask",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              -12
+            ],
+            [
+              16.0,
+              -12
+            ]
+          ]
+        },
+        {
+          "group": "robe_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              3
+            ],
+            [
+              8.0,
+              -3
+            ],
+            [
+              16.0,
+              3
+            ]
+          ]
+        },
+        {
+          "group": "robe_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              -3
+            ],
+            [
+              8.0,
+              3
+            ],
+            [
+              16.0,
+              -3
+            ]
+          ]
+        },
+        {
+          "group": "robe_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              3
+            ],
+            [
+              8.0,
+              -3
+            ],
+            [
+              16.0,
+              3
+            ]
+          ]
+        },
+        {
+          "group": "robe_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              -3
+            ],
+            [
+              8.0,
+              3
+            ],
+            [
+              16.0,
+              -3
+            ]
+          ]
+        },
+        {
+          "group": "robe_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              3
+            ],
+            [
+              8.0,
+              -3
+            ],
+            [
+              16.0,
+              3
+            ]
+          ]
+        },
+        {
+          "group": "robe_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              -3
+            ],
+            [
+              8.0,
+              3
+            ],
+            [
+              16.0,
+              -3
+            ]
+          ]
+        },
+        {
+          "group": "robe_6",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              3
+            ],
+            [
+              8.0,
+              -3
+            ],
+            [
+              16.0,
+              3
+            ]
+          ]
+        },
+        {
+          "group": "robe_7",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              -3
+            ],
+            [
+              8.0,
+              3
+            ],
+            [
+              16.0,
+              -3
+            ]
+          ]
+        },
+        {
+          "group": "prayer_glint_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0.0,
+              0.045
+            ],
+            [
+              16.0,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "prayer_glint_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0.0,
+              0.045
+            ],
+            [
+              16.0,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "prayer_glint_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0.0,
+              0.045
+            ],
+            [
+              16.0,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              4,
+              0.055
+            ],
+            [
+              8,
+              0.045
+            ],
+            [
+              12,
+              0.055
+            ],
+            [
+              16,
+              0.045
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 64,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "torso",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.43
+            ],
+            [
+              12,
+              -0.43
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              64,
+              -0.43
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "torso",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -23
+            ],
+            [
+              12,
+              -23
+            ],
+            [
+              30,
+              3
+            ],
+            [
+              50,
+              3
+            ],
+            [
+              64,
+              -23
+            ]
+          ]
+        },
+        {
+          "group": "mask",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -12
+            ],
+            [
+              28,
+              8
+            ],
+            [
+              50,
+              8
+            ],
+            [
+              64,
+              -12
+            ]
+          ]
+        },
+        {
+          "group": "arm_free",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              68
+            ],
+            [
+              44,
+              78
+            ],
+            [
+              52,
+              65
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_staff",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              15
+            ],
+            [
+              48,
+              15
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "robe_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              -9
+            ],
+            [
+              50,
+              -9
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "robe_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              9
+            ],
+            [
+              50,
+              9
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "robe_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              -9
+            ],
+            [
+              50,
+              -9
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "robe_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              9
+            ],
+            [
+              50,
+              9
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "robe_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              -9
+            ],
+            [
+              50,
+              -9
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "robe_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              9
+            ],
+            [
+              50,
+              9
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "prayer_glint_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              24,
+              0.045
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              58,
+              0.045
+            ],
+            [
+              64,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "prayer_glint_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              26,
+              0.045
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              58,
+              0.045
+            ],
+            [
+              64,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "prayer_glint_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              28,
+              0.045
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              58,
+              0.045
+            ],
+            [
+              64,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              28,
+              0.045
+            ],
+            [
+              50,
+              0.045
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "robe_6",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              7
+            ],
+            [
+              50,
+              7
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "robe_7",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              -7
+            ],
+            [
+              50,
+              -7
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    },
+    "chant": {
+      "loop": false,
+      "frames": 64,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "torso",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.43
+            ],
+            [
+              12,
+              -0.43
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              64,
+              -0.43
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "torso",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -23
+            ],
+            [
+              12,
+              -23
+            ],
+            [
+              30,
+              3
+            ],
+            [
+              50,
+              3
+            ],
+            [
+              64,
+              -23
+            ]
+          ]
+        },
+        {
+          "group": "mask",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -12
+            ],
+            [
+              28,
+              8
+            ],
+            [
+              50,
+              8
+            ],
+            [
+              64,
+              -12
+            ]
+          ]
+        },
+        {
+          "group": "arm_free",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              68
+            ],
+            [
+              44,
+              78
+            ],
+            [
+              52,
+              65
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_staff",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              15
+            ],
+            [
+              48,
+              15
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "robe_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              -9
+            ],
+            [
+              50,
+              -9
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "robe_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              9
+            ],
+            [
+              50,
+              9
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "robe_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              -9
+            ],
+            [
+              50,
+              -9
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "robe_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              9
+            ],
+            [
+              50,
+              9
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "robe_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              -9
+            ],
+            [
+              50,
+              -9
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "robe_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              9
+            ],
+            [
+              50,
+              9
+            ],
+            [
+              64,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "prayer_glint_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              24,
+              0.045
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              58,
+              0.045
+            ],
+            [
+              64,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "prayer_glint_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              26,
+              0.045
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              58,
+              0.045
+            ],
+            [
+              64,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "prayer_glint_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              28,
+              0.045
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              58,
+              0.045
+            ],
+            [
+              64,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              28,
+              0.045
+            ],
+            [
+              50,
+              0.045
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "robe_6",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              7
+            ],
+            [
+              50,
+              7
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "robe_7",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              30,
+              -7
+            ],
+            [
+              50,
+              -7
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 60,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "torso",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.43
+            ],
+            [
+              20,
+              -0.48
+            ],
+            [
+              50,
+              -0.5
+            ],
+            [
+              60,
+              -0.5
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "torso",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -23
+            ],
+            [
+              30,
+              -37
+            ],
+            [
+              50,
+              -74
+            ],
+            [
+              60,
+              -74
+            ]
+          ]
+        },
+        {
+          "group": "mask",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -12
+            ],
+            [
+              36,
+              -36
+            ],
+            [
+              60,
+              -80
+            ]
+          ]
+        },
+        {
+          "group": "arm_staff",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              36,
+              22
+            ],
+            [
+              60,
+              48
+            ]
+          ]
+        },
+        {
+          "group": "staff",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              54,
+              -88
+            ],
+            [
+              60,
+              -88
+            ]
+          ]
+        },
+        {
+          "group": "prayer_glint_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              60,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "prayer_glint_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              60,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "prayer_glint_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              60,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "torso",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "lower_husk",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "robe_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              38,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "rust_debris_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              54,
+              -0.48
+            ],
+            [
+              60,
+              -0.48
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "rust_debris_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              54,
+              0.29
+            ],
+            [
+              60,
+              0.29
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "rust_debris_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              54,
+              65
+            ],
+            [
+              60,
+              65
+            ]
+          ]
+        },
+        {
+          "group": "robe_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "rust_debris_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              54,
+              -0.64
+            ],
+            [
+              60,
+              -0.64
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "rust_debris_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              54,
+              -0.29
+            ],
+            [
+              60,
+              -0.29
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "rust_debris_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              54,
+              -65
+            ],
+            [
+              60,
+              -65
+            ]
+          ]
+        },
+        {
+          "group": "robe_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "rust_debris_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              54,
+              -0.8
+            ],
+            [
+              60,
+              -0.8
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "rust_debris_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              54,
+              0.29
+            ],
+            [
+              60,
+              0.29
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "rust_debris_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              54,
+              65
+            ],
+            [
+              60,
+              65
+            ]
+          ]
+        },
+        {
+          "group": "robe_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "rust_debris_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              54,
+              -0.48
+            ],
+            [
+              60,
+              -0.48
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "rust_debris_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              54,
+              -0.29
+            ],
+            [
+              60,
+              -0.29
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "rust_debris_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              54,
+              -65
+            ],
+            [
+              60,
+              -65
+            ]
+          ]
+        },
+        {
+          "group": "robe_4",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "rust_debris_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              54,
+              -0.64
+            ],
+            [
+              60,
+              -0.64
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "rust_debris_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              54,
+              0.29
+            ],
+            [
+              60,
+              0.29
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "rust_debris_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              54,
+              65
+            ],
+            [
+              60,
+              65
+            ]
+          ]
+        },
+        {
+          "group": "robe_5",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              48,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "rust_debris_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              27,
+              0
+            ],
+            [
+              54,
+              -0.8
+            ],
+            [
+              60,
+              -0.8
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "rust_debris_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              27,
+              0
+            ],
+            [
+              54,
+              -0.29
+            ],
+            [
+              60,
+              -0.29
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "rust_debris_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              27,
+              0
+            ],
+            [
+              54,
+              -65
+            ],
+            [
+              60,
+              -65
+            ]
+          ]
+        },
+        {
+          "group": "robe_6",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "rust_debris_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              54,
+              -0.48
+            ],
+            [
+              60,
+              -0.48
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "rust_debris_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              54,
+              0.29
+            ],
+            [
+              60,
+              0.29
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "rust_debris_6",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              54,
+              65
+            ],
+            [
+              60,
+              65
+            ]
+          ]
+        },
+        {
+          "group": "robe_7",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "rust_debris_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              54,
+              -0.64
+            ],
+            [
+              60,
+              -0.64
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "rust_debris_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              54,
+              -0.29
+            ],
+            [
+              60,
+              -0.29
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "rust_debris_7",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              54,
+              -65
+            ],
+            [
+              60,
+              -65
+            ]
+          ]
+        },
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0.05
+            ],
+            [
+              40,
+              0.05
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "robe_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              36,
+              -28
+            ],
+            [
+              60,
+              -48
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              52,
+              -0.14
+            ],
+            [
+              60,
+              -0.14
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "robe_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              36,
+              28
+            ],
+            [
+              60,
+              48
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              52,
+              0.14
+            ],
+            [
+              60,
+              0.14
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "robe_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              36,
+              -28
+            ],
+            [
+              60,
+              -48
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              52,
+              -0.14
+            ],
+            [
+              60,
+              -0.14
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "robe_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              36,
+              28
+            ],
+            [
+              60,
+              48
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              52,
+              0.14
+            ],
+            [
+              60,
+              0.14
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "robe_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              36,
+              -28
+            ],
+            [
+              60,
+              -48
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              52,
+              -0.14
+            ],
+            [
+              60,
+              -0.14
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "robe_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              36,
+              28
+            ],
+            [
+              60,
+              48
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              52,
+              0.14
+            ],
+            [
+              60,
+              0.14
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "robe_6",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              36,
+              28
+            ],
+            [
+              60,
+              48
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "robe_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              52,
+              0.14
+            ],
+            [
+              60,
+              0.14
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "robe_7",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              36,
+              -28
+            ],
+            [
+              60,
+              -48
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "robe_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              52,
+              -0.14
+            ],
+            [
+              60,
+              -0.14
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 44,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "root",
+          "channel": "translate",
+          "keys": [
+            [
+              0.0,
+              0.005523674259197605
+            ],
+            [
+              0.5,
+              0.005523674259197605
+            ],
+            [
+              1.0,
+              0.005523674259197605
+            ],
+            [
+              1.5,
+              0.005523674259197605
+            ],
+            [
+              2.0,
+              0.005523674259197605
+            ],
+            [
+              2.5,
+              0.005523674259197605
+            ],
+            [
+              3.0,
+              0.005523674259197605
+            ],
+            [
+              3.5,
+              0.005523674259197605
+            ],
+            [
+              4.0,
+              0.005523674259197605
+            ],
+            [
+              4.5,
+              0.005523674259197605
+            ],
+            [
+              5.0,
+              0.005523674259197605
+            ],
+            [
+              5.5,
+              0.005523674259197605
+            ],
+            [
+              6.0,
+              0.005523674259197605
+            ],
+            [
+              6.5,
+              0.005523674259197605
+            ],
+            [
+              7.0,
+              0.005523674259197605
+            ],
+            [
+              7.5,
+              0.005523674259197605
+            ],
+            [
+              8.0,
+              0.005523674259197605
+            ],
+            [
+              8.5,
+              0.005523674259197605
+            ],
+            [
+              9.0,
+              0.005523674259197605
+            ],
+            [
+              9.5,
+              0.005523674259197605
+            ],
+            [
+              10.0,
+              0.005523674259197605
+            ],
+            [
+              10.5,
+              0.005523674259197605
+            ],
+            [
+              11.0,
+              0.005523674259197605
+            ],
+            [
+              11.5,
+              0.005523674259197605
+            ],
+            [
+              12.0,
+              0.005523674259197605
+            ],
+            [
+              12.5,
+              0.005523674259197605
+            ],
+            [
+              13.0,
+              0.005523674259197605
+            ],
+            [
+              13.5,
+              0.005523674259197605
+            ],
+            [
+              14.0,
+              0.005523674259197605
+            ],
+            [
+              14.5,
+              0.005153972965347356
+            ],
+            [
+              15.0,
+              0.004780257127775375
+            ],
+            [
+              15.5,
+              0.004402545534508367
+            ],
+            [
+              16.0,
+              0.004020857174453793
+            ],
+            [
+              16.5,
+              0.003635211236445368
+            ],
+            [
+              17.0,
+              0.003245627108278337
+            ],
+            [
+              17.5,
+              0.0028521243757348765
+            ],
+            [
+              18.0,
+              0.0024547228215992725
+            ],
+            [
+              18.5,
+              0.0020534424246635066
+            ],
+            [
+              19.0,
+              0.0016483033587227826
+            ],
+            [
+              19.5,
+              0.0012393259915613932
+            ],
+            [
+              20.0,
+              0.0008265308839286358
+            ],
+            [
+              20.5,
+              0.0004099387885052996
+            ],
+            [
+              21.0,
+              0
+            ],
+            [
+              21.5,
+              0
+            ],
+            [
+              22.0,
+              0
+            ],
+            [
+              22.5,
+              0
+            ],
+            [
+              23.0,
+              0
+            ],
+            [
+              23.5,
+              0
+            ],
+            [
+              24.0,
+              0
+            ],
+            [
+              24.5,
+              0
+            ],
+            [
+              25.0,
+              0.00038018389490545457
+            ],
+            [
+              25.5,
+              0.00048041545957504614
+            ],
+            [
+              26.0,
+              0.0005612099741030196
+            ],
+            [
+              26.5,
+              0.0006225662753804612
+            ],
+            [
+              27.0,
+              0.0006644834801283889
+            ],
+            [
+              27.5,
+              0.0006869609849111981
+            ],
+            [
+              28.0,
+              0.0006899984661457295
+            ],
+            [
+              28.5,
+              0.0006735958801045434
+            ],
+            [
+              29.0,
+              0.0006377534629169986
+            ],
+            [
+              29.5,
+              0.0005824717305674644
+            ],
+            [
+              30.0,
+              0.0005077514788848728
+            ],
+            [
+              30.5,
+              0.00041359378353450206
+            ],
+            [
+              31.0,
+              0.0004100287892267385
+            ],
+            [
+              31.5,
+              0.0004959684250508975
+            ],
+            [
+              32.0,
+              0.0005534252015206038
+            ],
+            [
+              32.5,
+              0.0005823979065649066
+            ],
+            [
+              33.0,
+              0.0005828859289947917
+            ],
+            [
+              33.5,
+              0.000554889258515399
+            ],
+            [
+              34.0,
+              0.0004984084857256243
+            ],
+            [
+              34.5,
+              0.0004134448021073537
+            ],
+            [
+              35.0,
+              0
+            ],
+            [
+              35.5,
+              0.00030352701173787597
+            ],
+            [
+              36.0,
+              0
+            ],
+            [
+              36.5,
+              0
+            ],
+            [
+              37.0,
+              0
+            ],
+            [
+              37.5,
+              0
+            ],
+            [
+              38.0,
+              0
+            ],
+            [
+              38.5,
+              0
+            ],
+            [
+              39.0,
+              0
+            ],
+            [
+              39.5,
+              0
+            ],
+            [
+              40.0,
+              0
+            ],
+            [
+              40.5,
+              0
+            ],
+            [
+              41.0,
+              0
+            ],
+            [
+              41.5,
+              0
+            ],
+            [
+              42.0,
+              0
+            ],
+            [
+              42.5,
+              0
+            ],
+            [
+              43.0,
+              0
+            ],
+            [
+              43.5,
+              0
+            ],
+            [
+              44.0,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "torso",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.54
+            ],
+            [
+              12,
+              -0.54
+            ],
+            [
+              30,
+              -0.4
+            ],
+            [
+              44,
+              -0.43
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "torso",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -40
+            ],
+            [
+              12,
+              -40
+            ],
+            [
+              30,
+              -20
+            ],
+            [
+              44,
+              -23
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "mask",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -28
+            ],
+            [
+              18,
+              -28
+            ],
+            [
+              34,
+              -8
+            ],
+            [
+              44,
+              -12
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_free",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              28
+            ],
+            [
+              18,
+              28
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "staff",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -10
+            ],
+            [
+              14,
+              -10
+            ],
+            [
+              30,
+              3
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -10
+            ],
+            [
+              6,
+              -10
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "rust_debris_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              26
+            ],
+            [
+              10,
+              26
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              10
+            ],
+            [
+              8,
+              10
+            ],
+            [
+              31,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "rust_debris_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -26
+            ],
+            [
+              11,
+              -26
+            ],
+            [
+              35,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -10
+            ],
+            [
+              10,
+              -10
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "rust_debris_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              26
+            ],
+            [
+              12,
+              26
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              10
+            ],
+            [
+              12,
+              10
+            ],
+            [
+              33,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "rust_debris_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -26
+            ],
+            [
+              13,
+              -26
+            ],
+            [
+              37,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -10
+            ],
+            [
+              14,
+              -10
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "rust_debris_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              26
+            ],
+            [
+              14,
+              26
+            ],
+            [
+              38,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              10
+            ],
+            [
+              16,
+              10
+            ],
+            [
+              35,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "rust_debris_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -26
+            ],
+            [
+              15,
+              -26
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_6",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              10
+            ],
+            [
+              18,
+              10
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "rust_debris_6",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              26
+            ],
+            [
+              16,
+              26
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "robe_7",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -10
+            ],
+            [
+              20,
+              -10
+            ],
+            [
+              37,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "rust_debris_7",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -26
+            ],
+            [
+              17,
+              -26
+            ],
+            [
+              41,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "prayer_glint_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              44,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "prayer_glint_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              44,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "prayer_glint_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045
+            ],
+            [
+              44,
+              0.045
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "idle": [
+      [
+        0,
+        2
+      ],
+      [
+        48,
+        2
+      ]
+    ],
+    "attack": [
+      [
+        0,
+        2
+      ],
+      [
+        28,
+        1
+      ],
+      [
+        52,
+        2
+      ],
+      [
+        64,
+        2
+      ]
+    ],
+    "death": [
+      [
+        0,
+        2
+      ],
+      [
+        60,
+        2
+      ]
+    ],
+    "walk": [
+      [
+        0,
+        2
+      ],
+      [
+        16,
+        2
+      ]
+    ],
+    "chant": [
+      [
+        0,
+        2
+      ],
+      [
+        28,
+        1
+      ],
+      [
+        52,
+        2
+      ],
+      [
+        64,
+        2
+      ]
+    ],
+    "spawn": [
+      [
+        0,
+        2
+      ],
+      [
+        44,
+        2
+      ]
+    ]
+  },
+  "emissive_groups": [
+    "prayer_glint_0__glow",
+    "prayer_glint_1__glow",
+    "prayer_glint_2__glow"
+  ],
+  "emissive_uv_offsets": {
+    "corelight__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.0390625
+      ],
+      [
+        0,
+        -0.078125
+      ]
+    ]
+  },
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T1",
+    "size": 128,
+    "budget": 2600,
+    "density": 24.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 2.5,
+    "fit_axis": 1,
+    "emissive_limit": 0.04,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}

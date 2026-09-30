@@ -38,6 +38,7 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
         0x6ECCCE };
     private EntitySilentKing target;
     private ThroneMusic music;
+    private final EchoBossOverlay echoOverlay = new EchoBossOverlay();
 
     public static void register() {
         Minecraft mc = Minecraft.getMinecraft();
@@ -51,6 +52,9 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
         RenderingRegistry.registerEntityRenderingHandler(
             EntityResidualOathguard.class,
             new EncounterEntityRenderer(repository, "dr-09"));
+        RenderingRegistry.registerEntityRenderingHandler(
+            com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho.class,
+            new EchoEntityRenderer(repository));
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySealedChest.class, new SealedChestRenderer());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityUnsealedChest.class, new UnsealedChestRenderer());
         MinecraftForge.EVENT_BUS.register(owner);
@@ -99,8 +103,18 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
 
     @SubscribeEvent
     public void overlay(RenderGameOverlayEvent.Post event) {
-        if (event.type != RenderGameOverlayEvent.ElementType.ALL
-            || (target == null && !EncounterSignals.progressActive())) return;
+        if (event.type != RenderGameOverlayEvent.ElementType.ALL) return;
+        Minecraft context = Minecraft.getMinecraft();
+        if (target == null && context.theWorld != null
+            && context.thePlayer != null
+            && context.theWorld.provider instanceof WorldProviderProsperityRuins) {
+            com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho echo = EchoBossOverlay.nearest(context);
+            if (echo != null) {
+                echoOverlay.draw(event, echo);
+                return;
+            }
+        }
+        if (target == null && !EncounterSignals.progressActive()) return;
         Minecraft mc = Minecraft.getMinecraft();
         float health = target == null ? 0 : Math.max(0, Math.min(EntitySilentKing.MAX_HEALTH, target.getHealth()));
         int layers = (int) Math.ceil(health / 100.0F);

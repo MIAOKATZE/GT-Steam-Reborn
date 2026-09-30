@@ -1,0 +1,5736 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DI-10",
+  "name": "镜铠卫",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 2.13935933112,
+    "h": 4.5,
+    "d": 1.3531313131312002
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        -0.3017893069383954,
+        2.4444444444444446,
+        0.42651515151515157
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "torso",
+      "parent": "body",
+      "pivot": [
+        -0.3017893069383954,
+        2.5252525252525255,
+        0.4366161616161617
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_breast_left",
+      "parent": "torso",
+      "pivot": [
+        -0.029062034211122613,
+        3.171717171717172,
+        0.1436868686868687
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_breast_right",
+      "parent": "torso",
+      "pivot": [
+        -0.5745165796656682,
+        3.151515151515152,
+        0.1436868686868687
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_lower_breast",
+      "parent": "torso",
+      "pivot": [
+        -0.3017893069383954,
+        2.7272727272727275,
+        0.16388888888888892
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_upper_back",
+      "parent": "torso",
+      "pivot": [
+        -0.3017893069383954,
+        3.2121212121212124,
+        0.769949494949495
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_back_waist",
+      "parent": "torso",
+      "pivot": [
+        -0.3017893069383954,
+        2.777777777777778,
+        0.7295454545454546
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_collar",
+      "parent": "torso",
+      "pivot": [
+        -0.3017893069383954,
+        3.6262626262626263,
+        0.40126262626262627
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_hip_-1",
+      "parent": "body",
+      "pivot": [
+        -0.6957287008777894,
+        2.2020202020202024,
+        0.2547979797979798
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_-1",
+      "parent": "body",
+      "pivot": [
+        -0.5795670847161732,
+        2.141414141414142,
+        0.4517676767676768
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shin_-1",
+      "parent": "leg_-1",
+      "pivot": [
+        -0.5947185998676884,
+        1.2525252525252526,
+        0.3861111111111112
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_leg_-1_thigh",
+      "parent": "leg_-1",
+      "pivot": [
+        -0.5947185998676884,
+        1.7171717171717171,
+        0.35580808080808085
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_leg_-1_knee",
+      "parent": "shin_-1",
+      "pivot": [
+        -0.5947185998676884,
+        1.2323232323232323,
+        0.22449494949494953
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shin_-1_front",
+      "parent": "shin_-1",
+      "pivot": [
+        -0.6048196099686984,
+        0.787878787878788,
+        0.31540404040404046
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shin_-1_boot",
+      "parent": "shin_-1",
+      "pivot": [
+        -0.6048196099686984,
+        0.20202020202020204,
+        0.23459595959595964
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_hip_1",
+      "parent": "body",
+      "pivot": [
+        0.0921500870009986,
+        2.2020202020202024,
+        0.2547979797979798
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_1",
+      "parent": "body",
+      "pivot": [
+        -0.024011529160617558,
+        2.141414141414142,
+        0.4517676767676768
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shin_1",
+      "parent": "leg_1",
+      "pivot": [
+        -0.008860014009102449,
+        1.2525252525252526,
+        0.3861111111111112
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_leg_1_thigh",
+      "parent": "leg_1",
+      "pivot": [
+        -0.008860014009102449,
+        1.7171717171717171,
+        0.35580808080808085
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_leg_1_knee",
+      "parent": "shin_1",
+      "pivot": [
+        -0.008860014009102449,
+        1.2323232323232323,
+        0.22449494949494953
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shin_1_front",
+      "parent": "shin_1",
+      "pivot": [
+        0.0012409960919076615,
+        0.787878787878788,
+        0.31540404040404046
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shin_1_boot",
+      "parent": "shin_1",
+      "pivot": [
+        0.0012409960919076615,
+        0.20202020202020204,
+        0.23459595959595964
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "head",
+      "parent": "torso",
+      "pivot": [
+        -0.3017893069383954,
+        3.686868686868687,
+        0.4315656565656566
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_helmet_crown",
+      "parent": "head",
+      "pivot": [
+        -0.3017893069383954,
+        4.424242424242425,
+        0.46691919191919196
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_helmet_brow",
+      "parent": "head",
+      "pivot": [
+        -0.3017893069383954,
+        4.212121212121212,
+        0.14166666666666672
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_helmet_cheek",
+      "parent": "head",
+      "pivot": [
+        -0.3017893069383954,
+        3.9242424242424243,
+        0.14166666666666672
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_helmet_side_-1",
+      "parent": "head",
+      "pivot": [
+        -0.6472438523929409,
+        4.080808080808081,
+        0.4517676767676768
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_helmet_side_1",
+      "parent": "head",
+      "pivot": [
+        0.043665238516150125,
+        4.080808080808081,
+        0.4517676767676768
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_-1",
+      "parent": "torso",
+      "pivot": [
+        -0.9381529433020318,
+        3.5252525252525255,
+        0.46691919191919196
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "forearm_-1",
+      "parent": "arm_-1",
+      "pivot": [
+        -1.160375165524254,
+        2.97979797979798,
+        0.41641414141414146
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_arm_-1_pauldron",
+      "parent": "arm_-1",
+      "pivot": [
+        -1.0492640544131429,
+        3.4949494949494953,
+        0.4416666666666667
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_arm_-1_bicep",
+      "parent": "arm_-1",
+      "pivot": [
+        -1.1300721352212235,
+        3.181818181818182,
+        0.35075757575757577
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_forearm_-1_brace",
+      "parent": "forearm_-1",
+      "pivot": [
+        -1.1502741554232438,
+        2.7272727272727275,
+        0.3255050505050506
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_1",
+      "parent": "torso",
+      "pivot": [
+        0.334574329425241,
+        3.5252525252525255,
+        0.46691919191919196
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "forearm_1",
+      "parent": "arm_1",
+      "pivot": [
+        0.5567965516474632,
+        2.97979797979798,
+        0.17398989898989903
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_arm_1_pauldron",
+      "parent": "arm_1",
+      "pivot": [
+        0.4456854405363521,
+        3.4949494949494953,
+        0.4416666666666667
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_arm_1_bicep",
+      "parent": "arm_1",
+      "pivot": [
+        0.526493521344433,
+        3.181818181818182,
+        0.35075757575757577
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_forearm_1_brace",
+      "parent": "forearm_1",
+      "pivot": [
+        0.5466955415464532,
+        2.7272727272727275,
+        -0.03813131313131314
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shield",
+      "parent": "forearm_1",
+      "pivot": [
+        0.5567965516474632,
+        2.6363636363636362,
+        -0.2906565656565656
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shield_facet_0_-1",
+      "parent": "shield",
+      "pivot": [
+        0.33255412740503915,
+        1.494949494949495,
+        -0.6643939393939395
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shield_facet_0_1",
+      "parent": "shield",
+      "pivot": [
+        0.9224531173040289,
+        1.494949494949495,
+        -0.6643939393939395
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shield_facet_1_-1",
+      "parent": "shield",
+      "pivot": [
+        0.33255412740503915,
+        2.116161616161616,
+        -0.6643939393939395
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shield_facet_1_1",
+      "parent": "shield",
+      "pivot": [
+        0.9224531173040289,
+        2.116161616161616,
+        -0.6643939393939395
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shield_facet_2_-1",
+      "parent": "shield",
+      "pivot": [
+        0.33255412740503915,
+        2.7373737373737375,
+        -0.6643939393939395
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shield_facet_2_1",
+      "parent": "shield",
+      "pivot": [
+        0.9224531173040289,
+        2.7373737373737375,
+        -0.6643939393939395
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shield_facet_3_-1",
+      "parent": "shield",
+      "pivot": [
+        0.33255412740503915,
+        3.358585858585859,
+        -0.6643939393939395
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shield_facet_3_1",
+      "parent": "shield",
+      "pivot": [
+        0.9224531173040289,
+        3.358585858585859,
+        -0.6643939393939395
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shield_cap",
+      "parent": "shield",
+      "pivot": [
+        0.627503622354534,
+        3.787878787878788,
+        -0.6593434343434343
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shine_shield_abstract_inlay",
+      "parent": "shield",
+      "pivot": [
+        0.627503622354534,
+        2.484848484848485,
+        -0.7654040404040404
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "parry_wave",
+      "parent": "shield",
+      "pivot": [
+        0.627503622354534,
+        1.3636363636363638,
+        -0.8058080808080809
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "head__glow",
+      "parent": "head",
+      "pivot": [
+        -0.3017893069383954,
+        3.686868686868687,
+        0.4315656565656566
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "walk": {
+      "loop": true,
+      "frames": 16,
+      "speed": 0.85,
+      "tracks": [
+        {
+          "group": "leg_-1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -13
+            ],
+            [
+              8,
+              13
+            ],
+            [
+              16,
+              -13
+            ]
+          ]
+        },
+        {
+          "group": "leg_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              13
+            ],
+            [
+              8,
+              -13
+            ],
+            [
+              16,
+              13
+            ]
+          ]
+        },
+        {
+          "group": "shin_-1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              13
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shin_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              12,
+              13
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              4,
+              0.06565656565656566
+            ],
+            [
+              8,
+              0.0
+            ],
+            [
+              12,
+              -0.06565656565656566
+            ],
+            [
+              16,
+              0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "torso",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -7
+            ],
+            [
+              8,
+              -11
+            ],
+            [
+              16,
+              -7
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "arm_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -12
+            ],
+            [
+              8,
+              -17
+            ],
+            [
+              16,
+              -12
+            ]
+          ]
+        },
+        {
+          "group": "parry_wave",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_breast_left",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_breast_right",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_lower_breast",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_upper_back",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_back_waist",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_collar",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_hip_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_-1_thigh",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_-1_knee",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_-1_front",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_-1_boot",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_hip_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_1_thigh",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_1_knee",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_1_front",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_1_boot",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_crown",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_brow",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_cheek",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_side_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_side_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_-1_pauldron",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_-1_bicep",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_forearm_-1_brace",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_1_pauldron",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_1_bicep",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_forearm_1_brace",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_0_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_0_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_1_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_1_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_2_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_2_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_3_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_3_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_cap",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_abstract_inlay",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        }
+      ]
+    },
+    "idle": {
+      "loop": true,
+      "frames": 40,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -7
+            ],
+            [
+              20,
+              7
+            ],
+            [
+              40,
+              -7
+            ]
+          ]
+        },
+        {
+          "group": "shield",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              3
+            ],
+            [
+              40,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "parry_wave",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_breast_left",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_breast_right",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_lower_breast",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_upper_back",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_back_waist",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_collar",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_hip_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_-1_thigh",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_-1_knee",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_-1_front",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_-1_boot",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_hip_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_1_thigh",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_1_knee",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_1_front",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_1_boot",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_crown",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_brow",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_cheek",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_side_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_side_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_-1_pauldron",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_-1_bicep",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_forearm_-1_brace",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_1_pauldron",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_1_bicep",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_forearm_1_brace",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_0_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_0_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_1_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_1_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_2_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_2_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_3_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_3_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_cap",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_abstract_inlay",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 26,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "torso",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              13
+            ],
+            [
+              12,
+              -17
+            ],
+            [
+              26,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "arm_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              12
+            ],
+            [
+              12,
+              -28
+            ],
+            [
+              18,
+              -28
+            ],
+            [
+              26,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shield",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              7,
+              0.07070707070707072
+            ],
+            [
+              12,
+              -0.30303030303030304
+            ],
+            [
+              18,
+              -0.30303030303030304
+            ],
+            [
+              26,
+              0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "forearm_-1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              -25
+            ],
+            [
+              13,
+              12
+            ],
+            [
+              26,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "parry_wave",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              26,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_breast_left",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_breast_right",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_lower_breast",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_upper_back",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_back_waist",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_collar",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_hip_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_-1_thigh",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_-1_knee",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_-1_front",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_-1_boot",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_hip_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_1_thigh",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_1_knee",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_1_front",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_1_boot",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_crown",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_brow",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_cheek",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_side_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_side_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_-1_pauldron",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_-1_bicep",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_forearm_-1_brace",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_1_pauldron",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_1_bicep",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_forearm_1_brace",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_0_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_0_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_1_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_1_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_2_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_2_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_3_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_3_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_cap",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_abstract_inlay",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shield",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              -12
+            ],
+            [
+              12,
+              28
+            ],
+            [
+              18,
+              28
+            ],
+            [
+              26,
+              0
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    },
+    "parry": {
+      "loop": false,
+      "frames": 28,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "arm_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              -15
+            ],
+            [
+              8,
+              -24
+            ],
+            [
+              18,
+              -24
+            ],
+            [
+              28,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shield",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              5,
+              13
+            ],
+            [
+              10,
+              -10
+            ],
+            [
+              18,
+              -10
+            ],
+            [
+              28,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "parry_wave",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              4,
+              0.0
+            ],
+            [
+              16,
+              2.282828282828283
+            ],
+            [
+              20,
+              2.282828282828283
+            ],
+            [
+              28,
+              0.0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parry_wave",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              1
+            ],
+            [
+              17,
+              0
+            ],
+            [
+              28,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -4
+            ],
+            [
+              12,
+              3
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_breast_left",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_breast_right",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_lower_breast",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_upper_back",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_back_waist",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_collar",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_hip_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_-1_thigh",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_-1_knee",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_-1_front",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_-1_boot",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_hip_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_1_thigh",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_1_knee",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_1_front",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_1_boot",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_crown",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_brow",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_cheek",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_side_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_side_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_-1_pauldron",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_-1_bicep",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_forearm_-1_brace",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_1_pauldron",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_1_bicep",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_forearm_1_brace",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_0_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_0_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_1_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_1_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_2_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_2_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_3_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_3_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_cap",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_abstract_inlay",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shield",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              15
+            ],
+            [
+              8,
+              24
+            ],
+            [
+              18,
+              24
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 52,
+      "speed": 0.85,
+      "tracks": [
+        {
+          "group": "torso",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              52,
+              -8
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              52,
+              18
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_-1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              52,
+              19
+            ]
+          ]
+        },
+        {
+          "group": "shine_breast_left",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              5,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_breast_right",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_lower_breast",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              11,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_upper_back",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_back_waist",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              17,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_collar",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_hip_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_-1_thigh",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_-1_knee",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_-1_front",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_-1_boot",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              35,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_hip_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              38,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_1_thigh",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              41,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_1_knee",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              6,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_1_front",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              9,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_1_boot",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_crown",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_brow",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_cheek",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_side_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_side_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              27,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_-1_pauldron",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_-1_bicep",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              33,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_forearm_-1_brace",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_1_pauldron",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_1_bicep",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_forearm_1_brace",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_0_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_0_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_1_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_1_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_2_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_2_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_3_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_3_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              31,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_cap",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_abstract_inlay",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              37,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "parry_wave",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 42,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              18
+            ],
+            [
+              12,
+              18
+            ],
+            [
+              26,
+              -3
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "shield",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              17
+            ],
+            [
+              10,
+              17
+            ],
+            [
+              25,
+              -5
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "shield",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.23
+            ],
+            [
+              14,
+              -0.23
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "forearm_-1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -20
+            ],
+            [
+              18,
+              -20
+            ],
+            [
+              31,
+              4
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "parry_wave",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              1
+            ],
+            [
+              35,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "parry_wave",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              35,
+              2.22
+            ],
+            [
+              42,
+              2.22
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "shine_breast_left",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              3,
+              -0.075
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_breast_left",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_breast_right",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              5,
+              -0.075
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_breast_right",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_lower_breast",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              7,
+              -0.075
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_lower_breast",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_upper_back",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              9,
+              -0.075
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_upper_back",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_back_waist",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              11,
+              -0.075
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_back_waist",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_collar",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              3,
+              -0.075
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_collar",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_hip_-1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              5,
+              -0.075
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_hip_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_-1_thigh",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              7,
+              -0.075
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_leg_-1_thigh",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_-1_knee",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              9,
+              -0.075
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_leg_-1_knee",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_-1_front",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              11,
+              -0.075
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shin_-1_front",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_-1_boot",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              3,
+              -0.075
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shin_-1_boot",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_hip_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              5,
+              -0.075
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_hip_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_1_thigh",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              7,
+              -0.075
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_leg_1_thigh",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_leg_1_knee",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              9,
+              -0.075
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_leg_1_knee",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_1_front",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              11,
+              -0.075
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shin_1_front",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shin_1_boot",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              3,
+              -0.075
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shin_1_boot",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_crown",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              5,
+              -0.075
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_helmet_crown",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_brow",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              7,
+              -0.075
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_helmet_brow",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_cheek",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              9,
+              -0.075
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_helmet_cheek",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_side_-1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              11,
+              -0.075
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_helmet_side_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_helmet_side_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              3,
+              -0.075
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_helmet_side_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_-1_pauldron",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              5,
+              -0.075
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_arm_-1_pauldron",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_-1_bicep",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              7,
+              -0.075
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_arm_-1_bicep",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_forearm_-1_brace",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              9,
+              -0.075
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_forearm_-1_brace",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_1_pauldron",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              11,
+              -0.075
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_arm_1_pauldron",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_arm_1_bicep",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              3,
+              -0.075
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_arm_1_bicep",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_forearm_1_brace",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              5,
+              -0.075
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_forearm_1_brace",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_0_-1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              7,
+              -0.075
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shield_facet_0_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_0_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              9,
+              -0.075
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shield_facet_0_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_1_-1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              11,
+              -0.075
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shield_facet_1_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_1_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              3,
+              -0.075
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shield_facet_1_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_2_-1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              5,
+              -0.075
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shield_facet_2_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_2_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              7,
+              -0.075
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shield_facet_2_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_3_-1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              9,
+              -0.075
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shield_facet_3_-1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_facet_3_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              11,
+              -0.075
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shield_facet_3_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_cap",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              3,
+              -0.075
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shield_cap",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shine_shield_abstract_inlay",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.075
+            ],
+            [
+              5,
+              -0.075
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              42,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "shine_shield_abstract_inlay",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              1
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "idle": [
+      [
+        0,
+        0
+      ],
+      [
+        20.0,
+        1
+      ],
+      [
+        40,
+        0
+      ]
+    ],
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        13.0,
+        1
+      ],
+      [
+        26,
+        0
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        14,
+        2
+      ],
+      [
+        52,
+        2
+      ]
+    ],
+    "spawn": [
+      [
+        0,
+        2
+      ],
+      [
+        20,
+        0
+      ],
+      [
+        27,
+        1
+      ],
+      [
+        35,
+        0
+      ],
+      [
+        42,
+        0
+      ]
+    ]
+  },
+  "emissive_groups": [
+    "head__glow"
+  ],
+  "emissive_uv_offsets": {
+    "eye__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.03515625
+      ],
+      [
+        0,
+        -0.0703125
+      ]
+    ]
+  },
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T2",
+    "size": 256,
+    "budget": 4200,
+    "density": 12.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 4.5,
+    "fit_axis": 1,
+    "emissive_limit": 0.04,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}

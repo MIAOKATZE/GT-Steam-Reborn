@@ -1,0 +1,2172 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DR-12",
+  "name": "灰烬使徒",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 1.4767212934576,
+    "h": 2.5,
+    "d": 0.4352204045408001
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        0.0,
+        0.0,
+        0.03487342985107706
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "chest_l",
+      "parent": "body",
+      "pivot": [
+        -0.2510886949277548,
+        1.2275447307579124,
+        0.05347259243831816
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "chest_r",
+      "parent": "body",
+      "pivot": [
+        0.2510886949277548,
+        1.2275447307579124,
+        0.05347259243831816
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "head",
+      "parent": "body",
+      "pivot": [
+        0.0,
+        1.8785154213113506,
+        0.03487342985107706
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "crown",
+      "parent": "head",
+      "pivot": [
+        0.0,
+        2.2318995104689314,
+        0.05347259243831816
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_l",
+      "parent": "body",
+      "pivot": [
+        -0.17669204457879042,
+        0.9764560358301576,
+        0.03487342985107706
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_l_foot",
+      "parent": "leg_l",
+      "pivot": [
+        -0.18599162587241097,
+        0.22318995104689315,
+        0.016274267263835962
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_l",
+      "parent": "body",
+      "pivot": [
+        -0.39988199562568355,
+        1.766920445787904,
+        0.03487342985107706
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "palm_l",
+      "parent": "arm_l",
+      "pivot": [
+        -0.6416711092598177,
+        1.1810468242898096,
+        -0.16041777731495444
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_r",
+      "parent": "body",
+      "pivot": [
+        0.17669204457879042,
+        0.9764560358301576,
+        0.03487342985107706
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_r_foot",
+      "parent": "leg_r",
+      "pivot": [
+        0.18599162587241097,
+        0.22318995104689315,
+        0.016274267263835962
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_r",
+      "parent": "body",
+      "pivot": [
+        0.39988199562568355,
+        1.766920445787904,
+        0.03487342985107706
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "palm_r",
+      "parent": "arm_r",
+      "pivot": [
+        0.6416711092598177,
+        1.1810468242898096,
+        -0.16041777731495444
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "grub_cluster_1",
+      "parent": "root",
+      "pivot": [
+        -0.1301941381106877,
+        1.4507346818048055,
+        0.03952322049788733
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "grub_cluster_2",
+      "parent": "root",
+      "pivot": [
+        0.0,
+        1.4507346818048055,
+        0.03952322049788733
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "grub_cluster_3",
+      "parent": "root",
+      "pivot": [
+        0.1301941381106877,
+        1.4507346818048055,
+        0.03952322049788733
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "ember_spine",
+      "parent": "body",
+      "pivot": [
+        0.0,
+        0.0,
+        0.03487342985107706
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "ember_spine__glow",
+      "parent": "ember_spine",
+      "pivot": [
+        0.0,
+        0.0,
+        0.03487342985107706
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "chest_l__glow",
+      "parent": "chest_l",
+      "pivot": [
+        -0.2510886949277548,
+        1.2275447307579124,
+        0.05347259243831816
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "chest_r__glow",
+      "parent": "chest_r",
+      "pivot": [
+        0.2510886949277548,
+        1.2275447307579124,
+        0.05347259243831816
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "walk": {
+      "loop": true,
+      "frames": 16,
+      "speed": 0.65,
+      "tracks": [
+        {
+          "group": "leg_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -11
+            ],
+            [
+              8,
+              11
+            ],
+            [
+              16,
+              -11
+            ]
+          ]
+        },
+        {
+          "group": "leg_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              11
+            ],
+            [
+              8,
+              -11
+            ],
+            [
+              16,
+              11
+            ]
+          ]
+        },
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              2
+            ],
+            [
+              8,
+              -2
+            ],
+            [
+              16,
+              2
+            ]
+          ]
+        },
+        {
+          "group": "arm_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              2
+            ],
+            [
+              8,
+              -3
+            ],
+            [
+              16,
+              2
+            ]
+          ]
+        },
+        {
+          "group": "arm_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -2
+            ],
+            [
+              8,
+              3
+            ],
+            [
+              16,
+              -2
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 36,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              -8
+            ],
+            [
+              18,
+              5
+            ],
+            [
+              36,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "grub_cluster_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              40
+            ],
+            [
+              18,
+              55
+            ],
+            [
+              22,
+              55
+            ],
+            [
+              36,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              -8
+            ],
+            [
+              18,
+              37
+            ],
+            [
+              22,
+              37
+            ],
+            [
+              36,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "palm_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              -30
+            ],
+            [
+              18,
+              -75
+            ],
+            [
+              22,
+              -75
+            ],
+            [
+              36,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "arm_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              40
+            ],
+            [
+              18,
+              55
+            ],
+            [
+              22,
+              55
+            ],
+            [
+              36,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              8
+            ],
+            [
+              18,
+              -37
+            ],
+            [
+              22,
+              -37
+            ],
+            [
+              36,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "palm_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              30
+            ],
+            [
+              18,
+              75
+            ],
+            [
+              22,
+              75
+            ],
+            [
+              36,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 40,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "root",
+          "channel": "translate",
+          "keys": [
+            [
+              0.0,
+              0
+            ],
+            [
+              0.5,
+              0
+            ],
+            [
+              1.0,
+              0
+            ],
+            [
+              1.5,
+              0
+            ],
+            [
+              2.0,
+              0
+            ],
+            [
+              2.5,
+              0
+            ],
+            [
+              3.0,
+              0
+            ],
+            [
+              3.5,
+              0
+            ],
+            [
+              4.0,
+              0
+            ],
+            [
+              4.5,
+              0
+            ],
+            [
+              5.0,
+              0
+            ],
+            [
+              5.5,
+              0
+            ],
+            [
+              6.0,
+              0
+            ],
+            [
+              6.5,
+              0
+            ],
+            [
+              7.0,
+              0
+            ],
+            [
+              7.5,
+              0
+            ],
+            [
+              8.0,
+              0
+            ],
+            [
+              8.5,
+              0
+            ],
+            [
+              9.0,
+              0
+            ],
+            [
+              9.5,
+              0
+            ],
+            [
+              10.0,
+              0
+            ],
+            [
+              10.5,
+              0
+            ],
+            [
+              11.0,
+              0
+            ],
+            [
+              11.5,
+              0
+            ],
+            [
+              12.0,
+              0
+            ],
+            [
+              12.5,
+              0
+            ],
+            [
+              13.0,
+              0
+            ],
+            [
+              13.5,
+              0
+            ],
+            [
+              14.0,
+              0
+            ],
+            [
+              14.5,
+              0
+            ],
+            [
+              15.0,
+              0
+            ],
+            [
+              15.5,
+              0
+            ],
+            [
+              16.0,
+              0
+            ],
+            [
+              16.5,
+              0
+            ],
+            [
+              17.0,
+              0
+            ],
+            [
+              17.5,
+              0
+            ],
+            [
+              18.0,
+              0
+            ],
+            [
+              18.5,
+              0
+            ],
+            [
+              19.0,
+              0
+            ],
+            [
+              19.5,
+              0
+            ],
+            [
+              20.0,
+              0
+            ],
+            [
+              20.5,
+              0
+            ],
+            [
+              21.0,
+              0
+            ],
+            [
+              21.5,
+              0
+            ],
+            [
+              22.0,
+              0
+            ],
+            [
+              22.5,
+              0
+            ],
+            [
+              23.0,
+              0
+            ],
+            [
+              23.5,
+              0
+            ],
+            [
+              24.0,
+              0
+            ],
+            [
+              24.5,
+              0
+            ],
+            [
+              25.0,
+              0
+            ],
+            [
+              25.5,
+              0
+            ],
+            [
+              26.0,
+              0
+            ],
+            [
+              26.5,
+              0
+            ],
+            [
+              27.0,
+              0
+            ],
+            [
+              27.5,
+              0
+            ],
+            [
+              28.0,
+              0
+            ],
+            [
+              28.5,
+              0
+            ],
+            [
+              29.0,
+              0
+            ],
+            [
+              29.5,
+              0
+            ],
+            [
+              30.0,
+              0
+            ],
+            [
+              30.5,
+              0
+            ],
+            [
+              31.0,
+              0
+            ],
+            [
+              31.5,
+              0
+            ],
+            [
+              32.0,
+              0
+            ],
+            [
+              32.5,
+              0
+            ],
+            [
+              33.0,
+              0
+            ],
+            [
+              33.5,
+              0
+            ],
+            [
+              34.0,
+              0
+            ],
+            [
+              34.5,
+              0
+            ],
+            [
+              35.0,
+              0
+            ],
+            [
+              35.5,
+              0
+            ],
+            [
+              36.0,
+              0
+            ],
+            [
+              36.5,
+              0
+            ],
+            [
+              37.0,
+              0
+            ],
+            [
+              37.5,
+              0
+            ],
+            [
+              38.0,
+              0
+            ],
+            [
+              38.5,
+              0
+            ],
+            [
+              39.0,
+              0
+            ],
+            [
+              39.5,
+              0
+            ],
+            [
+              40.0,
+              0.008010291905465794
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "head",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              40,
+              -0.9299581293620548
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "grub_cluster_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              18,
+              0.13949371940430821
+            ],
+            [
+              40,
+              -1.2833422185196355
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "grub_cluster_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              18,
+              -0.27898743880861643
+            ],
+            [
+              40,
+              -0.6323715279661973
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "grub_cluster_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              18,
+              -0.4463799020937863
+            ],
+            [
+              40,
+              -0.6137723653789562
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "grub_cluster_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              20,
+              0.13949371940430821
+            ],
+            [
+              40,
+              -1.2833422185196355
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "grub_cluster_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              20,
+              0.0
+            ],
+            [
+              40,
+              0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "grub_cluster_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              20,
+              -0.4463799020937863
+            ],
+            [
+              40,
+              -0.6137723653789562
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "grub_cluster_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              22,
+              0.13949371940430821
+            ],
+            [
+              40,
+              -1.2833422185196355
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "grub_cluster_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              22,
+              0.27898743880861643
+            ],
+            [
+              40,
+              0.6323715279661973
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "grub_cluster_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              22,
+              -0.4463799020937863
+            ],
+            [
+              40,
+              -0.6137723653789562
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "head",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              40,
+              0.48
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "chest_l",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              15,
+              -0.18
+            ],
+            [
+              40,
+              -0.68
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "chest_l",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              40,
+              -0.73
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "arm_l",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              40,
+              -0.7
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_l",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              40,
+              -1.45
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "chest_r",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              15,
+              0.18
+            ],
+            [
+              40,
+              0.68
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "chest_r",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              40,
+              -0.73
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "arm_r",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              40,
+              0.7
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_r",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              40,
+              -1.45
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "chest_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              12
+            ],
+            [
+              15,
+              63
+            ],
+            [
+              40,
+              105
+            ]
+          ]
+        },
+        {
+          "group": "chest_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -12
+            ],
+            [
+              15,
+              -63
+            ],
+            [
+              40,
+              -105
+            ]
+          ]
+        },
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              40,
+              65
+            ]
+          ]
+        },
+        {
+          "group": "crown",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              25,
+              -70
+            ],
+            [
+              40,
+              -110
+            ]
+          ]
+        },
+        {
+          "group": "arm_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              40,
+              -90
+            ]
+          ]
+        },
+        {
+          "group": "arm_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              40,
+              100
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              1
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              18,
+              -20
+            ],
+            [
+              40,
+              -45
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              1
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              1
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              22,
+              20
+            ],
+            [
+              40,
+              45
+            ]
+          ]
+        },
+        {
+          "group": "ember_spine",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 46,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -25
+            ],
+            [
+              12,
+              -25
+            ],
+            [
+              30,
+              4
+            ],
+            [
+              46,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "crown",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -12
+            ],
+            [
+              16,
+              -12
+            ],
+            [
+              34,
+              3
+            ],
+            [
+              46,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "grub_cluster_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              46,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              46,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              46,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              38
+            ],
+            [
+              14,
+              38
+            ],
+            [
+              30,
+              18
+            ],
+            [
+              46,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              18
+            ],
+            [
+              14,
+              18
+            ],
+            [
+              30,
+              -8
+            ],
+            [
+              46,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "palm_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -65
+            ],
+            [
+              20,
+              -65
+            ],
+            [
+              36,
+              -20
+            ],
+            [
+              46,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "chest_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              4
+            ],
+            [
+              16,
+              4
+            ],
+            [
+              26,
+              -2
+            ],
+            [
+              46,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "arm_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              38
+            ],
+            [
+              14,
+              38
+            ],
+            [
+              30,
+              18
+            ],
+            [
+              46,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -18
+            ],
+            [
+              14,
+              -18
+            ],
+            [
+              30,
+              8
+            ],
+            [
+              46,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "palm_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              65
+            ],
+            [
+              20,
+              65
+            ],
+            [
+              36,
+              20
+            ],
+            [
+              46,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "chest_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -4
+            ],
+            [
+              16,
+              -4
+            ],
+            [
+              26,
+              2
+            ],
+            [
+              46,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "idle": {
+      "loop": true,
+      "frames": 40,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              -2
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "grub_cluster_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "grub_cluster_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        10,
+        1
+      ],
+      [
+        22,
+        0
+      ],
+      [
+        36,
+        0
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        10,
+        1
+      ],
+      [
+        18,
+        2
+      ],
+      [
+        40,
+        2
+      ]
+    ],
+    "idle": [
+      [
+        0,
+        0
+      ],
+      [
+        20.0,
+        1
+      ],
+      [
+        40,
+        0
+      ]
+    ],
+    "spawn": [
+      [
+        0,
+        2
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        24,
+        1
+      ],
+      [
+        38,
+        0
+      ],
+      [
+        46,
+        0
+      ]
+    ]
+  },
+  "emissive_groups": [
+    "ember_spine__glow",
+    "chest_l__glow",
+    "chest_r__glow"
+  ],
+  "emissive_uv_offsets": {
+    "ember__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.046875
+      ],
+      [
+        0,
+        -0.09375
+      ]
+    ]
+  },
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T1",
+    "size": 128,
+    "budget": 2600,
+    "density": 24.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 2.5,
+    "fit_axis": 1,
+    "emissive_limit": 0.04,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}

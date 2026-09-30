@@ -1,0 +1,9118 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DI-02",
+  "name": "蚀辉螺台",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 3.5487199540992003,
+    "h": 4.5,
+    "d": 3.8756668402960006
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        0.07495259543362139,
+        -0.1394366197183099,
+        0.18897583044835906
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "hover",
+      "parent": "body",
+      "pivot": [
+        0.07495259543362139,
+        2.2690140845070417,
+        0.18897583044835906
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "spin",
+      "parent": "hover",
+      "pivot": [
+        0.07495259543362139,
+        2.2690140845070417,
+        0.18897583044835906
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shell_tier_0",
+      "parent": "spin",
+      "pivot": [
+        0.07495259543362139,
+        0.7478873239436618,
+        0.18897583044835906
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_00",
+      "parent": "shell_tier_0",
+      "pivot": [
+        0.8385504392194536,
+        0.4436619718309858,
+        -1.2471428432410494
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_00_vein",
+      "parent": "tier_0_block_00",
+      "pivot": [
+        0.8385504392194536,
+        0.4436619718309858,
+        -1.2471428432410494
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_01",
+      "parent": "shell_tier_0",
+      "pivot": [
+        1.4253252006381867,
+        0.4690140845070422,
+        -0.7597618772763954
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_01_vein",
+      "parent": "tier_0_block_01",
+      "pivot": [
+        1.4253252006381867,
+        0.4690140845070422,
+        -0.7597618772763954
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_02",
+      "parent": "shell_tier_0",
+      "pivot": [
+        1.7324249031287553,
+        0.4943661971830985,
+        -0.04933271029595879
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_02_vein",
+      "parent": "tier_0_block_02",
+      "pivot": [
+        1.7324249031287553,
+        0.4943661971830985,
+        -0.04933271029595879
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_03",
+      "parent": "shell_tier_0",
+      "pivot": [
+        1.6840517592166973,
+        0.5197183098591548,
+        0.7344796679583729
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_03_vein",
+      "parent": "tier_0_block_03",
+      "pivot": [
+        1.6840517592166973,
+        0.5197183098591548,
+        0.7344796679583729
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_04",
+      "parent": "shell_tier_0",
+      "pivot": [
+        1.280351853455242,
+        0.5450704225352112,
+        1.4214528174031247
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_04_vein",
+      "parent": "tier_0_block_04",
+      "pivot": [
+        1.280351853455242,
+        0.5450704225352112,
+        1.4214528174031247
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_05",
+      "parent": "shell_tier_0",
+      "pivot": [
+        0.5996247382650768,
+        0.5704225352112675,
+        1.857638075941146
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_05_vein",
+      "parent": "tier_0_block_05",
+      "pivot": [
+        0.5996247382650768,
+        0.5704225352112675,
+        1.857638075941146
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_06",
+      "parent": "shell_tier_0",
+      "pivot": [
+        -0.21659051006546473,
+        0.5957746478873239,
+        1.9396997886709997
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_06_vein",
+      "parent": "tier_0_block_06",
+      "pivot": [
+        -0.21659051006546473,
+        0.5957746478873239,
+        1.9396997886709997
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_07",
+      "parent": "shell_tier_0",
+      "pivot": [
+        -0.9927781174324075,
+        0.6211267605633801,
+        1.6391365451049682
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_07_vein",
+      "parent": "tier_0_block_07",
+      "pivot": [
+        -0.9927781174324075,
+        0.6211267605633801,
+        1.6391365451049682
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_08",
+      "parent": "shell_tier_0",
+      "pivot": [
+        -1.557044923289842,
+        0.6464788732394365,
+        1.0107586370148587
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_08_vein",
+      "parent": "tier_0_block_08",
+      "pivot": [
+        -1.557044923289842,
+        0.6464788732394365,
+        1.0107586370148587
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_09",
+      "parent": "shell_tier_0",
+      "pivot": [
+        -1.779032812141793,
+        0.671830985915493,
+        0.18309251076434968
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_09_vein",
+      "parent": "tier_0_block_09",
+      "pivot": [
+        -1.779032812141793,
+        0.671830985915493,
+        0.18309251076434968
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_10",
+      "parent": "shell_tier_0",
+      "pivot": [
+        -1.599815198393808,
+        0.6971830985915493,
+        -0.667710861536803
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_10_vein",
+      "parent": "tier_0_block_10",
+      "pivot": [
+        -1.599815198393808,
+        0.6971830985915493,
+        -0.667710861536803
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_11",
+      "parent": "shell_tier_0",
+      "pivot": [
+        -1.0469656343346918,
+        0.7225352112676057,
+        -1.3552121372517705
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_11_vein",
+      "parent": "tier_0_block_11",
+      "pivot": [
+        -1.0469656343346918,
+        0.7225352112676057,
+        -1.3552121372517705
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shell_tier_1",
+      "parent": "spin",
+      "pivot": [
+        0.07495259543362139,
+        1.7366197183098588,
+        0.18897583044835906
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_00",
+      "parent": "shell_tier_1",
+      "pivot": [
+        0.7787475862548123,
+        1.4577464788732393,
+        -0.9373315947289219
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_00_vein",
+      "parent": "tier_1_block_00",
+      "pivot": [
+        0.7787475862548123,
+        1.4577464788732393,
+        -0.9373315947289219
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_01",
+      "parent": "shell_tier_1",
+      "pivot": [
+        1.2289485453125066,
+        1.4830985915492956,
+        -0.5069093264298146
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_01_vein",
+      "parent": "tier_1_block_01",
+      "pivot": [
+        1.2289485453125066,
+        1.4830985915492956,
+        -0.5069093264298146
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_02",
+      "parent": "shell_tier_1",
+      "pivot": [
+        1.4386333360328525,
+        1.5084507042253519,
+        0.08926844059262332
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_02_vein",
+      "parent": "tier_1_block_02",
+      "pivot": [
+        1.4386333360328525,
+        1.5084507042253519,
+        0.08926844059262332
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_03",
+      "parent": "shell_tier_1",
+      "pivot": [
+        1.354585118740182,
+        1.5338028169014082,
+        0.7249735389404419
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_03_vein",
+      "parent": "tier_1_block_03",
+      "pivot": [
+        1.354585118740182,
+        1.5338028169014082,
+        0.7249735389404419
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_04",
+      "parent": "shell_tier_1",
+      "pivot": [
+        0.9866186596672447,
+        1.5591549295774647,
+        1.2615582909519654
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_04_vein",
+      "parent": "tier_1_block_04",
+      "pivot": [
+        0.9866186596672447,
+        1.5591549295774647,
+        1.2615582909519654
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_05",
+      "parent": "shell_tier_1",
+      "pivot": [
+        0.4072822887441364,
+        1.584507042253521,
+        1.5780825264826228
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_05_vein",
+      "parent": "tier_1_block_05",
+      "pivot": [
+        0.4072822887441364,
+        1.584507042253521,
+        1.5780825264826228
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_06",
+      "parent": "shell_tier_1",
+      "pivot": [
+        -0.2622463109355726,
+        1.609859154929577,
+        1.5984353766804222
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_06_vein",
+      "parent": "tier_1_block_06",
+      "pivot": [
+        -0.2622463109355726,
+        1.609859154929577,
+        1.5984353766804222
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_07",
+      "parent": "shell_tier_1",
+      "pivot": [
+        -0.8773759909654588,
+        1.6352112676056334,
+        1.3093980754800545
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_07_vein",
+      "parent": "tier_1_block_07",
+      "pivot": [
+        -0.8773759909654588,
+        1.6352112676056334,
+        1.3093980754800545
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_08",
+      "parent": "shell_tier_1",
+      "pivot": [
+        -1.3012118171650684,
+        1.6605633802816897,
+        0.7654077030575706
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_08_vein",
+      "parent": "tier_1_block_08",
+      "pivot": [
+        -1.3012118171650684,
+        1.6605633802816897,
+        0.7654077030575706
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_09",
+      "parent": "shell_tier_1",
+      "pivot": [
+        -1.434890375558263,
+        1.685915492957746,
+        0.07858158841816157
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_09_vein",
+      "parent": "tier_1_block_09",
+      "pivot": [
+        -1.434890375558263,
+        1.685915492957746,
+        0.07858158841816157
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_10",
+      "parent": "shell_tier_1",
+      "pivot": [
+        -1.2404460200648202,
+        1.7112676056338025,
+        -0.6042387141950034
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_10_vein",
+      "parent": "tier_1_block_10",
+      "pivot": [
+        -1.2404460200648202,
+        1.7112676056338025,
+        -0.6042387141950034
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_11",
+      "parent": "shell_tier_1",
+      "pivot": [
+        -0.7509584772446276,
+        1.7366197183098588,
+        -1.1327581770759751
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_11_vein",
+      "parent": "tier_1_block_11",
+      "pivot": [
+        -0.7509584772446276,
+        1.7366197183098588,
+        -1.1327581770759751
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shell_tier_2",
+      "parent": "spin",
+      "pivot": [
+        0.07495259543362139,
+        2.725352112676056,
+        0.18897583044835906
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_00",
+      "parent": "shell_tier_2",
+      "pivot": [
+        0.6802125760652977,
+        2.4718309859154926,
+        -0.6440930640778131
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_00_vein",
+      "parent": "tier_2_block_00",
+      "pivot": [
+        0.6802125760652977,
+        2.4718309859154926,
+        -0.6440930640778131
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_01",
+      "parent": "shell_tier_2",
+      "pivot": [
+        1.0051376916530004,
+        2.497183098591549,
+        -0.28683770976364725
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_01_vein",
+      "parent": "tier_2_block_01",
+      "pivot": [
+        1.0051376916530004,
+        2.497183098591549,
+        -0.28683770976364725
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_02",
+      "parent": "shell_tier_2",
+      "pivot": [
+        1.1350727932511775,
+        2.522535211267605,
+        0.185611712261802
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_02_vein",
+      "parent": "tier_2_block_02",
+      "pivot": [
+        1.1350727932511775,
+        2.522535211267605,
+        0.185611712261802
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_03",
+      "parent": "shell_tier_2",
+      "pivot": [
+        1.0356847201814683,
+        2.547887323943662,
+        0.6727468734652831
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_03_vein",
+      "parent": "tier_2_block_03",
+      "pivot": [
+        1.0356847201814683,
+        2.547887323943662,
+        0.6727468734652831
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_04",
+      "parent": "shell_tier_2",
+      "pivot": [
+        0.722063286820037,
+        2.573239436619718,
+        1.0678626989958995
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_04_vein",
+      "parent": "tier_2_block_04",
+      "pivot": [
+        0.722063286820037,
+        2.573239436619718,
+        1.0678626989958995
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_05",
+      "parent": "shell_tier_2",
+      "pivot": [
+        0.25686136521111125,
+        2.5985915492957745,
+        1.281342741046611
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_05_vein",
+      "parent": "tier_2_block_05",
+      "pivot": [
+        0.25686136521111125,
+        2.5985915492957745,
+        1.281342741046611
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_06",
+      "parent": "shell_tier_2",
+      "pivot": [
+        -0.2620807635599137,
+        2.6239436619718313,
+        1.2608734894113438
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_06_vein",
+      "parent": "tier_2_block_06",
+      "pivot": [
+        -0.2620807635599137,
+        2.6239436619718313,
+        1.2608734894113438
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_07",
+      "parent": "shell_tier_2",
+      "pivot": [
+        -0.7222153435399843,
+        2.6492957746478876,
+        1.0040511119245215
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_07_vein",
+      "parent": "tier_2_block_07",
+      "pivot": [
+        -0.7222153435399843,
+        2.6492957746478876,
+        1.0040511119245215
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_08",
+      "parent": "shell_tier_2",
+      "pivot": [
+        -1.0206063120881792,
+        2.674647887323944,
+        0.5603833867523209
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_08_vein",
+      "parent": "tier_2_block_08",
+      "pivot": [
+        -1.0206063120881792,
+        2.674647887323944,
+        0.5603833867523209
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_09",
+      "parent": "shell_tier_2",
+      "pivot": [
+        -1.0868523680826003,
+        2.7,
+        0.02193349483910424
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_09_vein",
+      "parent": "tier_2_block_09",
+      "pivot": [
+        -1.0868523680826003,
+        2.7,
+        0.02193349483910424
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_10",
+      "parent": "shell_tier_2",
+      "pivot": [
+        -0.8995311213089403,
+        2.7253521126760565,
+        -0.49567183203690035
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_10_vein",
+      "parent": "tier_2_block_10",
+      "pivot": [
+        -0.8995311213089403,
+        2.7253521126760565,
+        -0.49567183203690035
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_11",
+      "parent": "shell_tier_2",
+      "pivot": [
+        -0.4923564162633213,
+        2.750704225352113,
+        -0.877977241879553
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_11_vein",
+      "parent": "tier_2_block_11",
+      "pivot": [
+        -0.4923564162633213,
+        2.750704225352113,
+        -0.877977241879553
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "reactor",
+      "parent": "spin",
+      "pivot": [
+        0.07495259543362139,
+        1.8633802816901406,
+        0.1255955487582182
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shutter_left",
+      "parent": "reactor",
+      "pivot": [
+        -0.25462486935511097,
+        1.8887323943661969,
+        -0.6222917751854437
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "shutter_right",
+      "parent": "reactor",
+      "pivot": [
+        0.40453006022235377,
+        1.8887323943661969,
+        -0.6222917751854437
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "turret_mount",
+      "parent": "spin",
+      "pivot": [
+        0.07495259543362139,
+        3.5239436619718307,
+        0.18897583044835906
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "single_cannon",
+      "parent": "turret_mount",
+      "pivot": [
+        0.07495259543362139,
+        4.08169014084507,
+        -0.039193183636147946
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_00_vein__glow",
+      "parent": "tier_0_block_00_vein",
+      "pivot": [
+        0.8385504392194536,
+        0.4436619718309858,
+        -1.2471428432410494
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_04_vein__glow",
+      "parent": "tier_0_block_04_vein",
+      "pivot": [
+        1.280351853455242,
+        0.5450704225352112,
+        1.4214528174031247
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_0_block_08_vein__glow",
+      "parent": "tier_0_block_08_vein",
+      "pivot": [
+        -1.557044923289842,
+        0.6464788732394365,
+        1.0107586370148587
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_00_vein__glow",
+      "parent": "tier_1_block_00_vein",
+      "pivot": [
+        0.7787475862548123,
+        1.4577464788732393,
+        -0.9373315947289219
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_04_vein__glow",
+      "parent": "tier_1_block_04_vein",
+      "pivot": [
+        0.9866186596672447,
+        1.5591549295774647,
+        1.2615582909519654
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_1_block_08_vein__glow",
+      "parent": "tier_1_block_08_vein",
+      "pivot": [
+        -1.3012118171650684,
+        1.6605633802816897,
+        0.7654077030575706
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_00_vein__glow",
+      "parent": "tier_2_block_00_vein",
+      "pivot": [
+        0.6802125760652977,
+        2.4718309859154926,
+        -0.6440930640778131
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_04_vein__glow",
+      "parent": "tier_2_block_04_vein",
+      "pivot": [
+        0.722063286820037,
+        2.573239436619718,
+        1.0678626989958995
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tier_2_block_08_vein__glow",
+      "parent": "tier_2_block_08_vein",
+      "pivot": [
+        -1.0206063120881792,
+        2.674647887323944,
+        0.5603833867523209
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "reactor__glow",
+      "parent": "reactor",
+      "pivot": [
+        0.07495259543362139,
+        1.8633802816901406,
+        0.1255955487582182
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "idle": {
+      "loop": true,
+      "frames": 360,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "spin",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              90.0,
+              90
+            ],
+            [
+              180.0,
+              180
+            ],
+            [
+              270.0,
+              270
+            ],
+            [
+              360,
+              360
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "hover",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              90.0,
+              0.13
+            ],
+            [
+              180.0,
+              0
+            ],
+            [
+              270.0,
+              -0.13
+            ],
+            [
+              360,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "walk": {
+      "loop": true,
+      "frames": 240,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "spin",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60.0,
+              90
+            ],
+            [
+              120.0,
+              180
+            ],
+            [
+              180.0,
+              270
+            ],
+            [
+              240,
+              360
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "hover",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60.0,
+              0.13
+            ],
+            [
+              120.0,
+              0
+            ],
+            [
+              180.0,
+              -0.13
+            ],
+            [
+              240,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 52,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "single_cannon",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              18,
+              0.25
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              28,
+              0.25
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              38,
+              0.25
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "turret_mount",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              18,
+              -3
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              28,
+              -3
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              38,
+              -3
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "shutter_left",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              -0.035
+            ],
+            [
+              10,
+              -0.1
+            ],
+            [
+              14,
+              -0.19
+            ],
+            [
+              42,
+              -0.19
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "shutter_right",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              0.035
+            ],
+            [
+              10,
+              0.1
+            ],
+            [
+              14,
+              0.19
+            ],
+            [
+              42,
+              0.19
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 56,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "spin",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              16
+            ],
+            [
+              32,
+              22
+            ],
+            [
+              56,
+              24
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              0.3817989218929161
+            ],
+            [
+              56,
+              0.6108782750286658
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.55
+            ],
+            [
+              56,
+              -0.7330985915492958
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.7180593368447041
+            ],
+            [
+              56,
+              -1.1488949389515266
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_00",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_00_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_00",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              0.6751863026022826
+            ],
+            [
+              56,
+              1.0802980841636523
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.55
+            ],
+            [
+              56,
+              -0.7584507042253521
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.47436885386237726
+            ],
+            [
+              56,
+              -0.7589901661798036
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_01",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_01_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_01",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              0.8287361538475669
+            ],
+            [
+              56,
+              1.3259778461561071
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.55
+            ],
+            [
+              56,
+              -0.7838028169014084
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.11915427037215892
+            ],
+            [
+              56,
+              -0.19064683259545429
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_02",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_02_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_02",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              0.8045495818915379
+            ],
+            [
+              56,
+              1.2872793310264607
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.55
+            ],
+            [
+              56,
+              -0.8091549295774647
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              0.27275191875500693
+            ],
+            [
+              56,
+              0.4364030700080111
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_03",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_03_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_03",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              0.6026996290108102
+            ],
+            [
+              56,
+              0.9643194064172964
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.55
+            ],
+            [
+              56,
+              -0.8345070422535211
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              0.6162384934773827
+            ],
+            [
+              56,
+              0.9859815895638123
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_04",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_04_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_04",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              0.26233607141572773
+            ],
+            [
+              56,
+              0.4197377142651644
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.55
+            ],
+            [
+              56,
+              -0.8598591549295774
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              0.8343311227463934
+            ],
+            [
+              56,
+              1.3349297963942295
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_05",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_05_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_05",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.14577155274954307
+            ],
+            [
+              56,
+              -0.23323448439926892
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.55
+            ],
+            [
+              56,
+              -0.8852112676056338
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              0.8753619791113203
+            ],
+            [
+              56,
+              1.4005791665781127
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_06",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_06_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_06",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.5338653564330145
+            ],
+            [
+              56,
+              -0.8541845702928232
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.55
+            ],
+            [
+              56,
+              -0.91056338028169
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              0.7250803573283046
+            ],
+            [
+              56,
+              1.1601285717252874
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_07",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_07_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_07",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.8159987593617316
+            ],
+            [
+              56,
+              -1.3055980149787707
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.55
+            ],
+            [
+              56,
+              -0.9359154929577465
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              0.41089140328324986
+            ],
+            [
+              56,
+              0.6574262452531998
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_08",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_08_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_08",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.9269927037877072
+            ],
+            [
+              56,
+              -1.4831883260603316
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.55
+            ],
+            [
+              56,
+              -0.9612676056338028
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.002941659842004696
+            ],
+            [
+              56,
+              -0.004706655747207514
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_09",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_09_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_09",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.8373838969137147
+            ],
+            [
+              56,
+              -1.3398142350619437
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.55
+            ],
+            [
+              56,
+              -0.9866197183098592
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.428343345992581
+            ],
+            [
+              56,
+              -0.6853493535881297
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_10",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_10_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_10",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.5609591148841566
+            ],
+            [
+              56,
+              -0.8975345838146507
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.55
+            ],
+            [
+              56,
+              -1.0119718309859154
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              -0.7720939838500648
+            ],
+            [
+              56,
+              -1.2353503741601037
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_11",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_11_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_11",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              0.35189749541059545
+            ],
+            [
+              56,
+              0.5630359926569527
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.55
+            ],
+            [
+              56,
+              -1.747183098591549
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_1_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.5631537125886404
+            ],
+            [
+              56,
+              -0.9010459401418247
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_00",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              27
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_00_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_00",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              0.5769979749394426
+            ],
+            [
+              56,
+              0.9231967599031082
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.55
+            ],
+            [
+              56,
+              -1.7725352112676054
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_1_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.34794257843908677
+            ],
+            [
+              56,
+              -0.5567081255025389
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_01",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              27
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_01_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_01",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              0.6818403702996156
+            ],
+            [
+              56,
+              1.090944592479385
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.55
+            ],
+            [
+              56,
+              -1.7978873239436617
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_1_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.04985369492786787
+            ],
+            [
+              56,
+              -0.07976591188458859
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_02",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              27
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_02_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_02",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              0.6398162616532804
+            ],
+            [
+              56,
+              1.0237060186452487
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.55
+            ],
+            [
+              56,
+              -1.8232394366197182
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_1_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              0.2679988542460415
+            ],
+            [
+              56,
+              0.4287981667936664
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_03",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              27
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_03_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_03",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              0.4558330321168117
+            ],
+            [
+              56,
+              0.7293328513868987
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.55
+            ],
+            [
+              56,
+              -1.8485915492957745
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_1_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              0.5362912302518031
+            ],
+            [
+              56,
+              0.8580659684028851
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_04",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              27
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_04_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_04",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              0.16616484665525752
+            ],
+            [
+              56,
+              0.26586375464841205
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.55
+            ],
+            [
+              56,
+              -1.8739436619718308
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_1_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              0.6945533480171319
+            ],
+            [
+              56,
+              1.111285356827411
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_05",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              27
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_05_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_05",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.168599453184597
+            ],
+            [
+              56,
+              -0.2697591250953552
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.55
+            ],
+            [
+              56,
+              -1.899295774647887
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_1_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              0.7047297731160316
+            ],
+            [
+              56,
+              1.1275676369856507
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_06",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              27
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_06_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_06",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.4761642931995401
+            ],
+            [
+              56,
+              -0.7618628691192643
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.55
+            ],
+            [
+              56,
+              -1.9246478873239432
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_1_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              0.5602111225158476
+            ],
+            [
+              56,
+              0.8963377960253562
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_07",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              27
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_07_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_07",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.6880822062993448
+            ],
+            [
+              56,
+              -1.1009315300789517
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.55
+            ],
+            [
+              56,
+              -1.9499999999999997
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_1_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              0.2882159363046058
+            ],
+            [
+              56,
+              0.46114549808736927
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_08",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              27
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_08_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_08",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.7549214854959422
+            ],
+            [
+              56,
+              -1.2078743767935076
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.55
+            ],
+            [
+              56,
+              -1.975352112676056
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_1_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.05519712101509875
+            ],
+            [
+              56,
+              -0.08831539362415801
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_09",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              27
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_09_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_09",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.6576993077492208
+            ],
+            [
+              56,
+              -1.0523188923987534
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.55
+            ],
+            [
+              56,
+              -2.0007042253521123
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_1_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.39660727232168125
+            ],
+            [
+              56,
+              -0.63457163571469
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_10",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              27
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_10_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_10",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.4129555363391245
+            ],
+            [
+              56,
+              -0.6607288581425993
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.55
+            ],
+            [
+              56,
+              -2.0260563380281686
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_1_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              -0.6608670037621671
+            ],
+            [
+              56,
+              -1.0573872060194673
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_11",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              28,
+              27
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_11_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_11",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              0.3026299903158382
+            ],
+            [
+              56,
+              0.48420798450534114
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.55
+            ],
+            [
+              56,
+              -2.7612676056338024
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_2_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.4165344472630861
+            ],
+            [
+              56,
+              -0.6664551156209377
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_00",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              34
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_00_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_00",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              0.4650925481096895
+            ],
+            [
+              56,
+              0.7441480769755032
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.55
+            ],
+            [
+              56,
+              -2.7866197183098587
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_2_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.23790677010600317
+            ],
+            [
+              56,
+              -0.3806508321696051
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_01",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              34
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_01_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_01",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              0.530060098908778
+            ],
+            [
+              56,
+              0.8480961582540449
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.55
+            ],
+            [
+              56,
+              -2.8119718309859154
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_2_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.0016820590932785171
+            ],
+            [
+              56,
+              -0.0026912945492456276
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_02",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              34
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_02_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_02",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              0.48036606237392343
+            ],
+            [
+              56,
+              0.7685856997982775
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.55
+            ],
+            [
+              56,
+              -2.8373239436619717
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_2_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              0.24188552150846196
+            ],
+            [
+              56,
+              0.3870168344135392
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_03",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              34
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_03_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_03",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              0.32355534569320776
+            ],
+            [
+              56,
+              0.5176885531091324
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.55
+            ],
+            [
+              56,
+              -2.862676056338028
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_2_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              0.43944343427377025
+            ],
+            [
+              56,
+              0.7031094948380324
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_04",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              34
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_04_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_04",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              0.09095438488874491
+            ],
+            [
+              56,
+              0.14552701582199187
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.55
+            ],
+            [
+              56,
+              -2.8880281690140843
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_2_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              0.546183455299126
+            ],
+            [
+              56,
+              0.8738935284786017
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_05",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              34
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_05_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_05",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.16851667949676755
+            ],
+            [
+              56,
+              -0.2696266871948281
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.55
+            ],
+            [
+              56,
+              -2.9133802816901406
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_2_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              0.5359488294814924
+            ],
+            [
+              56,
+              0.8575181271703878
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_06",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              34
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_06_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_06",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.3985839694868028
+            ],
+            [
+              56,
+              -0.6377343511788846
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.55
+            ],
+            [
+              56,
+              -2.938732394366197
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_2_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              0.40753764073808124
+            ],
+            [
+              56,
+              0.65206022518093
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_07",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              34
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_07_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_07",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.5477794537609003
+            ],
+            [
+              56,
+              -0.8764471260174406
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.55
+            ],
+            [
+              56,
+              -2.9640845070422532
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_2_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              0.18570377815198094
+            ],
+            [
+              56,
+              0.29712604504316953
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_08",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              34
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_08_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_08",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.5809024817581109
+            ],
+            [
+              56,
+              -0.9294439708129775
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.55
+            ],
+            [
+              56,
+              -2.9894366197183095
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_2_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.08352116780462741
+            ],
+            [
+              56,
+              -0.13363386848740386
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_09",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              34
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_09_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_09",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.4872418583712808
+            ],
+            [
+              56,
+              -0.7795869733940494
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.55
+            ],
+            [
+              56,
+              -3.0147887323943663
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_2_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.3423238312426297
+            ],
+            [
+              56,
+              -0.5477181299882076
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_10",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              34
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_10_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_10",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.28365450584847135
+            ],
+            [
+              56,
+              -0.4538472093575542
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.55
+            ],
+            [
+              56,
+              -3.0401408450704226
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_2_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              -0.533476536163956
+            ],
+            [
+              56,
+              -0.8535624578623295
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_11",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              18,
+              34
+            ],
+            [
+              56,
+              62
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_11_vein",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_11",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "reactor",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              48,
+              -1.7
+            ],
+            [
+              56,
+              -1.7
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "reactor",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "turret_mount",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              14,
+              0.8
+            ],
+            [
+              24,
+              0.7
+            ],
+            [
+              44,
+              -2.7
+            ],
+            [
+              56,
+              -2.7
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "turret_mount",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              14,
+              -1.8
+            ],
+            [
+              24,
+              -3.6
+            ],
+            [
+              44,
+              -4.2
+            ],
+            [
+              56,
+              -4.2
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "turret_mount",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              14,
+              10
+            ],
+            [
+              24,
+              35
+            ],
+            [
+              44,
+              85
+            ],
+            [
+              56,
+              85
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "turret_mount",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 64,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "shell_tier_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -42
+            ],
+            [
+              4,
+              -42
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "shell_tier_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.16
+            ],
+            [
+              4,
+              0.16
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_0_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.25962326688718296
+            ],
+            [
+              4,
+              0.25962326688718296
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.48828034905439893
+            ],
+            [
+              4,
+              -0.48828034905439893
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_00",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.45912668576955223
+            ],
+            [
+              4,
+              0.45912668576955223
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.32257082062641657
+            ],
+            [
+              4,
+              -0.32257082062641657
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_01",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.5635405846163456
+            ],
+            [
+              4,
+              0.5635405846163456
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.08102490385306807
+            ],
+            [
+              4,
+              -0.08102490385306807
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_02",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.5470937156862459
+            ],
+            [
+              4,
+              0.5470937156862459
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.18547130475340473
+            ],
+            [
+              4,
+              0.18547130475340473
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_03",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.40983574772735104
+            ],
+            [
+              4,
+              0.40983574772735104
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.4190421755646203
+            ],
+            [
+              4,
+              0.4190421755646203
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_04",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.17838852856269483
+            ],
+            [
+              4,
+              0.17838852856269483
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.5673451634675476
+            ],
+            [
+              4,
+              0.5673451634675476
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_05",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.09912465586968928
+            ],
+            [
+              4,
+              -0.09912465586968928
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.5952461457956979
+            ],
+            [
+              4,
+              0.5952461457956979
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_06",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.36302844237444987
+            ],
+            [
+              4,
+              -0.36302844237444987
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.49305464298324714
+            ],
+            [
+              4,
+              0.49305464298324714
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_07",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.5548791563659776
+            ],
+            [
+              4,
+              -0.5548791563659776
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.2794061542326099
+            ],
+            [
+              4,
+              0.2794061542326099
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_08",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.630355038575641
+            ],
+            [
+              4,
+              -0.630355038575641
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.002000328692563188
+            ],
+            [
+              4,
+              -0.002000328692563188
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_09",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.569421049901326
+            ],
+            [
+              4,
+              -0.569421049901326
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.2912734752749551
+            ],
+            [
+              4,
+              -0.2912734752749551
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_10",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_0_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.38145219812122655
+            ],
+            [
+              4,
+              -0.38145219812122655
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_0_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.5250239090180441
+            ],
+            [
+              4,
+              -0.5250239090180441
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_0_block_11",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shell_tier_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -34
+            ],
+            [
+              16,
+              -34
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "shell_tier_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.28
+            ],
+            [
+              16,
+              0.28
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_1_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.23929029687920492
+            ],
+            [
+              16,
+              0.23929029687920492
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.3829445245602755
+            ],
+            [
+              16,
+              -0.3829445245602755
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_00",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.392358622958821
+            ],
+            [
+              16,
+              0.392358622958821
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.23660095333857906
+            ],
+            [
+              16,
+              -0.23660095333857906
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_01",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.46365145180373857
+            ],
+            [
+              16,
+              0.46365145180373857
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.033900512550950154
+            ],
+            [
+              16,
+              -0.033900512550950154
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_02",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.4350750579242306
+            ],
+            [
+              16,
+              0.4350750579242306
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.18223922088730818
+            ],
+            [
+              16,
+              0.18223922088730818
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_03",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.30996646183943194
+            ],
+            [
+              16,
+              0.30996646183943194
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.36467803657122616
+            ],
+            [
+              16,
+              0.36467803657122616
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_04",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.11299209572557513
+            ],
+            [
+              16,
+              0.11299209572557513
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.4722962766516497
+            ],
+            [
+              16,
+              0.4722962766516497
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_05",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.11464762816552596
+            ],
+            [
+              16,
+              -0.11464762816552596
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.47921624571890153
+            ],
+            [
+              16,
+              0.47921624571890153
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_06",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.3237917193756873
+            ],
+            [
+              16,
+              -0.3237917193756873
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.38094356331077645
+            ],
+            [
+              16,
+              0.38094356331077645
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_07",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.4678959002835546
+            ],
+            [
+              16,
+              -0.4678959002835546
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1959868366871319
+            ],
+            [
+              16,
+              0.1959868366871319
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_08",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.5133466101372407
+            ],
+            [
+              16,
+              -0.5133466101372407
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.03753404229026715
+            ],
+            [
+              16,
+              -0.03753404229026715
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_09",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.4472355292694702
+            ],
+            [
+              16,
+              -0.4472355292694702
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.26969294517874326
+            ],
+            [
+              16,
+              -0.26969294517874326
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_10",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_1_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.2808097647106047
+            ],
+            [
+              16,
+              -0.2808097647106047
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_1_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.44938956255827367
+            ],
+            [
+              16,
+              -0.44938956255827367
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_1_block_11",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shell_tier_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -26
+            ],
+            [
+              28,
+              -26
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "shell_tier_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.4
+            ],
+            [
+              28,
+              0.4
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tier_2_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.20578839341476995
+            ],
+            [
+              28,
+              0.20578839341476995
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.2832434241388986
+            ],
+            [
+              28,
+              -0.2832434241388986
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_00",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.3162629327145889
+            ],
+            [
+              28,
+              0.3162629327145889
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.16177660367208216
+            ],
+            [
+              28,
+              -0.16177660367208216
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_01",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.3604408672579691
+            ],
+            [
+              28,
+              0.3604408672579691
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.001143800183429396
+            ],
+            [
+              28,
+              -0.001143800183429396
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_02",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.32664892241426796
+            ],
+            [
+              28,
+              0.32664892241426796
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.16448215462575416
+            ],
+            [
+              28,
+              0.16448215462575416
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_03",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              34,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.2200176350713813
+            ],
+            [
+              28,
+              0.2200176350713813
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.29882153530616373
+            ],
+            [
+              28,
+              0.29882153530616373
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_04",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.06184898172434656
+            ],
+            [
+              28,
+              0.06184898172434656
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.37140474960340564
+            ],
+            [
+              28,
+              0.37140474960340564
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_05",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.11459134205780194
+            ],
+            [
+              28,
+              -0.11459134205780194
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.3644452040474148
+            ],
+            [
+              28,
+              0.3644452040474148
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_06",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.271037099251026
+            ],
+            [
+              28,
+              -0.271037099251026
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.2771255957018952
+            ],
+            [
+              28,
+              0.2771255957018952
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_07",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              34,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.37249002855741226
+            ],
+            [
+              28,
+              -0.37249002855741226
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.12627856914334704
+            ],
+            [
+              28,
+              0.12627856914334704
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_08",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.3950136875955154
+            ],
+            [
+              28,
+              -0.3950136875955154
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.056794394107146644
+            ],
+            [
+              28,
+              -0.056794394107146644
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_09",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.33132446369247104
+            ],
+            [
+              28,
+              -0.33132446369247104
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.23278020524498821
+            ],
+            [
+              28,
+              -0.23278020524498821
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_10",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "tier_2_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.19288506397696054
+            ],
+            [
+              28,
+              -0.19288506397696054
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tier_2_block_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.3627640445914901
+            ],
+            [
+              28,
+              -0.3627640445914901
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tier_2_block_11",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              34,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "shutter_left",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              10,
+              -0.18
+            ],
+            [
+              40,
+              -0.18
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "shutter_right",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.1
+            ],
+            [
+              10,
+              0.18
+            ],
+            [
+              40,
+              0.18
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "turret_mount",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              34,
+              1
+            ],
+            [
+              64,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "turret_mount",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.95
+            ],
+            [
+              34,
+              0.95
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "single_cannon",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -24
+            ],
+            [
+              34,
+              -24
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              64,
+              0
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "idle": [
+      [
+        0,
+        0
+      ],
+      [
+        360,
+        0
+      ]
+    ],
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        12,
+        1
+      ],
+      [
+        42,
+        0
+      ],
+      [
+        52,
+        0
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        56,
+        2
+      ]
+    ],
+    "walk": [
+      [
+        0,
+        0
+      ],
+      [
+        240,
+        0
+      ]
+    ],
+    "spawn": [
+      [
+        0,
+        2
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        10,
+        1
+      ],
+      [
+        40,
+        0
+      ],
+      [
+        64,
+        0
+      ]
+    ]
+  },
+  "emissive_groups": [
+    "tier_0_block_00_vein__glow",
+    "tier_0_block_04_vein__glow",
+    "tier_0_block_08_vein__glow",
+    "tier_1_block_00_vein__glow",
+    "tier_1_block_04_vein__glow",
+    "tier_1_block_08_vein__glow",
+    "tier_2_block_00_vein__glow",
+    "tier_2_block_04_vein__glow",
+    "tier_2_block_08_vein__glow",
+    "reactor__glow"
+  ],
+  "emissive_uv_offsets": {
+    "core__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.05078125
+      ],
+      [
+        0,
+        -0.1015625
+      ]
+    ],
+    "vein__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.05078125
+      ],
+      [
+        0,
+        -0.1015625
+      ]
+    ]
+  },
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T2",
+    "size": 256,
+    "budget": 4200,
+    "density": 12.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 4.5,
+    "fit_axis": 1,
+    "emissive_limit": 0.04,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}

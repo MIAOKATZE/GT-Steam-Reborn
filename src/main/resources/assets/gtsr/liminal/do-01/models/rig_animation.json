@@ -1,0 +1,8795 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DO-01",
+  "name": "天外神庭",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 40.0,
+    "h": 45.500078688284155,
+    "d": 24.968028305514466
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        -0.7013157580529158,
+        -3.5452806467129596,
+        -1.0492294373042481
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "meridian",
+      "parent": "body",
+      "pivot": [
+        -0.7013157580529158,
+        21.920124623103955,
+        -1.0492294373042481
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "meridian_stratum_0",
+      "parent": "meridian",
+      "pivot": [
+        20.887483021628896,
+        20.815066736087616,
+        6.808450712062444
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "meridian_stratum_1",
+      "parent": "meridian",
+      "pivot": [
+        -9.766654680504002,
+        40.95025081607243,
+        -4.348742968611292
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "meridian_stratum_2",
+      "parent": "meridian",
+      "pivot": [
+        -10.062911192608903,
+        4.50876802013581,
+        -4.456571520725001
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "horizon",
+      "parent": "body",
+      "pivot": [
+        0.18443746872332478,
+        20.148618169551472,
+        0.9437153229422931
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "horizon_stratum_0",
+      "parent": "horizon",
+      "pivot": [
+        20.63159090784113,
+        30.475445622817677,
+        6.669382069913139
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "horizon_stratum_1",
+      "parent": "horizon",
+      "pivot": [
+        -21.33343598321276,
+        14.665364409695172,
+        7.359778533859202
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "horizon_stratum_2",
+      "parent": "horizon",
+      "pivot": [
+        1.2115691036593719,
+        14.992912087580468,
+        -11.880594114187797
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "fold_axis",
+      "parent": "body",
+      "pivot": [
+        -2.472822211605397,
+        23.580911923309408,
+        0.1686812495130827
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "fold_axis_stratum_0",
+      "parent": "fold_axis",
+      "pivot": [
+        6.853287156173432,
+        37.20629243817713,
+        -9.792589240154136
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "fold_axis_stratum_1",
+      "parent": "fold_axis",
+      "pivot": [
+        -6.277931421045583,
+        28.9563624783107,
+        14.441351184298922
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "fold_axis_stratum_2",
+      "parent": "fold_axis",
+      "pivot": [
+        -7.682371317660175,
+        3.828690211835963,
+        -5.601669487335192
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "space_fold_0",
+      "parent": "body",
+      "pivot": [
+        -13.987614159696523,
+        34.099231491277266,
+        -7.692378638126052
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "space_fold_1",
+      "parent": "body",
+      "pivot": [
+        11.47779111012039,
+        35.206423024747565,
+        4.486728230047255
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "space_fold_2",
+      "parent": "body",
+      "pivot": [
+        -17.309188760107425,
+        11.955400821871251,
+        2.2723451631066536
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "space_fold_3",
+      "parent": "body",
+      "pivot": [
+        13.692174177060993,
+        10.84820928840095,
+        -4.37080403771515
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "space_fold_4",
+      "parent": "body",
+      "pivot": [
+        -6.237273425404419,
+        41.84957222556936,
+        3.379536696576954
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "space_fold_5",
+      "parent": "body",
+      "pivot": [
+        4.834641909298587,
+        3.097868554108844,
+        -2.156420970774549
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "parallax_fold_0",
+      "parent": "body",
+      "pivot": [
+        -7.041426884503174,
+        38.72156300213629,
+        -5.831163270836593
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "parallax_fold_1",
+      "parent": "body",
+      "pivot": [
+        1.0928084443916177,
+        12.931759103608679,
+        -9.14891681049255
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "parallax_fold_2",
+      "parent": "body",
+      "pivot": [
+        3.4578369688235924,
+        38.412157599659224,
+        -7.8237701087730285
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "meridian_stratum_0__glow",
+      "parent": "meridian_stratum_0",
+      "pivot": [
+        20.887483021628896,
+        20.815066736087616,
+        6.808450712062444
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "meridian_stratum_1__glow",
+      "parent": "meridian_stratum_1",
+      "pivot": [
+        -9.766654680504002,
+        40.95025081607243,
+        -4.348742968611292
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "meridian_stratum_2__glow",
+      "parent": "meridian_stratum_2",
+      "pivot": [
+        -10.062911192608903,
+        4.50876802013581,
+        -4.456571520725001
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "horizon_stratum_0__glow",
+      "parent": "horizon_stratum_0",
+      "pivot": [
+        20.63159090784113,
+        30.475445622817677,
+        6.669382069913139
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "horizon_stratum_1__glow",
+      "parent": "horizon_stratum_1",
+      "pivot": [
+        -21.33343598321276,
+        14.665364409695172,
+        7.359778533859202
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "horizon_stratum_2__glow",
+      "parent": "horizon_stratum_2",
+      "pivot": [
+        1.2115691036593719,
+        14.992912087580468,
+        -11.880594114187797
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "fold_axis_stratum_0__glow",
+      "parent": "fold_axis_stratum_0",
+      "pivot": [
+        6.853287156173432,
+        37.20629243817713,
+        -9.792589240154136
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "fold_axis_stratum_1__glow",
+      "parent": "fold_axis_stratum_1",
+      "pivot": [
+        -6.277931421045583,
+        28.9563624783107,
+        14.441351184298922
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "fold_axis_stratum_2__glow",
+      "parent": "fold_axis_stratum_2",
+      "pivot": [
+        -7.682371317660175,
+        3.828690211835963,
+        -5.601669487335192
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "idle": {
+      "loop": true,
+      "frames": 160,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              80.0,
+              0.7750340734292104
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              40.0,
+              3
+            ],
+            [
+              120.0,
+              -3
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              40.0,
+              -3
+            ],
+            [
+              120.0,
+              3
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              40.0,
+              3
+            ],
+            [
+              120.0,
+              -3
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              80.0,
+              0.4982361900616353
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              80.0,
+              -0.4982361900616353
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              80.0,
+              0.4982361900616353
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              80.0,
+              -0.4982361900616353
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              80.0,
+              0.4982361900616353
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              80.0,
+              -0.4982361900616353
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32.0,
+              1.660787300205451
+            ],
+            [
+              88.0,
+              -0.7750340734292104
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32.0,
+              -12
+            ],
+            [
+              112.0,
+              9
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32.0,
+              -1.660787300205451
+            ],
+            [
+              88.0,
+              0.7750340734292104
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32.0,
+              -7
+            ],
+            [
+              112.0,
+              5
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32.0,
+              1.660787300205451
+            ],
+            [
+              88.0,
+              -0.7750340734292104
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32.0,
+              -2
+            ],
+            [
+              112.0,
+              1
+            ],
+            [
+              160,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "walk": {
+      "loop": true,
+      "frames": 120,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60.0,
+              0.7750340734292104
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              8
+            ],
+            [
+              90.0,
+              -8
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              -8
+            ],
+            [
+              90.0,
+              8
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              8
+            ],
+            [
+              90.0,
+              -8
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60.0,
+              0.4982361900616353
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60.0,
+              -0.4982361900616353
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60.0,
+              0.4982361900616353
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60.0,
+              -0.4982361900616353
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60.0,
+              0.4982361900616353
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60.0,
+              -0.4982361900616353
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24.0,
+              1.660787300205451
+            ],
+            [
+              66.0,
+              -0.7750340734292104
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24.0,
+              -12
+            ],
+            [
+              84.0,
+              9
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24.0,
+              -1.660787300205451
+            ],
+            [
+              66.0,
+              0.7750340734292104
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24.0,
+              -7
+            ],
+            [
+              84.0,
+              5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24.0,
+              1.660787300205451
+            ],
+            [
+              66.0,
+              -0.7750340734292104
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24.0,
+              -2
+            ],
+            [
+              84.0,
+              1
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              -3
+            ],
+            [
+              90,
+              3
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 120,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "meridian_stratum_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              58
+            ],
+            [
+              8,
+              58
+            ],
+            [
+              104,
+              5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              8.323040782431987
+            ],
+            [
+              8,
+              8.323040782431987
+            ],
+            [
+              104,
+              0.6242280586823991
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.07729556976262143
+            ],
+            [
+              8,
+              -0.07729556976262143
+            ],
+            [
+              104,
+              -0.005797167732196608
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              3.029339103388926
+            ],
+            [
+              8,
+              3.029339103388926
+            ],
+            [
+              104,
+              0.22720043275416946
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -58
+            ],
+            [
+              13,
+              -58
+            ],
+            [
+              104,
+              -5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -3.1852110974142533
+            ],
+            [
+              13,
+              -3.1852110974142533
+            ],
+            [
+              104,
+              -0.23889083230606897
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              8.183292770743968
+            ],
+            [
+              13,
+              8.183292770743968
+            ],
+            [
+              104,
+              0.6137469578057976
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -1.1593220293131732
+            ],
+            [
+              13,
+              -1.1593220293131732
+            ],
+            [
+              104,
+              -0.08694915219848798
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              58
+            ],
+            [
+              18,
+              58
+            ],
+            [
+              104,
+              5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -3.907579751922506
+            ],
+            [
+              18,
+              -3.907579751922506
+            ],
+            [
+              104,
+              -0.2930684813941879
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -7.820736794491088
+            ],
+            [
+              18,
+              -7.820736794491088
+            ],
+            [
+              104,
+              -0.5865552595868316
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -1.4222427177211034
+            ],
+            [
+              18,
+              -1.4222427177211034
+            ],
+            [
+              104,
+              -0.10666820382908274
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              23,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -58
+            ],
+            [
+              23,
+              -58
+            ],
+            [
+              104,
+              -5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              6.869835476841556
+            ],
+            [
+              23,
+              6.869835476841556
+            ],
+            [
+              104,
+              0.5152376607631166
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              4.222939168818273
+            ],
+            [
+              23,
+              4.222939168818273
+            ],
+            [
+              104,
+              0.3167204376613704
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              3.6644267180613417
+            ],
+            [
+              23,
+              3.6644267180613417
+            ],
+            [
+              104,
+              0.2748320038546006
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              58
+            ],
+            [
+              28,
+              58
+            ],
+            [
+              104,
+              5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -7.755902061763545
+            ],
+            [
+              28,
+              -7.755902061763545
+            ],
+            [
+              104,
+              -0.5816926546322658
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -1.2001341207454406
+            ],
+            [
+              28,
+              -1.2001341207454406
+            ],
+            [
+              104,
+              -0.09001005905590805
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              4.1062804549868215
+            ],
+            [
+              28,
+              4.1062804549868215
+            ],
+            [
+              104,
+              0.3079710341240116
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              33,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -58
+            ],
+            [
+              33,
+              -58
+            ],
+            [
+              104,
+              -5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.899781167323262
+            ],
+            [
+              33,
+              0.899781167323262
+            ],
+            [
+              104,
+              0.06748358754924463
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -3.206596755019269
+            ],
+            [
+              33,
+              -3.206596755019269
+            ],
+            [
+              104,
+              -0.24049475662644515
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -8.207558039763258
+            ],
+            [
+              33,
+              -8.207558039763258
+            ],
+            [
+              104,
+              -0.6155668529822443
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              38,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              58
+            ],
+            [
+              38,
+              58
+            ],
+            [
+              104,
+              5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              4.342409475154072
+            ],
+            [
+              38,
+              4.342409475154072
+            ],
+            [
+              104,
+              0.32568071063655535
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              5.215240572277295
+            ],
+            [
+              38,
+              5.215240572277295
+            ],
+            [
+              104,
+              0.39114304292079716
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -5.692154565524125
+            ],
+            [
+              38,
+              -5.692154565524125
+            ],
+            [
+              104,
+              -0.42691159241430937
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              43,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -58
+            ],
+            [
+              43,
+              -58
+            ],
+            [
+              104,
+              -5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -2.398878105330256
+            ],
+            [
+              43,
+              -2.398878105330256
+            ],
+            [
+              104,
+              -0.17991585789976916
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              2.48676542111625
+            ],
+            [
+              43,
+              2.48676542111625
+            ],
+            [
+              104,
+              0.18650740658371875
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              8.155811391306193
+            ],
+            [
+              43,
+              8.155811391306193
+            ],
+            [
+              104,
+              0.6116858543479645
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              48,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              58
+            ],
+            [
+              48,
+              58
+            ],
+            [
+              104,
+              5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -1.729320997555363
+            ],
+            [
+              48,
+              -1.729320997555363
+            ],
+            [
+              104,
+              -0.12969907481665222
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -8.036967964822438
+            ],
+            [
+              48,
+              -8.036967964822438
+            ],
+            [
+              104,
+              -0.6027725973616829
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -3.2973432781990146
+            ],
+            [
+              48,
+              -3.2973432781990146
+            ],
+            [
+              104,
+              -0.2473007458649261
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              53,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -58
+            ],
+            [
+              53,
+              -58
+            ],
+            [
+              104,
+              -5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -8.857532267762405
+            ],
+            [
+              53,
+              -8.857532267762405
+            ],
+            [
+              104,
+              -0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              5.314519360657443
+            ],
+            [
+              53,
+              5.314519360657443
+            ],
+            [
+              104,
+              0.3985889520493082
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              8.857532267762405
+            ],
+            [
+              53,
+              8.857532267762405
+            ],
+            [
+              104,
+              0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              58,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              58
+            ],
+            [
+              58,
+              58
+            ],
+            [
+              104,
+              5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              8.857532267762405
+            ],
+            [
+              58,
+              8.857532267762405
+            ],
+            [
+              104,
+              0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              5.314519360657443
+            ],
+            [
+              58,
+              5.314519360657443
+            ],
+            [
+              104,
+              0.3985889520493082
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -8.857532267762405
+            ],
+            [
+              58,
+              -8.857532267762405
+            ],
+            [
+              104,
+              -0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              63,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -58
+            ],
+            [
+              63,
+              -58
+            ],
+            [
+              104,
+              -5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -8.857532267762405
+            ],
+            [
+              63,
+              -8.857532267762405
+            ],
+            [
+              104,
+              -0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              5.314519360657443
+            ],
+            [
+              63,
+              5.314519360657443
+            ],
+            [
+              104,
+              0.3985889520493082
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -8.857532267762405
+            ],
+            [
+              63,
+              -8.857532267762405
+            ],
+            [
+              104,
+              -0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              68,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              58
+            ],
+            [
+              68,
+              58
+            ],
+            [
+              104,
+              5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              8.857532267762405
+            ],
+            [
+              68,
+              8.857532267762405
+            ],
+            [
+              104,
+              0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              5.314519360657443
+            ],
+            [
+              68,
+              5.314519360657443
+            ],
+            [
+              104,
+              0.3985889520493082
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              8.857532267762405
+            ],
+            [
+              68,
+              8.857532267762405
+            ],
+            [
+              104,
+              0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              73,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -58
+            ],
+            [
+              73,
+              -58
+            ],
+            [
+              104,
+              -5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -8.857532267762405
+            ],
+            [
+              73,
+              -8.857532267762405
+            ],
+            [
+              104,
+              -0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              5.314519360657443
+            ],
+            [
+              73,
+              5.314519360657443
+            ],
+            [
+              104,
+              0.3985889520493082
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              8.857532267762405
+            ],
+            [
+              73,
+              8.857532267762405
+            ],
+            [
+              104,
+              0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              78,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              58
+            ],
+            [
+              78,
+              58
+            ],
+            [
+              104,
+              5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              8.857532267762405
+            ],
+            [
+              78,
+              8.857532267762405
+            ],
+            [
+              104,
+              0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              5.314519360657443
+            ],
+            [
+              78,
+              5.314519360657443
+            ],
+            [
+              104,
+              0.3985889520493082
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -8.857532267762405
+            ],
+            [
+              78,
+              -8.857532267762405
+            ],
+            [
+              104,
+              -0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              83,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -58
+            ],
+            [
+              83,
+              -58
+            ],
+            [
+              104,
+              -5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -8.857532267762405
+            ],
+            [
+              83,
+              -8.857532267762405
+            ],
+            [
+              104,
+              -0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              5.314519360657443
+            ],
+            [
+              83,
+              5.314519360657443
+            ],
+            [
+              104,
+              0.3985889520493082
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -8.857532267762405
+            ],
+            [
+              83,
+              -8.857532267762405
+            ],
+            [
+              104,
+              -0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              88,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              58
+            ],
+            [
+              88,
+              58
+            ],
+            [
+              104,
+              5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              8.857532267762405
+            ],
+            [
+              88,
+              8.857532267762405
+            ],
+            [
+              104,
+              0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              5.314519360657443
+            ],
+            [
+              88,
+              5.314519360657443
+            ],
+            [
+              104,
+              0.3985889520493082
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              8.857532267762405
+            ],
+            [
+              88,
+              8.857532267762405
+            ],
+            [
+              104,
+              0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              93,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -58
+            ],
+            [
+              93,
+              -58
+            ],
+            [
+              104,
+              -5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -8.857532267762405
+            ],
+            [
+              93,
+              -8.857532267762405
+            ],
+            [
+              104,
+              -0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              5.314519360657443
+            ],
+            [
+              93,
+              5.314519360657443
+            ],
+            [
+              104,
+              0.3985889520493082
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              8.857532267762405
+            ],
+            [
+              93,
+              8.857532267762405
+            ],
+            [
+              104,
+              0.6643149200821804
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 160,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "meridian_stratum_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              11
+            ],
+            [
+              96,
+              68
+            ],
+            [
+              160,
+              132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              112.0,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.5201900489019992
+            ],
+            [
+              96,
+              5.201900489019993
+            ],
+            [
+              160,
+              14.565321369255978
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.0048309731101638395
+            ],
+            [
+              96,
+              -0.0483097311016384
+            ],
+            [
+              160,
+              -0.1352672470845875
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.18933369396180788
+            ],
+            [
+              96,
+              1.8933369396180788
+            ],
+            [
+              160,
+              5.301343430930621
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -11
+            ],
+            [
+              96,
+              -68
+            ],
+            [
+              160,
+              -132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              114.47058823529412,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.19907569358839083
+            ],
+            [
+              96,
+              -1.9907569358839081
+            ],
+            [
+              160,
+              -5.574119420474943
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.511455798171498
+            ],
+            [
+              96,
+              5.114557981714979
+            ],
+            [
+              160,
+              14.320762348801942
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.07245762683207332
+            ],
+            [
+              96,
+              -0.7245762683207332
+            ],
+            [
+              160,
+              -2.028813551298053
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              11
+            ],
+            [
+              96,
+              68
+            ],
+            [
+              160,
+              132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              116.94117647058823,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.24422373449515664
+            ],
+            [
+              96,
+              -2.442237344951566
+            ],
+            [
+              160,
+              -6.838264565864385
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.488796049655693
+            ],
+            [
+              96,
+              -4.88796049655693
+            ],
+            [
+              160,
+              -13.686289390359404
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.08889016985756897
+            ],
+            [
+              96,
+              -0.8889016985756896
+            ],
+            [
+              160,
+              -2.4889247560119308
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -11
+            ],
+            [
+              96,
+              -68
+            ],
+            [
+              160,
+              -132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              119.41176470588235,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.42936471730259723
+            ],
+            [
+              96,
+              4.293647173025972
+            ],
+            [
+              160,
+              12.022212084472724
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.2639336980511421
+            ],
+            [
+              96,
+              2.63933698051142
+            ],
+            [
+              160,
+              7.390143545431978
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.22902666987883386
+            ],
+            [
+              96,
+              2.2902666987883387
+            ],
+            [
+              160,
+              6.412746756607348
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              11
+            ],
+            [
+              96,
+              68
+            ],
+            [
+              160,
+              132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              121.88235294117646,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.4847438788602216
+            ],
+            [
+              96,
+              -4.847438788602215
+            ],
+            [
+              160,
+              -13.572828608086203
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.07500838254659004
+            ],
+            [
+              96,
+              -0.7500838254659004
+            ],
+            [
+              160,
+              -2.100234711304521
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.25664252843667634
+            ],
+            [
+              96,
+              2.5664252843667636
+            ],
+            [
+              160,
+              7.185990796226938
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -11
+            ],
+            [
+              96,
+              -68
+            ],
+            [
+              160,
+              -132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              124.3529411764706,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.05623632295770387
+            ],
+            [
+              96,
+              0.5623632295770388
+            ],
+            [
+              160,
+              1.5746170428157082
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.20041229718870432
+            ],
+            [
+              96,
+              -2.0041229718870435
+            ],
+            [
+              160,
+              -5.611544321283721
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.5129723774852036
+            ],
+            [
+              96,
+              -5.129723774852037
+            ],
+            [
+              160,
+              -14.363226569585702
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              11
+            ],
+            [
+              96,
+              68
+            ],
+            [
+              160,
+              132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              126.82352941176471,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.2714005921971295
+            ],
+            [
+              96,
+              2.714005921971295
+            ],
+            [
+              160,
+              7.5992165815196255
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.32595253576733096
+            ],
+            [
+              96,
+              3.25952535767331
+            ],
+            [
+              160,
+              9.126671001485269
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.3557596603452578
+            ],
+            [
+              96,
+              -3.5575966034525783
+            ],
+            [
+              160,
+              -9.96127048966722
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -11
+            ],
+            [
+              96,
+              -68
+            ],
+            [
+              160,
+              -132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              129.2941176470588,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.149929881583141
+            ],
+            [
+              96,
+              -1.4992988158314098
+            ],
+            [
+              160,
+              -4.198036684327947
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.15542283881976562
+            ],
+            [
+              96,
+              1.5542283881976564
+            ],
+            [
+              160,
+              4.351839486953438
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.509738211956637
+            ],
+            [
+              96,
+              5.097382119566371
+            ],
+            [
+              160,
+              14.272669934785839
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              11
+            ],
+            [
+              96,
+              68
+            ],
+            [
+              160,
+              132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              131.76470588235293,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.10808256234721018
+            ],
+            [
+              96,
+              -1.0808256234721019
+            ],
+            [
+              160,
+              -3.026311745721885
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.5023104978014024
+            ],
+            [
+              96,
+              -5.023104978014024
+            ],
+            [
+              160,
+              -14.064693938439266
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.20608395488743841
+            ],
+            [
+              96,
+              -2.0608395488743843
+            ],
+            [
+              160,
+              -5.770350736848276
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -11
+            ],
+            [
+              96,
+              -68
+            ],
+            [
+              160,
+              -132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              134.23529411764707,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.5535957667351503
+            ],
+            [
+              96,
+              -5.535957667351504
+            ],
+            [
+              160,
+              -15.500681468584208
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.3321574600410902
+            ],
+            [
+              96,
+              3.321574600410902
+            ],
+            [
+              160,
+              9.300408881150526
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.5535957667351503
+            ],
+            [
+              96,
+              5.535957667351504
+            ],
+            [
+              160,
+              15.500681468584208
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              11
+            ],
+            [
+              96,
+              68
+            ],
+            [
+              160,
+              132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              136.7058823529412,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.5535957667351503
+            ],
+            [
+              96,
+              5.535957667351504
+            ],
+            [
+              160,
+              15.500681468584208
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.3321574600410902
+            ],
+            [
+              96,
+              3.321574600410902
+            ],
+            [
+              160,
+              9.300408881150526
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.5535957667351503
+            ],
+            [
+              96,
+              -5.535957667351504
+            ],
+            [
+              160,
+              -15.500681468584208
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -11
+            ],
+            [
+              96,
+              -68
+            ],
+            [
+              160,
+              -132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              139.1764705882353,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.5535957667351503
+            ],
+            [
+              96,
+              -5.535957667351504
+            ],
+            [
+              160,
+              -15.500681468584208
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.3321574600410902
+            ],
+            [
+              96,
+              3.321574600410902
+            ],
+            [
+              160,
+              9.300408881150526
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.5535957667351503
+            ],
+            [
+              96,
+              -5.535957667351504
+            ],
+            [
+              160,
+              -15.500681468584208
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              11
+            ],
+            [
+              96,
+              68
+            ],
+            [
+              160,
+              132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              141.64705882352942,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.5535957667351503
+            ],
+            [
+              96,
+              5.535957667351504
+            ],
+            [
+              160,
+              15.500681468584208
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.3321574600410902
+            ],
+            [
+              96,
+              3.321574600410902
+            ],
+            [
+              160,
+              9.300408881150526
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.5535957667351503
+            ],
+            [
+              96,
+              5.535957667351504
+            ],
+            [
+              160,
+              15.500681468584208
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -11
+            ],
+            [
+              96,
+              -68
+            ],
+            [
+              160,
+              -132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              144.11764705882354,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.5535957667351503
+            ],
+            [
+              96,
+              -5.535957667351504
+            ],
+            [
+              160,
+              -15.500681468584208
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.3321574600410902
+            ],
+            [
+              96,
+              3.321574600410902
+            ],
+            [
+              160,
+              9.300408881150526
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.5535957667351503
+            ],
+            [
+              96,
+              5.535957667351504
+            ],
+            [
+              160,
+              15.500681468584208
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              11
+            ],
+            [
+              96,
+              68
+            ],
+            [
+              160,
+              132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              146.58823529411765,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.5535957667351503
+            ],
+            [
+              96,
+              5.535957667351504
+            ],
+            [
+              160,
+              15.500681468584208
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.3321574600410902
+            ],
+            [
+              96,
+              3.321574600410902
+            ],
+            [
+              160,
+              9.300408881150526
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.5535957667351503
+            ],
+            [
+              96,
+              -5.535957667351504
+            ],
+            [
+              160,
+              -15.500681468584208
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -11
+            ],
+            [
+              96,
+              -68
+            ],
+            [
+              160,
+              -132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              149.05882352941177,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.5535957667351503
+            ],
+            [
+              96,
+              -5.535957667351504
+            ],
+            [
+              160,
+              -15.500681468584208
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.3321574600410902
+            ],
+            [
+              96,
+              3.321574600410902
+            ],
+            [
+              160,
+              9.300408881150526
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.5535957667351503
+            ],
+            [
+              96,
+              -5.535957667351504
+            ],
+            [
+              160,
+              -15.500681468584208
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              11
+            ],
+            [
+              96,
+              68
+            ],
+            [
+              160,
+              132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              151.52941176470588,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.5535957667351503
+            ],
+            [
+              96,
+              5.535957667351504
+            ],
+            [
+              160,
+              15.500681468584208
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.3321574600410902
+            ],
+            [
+              96,
+              3.321574600410902
+            ],
+            [
+              160,
+              9.300408881150526
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.5535957667351503
+            ],
+            [
+              96,
+              5.535957667351504
+            ],
+            [
+              160,
+              15.500681468584208
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -11
+            ],
+            [
+              96,
+              -68
+            ],
+            [
+              160,
+              -132
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              154.0,
+              0
+            ],
+            [
+              160,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.5535957667351503
+            ],
+            [
+              96,
+              -5.535957667351504
+            ],
+            [
+              160,
+              -15.500681468584208
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.3321574600410902
+            ],
+            [
+              96,
+              3.321574600410902
+            ],
+            [
+              160,
+              9.300408881150526
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.5535957667351503
+            ],
+            [
+              96,
+              5.535957667351504
+            ],
+            [
+              160,
+              15.500681468584208
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "boundary_erasure": {
+      "loop": false,
+      "frames": 88,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "meridian_stratum_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              18
+            ],
+            [
+              40,
+              29
+            ],
+            [
+              54,
+              29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1.2484561173647981
+            ],
+            [
+              40,
+              3.953444371655194
+            ],
+            [
+              54,
+              3.953444371655194
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.011594335464393216
+            ],
+            [
+              40,
+              -0.036715395637245185
+            ],
+            [
+              54,
+              -0.036715395637245185
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.4544008655083389
+            ],
+            [
+              40,
+              1.43893607410974
+            ],
+            [
+              54,
+              1.43893607410974
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -18
+            ],
+            [
+              40,
+              -29
+            ],
+            [
+              54,
+              -29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.47778166461213795
+            ],
+            [
+              40,
+              -1.5129752712717703
+            ],
+            [
+              54,
+              -1.5129752712717703
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1.2274939156115952
+            ],
+            [
+              40,
+              3.8870640661033846
+            ],
+            [
+              54,
+              3.8870640661033846
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.17389830439697596
+            ],
+            [
+              40,
+              -0.5506779639237572
+            ],
+            [
+              54,
+              -0.5506779639237572
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              18
+            ],
+            [
+              40,
+              29
+            ],
+            [
+              54,
+              29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.5861369627883758
+            ],
+            [
+              40,
+              -1.8561003821631903
+            ],
+            [
+              54,
+              -1.8561003821631903
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.1731105191736633
+            ],
+            [
+              40,
+              -3.714849977383267
+            ],
+            [
+              54,
+              -3.714849977383267
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.21333640765816547
+            ],
+            [
+              40,
+              -0.675565290917524
+            ],
+            [
+              54,
+              -0.675565290917524
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -18
+            ],
+            [
+              40,
+              -29
+            ],
+            [
+              54,
+              -29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1.0304753215262332
+            ],
+            [
+              40,
+              3.2631718514997385
+            ],
+            [
+              54,
+              3.2631718514997385
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.6334408753227408
+            ],
+            [
+              40,
+              2.0058961051886794
+            ],
+            [
+              54,
+              2.0058961051886794
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.5496640077092012
+            ],
+            [
+              40,
+              1.7406026910791372
+            ],
+            [
+              54,
+              1.7406026910791372
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              18
+            ],
+            [
+              40,
+              29
+            ],
+            [
+              54,
+              29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.1633853092645317
+            ],
+            [
+              40,
+              -3.684053479337684
+            ],
+            [
+              54,
+              -3.684053479337684
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.1800201181118161
+            ],
+            [
+              40,
+              -0.5700637073540843
+            ],
+            [
+              54,
+              -0.5700637073540843
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.6159420682480232
+            ],
+            [
+              40,
+              1.9504832161187402
+            ],
+            [
+              54,
+              1.9504832161187402
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -18
+            ],
+            [
+              40,
+              -29
+            ],
+            [
+              54,
+              -29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.13496717509848927
+            ],
+            [
+              40,
+              0.4273960544785494
+            ],
+            [
+              54,
+              0.4273960544785494
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.4809895132528903
+            ],
+            [
+              40,
+              -1.5231334586341527
+            ],
+            [
+              54,
+              -1.5231334586341527
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.2311337059644887
+            ],
+            [
+              40,
+              -3.8985900688875477
+            ],
+            [
+              54,
+              -3.8985900688875477
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              18
+            ],
+            [
+              40,
+              29
+            ],
+            [
+              54,
+              29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.6513614212731107
+            ],
+            [
+              40,
+              2.062644500698184
+            ],
+            [
+              54,
+              2.062644500698184
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.7822860858415943
+            ],
+            [
+              40,
+              2.4772392718317153
+            ],
+            [
+              54,
+              2.4772392718317153
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.8538231848286187
+            ],
+            [
+              40,
+              -2.703773418623959
+            ],
+            [
+              54,
+              -2.703773418623959
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -18
+            ],
+            [
+              40,
+              -29
+            ],
+            [
+              54,
+              -29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.3598317157995383
+            ],
+            [
+              40,
+              -1.1394671000318715
+            ],
+            [
+              54,
+              -1.1394671000318715
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.3730148131674375
+            ],
+            [
+              40,
+              1.1812135750302188
+            ],
+            [
+              54,
+              1.1812135750302188
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1.223371708695929
+            ],
+            [
+              40,
+              3.874010410870442
+            ],
+            [
+              54,
+              3.874010410870442
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              18
+            ],
+            [
+              40,
+              29
+            ],
+            [
+              54,
+              29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.25939814963330443
+            ],
+            [
+              40,
+              -0.8214274738387973
+            ],
+            [
+              54,
+              -0.8214274738387973
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.2055451947233657
+            ],
+            [
+              40,
+              -3.8175597832906574
+            ],
+            [
+              54,
+              -3.8175597832906574
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.4946014917298522
+            ],
+            [
+              40,
+              -1.5662380571445318
+            ],
+            [
+              54,
+              -1.5662380571445318
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              35
+            ],
+            [
+              40,
+              74
+            ],
+            [
+              54,
+              74
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -74
+            ],
+            [
+              54,
+              -74
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              35
+            ],
+            [
+              40,
+              74
+            ],
+            [
+              54,
+              74
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 88,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "meridian_stratum_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              18
+            ],
+            [
+              40,
+              29
+            ],
+            [
+              54,
+              29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1.2484561173647981
+            ],
+            [
+              40,
+              3.953444371655194
+            ],
+            [
+              54,
+              3.953444371655194
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.011594335464393216
+            ],
+            [
+              40,
+              -0.036715395637245185
+            ],
+            [
+              54,
+              -0.036715395637245185
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.4544008655083389
+            ],
+            [
+              40,
+              1.43893607410974
+            ],
+            [
+              54,
+              1.43893607410974
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -18
+            ],
+            [
+              40,
+              -29
+            ],
+            [
+              54,
+              -29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.47778166461213795
+            ],
+            [
+              40,
+              -1.5129752712717703
+            ],
+            [
+              54,
+              -1.5129752712717703
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1.2274939156115952
+            ],
+            [
+              40,
+              3.8870640661033846
+            ],
+            [
+              54,
+              3.8870640661033846
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.17389830439697596
+            ],
+            [
+              40,
+              -0.5506779639237572
+            ],
+            [
+              54,
+              -0.5506779639237572
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              18
+            ],
+            [
+              40,
+              29
+            ],
+            [
+              54,
+              29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.5861369627883758
+            ],
+            [
+              40,
+              -1.8561003821631903
+            ],
+            [
+              54,
+              -1.8561003821631903
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.1731105191736633
+            ],
+            [
+              40,
+              -3.714849977383267
+            ],
+            [
+              54,
+              -3.714849977383267
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "meridian_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.21333640765816547
+            ],
+            [
+              40,
+              -0.675565290917524
+            ],
+            [
+              54,
+              -0.675565290917524
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -18
+            ],
+            [
+              40,
+              -29
+            ],
+            [
+              54,
+              -29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1.0304753215262332
+            ],
+            [
+              40,
+              3.2631718514997385
+            ],
+            [
+              54,
+              3.2631718514997385
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.6334408753227408
+            ],
+            [
+              40,
+              2.0058961051886794
+            ],
+            [
+              54,
+              2.0058961051886794
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "horizon_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.5496640077092012
+            ],
+            [
+              40,
+              1.7406026910791372
+            ],
+            [
+              54,
+              1.7406026910791372
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              18
+            ],
+            [
+              40,
+              29
+            ],
+            [
+              54,
+              29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.1633853092645317
+            ],
+            [
+              40,
+              -3.684053479337684
+            ],
+            [
+              54,
+              -3.684053479337684
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.1800201181118161
+            ],
+            [
+              40,
+              -0.5700637073540843
+            ],
+            [
+              54,
+              -0.5700637073540843
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "horizon_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.6159420682480232
+            ],
+            [
+              40,
+              1.9504832161187402
+            ],
+            [
+              54,
+              1.9504832161187402
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -18
+            ],
+            [
+              40,
+              -29
+            ],
+            [
+              54,
+              -29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.13496717509848927
+            ],
+            [
+              40,
+              0.4273960544785494
+            ],
+            [
+              54,
+              0.4273960544785494
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.4809895132528903
+            ],
+            [
+              40,
+              -1.5231334586341527
+            ],
+            [
+              54,
+              -1.5231334586341527
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "horizon_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.2311337059644887
+            ],
+            [
+              40,
+              -3.8985900688875477
+            ],
+            [
+              54,
+              -3.8985900688875477
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              18
+            ],
+            [
+              40,
+              29
+            ],
+            [
+              54,
+              29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.6513614212731107
+            ],
+            [
+              40,
+              2.062644500698184
+            ],
+            [
+              54,
+              2.062644500698184
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.7822860858415943
+            ],
+            [
+              40,
+              2.4772392718317153
+            ],
+            [
+              54,
+              2.4772392718317153
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis_stratum_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.8538231848286187
+            ],
+            [
+              40,
+              -2.703773418623959
+            ],
+            [
+              54,
+              -2.703773418623959
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -18
+            ],
+            [
+              40,
+              -29
+            ],
+            [
+              54,
+              -29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.3598317157995383
+            ],
+            [
+              40,
+              -1.1394671000318715
+            ],
+            [
+              54,
+              -1.1394671000318715
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.3730148131674375
+            ],
+            [
+              40,
+              1.1812135750302188
+            ],
+            [
+              54,
+              1.1812135750302188
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis_stratum_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1.223371708695929
+            ],
+            [
+              40,
+              3.874010410870442
+            ],
+            [
+              54,
+              3.874010410870442
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              18
+            ],
+            [
+              40,
+              29
+            ],
+            [
+              54,
+              29
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.25939814963330443
+            ],
+            [
+              40,
+              -0.8214274738387973
+            ],
+            [
+              54,
+              -0.8214274738387973
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.2055451947233657
+            ],
+            [
+              40,
+              -3.8175597832906574
+            ],
+            [
+              54,
+              -3.8175597832906574
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis_stratum_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.4946014917298522
+            ],
+            [
+              40,
+              -1.5662380571445318
+            ],
+            [
+              54,
+              -1.5662380571445318
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              35
+            ],
+            [
+              40,
+              74
+            ],
+            [
+              54,
+              74
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -74
+            ],
+            [
+              54,
+              -74
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              35
+            ],
+            [
+              40,
+              74
+            ],
+            [
+              54,
+              74
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "gravity_fold": {
+      "loop": false,
+      "frames": 104,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "space_fold_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              32
+            ],
+            [
+              48,
+              77
+            ],
+            [
+              70,
+              77
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              0.6643149200821804
+            ],
+            [
+              48,
+              2.3251022202876315
+            ],
+            [
+              70,
+              2.3251022202876315
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              -32
+            ],
+            [
+              48,
+              -77
+            ],
+            [
+              70,
+              -77
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              -0.6643149200821804
+            ],
+            [
+              48,
+              -2.3251022202876315
+            ],
+            [
+              70,
+              -2.3251022202876315
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              32
+            ],
+            [
+              48,
+              77
+            ],
+            [
+              70,
+              77
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              0.6643149200821804
+            ],
+            [
+              48,
+              2.3251022202876315
+            ],
+            [
+              70,
+              2.3251022202876315
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              -32
+            ],
+            [
+              48,
+              -77
+            ],
+            [
+              70,
+              -77
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              -0.6643149200821804
+            ],
+            [
+              48,
+              -2.3251022202876315
+            ],
+            [
+              70,
+              -2.3251022202876315
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              32
+            ],
+            [
+              48,
+              77
+            ],
+            [
+              70,
+              77
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              0.6643149200821804
+            ],
+            [
+              48,
+              2.3251022202876315
+            ],
+            [
+              70,
+              2.3251022202876315
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              -32
+            ],
+            [
+              48,
+              -77
+            ],
+            [
+              70,
+              -77
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              -0.6643149200821804
+            ],
+            [
+              48,
+              -2.3251022202876315
+            ],
+            [
+              70,
+              -2.3251022202876315
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "meridian",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              12
+            ],
+            [
+              48,
+              26
+            ],
+            [
+              70,
+              26
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              -12
+            ],
+            [
+              48,
+              -26
+            ],
+            [
+              70,
+              -26
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              12
+            ],
+            [
+              48,
+              26
+            ],
+            [
+              70,
+              26
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              -18
+            ],
+            [
+              48,
+              -76
+            ],
+            [
+              70,
+              -76
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "fold_axis",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              -16
+            ],
+            [
+              48,
+              -68
+            ],
+            [
+              70,
+              -68
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "horizon",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              -0.8857532267762406
+            ],
+            [
+              48,
+              -4.4287661338812025
+            ],
+            [
+              70,
+              -4.4287661338812025
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              0.6643149200821804
+            ],
+            [
+              48,
+              3.321574600410902
+            ],
+            [
+              70,
+              3.321574600410902
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "parallax_fold_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              25
+            ],
+            [
+              48,
+              96
+            ],
+            [
+              70,
+              96
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              -25
+            ],
+            [
+              48,
+              -96
+            ],
+            [
+              70,
+              -96
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "parallax_fold_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              25
+            ],
+            [
+              48,
+              96
+            ],
+            [
+              70,
+              96
+            ],
+            [
+              104,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "edict_projection": {
+      "loop": false,
+      "frames": 96,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "space_fold_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -58
+            ],
+            [
+              40,
+              -72
+            ],
+            [
+              44,
+              -53
+            ],
+            [
+              48,
+              -72
+            ],
+            [
+              52,
+              -53
+            ],
+            [
+              56,
+              -72
+            ],
+            [
+              64,
+              -53
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -58
+            ],
+            [
+              40,
+              -72
+            ],
+            [
+              44,
+              -53
+            ],
+            [
+              48,
+              -72
+            ],
+            [
+              52,
+              -53
+            ],
+            [
+              56,
+              -72
+            ],
+            [
+              64,
+              -53
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -58
+            ],
+            [
+              40,
+              -72
+            ],
+            [
+              44,
+              -53
+            ],
+            [
+              48,
+              -72
+            ],
+            [
+              52,
+              -53
+            ],
+            [
+              56,
+              -72
+            ],
+            [
+              64,
+              -53
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -58
+            ],
+            [
+              40,
+              -72
+            ],
+            [
+              44,
+              -53
+            ],
+            [
+              48,
+              -72
+            ],
+            [
+              52,
+              -53
+            ],
+            [
+              56,
+              -72
+            ],
+            [
+              64,
+              -53
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -58
+            ],
+            [
+              40,
+              -72
+            ],
+            [
+              44,
+              -53
+            ],
+            [
+              48,
+              -72
+            ],
+            [
+              52,
+              -53
+            ],
+            [
+              56,
+              -72
+            ],
+            [
+              64,
+              -53
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -58
+            ],
+            [
+              40,
+              -72
+            ],
+            [
+              44,
+              -53
+            ],
+            [
+              48,
+              -72
+            ],
+            [
+              52,
+              -53
+            ],
+            [
+              56,
+              -72
+            ],
+            [
+              64,
+              -53
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "meridian",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.2179106868173308
+            ],
+            [
+              40,
+              -1.992944760246541
+            ],
+            [
+              44,
+              0.7750340734292104
+            ],
+            [
+              48,
+              -1.992944760246541
+            ],
+            [
+              52,
+              0.7750340734292104
+            ],
+            [
+              56,
+              -1.992944760246541
+            ],
+            [
+              64,
+              0.7750340734292104
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.2179106868173308
+            ],
+            [
+              40,
+              -1.992944760246541
+            ],
+            [
+              44,
+              0.7750340734292104
+            ],
+            [
+              48,
+              -1.992944760246541
+            ],
+            [
+              52,
+              0.7750340734292104
+            ],
+            [
+              56,
+              -1.992944760246541
+            ],
+            [
+              64,
+              0.7750340734292104
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "fold_axis",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.2179106868173308
+            ],
+            [
+              40,
+              -1.992944760246541
+            ],
+            [
+              44,
+              0.7750340734292104
+            ],
+            [
+              48,
+              -1.992944760246541
+            ],
+            [
+              52,
+              0.7750340734292104
+            ],
+            [
+              56,
+              -1.992944760246541
+            ],
+            [
+              64,
+              0.7750340734292104
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "rift_storm": {
+      "loop": false,
+      "frames": 120,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "meridian",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              14
+            ],
+            [
+              40,
+              65
+            ],
+            [
+              60,
+              158
+            ],
+            [
+              80,
+              255
+            ],
+            [
+              104,
+              346
+            ],
+            [
+              120,
+              360
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "horizon",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              -14
+            ],
+            [
+              40,
+              -65
+            ],
+            [
+              60,
+              -158
+            ],
+            [
+              80,
+              -255
+            ],
+            [
+              104,
+              -346
+            ],
+            [
+              120,
+              -360
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "fold_axis",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              14
+            ],
+            [
+              40,
+              65
+            ],
+            [
+              60,
+              158
+            ],
+            [
+              80,
+              255
+            ],
+            [
+              104,
+              346
+            ],
+            [
+              120,
+              360
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "space_fold_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              1.660787300205451
+            ],
+            [
+              40,
+              -1.660787300205451
+            ],
+            [
+              60,
+              1.660787300205451
+            ],
+            [
+              80,
+              -1.660787300205451
+            ],
+            [
+              104,
+              0.4428766133881203
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              -1.660787300205451
+            ],
+            [
+              40,
+              1.660787300205451
+            ],
+            [
+              60,
+              -1.660787300205451
+            ],
+            [
+              80,
+              1.660787300205451
+            ],
+            [
+              104,
+              -0.4428766133881203
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              1.660787300205451
+            ],
+            [
+              40,
+              -1.660787300205451
+            ],
+            [
+              60,
+              1.660787300205451
+            ],
+            [
+              80,
+              -1.660787300205451
+            ],
+            [
+              104,
+              0.4428766133881203
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              -1.660787300205451
+            ],
+            [
+              40,
+              1.660787300205451
+            ],
+            [
+              60,
+              -1.660787300205451
+            ],
+            [
+              80,
+              1.660787300205451
+            ],
+            [
+              104,
+              -0.4428766133881203
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              1.660787300205451
+            ],
+            [
+              40,
+              -1.660787300205451
+            ],
+            [
+              60,
+              1.660787300205451
+            ],
+            [
+              80,
+              -1.660787300205451
+            ],
+            [
+              104,
+              0.4428766133881203
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "space_fold_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              -1.660787300205451
+            ],
+            [
+              40,
+              1.660787300205451
+            ],
+            [
+              60,
+              -1.660787300205451
+            ],
+            [
+              80,
+              1.660787300205451
+            ],
+            [
+              104,
+              -0.4428766133881203
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "idle": [
+      [
+        0,
+        0
+      ],
+      [
+        80.0,
+        1
+      ],
+      [
+        160,
+        0
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        28,
+        1
+      ],
+      [
+        96,
+        2
+      ],
+      [
+        160,
+        2
+      ]
+    ],
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        28,
+        1
+      ],
+      [
+        54,
+        0
+      ],
+      [
+        88,
+        0
+      ]
+    ],
+    "boundary_erasure": [
+      [
+        0,
+        0
+      ],
+      [
+        28,
+        1
+      ],
+      [
+        54,
+        0
+      ],
+      [
+        88,
+        0
+      ]
+    ],
+    "gravity_fold": [
+      [
+        0,
+        0
+      ],
+      [
+        30,
+        1
+      ],
+      [
+        70,
+        0
+      ],
+      [
+        104,
+        0
+      ]
+    ],
+    "edict_projection": [
+      [
+        0,
+        0
+      ],
+      [
+        28,
+        1
+      ],
+      [
+        64,
+        0
+      ],
+      [
+        96,
+        0
+      ]
+    ],
+    "rift_storm": [
+      [
+        0,
+        0
+      ],
+      [
+        24,
+        1
+      ],
+      [
+        104,
+        0
+      ],
+      [
+        120,
+        0
+      ]
+    ],
+    "spawn": [
+      [
+        0,
+        2
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        104,
+        1
+      ],
+      [
+        120,
+        0
+      ]
+    ]
+  },
+  "emissive_groups": [
+    "meridian_stratum_0__glow",
+    "meridian_stratum_1__glow",
+    "meridian_stratum_2__glow",
+    "horizon_stratum_0__glow",
+    "horizon_stratum_1__glow",
+    "horizon_stratum_2__glow",
+    "fold_axis_stratum_0__glow",
+    "fold_axis_stratum_1__glow",
+    "fold_axis_stratum_2__glow"
+  ],
+  "emissive_uv_offsets": {
+    "cold_light__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.00830078125
+      ],
+      [
+        0,
+        -0.0166015625
+      ]
+    ]
+  },
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T5V",
+    "size": 2048,
+    "budget": 36000,
+    "density": 10.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 50.0,
+    "fit_axis": 0,
+    "emissive_limit": 0.12,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}

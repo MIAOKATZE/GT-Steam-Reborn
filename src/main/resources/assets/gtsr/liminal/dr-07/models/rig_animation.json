@@ -1,0 +1,1807 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DR-07",
+  "name": "岸蚀蟹",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 0.96,
+    "h": 0.596033202827,
+    "d": 0.8525828789216
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        -0.032601917899751955,
+        0.2529800366052061,
+        0.1778891368509624
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "high_back",
+      "parent": "body",
+      "pivot": [
+        0.07180254165160296,
+        0.2851044856979307,
+        0.24213803503641157
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_-1_1",
+      "parent": "body",
+      "pivot": [
+        -0.24944194927564292,
+        0.24494892433202498,
+        0.03332911593370175
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_-1_1_ankle",
+      "parent": "leg_-1_1",
+      "pivot": [
+        -0.4341575315588093,
+        0.18873113841975694,
+        0.1015935702557415
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_-1_2",
+      "parent": "body",
+      "pivot": [
+        -0.24944194927564292,
+        0.24494892433202498,
+        0.1738735807143718
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_-1_2_ankle",
+      "parent": "leg_-1_2",
+      "pivot": [
+        -0.4622664245149433,
+        0.18873113841975694,
+        0.24213803503641157
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_-1_3",
+      "parent": "body",
+      "pivot": [
+        -0.24944194927564292,
+        0.24494892433202498,
+        0.3063869332218607
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_-1_3_ankle",
+      "parent": "leg_-1_3",
+      "pivot": [
+        -0.4341575315588093,
+        0.18873113841975694,
+        0.3746513875439005
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_-1_4",
+      "parent": "body",
+      "pivot": [
+        -0.24944194927564292,
+        0.24494892433202498,
+        0.41079139277321564
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_-1_4_ankle",
+      "parent": "leg_-1_4",
+      "pivot": [
+        -0.4622664245149433,
+        0.18873113841975694,
+        0.47905584709525545
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_1_1",
+      "parent": "body",
+      "pivot": [
+        0.18423811347613903,
+        0.24494892433202498,
+        0.03332911593370175
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_1_1_ankle",
+      "parent": "leg_1_1",
+      "pivot": [
+        0.36895369575930537,
+        0.18873113841975694,
+        0.1015935702557415
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_1_2",
+      "parent": "body",
+      "pivot": [
+        0.18423811347613903,
+        0.24494892433202498,
+        0.1738735807143718
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_1_2_ankle",
+      "parent": "leg_1_2",
+      "pivot": [
+        0.3970625887154394,
+        0.18873113841975694,
+        0.24213803503641157
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_1_3",
+      "parent": "body",
+      "pivot": [
+        0.18423811347613903,
+        0.24494892433202498,
+        0.3063869332218607
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_1_3_ankle",
+      "parent": "leg_1_3",
+      "pivot": [
+        0.36895369575930537,
+        0.18873113841975694,
+        0.3746513875439005
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_1_4",
+      "parent": "body",
+      "pivot": [
+        0.18423811347613903,
+        0.24494892433202498,
+        0.41079139277321564
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_1_4_ankle",
+      "parent": "leg_1_4",
+      "pivot": [
+        0.3970625887154394,
+        0.18873113841975694,
+        0.47905584709525545
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "crusher",
+      "parent": "body",
+      "pivot": [
+        0.17620700120295787,
+        0.24494892433202498,
+        -0.030919782251747442
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "crusher_jaw",
+      "parent": "crusher",
+      "pivot": [
+        0.31273590984703736,
+        0.23691781205884382,
+        -0.32003982408626874
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "pusher",
+      "parent": "body",
+      "pivot": [
+        -0.24141083700246177,
+        0.23691781205884382,
+        -0.014857557705385134
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "pusher_jaw",
+      "parent": "pusher",
+      "pivot": [
+        -0.3699086333733601,
+        0.2128244752393004,
+        -0.3120087118130876
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "eye_long",
+      "parent": "body",
+      "pivot": [
+        0.0958958784711464,
+        0.3091978225174742,
+        -0.04698200679810973
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "eye_short",
+      "parent": "body",
+      "pivot": [
+        -0.16913082654383146,
+        0.3091978225174742,
+        -0.04698200679810973
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "mandible_-1",
+      "parent": "body",
+      "pivot": [
+        -0.08881970381201999,
+        0.24494892433202498,
+        -0.07910645589083432
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "mandible_1",
+      "parent": "body",
+      "pivot": [
+        0.023615868012516077,
+        0.24494892433202498,
+        -0.07910645589083432
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "pusher__glow",
+      "parent": "pusher",
+      "pivot": [
+        -0.24141083700246177,
+        0.23691781205884382,
+        -0.014857557705385134
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "pusher_jaw__glow",
+      "parent": "pusher_jaw",
+      "pivot": [
+        -0.3699086333733601,
+        0.2128244752393004,
+        -0.3120087118130876
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "walk": {
+      "loop": true,
+      "frames": 8,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "leg_-1_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -16
+            ],
+            [
+              4,
+              16
+            ],
+            [
+              8,
+              -16
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_1_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              -15
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              6,
+              15
+            ],
+            [
+              8,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              16
+            ],
+            [
+              4,
+              -16
+            ],
+            [
+              8,
+              16
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_2_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              15
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              6,
+              -15
+            ],
+            [
+              8,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -16
+            ],
+            [
+              4,
+              16
+            ],
+            [
+              8,
+              -16
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_3_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              -15
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              6,
+              15
+            ],
+            [
+              8,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              16
+            ],
+            [
+              4,
+              -16
+            ],
+            [
+              8,
+              16
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_4_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              15
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              6,
+              -15
+            ],
+            [
+              8,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              16
+            ],
+            [
+              4,
+              -16
+            ],
+            [
+              8,
+              16
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_1_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              15
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              6,
+              -15
+            ],
+            [
+              8,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -16
+            ],
+            [
+              4,
+              16
+            ],
+            [
+              8,
+              -16
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_2_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              -15
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              6,
+              15
+            ],
+            [
+              8,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              16
+            ],
+            [
+              4,
+              -16
+            ],
+            [
+              8,
+              16
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_3_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              15
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              6,
+              -15
+            ],
+            [
+              8,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -16
+            ],
+            [
+              4,
+              16
+            ],
+            [
+              8,
+              -16
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_4_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              -15
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              6,
+              15
+            ],
+            [
+              8,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              2,
+              0.014456002091726063
+            ],
+            [
+              4,
+              0.0
+            ],
+            [
+              6,
+              0.014456002091726063
+            ],
+            [
+              8,
+              0.0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 22,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "pusher",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              -24
+            ],
+            [
+              10,
+              40
+            ],
+            [
+              14,
+              40
+            ],
+            [
+              22,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "pusher",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              6,
+              0.028108892956134016
+            ],
+            [
+              10,
+              -0.1847155822831664
+            ],
+            [
+              14,
+              -0.1847155822831664
+            ],
+            [
+              22,
+              0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "pusher_jaw",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              -19
+            ],
+            [
+              10,
+              8
+            ],
+            [
+              15,
+              8
+            ],
+            [
+              22,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "crusher",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              15
+            ],
+            [
+              13,
+              -8
+            ],
+            [
+              22,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "crusher_jaw",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              -17
+            ],
+            [
+              13,
+              12
+            ],
+            [
+              22,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              -5
+            ],
+            [
+              10,
+              8
+            ],
+            [
+              22,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 42,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "leg_-1_1_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              5,
+              0
+            ],
+            [
+              26,
+              -63
+            ],
+            [
+              42,
+              -75
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_2_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              26,
+              -63
+            ],
+            [
+              42,
+              -75
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_3_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              9,
+              0
+            ],
+            [
+              26,
+              -63
+            ],
+            [
+              42,
+              -75
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_4_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              11,
+              0
+            ],
+            [
+              26,
+              -63
+            ],
+            [
+              42,
+              -75
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_1_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              5,
+              0
+            ],
+            [
+              26,
+              63
+            ],
+            [
+              42,
+              75
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_2_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              26,
+              63
+            ],
+            [
+              42,
+              75
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_3_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              9,
+              0
+            ],
+            [
+              26,
+              63
+            ],
+            [
+              42,
+              75
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_4_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              11,
+              0
+            ],
+            [
+              26,
+              63
+            ],
+            [
+              42,
+              75
+            ]
+          ]
+        },
+        {
+          "group": "high_back",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              18,
+              -80
+            ],
+            [
+              42,
+              -104
+            ]
+          ]
+        },
+        {
+          "group": "high_back",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              8,
+              0.0
+            ],
+            [
+              26,
+              0.23290225592225325
+            ],
+            [
+              42,
+              0.28108892956134013
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "high_back",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              12,
+              0.0
+            ],
+            [
+              32,
+              -0.20077780682952867
+            ],
+            [
+              42,
+              -0.21684003137589097
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              6,
+              0.0
+            ],
+            [
+              25,
+              -0.1204666840977172
+            ],
+            [
+              42,
+              -0.1525911331904418
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "crusher",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              42,
+              -38
+            ]
+          ]
+        },
+        {
+          "group": "pusher",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              42,
+              42
+            ]
+          ]
+        },
+        {
+          "group": "eye_long",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              30,
+              -76
+            ],
+            [
+              42,
+              -76
+            ]
+          ]
+        },
+        {
+          "group": "eye_short",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              34,
+              63
+            ],
+            [
+              42,
+              63
+            ]
+          ]
+        }
+      ]
+    },
+    "idle": {
+      "loop": true,
+      "frames": 40,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "eye_long",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              12
+            ],
+            [
+              40,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "eye_short",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              -9
+            ],
+            [
+              40,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "pusher_jaw",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              -9
+            ],
+            [
+              40,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 36,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.05220222977563492
+            ],
+            [
+              10,
+              -0.05220222977563492
+            ],
+            [
+              21,
+              0.014456002091714285
+            ],
+            [
+              36,
+              0.0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "high_back",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -14
+            ],
+            [
+              12,
+              -14
+            ],
+            [
+              25,
+              3
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "crusher",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -20
+            ],
+            [
+              13,
+              -20
+            ],
+            [
+              27,
+              5
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "pusher",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              23
+            ],
+            [
+              8,
+              23
+            ],
+            [
+              21,
+              -8
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "eye_long",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -32
+            ],
+            [
+              16,
+              -32
+            ],
+            [
+              27,
+              9
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "eye_short",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              24
+            ],
+            [
+              10,
+              24
+            ],
+            [
+              24,
+              -5
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_1_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -22
+            ],
+            [
+              3,
+              -22
+            ],
+            [
+              16,
+              4
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_2_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -22
+            ],
+            [
+              5,
+              -22
+            ],
+            [
+              18,
+              4
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_3_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -22
+            ],
+            [
+              7,
+              -22
+            ],
+            [
+              20,
+              4
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_-1_4_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -22
+            ],
+            [
+              9,
+              -22
+            ],
+            [
+              22,
+              4
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_1_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              22
+            ],
+            [
+              3,
+              22
+            ],
+            [
+              16,
+              -4
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_2_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              22
+            ],
+            [
+              5,
+              22
+            ],
+            [
+              18,
+              -4
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_3_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              22
+            ],
+            [
+              7,
+              22
+            ],
+            [
+              20,
+              -4
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_1_4_ankle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              22
+            ],
+            [
+              9,
+              22
+            ],
+            [
+              22,
+              -4
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        15,
+        0
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        21.0,
+        2
+      ],
+      [
+        42,
+        2
+      ]
+    ],
+    "idle": [
+      [
+        0,
+        0
+      ],
+      [
+        20.0,
+        1
+      ],
+      [
+        40,
+        0
+      ]
+    ],
+    "spawn": [
+      [
+        0,
+        2
+      ],
+      [
+        18,
+        0
+      ],
+      [
+        26,
+        1
+      ],
+      [
+        32,
+        0
+      ]
+    ]
+  },
+  "emissive_groups": [
+    "pusher__glow",
+    "pusher_jaw__glow"
+  ],
+  "emissive_uv_offsets": {
+    "rift__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.0234375
+      ],
+      [
+        0,
+        -0.046875
+      ]
+    ]
+  },
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T1",
+    "size": 128,
+    "budget": 2600,
+    "density": 24.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 1.2,
+    "fit_axis": 0,
+    "emissive_limit": 0.04,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}
