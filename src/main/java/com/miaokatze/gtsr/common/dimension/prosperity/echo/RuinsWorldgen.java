@@ -22,8 +22,8 @@ public final class RuinsWorldgen {
         if (registered) return;
         for (int kind = 0; kind < RuinSite.NAMES.length; kind++) {
             final int k = kind;
-            final int side = kind < 2 ? 96 : kind < 7 ? 48 : 32;
-            final int depth = kind < 2 ? 96 : kind < 7 ? 48 : 16;
+            final int side = RuinSite.widthFor(kind, 2);
+            final int depth = RuinSite.depthFor(kind, 2);
             StructureRegistry.register(
                 new StructureRegistry.Entry(
                     "echo_" + RuinSite.NAMES[k],
@@ -45,13 +45,18 @@ public final class RuinsWorldgen {
 
     public static boolean generate(World w, int cx, int cz) {
         List<RuinSite> sites = RuinsSitePlanner.near(w.getSeed(), cx, cz);
-        for (RuinSite s : sites) placeChunk(w, s, cx, cz);
+        for (RuinSite old : RuinsEncounterData.get(w)
+            .existingSitesNear((cx << 4) + 8, (cz << 4) + 8, 128))
+            if (old.layout < 2 && old.intersects(cx, cz)) placeChunk(w, old, cx, cz);
+        for (RuinSite s : sites) if (RuinObjectives.newSiteAllowed(w, s)) placeChunk(w, s, cx, cz);
         return !sites.isEmpty();
     }
 
     public static void placeChunk(World w, RuinSite s, int cx, int cz) {
         if (w.isRemote || !s.intersects(cx, cz)) return;
         RuinsEncounterData data = RuinsEncounterData.get(w);
+        if (!RuinObjectives.newSiteAllowed(w, s)) return;
+        data.registerSite(s);
         String id = s.id(), geom = "geom:" + cx + ":" + cz;
         if (!data.created(id, geom)) {
             final int[] writes = { 0 };
@@ -69,7 +74,10 @@ public final class RuinsWorldgen {
             if (writes[0] > 0) data.markCreated(id, geom);
         }
         if (!data.created(id, geom)) return;
-        for (RuinsBlueprint.Node n : RuinsBlueprint.nodes(s)) {
+        List<RuinsBlueprint.Node> nodes = RuinsBlueprint.nodes(s);
+        RuinObjectives.initializeOwnedNodes(w, s, nodes, cx, cz);
+        for (RuinsBlueprint.Node n : nodes) {
+            if ("CONTROL".equals(n.role) || "MEMORY".equals(n.role)) continue;
             int x = s.x + n.x, y = s.y + n.y, z = s.z + n.z;
             if ((x >> 4) != cx || (z >> 4) != cz) continue;
             String node = (n.mob.isEmpty() ? "chest" : "entity") + n.index;
@@ -80,7 +88,8 @@ public final class RuinsWorldgen {
                 TileEntity t = w.getTileEntity(x, y, z);
                 if (t instanceof TileEntitySealedChest) {
                     TileEntitySealedChest chest = (TileEntitySealedChest) t;
-                    if (s.kind >= 7) {
+                    if (s.layout >= 2) RuinObjectives.configureChest(chest, s, n);
+                    else if (s.kind >= 7) {
                         chest.initializeClickUnlock(n.tier, id);
                         chest.setStoryRelic(
                             com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreSources.chestRelic(s.kind));
@@ -95,6 +104,7 @@ public final class RuinsWorldgen {
                 EntityOldEcho entity = new EntityOldEcho(w);
                 entity.initializeEcho(EchoKind.byCode(n.mob), id, x + .5, y, z + .5, false);
                 entity.setNodeIndex(n.index);
+                entity.configureObjective(s.layout, n.zone, "BOSS".equals(n.role));
                 entity.setHomeYaw(180);
                 if (w.spawnEntityInWorld(entity)) data.markCreated(id, node);
             }

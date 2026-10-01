@@ -27,6 +27,7 @@ public final class ForgottenLakeEncounterRegistry {
         unsealedChest = new BlockUnsealedChest();
         GameRegistry.registerBlock(unsealedChest, "UnsealedChest");
         GameRegistry.registerTileEntity(TileEntityUnsealedChest.class, "gtsr.unsealedChest");
+        com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinMechanisms.register();
     }
 
     public static void preInit() {
@@ -52,6 +53,7 @@ public final class ForgottenLakeEncounterRegistry {
             .bus()
             .register(echoes);
         EncounterNetwork.register();
+        com.miaokatze.gtsr.common.dimension.prosperity.echo.CombatEffects.register();
         cpw.mods.fml.common.FMLCommonHandler.instance()
             .bus()
             .register(new EncounterProgress());

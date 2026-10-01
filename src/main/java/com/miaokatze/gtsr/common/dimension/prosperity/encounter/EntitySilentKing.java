@@ -15,8 +15,9 @@ import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
 
+import com.miaokatze.gtsr.common.dimension.prosperity.echo.CombatEffects;
+import com.miaokatze.gtsr.common.dimension.prosperity.echo.CombatGeometry;
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry;
 
 /** A fixed, front-facing throne encounter. All damage and progression are server authoritative. */
@@ -25,9 +26,10 @@ public class EntitySilentKing extends EntityEncounterBase {
     public static final int DORMANT = 0, AWAKENING = 1, ACTIVE = 2, RECOVERING = 3, DEFEATED = 4;
     public static final int ALERT_RADIUS = 55, AWAKENING_TICKS = 208;
     public static final float MAX_HEALTH = 3000F;
-    public static final int SKILL_NONE = 0, SKILL_ECHO = 1, SKILL_PULSE = 2, SKILL_CROWN = 3, SKILL_SHOCK = 4;
+    public static final int SKILL_NONE = 0, SKILL_ECHO = 1, SKILL_PULSE = 2, SKILL_CROWN = 3, SKILL_SHOCK = 4,
+        SKILL_SWEEP = 5, SKILL_CROWN_FALL = 6, SKILL_DOUBLE_PULSE = 7;
     private final Set<UUID> condemned = new HashSet<>(), participants = new HashSet<>();
-    private final int[] cooldowns = new int[5];
+    private final int[] cooldowns = new int[8];
     private int combatTicks, nextSkill;
     private double echoX, echoY, echoZ;
     private boolean engaged, deathRecorded;
@@ -92,7 +94,8 @@ public class EntitySilentKing extends EntityEncounterBase {
         Entity source = s.getEntity(); // Indirect sources return their shooter, not the projectile's impact position.
         if (worldObj.isRemote || getEncounterState() != ACTIVE
             || !(source instanceof EntityPlayer)
-            || !valid((EntityPlayer) source)) return false;
+            || !valid((EntityPlayer) source)
+            || !canEntityBeSeen(source)) return false;
         EntityPlayer p = (EntityPlayer) source;
         engaged = true;
         if (!front(p)) {
@@ -167,6 +170,7 @@ public class EntitySilentKing extends EntityEncounterBase {
         if (ps.isEmpty()) {
             if (s != RECOVERING) {
                 state(RECOVERING);
+                if (getSkillId() != 0) stopEffects();
                 skill(SKILL_NONE, 0);
                 nextSkill = 30;
             }
@@ -197,6 +201,14 @@ public class EntitySilentKing extends EntityEncounterBase {
             for (EntityPlayer p : ps) if (getDistanceSqToEntity(p) <= 8 * 8) id = SKILL_SHOCK;
         }
         if (id == SKILL_NONE) {
+            int phase = getCombatPhase();
+            if (phase > 0 && rand.nextInt(3) == 0) {
+                int candidate = phase == 2 ? SKILL_SWEEP + rand.nextInt(3)
+                    : rand.nextBoolean() ? SKILL_SWEEP : SKILL_CROWN_FALL;
+                if (cooldowns[candidate] == 0) id = candidate;
+            }
+        }
+        if (id == SKILL_NONE) {
             boolean punitive = false;
             for (EntityPlayer p : ps) if (isCondemned(p)) punitive = true;
             int[] weights = { 0, punitive ? 6 : 4, 3, punitive ? 6 : 2, 0 };
@@ -217,33 +229,25 @@ public class EntitySilentKing extends EntityEncounterBase {
         }
         EntityPlayer p = priorityPlayer(ps);
         echoX = p.posX;
-        echoY = p.posY;
+        echoY = CombatGeometry.groundY(worldObj, p.posX, p.posY, p.posZ);
         echoZ = p.posZ;
         skill(id, 0);
+        if (!attackSpaceLoaded()) {
+            skill(SKILL_NONE, 0);
+            nextSkill = 40;
+            return;
+        }
+        attackSerial = attackSerial >= 60000000 ? 1 : attackSerial + 1;
+        for (int j = 0; j < steps(); j++)
+            CombatEffects.send(this, attackSerial * 32 + j, 0, warning() + j * 20, 2, geometry(j));
         cooldowns[id] = id == SKILL_SHOCK ? 1200
             : id == SKILL_CROWN ? 400 + rand.nextInt(401) : id == SKILL_ECHO ? 80 : 120;
     }
 
-    private void ring(double x, double y, double z, double radius, int points) {
-        if (!(worldObj instanceof WorldServer)) return;
-        for (int i = 0; i < points; i++) {
-            double angle = i * Math.PI * 2 / points;
-            ((WorldServer) worldObj).func_147487_a(
-                "reddust",
-                x + radius * Math.cos(angle),
-                y + .2,
-                z + radius * Math.sin(angle),
-                1,
-                0,
-                0,
-                0,
-                0);
-        }
-    }
-
     private void hurt(EntityPlayer p, float amount, double knockback) {
         float damage = isCondemned(p) ? amount * 2.2F : amount;
-        if (p.attackEntityFrom(DamageSource.causeMobDamage(this), damage)) participants.add(p.getUniqueID());
+        if (!valid(p) || !canEntityBeSeen(p) || !p.attackEntityFrom(DamageSource.causeMobDamage(this), damage)) return;
+        participants.add(p.getUniqueID());
         if (knockback > 0) {
             double dx = p.posX - posX, dz = p.posZ - posZ, length = Math.sqrt(dx * dx + dz * dz);
             if (length < .001) {
@@ -256,25 +260,101 @@ public class EntitySilentKing extends EntityEncounterBase {
         }
     }
 
+    public int getCombatPhase() {
+        return getHealth() <= MAX_HEALTH * .3F ? 2 : getHealth() <= MAX_HEALTH * .6F ? 1 : 0;
+    }
+
+    private int attackSerial;
+
+    private boolean attackSpaceLoaded() {
+        for (int cx = ((int) anchorX - 28) >> 4; cx <= ((int) anchorX + 28) >> 4; cx++)
+            for (int cz = ((int) anchorZ - 28) >> 4; cz <= ((int) anchorZ + 28) >> 4; cz++)
+                if (!worldObj.getChunkProvider()
+                    .chunkExists(cx, cz)) return false;
+        return true;
+    }
+
+    private int steps() {
+        return getSkillId() == SKILL_CROWN_FALL ? 3 : getSkillId() == SKILL_DOUBLE_PULSE ? 2 : 1;
+    }
+
+    private int warning() {
+        return getSkillId() == SKILL_ECHO ? 40
+            : getSkillId() == SKILL_CROWN || getSkillId() == SKILL_CROWN_FALL ? 60 : 40;
+    }
+
+    private CombatGeometry geometry(int step) {
+        int id = getSkillId();
+        if (id == SKILL_ECHO) return new CombatGeometry(CombatGeometry.POINT, echoX, echoY, echoZ, 0, 0, 4, 0);
+        if (id == SKILL_CROWN || id == SKILL_CROWN_FALL) return new CombatGeometry(
+            CombatGeometry.POINT,
+            echoX + (id == SKILL_CROWN_FALL ? (step - 1) * 6 : 0),
+            echoY,
+            echoZ,
+            0,
+            0,
+            7,
+            0);
+        if (id == SKILL_SWEEP) {
+            double a = Math.toRadians(getHomeYaw());
+            return new CombatGeometry(
+                CombatGeometry.CONE,
+                anchorX,
+                anchorY,
+                anchorZ,
+                anchorX - Math.sin(a) * 24,
+                anchorZ + Math.cos(a) * 24,
+                24,
+                0);
+        }
+        if (id == SKILL_DOUBLE_PULSE) return new CombatGeometry(
+            CombatGeometry.RING,
+            anchorX,
+            anchorY,
+            anchorZ,
+            0,
+            0,
+            step == 0 ? 14 : 24,
+            step == 0 ? 7 : 17);
+        return new CombatGeometry(
+            CombatGeometry.CIRCLE,
+            anchorX,
+            anchorY,
+            anchorZ,
+            0,
+            0,
+            id == SKILL_SHOCK ? 10 : 24,
+            0);
+    }
+
+    private void stopEffects() {
+        for (int j = 0; j < steps(); j++) CombatEffects.send(this, attackSerial * 32 + j, 2, 0, 2, geometry(j));
+    }
+
     private void advanceSkill(List<EntityPlayer> ps) {
+        if (!attackSpaceLoaded()) {
+            stopEffects();
+            skill(SKILL_NONE, 0);
+            nextSkill = 40;
+            return;
+        }
         int id = getSkillId(), t = getSkillTicks() + 1;
         skill(id, t);
-        int windup = id == SKILL_ECHO ? 36 : id == SKILL_PULSE ? 40 : id == SKILL_CROWN ? 60 : 24;
-        if (t < windup && t % 4 == 0) {
-            if (id == SKILL_ECHO || id == SKILL_CROWN) ring(echoX, echoY, echoZ, id == SKILL_CROWN ? 6 : 3, 24);
-            else ring(posX, posY, posZ, id == SKILL_SHOCK ? 8 : 24, 32);
-            worldObj.playSoundEffect(posX, posY, posZ, "note.harp", .8F, id == SKILL_CROWN ? .5F : 1.3F);
+        int windup = warning();
+        for (int j = 0; j < steps(); j++) if (t == windup + j * 20) {
+            CombatGeometry g = geometry(j);
+            CombatEffects.send(this, attackSerial * 32 + j, 1, 8, 2, g);
+            for (EntityPlayer p : ps) if (g.contains(p.posX, p.posY, p.posZ)) hurt(
+                p,
+                id == SKILL_ECHO ? 10 : id == SKILL_CROWN || id == SKILL_CROWN_FALL ? 24 : id == SKILL_SHOCK ? 6 : 8,
+                id == SKILL_ECHO ? 0 : id == SKILL_SHOCK ? 1.5 : .6);
+            CombatEffects.send(this, attackSerial * 32 + j, 2, 18, 2, g);
+            worldObj.playSoundEffect(posX, posY, posZ, "random.explode", 1F, .6F);
         }
-        if (t < windup) return;
-        worldObj.playSoundEffect(posX, posY, posZ, "random.explode", 1F, .6F);
-        for (EntityPlayer p : ps) {
-            if (id == SKILL_ECHO && p.getDistanceSq(echoX, echoY, echoZ) < 16) hurt(p, 10, 0);
-            if (id == SKILL_CROWN && p.getDistanceSq(echoX, echoY, echoZ) < 49) hurt(p, 24, .5);
-            if (id == SKILL_PULSE && getDistanceSqToEntity(p) < 24 * 24 && Math.abs(p.posY - posY) < 10) hurt(p, 8, .6);
-            if (id == SKILL_SHOCK && getDistanceSqToEntity(p) < 10 * 10) hurt(p, 6, 1.5);
+        if (t >= windup + (steps() - 1) * 20 + 18) {
+            skill(SKILL_NONE, 0);
+            nextSkill = 25 - getCombatPhase() * 5;
         }
-        skill(SKILL_NONE, 0);
-        nextSkill = 25;
     }
 
     public void onDeath(DamageSource s) {
@@ -287,6 +367,7 @@ public class EntitySilentKing extends EntityEncounterBase {
         }
         if (dead && !worldObj.isRemote && !deathRecorded) {
             deathRecorded = true;
+            if (getSkillId() != 0) stopEffects();
             ForgottenLakeEncounterData.get(worldObj)
                 .kingDied(getEncounterId());
             state(DEFEATED);
@@ -335,6 +416,7 @@ public class EntitySilentKing extends EntityEncounterBase {
         super.writeEntityToNBT(n);
         n.setInteger("healthSchema", 2);
         n.setInteger("combat", combatTicks);
+        n.setInteger("attackSerial", attackSerial);
         n.setInteger("skillId", getSkillId());
         n.setInteger("skillTicks", getSkillTicks());
         n.setInteger("nextSkill", nextSkill);
@@ -358,6 +440,7 @@ public class EntitySilentKing extends EntityEncounterBase {
             if (getEncounterState() == AWAKENING) phase(getVisualPhaseTicks() * 2);
         }
         combatTicks = n.getInteger("combat");
+        attackSerial = Math.max(0, n.getInteger("attackSerial"));
         skill(n.getInteger("skillId"), n.getInteger("skillTicks"));
         nextSkill = n.getInteger("nextSkill");
         for (int i = 1; i < cooldowns.length; i++) cooldowns[i] = Math.max(0, n.getInteger("cooldown" + i));

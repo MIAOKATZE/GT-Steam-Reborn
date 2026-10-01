@@ -2,27 +2,38 @@ package com.miaokatze.gtsr.common.dimension.prosperity.architecture;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockFence;
 import net.minecraft.block.BlockPane;
 import net.minecraft.block.BlockStairs;
 import net.minecraft.block.material.Material;
+import net.minecraft.client.renderer.texture.IIconRegister;
+import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.IIcon;
+import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.ForgeDirection;
 
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
 import cpw.mods.fml.common.registry.GameRegistry;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 
 /** Thirty independently registered ruins materials, shared by industrial and living-root ruins. */
 public final class RuinsArchitecture {
 
     private static final Map<String, Block> REGISTRY = new LinkedHashMap<>();
     public static final Map<String, Block> BLOCKS = Collections.unmodifiableMap(REGISTRY);
+
+    /** Client assigns this without loading any client class on a dedicated server. */
+    public static int detailRenderId;
 
     private RuinsArchitecture() {}
 
@@ -59,7 +70,7 @@ public final class RuinsArchitecture {
         register("steam_valve", new Detail(1));
         register("pressure_gauge", new Detail(2));
         register("rust_floor_grate", new Detail(3));
-        register("iron_catwalk_fence", new BlockFence(texture("iron_catwalk_fence"), Material.iron));
+        register("iron_catwalk_fence", new Detail(5));
         register("patina_window", new Window());
         register("firebrick_slab", new Half(Material.rock));
         register("firebrick_stairs", new Stairs(get("furnace_firebrick")));
@@ -137,58 +148,47 @@ public final class RuinsArchitecture {
         public int damageDropped(int meta) {
             return 0;
         }
+
+        @Override
+        public boolean isSideSolid(IBlockAccess w, int x, int y, int z, ForgeDirection side) {
+            return side == ForgeDirection.UP && (w.getBlockMetadata(x, y, z) & 1) == 1
+                || side == ForgeDirection.DOWN && (w.getBlockMetadata(x, y, z) & 1) == 0;
+        }
     }
 
-    /** Vanilla cuboid renderer; geometry and collisions use the same orientation bounds. */
-    private static final class Detail extends Cube {
+    /** Geometry is shared by rendering, selection and collision. Side metadata follows vanilla 0..5. */
+    public static final class Detail extends Cube {
 
-        private final int shape;
+        public final int shape;
+        @SideOnly(Side.CLIENT)
+        private IIcon componentIcon;
+
+        @SideOnly(Side.CLIENT)
+        @Override
+        public void registerBlockIcons(IIconRegister register) {
+            super.registerBlockIcons(register);
+            componentIcon = register.registerIcon("gtsr:ruins_component_metal");
+        }
+
+        @SideOnly(Side.CLIENT)
+        @Override
+        public IIcon getIcon(int face, int meta) {
+            return componentIcon;
+        }
+
+        @SideOnly(Side.CLIENT)
+        public IIcon getDialIcon() {
+            return blockIcon;
+        }
 
         Detail(int shape) {
             super(Material.iron);
             this.shape = shape;
-            bounds(1);
-        }
-
-        private void bounds(int side) {
-            if (shape == 3) {
-                setBlockBounds(0, 0, 0, 1, .125F, 1);
-            } else if (shape == 4) {
-                setBlockBounds(.40625F, 0, .40625F, .59375F, 1, .59375F);
-            } else if (shape == 2) {
-                if (side == 2) setBlockBounds(.2F, .2F, .75F, .8F, .8F, 1);
-                else if (side == 3) setBlockBounds(.2F, .2F, 0, .8F, .8F, .25F);
-                else if (side == 4) setBlockBounds(.75F, .2F, .2F, 1, .8F, .8F);
-                else if (side == 5) setBlockBounds(0, .2F, .2F, .25F, .8F, .8F);
-                else setBlockBounds(.2F, 0, .2F, .8F, .25F, .8F);
-            } else {
-                float lo = shape == 0 ? .3125F : .1875F;
-                float hi = 1 - lo;
-                if (side == 2 || side == 3) setBlockBounds(lo, lo, 0, hi, hi, 1);
-                else if (side == 4 || side == 5) setBlockBounds(0, lo, lo, 1, hi, hi);
-                else setBlockBounds(lo, 0, lo, hi, 1, hi);
-            }
         }
 
         @Override
-        public int onBlockPlaced(World w, int x, int y, int z, int side, float hx, float hy, float hz, int meta) {
-            return side;
-        }
-
-        @Override
-        public void setBlockBoundsBasedOnState(IBlockAccess w, int x, int y, int z) {
-            bounds(w.getBlockMetadata(x, y, z));
-        }
-
-        @Override
-        public AxisAlignedBB getCollisionBoundingBoxFromPool(World w, int x, int y, int z) {
-            setBlockBoundsBasedOnState(w, x, y, z);
-            return super.getCollisionBoundingBoxFromPool(w, x, y, z);
-        }
-
-        @Override
-        public void setBlockBoundsForItemRender() {
-            bounds(1);
+        public int getRenderType() {
+            return detailRenderId;
         }
 
         @Override
@@ -204,6 +204,83 @@ public final class RuinsArchitecture {
         @Override
         public int damageDropped(int meta) {
             return 0;
+        }
+
+        @Override
+        public int onBlockPlaced(World w, int x, int y, int z, int side, float hx, float hy, float hz, int meta) {
+            return shape == 3 ? (side == 0 || (side != 1 && hy > .5F) ? 1 : 0) : side;
+        }
+
+        public List<double[]> parts(IBlockAccess w, int x, int y, int z, boolean collision) {
+            int mask = w == null ? (shape == 5 ? 12 : shape == 4 ? 3 : 0) : 0;
+            int[][] d = { { 0, -1, 0 }, { 0, 1, 0 }, { 0, 0, -1 }, { 0, 0, 1 }, { -1, 0, 0 }, { 1, 0, 0 } };
+            if (w != null) for (int side = 0; side < 6; side++) {
+                if (w instanceof World && !((World) w).blockExists(x + d[side][0], y + d[side][1], z + d[side][2]))
+                    continue;
+                Block n = w.getBlock(x + d[side][0], y + d[side][1], z + d[side][2]);
+                boolean connect = shape == 5 ? (side >= 2 && (n == this || n.isNormalCube()))
+                    : shape == 4
+                        ? (side < 2 && (n == this || n.isSideSolid(
+                            w,
+                            x + d[side][0],
+                            y + d[side][1],
+                            z + d[side][2],
+                            ForgeDirection.getOrientation(side ^ 1))))
+                        : (n instanceof Detail && ((Detail) n).shape <= 2);
+                if (connect) mask |= 1 << side;
+            }
+            boolean supported = w == null || w.getBlock(x, y - 1, z)
+                .isSideSolid(w, x, y - 1, z, ForgeDirection.UP);
+            return RuinsGeometry.parts(shape, w == null ? 1 : w.getBlockMetadata(x, y, z), mask, supported, collision);
+        }
+
+        @Override
+        public void addCollisionBoxesToList(World w, int x, int y, int z, AxisAlignedBB mask, List<AxisAlignedBB> out,
+            Entity entity) {
+            for (double[] p : parts(w, x, y, z, true)) {
+                AxisAlignedBB bb = AxisAlignedBB
+                    .getBoundingBox(x + p[0], y + p[1], z + p[2], x + p[3], y + p[4], z + p[5]);
+                if (bb.intersectsWith(mask)) out.add(bb);
+            }
+        }
+
+        @Override
+        public void setBlockBoundsBasedOnState(IBlockAccess w, int x, int y, int z) {
+            double[] b = RuinsGeometry.envelope(parts(w, x, y, z, false));
+            setBlockBounds((float) b[0], (float) b[1], (float) b[2], (float) b[3], (float) b[4], (float) b[5]);
+        }
+
+        @Override
+        public AxisAlignedBB getCollisionBoundingBoxFromPool(World w, int x, int y, int z) {
+            double[] b = RuinsGeometry.envelope(parts(w, x, y, z, true));
+            return AxisAlignedBB.getBoundingBox(x + b[0], y + b[1], z + b[2], x + b[3], y + b[4], z + b[5]);
+        }
+
+        @Override
+        public MovingObjectPosition collisionRayTrace(World w, int x, int y, int z, Vec3 start, Vec3 end) {
+            MovingObjectPosition closest = null;
+            double distance = Double.MAX_VALUE;
+            for (double[] p : parts(w, x, y, z, false)) {
+                MovingObjectPosition hit = AxisAlignedBB
+                    .getBoundingBox(x + p[0], y + p[1], z + p[2], x + p[3], y + p[4], z + p[5])
+                    .calculateIntercept(start, end);
+                if (hit != null && start.squareDistanceTo(hit.hitVec) < distance) {
+                    closest = hit;
+                    distance = start.squareDistanceTo(hit.hitVec);
+                }
+            }
+            return closest == null ? null : new MovingObjectPosition(x, y, z, closest.sideHit, closest.hitVec);
+        }
+
+        @Override
+        public void setBlockBoundsForItemRender() {
+            setBlockBounds(0, 0, 0, 1, 1, 1);
+        }
+
+        @Override
+        public boolean isSideSolid(IBlockAccess w, int x, int y, int z, ForgeDirection side) {
+            return shape == 3 && (side == ForgeDirection.UP ? (w.getBlockMetadata(x, y, z) & 1) == 1
+                : side == ForgeDirection.DOWN && (w.getBlockMetadata(x, y, z) & 1) == 0);
         }
     }
 

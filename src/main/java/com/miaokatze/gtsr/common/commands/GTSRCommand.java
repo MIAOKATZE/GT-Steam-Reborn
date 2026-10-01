@@ -101,6 +101,7 @@ public class GTSRCommand extends CommandBase {
     public String getCommandUsage(ICommandSender sender) {
         return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull|nullplus|nature> [color] [fxRadius]"
             + " | /gtsr structure <name>"
+            + " | /gtsr loacate A <structure> | /gtsr tploacate A <structure>"
             + " | /gtsr tpdim <A|B> [biome]"
             + " | /gtsr diag [A|B]";
     }
@@ -112,6 +113,10 @@ public class GTSRCommand extends CommandBase {
 
     @Override
     public void processCommand(ICommandSender sender, String[] args) {
+        if (args.length >= 1 && RuinLocateCommand.handles(args[0])) {
+            RuinLocateCommand.execute(sender, args);
+            return;
+        }
         if (args.length >= 1 && "structure".equalsIgnoreCase(args[0])) {
             processStructure(sender, args);
             return;
@@ -592,8 +597,23 @@ public class GTSRCommand extends CommandBase {
     @Override
     public java.util.List addTabCompletionOptions(ICommandSender sender, String[] args) {
         if (args.length == 1) {
-            return getListOfStringsMatchingLastWord(args, "singularity", "structure", "tpdim", "diag");
+            return getListOfStringsMatchingLastWord(
+                args,
+                "singularity",
+                "structure",
+                "tpdim",
+                "diag",
+                "loacate",
+                "tploacate",
+                "locate",
+                "tplocate");
         }
+        if (args.length == 2 && RuinLocateCommand.handles(args[0])) return getListOfStringsMatchingLastWord(args, "A");
+        if (args.length == 3 && RuinLocateCommand.handles(args[0]) && "A".equalsIgnoreCase(args[1]))
+            return getListOfStringsMatchingLastWord(
+                args,
+                RuinLocateCommand.names()
+                    .toArray(new String[0]));
         if (args.length == 2 && "structure".equalsIgnoreCase(args[0])) {
             // StructureRegistry 排序名单（S4a/S4b 变体动态读取，不硬编码）
             return getListOfStringsMatchingLastWord(

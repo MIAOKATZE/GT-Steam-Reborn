@@ -32,7 +32,9 @@ public class ClientProxy extends CommonProxy {
     public void init(FMLInitializationEvent event) {
         // 调用父类的 init 方法，确保通用逻辑正常执行
         super.init(event);
+        com.miaokatze.gtsr.client.architecture.RuinsArchitectureRenderer.registerRenderer();
         com.miaokatze.gtsr.client.encounter.EncounterClient.register();
+        com.miaokatze.gtsr.client.echo.CombatEffectsClient.register();
 
         FMLCommonHandler.instance()
             .bus()

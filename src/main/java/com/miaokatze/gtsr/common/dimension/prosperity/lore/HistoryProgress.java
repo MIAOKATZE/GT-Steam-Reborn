@@ -21,7 +21,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoKind;
 /** Server-owned history evidence. Directory text never grants evidence or achievements. */
 public final class HistoryProgress {
 
-    public static final int VALID_MASK = 0x7FF;
+    public static final int VALID_MASK = 0x7FFFFFFF;
     private static final String KEY = "gtsr.lostChronicleEvidence";
     public static final Map<String, Achievement> ACHIEVEMENTS = new LinkedHashMap<>();
     public static final String[] NEW_RELICS = { "switchyard_key", "pump_valve_core", "cold_furnace_ember",
@@ -48,6 +48,15 @@ public final class HistoryProgress {
 
     public static void register() {
         if (!ACHIEVEMENTS.isEmpty()) return;
+        for (int kind = 7; kind < 27; kind++) {
+            String relic = LoreSources.chestRelic(kind);
+            if (!LoreRegistry.RELICS.containsKey(relic)) relic = "brass_chronicle";
+            add(
+                "ruinComplete_" + com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite.NAMES[kind],
+                (kind - 7) % 5 * 2 - 4,
+                10 + (kind - 7) / 5 * 2,
+                relic);
+        }
         add("firstRuin", -4, -2, "switchyard_key");
         add("tenRuins", -2, -2, "shelter_workbadge");
         add("twentyRuins", 0, -2, "brass_chronicle").setSpecial();
@@ -131,6 +140,21 @@ public final class HistoryProgress {
         LoreNetwork.send((EntityPlayerMP) p, false);
     }
 
+    public static void completeRuin(EntityPlayer p, int kind) {
+        if (!valid(p) || !(p.worldObj.provider instanceof WorldProviderProsperityRuins) || kind < 7 || kind >= 27)
+            return;
+        NBTTagCompound n = data(p);
+        Set<String> completed = strings(n, "completed");
+        if (!completed.add(Integer.toString(kind))) return;
+        storeStrings(n, "completed", completed);
+        save(p, n);
+        award(p, "ruinComplete_" + com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite.NAMES[kind]);
+        LoreNetwork.send((EntityPlayerMP) p, false);
+        p.addChatMessage(
+            new net.minecraft.util.ChatComponentTranslation(
+                "gtsr.ruin.ending." + com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite.NAMES[kind]));
+    }
+
     public static void observeRelic(EntityPlayer p, String id) {
         if (!valid(p) || !LoreRegistry.RELICS.containsKey(id)) return;
         NBTTagCompound n = data(p);
@@ -185,6 +209,11 @@ public final class HistoryProgress {
         String[] ids = { "foundry", "hive", "ritual", "mireCache", "archiveCache", "railCache" };
         for (int i = 0; i < ids.length; i++) if (((EntityPlayerMP) p).func_147099_x()
             .hasAchievementUnlocked(ACHIEVEMENTS.get(ids[i]))) mask |= 1 << (i + 5);
+        for (int kind = 7; kind < 27; kind++) if (((EntityPlayerMP) p).func_147099_x()
+            .hasAchievementUnlocked(
+                ACHIEVEMENTS
+                    .get("ruinComplete_" + com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite.NAMES[kind])))
+            mask |= 1 << (kind + 4);
         return mask & VALID_MASK;
     }
 }

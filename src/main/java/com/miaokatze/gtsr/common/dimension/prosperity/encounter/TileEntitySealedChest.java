@@ -17,6 +17,14 @@ public class TileEntitySealedChest extends TileEntity {
     private boolean clickUnlock;
     private int storyEvent = -1;
     private String storyRelic = "";
+    private int gateLayoutVersion, gateZone = -1;
+
+    public void configureRuinGate(int layout, int zone) {
+        gateLayoutVersion = layout;
+        gateZone = zone;
+        clickUnlock = false;
+        markDirty();
+    }
 
     public int getTier() {
         return tier;
@@ -61,6 +69,8 @@ public class TileEntitySealedChest extends TileEntity {
     }
 
     private boolean allowed() {
+        if (gateLayoutVersion >= 2) return com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinObjectives
+            .isChestReady(worldObj, encounter, gateZone);
         if (clickUnlock) return openingTicks >= 0;
         if (tier == 1) return openingTicks >= 0;
         if (encounter.isEmpty()) return false;
@@ -72,6 +82,10 @@ public class TileEntitySealedChest extends TileEntity {
     }
 
     public void tryUnlockByClick() {
+        if (gateLayoutVersion >= 2) {
+            if (allowed() && openingTicks < 0) startOpening();
+            return;
+        }
         if ((tier == 1 || clickUnlock) && openingTicks < 0) startOpening();
     }
 
@@ -158,6 +172,8 @@ public class TileEntitySealedChest extends TileEntity {
         clickUnlock = n.getBoolean("clickUnlock");
         storyEvent = n.hasKey("storyEvent") ? n.getInteger("storyEvent") : -1;
         storyRelic = n.getString("storyRelic");
+        gateLayoutVersion = n.getInteger("gateLayoutVersion");
+        gateZone = n.hasKey("gateZone") ? n.getInteger("gateZone") : -1;
         openingTicks = n.hasKey("opening") ? n.getInteger("opening") : -1;
     }
 
@@ -170,6 +186,8 @@ public class TileEntitySealedChest extends TileEntity {
         n.setInteger("storyEvent", storyEvent);
         n.setString("storyRelic", storyRelic);
         n.setInteger("opening", openingTicks);
+        n.setInteger("gateLayoutVersion", gateLayoutVersion);
+        n.setInteger("gateZone", gateZone);
     }
 
     public Packet getDescriptionPacket() {

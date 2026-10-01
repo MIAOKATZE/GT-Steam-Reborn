@@ -12,7 +12,11 @@ public final class JournalEntry {
         this.id = id;
         this.key = key;
         this.paragraphs = paragraphs;
-        this.recordMask = recordMask;
+        int completion = recordMask;
+        if (tab == JournalTab.STRUCTURES) for (int kind = 7; kind < 27; kind++)
+            if (id.equals(com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite.NAMES[kind]))
+                completion = 1 << (kind + 4);
+        this.recordMask = completion;
     }
 
     public String titleKey() {
@@ -29,5 +33,9 @@ public final class JournalEntry {
 
     public boolean isGiantTree() {
         return tab == JournalTab.CHAPTERS && id.equals("hanging_great_tree");
+    }
+
+    public boolean isSmallRuin() {
+        return tab == JournalTab.STRUCTURES && (recordMask & ~0x7FF) != 0;
     }
 }

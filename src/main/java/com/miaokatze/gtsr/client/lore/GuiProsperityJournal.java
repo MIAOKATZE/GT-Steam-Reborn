@@ -144,8 +144,10 @@ public final class GuiProsperityJournal extends GuiScreen {
                 }
             } else appendParagraph(StatCollector.translateToLocal("lore.locked.body"));
         } else {
-            for (int i = 0; i < entry.paragraphs; i++)
-                appendParagraph(StatCollector.translateToLocal(entry.paragraphKey(i)));
+            for (int i = 0; i < entry.paragraphs; i++) appendParagraph(
+                StatCollector.translateToLocal(
+                    entry.isSmallRuin() && i > 0 && !entry.recordConfirmed(progress) ? "lore.ruin.ending.pending"
+                        : entry.paragraphKey(i)));
             if (entry.recordMask != 0) {
                 if (entry.recordConfirmed(progress)) {
                     appendParagraph(StatCollector.translateToLocal("lore.record.confirmed"));

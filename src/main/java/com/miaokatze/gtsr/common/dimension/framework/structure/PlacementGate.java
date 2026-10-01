@@ -669,6 +669,11 @@ public final class PlacementGate {
      * 回填不置水），把干地误判湿区；回填真值口径下自然洼地放行，湿带收窄到河核/湖面/
      * 贴水窄条。各读数仍是 {@code (worldSeed, x, z)} 纯函数（不读世界方块）。
      */
+    /** Single-column form of the existing dry footprint predicate, without repeated corner samples. */
+    public static boolean dryPointAt(long worldSeed, int x, int z) {
+        return dryColumnAt(worldSeed, x, z);
+    }
+
     private static boolean dryColumnAt(long worldSeed, int x, int z) {
         // ① 回填置水列：P23 R1（v1.20.46 批2 S2）起 wetAt 恒 false——本腿成为死路径
         // （保留不删，S6 收口登记）；河床避让由 ⑥ 腿接手，湖面避让由 ②⑤ 两腿接手。

@@ -1061,6 +1061,30 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         }
     }
 
+    /** Pure read-only water surface used by shore planning; -1 means this column receives no water. */
+    public static int naturalWaterTopAt(long worldSeed, int x, int z) {
+        int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+        if (GTSRVoronoiRiverField.islandPillarAt(worldSeed, x, z)) return -1;
+        int direct = GTSRVoronoiRiverField.sanzuShoreWaterAt(worldSeed, x, z) && h < ProsperityTerrainProfile.SEA_LEVEL
+            ? ProsperityTerrainProfile.SEA_LEVEL - 1
+            : -1;
+        int roster = ProsperityTerrainProfile.chainRosterIndexAt(worldSeed, x >> 2, z >> 2);
+        boolean nominal = roster == 3 && (GTSRVoronoiRiverField.swampPoolWaterAt(worldSeed, x, z, roster)
+            || TerrainVariants.swampTieredAt(worldSeed, x, z, roster));
+        boolean lakeFixed = GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) < GTSRVoronoiRiverField.LAKE_SHORE
+            && h < ProsperityTerrainProfile.SEA_LEVEL;
+        if (!nominal && !lakeFixed) return direct;
+        boolean swampChunk = false;
+        for (int tier : GTSRRiverPlacer.tierGrid(worldSeed, x & ~15, z & ~15)) if (tier == 3) {
+            swampChunk = true;
+            break;
+        }
+        if (!swampChunk) return direct;
+        SwampFieldGrid field = swampFieldAt(worldSeed, x, z);
+        int i = x - field.originX + SWAMP_FIELD_MARGIN + (z - field.originZ + SWAMP_FIELD_MARGIN) * SWAMP_FIELD_SIDE;
+        return field.top[i] >= h + 1 ? Math.max(direct, field.top[i]) : direct;
+    }
+
     /** 列所在区域的水顶场（构建并缓存；区域原点 = 坐标按 {@link #SWAMP_FIELD_REGION} 对齐）。 */
     private static SwampFieldGrid swampFieldAt(long worldSeed, int x, int z) {
         final HashMap<Long, HashMap<Long, SwampFieldGrid>> bySeed = SWAMP_FIELD_CACHE.get();

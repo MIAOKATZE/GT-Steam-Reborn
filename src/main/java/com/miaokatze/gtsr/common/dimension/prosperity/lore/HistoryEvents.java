@@ -204,8 +204,10 @@ public final class HistoryEvents {
                 .chunkExists(cx, cz)) continue;
             RuinsEncounterData data = RuinsEncounterData.get(world);
             for (RuinSite site : RuinsSitePlanner.near(world.getSeed(), cx, cz)) {
-                if (data.created(site.id(), "entity0") && withinSite(player, site))
+                if (data.created(site.id(), "geom:" + cx + ":" + cz) && withinSite(player, site)) {
                     HistoryProgress.visit(player, site.kind);
+                    com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinObjectives.observePlayer(player, site);
+                }
             }
             // Gifts can append an EntityItem to loadedEntityList; use the earlier apparition snapshot.
             for (EntityOldEcho echo : apparitions) witnessRitual((EntityPlayerMP) player, echo);
