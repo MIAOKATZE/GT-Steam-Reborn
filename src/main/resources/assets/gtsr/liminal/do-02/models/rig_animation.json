@@ -1,0 +1,9875 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DO-02",
+  "name": "逆模因实体",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 31.179281674215073,
+    "h": 40.0,
+    "d": 21.94123259402282
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        -0.3450490764227461,
+        -0.40259411697650027,
+        -0.3796389412664328
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_0",
+      "parent": "body",
+      "pivot": [
+        0.3201008850055784,
+        19.8844797065874,
+        -8.361438478406328
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_0_mass_0",
+      "parent": "cognition_0",
+      "pivot": [
+        -0.04226609931502465,
+        35.429952157881914,
+        -5.860716469275212
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_0_membrane_0",
+      "parent": "cognition_0_mass_0",
+      "pivot": [
+        -0.04226609931502465,
+        35.429952157881914,
+        -5.860716469275212
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_0_mass_1",
+      "parent": "cognition_0",
+      "pivot": [
+        -15.087555288808371,
+        21.453799195299343,
+        -6.473286621763628
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_0_membrane_1",
+      "parent": "cognition_0_mass_1",
+      "pivot": [
+        -15.087555288808371,
+        21.453799195299343,
+        -6.473286621763628
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_0_mass_2",
+      "parent": "cognition_0",
+      "pivot": [
+        -4.717791023915484,
+        5.010574684965793,
+        -10.18112949307936
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_0_membrane_2",
+      "parent": "cognition_0_mass_2",
+      "pivot": [
+        -4.717791023915484,
+        5.010574684965793,
+        -10.18112949307936
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_0_mass_3",
+      "parent": "cognition_0",
+      "pivot": [
+        15.856356011416182,
+        20.45906386680902,
+        -9.923714132383575
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_0_membrane_3",
+      "parent": "cognition_0_mass_3",
+      "pivot": [
+        15.856356011416182,
+        20.45906386680902,
+        -9.923714132383575
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_1",
+      "parent": "body",
+      "pivot": [
+        -1.0101990378510706,
+        21.119758206382855,
+        -4.37053870983638
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_1_mass_0",
+      "parent": "cognition_1",
+      "pivot": [
+        -4.29451738279019,
+        35.4556501702859,
+        -7.307827832269397
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_1_membrane_0",
+      "parent": "cognition_1_mass_0",
+      "pivot": [
+        -4.29451738279019,
+        35.4556501702859,
+        -7.307827832269397
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_1_mass_1",
+      "parent": "cognition_1",
+      "pivot": [
+        -15.705333782454945,
+        19.770415163408508,
+        -5.964783578200749
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_1_membrane_1",
+      "parent": "cognition_1_mass_1",
+      "pivot": [
+        -15.705333782454945,
+        19.770415163408508,
+        -5.964783578200749
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_1_mass_2",
+      "parent": "cognition_1",
+      "pivot": [
+        -3.135887394324955,
+        6.393743463053351,
+        -2.0389730758471125
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_1_membrane_2",
+      "parent": "cognition_1_mass_2",
+      "pivot": [
+        -3.135887394324955,
+        6.393743463053351,
+        -2.0389730758471125
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_1_mass_3",
+      "parent": "cognition_1",
+      "pivot": [
+        13.401957322342685,
+        24.570718736280142,
+        -3.18214708766084
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_1_membrane_3",
+      "parent": "cognition_1_mass_3",
+      "pivot": [
+        13.401957322342685,
+        24.570718736280142,
+        -3.18214708766084
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_2",
+      "parent": "body",
+      "pivot": [
+        0.3201008850055784,
+        19.8844797065874,
+        -0.3796389412664328
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_2_mass_0",
+      "parent": "cognition_2",
+      "pivot": [
+        -0.9547042595662735,
+        33.870662998147104,
+        2.5215151935585123
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_2_membrane_0",
+      "parent": "cognition_2_mass_0",
+      "pivot": [
+        -0.9547042595662735,
+        33.870662998147104,
+        2.5215151935585123
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_2_mass_1",
+      "parent": "cognition_2",
+      "pivot": [
+        -13.685031515623635,
+        20.497557641074042,
+        1.7446642744870036
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_2_membrane_1",
+      "parent": "cognition_2_mass_1",
+      "pivot": [
+        -13.685031515623635,
+        20.497557641074042,
+        1.7446642744870036
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_2_mass_2",
+      "parent": "cognition_2",
+      "pivot": [
+        -3.765704424576536,
+        6.22598055833097,
+        -2.4496121922653473
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_2_membrane_2",
+      "parent": "cognition_2_mass_2",
+      "pivot": [
+        -3.765704424576536,
+        6.22598055833097,
+        -2.4496121922653473
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_2_mass_3",
+      "parent": "cognition_2",
+      "pivot": [
+        14.340506369483633,
+        21.37976462869958,
+        -2.096304600367403
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_2_membrane_3",
+      "parent": "cognition_2_mass_3",
+      "pivot": [
+        14.340506369483633,
+        21.37976462869958,
+        -2.096304600367403
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_3",
+      "parent": "body",
+      "pivot": [
+        -1.0101990378510706,
+        21.119758206382855,
+        3.611260827303515
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_3_mass_0",
+      "parent": "cognition_3",
+      "pivot": [
+        -5.082402931390833,
+        33.652912493805374,
+        0.28787381362087955
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_3_membrane_0",
+      "parent": "cognition_3_mass_0",
+      "pivot": [
+        -5.082402931390833,
+        33.652912493805374,
+        0.28787381362087955
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_3_mass_1",
+      "parent": "cognition_3",
+      "pivot": [
+        -14.143400839612246,
+        18.91658269026967,
+        1.9529948671346113
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_3_membrane_1",
+      "parent": "cognition_3_mass_1",
+      "pivot": [
+        -14.143400839612246,
+        18.91658269026967,
+        1.9529948671346113
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_3_mass_2",
+      "parent": "cognition_3",
+      "pivot": [
+        -2.2404145387188046,
+        7.773766291925261,
+        6.248838989388714
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_3_membrane_2",
+      "parent": "cognition_3_mass_2",
+      "pivot": [
+        -2.2404145387188046,
+        7.773766291925261,
+        6.248838989388714
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_3_mass_3",
+      "parent": "cognition_3",
+      "pivot": [
+        11.699541426706212,
+        25.353989511567267,
+        4.769244488792746
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_3_membrane_3",
+      "parent": "cognition_3_mass_3",
+      "pivot": [
+        11.699541426706212,
+        25.353989511567267,
+        4.769244488792746
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_4",
+      "parent": "body",
+      "pivot": [
+        0.3201008850055784,
+        19.8844797065874,
+        7.60216059587346
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_4_mass_0",
+      "parent": "cognition_4",
+      "pivot": [
+        -0.8406493040338149,
+        32.206954350930545,
+        10.657083306596022
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_4_membrane_0",
+      "parent": "cognition_4_mass_0",
+      "pivot": [
+        -0.8406493040338149,
+        32.206954350930545,
+        10.657083306596022
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_4_mass_1",
+      "parent": "cognition_4",
+      "pivot": [
+        -11.998521994391018,
+        20.562618473067012,
+        9.9879621443166
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_4_membrane_1",
+      "parent": "cognition_4_mass_1",
+      "pivot": [
+        -11.998521994391018,
+        20.562618473067012,
+        9.9879621443166
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_4_mass_2",
+      "parent": "cognition_4",
+      "pivot": [
+        -3.785911585928979,
+        7.907290286228681,
+        5.580053515983891
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_4_membrane_2",
+      "parent": "cognition_4_mass_2",
+      "pivot": [
+        -3.785911585928979,
+        7.907290286228681,
+        5.580053515983891
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_4_mass_3",
+      "parent": "cognition_4",
+      "pivot": [
+        12.690091580111828,
+        21.27270572238494,
+        5.68412116477643
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_4_membrane_3",
+      "parent": "cognition_4_mass_3",
+      "pivot": [
+        12.690091580111828,
+        21.27270572238494,
+        5.68412116477643
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_0_mass_0__glow",
+      "parent": "cognition_0_mass_0",
+      "pivot": [
+        -0.04226609931502465,
+        35.429952157881914,
+        -5.860716469275212
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_1_mass_1__glow",
+      "parent": "cognition_1_mass_1",
+      "pivot": [
+        -15.705333782454945,
+        19.770415163408508,
+        -5.964783578200749
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_2_mass_2__glow",
+      "parent": "cognition_2_mass_2",
+      "pivot": [
+        -3.765704424576536,
+        6.22598055833097,
+        -2.4496121922653473
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_3_mass_3__glow",
+      "parent": "cognition_3_mass_3",
+      "pivot": [
+        11.699541426706212,
+        25.353989511567267,
+        4.769244488792746
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cognition_4_mass_0__glow",
+      "parent": "cognition_4_mass_0",
+      "pivot": [
+        -0.8406493040338149,
+        32.206954350930545,
+        10.657083306596022
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "idle": {
+      "loop": true,
+      "frames": 120,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "cognition_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              2.5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              -2.5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              2.5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              -2.5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              2.5
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              0.33257498071416225
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              -6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              -6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              -6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              -6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              -6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              -6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              -6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              -6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              -6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              -6
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "walk": {
+      "loop": true,
+      "frames": 80,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "cognition_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              5
+            ],
+            [
+              50,
+              -4
+            ],
+            [
+              80,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0.5701285383671353
+            ],
+            [
+              30,
+              -0.5701285383671353
+            ],
+            [
+              60,
+              0
+            ],
+            [
+              80,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              80,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              -5
+            ],
+            [
+              50,
+              4
+            ],
+            [
+              80,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              -0.5701285383671353
+            ],
+            [
+              30,
+              0.5701285383671353
+            ],
+            [
+              60,
+              0
+            ],
+            [
+              80,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              30,
+              1
+            ],
+            [
+              80,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              5
+            ],
+            [
+              50,
+              -4
+            ],
+            [
+              80,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0.5701285383671353
+            ],
+            [
+              30,
+              -0.5701285383671353
+            ],
+            [
+              60,
+              0
+            ],
+            [
+              80,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              32,
+              1
+            ],
+            [
+              80,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              -5
+            ],
+            [
+              50,
+              4
+            ],
+            [
+              80,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              -0.5701285383671353
+            ],
+            [
+              30,
+              0.5701285383671353
+            ],
+            [
+              60,
+              0
+            ],
+            [
+              80,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              34,
+              1
+            ],
+            [
+              80,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              5
+            ],
+            [
+              50,
+              -4
+            ],
+            [
+              80,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0.5701285383671353
+            ],
+            [
+              30,
+              -0.5701285383671353
+            ],
+            [
+              60,
+              0
+            ],
+            [
+              80,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              36,
+              1
+            ],
+            [
+              80,
+              1
+            ]
+          ]
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 120,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "cognition_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              52
+            ],
+            [
+              64,
+              14
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              6.651499614283245
+            ],
+            [
+              64,
+              1.9004284612237843
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -52
+            ],
+            [
+              64,
+              -14
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -6.651499614283245
+            ],
+            [
+              64,
+              -1.9004284612237843
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              52
+            ],
+            [
+              64,
+              14
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              6.651499614283245
+            ],
+            [
+              64,
+              1.9004284612237843
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              44,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -52
+            ],
+            [
+              64,
+              -14
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -6.651499614283245
+            ],
+            [
+              64,
+              -1.9004284612237843
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              56,
+              1
+            ],
+            [
+              120,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              52
+            ],
+            [
+              64,
+              14
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              6.651499614283245
+            ],
+            [
+              64,
+              1.9004284612237843
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "cognitive_erasure": {
+      "loop": false,
+      "frames": 88,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "cognition_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              1.2352784997954598
+            ],
+            [
+              40,
+              2.280514153468541
+            ],
+            [
+              54,
+              2.280514153468541
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              8
+            ],
+            [
+              40,
+              19
+            ],
+            [
+              54,
+              19
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0.6176392498977299
+            ],
+            [
+              40,
+              1.1402570767342706
+            ],
+            [
+              54,
+              1.1402570767342706
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              -8
+            ],
+            [
+              40,
+              -19
+            ],
+            [
+              54,
+              -19
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0.0
+            ],
+            [
+              40,
+              0.0
+            ],
+            [
+              54,
+              0.0
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              8
+            ],
+            [
+              40,
+              19
+            ],
+            [
+              54,
+              19
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              -0.6176392498977299
+            ],
+            [
+              40,
+              -1.1402570767342706
+            ],
+            [
+              54,
+              -1.1402570767342706
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              -8
+            ],
+            [
+              40,
+              -19
+            ],
+            [
+              54,
+              -19
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              -1.2352784997954598
+            ],
+            [
+              40,
+              -2.280514153468541
+            ],
+            [
+              54,
+              -2.280514153468541
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              8
+            ],
+            [
+              40,
+              19
+            ],
+            [
+              54,
+              19
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 88,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "cognition_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              1.2352784997954598
+            ],
+            [
+              40,
+              2.280514153468541
+            ],
+            [
+              54,
+              2.280514153468541
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              8
+            ],
+            [
+              40,
+              19
+            ],
+            [
+              54,
+              19
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0.6176392498977299
+            ],
+            [
+              40,
+              1.1402570767342706
+            ],
+            [
+              54,
+              1.1402570767342706
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              -8
+            ],
+            [
+              40,
+              -19
+            ],
+            [
+              54,
+              -19
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0.0
+            ],
+            [
+              40,
+              0.0
+            ],
+            [
+              54,
+              0.0
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              8
+            ],
+            [
+              40,
+              19
+            ],
+            [
+              54,
+              19
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              -0.6176392498977299
+            ],
+            [
+              40,
+              -1.1402570767342706
+            ],
+            [
+              54,
+              -1.1402570767342706
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              -8
+            ],
+            [
+              40,
+              -19
+            ],
+            [
+              54,
+              -19
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              -1.2352784997954598
+            ],
+            [
+              40,
+              -2.280514153468541
+            ],
+            [
+              54,
+              -2.280514153468541
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              8
+            ],
+            [
+              40,
+              19
+            ],
+            [
+              54,
+              19
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              40,
+              76
+            ],
+            [
+              54,
+              76
+            ],
+            [
+              88,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "phase_excision": {
+      "loop": false,
+      "frames": 96,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "cognition_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1.9004284612237843
+            ],
+            [
+              42,
+              3.990899768569947
+            ],
+            [
+              62,
+              3.990899768569947
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              8
+            ],
+            [
+              42,
+              20
+            ],
+            [
+              62,
+              20
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.9004284612237843
+            ],
+            [
+              42,
+              -3.990899768569947
+            ],
+            [
+              62,
+              -3.990899768569947
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -8
+            ],
+            [
+              42,
+              -20
+            ],
+            [
+              62,
+              -20
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1.9004284612237843
+            ],
+            [
+              42,
+              3.990899768569947
+            ],
+            [
+              62,
+              3.990899768569947
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              8
+            ],
+            [
+              42,
+              20
+            ],
+            [
+              62,
+              20
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.9004284612237843
+            ],
+            [
+              42,
+              -3.990899768569947
+            ],
+            [
+              62,
+              -3.990899768569947
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -8
+            ],
+            [
+              42,
+              -20
+            ],
+            [
+              62,
+              -20
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1.9004284612237843
+            ],
+            [
+              42,
+              3.990899768569947
+            ],
+            [
+              62,
+              3.990899768569947
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              8
+            ],
+            [
+              42,
+              20
+            ],
+            [
+              62,
+              20
+            ],
+            [
+              96,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_0_membrane_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_0_membrane_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_0_membrane_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_membrane_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_membrane_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_membrane_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_membrane_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_membrane_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_membrane_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_membrane_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_membrane_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_membrane_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_membrane_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_membrane_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_membrane_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_membrane_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_membrane_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_membrane_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_membrane_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              62,
+              1
+            ],
+            [
+              96,
+              1
+            ]
+          ]
+        }
+      ]
+    },
+    "gravity_inversion": {
+      "loop": false,
+      "frames": 112,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "cognition_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              24
+            ],
+            [
+              52,
+              145
+            ],
+            [
+              76,
+              180
+            ],
+            [
+              112,
+              360
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.6651499614283245
+            ],
+            [
+              52,
+              2.3755355765297304
+            ],
+            [
+              76,
+              3.515792653264001
+            ],
+            [
+              112,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -24
+            ],
+            [
+              52,
+              -145
+            ],
+            [
+              76,
+              -180
+            ],
+            [
+              112,
+              -360
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.6651499614283245
+            ],
+            [
+              52,
+              2.3755355765297304
+            ],
+            [
+              76,
+              3.515792653264001
+            ],
+            [
+              112,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              24
+            ],
+            [
+              52,
+              145
+            ],
+            [
+              76,
+              180
+            ],
+            [
+              112,
+              360
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.6651499614283245
+            ],
+            [
+              52,
+              2.3755355765297304
+            ],
+            [
+              76,
+              3.515792653264001
+            ],
+            [
+              112,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -24
+            ],
+            [
+              52,
+              -145
+            ],
+            [
+              76,
+              -180
+            ],
+            [
+              112,
+              -360
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.6651499614283245
+            ],
+            [
+              52,
+              2.3755355765297304
+            ],
+            [
+              76,
+              3.515792653264001
+            ],
+            [
+              112,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              24
+            ],
+            [
+              52,
+              145
+            ],
+            [
+              76,
+              180
+            ],
+            [
+              112,
+              360
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.6651499614283245
+            ],
+            [
+              52,
+              2.3755355765297304
+            ],
+            [
+              76,
+              3.515792653264001
+            ],
+            [
+              112,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "unremembered_bolt": {
+      "loop": false,
+      "frames": 100,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "cognition_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0.0
+            ],
+            [
+              40,
+              0.0
+            ],
+            [
+              44,
+              0.6176392498977299
+            ],
+            [
+              52,
+              0.0
+            ],
+            [
+              56,
+              0.6176392498977299
+            ],
+            [
+              64,
+              0.0
+            ],
+            [
+              68,
+              0.6176392498977299
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.33257498071416225
+            ],
+            [
+              40,
+              -0.6176392498977299
+            ],
+            [
+              44,
+              0.6176392498977299
+            ],
+            [
+              52,
+              -0.6176392498977299
+            ],
+            [
+              56,
+              0.6176392498977299
+            ],
+            [
+              64,
+              -0.6176392498977299
+            ],
+            [
+              68,
+              0.6176392498977299
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.6651499614283245
+            ],
+            [
+              40,
+              -1.2352784997954598
+            ],
+            [
+              44,
+              0.6176392498977299
+            ],
+            [
+              52,
+              -1.2352784997954598
+            ],
+            [
+              56,
+              0.6176392498977299
+            ],
+            [
+              64,
+              -1.2352784997954598
+            ],
+            [
+              68,
+              0.6176392498977299
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.9977249421424865
+            ],
+            [
+              40,
+              -1.85291774969319
+            ],
+            [
+              44,
+              0.6176392498977299
+            ],
+            [
+              52,
+              -1.85291774969319
+            ],
+            [
+              56,
+              0.6176392498977299
+            ],
+            [
+              64,
+              -1.85291774969319
+            ],
+            [
+              68,
+              0.6176392498977299
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1.330299922856649
+            ],
+            [
+              40,
+              -2.4705569995909196
+            ],
+            [
+              44,
+              0.6176392498977299
+            ],
+            [
+              52,
+              -2.4705569995909196
+            ],
+            [
+              56,
+              0.6176392498977299
+            ],
+            [
+              64,
+              -2.4705569995909196
+            ],
+            [
+              68,
+              0.6176392498977299
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_membrane_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -35
+            ],
+            [
+              40,
+              -62
+            ],
+            [
+              68,
+              -62
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "death_a": {
+      "loop": false,
+      "frames": 140,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "cognition_0_mass_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -7.601713844895137
+            ],
+            [
+              140,
+              -13.30299922856649
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              0.3455028269757285
+            ],
+            [
+              140,
+              0.5758380449595475
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_0_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_0_mass_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -7.601713844895137
+            ],
+            [
+              140,
+              -13.30299922856649
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -2.828120590658481
+            ],
+            [
+              140,
+              -4.713534317764134
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_0_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              110,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_0_mass_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -7.601713844895137
+            ],
+            [
+              140,
+              -13.30299922856649
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -0.4434958653067848
+            ],
+            [
+              140,
+              -0.7391597755113081
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_0_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              116,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_0_mass_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -7.601713844895137
+            ],
+            [
+              140,
+              -13.30299922856649
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              2.8311412675141114
+            ],
+            [
+              140,
+              4.7185687791901865
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_0_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              122,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_mass_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -8.551928075507028
+            ],
+            [
+              140,
+              -14.253213459178383
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -0.19736857851123762
+            ],
+            [
+              140,
+              -0.32894763085206274
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_1_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              110,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_mass_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -8.551928075507028
+            ],
+            [
+              140,
+              -14.253213459178383
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -2.8083045564318674
+            ],
+            [
+              140,
+              -4.680507594053113
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_1_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              116,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_mass_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -8.551928075507028
+            ],
+            [
+              140,
+              -14.253213459178383
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              0.09874444170151742
+            ],
+            [
+              140,
+              0.164574069502529
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_1_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              122,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_mass_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -8.551928075507028
+            ],
+            [
+              140,
+              -14.253213459178383
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              2.8018589613562908
+            ],
+            [
+              140,
+              4.669764935593817
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_1_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              128,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_mass_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -9.502142306118921
+            ],
+            [
+              140,
+              -15.203427689790274
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              0.19691557994496317
+            ],
+            [
+              140,
+              0.32819263324160525
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_2_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              116,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_mass_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -9.502142306118921
+            ],
+            [
+              140,
+              -15.203427689790274
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -2.8224704917073975
+            ],
+            [
+              140,
+              -4.704117486178996
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_2_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              122,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_mass_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -9.502142306118921
+            ],
+            [
+              140,
+              -15.203427689790274
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -0.2950734442312498
+            ],
+            [
+              140,
+              -0.4917890737187497
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_2_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              128,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_mass_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -9.502142306118921
+            ],
+            [
+              140,
+              -15.203427689790274
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              2.822900433116387
+            ],
+            [
+              140,
+              4.704834055193977
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_2_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_mass_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -10.452356536730814
+            ],
+            [
+              140,
+              -16.153641920402166
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -0.3918483442510098
+            ],
+            [
+              140,
+              -0.6530805737516829
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_3_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              122,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_mass_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -10.452356536730814
+            ],
+            [
+              140,
+              -16.153641920402166
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -2.763817029672431
+            ],
+            [
+              140,
+              -4.606361716120718
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_3_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              128,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_mass_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -10.452356536730814
+            ],
+            [
+              140,
+              -16.153641920402166
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              0.2943047541226044
+            ],
+            [
+              140,
+              0.49050792353767386
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_3_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_mass_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -10.452356536730814
+            ],
+            [
+              140,
+              -16.153641920402166
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              2.7540201025672353
+            ],
+            [
+              140,
+              4.5900335042787255
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_3_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              110,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_mass_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -11.402570767342706
+            ],
+            [
+              140,
+              -17.103856151014057
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              0.2446753691571335
+            ],
+            [
+              140,
+              0.4077922819285559
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_4_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              128,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_mass_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -11.402570767342706
+            ],
+            [
+              140,
+              -17.103856151014057
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -2.8056248713424052
+            ],
+            [
+              140,
+              -4.676041452237342
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_4_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_mass_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -11.402570767342706
+            ],
+            [
+              140,
+              -17.103856151014057
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -0.34212807609161455
+            ],
+            [
+              140,
+              -0.5702134601526909
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_4_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              110,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_mass_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -11.402570767342706
+            ],
+            [
+              140,
+              -17.103856151014057
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              2.806907453265579
+            ],
+            [
+              140,
+              4.6781790887759644
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_4_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              116,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 140,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "cognition_0_mass_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -7.601713844895137
+            ],
+            [
+              140,
+              -13.30299922856649
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              0.3455028269757285
+            ],
+            [
+              140,
+              0.5758380449595475
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_0_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_0_mass_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -7.601713844895137
+            ],
+            [
+              140,
+              -13.30299922856649
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -2.828120590658481
+            ],
+            [
+              140,
+              -4.713534317764134
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_0_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              110,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_0_mass_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -7.601713844895137
+            ],
+            [
+              140,
+              -13.30299922856649
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -0.4434958653067848
+            ],
+            [
+              140,
+              -0.7391597755113081
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_0_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              116,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_0_mass_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -7.601713844895137
+            ],
+            [
+              140,
+              -13.30299922856649
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_0_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              2.8311412675141114
+            ],
+            [
+              140,
+              4.7185687791901865
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_0_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              122,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_mass_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -8.551928075507028
+            ],
+            [
+              140,
+              -14.253213459178383
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -0.19736857851123762
+            ],
+            [
+              140,
+              -0.32894763085206274
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_1_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              110,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_mass_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -8.551928075507028
+            ],
+            [
+              140,
+              -14.253213459178383
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -2.8083045564318674
+            ],
+            [
+              140,
+              -4.680507594053113
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_1_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              116,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_mass_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -8.551928075507028
+            ],
+            [
+              140,
+              -14.253213459178383
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              0.09874444170151742
+            ],
+            [
+              140,
+              0.164574069502529
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_1_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              122,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_mass_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -8.551928075507028
+            ],
+            [
+              140,
+              -14.253213459178383
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_1_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              2.8018589613562908
+            ],
+            [
+              140,
+              4.669764935593817
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_1_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              128,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_mass_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -9.502142306118921
+            ],
+            [
+              140,
+              -15.203427689790274
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              0.19691557994496317
+            ],
+            [
+              140,
+              0.32819263324160525
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_2_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              116,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_mass_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -9.502142306118921
+            ],
+            [
+              140,
+              -15.203427689790274
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -2.8224704917073975
+            ],
+            [
+              140,
+              -4.704117486178996
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_2_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              122,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_mass_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -9.502142306118921
+            ],
+            [
+              140,
+              -15.203427689790274
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -0.2950734442312498
+            ],
+            [
+              140,
+              -0.4917890737187497
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_2_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              128,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_mass_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -9.502142306118921
+            ],
+            [
+              140,
+              -15.203427689790274
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_2_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              2.822900433116387
+            ],
+            [
+              140,
+              4.704834055193977
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_2_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_mass_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -10.452356536730814
+            ],
+            [
+              140,
+              -16.153641920402166
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -0.3918483442510098
+            ],
+            [
+              140,
+              -0.6530805737516829
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_3_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              122,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_mass_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -10.452356536730814
+            ],
+            [
+              140,
+              -16.153641920402166
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -2.763817029672431
+            ],
+            [
+              140,
+              -4.606361716120718
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_3_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              128,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_mass_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -10.452356536730814
+            ],
+            [
+              140,
+              -16.153641920402166
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              0.2943047541226044
+            ],
+            [
+              140,
+              0.49050792353767386
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_3_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_mass_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -10.452356536730814
+            ],
+            [
+              140,
+              -16.153641920402166
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_3_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              2.7540201025672353
+            ],
+            [
+              140,
+              4.5900335042787255
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_3_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              110,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_mass_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -11.402570767342706
+            ],
+            [
+              140,
+              -17.103856151014057
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              0.2446753691571335
+            ],
+            [
+              140,
+              0.4077922819285559
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_4_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              128,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_mass_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -11.402570767342706
+            ],
+            [
+              140,
+              -17.103856151014057
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -2.8056248713424052
+            ],
+            [
+              140,
+              -4.676041452237342
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_4_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              104,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_mass_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              9
+            ],
+            [
+              96,
+              72
+            ],
+            [
+              140,
+              130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -11.402570767342706
+            ],
+            [
+              140,
+              -17.103856151014057
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              -0.34212807609161455
+            ],
+            [
+              140,
+              -0.5702134601526909
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_4_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              110,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_mass_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              -9
+            ],
+            [
+              96,
+              -72
+            ],
+            [
+              140,
+              -130
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0.28506426918356764
+            ],
+            [
+              96,
+              -11.402570767342706
+            ],
+            [
+              140,
+              -17.103856151014057
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cognition_4_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              96,
+              2.806907453265579
+            ],
+            [
+              140,
+              4.6781790887759644
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cognition_4_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              116,
+              0
+            ],
+            [
+              140,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "death_b": {
+      "loop": false,
+      "frames": 120,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "cognition_0_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              48,
+              -5.701285383671353
+            ],
+            [
+              120,
+              -15.203427689790274
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              48,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_0_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              56,
+              -5.701285383671353
+            ],
+            [
+              120,
+              -15.203427689790274
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_0_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              -5.701285383671353
+            ],
+            [
+              120,
+              -15.203427689790274
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              64,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_0_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              72,
+              -5.701285383671353
+            ],
+            [
+              120,
+              -15.203427689790274
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_0_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              72,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              56,
+              -2.8506426918356764
+            ],
+            [
+              120,
+              -7.601713844895137
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              -2.8506426918356764
+            ],
+            [
+              120,
+              -7.601713844895137
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              64,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              72,
+              -2.8506426918356764
+            ],
+            [
+              120,
+              -7.601713844895137
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              72,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_1_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              80,
+              -2.8506426918356764
+            ],
+            [
+              120,
+              -7.601713844895137
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_1_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              80,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              0.0
+            ],
+            [
+              120,
+              0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              64,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              72,
+              0.0
+            ],
+            [
+              120,
+              0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              72,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              80,
+              0.0
+            ],
+            [
+              120,
+              0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              80,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_2_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              48,
+              0.0
+            ],
+            [
+              120,
+              0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_2_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              48,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              72,
+              2.8506426918356764
+            ],
+            [
+              120,
+              7.601713844895137
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              72,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              80,
+              2.8506426918356764
+            ],
+            [
+              120,
+              7.601713844895137
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              80,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              48,
+              2.8506426918356764
+            ],
+            [
+              120,
+              7.601713844895137
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              48,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_3_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              56,
+              2.8506426918356764
+            ],
+            [
+              120,
+              7.601713844895137
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_3_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_mass_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              80,
+              5.701285383671353
+            ],
+            [
+              120,
+              15.203427689790274
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4_mass_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              80,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_mass_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              48,
+              5.701285383671353
+            ],
+            [
+              120,
+              15.203427689790274
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4_mass_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              48,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_mass_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              56,
+              5.701285383671353
+            ],
+            [
+              120,
+              15.203427689790274
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4_mass_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              56,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "cognition_4_mass_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              64,
+              5.701285383671353
+            ],
+            [
+              120,
+              15.203427689790274
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cognition_4_mass_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              64,
+              0
+            ],
+            [
+              120,
+              0
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "idle": [
+      [
+        0,
+        0
+      ],
+      [
+        60.0,
+        1
+      ],
+      [
+        120,
+        0
+      ]
+    ],
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        28,
+        1
+      ],
+      [
+        52,
+        2
+      ],
+      [
+        88,
+        0
+      ]
+    ],
+    "death_a": [
+      [
+        0,
+        0
+      ],
+      [
+        70.0,
+        2
+      ],
+      [
+        140,
+        2
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        70.0,
+        2
+      ],
+      [
+        140,
+        2
+      ]
+    ],
+    "death_b": [
+      [
+        0,
+        0
+      ],
+      [
+        60.0,
+        2
+      ],
+      [
+        120,
+        2
+      ]
+    ],
+    "cognitive_erasure": [
+      [
+        0,
+        0
+      ],
+      [
+        28,
+        1
+      ],
+      [
+        52,
+        2
+      ],
+      [
+        88,
+        0
+      ]
+    ],
+    "phase_excision": [
+      [
+        0,
+        0
+      ],
+      [
+        30,
+        1
+      ],
+      [
+        54,
+        2
+      ],
+      [
+        96,
+        0
+      ]
+    ],
+    "gravity_inversion": [
+      [
+        0,
+        0
+      ],
+      [
+        40,
+        1
+      ],
+      [
+        64,
+        2
+      ],
+      [
+        112,
+        0
+      ]
+    ],
+    "unremembered_bolt": [
+      [
+        0,
+        0
+      ],
+      [
+        28,
+        1
+      ],
+      [
+        52,
+        2
+      ],
+      [
+        100,
+        0
+      ]
+    ],
+    "spawn": [
+      [
+        0,
+        2
+      ],
+      [
+        56,
+        1
+      ],
+      [
+        104,
+        0
+      ],
+      [
+        120,
+        0
+      ]
+    ]
+  },
+  "emissive_groups": [
+    "cognition_0_mass_0__glow",
+    "cognition_1_mass_1__glow",
+    "cognition_2_mass_2__glow",
+    "cognition_3_mass_3__glow",
+    "cognition_4_mass_0__glow"
+  ],
+  "emissive_uv_offsets": {
+    "glimmer__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.00244140625
+      ],
+      [
+        0,
+        -0.0048828125
+      ]
+    ]
+  },
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T5V",
+    "size": 2048,
+    "budget": 36000,
+    "density": 10.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "death_a",
+      "death_b",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 40.0,
+    "fit_axis": 1,
+    "emissive_limit": 0.12,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}

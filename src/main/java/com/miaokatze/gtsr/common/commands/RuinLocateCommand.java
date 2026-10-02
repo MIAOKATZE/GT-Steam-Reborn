@@ -19,10 +19,12 @@ import net.minecraftforge.common.DimensionManager;
 
 import com.miaokatze.gtsr.common.dimension.framework.DimensionRegistrar;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimTeleporter;
-import com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinObjectives;
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite;
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinsEncounterData;
-import com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinsSitePlanner;
+import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterCatalog;
+import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterData;
+import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterPlanner;
+import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterSite;
 import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 import com.miaokatze.gtsr.config.Config;
 
@@ -45,7 +47,7 @@ public final class RuinLocateCommand {
 
     public static List<String> names() {
         List<String> result = new ArrayList<>();
-        for (String name : RuinSite.NAMES) result.add(name);
+        result.addAll(RemasterCatalog.ids());
         result.add("hanging_great_tree");
         return result;
     }
@@ -73,7 +75,14 @@ public final class RuinLocateCommand {
         for (int i = 3; i < args.length; i++) requested.append(' ')
             .append(args[i]);
         int kind = kindFor(requested.toString());
-        if (kind < 0) throw new WrongUsageException("未知遗址：" + requested + "；请使用 Tab 选择名称");
+        String requestedId = kind >= 0 && kind < 27 ? RuinSite.NAMES[kind]
+            : requested.toString()
+                .trim()
+                .replace(' ', '_')
+                .toLowerCase(Locale.ROOT);
+        if (kind < 0 && !RemasterCatalog.ids()
+            .contains(requestedId)) throw new WrongUsageException("未知遗址：" + requested + "；请使用 Tab 选择名称");
+        if ("forgotten_lake_court".equals(requestedId)) kind = 27;
         int dimension = Config.prosperityDimId;
         if (dimension < 0 || !Config.planDimension.prosperityDimension
             || DimensionRegistrar.defForDimension(dimension) == null) {
@@ -89,6 +98,7 @@ public final class RuinLocateCommand {
             .getSeed() : loaded.getSeed();
         int ox = MathHelper.floor_double(player.posX), oz = MathHelper.floor_double(player.posZ);
         RuinSite site = null;
+        RemasterSite remaster = null;
         int x, z;
         String display;
         if (kind == 27) {
@@ -102,29 +112,35 @@ public final class RuinLocateCommand {
             display = "垂天巨树";
         } else {
             final WorldServer observed = loaded;
-            site = RuinsSitePlanner.findNearest(
+            remaster = RemasterPlanner.nearest(
                 seed,
-                kind,
+                requestedId,
                 ox,
                 oz,
-                RADIUS_CELLS,
-                MAX_CANDIDATES,
-                s -> observed == null || RuinObjectives.newSiteAllowed(observed, s));
+                12,
+                s -> observed == null
+                    || com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterWorldgen.allowed(observed, s));
             if (loaded != null) {
                 int cellChunks = kind < 2 ? 96 : kind < 7 ? 24 : 8;
                 for (RuinSite saved : RuinsEncounterData.get(loaded)
                     .existingSitesNear(ox, oz, (RADIUS_CELLS + 1) * cellChunks * 16 + 288)) {
-                    if (saved.kind == kind && saved.seed == seed
+                    if (kind >= 0 && saved.kind == kind
+                        && saved.seed == seed
                         && (site == null || distance(saved, ox, oz) < distance(site, ox, oz))) site = saved;
                 }
             }
-            if (site == null) {
+            if (site != null && remaster != null) {
+                double dx = remaster.entryX() - (double) ox, dz = remaster.entryZ() - (double) oz;
+                if (distance(site, ox, oz) <= dx * dx + dz * dz) remaster = null;
+                else site = null;
+            }
+            if (site == null && remaster == null) {
                 say(sender, "搜索范围内未找到该遗址；请换一个探索位置后重试。");
                 return;
             }
-            x = site.entryX();
-            z = site.entryZ();
-            display = CHINESE_NAMES[kind];
+            x = remaster == null ? site.entryX() : remaster.entryX();
+            z = remaster == null ? site.entryZ() : remaster.entryZ();
+            display = kind >= 0 ? CHINESE_NAMES[kind] : requestedId;
         }
         say(
             sender,
@@ -154,7 +170,13 @@ public final class RuinLocateCommand {
             say(sender, "该入口位于已探索的旧区域，遗址未在此生成；未移动玩家。");
             return;
         }
-        int expected = site == null ? loaded.getTopSolidOrLiquidBlock(x, z) : site.entryY();
+        if (remaster != null && !RemasterData.get(loaded)
+            .flag(remaster.id(), "geom:" + cx + ":" + cz)) {
+            say(sender, "该新版入口尚未自然生成；未移动玩家。");
+            return;
+        }
+        int expected = remaster != null ? remaster.entryY()
+            : site == null ? loaded.getTopSolidOrLiquidBlock(x, z) : site.entryY();
         int[] landing = safeLanding(loaded, x, expected, z);
         if (landing == null) {
             say(sender, "未找到有支撑且安全的入口落点，未移动玩家。");

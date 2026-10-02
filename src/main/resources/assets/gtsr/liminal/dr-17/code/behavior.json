@@ -1,0 +1,159 @@
+{
+  "schema_version": 2,
+  "code": "dr-17",
+  "archetype": "rooted_whip_guard",
+  "stats": {
+    "health": 45,
+    "move_speed": 0,
+    "follow_range": 10
+  },
+  "locomotion": "stationary",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 48
+  },
+  "death": {
+    "clip": "death",
+    "duration": 68
+  },
+  "skills": [
+    {
+      "id": "fissure_lash",
+      "name": "四须裂鞭",
+      "clip": "attack",
+      "duration": 40,
+      "cooldown": 90,
+      "range": 2.5,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 4,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.48,
+            0
+          ],
+          "radius": 0.36,
+          "duration": 12,
+          "count": 10,
+          "color": [
+            0.42,
+            0.68,
+            0.6
+          ]
+        },
+        {
+          "at": 10,
+          "type": "vfx",
+          "effect": "rift",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "radius": 0.7,
+          "duration": 12,
+          "count": 12,
+          "color": [
+            0.54,
+            0.74,
+            0.65
+          ]
+        },
+        {
+          "at": 18,
+          "type": "vfx",
+          "effect": "afterimage",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.35,
+            0
+          ],
+          "radius": 1.05,
+          "duration": 9,
+          "count": 8,
+          "color": [
+            0.53,
+            0.67,
+            0.57
+          ]
+        },
+        {
+          "at": 22,
+          "type": "damage",
+          "shape": "cone",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.0,
+            0
+          ],
+          "radius": 2.65,
+          "amount": 7,
+          "knockback": 0.22,
+          "angle": 100
+        },
+        {
+          "at": 22,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "radius": 0.36,
+          "duration": 8,
+          "count": 8,
+          "color": [
+            0.65,
+            0.72,
+            0.59
+          ]
+        },
+        {
+          "at": 30,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.75,
+            0
+          ],
+          "radius": 0.48,
+          "duration": 10,
+          "count": 6,
+          "color": [
+            0.32,
+            0.47,
+            0.42
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [],
+  "projectiles": [],
+  "runtime": {
+    "hitbox_width": 0.75,
+    "hitbox_height": 2.15,
+    "tracking_range": 64,
+    "render_distance": 96,
+    "ignore_frustum_check": false
+  },
+  "notes": [
+    "固着根冠不平移，四根主须按节疤先后展开，细脉由灭转亮。攻击先后仰蓄力，再将四须错峰甩向前方；死亡从分叉末梢到主须逐段向外失力、开裂并熄脉。",
+    "4tick根冠苏醒粒子；10tick目标锁定点裂隙预兆；17–25帧各主节依次前甩，20–26帧分叉完成鞭击；22tick只结算一次7点锥形伤害。30–40tick回收；死亡54帧/speed0.8=67.5tick，保持68tick。",
+    "伤害脚底+世界Y1.0、指向起手锁定点的100°锥，半径2.65；2.5格内选技。target FX是起手锁定的目标中心，并非逐帧追着玩家刷。四鞭共用一次伤害，避免四次近接被无敌帧吞并或重复结算。",
+    "可调伤害5–9、冷却80–110tick。出生时根冠放在崖壁外或裂谷入口空隙，模型+Z一侧为岩根后背、-Z为朝外；固定位置但可朝向目标。不要把walk兼容摆须误当移动AI。",
+    "配置初始平衡值，不宣称已实机验证；所有实体不破坏方块。"
+  ]
+}

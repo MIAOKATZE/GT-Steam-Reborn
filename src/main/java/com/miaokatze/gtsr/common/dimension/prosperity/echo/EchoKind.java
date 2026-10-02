@@ -19,7 +19,29 @@ public enum EchoKind {
     DI13("di-13", "共振钟螺", 600, 2.8F, 4.5F, BattleStyle.RESONATOR, "attack"),
     DC02("dc-02", "崩垣", 1800, 10.4F, 14F, BattleStyle.SEISMIC, "seismic_impact"),
     DC08("dc-08", "巢识", 1500, 9F, 16F, BattleStyle.HIVE, "command_pulse"),
-    DO01("do-01", "天外神庭", 1, .1F, .1F, BattleStyle.RITUAL, "idle");
+    DO01("do-01", "天外神庭", 1, .1F, .1F, BattleStyle.RITUAL, "idle"),
+    DI01("di-01", "奇点幽影", 300, 3.241F, 5.000F, BattleStyle.AUTHORED, "attack"),
+    DI03("di-03", "悬针浮垒", 220, 4.445F, 7.000F, BattleStyle.AUTHORED, "attack"),
+    DI04("di-04", "跃隙猎手", 145, 3.575F, 2.936F, BattleStyle.AUTHORED, "attack"),
+    DI06("di-06", "腐壤蔓母", 160, 2.200F, 5.800F, BattleStyle.AUTHORED, "vine_sweep"),
+    DI07("di-07", "驮隙巨兽", 260, 4.550F, 6.014F, BattleStyle.AUTHORED, "brood_release"),
+    DI09("di-09", "拆垒工螯", 160, 3.575F, 2.064F, BattleStyle.AUTHORED, "attack"),
+    DI11("di-11", "噬雷藤", 130, 1.013F, 4.500F, BattleStyle.AUTHORED, "attack"),
+    DI12("di-12", "蚀渊鳐", 160, 4.225F, 1.807F, BattleStyle.AUTHORED, "attack"),
+    DI14("di-14", "裂口花", 180, 2.079F, 5.000F, BattleStyle.AUTHORED, "attack"),
+    DI15("di-15", "引线傀儡", 100, 1.450F, 3.800F, BattleStyle.AUTHORED, "attack"),
+    DO02("do-02", "逆模因实体", 900, 4.000F, 8.000F, BattleStyle.CONTROLLED, "cognitive_erasure"),
+    DR02("dr-02", "护盾蛀虫", 20, 0.650F, 0.282F, BattleStyle.AUTHORED, "attack"),
+    DR04("dr-04", "灰蚀蛆簇", 12, 0.750F, 0.500F, BattleStyle.AUTHORED, "brood_bite"),
+    DR06("dr-06", "缝织蟎", 16, 0.650F, 0.128F, BattleStyle.AUTHORED, "attack"),
+    DR08("dr-08", "碎锚蜗", 46, 0.780F, 0.995F, BattleStyle.AUTHORED, "attack"),
+    DR09("dr-09", "残誓兵", 52, 1.274F, 2.500F, BattleStyle.AUTHORED, "attack"),
+    DR13("dr-13", "鸣咽油囊", 36, 0.701F, 1.200F, BattleStyle.AUTHORED, "acid_lament"),
+    DR14("dr-14", "隙管水母", 30, 0.896F, 1.600F, BattleStyle.AUTHORED, "crystal_triplet"),
+    DR16("dr-16", "浮渣聚块", 32, 1.050F, 1.180F, BattleStyle.AUTHORED, "attack"),
+    DR17("dr-17", "缝隙根须", 45, 0.750F, 2.150F, BattleStyle.AUTHORED, "attack"),
+    DR18("dr-18", "采蚀工蜂", 24, 0.700F, 0.600F, BattleStyle.AUTHORED, "attack"),
+    DR19("dr-19", "回响残响", 34, 1.081F, 2.500F, BattleStyle.AUTHORED, "echo_reprise");
 
     public enum BattleStyle {
         STALKER,
@@ -38,7 +60,9 @@ public enum EchoKind {
         RESONATOR,
         SEISMIC,
         HIVE,
-        RITUAL
+        RITUAL,
+        AUTHORED,
+        CONTROLLED
     }
 
     public final String code, displayName, skillClip;

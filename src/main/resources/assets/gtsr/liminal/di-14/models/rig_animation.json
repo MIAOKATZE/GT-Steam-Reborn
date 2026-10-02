@@ -1,0 +1,1696 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DI-14",
+  "name": "裂口花",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 2.5591473782608385,
+    "h": 5.0,
+    "d": 2.5591473782608385
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        1.5669523026570618e-16,
+        0.0,
+        0.0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "stem",
+      "parent": "body",
+      "pivot": [
+        1.5669523026570618e-16,
+        0.1411385161270737,
+        0.0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "head_yaw",
+      "parent": "stem",
+      "pivot": [
+        1.5669523026570618e-16,
+        2.554607141900034,
+        0.0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "head_nod",
+      "parent": "head_yaw",
+      "pivot": [
+        1.5669523026570618e-16,
+        2.554607141900034,
+        0.0
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "petal_0",
+      "parent": "head_nod",
+      "pivot": [
+        1.5669523026570618e-16,
+        2.8792257289923033,
+        0.4375293999939284
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "petal_0_living_membrane",
+      "parent": "petal_0",
+      "pivot": [
+        1.5669523026570618e-16,
+        2.8792257289923033,
+        0.4375293999939284
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "petal_1",
+      "parent": "head_nod",
+      "pivot": [
+        0.4375293999939286,
+        2.8792257289923033,
+        4.8575521382368916e-17
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "petal_1_living_membrane",
+      "parent": "petal_1",
+      "pivot": [
+        0.4375293999939286,
+        2.8792257289923033,
+        4.8575521382368916e-17
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "petal_2",
+      "parent": "head_nod",
+      "pivot": [
+        2.1027712818924881e-16,
+        2.8792257289923033,
+        -0.4375293999939284
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "petal_2_living_membrane",
+      "parent": "petal_2",
+      "pivot": [
+        2.1027712818924881e-16,
+        2.8792257289923033,
+        -0.4375293999939284
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "petal_3",
+      "parent": "head_nod",
+      "pivot": [
+        -0.43752939999392826,
+        2.8792257289923033,
+        -9.715104276473783e-17
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "petal_3_living_membrane",
+      "parent": "petal_3",
+      "pivot": [
+        -0.43752939999392826,
+        2.8792257289923033,
+        -9.715104276473783e-17
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "nutrient_chain_0",
+      "parent": "stem",
+      "pivot": [
+        -0.7762618386989052,
+        2.342899367709423,
+        0.02822770322541474
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "nutrient_chain_1",
+      "parent": "stem",
+      "pivot": [
+        0.7762618386989055,
+        2.342899367709423,
+        0.07056925806353685
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "nutrient_chain_2",
+      "parent": "stem",
+      "pivot": [
+        0.05645540645082963,
+        2.342899367709423,
+        0.7621479870861979
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "head_nod__glow",
+      "parent": "head_nod",
+      "pivot": [
+        1.5669523026570618e-16,
+        2.554607141900034,
+        0.0
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "petal_0__glow",
+      "parent": "petal_0",
+      "pivot": [
+        1.5669523026570618e-16,
+        2.8792257289923033,
+        0.4375293999939284
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "petal_1__glow",
+      "parent": "petal_1",
+      "pivot": [
+        0.4375293999939286,
+        2.8792257289923033,
+        4.8575521382368916e-17
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "petal_2__glow",
+      "parent": "petal_2",
+      "pivot": [
+        2.1027712818924881e-16,
+        2.8792257289923033,
+        -0.4375293999939284
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "petal_3__glow",
+      "parent": "petal_3",
+      "pivot": [
+        -0.43752939999392826,
+        2.8792257289923033,
+        -9.715104276473783e-17
+      ],
+      "axis": "+Z",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "idle": {
+      "loop": true,
+      "frames": 180,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "head_yaw",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              45.0,
+              90
+            ],
+            [
+              90.0,
+              180
+            ],
+            [
+              135.0,
+              270
+            ],
+            [
+              180,
+              360
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "head_nod",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              45.0,
+              7
+            ],
+            [
+              90.0,
+              0
+            ],
+            [
+              135.0,
+              -7
+            ],
+            [
+              180,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              45.0,
+              3
+            ],
+            [
+              90.0,
+              0
+            ],
+            [
+              135.0,
+              -2
+            ],
+            [
+              180,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              45.0,
+              -3
+            ],
+            [
+              90.0,
+              0
+            ],
+            [
+              135.0,
+              2
+            ],
+            [
+              180,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "petal_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              45.0,
+              -3
+            ],
+            [
+              90.0,
+              0
+            ],
+            [
+              135.0,
+              2
+            ],
+            [
+              180,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              45.0,
+              3
+            ],
+            [
+              90.0,
+              0
+            ],
+            [
+              135.0,
+              -2
+            ],
+            [
+              180,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "nutrient_chain_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              45.0,
+              -2
+            ],
+            [
+              90.0,
+              0
+            ],
+            [
+              135.0,
+              2
+            ],
+            [
+              180,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "nutrient_chain_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              45.0,
+              3
+            ],
+            [
+              90.0,
+              0
+            ],
+            [
+              135.0,
+              -3
+            ],
+            [
+              180,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "nutrient_chain_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              45.0,
+              8
+            ],
+            [
+              90.0,
+              0
+            ],
+            [
+              135.0,
+              -8
+            ],
+            [
+              180,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "walk": {
+      "loop": true,
+      "frames": 120,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "head_yaw",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              90
+            ],
+            [
+              60.0,
+              180
+            ],
+            [
+              90.0,
+              270
+            ],
+            [
+              120,
+              360
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "head_nod",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              7
+            ],
+            [
+              60.0,
+              0
+            ],
+            [
+              90.0,
+              -7
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              3
+            ],
+            [
+              60.0,
+              0
+            ],
+            [
+              90.0,
+              -2
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              -3
+            ],
+            [
+              60.0,
+              0
+            ],
+            [
+              90.0,
+              2
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "petal_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              -3
+            ],
+            [
+              60.0,
+              0
+            ],
+            [
+              90.0,
+              2
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              3
+            ],
+            [
+              60.0,
+              0
+            ],
+            [
+              90.0,
+              -2
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "nutrient_chain_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              -2
+            ],
+            [
+              60.0,
+              0
+            ],
+            [
+              90.0,
+              2
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "nutrient_chain_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              3
+            ],
+            [
+              60.0,
+              0
+            ],
+            [
+              90.0,
+              -3
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "nutrient_chain_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              8
+            ],
+            [
+              60.0,
+              0
+            ],
+            [
+              90.0,
+              -8
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 48,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "head_nod",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -6
+            ],
+            [
+              14,
+              -12
+            ],
+            [
+              18,
+              -8
+            ],
+            [
+              28,
+              5
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -9
+            ],
+            [
+              12,
+              34
+            ],
+            [
+              18,
+              39
+            ],
+            [
+              28,
+              12
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              9
+            ],
+            [
+              12,
+              -34
+            ],
+            [
+              18,
+              -39
+            ],
+            [
+              28,
+              -12
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "petal_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              9
+            ],
+            [
+              12,
+              -34
+            ],
+            [
+              18,
+              -39
+            ],
+            [
+              28,
+              -12
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -9
+            ],
+            [
+              12,
+              34
+            ],
+            [
+              18,
+              39
+            ],
+            [
+              28,
+              12
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 48,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "head_nod",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              12
+            ],
+            [
+              22,
+              40
+            ],
+            [
+              38,
+              58
+            ],
+            [
+              48,
+              58
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              5
+            ],
+            [
+              24,
+              23
+            ],
+            [
+              42,
+              32
+            ],
+            [
+              48,
+              32
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_0_living_membrane",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "petal_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              -5
+            ],
+            [
+              24,
+              -23
+            ],
+            [
+              42,
+              -32
+            ],
+            [
+              48,
+              -32
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "petal_1_living_membrane",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "petal_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              -5
+            ],
+            [
+              24,
+              -23
+            ],
+            [
+              42,
+              -32
+            ],
+            [
+              48,
+              -32
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_2_living_membrane",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "petal_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              5
+            ],
+            [
+              24,
+              23
+            ],
+            [
+              42,
+              32
+            ],
+            [
+              48,
+              32
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "petal_3_living_membrane",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "nutrient_chain_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              -8
+            ],
+            [
+              48,
+              -8
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "nutrient_chain_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "nutrient_chain_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              8
+            ],
+            [
+              48,
+              8
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 52,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "head_yaw",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -24
+            ],
+            [
+              16,
+              -24
+            ],
+            [
+              38,
+              4
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "head_nod",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -6
+            ],
+            [
+              14,
+              -6
+            ],
+            [
+              34,
+              3
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -10
+            ],
+            [
+              8,
+              -10
+            ],
+            [
+              26,
+              8
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_0_living_membrane",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              1
+            ],
+            [
+              52,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "petal_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              10
+            ],
+            [
+              12,
+              10
+            ],
+            [
+              30,
+              -8
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "petal_1_living_membrane",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              17,
+              1
+            ],
+            [
+              52,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "petal_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              10
+            ],
+            [
+              16,
+              10
+            ],
+            [
+              34,
+              -8
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "petal_2_living_membrane",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              1
+            ],
+            [
+              52,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "petal_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -10
+            ],
+            [
+              20,
+              -10
+            ],
+            [
+              38,
+              8
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "petal_3_living_membrane",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              27,
+              1
+            ],
+            [
+              52,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "nutrient_chain_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -7
+            ],
+            [
+              28,
+              -2
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "nutrient_chain_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              7
+            ],
+            [
+              32,
+              -2
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "nutrient_chain_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              7
+            ],
+            [
+              36,
+              -2
+            ],
+            [
+              52,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "idle": [
+      [
+        0,
+        0
+      ],
+      [
+        180,
+        0
+      ]
+    ],
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        10,
+        1
+      ],
+      [
+        20,
+        0
+      ],
+      [
+        48,
+        0
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        10,
+        2
+      ],
+      [
+        48,
+        2
+      ]
+    ],
+    "walk": [
+      [
+        0,
+        0
+      ],
+      [
+        120,
+        0
+      ]
+    ],
+    "spawn": [
+      [
+        0,
+        2
+      ],
+      [
+        12,
+        0
+      ],
+      [
+        27,
+        1
+      ],
+      [
+        40,
+        0
+      ],
+      [
+        52,
+        0
+      ]
+    ]
+  },
+  "emissive_groups": [
+    "head_nod__glow",
+    "petal_0__glow",
+    "petal_1__glow",
+    "petal_2__glow",
+    "petal_3__glow"
+  ],
+  "emissive_uv_offsets": {
+    "acid__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.0390625
+      ],
+      [
+        0,
+        -0.078125
+      ]
+    ],
+    "rim__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.0390625
+      ],
+      [
+        0,
+        -0.078125
+      ]
+    ]
+  },
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T2",
+    "size": 256,
+    "budget": 4200,
+    "density": 12.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 5.0,
+    "fit_axis": 1,
+    "emissive_limit": 0.04,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "schema_version": 2,
+  "code": "dr-14",
+  "archetype": "hover_skirmisher",
+  "stats": {
+    "health": 30,
+    "move_speed": 0.18,
+    "follow_range": 24
+  },
+  "locomotion": "hover",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 32
+  },
+  "death": {
+    "clip": "death",
+    "duration": 44
+  },
+  "skills": [
+    {
+      "id": "crystal_triplet",
+      "name": "隙管三叩",
+      "clip": "crystal_triplet",
+      "duration": 32,
+      "cooldown": 85,
+      "range": 18,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 2,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.08,
+            0
+          ],
+          "radius": 0.24,
+          "duration": 8,
+          "count": 12,
+          "color": [
+            0.4,
+            0.72,
+            0.65
+          ]
+        },
+        {
+          "at": 10,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.15,
+            0
+          ],
+          "radius": 0.14,
+          "duration": 4,
+          "count": 8,
+          "color": [
+            0.4,
+            0.72,
+            0.65
+          ]
+        },
+        {
+          "at": 10,
+          "type": "projectile",
+          "projectile": "pr-dr14-crystal-needle",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.15,
+            0
+          ],
+          "speed": 0.65,
+          "amount": 3,
+          "count": 1,
+          "spread": 0,
+          "gravity": 0,
+          "lifetime": 50
+        },
+        {
+          "at": 16,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.15,
+            0
+          ],
+          "radius": 0.14,
+          "duration": 4,
+          "count": 8,
+          "color": [
+            0.4,
+            0.72,
+            0.65
+          ]
+        },
+        {
+          "at": 16,
+          "type": "projectile",
+          "projectile": "pr-dr14-crystal-needle",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.15,
+            0
+          ],
+          "speed": 0.65,
+          "amount": 3,
+          "count": 1,
+          "spread": 0,
+          "gravity": 0,
+          "lifetime": 50
+        },
+        {
+          "at": 22,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.15,
+            0
+          ],
+          "radius": 0.14,
+          "duration": 4,
+          "count": 8,
+          "color": [
+            0.4,
+            0.72,
+            0.65
+          ]
+        },
+        {
+          "at": 22,
+          "type": "projectile",
+          "projectile": "pr-dr14-crystal-needle",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.15,
+            0
+          ],
+          "speed": 0.65,
+          "amount": 3,
+          "count": 1,
+          "spread": 0,
+          "gravity": 0,
+          "lifetime": 50
+        },
+        {
+          "at": 26,
+          "type": "vfx",
+          "effect": "steam",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.08,
+            0
+          ],
+          "radius": 0.18,
+          "duration": 6,
+          "count": 6,
+          "color": [
+            0.48,
+            0.58,
+            0.7
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [],
+  "projectiles": [
+    {
+      "id": "pr-dr14-crystal-needle",
+      "kind": "needle",
+      "speed": 0.65,
+      "gravity": 0,
+      "lifetime": 50,
+      "radius": 0.06
+    }
+  ],
+  "notes": [
+    "三发分别在10/16/22游戏tick产生；每次一枚，锁定目标点瞄准，无附加即时damage。",
+    "模型管口朝下；宿主应让水母悬停于目标上方再射击，局部rig不负责实体导航。",
+    "时间均为20Hz游戏tick，本批spawn/skill/death speed=1；服务端事件去重，客户端只渲染。未进行Forge编译或Minecraft实机联调。"
+  ]
+}

@@ -714,6 +714,7 @@ public final class ForgottenLakeEncounterStructure {
             int[] c = throneChestPosition(ax, az, y0, trunkH, i);
             chest(w, d, id, "throneChest" + i, c[0], c[1], c[2], i < 3 ? 3 : i < 6 ? 4 : 5, -1, cx, cz);
         }
+        com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterWorldgen.treeOverlay(w, ax, az, y0, cx, cz);
     }
 
     private static boolean owner(int x, int z, int cx, int cz) {

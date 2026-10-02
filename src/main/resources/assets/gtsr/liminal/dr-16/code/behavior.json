@@ -1,0 +1,140 @@
+{
+  "schema_version": 2,
+  "code": "dr-16",
+  "archetype": "rubble_crusher",
+  "stats": {
+    "health": 32,
+    "move_speed": 0.17,
+    "follow_range": 16
+  },
+  "locomotion": "ground",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 44
+  },
+  "death": {
+    "clip": "death",
+    "duration": 65
+  },
+  "skills": [
+    {
+      "id": "aggregate_slam",
+      "name": "聚核砸压",
+      "clip": "attack",
+      "duration": 26,
+      "cooldown": 65,
+      "range": 1.55,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 3,
+          "type": "vfx",
+          "effect": "gravity",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.63,
+            0
+          ],
+          "radius": 0.68,
+          "duration": 12,
+          "count": 12,
+          "color": [
+            0.4,
+            0.64,
+            0.57
+          ]
+        },
+        {
+          "at": 9,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.055,
+            0
+          ],
+          "radius": 1.25,
+          "duration": 9,
+          "count": 20,
+          "color": [
+            0.63,
+            0.78,
+            0.63
+          ]
+        },
+        {
+          "at": 18,
+          "type": "damage",
+          "shape": "cone",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.55,
+            0
+          ],
+          "radius": 1.6,
+          "amount": 6,
+          "knockback": 0.38,
+          "angle": 120
+        },
+        {
+          "at": 18,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.06,
+            0
+          ],
+          "radius": 1.6,
+          "duration": 6,
+          "count": 24,
+          "color": [
+            0.68,
+            0.77,
+            0.66
+          ]
+        },
+        {
+          "at": 18,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.12,
+            0
+          ],
+          "radius": 0.7,
+          "duration": 8,
+          "count": 12,
+          "color": [
+            0.3,
+            0.38,
+            0.37
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [],
+  "projectiles": [],
+  "runtime": {
+    "hitbox_width": 1.05,
+    "hitbox_height": 1.18,
+    "tracking_range": 64,
+    "render_distance": 96,
+    "ignore_frustum_check": false
+  },
+  "notes": [
+    "碎块由两圈地面散石及外圈小砾错峰吸聚；核心先亮，石块弧线上升后归位。攻击维持一体，抬升后向前压砸；死亡逐块失去吸附、散落且不再复位。",
+    "3tick 核周吸力预兆；9tick 地面压圈展开；18tick 单次120°前方锥伤害6、击退0.38，伴随冲击环及有限碎屑；26tick 回到完整聚块。死亡52帧、speed=0.8，对应65tick，7帧即8.75tick熄核。",
+    "伤害锚点为实体脚底+世界Y0.55，朝起手锁定目标点，半径1.60；选择距离1.55。两次环为脚底Y0.055/0.06。gravity粒子只是核心吸聚演出，不产生pull或额外伤害。",
+    "可调伤害4–8、冷却55–85tick；不要改18tick落点而不同步rig。没有掉落物吸取、经济、拾取或方块破坏钩子。",
+    "配置初始平衡值，不宣称已实机验证；所有实体不破坏方块。"
+  ]
+}

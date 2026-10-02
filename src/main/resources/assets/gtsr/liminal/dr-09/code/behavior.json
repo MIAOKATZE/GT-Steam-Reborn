@@ -1,0 +1,93 @@
+{
+  "schema_version": 2,
+  "code": "dr-09",
+  "archetype": "oath_guard",
+  "stats": {
+    "health": 52,
+    "move_speed": 0.17,
+    "follow_range": 24
+  },
+  "locomotion": "ground",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 40
+  },
+  "death": {
+    "clip": "death",
+    "duration": 48
+  },
+  "skills": [
+    {
+      "id": "oath_shield_bash",
+      "name": "残誓盾撞",
+      "clip": "attack",
+      "duration": 30,
+      "cooldown": 85,
+      "range": 1.9,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 9,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.2,
+            0
+          ],
+          "radius": 0.42,
+          "duration": 8,
+          "count": 12,
+          "color": [
+            0.58,
+            0.52,
+            0.68
+          ]
+        },
+        {
+          "at": 15,
+          "type": "damage",
+          "shape": "cone",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.05,
+            0
+          ],
+          "radius": 1.75,
+          "angle": 65,
+          "amount": 7,
+          "knockback": 0.45
+        },
+        {
+          "at": 15,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "target",
+          "offset": [
+            0,
+            1.1,
+            0
+          ],
+          "radius": 0.32,
+          "duration": 10,
+          "count": 10,
+          "color": [
+            0.63,
+            0.69,
+            0.68
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [],
+  "projectiles": [],
+  "notes": [
+    "所有时间为20 tick/s游戏tick，当前spawn/attack/death speed=1。",
+    "由统一生成器导出profile并通过统一Forge1.7.10桥接接入；本资产没有自建实体基类。",
+    "伤害和状态仅服务端，客户端仅播放rig/VFX。未做真实Forge编译、游戏物理或联网验证。"
+  ]
+}

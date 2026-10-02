@@ -1,0 +1,350 @@
+{
+  "schema_version": 2,
+  "code": "di-06",
+  "archetype": "rooted_membrane_controller",
+  "stats": {
+    "health": 160,
+    "move_speed": 0,
+    "follow_range": 24
+  },
+  "locomotion": "stationary",
+  "runtime": {
+    "hitbox_width": 2.2,
+    "hitbox_height": 5.8,
+    "tracking_range": 96,
+    "render_distance": 144,
+    "ignore_frustum_check": true
+  },
+  "spawn": {
+    "clip": "spawn",
+    "duration": 64
+  },
+  "death": {
+    "clip": "death",
+    "duration": 60
+  },
+  "skills": [
+    {
+      "id": "vine_sweep",
+      "name": "八蔓环鞭",
+      "clip": "vine_sweep",
+      "duration": 48,
+      "cooldown": 90,
+      "range": 3.4,
+      "weight": 2,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 8,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.12,
+            0
+          ],
+          "radius": 3.4,
+          "duration": 16,
+          "count": 32,
+          "color": [
+            0.6,
+            0.4,
+            0.76
+          ]
+        },
+        {
+          "at": 12,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.7,
+            0
+          ],
+          "radius": 2.5,
+          "duration": 12,
+          "count": 16,
+          "color": [
+            0.3,
+            0.72,
+            0.6
+          ]
+        },
+        {
+          "at": 24,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.18,
+            0
+          ],
+          "radius": 3.4,
+          "duration": 8,
+          "count": 40,
+          "color": [
+            0.3,
+            0.72,
+            0.6
+          ]
+        },
+        {
+          "at": 24,
+          "type": "damage",
+          "shape": "sphere",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.7,
+            0
+          ],
+          "radius": 3.4,
+          "amount": 8,
+          "knockback": 0.32
+        },
+        {
+          "at": 24,
+          "type": "status",
+          "effect": "slowness",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.7,
+            0
+          ],
+          "radius": 3.4,
+          "duration": 20,
+          "amplifier": 0
+        },
+        {
+          "at": 32,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.15,
+            0
+          ],
+          "radius": 3.4,
+          "duration": 12,
+          "count": 12,
+          "color": [
+            0.6,
+            0.4,
+            0.76
+          ]
+        }
+      ]
+    },
+    {
+      "id": "spore_membrane",
+      "name": "侵蚀孢膜",
+      "clip": "spore_membrane",
+      "duration": 80,
+      "cooldown": 180,
+      "range": 4.4,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 4,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.08,
+            0
+          ],
+          "radius": 4.4,
+          "duration": 20,
+          "count": 32,
+          "color": [
+            0.6,
+            0.4,
+            0.76
+          ]
+        },
+        {
+          "at": 16,
+          "type": "vfx",
+          "effect": "steam",
+          "anchor": "self",
+          "offset": [
+            0,
+            4.4,
+            0
+          ],
+          "radius": 1.15,
+          "duration": 22,
+          "count": 24,
+          "color": [
+            0.3,
+            0.72,
+            0.6
+          ]
+        },
+        {
+          "at": 24,
+          "type": "vfx",
+          "effect": "glyphless_seal",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.12,
+            0
+          ],
+          "radius": 4.4,
+          "duration": 40,
+          "count": 48,
+          "color": [
+            0.6,
+            0.4,
+            0.76
+          ]
+        },
+        {
+          "at": 24,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.3,
+            0
+          ],
+          "radius": 4.4,
+          "duration": 40,
+          "count": 32,
+          "color": [
+            0.3,
+            0.72,
+            0.6
+          ]
+        },
+        {
+          "at": 24,
+          "type": "status",
+          "effect": "slowness",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.7,
+            0
+          ],
+          "radius": 4.4,
+          "duration": 10,
+          "amplifier": 0
+        },
+        {
+          "at": 32,
+          "type": "status",
+          "effect": "slowness",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.7,
+            0
+          ],
+          "radius": 4.4,
+          "duration": 10,
+          "amplifier": 0
+        },
+        {
+          "at": 40,
+          "type": "status",
+          "effect": "slowness",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.7,
+            0
+          ],
+          "radius": 4.4,
+          "duration": 10,
+          "amplifier": 0
+        },
+        {
+          "at": 48,
+          "type": "status",
+          "effect": "slowness",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.7,
+            0
+          ],
+          "radius": 4.4,
+          "duration": 10,
+          "amplifier": 0
+        },
+        {
+          "at": 56,
+          "type": "status",
+          "effect": "slowness",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.7,
+            0
+          ],
+          "radius": 4.4,
+          "duration": 10,
+          "amplifier": 0
+        },
+        {
+          "at": 64,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.1,
+            0
+          ],
+          "radius": 4.4,
+          "duration": 16,
+          "count": 20,
+          "color": [
+            0.3,
+            0.72,
+            0.6
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [
+    {
+      "at": 0,
+      "type": "vfx",
+      "effect": "motes",
+      "anchor": "self",
+      "offset": [
+        0,
+        4.5,
+        0
+      ],
+      "radius": 0.8,
+      "duration": 48,
+      "count": 6,
+      "color": [
+        0.3,
+        0.72,
+        0.6
+      ]
+    }
+  ],
+  "projectiles": [],
+  "notes": [
+    "固着植物；idle复用原walk呼吸，walk保留兼容但不用于移动。",
+    "横扫24tick只结算一次；八根同向回扫避免旧相邻根条反向交叉。",
+    "孢子为表现粒子，膜为40tick非方块区域；24至56tick每8tick重施10tick减速I。",
+    "不放置/破坏方块；友方加速、可净化持久膜和地形贴合均需宿主扩展，当前契约不包含这些能力。",
+    "Y+.7的sphere查询是核心范围近似，存在竖直厚度；非地表碰撞网格。"
+  ]
+}

@@ -38,6 +38,72 @@ public class EntityOldEcho extends EntityEncounterBase {
     private int resonanceCooldown, resonanceHeals;
     private float resonanceDamage;
     private double aimX, aimY, aimZ, originX, originZ;
+    private final AuthoredEchoAbilities authored = new AuthoredEchoAbilities(this);
+    private int summonBudget = 8, summonedLifetime;
+    private String summoner = "";
+    private float lastAcceptedPlayerDamage = 5;
+    private boolean controlledPrepared, controlledFinished;
+    private int lightningCooldown;
+
+    private boolean authoredKind() {
+        return getKind().style == BattleStyle.AUTHORED;
+    }
+
+    public boolean isSummonedEcho() {
+        return !summoner.isEmpty();
+    }
+
+    int summonsRemaining() {
+        return summonBudget;
+    }
+
+    void consumeSummon() {
+        summonBudget--;
+    }
+
+    void markSummoned(EntityOldEcho parent, int lifetime) {
+        summoner = parent.getUniqueID()
+            .toString();
+        summonedLifetime = lifetime;
+        summonBudget = 0;
+    }
+
+    float repriseDamage() {
+        return Math.max(2, Math.min(12, lastAcceptedPlayerDamage));
+    }
+
+    /** Call before spawning the terminal apparition; the caller owns its short visible delay. */
+    public boolean prepareControlledAntimeme() {
+        if (worldObj.isRemote || getKind() != EchoKind.DO02 || controlledPrepared || controlledFinished) return false;
+        controlledPrepared = true;
+        setCustomNameTag("(旧日虚影)" + getKind().displayName + " 99*");
+        return true;
+    }
+
+    /** Explicit server-only terminal removal; never scheduled by the natural-spawn handler. */
+    public boolean finishControlledAntimeme() {
+        if (worldObj.isRemote || getKind() != EchoKind.DO02 || controlledFinished) return false;
+        controlledFinished = true;
+        setCustomNameTag("(旧日虚影)" + getKind().displayName + " 99*");
+        state(DYING);
+        phase(99);
+        setDead();
+        return true;
+    }
+
+    /** A real lightning source charges and heals the rooted vine, with a bounded gain. */
+    @Override
+    public void onStruckByLightning(net.minecraft.entity.effect.EntityLightningBolt bolt) {
+        if (!worldObj.isRemote && getKind() == EchoKind.DI11) {
+            if (lightningCooldown == 0) {
+                heal(Math.min(20, getMaxHealth() * .15F));
+                cooldown = 0;
+                lightningCooldown = 200;
+            }
+            return;
+        }
+        super.onStruckByLightning(bolt);
+    }
 
     public EntityOldEcho(World world) {
         super(world);
@@ -50,6 +116,7 @@ public class EntityOldEcho extends EntityEncounterBase {
         dataWatcher.addObject(25, 0);
         dataWatcher.addObject(26, 0);
         dataWatcher.addObject(27, 0);
+        dataWatcher.addObject(28, 0);
     }
 
     @Override
@@ -101,11 +168,13 @@ public class EntityOldEcho extends EntityEncounterBase {
         initialize(structureId == null ? "" : structureId, -1, x, y, z);
         initialized = true;
         nightSpawn = night;
+        controlledPrepared = controlledFinished = false;
         deathRecorded = false;
         ritualTicks = returnTicks = pathFailures = 0;
         cooldown = 40;
         state(IDLE);
         skill(0, 0);
+        dataWatcher.updateObject(28, 0);
     }
 
     private void configure(EchoKind kind, boolean fill) {
@@ -114,6 +183,14 @@ public class EntityOldEcho extends EntityEncounterBase {
         getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(kind.maxHealth);
         getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(kind.isHeavy() ? .12 : .20);
         getEntityAttribute(SharedMonsterAttributes.knockbackResistance).setBaseValue(kind.hasBossBar() ? 1 : .4);
+        if (kind.style == BattleStyle.AUTHORED) {
+            com.google.gson.JsonObject stats = AuthoredEchoAbilities.profile(kind)
+                .getAsJsonObject("stats");
+            getEntityAttribute(SharedMonsterAttributes.movementSpeed)
+                .setBaseValue(AuthoredEchoAbilities.number(stats, "move_speed", .2));
+            if (kind == EchoKind.DR08)
+                getEntityAttribute(SharedMonsterAttributes.knockbackResistance).setBaseValue(.85);
+        }
         setCustomNameTag("(旧日虚影)" + kind.displayName);
         if (fill) setHealth(kind.maxHealth);
         noClip = kind.isRitual();
@@ -126,7 +203,10 @@ public class EntityOldEcho extends EntityEncounterBase {
     }
 
     public String getVisualClip() {
+        if (getKind() == EchoKind.DO02) return controlledFinished || getEncounterState() == DYING ? "death_a" : "idle";
         if (getHealth() <= 0 || getEncounterState() == DYING) return "death";
+        if (authoredKind() && dataWatcher.getWatchableObjectInt(28) < authored.spawnDuration()) return "spawn";
+        if (authoredKind() && getSkillId() != 0) return authored.clip(getSkillId());
         if (getKind().isRitual()) return getVisualPhaseTicks() < 80 ? "spawn" : "idle";
         if (getSkillId() != 0) {
             if (getKind() == EchoKind.DC02) return getSkillId() == 1 ? "seismic_impact" : "fault_line";
@@ -137,7 +217,10 @@ public class EntityOldEcho extends EntityEncounterBase {
     }
 
     public double getVisualTicks(float partial) {
+        if (getKind() == EchoKind.DO02 && getEncounterState() == DYING) return getVisualPhaseTicks() - 99 + partial;
         if (getHealth() <= 0) return deathTime + partial;
+        if (authoredKind() && dataWatcher.getWatchableObjectInt(28) < authored.spawnDuration())
+            return dataWatcher.getWatchableObjectInt(28) + partial;
         if (getKind().isRitual()) return getVisualPhaseTicks() + partial;
         return getSkillId() != 0 ? getSkillTicks() + partial : ticksExisted + partial;
     }
@@ -189,6 +272,7 @@ public class EntityOldEcho extends EntityEncounterBase {
 
     @Override
     public boolean attackEntityFrom(DamageSource source, float amount) {
+        if (getKind() == EchoKind.DO02) return false;
         if (getKind().isRitual() || (!worldObj.isRemote && dormant())) return false;
         if (!worldObj.isRemote && source.getEntity() instanceof EntityPlayer
             && valid((EntityPlayer) source.getEntity())) {
@@ -203,6 +287,8 @@ public class EntityOldEcho extends EntityEncounterBase {
         }
         float before = getHealth();
         boolean accepted = super.attackEntityFrom(source, amount);
+        if (accepted && source.getEntity() instanceof EntityPlayer)
+            lastAcceptedPlayerDamage = Math.max(2, Math.min(12, before - getHealth()));
         if (accepted && getKind() == EchoKind.DC08 && getSkillId() == 4)
             resonanceDamage += Math.max(0, before - getHealth());
         return accepted;
@@ -214,6 +300,38 @@ public class EntityOldEcho extends EntityEncounterBase {
         if (worldObj.isRemote || !isEntityAlive()) return;
         if (!initialized) {
             initializeEcho(getKind(), "", posX, posY, posZ, false);
+        }
+        if (isSummonedEcho()) {
+            boolean parentLoaded = false;
+            for (Object object : worldObj.loadedEntityList) if (object instanceof EntityOldEcho) {
+                EntityOldEcho parent = (EntityOldEcho) object;
+                if (parent.isEntityAlive() && summoner.equals(
+                    parent.getUniqueID()
+                        .toString())) {
+                    parentLoaded = true;
+                    break;
+                }
+            }
+            if (!parentLoaded || --summonedLifetime <= 0) {
+                setDead();
+                return;
+            }
+        }
+        if (getKind() == EchoKind.DO02) {
+            getNavigator().clearPathEntity();
+            motionX = motionY = motionZ = 0;
+            if (controlledFinished) {
+                phase(getVisualPhaseTicks() + 1);
+                if (getVisualPhaseTicks() >= 239) setDead();
+            }
+            return;
+        }
+        if (authoredKind()) authored.tickBolts();
+        if (lightningCooldown > 0) lightningCooldown--;
+        if (authoredKind() && dataWatcher.getWatchableObjectInt(28) < authored.spawnDuration()) {
+            dataWatcher.updateObject(28, dataWatcher.getWatchableObjectInt(28) + 1);
+            getNavigator().clearPathEntity();
+            return;
         }
         if (getKind().isRitual()) {
             noClip = true;
@@ -239,6 +357,10 @@ public class EntityOldEcho extends EntityEncounterBase {
             || target.getDistanceSq(anchorX, anchorY, anchorZ) > leash() * leash()
             || getDistanceSq(anchorX, anchorY, anchorZ) > leash() * leash()) {
             setAttackTarget(null);
+            if (authoredKind()) {
+                authored.cancel();
+                skill(0, 0);
+            }
             if (getDistanceSq(anchorX, anchorY, anchorZ) > 1) {
                 returnHome();
                 return;
@@ -260,6 +382,34 @@ public class EntityOldEcho extends EntityEncounterBase {
         }
         if (getEncounterState() != COMBAT) state(COMBAT);
         getLookHelper().setLookPositionWithEntity(target, 30, 30);
+        if (authoredKind()) {
+            if (authored.hovering()) {
+                motionY = 0;
+                fallDistance = 0;
+            }
+            if (getSkillId() != 0) {
+                int ticks = getSkillTicks() + 1, index = getSkillId();
+                skill(index, ticks);
+                authored.tickSkill(index, ticks);
+                if (ticks >= authored.duration(index)) {
+                    cooldown = authored.cooldown(index);
+                    skill(0, 0);
+                }
+                return;
+            }
+            int selected = authored.select();
+            double reach = authored.range(selected);
+            if (cooldown == 0 && getDistanceSqToEntity(target) <= reach * reach && canEntityBeSeen(target)) {
+                aimX = target.posX;
+                aimY = target.posY;
+                aimZ = target.posZ;
+                skill(selected, 0);
+                authored.begin((EntityPlayer) target, selected);
+                getNavigator().clearPathEntity();
+            } else
+                if (!authored.stationary() && ticksExisted % 10 == 0) getNavigator().tryMoveToEntityLiving(target, .8);
+            return;
+        }
         if (getSkillId() != 0) {
             advanceSkill((EntityPlayer) target);
             return;
@@ -459,6 +609,10 @@ public class EntityOldEcho extends EntityEncounterBase {
     }
 
     private void stopEffects() {
+        if (authoredKind()) {
+            authored.cancel();
+            return;
+        }
         for (int j = 0; j < attackSteps(); j++)
             CombatEffects.send(this, attackSerial * 32 + j, 2, 0, palette(), geometry(j));
     }
@@ -579,6 +733,12 @@ public class EntityOldEcho extends EntityEncounterBase {
 
     @Override
     protected void onDeathUpdate() {
+        if (authoredKind()) {
+            deathTime++;
+            if (!worldObj.isRemote) authored.death(deathTime);
+            if (deathTime >= authored.deathDuration()) setDead();
+            return;
+        }
         if (++deathTime >= (getKind().hasBossBar() ? 100 : 60)) setDead();
     }
 
@@ -616,6 +776,14 @@ public class EntityOldEcho extends EntityEncounterBase {
         n.setDouble("echoAimZ", aimZ);
         n.setDouble("echoOriginX", originX);
         n.setDouble("echoOriginZ", originZ);
+        n.setInteger("echoSummonBudget", summonBudget);
+        n.setInteger("echoSummonedLifetime", summonedLifetime);
+        n.setString("echoSummoner", summoner);
+        n.setFloat("echoRepriseDamage", lastAcceptedPlayerDamage);
+        n.setBoolean("echoControlledFinished", controlledFinished);
+        n.setBoolean("echoControlledPrepared", controlledPrepared);
+        n.setInteger("echoLightningCooldown", lightningCooldown);
+        n.setInteger("echoSpawnTicks", dataWatcher.getWatchableObjectInt(28));
     }
 
     @Override
@@ -650,5 +818,29 @@ public class EntityOldEcho extends EntityEncounterBase {
         aimZ = n.getDouble("echoAimZ");
         originX = n.getDouble("echoOriginX");
         originZ = n.getDouble("echoOriginZ");
+        summonBudget = n.hasKey("echoSummonBudget") ? Math.max(0, Math.min(8, n.getInteger("echoSummonBudget"))) : 8;
+        summonedLifetime = Math.max(0, Math.min(400, n.getInteger("echoSummonedLifetime")));
+        summoner = n.getString("echoSummoner");
+        lastAcceptedPlayerDamage = n.hasKey("echoRepriseDamage") ? n.getFloat("echoRepriseDamage") : 5;
+        if (!Float.isFinite(lastAcceptedPlayerDamage)) lastAcceptedPlayerDamage = 5;
+        controlledFinished = n.getBoolean("echoControlledFinished");
+        controlledPrepared = n.getBoolean("echoControlledPrepared");
+        if (controlledPrepared) setCustomNameTag("(旧日虚影)" + getKind().displayName + " 99*");
+        lightningCooldown = Math.max(0, Math.min(200, n.getInteger("echoLightningCooldown")));
+        dataWatcher.updateObject(
+            28,
+            n.hasKey("echoSpawnTicks") ? Math.max(0, Math.min(120, n.getInteger("echoSpawnTicks"))) : 120);
+        // Cancel a partial authored cast on reload: old events and transient projectiles never replay.
+        if (authoredKind()) {
+            authored.cancel();
+            skill(0, 0);
+            cooldown = Math.max(40, cooldown);
+        }
+    }
+
+    @Override
+    public void setDead() {
+        if (authored != null) authored.cancel();
+        super.setDead();
     }
 }

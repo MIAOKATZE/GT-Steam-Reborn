@@ -1,0 +1,4998 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DI-07",
+  "name": "驮隙巨兽",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 2.9599298556080003,
+    "h": 6.014315774814461,
+    "d": 5.6000000000000005
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        0.0,
+        2.431370952820773,
+        0.8341830028544223
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_front_r",
+      "parent": "body",
+      "pivot": [
+        -1.1416872300201895,
+        2.589938623656911,
+        -0.4660718980019045
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_front_r_knee",
+      "parent": "leg_front_r",
+      "pivot": [
+        -1.1416872300201895,
+        1.1628295861316744,
+        -0.4660718980019045
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_front_l",
+      "parent": "body",
+      "pivot": [
+        1.1416872300201895,
+        2.589938623656911,
+        -0.4660718980019045
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_front_l_knee",
+      "parent": "leg_front_l",
+      "pivot": [
+        1.1416872300201895,
+        1.1628295861316744,
+        -0.4660718980019045
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_rear_r",
+      "parent": "body",
+      "pivot": [
+        -1.1416872300201895,
+        2.589938623656911,
+        2.092153191487779
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_rear_r_knee",
+      "parent": "leg_rear_r",
+      "pivot": [
+        -1.1416872300201895,
+        1.1628295861316744,
+        2.092153191487779
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_rear_l",
+      "parent": "body",
+      "pivot": [
+        1.1416872300201895,
+        2.589938623656911,
+        2.092153191487779
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_rear_l_knee",
+      "parent": "leg_rear_l",
+      "pivot": [
+        1.1416872300201895,
+        1.1628295861316744,
+        2.092153191487779
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "neck",
+      "parent": "body",
+      "pivot": [
+        0.0,
+        2.7696486506045335,
+        -0.5929260346708145
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "head",
+      "parent": "neck",
+      "pivot": [
+        0.0,
+        1.4905361058596915,
+        -2.115175674697734
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "pod",
+      "parent": "body",
+      "pivot": [
+        0.0,
+        3.2242093070014604,
+        1.109033632303727
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_1_lid",
+      "parent": "pod",
+      "pivot": [
+        -1.7865290914204814,
+        4.941328043307937,
+        1.172460700638182
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_1_swarm",
+      "parent": "pod",
+      "pivot": [
+        -1.5751055303056316,
+        4.32361182479868,
+        1.172460700638182
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_2_lid",
+      "parent": "pod",
+      "pivot": [
+        -1.7865290914204814,
+        5.448744589983576,
+        2.051331940081535
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_2_swarm",
+      "parent": "pod",
+      "pivot": [
+        -1.5751055303056316,
+        4.831028371474319,
+        2.051331940081535
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_3_lid",
+      "parent": "pod",
+      "pivot": [
+        -1.7865290914204814,
+        5.956161136659216,
+        1.1724607006381822
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_3_swarm",
+      "parent": "pod",
+      "pivot": [
+        -1.5751055303056316,
+        5.33844491814996,
+        1.1724607006381822
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_4_lid",
+      "parent": "pod",
+      "pivot": [
+        -1.7865290914204814,
+        5.448744589983577,
+        0.2935894611948296
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_4_swarm",
+      "parent": "pod",
+      "pivot": [
+        -1.5751055303056316,
+        4.83102837147432,
+        0.2935894611948296
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_5_lid",
+      "parent": "pod",
+      "pivot": [
+        -1.7865290914204814,
+        4.433911496632297,
+        0.29358946119482926
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_5_swarm",
+      "parent": "pod",
+      "pivot": [
+        -1.5751055303056316,
+        3.8161952781230406,
+        0.29358946119482926
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_6_lid",
+      "parent": "pod",
+      "pivot": [
+        -1.7865290914204814,
+        3.9264949499566573,
+        1.172460700638182
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_6_swarm",
+      "parent": "pod",
+      "pivot": [
+        -1.5751055303056316,
+        3.4567752242277954,
+        1.172460700638182
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_7_lid",
+      "parent": "pod",
+      "pivot": [
+        -1.7865290914204814,
+        4.433911496632297,
+        2.051331940081535
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_7_swarm",
+      "parent": "pod",
+      "pivot": [
+        -1.5751055303056316,
+        3.8161952781230406,
+        2.051331940081535
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_1_lid",
+      "parent": "pod",
+      "pivot": [
+        1.7865290914204814,
+        4.941328043307937,
+        1.172460700638182
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_1_swarm",
+      "parent": "pod",
+      "pivot": [
+        1.5751055303056316,
+        4.32361182479868,
+        1.172460700638182
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_2_lid",
+      "parent": "pod",
+      "pivot": [
+        1.7865290914204814,
+        5.448744589983576,
+        2.051331940081535
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_2_swarm",
+      "parent": "pod",
+      "pivot": [
+        1.5751055303056316,
+        4.831028371474319,
+        2.051331940081535
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_3_lid",
+      "parent": "pod",
+      "pivot": [
+        1.7865290914204814,
+        5.956161136659216,
+        1.1724607006381822
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_3_swarm",
+      "parent": "pod",
+      "pivot": [
+        1.5751055303056316,
+        5.33844491814996,
+        1.1724607006381822
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_4_lid",
+      "parent": "pod",
+      "pivot": [
+        1.7865290914204814,
+        5.448744589983577,
+        0.2935894611948296
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_4_swarm",
+      "parent": "pod",
+      "pivot": [
+        1.5751055303056316,
+        4.83102837147432,
+        0.2935894611948296
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_5_lid",
+      "parent": "pod",
+      "pivot": [
+        1.7865290914204814,
+        4.433911496632297,
+        0.29358946119482926
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_5_swarm",
+      "parent": "pod",
+      "pivot": [
+        1.5751055303056316,
+        3.8161952781230406,
+        0.29358946119482926
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_6_lid",
+      "parent": "pod",
+      "pivot": [
+        1.7865290914204814,
+        3.9264949499566573,
+        1.172460700638182
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_6_swarm",
+      "parent": "pod",
+      "pivot": [
+        1.5751055303056316,
+        3.4567752242277954,
+        1.172460700638182
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_7_lid",
+      "parent": "pod",
+      "pivot": [
+        1.7865290914204814,
+        4.433911496632297,
+        2.051331940081535
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_7_swarm",
+      "parent": "pod",
+      "pivot": [
+        1.5751055303056316,
+        3.8161952781230406,
+        2.051331940081535
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_1_swarm__glow",
+      "parent": "cell_r_1_swarm",
+      "pivot": [
+        -1.5751055303056316,
+        4.32361182479868,
+        1.172460700638182
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_2_swarm__glow",
+      "parent": "cell_r_2_swarm",
+      "pivot": [
+        -1.5751055303056316,
+        4.831028371474319,
+        2.051331940081535
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_3_swarm__glow",
+      "parent": "cell_r_3_swarm",
+      "pivot": [
+        -1.5751055303056316,
+        5.33844491814996,
+        1.1724607006381822
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_4_swarm__glow",
+      "parent": "cell_r_4_swarm",
+      "pivot": [
+        -1.5751055303056316,
+        4.83102837147432,
+        0.2935894611948296
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_5_swarm__glow",
+      "parent": "cell_r_5_swarm",
+      "pivot": [
+        -1.5751055303056316,
+        3.8161952781230406,
+        0.29358946119482926
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_6_swarm__glow",
+      "parent": "cell_r_6_swarm",
+      "pivot": [
+        -1.5751055303056316,
+        3.4567752242277954,
+        1.172460700638182
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_r_7_swarm__glow",
+      "parent": "cell_r_7_swarm",
+      "pivot": [
+        -1.5751055303056316,
+        3.8161952781230406,
+        2.051331940081535
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_1_swarm__glow",
+      "parent": "cell_l_1_swarm",
+      "pivot": [
+        1.5751055303056316,
+        4.32361182479868,
+        1.172460700638182
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_2_swarm__glow",
+      "parent": "cell_l_2_swarm",
+      "pivot": [
+        1.5751055303056316,
+        4.831028371474319,
+        2.051331940081535
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_3_swarm__glow",
+      "parent": "cell_l_3_swarm",
+      "pivot": [
+        1.5751055303056316,
+        5.33844491814996,
+        1.1724607006381822
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_4_swarm__glow",
+      "parent": "cell_l_4_swarm",
+      "pivot": [
+        1.5751055303056316,
+        4.83102837147432,
+        0.2935894611948296
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_5_swarm__glow",
+      "parent": "cell_l_5_swarm",
+      "pivot": [
+        1.5751055303056316,
+        3.8161952781230406,
+        0.29358946119482926
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_6_swarm__glow",
+      "parent": "cell_l_6_swarm",
+      "pivot": [
+        1.5751055303056316,
+        3.4567752242277954,
+        1.172460700638182
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "cell_l_7_swarm__glow",
+      "parent": "cell_l_7_swarm",
+      "pivot": [
+        1.5751055303056316,
+        3.8161952781230406,
+        2.051331940081535
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "walk": {
+      "loop": true,
+      "frames": 16,
+      "speed": 0.6666666666666666,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0.0,
+              0
+            ],
+            [
+              4.0,
+              -0.06
+            ],
+            [
+              8.0,
+              0
+            ],
+            [
+              12.0,
+              -0.06
+            ],
+            [
+              16.0,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "neck",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              -3
+            ],
+            [
+              8.0,
+              3
+            ],
+            [
+              16.0,
+              -3
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_front_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              -16
+            ],
+            [
+              2.0,
+              -16
+            ],
+            [
+              6.0,
+              16
+            ],
+            [
+              10.0,
+              16
+            ],
+            [
+              14.0,
+              -16
+            ],
+            [
+              16.0,
+              -16
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_front_l_knee",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              0
+            ],
+            [
+              4.0,
+              8
+            ],
+            [
+              8.0,
+              0
+            ],
+            [
+              12.0,
+              8
+            ],
+            [
+              16.0,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_front_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              16
+            ],
+            [
+              2.0,
+              16
+            ],
+            [
+              6.0,
+              -16
+            ],
+            [
+              10.0,
+              -16
+            ],
+            [
+              14.0,
+              16
+            ],
+            [
+              16.0,
+              16
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_front_r_knee",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              0
+            ],
+            [
+              4.0,
+              8
+            ],
+            [
+              8.0,
+              0
+            ],
+            [
+              12.0,
+              8
+            ],
+            [
+              16.0,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_rear_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              16
+            ],
+            [
+              2.0,
+              16
+            ],
+            [
+              6.0,
+              -16
+            ],
+            [
+              10.0,
+              -16
+            ],
+            [
+              14.0,
+              16
+            ],
+            [
+              16.0,
+              16
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_rear_l_knee",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              0
+            ],
+            [
+              4.0,
+              8
+            ],
+            [
+              8.0,
+              0
+            ],
+            [
+              12.0,
+              8
+            ],
+            [
+              16.0,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_rear_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              -16
+            ],
+            [
+              2.0,
+              -16
+            ],
+            [
+              6.0,
+              16
+            ],
+            [
+              10.0,
+              16
+            ],
+            [
+              14.0,
+              -16
+            ],
+            [
+              16.0,
+              -16
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_rear_r_knee",
+          "channel": "rotate",
+          "keys": [
+            [
+              0.0,
+              0
+            ],
+            [
+              4.0,
+              8
+            ],
+            [
+              8.0,
+              0
+            ],
+            [
+              12.0,
+              8
+            ],
+            [
+              16.0,
+              0
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 60,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -8
+            ],
+            [
+              40,
+              8
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cell_r_1_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              9,
+              -100
+            ],
+            [
+              18,
+              -100
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_1_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              17,
+              -0.6
+            ],
+            [
+              19,
+              -0.6
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_1_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              23,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_r_2_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              9,
+              0
+            ],
+            [
+              14,
+              -100
+            ],
+            [
+              23,
+              -100
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_2_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              22,
+              -0.6
+            ],
+            [
+              24,
+              -0.6
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_2_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_r_3_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              19,
+              -100
+            ],
+            [
+              28,
+              -100
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_3_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              27,
+              -0.6
+            ],
+            [
+              29,
+              -0.6
+            ],
+            [
+              31,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_3_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              33,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_r_4_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              24,
+              -100
+            ],
+            [
+              33,
+              -100
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_4_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              32,
+              -0.6
+            ],
+            [
+              34,
+              -0.6
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_4_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              33,
+              0
+            ],
+            [
+              38,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_r_5_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              29,
+              -100
+            ],
+            [
+              38,
+              -100
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_5_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              37,
+              -0.6
+            ],
+            [
+              39,
+              -0.6
+            ],
+            [
+              41,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_5_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              38,
+              0
+            ],
+            [
+              43,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_r_6_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              34,
+              -100
+            ],
+            [
+              43,
+              -100
+            ],
+            [
+              49,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_6_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              35,
+              0
+            ],
+            [
+              42,
+              -0.6
+            ],
+            [
+              44,
+              -0.6
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_6_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_r_7_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              39,
+              -100
+            ],
+            [
+              48,
+              -100
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_7_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              47,
+              -0.6
+            ],
+            [
+              49,
+              -0.6
+            ],
+            [
+              51,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_7_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              48,
+              0
+            ],
+            [
+              53,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_1_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              9,
+              100
+            ],
+            [
+              18,
+              100
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_1_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              17,
+              0.6
+            ],
+            [
+              19,
+              0.6
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_1_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              23,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_2_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              9,
+              0
+            ],
+            [
+              14,
+              100
+            ],
+            [
+              23,
+              100
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_2_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              22,
+              0.6
+            ],
+            [
+              24,
+              0.6
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_2_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_3_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              19,
+              100
+            ],
+            [
+              28,
+              100
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_3_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              27,
+              0.6
+            ],
+            [
+              29,
+              0.6
+            ],
+            [
+              31,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_3_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              33,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_4_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              24,
+              100
+            ],
+            [
+              33,
+              100
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_4_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              32,
+              0.6
+            ],
+            [
+              34,
+              0.6
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_4_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              33,
+              0
+            ],
+            [
+              38,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_5_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              29,
+              100
+            ],
+            [
+              38,
+              100
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_5_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              37,
+              0.6
+            ],
+            [
+              39,
+              0.6
+            ],
+            [
+              41,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_5_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              38,
+              0
+            ],
+            [
+              43,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_6_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              34,
+              100
+            ],
+            [
+              43,
+              100
+            ],
+            [
+              49,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_6_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              35,
+              0
+            ],
+            [
+              42,
+              0.6
+            ],
+            [
+              44,
+              0.6
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_6_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_7_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              39,
+              100
+            ],
+            [
+              48,
+              100
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_7_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              47,
+              0.6
+            ],
+            [
+              49,
+              0.6
+            ],
+            [
+              51,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_7_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              48,
+              0
+            ],
+            [
+              53,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "neck",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              6
+            ],
+            [
+              24,
+              -3
+            ],
+            [
+              42,
+              2
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 56,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              -13
+            ],
+            [
+              56,
+              -19
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              -0.54
+            ],
+            [
+              56,
+              -0.72
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "neck",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              -17
+            ],
+            [
+              56,
+              -25
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "pod",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              34,
+              2.2
+            ],
+            [
+              56,
+              4.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "pod",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              34,
+              -0.85
+            ],
+            [
+              56,
+              0.023046475125884314
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "pod",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              34,
+              58
+            ],
+            [
+              56,
+              105
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "leg_front_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              62
+            ],
+            [
+              56,
+              65
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_front_l_knee",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              -110
+            ],
+            [
+              56,
+              -116
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_rear_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              7
+            ],
+            [
+              56,
+              14
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_front_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              62
+            ],
+            [
+              56,
+              65
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_front_r_knee",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              -110
+            ],
+            [
+              56,
+              -116
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_rear_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              7
+            ],
+            [
+              56,
+              14
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "root",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              1,
+              0.08524845986527782
+            ],
+            [
+              2,
+              0.16307958512494844
+            ],
+            [
+              3,
+              0.23336058359725176
+            ],
+            [
+              4,
+              0.295981065719699
+            ],
+            [
+              5,
+              0.35085339820676614
+            ],
+            [
+              6,
+              0.3979129870740078
+            ],
+            [
+              7,
+              0.437118488981606
+            ],
+            [
+              8,
+              0.46890250682177603
+            ],
+            [
+              9,
+              0.4951631148569337
+            ],
+            [
+              10,
+              0.5135747861548834
+            ],
+            [
+              11,
+              0.5241801052337007
+            ],
+            [
+              12,
+              0.5435678593177939
+            ],
+            [
+              13,
+              0.6464804588487612
+            ],
+            [
+              14,
+              0.7471208842587913
+            ],
+            [
+              15,
+              0.8454319755579198
+            ],
+            [
+              16,
+              0.941358237566879
+            ],
+            [
+              17,
+              1.0348458731888113
+            ],
+            [
+              18,
+              1.1258428154313556
+            ],
+            [
+              19,
+              1.1616054029543297
+            ],
+            [
+              20,
+              1.1964089829390416
+            ],
+            [
+              21,
+              1.2144509938406762
+            ],
+            [
+              22,
+              1.232346213380532
+            ],
+            [
+              23,
+              1.2500940857977612
+            ],
+            [
+              24,
+              1.2676940614871084
+            ],
+            [
+              25,
+              1.2851455970187962
+            ],
+            [
+              26,
+              1.3024481551581455
+            ],
+            [
+              27,
+              1.3196012048849215
+            ],
+            [
+              28,
+              1.336604221412419
+            ],
+            [
+              29,
+              1.3534566862062718
+            ],
+            [
+              30,
+              1.3701580870029921
+            ],
+            [
+              31,
+              1.3867079178282424
+            ],
+            [
+              32,
+              1.403105679014827
+            ],
+            [
+              33,
+              1.419350877220424
+            ],
+            [
+              34,
+              1.4354430254450246
+            ],
+            [
+              35,
+              1.4513816430481197
+            ],
+            [
+              36,
+              1.4671662557655907
+            ],
+            [
+              37,
+              1.4827963957263401
+            ],
+            [
+              38,
+              1.498271601468641
+            ],
+            [
+              39,
+              1.5135914179561993
+            ],
+            [
+              40,
+              1.5287553965939567
+            ],
+            [
+              41,
+              1.5437630952436001
+            ],
+            [
+              42,
+              1.5586140782387976
+            ],
+            [
+              43,
+              1.5733079164001555
+            ],
+            [
+              44,
+              1.5878441870498945
+            ],
+            [
+              45,
+              1.6022224740262414
+            ],
+            [
+              46,
+              1.6164423676975423
+            ],
+            [
+              47,
+              1.6305034649761003
+            ],
+            [
+              48,
+              1.6444053693317127
+            ],
+            [
+              49,
+              1.6581476908049475
+            ],
+            [
+              50,
+              1.6717300460201154
+            ],
+            [
+              51,
+              1.6851520581979742
+            ],
+            [
+              52,
+              1.6984133571681368
+            ],
+            [
+              53,
+              1.7115135793811995
+            ],
+            [
+              54,
+              1.7244523679205854
+            ],
+            [
+              55,
+              1.7372293725140966
+            ],
+            [
+              56,
+              1.7498442495451882
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 44,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "neck",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              19
+            ],
+            [
+              12,
+              14
+            ],
+            [
+              32,
+              -3
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -14
+            ],
+            [
+              20,
+              8
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "pod",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -7
+            ],
+            [
+              16,
+              -7
+            ],
+            [
+              30,
+              3
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "leg_rear_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              22
+            ],
+            [
+              8,
+              22
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_rear_l_knee",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -40
+            ],
+            [
+              8,
+              -40
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_front_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              22
+            ],
+            [
+              16,
+              22
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_front_l_knee",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -40
+            ],
+            [
+              16,
+              -40
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_1_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              11,
+              0
+            ],
+            [
+              16,
+              24
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_2_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              19,
+              24
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_3_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              17,
+              0
+            ],
+            [
+              22,
+              24
+            ],
+            [
+              27,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_4_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              25,
+              24
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_5_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              28,
+              24
+            ],
+            [
+              33,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_6_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              31,
+              24
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_7_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              34,
+              24
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "leg_rear_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              22
+            ],
+            [
+              8,
+              22
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_rear_r_knee",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -40
+            ],
+            [
+              8,
+              -40
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_front_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              22
+            ],
+            [
+              16,
+              22
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "leg_front_r_knee",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -40
+            ],
+            [
+              16,
+              -40
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_1_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              11,
+              0
+            ],
+            [
+              16,
+              -24
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_2_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              19,
+              -24
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_3_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              17,
+              0
+            ],
+            [
+              22,
+              -24
+            ],
+            [
+              27,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_4_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              25,
+              -24
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_5_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              28,
+              -24
+            ],
+            [
+              33,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_6_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              31,
+              -24
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_7_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              34,
+              -24
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "root",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.06130429941983101
+            ],
+            [
+              1,
+              0.06130429941983101
+            ],
+            [
+              2,
+              0.06130429941983101
+            ],
+            [
+              3,
+              0.06130429941983101
+            ],
+            [
+              4,
+              0.06130429941983101
+            ],
+            [
+              5,
+              0.06130429941983101
+            ],
+            [
+              6,
+              0.06130429941983101
+            ],
+            [
+              7,
+              0.06130429941983101
+            ],
+            [
+              8,
+              0.06130429941983101
+            ],
+            [
+              9,
+              0.06654397230883996
+            ],
+            [
+              10,
+              0.0707737518252417
+            ],
+            [
+              11,
+              0.07399077088792833
+            ],
+            [
+              12,
+              0.07619256295637167
+            ],
+            [
+              13,
+              0.07737706345840872
+            ],
+            [
+              14,
+              0.07754261105338478
+            ],
+            [
+              15,
+              0.0766879487299923
+            ],
+            [
+              16,
+              0.07481222473819857
+            ],
+            [
+              17,
+              0.07191499335473028
+            ],
+            [
+              18,
+              0.07077375182505319
+            ],
+            [
+              19,
+              0.07399077088775119
+            ],
+            [
+              20,
+              0.07619256295620647
+            ],
+            [
+              21,
+              0.07737706345825512
+            ],
+            [
+              22,
+              0.0775426110532424
+            ],
+            [
+              23,
+              0.0766879487298617
+            ],
+            [
+              24,
+              0.07481222473807969
+            ],
+            [
+              25,
+              0.07191499335462337
+            ],
+            [
+              26,
+              0.06799621548155438
+            ],
+            [
+              27,
+              0.06305625907754099
+            ],
+            [
+              28,
+              0.0570958994215115
+            ],
+            [
+              29,
+              0.050116319208430335
+            ],
+            [
+              30,
+              0.04211910847702065
+            ],
+            [
+              31,
+              0.03310626436931811
+            ],
+            [
+              32,
+              0.023080190722034495
+            ],
+            [
+              33,
+              0.012043697489741857
+            ],
+            [
+              34,
+              -0.0
+            ],
+            [
+              35,
+              -0.0
+            ],
+            [
+              36,
+              -0.0
+            ],
+            [
+              37,
+              -0.0
+            ],
+            [
+              38,
+              -0.0
+            ],
+            [
+              39,
+              -0.0
+            ],
+            [
+              40,
+              -0.0
+            ],
+            [
+              41,
+              -0.0
+            ],
+            [
+              42,
+              -0.0
+            ],
+            [
+              43,
+              -0.0
+            ],
+            [
+              44,
+              -0.0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "brood_release": {
+      "loop": false,
+      "frames": 60,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -8
+            ],
+            [
+              40,
+              8
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "cell_r_1_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              9,
+              -100
+            ],
+            [
+              18,
+              -100
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_1_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              17,
+              -0.6
+            ],
+            [
+              19,
+              -0.6
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_1_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              23,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_r_2_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              9,
+              0
+            ],
+            [
+              14,
+              -100
+            ],
+            [
+              23,
+              -100
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_2_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              22,
+              -0.6
+            ],
+            [
+              24,
+              -0.6
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_2_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_r_3_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              19,
+              -100
+            ],
+            [
+              28,
+              -100
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_3_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              27,
+              -0.6
+            ],
+            [
+              29,
+              -0.6
+            ],
+            [
+              31,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_3_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              33,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_r_4_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              24,
+              -100
+            ],
+            [
+              33,
+              -100
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_4_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              32,
+              -0.6
+            ],
+            [
+              34,
+              -0.6
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_4_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              33,
+              0
+            ],
+            [
+              38,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_r_5_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              29,
+              -100
+            ],
+            [
+              38,
+              -100
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_5_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              37,
+              -0.6
+            ],
+            [
+              39,
+              -0.6
+            ],
+            [
+              41,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_5_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              38,
+              0
+            ],
+            [
+              43,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_r_6_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              34,
+              -100
+            ],
+            [
+              43,
+              -100
+            ],
+            [
+              49,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_6_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              35,
+              0
+            ],
+            [
+              42,
+              -0.6
+            ],
+            [
+              44,
+              -0.6
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_6_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_r_7_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              39,
+              -100
+            ],
+            [
+              48,
+              -100
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_r_7_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              47,
+              -0.6
+            ],
+            [
+              49,
+              -0.6
+            ],
+            [
+              51,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_r_7_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              48,
+              0
+            ],
+            [
+              53,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_1_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              9,
+              100
+            ],
+            [
+              18,
+              100
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_1_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              17,
+              0.6
+            ],
+            [
+              19,
+              0.6
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_1_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              23,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_2_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              9,
+              0
+            ],
+            [
+              14,
+              100
+            ],
+            [
+              23,
+              100
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_2_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              22,
+              0.6
+            ],
+            [
+              24,
+              0.6
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_2_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_3_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              19,
+              100
+            ],
+            [
+              28,
+              100
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_3_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              27,
+              0.6
+            ],
+            [
+              29,
+              0.6
+            ],
+            [
+              31,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_3_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              33,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_4_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              24,
+              100
+            ],
+            [
+              33,
+              100
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_4_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              32,
+              0.6
+            ],
+            [
+              34,
+              0.6
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_4_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              33,
+              0
+            ],
+            [
+              38,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_5_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              29,
+              100
+            ],
+            [
+              38,
+              100
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_5_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              37,
+              0.6
+            ],
+            [
+              39,
+              0.6
+            ],
+            [
+              41,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_5_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              38,
+              0
+            ],
+            [
+              43,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_6_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              34,
+              100
+            ],
+            [
+              43,
+              100
+            ],
+            [
+              49,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_6_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              35,
+              0
+            ],
+            [
+              42,
+              0.6
+            ],
+            [
+              44,
+              0.6
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_6_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "cell_l_7_lid",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              39,
+              100
+            ],
+            [
+              48,
+              100
+            ],
+            [
+              54,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "cell_l_7_swarm",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              47,
+              0.6
+            ],
+            [
+              49,
+              0.6
+            ],
+            [
+              51,
+              0
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "cell_l_7_swarm",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              48,
+              0
+            ],
+            [
+              53,
+              1
+            ],
+            [
+              60,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "neck",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              6
+            ],
+            [
+              24,
+              -3
+            ],
+            [
+              42,
+              2
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        8,
+        1
+      ],
+      [
+        24,
+        1
+      ],
+      [
+        45,
+        0
+      ],
+      [
+        60,
+        0
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        28.0,
+        2
+      ],
+      [
+        56,
+        2
+      ]
+    ],
+    "walk": [
+      [
+        0.0,
+        0
+      ],
+      [
+        16.0,
+        0
+      ]
+    ],
+    "spawn": [
+      [
+        0,
+        2
+      ],
+      [
+        12,
+        0
+      ],
+      [
+        26,
+        1
+      ],
+      [
+        38,
+        0
+      ],
+      [
+        44,
+        0
+      ]
+    ],
+    "brood_release": [
+      [
+        0,
+        0
+      ],
+      [
+        8,
+        1
+      ],
+      [
+        24,
+        1
+      ],
+      [
+        45,
+        0
+      ],
+      [
+        60,
+        0
+      ]
+    ]
+  },
+  "emissive_groups": [
+    "cell_r_1_swarm__glow",
+    "cell_r_2_swarm__glow",
+    "cell_r_3_swarm__glow",
+    "cell_r_4_swarm__glow",
+    "cell_r_5_swarm__glow",
+    "cell_r_6_swarm__glow",
+    "cell_r_7_swarm__glow",
+    "cell_l_1_swarm__glow",
+    "cell_l_2_swarm__glow",
+    "cell_l_3_swarm__glow",
+    "cell_l_4_swarm__glow",
+    "cell_l_5_swarm__glow",
+    "cell_l_6_swarm__glow",
+    "cell_l_7_swarm__glow"
+  ],
+  "emissive_uv_offsets": {
+    "larva_light__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.01953125
+      ],
+      [
+        0,
+        -0.0390625
+      ]
+    ]
+  },
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T2",
+    "size": 256,
+    "budget": 4200,
+    "density": 12.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 7.0,
+    "fit_axis": 2,
+    "emissive_limit": 0.04,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}

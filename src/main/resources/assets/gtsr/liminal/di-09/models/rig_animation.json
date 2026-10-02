@@ -1,0 +1,1503 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DI-09",
+  "name": "拆垒工螯",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 4.4,
+    "h": 2.063677898344,
+    "d": 3.1159337521424
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        -0.25599657338663634,
+        0.0,
+        0.728726442033124
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "back_deck",
+      "parent": "body",
+      "pivot": [
+        -0.25599657338663634,
+        1.319246145059966,
+        1.105653912050257
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "head",
+      "parent": "body",
+      "pivot": [
+        -0.25599657338663634,
+        0.967447173043975,
+        -0.10051399200456893
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "claw_left",
+      "parent": "body",
+      "pivot": [
+        0.8245288406624786,
+        1.105653912050257,
+        0.21359223300970875
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "left_tooth_jaw",
+      "parent": "claw_left",
+      "pivot": [
+        1.8296687607081668,
+        1.1684751570531127,
+        -0.4020559680182754
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "claw_right",
+      "parent": "body",
+      "pivot": [
+        -1.3365219874357515,
+        1.0428326670474015,
+        0.20102798400913763
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "right_pry_jaw",
+      "parent": "claw_right",
+      "pivot": [
+        -2.2914049114791553,
+        1.1559109080525416,
+        -0.4146202170188465
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_r_1",
+      "parent": "body",
+      "pivot": [
+        -1.386778983438036,
+        0.7664191890348373,
+        0.20102798400913763
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_r_1_foot",
+      "parent": "leg_r_1",
+      "pivot": [
+        -1.8642204454597378,
+        0.38949171901770424,
+        0.30154197601370647
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_r_2",
+      "parent": "body",
+      "pivot": [
+        -1.386778983438036,
+        0.7664191890348373,
+        0.9423186750428327
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_r_2_foot",
+      "parent": "leg_r_2",
+      "pivot": [
+        -1.8642204454597378,
+        0.38949171901770424,
+        1.0428326670474015
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_r_3",
+      "parent": "body",
+      "pivot": [
+        -1.386778983438036,
+        0.7664191890348373,
+        1.570531125071388
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_r_3_foot",
+      "parent": "leg_r_3",
+      "pivot": [
+        -1.8642204454597378,
+        0.38949171901770424,
+        1.6710451170759568
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_l_1",
+      "parent": "body",
+      "pivot": [
+        0.8747858366647631,
+        0.7664191890348373,
+        0.20102798400913763
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_l_1_foot",
+      "parent": "leg_l_1",
+      "pivot": [
+        1.352227298686465,
+        0.38949171901770424,
+        0.30154197601370647
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_l_2",
+      "parent": "body",
+      "pivot": [
+        0.8747858366647631,
+        0.7664191890348373,
+        0.9423186750428327
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_l_2_foot",
+      "parent": "leg_l_2",
+      "pivot": [
+        1.352227298686465,
+        0.38949171901770424,
+        1.0428326670474015
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_l_3",
+      "parent": "body",
+      "pivot": [
+        0.8747858366647631,
+        0.7664191890348373,
+        1.570531125071388
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "leg_l_3_foot",
+      "parent": "leg_l_3",
+      "pivot": [
+        1.352227298686465,
+        0.38949171901770424,
+        1.6710451170759568
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "head__glow",
+      "parent": "head",
+      "pivot": [
+        -0.25599657338663634,
+        0.967447173043975,
+        -0.10051399200456893
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "back_deck__glow",
+      "parent": "back_deck",
+      "pivot": [
+        -0.25599657338663634,
+        1.319246145059966,
+        1.105653912050257
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "walk": {
+      "loop": true,
+      "frames": 16,
+      "speed": 0.8,
+      "tracks": [
+        {
+          "group": "leg_l_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -11
+            ],
+            [
+              8,
+              11
+            ],
+            [
+              16,
+              -11
+            ]
+          ]
+        },
+        {
+          "group": "leg_l_1_foot",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              8
+            ],
+            [
+              8,
+              -8
+            ],
+            [
+              16,
+              8
+            ]
+          ]
+        },
+        {
+          "group": "leg_l_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              11
+            ],
+            [
+              8,
+              -11
+            ],
+            [
+              16,
+              11
+            ]
+          ]
+        },
+        {
+          "group": "leg_l_2_foot",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -8
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              16,
+              -8
+            ]
+          ]
+        },
+        {
+          "group": "leg_l_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -11
+            ],
+            [
+              8,
+              11
+            ],
+            [
+              16,
+              -11
+            ]
+          ]
+        },
+        {
+          "group": "leg_l_3_foot",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              8
+            ],
+            [
+              8,
+              -8
+            ],
+            [
+              16,
+              8
+            ]
+          ]
+        },
+        {
+          "group": "leg_r_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              11
+            ],
+            [
+              8,
+              -11
+            ],
+            [
+              16,
+              11
+            ]
+          ]
+        },
+        {
+          "group": "leg_r_1_foot",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -8
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              16,
+              -8
+            ]
+          ]
+        },
+        {
+          "group": "leg_r_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -11
+            ],
+            [
+              8,
+              11
+            ],
+            [
+              16,
+              -11
+            ]
+          ]
+        },
+        {
+          "group": "leg_r_2_foot",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              8
+            ],
+            [
+              8,
+              -8
+            ],
+            [
+              16,
+              8
+            ]
+          ]
+        },
+        {
+          "group": "leg_r_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              11
+            ],
+            [
+              8,
+              -11
+            ],
+            [
+              16,
+              11
+            ]
+          ]
+        },
+        {
+          "group": "leg_r_3_foot",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -8
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              16,
+              -8
+            ]
+          ]
+        },
+        {
+          "group": "claw_left",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -3
+            ],
+            [
+              8,
+              4
+            ],
+            [
+              16,
+              -3
+            ]
+          ]
+        },
+        {
+          "group": "claw_right",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              3
+            ],
+            [
+              8,
+              -4
+            ],
+            [
+              16,
+              3
+            ]
+          ]
+        },
+        {
+          "group": "left_tooth_jaw",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              2
+            ],
+            [
+              8,
+              -3
+            ],
+            [
+              16,
+              2
+            ]
+          ]
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 32,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "claw_left",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              68
+            ],
+            [
+              11,
+              68
+            ],
+            [
+              15,
+              -18
+            ],
+            [
+              18,
+              -18
+            ],
+            [
+              24,
+              6
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "left_tooth_jaw",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              24
+            ],
+            [
+              11,
+              24
+            ],
+            [
+              15,
+              -5
+            ],
+            [
+              22,
+              -5
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "claw_right",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -4
+            ],
+            [
+              15,
+              6
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "right_pry_jaw",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              23
+            ],
+            [
+              15,
+              5
+            ],
+            [
+              22,
+              5
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "back_deck",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              11,
+              -3
+            ],
+            [
+              15,
+              5
+            ],
+            [
+              21,
+              -2
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -6
+            ],
+            [
+              15,
+              8
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 36,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "claw_left",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.12564249000571104
+            ],
+            [
+              36,
+              -0.13
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "claw_left",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.10051399200456883
+            ],
+            [
+              36,
+              0.3769274700171331
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "claw_left",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -10
+            ],
+            [
+              36,
+              -18
+            ]
+          ]
+        },
+        {
+          "group": "claw_right",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.12564249000571104
+            ],
+            [
+              36,
+              -0.13
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "claw_right",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.10051399200456883
+            ],
+            [
+              36,
+              -0.364363221016562
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "claw_right",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -10
+            ],
+            [
+              36,
+              -18
+            ]
+          ]
+        },
+        {
+          "group": "left_tooth_jaw",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              15
+            ],
+            [
+              36,
+              65
+            ]
+          ]
+        },
+        {
+          "group": "right_pry_jaw",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              10
+            ],
+            [
+              36,
+              50
+            ]
+          ]
+        },
+        {
+          "group": "back_deck",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              36,
+              -0.055
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "back_deck",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              36,
+              5
+            ]
+          ]
+        },
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              36,
+              30
+            ]
+          ]
+        },
+        {
+          "group": "leg_l_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_l_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_l_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_r_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_r_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "leg_r_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 40,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "claw_left",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              38
+            ],
+            [
+              12,
+              38
+            ],
+            [
+              21,
+              12
+            ],
+            [
+              29,
+              3
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "claw_right",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              24
+            ],
+            [
+              8,
+              24
+            ],
+            [
+              18,
+              4
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "left_tooth_jaw",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              18
+            ],
+            [
+              21,
+              18
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              34,
+              5
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "right_pry_jaw",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              22
+            ],
+            [
+              18,
+              22
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              15
+            ],
+            [
+              12,
+              15
+            ],
+            [
+              27,
+              -4
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "back_deck",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.11
+            ],
+            [
+              12,
+              0.11
+            ],
+            [
+              22,
+              0.04
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "leg_l_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              12
+            ],
+            [
+              7,
+              12
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "leg_l_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              12
+            ],
+            [
+              10,
+              12
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "leg_l_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              12
+            ],
+            [
+              13,
+              12
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "leg_r_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -12
+            ],
+            [
+              7,
+              -12
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "leg_r_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -12
+            ],
+            [
+              10,
+              -12
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "leg_r_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -12
+            ],
+            [
+              13,
+              -12
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        8,
+        1
+      ],
+      [
+        15,
+        1
+      ],
+      [
+        22,
+        0
+      ],
+      [
+        32,
+        0
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        18.0,
+        2
+      ],
+      [
+        36,
+        2
+      ]
+    ],
+    "spawn": [
+      [
+        0,
+        2
+      ],
+      [
+        18,
+        0
+      ],
+      [
+        29,
+        1
+      ],
+      [
+        36,
+        0
+      ],
+      [
+        40,
+        0
+      ]
+    ]
+  },
+  "emissive_groups": [
+    "head__glow",
+    "back_deck__glow"
+  ],
+  "emissive_uv_offsets": {
+    "rift__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.015625
+      ],
+      [
+        0,
+        -0.03125
+      ]
+    ]
+  },
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T2",
+    "size": 256,
+    "budget": 4200,
+    "density": 12.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 5.5,
+    "fit_axis": 0,
+    "emissive_limit": 0.04,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}

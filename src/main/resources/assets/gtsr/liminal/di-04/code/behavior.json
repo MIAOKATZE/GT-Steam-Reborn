@@ -1,0 +1,170 @@
+{
+  "schema_version": 2,
+  "code": "di-04",
+  "archetype": "rift_pouncer",
+  "stats": {
+    "health": 145,
+    "move_speed": 0.29,
+    "follow_range": 24
+  },
+  "locomotion": "ground",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 42
+  },
+  "death": {
+    "clip": "death",
+    "duration": 40
+  },
+  "skills": [
+    {
+      "id": "hook_pounce",
+      "name": "折节钩爪跃扑",
+      "clip": "attack",
+      "duration": 44,
+      "cooldown": 84,
+      "range": 4.5,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 0,
+          "type": "vfx",
+          "effect": "rift",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.2,
+            0
+          ],
+          "radius": 2.0,
+          "duration": 10,
+          "count": 18,
+          "color": [
+            0.34,
+            0.65,
+            0.68
+          ]
+        },
+        {
+          "at": 8,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "radius": 3.8,
+          "duration": 22,
+          "count": 24,
+          "color": [
+            0.62,
+            0.52,
+            0.76
+          ]
+        },
+        {
+          "at": 10,
+          "type": "vfx",
+          "effect": "afterimage",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.4,
+            0
+          ],
+          "radius": 1.4,
+          "duration": 18,
+          "count": 10,
+          "color": [
+            0.65,
+            0.39,
+            0.83
+          ]
+        },
+        {
+          "at": 28,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.15,
+            0
+          ],
+          "radius": 3.2,
+          "duration": 10,
+          "count": 20,
+          "color": [
+            0.6,
+            0.62,
+            0.51
+          ]
+        },
+        {
+          "at": 30,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.1,
+            0
+          ],
+          "radius": 4.8,
+          "duration": 10,
+          "count": 24,
+          "color": [
+            0.55,
+            0.8,
+            0.77
+          ]
+        },
+        {
+          "at": 30,
+          "type": "damage",
+          "shape": "cone",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.8,
+            0
+          ],
+          "radius": 4.8,
+          "angle": 80,
+          "amount": 16,
+          "knockback": 0.65
+        },
+        {
+          "at": 38,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "radius": 1.8,
+          "duration": 6,
+          "count": 8,
+          "color": [
+            0.38,
+            0.55,
+            0.6
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [],
+  "projectiles": [],
+  "notes": [
+    "蓄力8tick，10起跳，20顶点，30钩爪落击，44归位。近战不生成弹体。",
+    "当前统一契约仅支持模型跃动与30tick服务端锥形伤害；真实抛物线碰撞移动及顶棚阻挡需宿主移动策略，详见接线说明。",
+    "不使用teleport伪造跃袭。当前movement_lock=true防止AI与本地动作叠加；真实位移接入后须移除模型重复位移并以接触时点结算。",
+    "未做Forge编译或Minecraft运行；不能把模型关键帧检查当成顶棚可挡已实现。"
+  ]
+}

@@ -1,0 +1,150 @@
+{
+  "schema_version": 2,
+  "code": "dr-04",
+  "archetype": "brood_swarm",
+  "stats": {
+    "health": 12,
+    "move_speed": 0.23,
+    "follow_range": 18
+  },
+  "locomotion": "ground",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 36
+  },
+  "death": {
+    "clip": "death",
+    "duration": 36
+  },
+  "skills": [
+    {
+      "id": "brood_bite",
+      "name": "五口错拍扑咬",
+      "clip": "brood_bite",
+      "duration": 28,
+      "cooldown": 42,
+      "range": 1.15,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 2,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.2,
+            -0.28
+          ],
+          "radius": 0.35,
+          "duration": 10,
+          "count": 8,
+          "color": [
+            0.59,
+            0.37,
+            0.74
+          ]
+        },
+        {
+          "at": 10,
+          "type": "vfx",
+          "effect": "afterimage",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.18,
+            -0.2
+          ],
+          "radius": 0.45,
+          "duration": 8,
+          "count": 5,
+          "color": [
+            0.64,
+            0.69,
+            0.62
+          ]
+        },
+        {
+          "at": 13,
+          "type": "damage",
+          "shape": "cone",
+          "anchor": "self",
+          "radius": 1.15,
+          "amount": 3,
+          "knockback": 0.08,
+          "angle": 100
+        },
+        {
+          "at": 14,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.16,
+            -0.45
+          ],
+          "radius": 0.25,
+          "duration": 7,
+          "count": 7,
+          "color": [
+            0.64,
+            0.69,
+            0.62
+          ]
+        },
+        {
+          "at": 21,
+          "type": "vfx",
+          "effect": "steam",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.12,
+            0
+          ],
+          "radius": 0.3,
+          "duration": 6,
+          "count": 4,
+          "color": [
+            0.64,
+            0.69,
+            0.62
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [
+    {
+      "at": 0,
+      "type": "vfx",
+      "effect": "motes",
+      "anchor": "self",
+      "offset": [
+        0,
+        0.12,
+        0
+      ],
+      "radius": 0.45,
+      "duration": 40,
+      "count": 3,
+      "color": [
+        0.64,
+        0.69,
+        0.62
+      ]
+    }
+  ],
+  "projectiles": [],
+  "runtime": {
+    "hitbox_width": 0.75,
+    "hitbox_height": 0.5
+  },
+  "notes": [
+    "R2模型、behavior及独立弹已制作；只经数值、Blender与离线目检，未声称Forge实机通过。",
+    "所有clip.speed=1，事件时间是20Hz游戏tick；offset遵从公共ActionContext世界轴加法。",
+    "五虫错拍动作共用一次锥形伤害，不把五个视觉个体当五个实体或重复五次命中。"
+  ]
+}

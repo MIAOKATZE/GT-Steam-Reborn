@@ -1,0 +1,152 @@
+{
+  "schema_version": 2,
+  "code": "dr-19",
+  "archetype": "delayed_echo",
+  "stats": {
+    "health": 34,
+    "move_speed": 0.17,
+    "follow_range": 18
+  },
+  "locomotion": "hover",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 40
+  },
+  "death": {
+    "clip": "death",
+    "duration": 52
+  },
+  "skills": [
+    {
+      "id": "echo_reprise",
+      "name": "延迟复读",
+      "clip": "echo_reprise",
+      "duration": 34,
+      "cooldown": 80,
+      "range": 3,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 0,
+          "type": "vfx",
+          "effect": "eye",
+          "anchor": "self",
+          "offset": [
+            0,
+            2.2,
+            0
+          ],
+          "radius": 0.3,
+          "duration": 10,
+          "count": 6,
+          "color": [
+            0.62,
+            0.55,
+            0.72
+          ]
+        },
+        {
+          "at": 10,
+          "type": "vfx",
+          "effect": "afterimage",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.1,
+            0
+          ],
+          "radius": 0.8,
+          "duration": 16,
+          "count": 12,
+          "color": [
+            0.42,
+            0.39,
+            0.56
+          ]
+        },
+        {
+          "at": 18,
+          "type": "vfx",
+          "effect": "rift",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "radius": 0.7,
+          "duration": 8,
+          "count": 10,
+          "color": [
+            0.72,
+            0.64,
+            0.82
+          ]
+        },
+        {
+          "at": 23,
+          "type": "damage",
+          "shape": "cone",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.1,
+            0
+          ],
+          "radius": 3,
+          "angle": 95,
+          "amount": 5,
+          "knockback": 0.18
+        },
+        {
+          "at": 23,
+          "type": "vfx",
+          "effect": "negative_flash",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "radius": 0.75,
+          "duration": 5,
+          "count": 8,
+          "color": [
+            0.72,
+            0.64,
+            0.82
+          ]
+        },
+        {
+          "at": 28,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.1,
+            0
+          ],
+          "radius": 0.7,
+          "duration": 6,
+          "count": 6,
+          "color": [
+            0.4,
+            0.38,
+            0.48
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [],
+  "projectiles": [],
+  "notes": [
+    "保留R1未完成人形与有孔发声口；出生先头部、再胸腹、最后分段棱带汇合；死亡逐段丢失信号。",
+    "全部行为时间为20Hz游戏tick；spawn/echo_reprise/death speed=1，攻击第23tick唯一结算，前10tick停顿为复读预兆。",
+    "公共runtime当前按距离与冷却自动施放固定5伤害近战；不会记录玩家上一击，也不会复制玩家动作、武器或附魔。",
+    "精确镜像机制需宿主增加上一击记录、选技门控及受限伤害映射；详见R2_接线说明.md，未接入时明确为延迟近战降级模式。",
+    "不生成弹体；目标点施法开始锁定，cone朝锁定方向；事件offset为世界轴，不是骨骼口部追踪。"
+  ]
+}

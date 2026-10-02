@@ -1,0 +1,102 @@
+{
+  "schema_version": 2,
+  "code": "dr-02",
+  "archetype": "shield_borer",
+  "stats": {
+    "health": 20,
+    "move_speed": 0.16,
+    "follow_range": 24
+  },
+  "locomotion": "ground",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 40
+  },
+  "death": {
+    "clip": "death",
+    "duration": 36
+  },
+  "skills": [
+    {
+      "id": "shield_gnaw",
+      "name": "锚齿蚀盾",
+      "clip": "attack",
+      "duration": 32,
+      "cooldown": 70,
+      "range": 1.15,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 8,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.18,
+            0
+          ],
+          "radius": 0.18,
+          "duration": 10,
+          "count": 8,
+          "color": [
+            0.36,
+            0.7,
+            0.64
+          ]
+        },
+        {
+          "at": 18,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "target",
+          "offset": [
+            0,
+            0.18,
+            0
+          ],
+          "radius": 0.16,
+          "duration": 8,
+          "count": 8,
+          "color": [
+            0.55,
+            0.66,
+            0.62
+          ]
+        },
+        {
+          "at": 18,
+          "type": "damage",
+          "shape": "cone",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.18,
+            0
+          ],
+          "radius": 1.1,
+          "angle": 48,
+          "amount": 4,
+          "knockback": 0.05
+        },
+        {
+          "at": 18,
+          "type": "status",
+          "effect": "weakness",
+          "anchor": "target",
+          "radius": 0.4,
+          "duration": 40,
+          "amplifier": 0
+        }
+      ]
+    }
+  ],
+  "ambient": [],
+  "projectiles": [],
+  "notes": [
+    "所有时间为20 tick/s游戏tick，当前spawn/attack/death speed=1。",
+    "由统一生成器导出profile并通过统一Forge1.7.10桥接接入；本资产没有自建实体基类。",
+    "伤害和状态仅服务端，客户端仅播放rig/VFX。未做真实Forge编译、游戏物理或联网验证。"
+  ]
+}

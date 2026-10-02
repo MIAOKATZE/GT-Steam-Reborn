@@ -1,0 +1,4903 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DR-14",
+  "name": "隙管水母",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 1.1022222222224,
+    "h": 1.6,
+    "d": 1.1022222222224
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        0.0,
+        -0.09166666666666666,
+        0.0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "canopy",
+      "parent": "body",
+      "pivot": [
+        0.0,
+        1.286111111111111,
+        0.0
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "needle",
+      "parent": "body",
+      "pivot": [
+        0.0,
+        1.0305555555555554,
+        0.0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "bell_panel_1",
+      "parent": "canopy",
+      "pivot": [
+        0.0,
+        1.3194444444444442,
+        0.4888888888888888
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "bell_panel_2",
+      "parent": "canopy",
+      "pivot": [
+        0.3456966485800898,
+        1.3194444444444442,
+        0.34569664858008986
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "bell_panel_3",
+      "parent": "canopy",
+      "pivot": [
+        0.4888888888888888,
+        1.3194444444444442,
+        2.9935810645824186e-17
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "bell_panel_4",
+      "parent": "canopy",
+      "pivot": [
+        0.34569664858008986,
+        1.3194444444444442,
+        -0.3456966485800898
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "bell_panel_5",
+      "parent": "canopy",
+      "pivot": [
+        5.987162129164837e-17,
+        1.3194444444444442,
+        -0.4888888888888888
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "bell_panel_6",
+      "parent": "canopy",
+      "pivot": [
+        -0.3456966485800898,
+        1.3194444444444442,
+        -0.3456966485800899
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "bell_panel_7",
+      "parent": "canopy",
+      "pivot": [
+        -0.4888888888888888,
+        1.3194444444444442,
+        -8.980743193747255e-17
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "bell_panel_8",
+      "parent": "canopy",
+      "pivot": [
+        -0.3456966485800899,
+        1.3194444444444442,
+        0.3456966485800898
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_1",
+      "parent": "body",
+      "pivot": [
+        0.0,
+        1.2527777777777775,
+        0.5444444444444444
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_1_tip",
+      "parent": "tentacle_1",
+      "pivot": [
+        0.0,
+        0.897222222222222,
+        0.5944444444444444
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_2",
+      "parent": "body",
+      "pivot": [
+        0.3849803586460091,
+        1.2527777777777775,
+        0.38498035864600916
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_2_tip",
+      "parent": "tentacle_2",
+      "pivot": [
+        0.42033569770533646,
+        0.897222222222222,
+        0.4203356977053366
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_3",
+      "parent": "body",
+      "pivot": [
+        0.5444444444444444,
+        1.2527777777777775,
+        3.333760731012239e-17
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_3_tip",
+      "parent": "tentacle_3",
+      "pivot": [
+        0.5944444444444444,
+        0.897222222222222,
+        3.639922430799077e-17
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_4",
+      "parent": "body",
+      "pivot": [
+        0.38498035864600916,
+        1.2527777777777775,
+        -0.3849803586460091
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_4_tip",
+      "parent": "tentacle_4",
+      "pivot": [
+        0.4203356977053366,
+        0.897222222222222,
+        -0.42033569770533646
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_5",
+      "parent": "body",
+      "pivot": [
+        6.667521462024478e-17,
+        1.2527777777777775,
+        -0.5444444444444444
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_5_tip",
+      "parent": "tentacle_5",
+      "pivot": [
+        7.279844861598155e-17,
+        0.897222222222222,
+        -0.5944444444444444
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_6",
+      "parent": "body",
+      "pivot": [
+        -0.3849803586460091,
+        1.2527777777777775,
+        -0.3849803586460092
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_6_tip",
+      "parent": "tentacle_6",
+      "pivot": [
+        -0.42033569770533646,
+        0.897222222222222,
+        -0.4203356977053367
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_7",
+      "parent": "body",
+      "pivot": [
+        -0.5444444444444444,
+        1.2527777777777775,
+        -1.0001282193036716e-16
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_7_tip",
+      "parent": "tentacle_7",
+      "pivot": [
+        -0.5944444444444444,
+        0.897222222222222,
+        -1.0919767292397231e-16
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_8",
+      "parent": "body",
+      "pivot": [
+        -0.3849803586460092,
+        1.2527777777777775,
+        0.384980358646009
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tentacle_8_tip",
+      "parent": "tentacle_8",
+      "pivot": [
+        -0.4203356977053367,
+        0.897222222222222,
+        0.4203356977053364
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "firing_flash",
+      "parent": "needle",
+      "pivot": [
+        0.0,
+        0.024999999999999988,
+        0.0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "canopy__glow",
+      "parent": "canopy",
+      "pivot": [
+        0.0,
+        1.286111111111111,
+        0.0
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "firing_flash__glow",
+      "parent": "firing_flash",
+      "pivot": [
+        0.0,
+        0.024999999999999988,
+        0.0
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "walk": {
+      "loop": true,
+      "frames": 16,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.04999999999999999
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -3
+            ],
+            [
+              8,
+              3
+            ],
+            [
+              16,
+              -3
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "needle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -4
+            ],
+            [
+              8,
+              4
+            ],
+            [
+              16,
+              -4
+            ]
+          ]
+        },
+        {
+          "group": "firing_flash",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.0
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.031111111111111107
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              8
+            ],
+            [
+              8,
+              -10
+            ],
+            [
+              16,
+              8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_1_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -6
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              16,
+              -6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.021998877636914806
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.02199887763691481
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -8
+            ],
+            [
+              8,
+              10
+            ],
+            [
+              16,
+              -8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_2_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              6
+            ],
+            [
+              8,
+              -8
+            ],
+            [
+              16,
+              6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.031111111111111107
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              1.9050061320069936e-18
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              8
+            ],
+            [
+              8,
+              -10
+            ],
+            [
+              16,
+              8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_3_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -6
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              16,
+              -6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.02199887763691481
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.021998877636914806
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -8
+            ],
+            [
+              8,
+              10
+            ],
+            [
+              16,
+              -8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_4_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              6
+            ],
+            [
+              8,
+              -8
+            ],
+            [
+              16,
+              6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              3.810012264013987e-18
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.031111111111111107
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              8
+            ],
+            [
+              8,
+              -10
+            ],
+            [
+              16,
+              8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_5_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -6
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              16,
+              -6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.021998877636914806
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.021998877636914813
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_6",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -8
+            ],
+            [
+              8,
+              10
+            ],
+            [
+              16,
+              -8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_6_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              6
+            ],
+            [
+              8,
+              -8
+            ],
+            [
+              16,
+              6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.031111111111111107
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -5.715018396020981e-18
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_7",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              8
+            ],
+            [
+              8,
+              -10
+            ],
+            [
+              16,
+              8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_7_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -6
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              16,
+              -6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.021998877636914813
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.021998877636914802
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_8",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -8
+            ],
+            [
+              8,
+              10
+            ],
+            [
+              16,
+              -8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_8_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              6
+            ],
+            [
+              8,
+              -8
+            ],
+            [
+              16,
+              6
+            ]
+          ]
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 32,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "needle",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              0.05555555555555555
+            ],
+            [
+              10,
+              0.1333333333333333
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              16,
+              0.1333333333333333
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              22,
+              0.1333333333333333
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "canopy",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              -0.1222222222222222
+            ],
+            [
+              24,
+              -0.09999999999999998
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "firing_flash",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              1
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              16,
+              1
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              22,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.0
+            ],
+            [
+              24,
+              0.0
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.019444444444444445
+            ],
+            [
+              24,
+              0.012499999999999997
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              18
+            ],
+            [
+              24,
+              12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.013749298523071756
+            ],
+            [
+              24,
+              0.00883883476483184
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.013749298523071758
+            ],
+            [
+              24,
+              0.008838834764831842
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              -18
+            ],
+            [
+              24,
+              -12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.019444444444444445
+            ],
+            [
+              24,
+              0.012499999999999997
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              1.1906288325043712e-18
+            ],
+            [
+              24,
+              7.654042494670956e-19
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              18
+            ],
+            [
+              24,
+              12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.013749298523071758
+            ],
+            [
+              24,
+              0.008838834764831842
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -0.013749298523071756
+            ],
+            [
+              24,
+              -0.00883883476483184
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              -18
+            ],
+            [
+              24,
+              -12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              2.3812576650087424e-18
+            ],
+            [
+              24,
+              1.5308084989341912e-18
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -0.019444444444444445
+            ],
+            [
+              24,
+              -0.012499999999999997
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              18
+            ],
+            [
+              24,
+              12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -0.013749298523071756
+            ],
+            [
+              24,
+              -0.00883883476483184
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -0.013749298523071761
+            ],
+            [
+              24,
+              -0.008838834764831844
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_6",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              -18
+            ],
+            [
+              24,
+              -12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -0.019444444444444445
+            ],
+            [
+              24,
+              -0.012499999999999997
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -3.5718864975131136e-18
+            ],
+            [
+              24,
+              -2.2962127484012864e-18
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_7",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              18
+            ],
+            [
+              24,
+              12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -0.013749298523071761
+            ],
+            [
+              24,
+              -0.008838834764831844
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.013749298523071754
+            ],
+            [
+              24,
+              0.00883883476483184
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_8",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              -18
+            ],
+            [
+              24,
+              -12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 44,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "needle",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              44,
+              0.48
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "canopy",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0.15555555555555556
+            ],
+            [
+              44,
+              -0.7222222222222221
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "canopy",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              35
+            ],
+            [
+              24,
+              165
+            ],
+            [
+              44,
+              180
+            ]
+          ]
+        },
+        {
+          "group": "needle",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              44,
+              -0.1111111111111111
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "needle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              44,
+              95
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "firing_flash",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              44,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              44,
+              -0.5888888888888888
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              44,
+              0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tentacle_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              44,
+              0.19999999999999996
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              44,
+              90
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              44,
+              -0.5888888888888888
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              44,
+              0.14142135623730945
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tentacle_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              44,
+              0.14142135623730948
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              44,
+              -90
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              44,
+              -0.5888888888888888
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              44,
+              0.19999999999999996
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tentacle_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              44,
+              1.224646799147353e-17
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              44,
+              90
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              44,
+              -0.5888888888888888
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              44,
+              0.14142135623730948
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tentacle_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              44,
+              -0.14142135623730945
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              44,
+              -90
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              44,
+              -0.5888888888888888
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              44,
+              2.449293598294706e-17
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tentacle_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              44,
+              -0.19999999999999996
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              44,
+              90
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              44,
+              -0.5888888888888888
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              44,
+              -0.14142135623730945
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tentacle_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              44,
+              -0.1414213562373095
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_6",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              44,
+              -90
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              44,
+              -0.5888888888888888
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              44,
+              -0.19999999999999996
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tentacle_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              44,
+              -3.673940397442058e-17
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_7",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              44,
+              90
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              44,
+              -0.5888888888888888
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              44,
+              -0.1414213562373095
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tentacle_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              44,
+              0.14142135623730945
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_8",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              44,
+              -90
+            ]
+          ]
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 32,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "canopy",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -14
+            ],
+            [
+              12,
+              -8
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "needle",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.32
+            ],
+            [
+              12,
+              0.32
+            ],
+            [
+              24,
+              -0.035
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "firing_flash",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              9,
+              0.0
+            ],
+            [
+              24,
+              0.0
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.12
+            ],
+            [
+              9,
+              0.15
+            ],
+            [
+              24,
+              0.025
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "bell_panel_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.09
+            ],
+            [
+              10,
+              0.04
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -48.0
+            ],
+            [
+              5,
+              -48.0
+            ],
+            [
+              24,
+              -7.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_1_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0848528137423857
+            ],
+            [
+              9,
+              0.10606601717798211
+            ],
+            [
+              24,
+              0.017677669529663688
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.08485281374238571
+            ],
+            [
+              9,
+              0.10606601717798213
+            ],
+            [
+              24,
+              0.01767766952966369
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "bell_panel_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.09
+            ],
+            [
+              10,
+              0.04
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -48.0
+            ],
+            [
+              6,
+              -48.0
+            ],
+            [
+              24,
+              -7.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_2_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              16.0
+            ],
+            [
+              11,
+              10.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.12
+            ],
+            [
+              9,
+              0.15
+            ],
+            [
+              24,
+              0.025
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              7.347880794884118e-18
+            ],
+            [
+              9,
+              9.184850993605149e-18
+            ],
+            [
+              24,
+              1.5308084989341916e-18
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "bell_panel_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.09
+            ],
+            [
+              10,
+              0.04
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              48.0
+            ],
+            [
+              7,
+              48.0
+            ],
+            [
+              24,
+              7.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_3_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              16.0
+            ],
+            [
+              12,
+              10.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.08485281374238571
+            ],
+            [
+              9,
+              0.10606601717798213
+            ],
+            [
+              24,
+              0.01767766952966369
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0848528137423857
+            ],
+            [
+              9,
+              -0.10606601717798211
+            ],
+            [
+              24,
+              -0.017677669529663688
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "bell_panel_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.09
+            ],
+            [
+              10,
+              0.04
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              48.0
+            ],
+            [
+              8,
+              48.0
+            ],
+            [
+              24,
+              7.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_4_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              16.0
+            ],
+            [
+              13,
+              10.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              1.4695761589768237e-17
+            ],
+            [
+              9,
+              1.8369701987210297e-17
+            ],
+            [
+              24,
+              3.061616997868383e-18
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.12
+            ],
+            [
+              9,
+              -0.15
+            ],
+            [
+              24,
+              -0.025
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "bell_panel_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.09
+            ],
+            [
+              10,
+              0.04
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              48.0
+            ],
+            [
+              9,
+              48.0
+            ],
+            [
+              24,
+              7.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_5_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0848528137423857
+            ],
+            [
+              9,
+              -0.10606601717798211
+            ],
+            [
+              24,
+              -0.017677669529663688
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.08485281374238572
+            ],
+            [
+              9,
+              -0.10606601717798216
+            ],
+            [
+              24,
+              -0.01767766952966369
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "bell_panel_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.09
+            ],
+            [
+              10,
+              0.04
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_6",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              48.0
+            ],
+            [
+              10,
+              48.0
+            ],
+            [
+              24,
+              7.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_6_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -16.0
+            ],
+            [
+              15,
+              -10.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.12
+            ],
+            [
+              9,
+              -0.15
+            ],
+            [
+              24,
+              -0.025
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -2.2043642384652355e-17
+            ],
+            [
+              9,
+              -2.7554552980815445e-17
+            ],
+            [
+              24,
+              -4.592425496802574e-18
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "bell_panel_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.09
+            ],
+            [
+              10,
+              0.04
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_7",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -48.0
+            ],
+            [
+              11,
+              -48.0
+            ],
+            [
+              24,
+              -7.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_7_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -16.0
+            ],
+            [
+              16,
+              -10.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.08485281374238572
+            ],
+            [
+              9,
+              -0.10606601717798216
+            ],
+            [
+              24,
+              -0.01767766952966369
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.08485281374238568
+            ],
+            [
+              9,
+              0.1060660171779821
+            ],
+            [
+              24,
+              0.017677669529663684
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "bell_panel_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.09
+            ],
+            [
+              10,
+              0.04
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tentacle_8",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -48.0
+            ],
+            [
+              12,
+              -48.0
+            ],
+            [
+              24,
+              -7.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_8_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -16.0
+            ],
+            [
+              17,
+              -10.0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "crystal_triplet": {
+      "loop": false,
+      "frames": 32,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "needle",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              0.05555555555555555
+            ],
+            [
+              10,
+              0.1333333333333333
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              16,
+              0.1333333333333333
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              22,
+              0.1333333333333333
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "canopy",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              -0.1222222222222222
+            ],
+            [
+              24,
+              -0.09999999999999998
+            ],
+            [
+              32,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "firing_flash",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              1
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              16,
+              1
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              22,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.0
+            ],
+            [
+              24,
+              0.0
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.019444444444444445
+            ],
+            [
+              24,
+              0.012499999999999997
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              18
+            ],
+            [
+              24,
+              12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.013749298523071756
+            ],
+            [
+              24,
+              0.00883883476483184
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.013749298523071758
+            ],
+            [
+              24,
+              0.008838834764831842
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              -18
+            ],
+            [
+              24,
+              -12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.019444444444444445
+            ],
+            [
+              24,
+              0.012499999999999997
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              1.1906288325043712e-18
+            ],
+            [
+              24,
+              7.654042494670956e-19
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              18
+            ],
+            [
+              24,
+              12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.013749298523071758
+            ],
+            [
+              24,
+              0.008838834764831842
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -0.013749298523071756
+            ],
+            [
+              24,
+              -0.00883883476483184
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              -18
+            ],
+            [
+              24,
+              -12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              2.3812576650087424e-18
+            ],
+            [
+              24,
+              1.5308084989341912e-18
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -0.019444444444444445
+            ],
+            [
+              24,
+              -0.012499999999999997
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              18
+            ],
+            [
+              24,
+              12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -0.013749298523071756
+            ],
+            [
+              24,
+              -0.00883883476483184
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -0.013749298523071761
+            ],
+            [
+              24,
+              -0.008838834764831844
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_6",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              -18
+            ],
+            [
+              24,
+              -12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -0.019444444444444445
+            ],
+            [
+              24,
+              -0.012499999999999997
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -3.5718864975131136e-18
+            ],
+            [
+              24,
+              -2.2962127484012864e-18
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_7",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              18
+            ],
+            [
+              24,
+              12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              -0.013749298523071761
+            ],
+            [
+              24,
+              -0.008838834764831844
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0
+            ],
+            [
+              7,
+              0.013749298523071754
+            ],
+            [
+              24,
+              0.00883883476483184
+            ],
+            [
+              32,
+              -0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_8",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              -18
+            ],
+            [
+              24,
+              -12
+            ],
+            [
+              32,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "idle": {
+      "loop": true,
+      "frames": 16,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.04999999999999999
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -3
+            ],
+            [
+              8,
+              3
+            ],
+            [
+              16,
+              -3
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "needle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -4
+            ],
+            [
+              8,
+              4
+            ],
+            [
+              16,
+              -4
+            ]
+          ]
+        },
+        {
+          "group": "firing_flash",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.0
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.031111111111111107
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              8
+            ],
+            [
+              8,
+              -10
+            ],
+            [
+              16,
+              8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_1_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -6
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              16,
+              -6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.021998877636914806
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.02199887763691481
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -8
+            ],
+            [
+              8,
+              10
+            ],
+            [
+              16,
+              -8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_2_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              6
+            ],
+            [
+              8,
+              -8
+            ],
+            [
+              16,
+              6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.031111111111111107
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              1.9050061320069936e-18
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              8
+            ],
+            [
+              8,
+              -10
+            ],
+            [
+              16,
+              8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_3_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -6
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              16,
+              -6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.02199887763691481
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.021998877636914806
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -8
+            ],
+            [
+              8,
+              10
+            ],
+            [
+              16,
+              -8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_4_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              6
+            ],
+            [
+              8,
+              -8
+            ],
+            [
+              16,
+              6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              3.810012264013987e-18
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_5",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.031111111111111107
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              8
+            ],
+            [
+              8,
+              -10
+            ],
+            [
+              16,
+              8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_5_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -6
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              16,
+              -6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.021998877636914806
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_6",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.021998877636914813
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_6",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -8
+            ],
+            [
+              8,
+              10
+            ],
+            [
+              16,
+              -8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_6_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              6
+            ],
+            [
+              8,
+              -8
+            ],
+            [
+              16,
+              6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.031111111111111107
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_7",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -5.715018396020981e-18
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_7",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              8
+            ],
+            [
+              8,
+              -10
+            ],
+            [
+              16,
+              8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_7_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -6
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              16,
+              -6
+            ]
+          ]
+        },
+        {
+          "group": "bell_panel_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.021998877636914813
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "bell_panel_8",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.021998877636914802
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tentacle_8",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -8
+            ],
+            [
+              8,
+              10
+            ],
+            [
+              16,
+              -8
+            ]
+          ]
+        },
+        {
+          "group": "tentacle_8_tip",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              6
+            ],
+            [
+              8,
+              -8
+            ],
+            [
+              16,
+              6
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        10,
+        1
+      ],
+      [
+        12,
+        0
+      ],
+      [
+        16,
+        1
+      ],
+      [
+        18,
+        0
+      ],
+      [
+        22,
+        1
+      ],
+      [
+        24,
+        0
+      ],
+      [
+        32,
+        0
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        22.0,
+        2
+      ],
+      [
+        44,
+        2
+      ]
+    ],
+    "idle": [
+      [
+        0,
+        0
+      ],
+      [
+        8.0,
+        1
+      ],
+      [
+        16,
+        0
+      ]
+    ],
+    "walk": [
+      [
+        0,
+        0
+      ],
+      [
+        8,
+        1
+      ],
+      [
+        16,
+        0
+      ]
+    ],
+    "crystal_triplet": [
+      [
+        0,
+        0
+      ],
+      [
+        10,
+        1
+      ],
+      [
+        12,
+        0
+      ],
+      [
+        16,
+        1
+      ],
+      [
+        18,
+        0
+      ],
+      [
+        22,
+        1
+      ],
+      [
+        24,
+        0
+      ],
+      [
+        32,
+        0
+      ]
+    ],
+    "spawn": [
+      [
+        0,
+        2
+      ],
+      [
+        12,
+        0
+      ],
+      [
+        24,
+        1
+      ],
+      [
+        32,
+        0
+      ]
+    ]
+  },
+  "emissive_groups": [
+    "canopy__glow",
+    "firing_flash__glow"
+  ],
+  "emissive_uv_offsets": {
+    "lumen__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.0859375
+      ],
+      [
+        0,
+        -0.171875
+      ]
+    ]
+  },
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T1",
+    "size": 128,
+    "budget": 2600,
+    "density": 24.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 1.6,
+    "fit_axis": 1,
+    "emissive_limit": 0.04,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}

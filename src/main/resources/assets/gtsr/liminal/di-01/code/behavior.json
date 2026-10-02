@@ -1,0 +1,178 @@
+{
+  "schema_version": 2,
+  "code": "di-01",
+  "archetype": "singularity_controller",
+  "stats": {
+    "health": 300,
+    "move_speed": 0.12,
+    "follow_range": 28
+  },
+  "locomotion": "hover",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 56
+  },
+  "death": {
+    "clip": "death",
+    "duration": 48
+  },
+  "skills": [
+    {
+      "id": "gravity_pulse",
+      "name": "轨缚引潮",
+      "clip": "attack",
+      "duration": 28,
+      "cooldown": 100,
+      "range": 6,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 3,
+          "type": "vfx",
+          "effect": "gravity",
+          "anchor": "self",
+          "offset": [
+            0,
+            2.5,
+            0
+          ],
+          "radius": 6.25,
+          "duration": 17,
+          "count": 32,
+          "color": [
+            0.46,
+            0.31,
+            0.66
+          ]
+        },
+        {
+          "at": 10,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            2.5,
+            0
+          ],
+          "radius": 2,
+          "duration": 6,
+          "count": 12,
+          "color": [
+            0.69,
+            0.47,
+            0.84
+          ]
+        },
+        {
+          "at": 12,
+          "type": "pull",
+          "anchor": "self",
+          "offset": [
+            0,
+            2.5,
+            0
+          ],
+          "radius": 6.25,
+          "strength": 0.11,
+          "duration": 8
+        },
+        {
+          "at": 16,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            2.5,
+            0
+          ],
+          "radius": 6.25,
+          "duration": 10,
+          "count": 28,
+          "color": [
+            0.65,
+            0.47,
+            0.83
+          ]
+        },
+        {
+          "at": 16,
+          "type": "damage",
+          "shape": "sphere",
+          "anchor": "self",
+          "offset": [
+            0,
+            2.5,
+            0
+          ],
+          "radius": 6.25,
+          "amount": 8,
+          "knockback": 0
+        },
+        {
+          "at": 16,
+          "type": "status",
+          "effect": "slowness",
+          "anchor": "self",
+          "offset": [
+            0,
+            2.5,
+            0
+          ],
+          "radius": 6.25,
+          "duration": 40,
+          "amplifier": 0
+        },
+        {
+          "at": 22,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            2.5,
+            0
+          ],
+          "radius": 2.5,
+          "duration": 6,
+          "count": 8,
+          "color": [
+            0.32,
+            0.32,
+            0.48
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [
+    {
+      "at": 0,
+      "type": "vfx",
+      "effect": "motes",
+      "anchor": "self",
+      "offset": [
+        0,
+        2.5,
+        0
+      ],
+      "radius": 2.6,
+      "duration": 48,
+      "count": 6,
+      "color": [
+        0.37,
+        0.26,
+        0.51
+      ]
+    }
+  ],
+  "projectiles": [],
+  "notes": [
+    "出生为暗核五级凝结、三轨依次捕获；不使用透明淡入。",
+    "attack第12tick拉拽8tick，第16tick脉冲伤害8并缓慢I；服务端白名单与限速交公共WorldActions。",
+    "HP300保留原名单锚值；宿主需检查1.7.10属性上限并接healthConfigurator。",
+    "仅完成实际资源、Blender读盘、局部schema及视觉检查；未声称Forge编译或Minecraft实机。"
+  ]
+}

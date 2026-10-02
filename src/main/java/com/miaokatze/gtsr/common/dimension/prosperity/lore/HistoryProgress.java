@@ -140,6 +140,17 @@ public final class HistoryProgress {
         LoreNetwork.send((EntityPlayerMP) p, false);
     }
 
+    /** Personal evidence remains separate from the world's shared revision-seven machinery. */
+    public static void observeRemasterEvidence(EntityPlayer p, String site, String evidence) {
+        if (!valid(p) || !(p.worldObj.provider instanceof WorldProviderProsperityRuins)) return;
+        NBTTagCompound n = data(p);
+        Set<String> observed = strings(n, "remasterEvidence");
+        if (!observed.add(site + ":" + evidence)) return;
+        storeStrings(n, "remasterEvidence", observed);
+        save(p, n);
+        LoreNetwork.send((EntityPlayerMP) p, false);
+    }
+
     public static void completeRuin(EntityPlayer p, int kind) {
         if (!valid(p) || !(p.worldObj.provider instanceof WorldProviderProsperityRuins) || kind < 7 || kind >= 27)
             return;

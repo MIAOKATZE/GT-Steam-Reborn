@@ -1,0 +1,1444 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DR-18",
+  "name": "采蚀工蜂",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 0.8,
+    "h": 0.509043086639,
+    "d": 0.6995368710064
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        0.0,
+        0.35879688926091374,
+        0.0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "drill",
+      "parent": "body",
+      "pivot": [
+        0.0,
+        0.2690976669456853,
+        0.0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "saw_0",
+      "parent": "body",
+      "pivot": [
+        -0.3453420059136295,
+        0.43952618934461934,
+        -0.2825525502929696
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "saw_1",
+      "parent": "body",
+      "pivot": [
+        0.3453420059136295,
+        0.43952618934461934,
+        -0.2825525502929696
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "saw_2",
+      "parent": "body",
+      "pivot": [
+        -0.3453420059136295,
+        0.43952618934461934,
+        0.2825525502929696
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "saw_3",
+      "parent": "body",
+      "pivot": [
+        0.3453420059136295,
+        0.43952618934461934,
+        0.2825525502929696
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "smoke_0",
+      "parent": "root",
+      "pivot": [
+        -0.03587968892609138,
+        0.40364650041852795,
+        0.01793984446304569
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "smoke_1",
+      "parent": "root",
+      "pivot": [
+        0.022424805578807112,
+        0.40364650041852795,
+        -0.03139472781032996
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "smoke_2",
+      "parent": "root",
+      "pivot": [
+        0.0403646500418528,
+        0.40364650041852795,
+        0.044849611157614225
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "smoke_3",
+      "parent": "root",
+      "pivot": [
+        -0.022424805578807112,
+        0.40364650041852795,
+        -0.008969922231522844
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "walk": {
+      "loop": true,
+      "frames": 16,
+      "speed": 0.8,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.16
+            ],
+            [
+              8,
+              0.205
+            ],
+            [
+              16,
+              0.16
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -3
+            ],
+            [
+              8,
+              3
+            ],
+            [
+              16,
+              -3
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "saw_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              -360
+            ]
+          ]
+        },
+        {
+          "group": "saw_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              360
+            ]
+          ]
+        },
+        {
+          "group": "saw_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              -360
+            ]
+          ]
+        },
+        {
+          "group": "saw_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              360
+            ]
+          ]
+        },
+        {
+          "group": "drill",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              360
+            ]
+          ]
+        },
+        {
+          "group": "smoke_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "smoke_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "smoke_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "smoke_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "idle": {
+      "loop": true,
+      "frames": 16,
+      "speed": 0.65,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.16
+            ],
+            [
+              8,
+              0.195
+            ],
+            [
+              16,
+              0.16
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "saw_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              -360
+            ]
+          ]
+        },
+        {
+          "group": "saw_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              360
+            ]
+          ]
+        },
+        {
+          "group": "saw_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              -360
+            ]
+          ]
+        },
+        {
+          "group": "saw_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              360
+            ]
+          ]
+        },
+        {
+          "group": "smoke_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "smoke_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "smoke_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "smoke_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 28,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.16
+            ],
+            [
+              8,
+              0.29
+            ],
+            [
+              14,
+              0.09
+            ],
+            [
+              19,
+              0.02
+            ],
+            [
+              28,
+              0.16
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0.08
+            ],
+            [
+              16,
+              -0.28
+            ],
+            [
+              21,
+              -0.19
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -12
+            ],
+            [
+              16,
+              32
+            ],
+            [
+              21,
+              17
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "drill",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1080
+            ]
+          ]
+        },
+        {
+          "group": "saw_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1080
+            ]
+          ]
+        },
+        {
+          "group": "saw_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1080
+            ]
+          ]
+        },
+        {
+          "group": "saw_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1080
+            ]
+          ]
+        },
+        {
+          "group": "saw_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -1080
+            ]
+          ]
+        },
+        {
+          "group": "smoke_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "smoke_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "smoke_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "smoke_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 48,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.16
+            ],
+            [
+              12,
+              0.23
+            ],
+            [
+              26,
+              0.2
+            ],
+            [
+              40,
+              0.075
+            ],
+            [
+              48,
+              0.055
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              30
+            ],
+            [
+              32,
+              235
+            ],
+            [
+              48,
+              390
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              18
+            ],
+            [
+              36,
+              66
+            ],
+            [
+              48,
+              76
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "saw_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              600
+            ],
+            [
+              36,
+              730
+            ],
+            [
+              48,
+              730
+            ]
+          ]
+        },
+        {
+          "group": "saw_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              -600
+            ],
+            [
+              36,
+              -730
+            ],
+            [
+              48,
+              -730
+            ]
+          ]
+        },
+        {
+          "group": "saw_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              600
+            ],
+            [
+              36,
+              730
+            ],
+            [
+              48,
+              730
+            ]
+          ]
+        },
+        {
+          "group": "saw_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              -600
+            ],
+            [
+              36,
+              -730
+            ],
+            [
+              48,
+              -730
+            ]
+          ]
+        },
+        {
+          "group": "smoke_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              1
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "smoke_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              32,
+              0.34
+            ],
+            [
+              48,
+              0.6
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "smoke_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              48,
+              0.16
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "smoke_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              1
+            ],
+            [
+              37,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "smoke_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              35,
+              0.4
+            ],
+            [
+              48,
+              0.6
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "smoke_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              48,
+              -0.16
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "smoke_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              1
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "smoke_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              38,
+              0.46
+            ],
+            [
+              48,
+              0.6
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "smoke_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              48,
+              0.16
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "smoke_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "smoke_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              41,
+              0.52
+            ],
+            [
+              48,
+              0.6
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "smoke_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              48,
+              -0.16
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    },
+    "spawn": {
+      "frames": 36,
+      "speed": 1,
+      "loop": false,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.025
+            ],
+            [
+              10,
+              0.025
+            ],
+            [
+              24,
+              0.22
+            ],
+            [
+              36,
+              0.16
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -9
+            ],
+            [
+              12,
+              -9
+            ],
+            [
+              26,
+              4
+            ],
+            [
+              36,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "drill",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.075
+            ],
+            [
+              14,
+              0.075
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "drill",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              25,
+              180
+            ],
+            [
+              36,
+              540
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "saw_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              15,
+              60
+            ],
+            [
+              36,
+              720
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "smoke_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "saw_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              5,
+              0
+            ],
+            [
+              17,
+              -60
+            ],
+            [
+              36,
+              -720
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "smoke_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "saw_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              19,
+              60
+            ],
+            [
+              36,
+              720
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "smoke_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "saw_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              11,
+              0
+            ],
+            [
+              21,
+              -60
+            ],
+            [
+              36,
+              -720
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "smoke_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              36,
+              0
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "idle": [
+      [
+        0,
+        0
+      ],
+      [
+        8.0,
+        1
+      ],
+      [
+        16,
+        0
+      ]
+    ],
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        14.0,
+        1
+      ],
+      [
+        28,
+        0
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        24.0,
+        2
+      ],
+      [
+        48,
+        2
+      ]
+    ]
+  },
+  "emissive_groups": [],
+  "emissive_uv_offsets": {},
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T0",
+    "size": 64,
+    "budget": 1200,
+    "density": 24.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 1.0,
+    "fit_axis": 0,
+    "emissive_limit": 0.04,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}

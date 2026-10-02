@@ -1,0 +1,326 @@
+{
+  "schema_version": 2,
+  "code": "di-03",
+  "archetype": "suspension_battery",
+  "stats": {
+    "health": 220,
+    "move_speed": 0.06,
+    "follow_range": 36
+  },
+  "locomotion": "hover",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 48
+  },
+  "death": {
+    "clip": "death",
+    "duration": 56
+  },
+  "skills": [
+    {
+      "id": "four_corner_salvo",
+      "name": "四隅悬针齐射",
+      "clip": "attack",
+      "duration": 56,
+      "cooldown": 120,
+      "range": 28,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 0,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "radius": 3.4,
+          "duration": 12,
+          "count": 28,
+          "color": [
+            0.65,
+            0.39,
+            0.83
+          ]
+        },
+        {
+          "at": 4,
+          "type": "vfx",
+          "effect": "glyphless_seal",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "radius": 2,
+          "duration": 40,
+          "count": 24,
+          "color": [
+            0.65,
+            0.39,
+            0.83
+          ]
+        },
+        {
+          "at": 8,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            -2.66844,
+            0.45,
+            -2.66844
+          ],
+          "radius": 0.38,
+          "duration": 4,
+          "count": 8,
+          "color": [
+            0.65,
+            0.39,
+            0.83
+          ]
+        },
+        {
+          "at": 12,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            -2.66844,
+            0.45,
+            -2.66844
+          ],
+          "radius": 0.5,
+          "duration": 6,
+          "count": 10,
+          "color": [
+            0.7,
+            0.8,
+            0.95
+          ]
+        },
+        {
+          "at": 12,
+          "type": "projectile",
+          "projectile": "pr-di03-suspension-needle",
+          "anchor": "self",
+          "offset": [
+            -2.66844,
+            0.45,
+            -2.66844
+          ],
+          "speed": 0.72,
+          "amount": 6,
+          "count": 3,
+          "spread": 7,
+          "gravity": 0,
+          "lifetime": 80
+        },
+        {
+          "at": 18,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            2.66844,
+            0.45,
+            -2.66844
+          ],
+          "radius": 0.38,
+          "duration": 4,
+          "count": 8,
+          "color": [
+            0.65,
+            0.39,
+            0.83
+          ]
+        },
+        {
+          "at": 22,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            2.66844,
+            0.45,
+            -2.66844
+          ],
+          "radius": 0.5,
+          "duration": 6,
+          "count": 10,
+          "color": [
+            0.7,
+            0.8,
+            0.95
+          ]
+        },
+        {
+          "at": 22,
+          "type": "projectile",
+          "projectile": "pr-di03-suspension-needle",
+          "anchor": "self",
+          "offset": [
+            2.66844,
+            0.45,
+            -2.66844
+          ],
+          "speed": 0.72,
+          "amount": 6,
+          "count": 3,
+          "spread": 7,
+          "gravity": 0,
+          "lifetime": 80
+        },
+        {
+          "at": 28,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            2.66844,
+            0.45,
+            2.66844
+          ],
+          "radius": 0.38,
+          "duration": 4,
+          "count": 8,
+          "color": [
+            0.65,
+            0.39,
+            0.83
+          ]
+        },
+        {
+          "at": 32,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            2.66844,
+            0.45,
+            2.66844
+          ],
+          "radius": 0.5,
+          "duration": 6,
+          "count": 10,
+          "color": [
+            0.7,
+            0.8,
+            0.95
+          ]
+        },
+        {
+          "at": 32,
+          "type": "projectile",
+          "projectile": "pr-di03-suspension-needle",
+          "anchor": "self",
+          "offset": [
+            2.66844,
+            0.45,
+            2.66844
+          ],
+          "speed": 0.72,
+          "amount": 6,
+          "count": 3,
+          "spread": 7,
+          "gravity": 0,
+          "lifetime": 80
+        },
+        {
+          "at": 38,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            -2.66844,
+            0.45,
+            2.66844
+          ],
+          "radius": 0.38,
+          "duration": 4,
+          "count": 8,
+          "color": [
+            0.65,
+            0.39,
+            0.83
+          ]
+        },
+        {
+          "at": 42,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            -2.66844,
+            0.45,
+            2.66844
+          ],
+          "radius": 0.5,
+          "duration": 6,
+          "count": 10,
+          "color": [
+            0.7,
+            0.8,
+            0.95
+          ]
+        },
+        {
+          "at": 42,
+          "type": "projectile",
+          "projectile": "pr-di03-suspension-needle",
+          "anchor": "self",
+          "offset": [
+            -2.66844,
+            0.45,
+            2.66844
+          ],
+          "speed": 0.72,
+          "amount": 6,
+          "count": 3,
+          "spread": 7,
+          "gravity": 0,
+          "lifetime": 80
+        },
+        {
+          "at": 48,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            3.5,
+            0
+          ],
+          "radius": 2.5,
+          "duration": 8,
+          "count": 8,
+          "color": [
+            0.65,
+            0.39,
+            0.83
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [],
+  "projectiles": [
+    {
+      "id": "pr-di03-suspension-needle",
+      "kind": "needle",
+      "speed": 0.72,
+      "gravity": 0,
+      "lifetime": 80,
+      "radius": 0.12
+    }
+  ],
+  "notes": [
+    "12/22/32/42游戏tick依次三针齐射；实际伤害仅由服务端独立弹体碰撞结算。",
+    "offset遵循当前ActionContext世界轴；四塔模型局部坐标接线需宿主统一旋转，默认yaw=0对齐。",
+    "主代理合并workers_R2/DI-B/projectiles.json后生成profile；未做Forge编译或实机联机验证。"
+  ]
+}

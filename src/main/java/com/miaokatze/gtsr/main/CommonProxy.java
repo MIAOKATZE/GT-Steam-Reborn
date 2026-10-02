@@ -106,6 +106,8 @@ public class CommonProxy {
 
         try {
             BlockLoader.initBlocks();
+            com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterBlocks.registerBlocks();
+            com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.register();
             GTSteamReborn.LOG.info("[0/3] 方块注册完成。");
         } catch (Throwable t) {
             GTSteamReborn.LOG.error("[0/3] 方块注册过程中发生严重错误，请检查日志", t);

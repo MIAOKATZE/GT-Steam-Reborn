@@ -44,12 +44,13 @@ public final class RuinsWorldgen {
     }
 
     public static boolean generate(World w, int cx, int cz) {
-        List<RuinSite> sites = RuinsSitePlanner.near(w.getSeed(), cx, cz);
+        boolean legacy = false;
         for (RuinSite old : RuinsEncounterData.get(w)
-            .existingSitesNear((cx << 4) + 8, (cz << 4) + 8, 128))
-            if (old.layout < 2 && old.intersects(cx, cz)) placeChunk(w, old, cx, cz);
-        for (RuinSite s : sites) if (RuinObjectives.newSiteAllowed(w, s)) placeChunk(w, s, cx, cz);
-        return !sites.isEmpty();
+            .existingSitesNear((cx << 4) + 8, (cz << 4) + 8, 128)) if (old.intersects(cx, cz)) {
+                placeChunk(w, old, cx, cz);
+                legacy = true;
+            }
+        return legacy;
     }
 
     public static void placeChunk(World w, RuinSite s, int cx, int cz) {

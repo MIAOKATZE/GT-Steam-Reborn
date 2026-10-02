@@ -1,0 +1,3737 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DR-19",
+  "name": "回响残响",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 1.3307796094023872,
+    "h": 2.5,
+    "d": 0.7583155088187443
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        0.018361070172525727,
+        1.2772737885109275,
+        -0.2166904405944598
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "head",
+      "parent": "body",
+      "pivot": [
+        0.018361070172525727,
+        2.064176795904885,
+        -0.26713294106843144
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "chest_upper",
+      "parent": "body",
+      "pivot": [
+        0.018361070172525727,
+        1.7514332929662608,
+        -0.23686744078404845
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "chest_lower",
+      "parent": "body",
+      "pivot": [
+        0.018361070172525727,
+        1.317627788890105,
+        -0.2267789406892541
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_l",
+      "parent": "body",
+      "pivot": [
+        0.39163557367991586,
+        1.8926722942933814,
+        -0.2267789406892541
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_l_segment_0",
+      "parent": "arm_l",
+      "pivot": [
+        0.39163557367991586,
+        1.8926722942933814,
+        -0.2267789406892541
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_l_segment_1",
+      "parent": "arm_l",
+      "pivot": [
+        0.5833170754810081,
+        1.61019429163914,
+        -0.15615944002569385
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_l_segment_2",
+      "parent": "arm_l",
+      "pivot": [
+        0.6640250762393628,
+        1.2873622886057219,
+        -0.014920438698573233
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_l_segment_3",
+      "parent": "arm_l",
+      "pivot": [
+        0.7043790766185402,
+        1.0351497862358636,
+        0.2171150634816963
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_r",
+      "parent": "body",
+      "pivot": [
+        -0.3549134333348644,
+        1.8926722942933814,
+        -0.20660194049966546
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_r_segment_0",
+      "parent": "arm_r",
+      "pivot": [
+        -0.3549134333348644,
+        1.8926722942933814,
+        -0.20660194049966546
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_r_segment_1",
+      "parent": "arm_r",
+      "pivot": [
+        -0.5365064350411625,
+        1.600105791544346,
+        -0.15615944002569385
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_r_segment_2",
+      "parent": "arm_r",
+      "pivot": [
+        -0.6273029358943112,
+        1.2974507887005162,
+        -0.004831938603778897
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "arm_r_segment_3",
+      "parent": "arm_r",
+      "pivot": [
+        -0.6979224365578716,
+        1.0250612861410693,
+        0.22720356357649063
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "stream_l",
+      "parent": "body",
+      "pivot": [
+        0.17977707168923499,
+        1.1259462870890125,
+        -0.1460709399308995
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "stream_l_segment_0",
+      "parent": "stream_l",
+      "pivot": [
+        0.17977707168923499,
+        1.1259462870890125,
+        -0.1460709399308995
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "stream_l_segment_1",
+      "parent": "stream_l",
+      "pivot": [
+        0.22013107206841231,
+        0.772848783771211,
+        -0.15615944002569385
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "stream_l_segment_2",
+      "parent": "stream_l",
+      "pivot": [
+        0.2907505727319726,
+        0.4399282806429981,
+        -0.02500893879336757
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "stream_l_segment_3",
+      "parent": "stream_l",
+      "pivot": [
+        0.35128157330073856,
+        0.1473617778939626,
+        0.19693806329210767
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "stream_r",
+      "parent": "body",
+      "pivot": [
+        -0.14305493134418354,
+        1.1259462870890125,
+        -0.1460709399308995
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "stream_r_segment_0",
+      "parent": "stream_r",
+      "pivot": [
+        -0.14305493134418354,
+        1.1259462870890125,
+        -0.1460709399308995
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "stream_r_segment_1",
+      "parent": "stream_r",
+      "pivot": [
+        -0.21367443200774383,
+        0.7829372838660054,
+        -0.12589393974131083
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "stream_r_segment_2",
+      "parent": "stream_r",
+      "pivot": [
+        -0.2842939326713041,
+        0.4701937809273811,
+        0.015345061585809778
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "stream_r_segment_3",
+      "parent": "stream_r",
+      "pivot": [
+        -0.3952674337140417,
+        0.2179812785575229,
+        0.2171150634816963
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "idle": {
+      "loop": true,
+      "frames": 32,
+      "speed": 0.8,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              16,
+              0.135
+            ],
+            [
+              32,
+              0.1
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -3
+            ],
+            [
+              16,
+              3
+            ],
+            [
+              32,
+              -3
+            ]
+          ]
+        }
+      ]
+    },
+    "walk": {
+      "loop": true,
+      "frames": 16,
+      "speed": 0.7,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              8,
+              0.14
+            ],
+            [
+              16,
+              0.1
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              2
+            ],
+            [
+              8,
+              -2
+            ],
+            [
+              16,
+              2
+            ]
+          ]
+        },
+        {
+          "group": "arm_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -4
+            ],
+            [
+              4,
+              -4
+            ],
+            [
+              12,
+              4
+            ],
+            [
+              16,
+              -4
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              9,
+              3
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              10,
+              4
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              5,
+              0
+            ],
+            [
+              11,
+              5
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              0
+            ],
+            [
+              12,
+              6
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -4
+            ],
+            [
+              4,
+              -4
+            ],
+            [
+              12,
+              4
+            ],
+            [
+              16,
+              -4
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              9,
+              -3
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              10,
+              -4
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              5,
+              0
+            ],
+            [
+              11,
+              -5
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              0
+            ],
+            [
+              12,
+              -6
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -4
+            ],
+            [
+              4,
+              -4
+            ],
+            [
+              12,
+              4
+            ],
+            [
+              16,
+              -4
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              9,
+              3
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              10,
+              4
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              5,
+              0
+            ],
+            [
+              11,
+              5
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              0
+            ],
+            [
+              12,
+              6
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -4
+            ],
+            [
+              4,
+              -4
+            ],
+            [
+              12,
+              4
+            ],
+            [
+              16,
+              -4
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              9,
+              -3
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              10,
+              -4
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              5,
+              0
+            ],
+            [
+              11,
+              -5
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              0
+            ],
+            [
+              12,
+              -6
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 34,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              10,
+              0.1
+            ],
+            [
+              18,
+              0.13
+            ],
+            [
+              34,
+              0.1
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              17,
+              -17
+            ],
+            [
+              23,
+              23
+            ],
+            [
+              34,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "arm_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              17,
+              74
+            ],
+            [
+              24,
+              36
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              20,
+              28
+            ],
+            [
+              26,
+              58
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              19,
+              -12
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              21,
+              8
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              22,
+              -11
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              23,
+              14
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              24,
+              -17
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              21,
+              8
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              22,
+              -11
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              23,
+              14
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              24,
+              -17
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              21,
+              8
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              22,
+              -11
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              23,
+              14
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              24,
+              -17
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              21,
+              8
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              22,
+              -11
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              23,
+              14
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              24,
+              -17
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 52,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              20,
+              0.15
+            ],
+            [
+              52,
+              0.15
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              -6
+            ],
+            [
+              36,
+              9
+            ],
+            [
+              52,
+              9
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              31,
+              1
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              27,
+              0
+            ],
+            [
+              34,
+              0.1
+            ],
+            [
+              52,
+              0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_l_segment_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              25,
+              1
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              28,
+              -0.1
+            ],
+            [
+              52,
+              -0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_l_segment_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              17,
+              0
+            ],
+            [
+              19,
+              1
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              22,
+              0.1
+            ],
+            [
+              52,
+              0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_l_segment_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              11,
+              0
+            ],
+            [
+              13,
+              1
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              9,
+              0
+            ],
+            [
+              16,
+              -0.1
+            ],
+            [
+              52,
+              -0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_r_segment_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              31,
+              0
+            ],
+            [
+              33,
+              1
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              36,
+              0.1
+            ],
+            [
+              52,
+              0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_r_segment_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              27,
+              1
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              30,
+              -0.1
+            ],
+            [
+              52,
+              -0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_r_segment_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              21,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              17,
+              0
+            ],
+            [
+              24,
+              0.1
+            ],
+            [
+              52,
+              0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_r_segment_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              15,
+              1
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              11,
+              0
+            ],
+            [
+              18,
+              -0.1
+            ],
+            [
+              52,
+              -0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_l_segment_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              33,
+              0
+            ],
+            [
+              35,
+              1
+            ],
+            [
+              38,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              31,
+              0
+            ],
+            [
+              38,
+              0.1
+            ],
+            [
+              52,
+              0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_l_segment_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              27,
+              0
+            ],
+            [
+              29,
+              1
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              25,
+              0
+            ],
+            [
+              32,
+              -0.1
+            ],
+            [
+              52,
+              -0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_l_segment_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              23,
+              1
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              26,
+              0.1
+            ],
+            [
+              52,
+              0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_l_segment_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              17,
+              1
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              20,
+              -0.1
+            ],
+            [
+              52,
+              -0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_r_segment_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              35,
+              0
+            ],
+            [
+              37,
+              1
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              33,
+              0
+            ],
+            [
+              40,
+              0.1
+            ],
+            [
+              52,
+              0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_r_segment_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              31,
+              1
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              27,
+              0
+            ],
+            [
+              34,
+              -0.1
+            ],
+            [
+              52,
+              -0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_r_segment_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              25,
+              1
+            ],
+            [
+              28,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              28,
+              0.1
+            ],
+            [
+              52,
+              0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_r_segment_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              17,
+              0
+            ],
+            [
+              19,
+              1
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              22,
+              -0.1
+            ],
+            [
+              52,
+              -0.1
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "chest_lower",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              35,
+              1
+            ],
+            [
+              38,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "chest_upper",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              41,
+              1
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "head",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              44,
+              0
+            ],
+            [
+              46,
+              1
+            ],
+            [
+              49,
+              0
+            ],
+            [
+              52,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 40,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              40,
+              0.1
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -28
+            ],
+            [
+              8,
+              12
+            ],
+            [
+              18,
+              -3
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "chest_upper",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "chest_lower",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "chest_upper",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              18
+            ],
+            [
+              6,
+              18
+            ],
+            [
+              18,
+              -3
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "chest_lower",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -16
+            ],
+            [
+              12,
+              -16
+            ],
+            [
+              26,
+              3
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "arm_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              23
+            ],
+            [
+              12,
+              23
+            ],
+            [
+              32,
+              -3
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "arm_l_segment_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              12,
+              0.1
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_l_segment_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              16,
+              0.1
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_l_segment_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              20,
+              0.1
+            ],
+            [
+              27,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_l_segment_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              24,
+              0.1
+            ],
+            [
+              31,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -23
+            ],
+            [
+              12,
+              -23
+            ],
+            [
+              32,
+              3
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "arm_r_segment_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.1
+            ],
+            [
+              12,
+              -0.1
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_r_segment_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.1
+            ],
+            [
+              16,
+              -0.1
+            ],
+            [
+              23,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_r_segment_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.1
+            ],
+            [
+              20,
+              -0.1
+            ],
+            [
+              27,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "arm_r_segment_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.1
+            ],
+            [
+              24,
+              -0.1
+            ],
+            [
+              31,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              23
+            ],
+            [
+              12,
+              23
+            ],
+            [
+              32,
+              -3
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "stream_l_segment_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              15,
+              0.1
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_l_segment_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              19,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              19,
+              0.1
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_l_segment_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              23,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              23,
+              0.1
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_l_segment_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              27,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              27,
+              0.1
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -23
+            ],
+            [
+              12,
+              -23
+            ],
+            [
+              32,
+              3
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "stream_r_segment_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_0",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.1
+            ],
+            [
+              15,
+              -0.1
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_r_segment_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              19,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.1
+            ],
+            [
+              19,
+              -0.1
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_r_segment_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              23,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.1
+            ],
+            [
+              23,
+              -0.1
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "stream_r_segment_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              27,
+              1
+            ],
+            [
+              40,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.1
+            ],
+            [
+              27,
+              -0.1
+            ],
+            [
+              34,
+              0
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    },
+    "echo_reprise": {
+      "loop": false,
+      "frames": 34,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.1
+            ],
+            [
+              10,
+              0.1
+            ],
+            [
+              18,
+              0.13
+            ],
+            [
+              34,
+              0.1
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              17,
+              -17
+            ],
+            [
+              23,
+              23
+            ],
+            [
+              34,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "arm_r",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              17,
+              74
+            ],
+            [
+              24,
+              36
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              20,
+              28
+            ],
+            [
+              26,
+              58
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "head",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              19,
+              -12
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              21,
+              8
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              22,
+              -11
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              23,
+              14
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_l_segment_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              24,
+              -17
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              21,
+              8
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              22,
+              -11
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              23,
+              14
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "arm_r_segment_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              24,
+              -17
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              21,
+              8
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              22,
+              -11
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              23,
+              14
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_l_segment_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              24,
+              -17
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              21,
+              8
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              22,
+              -11
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              23,
+              14
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "stream_r_segment_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              24,
+              -17
+            ],
+            [
+              34,
+              0
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "idle": [
+      [
+        0,
+        0
+      ],
+      [
+        16.0,
+        1
+      ],
+      [
+        32,
+        0
+      ]
+    ],
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        17.0,
+        1
+      ],
+      [
+        34,
+        0
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        26.0,
+        2
+      ],
+      [
+        52,
+        2
+      ]
+    ]
+  },
+  "emissive_groups": [],
+  "emissive_uv_offsets": {},
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T1",
+    "size": 128,
+    "budget": 2600,
+    "density": 24.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 2.5,
+    "fit_axis": 1,
+    "emissive_limit": 0.04,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}

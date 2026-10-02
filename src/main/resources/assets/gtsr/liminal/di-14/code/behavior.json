@@ -1,0 +1,143 @@
+{
+  "schema_version": 2,
+  "code": "di-14",
+  "archetype": "rooted_acid_sentry",
+  "stats": {
+    "health": 180,
+    "move_speed": 0,
+    "follow_range": 22
+  },
+  "locomotion": "stationary",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 52
+  },
+  "death": {
+    "clip": "death",
+    "duration": 48
+  },
+  "skills": [
+    {
+      "id": "acid_spit",
+      "name": "裂瓣酸囊抛射",
+      "clip": "attack",
+      "duration": 48,
+      "cooldown": 100,
+      "range": 14,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 4,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            3.17,
+            0
+          ],
+          "radius": 0.38,
+          "duration": 14,
+          "count": 12,
+          "color": [
+            0.65,
+            0.78,
+            0.27
+          ]
+        },
+        {
+          "at": 10,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            3.17,
+            0
+          ],
+          "radius": 0.8,
+          "duration": 8,
+          "count": 16,
+          "color": [
+            0.78,
+            0.84,
+            0.36
+          ]
+        },
+        {
+          "at": 18,
+          "type": "vfx",
+          "effect": "steam",
+          "anchor": "self",
+          "offset": [
+            0,
+            3.35,
+            -0.12
+          ],
+          "radius": 0.6,
+          "duration": 10,
+          "count": 18,
+          "color": [
+            0.57,
+            0.68,
+            0.22
+          ]
+        },
+        {
+          "at": 18,
+          "type": "projectile",
+          "projectile": "pr-di14-acid-seed",
+          "anchor": "self",
+          "offset": [
+            0,
+            3.35,
+            0
+          ],
+          "speed": 0.6,
+          "amount": 9,
+          "count": 1,
+          "spread": 0,
+          "gravity": 0.012,
+          "lifetime": 70
+        },
+        {
+          "at": 30,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            3.17,
+            0
+          ],
+          "radius": 0.35,
+          "duration": 12,
+          "count": 8,
+          "color": [
+            0.36,
+            0.48,
+            0.23
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [],
+  "projectiles": [
+    {
+      "id": "pr-di14-acid-seed",
+      "kind": "acid",
+      "speed": 0.6,
+      "gravity": 0.012,
+      "lifetime": 70,
+      "radius": 0.2
+    }
+  ],
+  "notes": [
+    "18tick发射独立酸囊弹，gravity使轨迹弯曲；共享宿主目前直接瞄准锁定目标，未实现抛射角解算，不能保证任意距离落点命中。",
+    "真实命中时间由服务端碰撞决定，不使用固定40tick伤害伪造落点。默认独立弹是9点直击和8tick破囊演出。",
+    "落点酸渍持续伤害需要宿主碰撞回调与有限生命区域扩展；见R2_接线说明，当前behavior未宣称拥有该机制。",
+    "酸液不改方块。offset依共享契约为世界轴偏移；发射点XZ为零避免错误随朝向旋转。"
+  ]
+}

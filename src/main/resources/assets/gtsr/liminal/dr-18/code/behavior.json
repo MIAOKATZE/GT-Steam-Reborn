@@ -1,0 +1,159 @@
+{
+  "schema_version": 2,
+  "code": "dr-18",
+  "archetype": "corroded_mining_drone",
+  "stats": {
+    "health": 24,
+    "move_speed": 0.22,
+    "follow_range": 20
+  },
+  "locomotion": "flying",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 36
+  },
+  "death": {
+    "clip": "death",
+    "duration": 48
+  },
+  "skills": [
+    {
+      "id": "drill_dive",
+      "name": "采蚀钻啄",
+      "clip": "attack",
+      "duration": 28,
+      "cooldown": 58,
+      "range": 0.95,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 2,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.42,
+            0
+          ],
+          "radius": 0.15,
+          "duration": 9,
+          "count": 8,
+          "color": [
+            0.81,
+            0.61,
+            0.29
+          ]
+        },
+        {
+          "at": 8,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "radius": 0.24,
+          "duration": 8,
+          "count": 12,
+          "color": [
+            0.87,
+            0.69,
+            0.36
+          ]
+        },
+        {
+          "at": 12,
+          "type": "vfx",
+          "effect": "afterimage",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.42,
+            0
+          ],
+          "radius": 0.36,
+          "duration": 7,
+          "count": 6,
+          "color": [
+            0.49,
+            0.63,
+            0.62
+          ]
+        },
+        {
+          "at": 16,
+          "type": "damage",
+          "shape": "cone",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.24,
+            0
+          ],
+          "radius": 1.1,
+          "amount": 4,
+          "knockback": 0.12,
+          "angle": 80
+        },
+        {
+          "at": 16,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "radius": 0.24,
+          "duration": 7,
+          "count": 12,
+          "color": [
+            0.88,
+            0.72,
+            0.44
+          ]
+        },
+        {
+          "at": 21,
+          "type": "vfx",
+          "effect": "steam",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.47,
+            0
+          ],
+          "radius": 0.17,
+          "duration": 7,
+          "count": 5,
+          "color": [
+            0.45,
+            0.5,
+            0.48
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [],
+  "projectiles": [],
+  "runtime": {
+    "hitbox_width": 0.7,
+    "hitbox_height": 0.6,
+    "tracking_range": 64,
+    "render_distance": 96,
+    "ignore_frustum_check": false
+  },
+  "notes": [
+    "四个翼盘在2/5/8/11tick错峰启动，机身找平、钻杆伸出，然后进入悬停。攻击是短促俯冲钻啄并拉起；死亡保留冒烟、翼盘减速和旋落侧翻，绝不回到悬停姿态。",
+    "2tick琥珀色摩擦微粒预兆；8tick目标处收束小环；12tick短尾迹；16tick钻头前探最远时单次4点近战伤害与火星；21tick散热；28tick拉起复位。死亡48tick保留，不在20tick强制删模型。",
+    "伤害是脚底+世界Y0.24向锁定目标点的80°近身锥，半径1.10，选技范围0.95；rig前探约0.28格。-Z朝前由renderer处理。服务端flying负责接近，锁技能时AI停移，rig俯冲仅视觉，不等于瞬移/实体位移。",
+    "可调基础伤害3–6、冷却48–75tick。机械伤害建议1.5倍，宿主按下述真实Forge事件扩展；此倍数未伪装为当前JSON支持字段。",
+    "配置初始平衡值，不宣称已实机验证；所有实体不破坏方块。"
+  ]
+}

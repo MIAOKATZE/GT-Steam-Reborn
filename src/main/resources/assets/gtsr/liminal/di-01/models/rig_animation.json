@@ -1,0 +1,9710 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DI-01",
+  "name": "奇点幽影",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 3.9893019552490987,
+    "h": 5.0,
+    "d": 2.9470348822793557
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        0.07641646443924505,
+        0.02273766930978607,
+        0.014704983174597753
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "hover",
+      "parent": "body",
+      "pivot": [
+        0.07641646443924505,
+        2.4922630773073915,
+        0.014704983174597753
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "core_stage_0",
+      "parent": "hover",
+      "pivot": [
+        0.07641646443924505,
+        2.4922630773073915,
+        0.014704983174597753
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "core_stage_1",
+      "parent": "hover",
+      "pivot": [
+        0.07641646443924505,
+        2.4922630773073915,
+        0.014704983174597753
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "core_stage_2",
+      "parent": "hover",
+      "pivot": [
+        0.07641646443924505,
+        2.4922630773073915,
+        0.014704983174597753
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "core_stage_3",
+      "parent": "hover",
+      "pivot": [
+        0.07641646443924505,
+        2.4922630773073915,
+        0.014704983174597753
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "core_stage_4",
+      "parent": "hover",
+      "pivot": [
+        0.07641646443924505,
+        2.4922630773073915,
+        0.014704983174597753
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "orbit_inner",
+      "parent": "hover",
+      "pivot": [
+        0.07641646443924505,
+        2.4922630773073915,
+        0.014704983174597753
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "inner_fragment_00",
+      "parent": "orbit_inner",
+      "pivot": [
+        1.121215675515155,
+        2.4922630773073915,
+        0.014704983174597753
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "inner_fragment_01",
+      "parent": "orbit_inner",
+      "pivot": [
+        0.5988160699772002,
+        2.5580683615725315,
+        0.9195276418202757
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "inner_fragment_02",
+      "parent": "orbit_inner",
+      "pivot": [
+        -0.44598314109870973,
+        2.426457793042251,
+        0.9195276418202758
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "inner_fragment_03",
+      "parent": "orbit_inner",
+      "pivot": [
+        -0.968382746636665,
+        2.4922630773073915,
+        0.014704983174597881
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "inner_fragment_04",
+      "parent": "orbit_inner",
+      "pivot": [
+        -0.4459831410987104,
+        2.5580683615725315,
+        -0.8901176754710799
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "inner_fragment_05",
+      "parent": "orbit_inner",
+      "pivot": [
+        0.5988160699772002,
+        2.426457793042251,
+        -0.8901176754710801
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "orbit_middle",
+      "parent": "hover",
+      "pivot": [
+        0.07641646443924505,
+        2.4922630773073915,
+        0.014704983174597753
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "middle_fragment_00",
+      "parent": "orbit_middle",
+      "pivot": [
+        0.09186402642899384,
+        4.120502289619986,
+        0.14799842621813653
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "middle_fragment_01",
+      "parent": "orbit_middle",
+      "pivot": [
+        0.1703203337966082,
+        3.7311883509276798,
+        1.0795966400372257
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "middle_fragment_02",
+      "parent": "orbit_middle",
+      "pivot": [
+        0.11900468538747647,
+        2.8686470672336872,
+        1.6044424352709812
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "middle_fragment_03",
+      "parent": "orbit_middle",
+      "pivot": [
+        0.008833563148279207,
+        1.8623398922091474,
+        1.522062556992576
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "middle_fragment_04",
+      "parent": "orbit_middle",
+      "pivot": [
+        -0.0079402865651324,
+        1.096641963590546,
+        0.8639233187152823
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "middle_fragment_05",
+      "parent": "orbit_middle",
+      "pivot": [
+        0.09186402642899379,
+        0.8640238649947973,
+        -0.11858845986894052
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "middle_fragment_06",
+      "parent": "orbit_middle",
+      "pivot": [
+        0.1703203337966082,
+        1.253337803687103,
+        -1.0501866736880299
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "middle_fragment_07",
+      "parent": "orbit_middle",
+      "pivot": [
+        0.11900468538747641,
+        2.115879087381096,
+        -1.5750324689217858
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "middle_fragment_08",
+      "parent": "orbit_middle",
+      "pivot": [
+        0.008833563148279155,
+        3.1221862624056356,
+        -1.4926525906433805
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "middle_fragment_09",
+      "parent": "orbit_middle",
+      "pivot": [
+        -0.007940286565132374,
+        3.887884191024238,
+        -0.8345133523660861
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "orbit_outer",
+      "parent": "hover",
+      "pivot": [
+        0.07641646443924505,
+        2.4922630773073915,
+        0.014704983174597753
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_00",
+      "parent": "orbit_outer",
+      "pivot": [
+        2.2838751882664057,
+        2.7510219082743994,
+        0.045457023660456355
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_01",
+      "parent": "orbit_outer",
+      "pivot": [
+        1.9529968026774671,
+        3.6831771733452916,
+        0.13502385833889718
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_02",
+      "parent": "orbit_outer",
+      "pivot": [
+        1.2504386663529439,
+        4.3794572960929825,
+        0.13398812596084864
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_03",
+      "parent": "orbit_outer",
+      "pivot": [
+        0.31535103450200436,
+        4.701955458891981,
+        0.043129754132071534
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_04",
+      "parent": "orbit_outer",
+      "pivot": [
+        -0.6670605192900629,
+        4.586796945419536,
+        -0.06913304998734272
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_05",
+      "parent": "orbit_outer",
+      "pivot": [
+        -1.502217338307714,
+        4.056790311595349,
+        -0.11826410515160443
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_06",
+      "parent": "orbit_outer",
+      "pivot": [
+        -2.024706372018284,
+        3.2169098713530944,
+        -0.06726672473114223
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_07",
+      "parent": "orbit_outer",
+      "pivot": [
+        -2.131042259387915,
+        2.233504246340384,
+        0.04545702366045629
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_08",
+      "parent": "orbit_outer",
+      "pivot": [
+        -1.800163873798977,
+        1.3013489812694918,
+        0.13502385833889716
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_09",
+      "parent": "orbit_outer",
+      "pivot": [
+        -1.0976057374744548,
+        0.6050688585218008,
+        0.1339881259608487
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_10",
+      "parent": "orbit_outer",
+      "pivot": [
+        -0.16251810562351549,
+        0.2825706957228029,
+        0.04312975413207168
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_11",
+      "parent": "orbit_outer",
+      "pivot": [
+        0.8198934481685537,
+        0.3977292091952482,
+        -0.06913304998734279
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_12",
+      "parent": "orbit_outer",
+      "pivot": [
+        1.655050267186203,
+        0.9277358430194338,
+        -0.11826410515160443
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_13",
+      "parent": "orbit_outer",
+      "pivot": [
+        2.1775393008967745,
+        1.767616283261689,
+        -0.06726672473114217
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "inner_fragment_00__glow",
+      "parent": "inner_fragment_00",
+      "pivot": [
+        1.121215675515155,
+        2.4922630773073915,
+        0.014704983174597753
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "inner_fragment_03__glow",
+      "parent": "inner_fragment_03",
+      "pivot": [
+        -0.968382746636665,
+        2.4922630773073915,
+        0.014704983174597881
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "middle_fragment_00__glow",
+      "parent": "middle_fragment_00",
+      "pivot": [
+        0.09186402642899384,
+        4.120502289619986,
+        0.14799842621813653
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "middle_fragment_05__glow",
+      "parent": "middle_fragment_05",
+      "pivot": [
+        0.09186402642899379,
+        0.8640238649947973,
+        -0.11858845986894052
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_00__glow",
+      "parent": "outer_fragment_00",
+      "pivot": [
+        2.2838751882664057,
+        2.7510219082743994,
+        0.045457023660456355
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "outer_fragment_07__glow",
+      "parent": "outer_fragment_07",
+      "pivot": [
+        -2.131042259387915,
+        2.233504246340384,
+        0.04545702366045629
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "idle": {
+      "loop": true,
+      "frames": 240,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "hover",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60.0,
+              0.09
+            ],
+            [
+              120.0,
+              0
+            ],
+            [
+              180.0,
+              -0.09
+            ],
+            [
+              240,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "orbit_inner",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60.0,
+              270.0
+            ],
+            [
+              120.0,
+              540.0
+            ],
+            [
+              180.0,
+              810.0
+            ],
+            [
+              240,
+              1080
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "orbit_middle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60.0,
+              -180.0
+            ],
+            [
+              120.0,
+              -360.0
+            ],
+            [
+              180.0,
+              -540.0
+            ],
+            [
+              240,
+              -720
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "orbit_outer",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              60.0,
+              90.0
+            ],
+            [
+              120.0,
+              180.0
+            ],
+            [
+              180.0,
+              270.0
+            ],
+            [
+              240,
+              360
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.12
+            ],
+            [
+              240,
+              0.12
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              240,
+              0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.060000000000000005
+            ],
+            [
+              240,
+              0.060000000000000005
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.10392304845413261
+            ],
+            [
+              240,
+              0.10392304845413261
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.05999999999999997
+            ],
+            [
+              240,
+              -0.05999999999999997
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.10392304845413265
+            ],
+            [
+              240,
+              0.10392304845413265
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.11999999999999998
+            ],
+            [
+              240,
+              -0.11999999999999998
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              1.4743832406621946e-17
+            ],
+            [
+              240,
+              1.4743832406621946e-17
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.06000000000000003
+            ],
+            [
+              240,
+              -0.06000000000000003
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.1039230484541326
+            ],
+            [
+              240,
+              -0.1039230484541326
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.060000000000000005
+            ],
+            [
+              240,
+              0.060000000000000005
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.10392304845413261
+            ],
+            [
+              240,
+              -0.10392304845413261
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "walk": {
+      "loop": true,
+      "frames": 120,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "hover",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              0.09
+            ],
+            [
+              60.0,
+              0
+            ],
+            [
+              90.0,
+              -0.09
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "orbit_inner",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              270.0
+            ],
+            [
+              60.0,
+              540.0
+            ],
+            [
+              90.0,
+              810.0
+            ],
+            [
+              120,
+              1080
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "orbit_middle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              -180.0
+            ],
+            [
+              60.0,
+              -360.0
+            ],
+            [
+              90.0,
+              -540.0
+            ],
+            [
+              120,
+              -720
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "orbit_outer",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              30.0,
+              90.0
+            ],
+            [
+              60.0,
+              180.0
+            ],
+            [
+              90.0,
+              270.0
+            ],
+            [
+              120,
+              360
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.12
+            ],
+            [
+              120,
+              0.12
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              120,
+              0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.060000000000000005
+            ],
+            [
+              120,
+              0.060000000000000005
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.10392304845413261
+            ],
+            [
+              120,
+              0.10392304845413261
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.05999999999999997
+            ],
+            [
+              120,
+              -0.05999999999999997
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.10392304845413265
+            ],
+            [
+              120,
+              0.10392304845413265
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.11999999999999998
+            ],
+            [
+              120,
+              -0.11999999999999998
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              1.4743832406621946e-17
+            ],
+            [
+              120,
+              1.4743832406621946e-17
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.06000000000000003
+            ],
+            [
+              120,
+              -0.06000000000000003
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.1039230484541326
+            ],
+            [
+              120,
+              -0.1039230484541326
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.060000000000000005
+            ],
+            [
+              120,
+              0.060000000000000005
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.10392304845413261
+            ],
+            [
+              120,
+              -0.10392304845413261
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 28,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "orbit_inner",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              43.2
+            ],
+            [
+              16,
+              108.0
+            ],
+            [
+              28,
+              140.4
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "orbit_middle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -28.8
+            ],
+            [
+              16,
+              -72.0
+            ],
+            [
+              28,
+              -93.60000000000001
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "orbit_outer",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              14.4
+            ],
+            [
+              16,
+              36.0
+            ],
+            [
+              28,
+              46.800000000000004
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.12
+            ],
+            [
+              12,
+              0.0677600394462045
+            ],
+            [
+              16,
+              0.4020957869904957
+            ],
+            [
+              28,
+              0.12
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.0
+            ],
+            [
+              16,
+              0.0
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              12,
+              0.0
+            ],
+            [
+              16,
+              0.0
+            ],
+            [
+              28,
+              0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.060000000000000005
+            ],
+            [
+              12,
+              0.03388001972310224
+            ],
+            [
+              16,
+              0.2010478934952479
+            ],
+            [
+              28,
+              0.060000000000000005
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.0032902642132569995
+            ],
+            [
+              16,
+              0.0177674267515878
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.10392304845413261
+            ],
+            [
+              12,
+              0.05868191552184871
+            ],
+            [
+              16,
+              0.34822516628846567
+            ],
+            [
+              28,
+              0.10392304845413261
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.05999999999999997
+            ],
+            [
+              12,
+              -0.03388001972310223
+            ],
+            [
+              16,
+              -0.20104789349524776
+            ],
+            [
+              28,
+              -0.05999999999999997
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.0032902642132570216
+            ],
+            [
+              16,
+              -0.017767426751587916
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.10392304845413265
+            ],
+            [
+              12,
+              0.058681915521848746
+            ],
+            [
+              16,
+              0.3482251662884657
+            ],
+            [
+              28,
+              0.10392304845413265
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.11999999999999998
+            ],
+            [
+              12,
+              -0.06776003944620447
+            ],
+            [
+              16,
+              -0.40209578699049575
+            ],
+            [
+              28,
+              -0.11999999999999998
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.0
+            ],
+            [
+              16,
+              0.0
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              1.4743832406621946e-17
+            ],
+            [
+              12,
+              8.32535554550776e-18
+            ],
+            [
+              16,
+              4.940360745663855e-17
+            ],
+            [
+              28,
+              1.4743832406621946e-17
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.06000000000000003
+            ],
+            [
+              12,
+              -0.03388001972310226
+            ],
+            [
+              16,
+              -0.201047893495248
+            ],
+            [
+              28,
+              -0.06000000000000003
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.0032902642132569995
+            ],
+            [
+              16,
+              0.0177674267515878
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.1039230484541326
+            ],
+            [
+              12,
+              -0.05868191552184871
+            ],
+            [
+              16,
+              -0.34822516628846556
+            ],
+            [
+              28,
+              -0.1039230484541326
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.060000000000000005
+            ],
+            [
+              12,
+              0.03388001972310224
+            ],
+            [
+              16,
+              0.2010478934952479
+            ],
+            [
+              28,
+              0.060000000000000005
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.0032902642132570216
+            ],
+            [
+              16,
+              -0.017767426751587916
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.10392304845413261
+            ],
+            [
+              12,
+              -0.05868191552184871
+            ],
+            [
+              16,
+              -0.34822516628846567
+            ],
+            [
+              28,
+              -0.10392304845413261
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.0011585671492311599
+            ],
+            [
+              16,
+              0.004170841737232175
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.12211794092344459
+            ],
+            [
+              16,
+              0.4396245873244005
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.009997008228265408
+            ],
+            [
+              16,
+              0.03598922962175547
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.0070427902018022365
+            ],
+            [
+              16,
+              0.02535404472648805
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.09291939552152163
+            ],
+            [
+              16,
+              0.33450982387747785
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.0798668742646971
+            ],
+            [
+              16,
+              0.28752074735290956
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.003194116571117357
+            ],
+            [
+              16,
+              0.011498819656022485
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.028228799244472184
+            ],
+            [
+              16,
+              0.10162367728009986
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.11923030890722877
+            ],
+            [
+              16,
+              0.42922911206602354
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.005068717596822438
+            ],
+            [
+              16,
+              -0.018247383348560776
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.04724423888236831
+            ],
+            [
+              16,
+              -0.1700792599765259
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.1130518180363484
+            ],
+            [
+              16,
+              0.4069865449308542
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.00632675632532831
+            ],
+            [
+              16,
+              -0.02277632277118191
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.10467158352876343
+            ],
+            [
+              16,
+              -0.3768177007035483
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.06369137516555134
+            ],
+            [
+              16,
+              0.22928895059598484
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.0011585671492311557
+            ],
+            [
+              16,
+              0.00417084173723216
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.12211794092344458
+            ],
+            [
+              16,
+              -0.43962458732440046
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.009997008228265372
+            ],
+            [
+              16,
+              -0.03598922962175533
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.0070427902018022365
+            ],
+            [
+              16,
+              0.02535404472648805
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.09291939552152165
+            ],
+            [
+              16,
+              -0.3345098238774779
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.07986687426469709
+            ],
+            [
+              16,
+              -0.2875207473529095
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.003194116571117353
+            ],
+            [
+              16,
+              0.01149881965602247
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.02822879924447215
+            ],
+            [
+              16,
+              -0.10162367728009973
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.11923030890722879
+            ],
+            [
+              16,
+              -0.4292291120660236
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.0050687175968224425
+            ],
+            [
+              16,
+              -0.01824738334856079
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.04724423888236831
+            ],
+            [
+              16,
+              0.1700792599765259
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.1130518180363484
+            ],
+            [
+              16,
+              -0.4069865449308542
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.006326756325328308
+            ],
+            [
+              16,
+              -0.022776322771181905
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.10467158352876349
+            ],
+            [
+              16,
+              0.37681770070354853
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.0636913751655513
+            ],
+            [
+              16,
+              -0.22928895059598467
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.2207458723827161
+            ],
+            [
+              16,
+              0.5960138554333334
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.025875883096700792
+            ],
+            [
+              16,
+              0.06986488436109214
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.003075204048585861
+            ],
+            [
+              16,
+              0.008303050931181824
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.1876580338238222
+            ],
+            [
+              16,
+              0.50667669132432
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.11909140960379001
+            ],
+            [
+              16,
+              0.32154680593023305
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.012031887516429944
+            ],
+            [
+              16,
+              0.03248609629436085
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.11740222019136988
+            ],
+            [
+              16,
+              0.3169859945166987
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.1887194218785591
+            ],
+            [
+              16,
+              0.5095424390721096
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.011928314278625089
+            ],
+            [
+              16,
+              0.03220644855228774
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.02389345700627593
+            ],
+            [
+              16,
+              0.06451233391694502
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.22096923815845898
+            ],
+            [
+              16,
+              0.5966169430278393
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.0028424770957473783
+            ],
+            [
+              16,
+              0.007674688158517922
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.0743476983729308
+            ],
+            [
+              16,
+              -0.2007387856069132
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.20945338681121448
+            ],
+            [
+              16,
+              0.5655241443902791
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.008383803316194049
+            ],
+            [
+              16,
+              -0.02263626895372393
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.15786338027469593
+            ],
+            [
+              16,
+              -0.42623112674167896
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.15645272342879576
+            ],
+            [
+              16,
+              0.4224223532577486
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.013296908832620219
+            ],
+            [
+              16,
+              -0.035901653848074595
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.21011228364575288
+            ],
+            [
+              16,
+              -0.5673031658435328
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.07246467940457028
+            ],
+            [
+              16,
+              0.1956546343923398
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.008197170790573999
+            ],
+            [
+              16,
+              -0.022132361134549798
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.220745872382716
+            ],
+            [
+              16,
+              -0.5960138554333332
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.025875883096700747
+            ],
+            [
+              16,
+              -0.06986488436109202
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.0030752040485858543
+            ],
+            [
+              16,
+              0.008303050931181806
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.1876580338238222
+            ],
+            [
+              16,
+              -0.50667669132432
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.11909140960378997
+            ],
+            [
+              16,
+              -0.32154680593023294
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.01203188751642994
+            ],
+            [
+              16,
+              0.03248609629436084
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.11740222019136999
+            ],
+            [
+              16,
+              -0.316985994516699
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.18871942187855906
+            ],
+            [
+              16,
+              -0.5095424390721095
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.011928314278625094
+            ],
+            [
+              16,
+              0.032206448552287756
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.023893457006276056
+            ],
+            [
+              16,
+              -0.06451233391694534
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.22096923815845884
+            ],
+            [
+              16,
+              -0.5966169430278389
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.002842477095747393
+            ],
+            [
+              16,
+              0.007674688158517962
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.07434769837293087
+            ],
+            [
+              16,
+              0.20073878560691336
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.20945338681121434
+            ],
+            [
+              16,
+              -0.5655241443902788
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.008383803316194056
+            ],
+            [
+              16,
+              -0.02263626895372395
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_12",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.15786338027469582
+            ],
+            [
+              16,
+              0.4262311267416787
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_12",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.1564527234287958
+            ],
+            [
+              16,
+              -0.42242235325774863
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_12",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.013296908832620219
+            ],
+            [
+              16,
+              -0.035901653848074595
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_13",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.21011228364575296
+            ],
+            [
+              16,
+              0.567303165843533
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_13",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.07246467940457024
+            ],
+            [
+              16,
+              -0.19565463439233965
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_13",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.008197170790573994
+            ],
+            [
+              16,
+              -0.022132361134549784
+            ],
+            [
+              28,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 48,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "orbit_inner",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              37.800000000000004
+            ],
+            [
+              24,
+              49.68
+            ],
+            [
+              48,
+              54.0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "orbit_middle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -25.200000000000003
+            ],
+            [
+              24,
+              -33.12
+            ],
+            [
+              48,
+              -36.0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "orbit_outer",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              12.600000000000001
+            ],
+            [
+              24,
+              16.56
+            ],
+            [
+              48,
+              18.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.12
+            ],
+            [
+              12,
+              0.2767198816613865
+            ],
+            [
+              32,
+              0.7886714950885825
+            ],
+            [
+              48,
+              1.2170391716297058
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.0
+            ],
+            [
+              32,
+              -0.25
+            ],
+            [
+              48,
+              -0.8
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              12,
+              0.0
+            ],
+            [
+              32,
+              0.0
+            ],
+            [
+              48,
+              0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              32
+            ],
+            [
+              48,
+              51
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.060000000000000005
+            ],
+            [
+              12,
+              0.13835994083069328
+            ],
+            [
+              32,
+              0.3943357475442913
+            ],
+            [
+              48,
+              0.608519585814853
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.009870792639771031
+            ],
+            [
+              32,
+              -0.20788461807031028
+            ],
+            [
+              48,
+              -0.7309044515216028
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.10392304845413261
+            ],
+            [
+              12,
+              0.2396464472509843
+            ],
+            [
+              32,
+              0.6830095499873664
+            ],
+            [
+              48,
+              1.0539868400320944
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              32
+            ],
+            [
+              48,
+              51
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.05999999999999997
+            ],
+            [
+              12,
+              -0.1383599408306932
+            ],
+            [
+              32,
+              -0.3943357475442911
+            ],
+            [
+              48,
+              -0.6085195858148525
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.00987079263977103
+            ],
+            [
+              32,
+              -0.2921153819296897
+            ],
+            [
+              48,
+              -0.8690955484783972
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.10392304845413265
+            ],
+            [
+              12,
+              0.23964644725098433
+            ],
+            [
+              32,
+              0.6830095499873666
+            ],
+            [
+              48,
+              1.0539868400320946
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              32
+            ],
+            [
+              48,
+              51
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.11999999999999998
+            ],
+            [
+              12,
+              -0.2767198816613865
+            ],
+            [
+              32,
+              -0.7886714950885825
+            ],
+            [
+              48,
+              -1.2170391716297055
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -2.7916582027544574e-18
+            ],
+            [
+              32,
+              -0.25
+            ],
+            [
+              48,
+              -0.8
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              1.4743832406621946e-17
+            ],
+            [
+              12,
+              3.393648255055884e-17
+            ],
+            [
+              32,
+              9.663247302075271e-17
+            ],
+            [
+              48,
+              1.4909238341418022e-16
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              32
+            ],
+            [
+              48,
+              51
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.06000000000000003
+            ],
+            [
+              12,
+              -0.13835994083069333
+            ],
+            [
+              32,
+              -0.3943357475442915
+            ],
+            [
+              48,
+              -0.6085195858148532
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.009870792639771036
+            ],
+            [
+              32,
+              -0.20788461807031022
+            ],
+            [
+              48,
+              -0.7309044515216028
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.1039230484541326
+            ],
+            [
+              12,
+              -0.23964644725098422
+            ],
+            [
+              32,
+              -0.6830095499873663
+            ],
+            [
+              48,
+              -1.0539868400320942
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              32
+            ],
+            [
+              48,
+              51
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.060000000000000005
+            ],
+            [
+              12,
+              0.13835994083069328
+            ],
+            [
+              32,
+              0.3943357475442913
+            ],
+            [
+              48,
+              0.608519585814853
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.009870792639771031
+            ],
+            [
+              32,
+              -0.2921153819296897
+            ],
+            [
+              48,
+              -0.8690955484783973
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.10392304845413261
+            ],
+            [
+              12,
+              -0.2396464472509843
+            ],
+            [
+              32,
+              -0.6830095499873664
+            ],
+            [
+              48,
+              -1.0539868400320944
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              32
+            ],
+            [
+              48,
+              51
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              40,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.00231713429846232
+            ],
+            [
+              32,
+              0.009886439673439234
+            ],
+            [
+              48,
+              0.016219940089236242
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.2442358818468891
+            ],
+            [
+              32,
+              0.7920730958800604
+            ],
+            [
+              48,
+              0.909651172928224
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.019994016456530813
+            ],
+            [
+              32,
+              0.08530780354786481
+            ],
+            [
+              48,
+              0.13995811519571572
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_00",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              46
+            ],
+            [
+              48,
+              68
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_00",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.014085580403604468
+            ],
+            [
+              32,
+              0.0600984763887124
+            ],
+            [
+              48,
+              0.09859906282523129
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.1858387910430432
+            ],
+            [
+              32,
+              0.5429121751169843
+            ],
+            [
+              48,
+              0.5008715373013024
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.15973374852939418
+            ],
+            [
+              32,
+              0.6815306603920819
+            ],
+            [
+              48,
+              1.1181362397057593
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_01",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              46
+            ],
+            [
+              48,
+              68
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_01",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.006388233142234711
+            ],
+            [
+              32,
+              0.0272564614068681
+            ],
+            [
+              48,
+              0.04471763199564298
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.05645759848894435
+            ],
+            [
+              32,
+              -0.009114246447170765
+            ],
+            [
+              48,
+              -0.4047968105773896
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.2384606178144575
+            ],
+            [
+              32,
+              1.0174319693416853
+            ],
+            [
+              48,
+              1.6692243247012026
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_02",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              46
+            ],
+            [
+              48,
+              68
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_02",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.010137435193644876
+            ],
+            [
+              32,
+              -0.04325305682621815
+            ],
+            [
+              48,
+              -0.07096204635551415
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.09448847776473658
+            ],
+            [
+              32,
+              -0.6531508384628761
+            ],
+            [
+              48,
+              -1.461419344353156
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.22610363607269673
+            ],
+            [
+              32,
+              0.9647088472435061
+            ],
+            [
+              48,
+              1.5827254525088772
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_03",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              46
+            ],
+            [
+              48,
+              68
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_03",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.012653512650656618
+            ],
+            [
+              32,
+              -0.05398832064280157
+            ],
+            [
+              48,
+              -0.08857458855459632
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.2093431670575268
+            ],
+            [
+              32,
+              -1.143197512778781
+            ],
+            [
+              48,
+              -2.265402169402688
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.12738275033110266
+            ],
+            [
+              32,
+              0.5434997347460381
+            ],
+            [
+              48,
+              0.8916792523177187
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_04",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              46
+            ],
+            [
+              48,
+              68
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_04",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.0023171342984623115
+            ],
+            [
+              32,
+              0.009886439673439195
+            ],
+            [
+              48,
+              0.01621994008923618
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.2442358818468891
+            ],
+            [
+              32,
+              -1.2920730958800604
+            ],
+            [
+              48,
+              -2.509651172928224
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.01999401645653074
+            ],
+            [
+              32,
+              -0.08530780354786449
+            ],
+            [
+              48,
+              -0.1399581151957152
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_05",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              46
+            ],
+            [
+              48,
+              68
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_05",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.014085580403604468
+            ],
+            [
+              32,
+              0.0600984763887124
+            ],
+            [
+              48,
+              0.09859906282523129
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.18583879104304327
+            ],
+            [
+              32,
+              -1.0429121751169848
+            ],
+            [
+              48,
+              -2.1008715373013027
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.15973374852939415
+            ],
+            [
+              32,
+              -0.6815306603920818
+            ],
+            [
+              48,
+              -1.118136239705759
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_06",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              46
+            ],
+            [
+              48,
+              68
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_06",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.006388233142234702
+            ],
+            [
+              32,
+              0.027256461406868066
+            ],
+            [
+              48,
+              0.04471763199564292
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.05645759848894427
+            ],
+            [
+              32,
+              -0.49088575355282893
+            ],
+            [
+              48,
+              -1.19520318942261
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.23846061781445754
+            ],
+            [
+              32,
+              -1.0174319693416856
+            ],
+            [
+              48,
+              -1.6692243247012029
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_07",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              46
+            ],
+            [
+              48,
+              68
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_07",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.010137435193644883
+            ],
+            [
+              32,
+              -0.04325305682621817
+            ],
+            [
+              48,
+              -0.07096204635551419
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.09448847776473664
+            ],
+            [
+              32,
+              0.15315083846287636
+            ],
+            [
+              48,
+              -0.13858065564684352
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.2261036360726967
+            ],
+            [
+              32,
+              -0.964708847243506
+            ],
+            [
+              48,
+              -1.582725452508877
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_08",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              46
+            ],
+            [
+              48,
+              68
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_08",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.012653512650656612
+            ],
+            [
+              32,
+              -0.053988320642801554
+            ],
+            [
+              48,
+              -0.0885745885545963
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.20934316705752684
+            ],
+            [
+              32,
+              0.6431975127787812
+            ],
+            [
+              48,
+              0.6654021694026879
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.12738275033110258
+            ],
+            [
+              32,
+              -0.5434997347460377
+            ],
+            [
+              48,
+              -0.8916792523177182
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_09",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              46
+            ],
+            [
+              48,
+              68
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_09",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              43,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.33111880857407405
+            ],
+            [
+              32,
+              1.4127735832493826
+            ],
+            [
+              48,
+              2.3178316600185185
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.03881382464505122
+            ],
+            [
+              32,
+              -0.0843943481811148
+            ],
+            [
+              48,
+              -0.5283032274846415
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.00461280607287879
+            ],
+            [
+              32,
+              0.019681305910949506
+            ],
+            [
+              48,
+              0.03228964251015153
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_00",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_00",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.28148705073573327
+            ],
+            [
+              32,
+              1.201011416472462
+            ],
+            [
+              48,
+              1.970409355150133
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.17863711440568505
+            ],
+            [
+              32,
+              0.5121850214642563
+            ],
+            [
+              48,
+              0.4504598008397953
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.018047831274644915
+            ],
+            [
+              32,
+              0.07700408010515164
+            ],
+            [
+              48,
+              0.1263348189225144
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_01",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_01",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.1761033302870548
+            ],
+            [
+              32,
+              0.7513742092247673
+            ],
+            [
+              48,
+              1.2327233120093837
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.28307913281783864
+            ],
+            [
+              32,
+              0.9578043000227783
+            ],
+            [
+              48,
+              1.1815539297248705
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.017892471417937632
+            ],
+            [
+              32,
+              0.07634121138320057
+            ],
+            [
+              48,
+              0.12524729992556344
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_02",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_02",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.0358401855094139
+            ],
+            [
+              32,
+              0.15291812484016595
+            ],
+            [
+              48,
+              0.2508812985658973
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.33145385723768833
+            ],
+            [
+              32,
+              1.1642031242141369
+            ],
+            [
+              48,
+              1.5201770006638184
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.0042637156436210666
+            ],
+            [
+              32,
+              0.018191853412783218
+            ],
+            [
+              48,
+              0.029846009505347465
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_03",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_03",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.11152154755939621
+            ],
+            [
+              32,
+              -0.47582526958675714
+            ],
+            [
+              48,
+              -0.7806508329157734
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.31418008021682153
+            ],
+            [
+              32,
+              1.090501675591772
+            ],
+            [
+              48,
+              1.3992605615177511
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.012575704974291071
+            ],
+            [
+              32,
+              -0.05365634122364191
+            ],
+            [
+              48,
+              -0.08802993482003751
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_04",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_04",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.23679507041204384
+            ],
+            [
+              32,
+              -1.0103256337580537
+            ],
+            [
+              48,
+              -1.657565492884307
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.23467908514319347
+            ],
+            [
+              32,
+              0.7512974299442923
+            ],
+            [
+              48,
+              0.8427535960023544
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.01994536324893033
+            ],
+            [
+              32,
+              -0.08510021652876941
+            ],
+            [
+              48,
+              -0.1396175427425123
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_05",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_05",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.3151684254686294
+            ],
+            [
+              32,
+              -1.3447186153328188
+            ],
+            [
+              48,
+              -2.2061789782804055
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.10869701910685546
+            ],
+            [
+              32,
+              0.21377394818925
+            ],
+            [
+              48,
+              -0.03912086625201172
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.012295756185860998
+            ],
+            [
+              32,
+              -0.052461893059673595
+            ],
+            [
+              48,
+              -0.08607029330102699
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_06",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_06",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.33111880857407405
+            ],
+            [
+              32,
+              -1.4127735832493826
+            ],
+            [
+              48,
+              -2.3178316600185185
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.038813824645051155
+            ],
+            [
+              32,
+              -0.4156056518188849
+            ],
+            [
+              48,
+              -1.071696772515358
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.004612806072878781
+            ],
+            [
+              32,
+              0.01968130591094947
+            ],
+            [
+              48,
+              0.03228964251015147
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_07",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_07",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.28148705073573327
+            ],
+            [
+              32,
+              -1.2010114164724621
+            ],
+            [
+              48,
+              -1.9704093551501332
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.17863711440568497
+            ],
+            [
+              32,
+              -1.0121850214642558
+            ],
+            [
+              48,
+              -2.050459800839795
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.01804783127464491
+            ],
+            [
+              32,
+              0.07700408010515163
+            ],
+            [
+              48,
+              0.12633481892251439
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_08",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_08",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.17610333028705497
+            ],
+            [
+              32,
+              -0.7513742092247679
+            ],
+            [
+              48,
+              -1.232723312009385
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.2830791328178386
+            ],
+            [
+              32,
+              -1.457804300022778
+            ],
+            [
+              48,
+              -2.78155392972487
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.017892471417937643
+            ],
+            [
+              32,
+              0.0763412113832006
+            ],
+            [
+              48,
+              0.1252472999255635
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_09",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_09",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.03584018550941408
+            ],
+            [
+              32,
+              -0.15291812484016673
+            ],
+            [
+              48,
+              -0.2508812985658986
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.33145385723768833
+            ],
+            [
+              32,
+              -1.6642031242141369
+            ],
+            [
+              48,
+              -3.1201770006638183
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.004263715643621088
+            ],
+            [
+              32,
+              0.018191853412783312
+            ],
+            [
+              48,
+              0.029846009505347618
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_10",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_10",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.11152154755939629
+            ],
+            [
+              32,
+              0.4758252695867575
+            ],
+            [
+              48,
+              0.7806508329157741
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.3141800802168215
+            ],
+            [
+              32,
+              -1.5905016755917718
+            ],
+            [
+              48,
+              -2.999260561517751
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.01257570497429108
+            ],
+            [
+              32,
+              -0.05365634122364194
+            ],
+            [
+              48,
+              -0.08802993482003757
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_11",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_11",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_12",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.23679507041204367
+            ],
+            [
+              32,
+              1.010325633758053
+            ],
+            [
+              48,
+              1.657565492884306
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_12",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.23467908514319363
+            ],
+            [
+              32,
+              -1.251297429944293
+            ],
+            [
+              48,
+              -2.4427535960023556
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_12",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.01994536324893033
+            ],
+            [
+              32,
+              -0.08510021652876941
+            ],
+            [
+              48,
+              -0.1396175427425123
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_12",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_12",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_13",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0.31516842546862944
+            ],
+            [
+              32,
+              1.344718615332819
+            ],
+            [
+              48,
+              2.206178978280406
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_13",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.10869701910685536
+            ],
+            [
+              32,
+              -0.7137739481892496
+            ],
+            [
+              48,
+              -1.5608791337479877
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_13",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              -0.012295756185860988
+            ],
+            [
+              32,
+              -0.052461893059673546
+            ],
+            [
+              48,
+              -0.08607029330102692
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_13",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              60
+            ],
+            [
+              48,
+              85
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_13",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "core_stage_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              18,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "core_stage_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "core_stage_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "core_stage_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "core_stage_4",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 56,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "core_stage_0",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "core_stage_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              9,
+              1
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "core_stage_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              1
+            ],
+            [
+              9,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "core_stage_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              6,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "core_stage_4",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "orbit_inner",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -120
+            ],
+            [
+              8,
+              -120
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.6215036213164368
+            ],
+            [
+              8,
+              0.6215036213164368
+            ],
+            [
+              32,
+              0.12
+            ],
+            [
+              56,
+              0.12
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              8,
+              0.0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              8,
+              0.0
+            ],
+            [
+              32,
+              0.0
+            ],
+            [
+              56,
+              0.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_00",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.3107518106582185
+            ],
+            [
+              8,
+              0.3107518106582185
+            ],
+            [
+              32,
+              0.060000000000000005
+            ],
+            [
+              56,
+              0.060000000000000005
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.031586536447267194
+            ],
+            [
+              8,
+              0.031586536447267194
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.538237924604058
+            ],
+            [
+              8,
+              0.538237924604058
+            ],
+            [
+              32,
+              0.10392304845413261
+            ],
+            [
+              56,
+              0.10392304845413261
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_01",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.3107518106582182
+            ],
+            [
+              8,
+              -0.3107518106582182
+            ],
+            [
+              32,
+              -0.05999999999999997
+            ],
+            [
+              56,
+              -0.05999999999999997
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0315865364472674
+            ],
+            [
+              8,
+              -0.0315865364472674
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.5382379246040581
+            ],
+            [
+              8,
+              0.5382379246040581
+            ],
+            [
+              32,
+              0.10392304845413265
+            ],
+            [
+              56,
+              0.10392304845413265
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_02",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.6215036213164369
+            ],
+            [
+              8,
+              -0.6215036213164369
+            ],
+            [
+              32,
+              -0.11999999999999998
+            ],
+            [
+              56,
+              -0.11999999999999998
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0
+            ],
+            [
+              8,
+              0.0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              7.636121027331813e-17
+            ],
+            [
+              8,
+              7.636121027331813e-17
+            ],
+            [
+              32,
+              1.4743832406621946e-17
+            ],
+            [
+              56,
+              1.4743832406621946e-17
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_03",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.3107518106582186
+            ],
+            [
+              8,
+              -0.3107518106582186
+            ],
+            [
+              32,
+              -0.06000000000000003
+            ],
+            [
+              56,
+              -0.06000000000000003
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.031586536447267194
+            ],
+            [
+              8,
+              0.031586536447267194
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.5382379246040578
+            ],
+            [
+              8,
+              -0.5382379246040578
+            ],
+            [
+              32,
+              -0.1039230484541326
+            ],
+            [
+              56,
+              -0.1039230484541326
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_04",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.3107518106582185
+            ],
+            [
+              8,
+              0.3107518106582185
+            ],
+            [
+              32,
+              0.060000000000000005
+            ],
+            [
+              56,
+              0.060000000000000005
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0315865364472674
+            ],
+            [
+              8,
+              -0.0315865364472674
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.538237924604058
+            ],
+            [
+              8,
+              -0.538237924604058
+            ],
+            [
+              32,
+              -0.10392304845413261
+            ],
+            [
+              56,
+              -0.10392304845413261
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "inner_fragment_05",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "orbit_middle",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              95
+            ],
+            [
+              18,
+              95
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.007414829755079421
+            ],
+            [
+              18,
+              0.007414829755079421
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.7815548219100453
+            ],
+            [
+              18,
+              0.7815548219100453
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0639808526608986
+            ],
+            [
+              18,
+              0.0639808526608986
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_00",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045073857291534306
+            ],
+            [
+              18,
+              0.045073857291534306
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.5946841313377383
+            ],
+            [
+              18,
+              0.5946841313377383
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.5111479952940614
+            ],
+            [
+              18,
+              0.5111479952940614
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_01",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.020442346055151082
+            ],
+            [
+              18,
+              0.020442346055151082
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.18066431516462195
+            ],
+            [
+              18,
+              0.18066431516462195
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.763073977006264
+            ],
+            [
+              18,
+              0.763073977006264
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_02",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.0324397926196636
+            ],
+            [
+              18,
+              -0.0324397926196636
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.30236312884715716
+            ],
+            [
+              18,
+              -0.30236312884715716
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.7235316354326295
+            ],
+            [
+              18,
+              0.7235316354326295
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_03",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.040491240482101176
+            ],
+            [
+              18,
+              -0.040491240482101176
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.6698981345840858
+            ],
+            [
+              18,
+              -0.6698981345840858
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.40762480105952853
+            ],
+            [
+              18,
+              0.40762480105952853
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_04",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.007414829755079395
+            ],
+            [
+              18,
+              0.007414829755079395
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.7815548219100452
+            ],
+            [
+              18,
+              -0.7815548219100452
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.06398085266089837
+            ],
+            [
+              18,
+              -0.06398085266089837
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_05",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.045073857291534306
+            ],
+            [
+              18,
+              0.045073857291534306
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.5946841313377385
+            ],
+            [
+              18,
+              -0.5946841313377385
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.5111479952940613
+            ],
+            [
+              18,
+              -0.5111479952940613
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_06",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.020442346055151054
+            ],
+            [
+              18,
+              0.020442346055151054
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.18066431516462172
+            ],
+            [
+              18,
+              -0.18066431516462172
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.7630739770062641
+            ],
+            [
+              18,
+              -0.7630739770062641
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_07",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.03243979261966363
+            ],
+            [
+              18,
+              -0.03243979261966363
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.30236312884715716
+            ],
+            [
+              18,
+              0.30236312884715716
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.7235316354326295
+            ],
+            [
+              18,
+              -0.7235316354326295
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_08",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "middle_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.04049124048210116
+            ],
+            [
+              18,
+              -0.04049124048210116
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "middle_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.6698981345840862
+            ],
+            [
+              18,
+              0.6698981345840862
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "middle_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.40762480105952825
+            ],
+            [
+              18,
+              -0.40762480105952825
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "middle_fragment_09",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "orbit_outer",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -65
+            ],
+            [
+              28,
+              -65
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              1.0595801874370372
+            ],
+            [
+              28,
+              1.0595801874370372
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.12420423886416379
+            ],
+            [
+              28,
+              0.12420423886416379
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_00",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.01476097943321213
+            ],
+            [
+              28,
+              0.01476097943321213
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_00",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.9007585623543465
+            ],
+            [
+              28,
+              0.9007585623543465
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.571638766098192
+            ],
+            [
+              28,
+              0.571638766098192
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_01",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.05775306007886372
+            ],
+            [
+              28,
+              0.05775306007886372
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_01",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.5635306569185754
+            ],
+            [
+              28,
+              0.5635306569185754
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.9058532250170837
+            ],
+            [
+              28,
+              0.9058532250170837
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_02",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.05725590853740042
+            ],
+            [
+              28,
+              0.05725590853740042
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_02",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.11468859363012446
+            ],
+            [
+              28,
+              0.11468859363012446
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              1.060652343160603
+            ],
+            [
+              28,
+              1.060652343160603
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_03",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.013643890059587415
+            ],
+            [
+              28,
+              0.013643890059587415
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_03",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.35686895219006787
+            ],
+            [
+              28,
+              -0.35686895219006787
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              1.0053762566938294
+            ],
+            [
+              28,
+              1.0053762566938294
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_04",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.04024225591773143
+            ],
+            [
+              28,
+              -0.04024225591773143
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_04",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.7577442253185404
+            ],
+            [
+              28,
+              -0.7577442253185404
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.7509730724582195
+            ],
+            [
+              28,
+              0.7509730724582195
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_05",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.06382516239657705
+            ],
+            [
+              28,
+              -0.06382516239657705
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_05",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -1.0085389614996139
+            ],
+            [
+              28,
+              -1.0085389614996139
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.3478304611419374
+            ],
+            [
+              28,
+              0.3478304611419374
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_06",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.03934641979475519
+            ],
+            [
+              28,
+              -0.03934641979475519
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_06",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -1.0595801874370367
+            ],
+            [
+              28,
+              -1.0595801874370367
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.12420423886416358
+            ],
+            [
+              28,
+              -0.12420423886416358
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_07",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.0147609794332121
+            ],
+            [
+              28,
+              0.0147609794332121
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_07",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.9007585623543465
+            ],
+            [
+              28,
+              -0.9007585623543465
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.5716387660981919
+            ],
+            [
+              28,
+              -0.5716387660981919
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_08",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.05775306007886371
+            ],
+            [
+              28,
+              0.05775306007886371
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_08",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.563530656918576
+            ],
+            [
+              28,
+              -0.563530656918576
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.9058532250170834
+            ],
+            [
+              28,
+              -0.9058532250170834
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_09",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.057255908537400445
+            ],
+            [
+              28,
+              0.057255908537400445
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_09",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.11468859363012505
+            ],
+            [
+              28,
+              -0.11468859363012505
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -1.0606523431606023
+            ],
+            [
+              28,
+              -1.0606523431606023
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_10",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.013643890059587485
+            ],
+            [
+              28,
+              0.013643890059587485
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_10",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.35686895219006814
+            ],
+            [
+              28,
+              0.35686895219006814
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -1.0053762566938287
+            ],
+            [
+              28,
+              -1.0053762566938287
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_11",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.040242255917731465
+            ],
+            [
+              28,
+              -0.040242255917731465
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_11",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_12",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.7577442253185398
+            ],
+            [
+              28,
+              0.7577442253185398
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_12",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.7509730724582196
+            ],
+            [
+              28,
+              -0.7509730724582196
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_12",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.06382516239657705
+            ],
+            [
+              28,
+              -0.06382516239657705
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_12",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        },
+        {
+          "group": "outer_fragment_13",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              1.008538961499614
+            ],
+            [
+              28,
+              1.008538961499614
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "outer_fragment_13",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.34783046114193716
+            ],
+            [
+              28,
+              -0.34783046114193716
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "outer_fragment_13",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.039346419794755165
+            ],
+            [
+              28,
+              -0.039346419794755165
+            ],
+            [
+              52,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "outer_fragment_13",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              1
+            ],
+            [
+              56,
+              1
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "idle": [
+      [
+        0,
+        0
+      ],
+      [
+        60.0,
+        1
+      ],
+      [
+        63.0,
+        0
+      ],
+      [
+        180.0,
+        1
+      ],
+      [
+        183.0,
+        0
+      ],
+      [
+        240,
+        0
+      ]
+    ],
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        10,
+        1
+      ],
+      [
+        17,
+        0
+      ],
+      [
+        28,
+        0
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        12,
+        2
+      ],
+      [
+        48,
+        2
+      ]
+    ],
+    "walk": [
+      [
+        0,
+        0
+      ],
+      [
+        30.0,
+        1
+      ],
+      [
+        33.0,
+        0
+      ],
+      [
+        90.0,
+        1
+      ],
+      [
+        93.0,
+        0
+      ],
+      [
+        120,
+        0
+      ]
+    ],
+    "spawn": [
+      [
+        0,
+        2
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        28,
+        1
+      ],
+      [
+        44,
+        0
+      ],
+      [
+        56,
+        0
+      ]
+    ]
+  },
+  "emissive_groups": [
+    "inner_fragment_00__glow",
+    "inner_fragment_03__glow",
+    "middle_fragment_00__glow",
+    "middle_fragment_05__glow",
+    "outer_fragment_00__glow",
+    "outer_fragment_07__glow"
+  ],
+  "emissive_uv_offsets": {
+    "violet_fissure__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.01171875
+      ],
+      [
+        0,
+        -0.0234375
+      ]
+    ]
+  },
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T2",
+    "size": 256,
+    "budget": 4200,
+    "density": 12.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 5.0,
+    "fit_axis": 1,
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303",
+    "emissive_limit": 0.04,
+    "revision": "R2"
+  }
+}

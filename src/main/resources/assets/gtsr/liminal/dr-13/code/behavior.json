@@ -1,0 +1,278 @@
+{
+  "schema_version": 2,
+  "code": "dr-13",
+  "archetype": "acid_sac",
+  "stats": {
+    "health": 36,
+    "move_speed": 0.09,
+    "follow_range": 24
+  },
+  "locomotion": "ground",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 36
+  },
+  "death": {
+    "clip": "death",
+    "duration": 88,
+    "events": [
+      {
+        "at": 8,
+        "type": "damage",
+        "shape": "sphere",
+        "radius": 2.2,
+        "amount": 2,
+        "knockback": 0,
+        "anchor": "self",
+        "offset": [
+          0,
+          0.2,
+          0
+        ]
+      },
+      {
+        "at": 8,
+        "type": "vfx",
+        "effect": "steam",
+        "radius": 2.2,
+        "duration": 20,
+        "count": 16,
+        "color": [
+          0.4,
+          0.72,
+          0.65
+        ],
+        "anchor": "self",
+        "offset": [
+          0,
+          0.16,
+          0
+        ]
+      },
+      {
+        "at": 28,
+        "type": "damage",
+        "shape": "sphere",
+        "radius": 2.2,
+        "amount": 2,
+        "knockback": 0,
+        "anchor": "self",
+        "offset": [
+          0,
+          0.2,
+          0
+        ]
+      },
+      {
+        "at": 28,
+        "type": "vfx",
+        "effect": "steam",
+        "radius": 2.2,
+        "duration": 20,
+        "count": 16,
+        "color": [
+          0.4,
+          0.72,
+          0.65
+        ],
+        "anchor": "self",
+        "offset": [
+          0,
+          0.16,
+          0
+        ]
+      },
+      {
+        "at": 48,
+        "type": "damage",
+        "shape": "sphere",
+        "radius": 2.2,
+        "amount": 2,
+        "knockback": 0,
+        "anchor": "self",
+        "offset": [
+          0,
+          0.2,
+          0
+        ]
+      },
+      {
+        "at": 48,
+        "type": "vfx",
+        "effect": "steam",
+        "radius": 2.2,
+        "duration": 20,
+        "count": 16,
+        "color": [
+          0.4,
+          0.72,
+          0.65
+        ],
+        "anchor": "self",
+        "offset": [
+          0,
+          0.16,
+          0
+        ]
+      },
+      {
+        "at": 68,
+        "type": "damage",
+        "shape": "sphere",
+        "radius": 2.2,
+        "amount": 2,
+        "knockback": 0,
+        "anchor": "self",
+        "offset": [
+          0,
+          0.2,
+          0
+        ]
+      },
+      {
+        "at": 68,
+        "type": "vfx",
+        "effect": "steam",
+        "radius": 2.2,
+        "duration": 20,
+        "count": 16,
+        "color": [
+          0.4,
+          0.72,
+          0.65
+        ],
+        "anchor": "self",
+        "offset": [
+          0,
+          0.16,
+          0
+        ]
+      }
+    ]
+  },
+  "skills": [
+    {
+      "id": "acid_lament",
+      "name": "鸣咽酸雾",
+      "clip": "acid_lament",
+      "duration": 30,
+      "cooldown": 100,
+      "range": 2.2,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 2,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.7,
+            0
+          ],
+          "radius": 0.35,
+          "duration": 10,
+          "count": 8,
+          "color": [
+            0.65,
+            0.5,
+            0.79
+          ]
+        },
+        {
+          "at": 9,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.16,
+            0
+          ],
+          "radius": 0.7,
+          "duration": 10,
+          "count": 16,
+          "color": [
+            0.65,
+            0.5,
+            0.79
+          ]
+        },
+        {
+          "at": 13,
+          "type": "vfx",
+          "effect": "steam",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.16,
+            0
+          ],
+          "radius": 2.2,
+          "duration": 14,
+          "count": 24,
+          "color": [
+            0.4,
+            0.72,
+            0.65
+          ]
+        },
+        {
+          "at": 13,
+          "type": "damage",
+          "shape": "sphere",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.2,
+            0
+          ],
+          "radius": 2.2,
+          "amount": 4,
+          "knockback": 0.08
+        },
+        {
+          "at": 13,
+          "type": "status",
+          "effect": "slowness",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.2,
+            0
+          ],
+          "radius": 2.2,
+          "duration": 35,
+          "amplifier": 0
+        },
+        {
+          "at": 22,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.08,
+            0
+          ],
+          "radius": 1.7,
+          "duration": 8,
+          "count": 8,
+          "color": [
+            0.4,
+            0.72,
+            0.65
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [],
+  "projectiles": [],
+  "notes": [
+    "death.events在8/28/48/68tick各结算一次半径2.2球形2伤害；酸域窗口[8,88)，30tick后保持rig末帧，88tick随尸体移除，无独立持久世界实体。",
+    "酸雾为主动防身技能，攻击回缩与死亡破囊分离；不生成弹体、不破坏方块。",
+    "时间均为20Hz游戏tick，本批spawn/skill/death speed=1；服务端事件去重，客户端只渲染。未进行Forge编译或Minecraft实机联调。"
+  ]
+}

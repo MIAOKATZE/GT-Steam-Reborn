@@ -1,0 +1,130 @@
+{
+  "schema_version": 2,
+  "code": "dr-06",
+  "archetype": "seam_ambusher",
+  "stats": {
+    "health": 16,
+    "move_speed": 0.12,
+    "follow_range": 12
+  },
+  "locomotion": "ground",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 32
+  },
+  "death": {
+    "clip": "death",
+    "duration": 40
+  },
+  "skills": [
+    {
+      "id": "seam_ambush",
+      "name": "裂瓣扑咬",
+      "clip": "attack",
+      "duration": 22,
+      "cooldown": 76,
+      "range": 1.35,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 2,
+          "type": "vfx",
+          "effect": "rift",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.08,
+            0
+          ],
+          "radius": 0.38,
+          "duration": 6,
+          "count": 8,
+          "color": [
+            0.54,
+            0.4,
+            0.64
+          ]
+        },
+        {
+          "at": 7,
+          "type": "vfx",
+          "effect": "afterimage",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.16,
+            0
+          ],
+          "radius": 0.48,
+          "duration": 6,
+          "count": 6,
+          "color": [
+            0.57,
+            0.64,
+            0.67
+          ]
+        },
+        {
+          "at": 11,
+          "type": "damage",
+          "shape": "cone",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.16,
+            0
+          ],
+          "radius": 1.35,
+          "angle": 85,
+          "amount": 5,
+          "knockback": 0.18
+        },
+        {
+          "at": 11,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.2,
+            0
+          ],
+          "radius": 0.35,
+          "duration": 7,
+          "count": 8,
+          "color": [
+            0.7,
+            0.72,
+            0.63
+          ]
+        },
+        {
+          "at": 17,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.06,
+            0
+          ],
+          "radius": 0.28,
+          "duration": 5,
+          "count": 4,
+          "color": [
+            0.36,
+            0.42,
+            0.46
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [],
+  "projectiles": [],
+  "notes": [
+    "近距伏击，11tick单次锥形咬击；扑跃是rig局部演出，不移动服务端碰撞箱。",
+    "静默附着生态：宿主生成规则选择岩壁/地面裂纹位置；本版ground按地面+Y放置，墙面朝向须宿主另接。"
+  ]
+}

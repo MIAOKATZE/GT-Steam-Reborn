@@ -1,0 +1,569 @@
+{
+  "schema_version": 2,
+  "code": "do-02",
+  "archetype": "antimemetic_aperture",
+  "stats": {
+    "health": 900,
+    "move_speed": 0.13,
+    "follow_range": 64
+  },
+  "locomotion": "hover",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 120
+  },
+  "death": {
+    "clip": "death_a",
+    "duration": 140
+  },
+  "skills": [
+    {
+      "id": "cognitive_erasure",
+      "name": "无证之白",
+      "clip": "cognitive_erasure",
+      "duration": 88,
+      "cooldown": 200,
+      "range": 44,
+      "weight": 1.2,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 0,
+          "type": "vfx",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "glyphless_seal",
+          "radius": 5.5,
+          "duration": 40,
+          "count": 24,
+          "color": [
+            0.91,
+            0.88,
+            0.87
+          ]
+        },
+        {
+          "at": 20,
+          "type": "vfx",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "negative_flash",
+          "radius": 5.5,
+          "duration": 20,
+          "count": 16,
+          "color": [
+            0.4,
+            0.47,
+            0.59
+          ]
+        },
+        {
+          "at": 40,
+          "type": "damage",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "shape": "sphere",
+          "radius": 5.5,
+          "amount": 12,
+          "knockback": 0.15
+        },
+        {
+          "at": 40,
+          "type": "status",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "blindness",
+          "radius": 5.5,
+          "duration": 50,
+          "amplifier": 0
+        },
+        {
+          "at": 40,
+          "type": "status",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "weakness",
+          "radius": 5.5,
+          "duration": 80,
+          "amplifier": 0
+        },
+        {
+          "at": 40,
+          "type": "vfx",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "negative_flash",
+          "radius": 5.5,
+          "duration": 14,
+          "count": 24,
+          "color": [
+            0.91,
+            0.88,
+            0.87
+          ]
+        },
+        {
+          "at": 54,
+          "type": "vfx",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "motes",
+          "radius": 5.5,
+          "duration": 30,
+          "count": 12,
+          "color": [
+            0.38,
+            0.13,
+            0.19
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase_excision",
+      "name": "界外剜痕",
+      "clip": "phase_excision",
+      "duration": 96,
+      "cooldown": 180,
+      "range": 48,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 0,
+          "type": "vfx",
+          "anchor": "target",
+          "offset": [
+            0,
+            1.0,
+            0
+          ],
+          "effect": "rift",
+          "radius": 2.0,
+          "duration": 42,
+          "count": 20,
+          "color": [
+            0.38,
+            0.13,
+            0.19
+          ]
+        },
+        {
+          "at": 28,
+          "type": "vfx",
+          "anchor": "self",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "beam",
+          "radius": 1,
+          "duration": 14,
+          "count": 12,
+          "color": [
+            0.4,
+            0.47,
+            0.59
+          ],
+          "end_offset": [
+            0,
+            0,
+            0
+          ],
+          "width": 1.5
+        },
+        {
+          "at": 42,
+          "type": "damage",
+          "anchor": "self",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "shape": "line",
+          "radius": 1.5,
+          "length": 48,
+          "width": 3,
+          "amount": 18,
+          "knockback": 0.2
+        },
+        {
+          "at": 42,
+          "type": "vfx",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "rift",
+          "radius": 4,
+          "duration": 20,
+          "count": 24,
+          "color": [
+            0.91,
+            0.88,
+            0.87
+          ]
+        },
+        {
+          "at": 42,
+          "type": "status",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "slowness",
+          "radius": 4,
+          "duration": 60,
+          "amplifier": 1
+        },
+        {
+          "at": 62,
+          "type": "vfx",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "afterimage",
+          "radius": 4,
+          "duration": 28,
+          "count": 18,
+          "color": [
+            0.38,
+            0.13,
+            0.19
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gravity_inversion",
+      "name": "倒悬公理",
+      "clip": "gravity_inversion",
+      "duration": 112,
+      "cooldown": 240,
+      "range": 40,
+      "weight": 0.9,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 0,
+          "type": "vfx",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "ring",
+          "radius": 7,
+          "duration": 32,
+          "count": 24,
+          "color": [
+            0.4,
+            0.47,
+            0.59
+          ]
+        },
+        {
+          "at": 32,
+          "type": "vfx",
+          "anchor": "target",
+          "offset": [
+            0,
+            7,
+            0
+          ],
+          "effect": "gravity",
+          "radius": 7,
+          "duration": 44,
+          "count": 24,
+          "color": [
+            0.38,
+            0.13,
+            0.19
+          ]
+        },
+        {
+          "at": 52,
+          "type": "pull",
+          "anchor": "target",
+          "offset": [
+            0,
+            7,
+            0
+          ],
+          "radius": 11,
+          "strength": 0.12,
+          "duration": 24
+        },
+        {
+          "at": 52,
+          "type": "status",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "slowness",
+          "radius": 7,
+          "duration": 36,
+          "amplifier": 0
+        },
+        {
+          "at": 76,
+          "type": "damage",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "shape": "sphere",
+          "radius": 9,
+          "amount": 10,
+          "knockback": 0.15
+        },
+        {
+          "at": 76,
+          "type": "vfx",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "negative_flash",
+          "radius": 9,
+          "duration": 12,
+          "count": 24,
+          "color": [
+            0.91,
+            0.88,
+            0.87
+          ]
+        },
+        {
+          "at": 88,
+          "type": "vfx",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "effect": "motes",
+          "radius": 7,
+          "duration": 20,
+          "count": 12,
+          "color": [
+            0.4,
+            0.47,
+            0.59
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unremembered_bolt",
+      "name": "未曾抵达",
+      "clip": "unremembered_bolt",
+      "duration": 100,
+      "cooldown": 170,
+      "range": 56,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 0,
+          "type": "vfx",
+          "anchor": "self",
+          "offset": [
+            0,
+            19.8845,
+            -5
+          ],
+          "effect": "eye",
+          "radius": 3,
+          "duration": 28,
+          "count": 12,
+          "color": [
+            0.38,
+            0.13,
+            0.19
+          ]
+        },
+        {
+          "at": 28,
+          "type": "vfx",
+          "anchor": "self",
+          "offset": [
+            0,
+            19.8845,
+            -5
+          ],
+          "effect": "negative_flash",
+          "radius": 3,
+          "duration": 12,
+          "count": 12,
+          "color": [
+            0.91,
+            0.88,
+            0.87
+          ]
+        },
+        {
+          "at": 40,
+          "type": "projectile",
+          "anchor": "self",
+          "offset": [
+            0,
+            19.8845,
+            -5
+          ],
+          "projectile": "pr-do02-unmemory",
+          "speed": 0.85,
+          "amount": 7,
+          "count": 3,
+          "spread": 8,
+          "gravity": 0,
+          "lifetime": 90
+        },
+        {
+          "at": 52,
+          "type": "projectile",
+          "anchor": "self",
+          "offset": [
+            0,
+            19.8845,
+            -5
+          ],
+          "projectile": "pr-do02-unmemory",
+          "speed": 0.85,
+          "amount": 7,
+          "count": 3,
+          "spread": 8,
+          "gravity": 0,
+          "lifetime": 90
+        },
+        {
+          "at": 64,
+          "type": "projectile",
+          "anchor": "self",
+          "offset": [
+            0,
+            19.8845,
+            -5
+          ],
+          "projectile": "pr-do02-unmemory",
+          "speed": 0.85,
+          "amount": 7,
+          "count": 3,
+          "spread": 8,
+          "gravity": 0,
+          "lifetime": 90
+        },
+        {
+          "at": 68,
+          "type": "vfx",
+          "anchor": "self",
+          "offset": [
+            0,
+            19.8845,
+            -5
+          ],
+          "effect": "afterimage",
+          "radius": 3,
+          "duration": 28,
+          "count": 12,
+          "color": [
+            0.4,
+            0.47,
+            0.59
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [
+    {
+      "at": 0,
+      "type": "vfx",
+      "anchor": "self",
+      "offset": [
+        0,
+        19.8845,
+        0
+      ],
+      "effect": "motes",
+      "radius": 5,
+      "duration": 80,
+      "count": 10,
+      "color": [
+        0.4,
+        0.47,
+        0.59
+      ]
+    }
+  ],
+  "projectiles": [
+    {
+      "id": "pr-do02-unmemory",
+      "kind": "bolt",
+      "speed": 0.85,
+      "gravity": 0,
+      "lifetime": 90,
+      "radius": 0.3
+    }
+  ],
+  "runtime": {
+    "hitbox_width": 4,
+    "hitbox_height": 8,
+    "tracking_range": 192,
+    "render_distance": 256
+  },
+  "notes": [
+    "R2精修无头躯干手脚，五层黑白负片宽幅缺损膜和厚折面遮蔽真实空洞，不再使用细长肋条轨道。所有clip.speed=1，游戏tick等于rig帧。",
+    "death_a为默认；death_b可在遭遇配置选定后统一同步，禁止各客户端自行随机。",
+    "倒悬公理用目标上方7格的限速pull力场近似局部重力反转，不更改世界重力。",
+    "世界轴offset不是模型局部坐标；投射物瞄准技能起始锁定点，线形伤害由公共WorldActions方向语义决定。",
+    "两套局部图集由State.textureVariant选择，RGB完全不透明；死亡B为逐段二值消隐。",
+    "本配置与离线模型验证不代表Forge编译或Minecraft多人实机通过。"
+  ]
+}

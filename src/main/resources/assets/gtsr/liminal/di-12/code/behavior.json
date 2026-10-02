@@ -1,0 +1,248 @@
+{
+  "schema_version": 2,
+  "code": "di-12",
+  "archetype": "abyssal_grasping_ray",
+  "stats": {
+    "health": 160,
+    "move_speed": 0.22,
+    "follow_range": 28
+  },
+  "locomotion": "flying",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 44
+  },
+  "death": {
+    "clip": "death",
+    "duration": 56
+  },
+  "skills": [
+    {
+      "id": "dive_grasp",
+      "name": "俯冲钩坠",
+      "clip": "attack",
+      "duration": 72,
+      "cooldown": 150,
+      "range": 3,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 0,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.12,
+            0
+          ],
+          "radius": 2.8,
+          "duration": 18,
+          "count": 28,
+          "color": [
+            0.24,
+            0.66,
+            0.62
+          ]
+        },
+        {
+          "at": 8,
+          "type": "vfx",
+          "effect": "afterimage",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.6,
+            0
+          ],
+          "radius": 2.7,
+          "duration": 12,
+          "count": 12,
+          "color": [
+            0.37,
+            0.28,
+            0.49
+          ]
+        },
+        {
+          "at": 18,
+          "type": "vfx",
+          "effect": "gravity",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.1,
+            0
+          ],
+          "radius": 2.8,
+          "duration": 10,
+          "count": 20,
+          "color": [
+            0.34,
+            0.75,
+            0.7
+          ]
+        },
+        {
+          "at": 18,
+          "type": "pull",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.1,
+            0
+          ],
+          "radius": 2.8,
+          "strength": 0.12,
+          "duration": 8
+        },
+        {
+          "at": 25,
+          "type": "damage",
+          "shape": "sphere",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.1,
+            0
+          ],
+          "radius": 2.4,
+          "amount": 9,
+          "knockback": 0.12
+        },
+        {
+          "at": 25,
+          "type": "status",
+          "effect": "slowness",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.1,
+            0
+          ],
+          "radius": 2.4,
+          "duration": 24,
+          "amplifier": 1
+        },
+        {
+          "at": 25,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.8,
+            0
+          ],
+          "radius": 0.7,
+          "duration": 8,
+          "count": 12,
+          "color": [
+            0.4,
+            0.76,
+            0.69
+          ]
+        },
+        {
+          "at": 36,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.1,
+            0
+          ],
+          "radius": 2.5,
+          "duration": 10,
+          "count": 24,
+          "color": [
+            0.38,
+            0.69,
+            0.66
+          ]
+        },
+        {
+          "at": 46,
+          "type": "damage",
+          "shape": "sphere",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.8,
+            0
+          ],
+          "radius": 2.5,
+          "amount": 6,
+          "knockback": 0.35
+        },
+        {
+          "at": 46,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.3,
+            0
+          ],
+          "radius": 2.5,
+          "duration": 12,
+          "count": 28,
+          "color": [
+            0.48,
+            0.38,
+            0.54
+          ]
+        },
+        {
+          "at": 58,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.8,
+            0
+          ],
+          "radius": 1.1,
+          "duration": 14,
+          "count": 8,
+          "color": [
+            0.26,
+            0.42,
+            0.43
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [
+    {
+      "at": 0,
+      "type": "vfx",
+      "effect": "motes",
+      "anchor": "self",
+      "offset": [
+        0,
+        1.3,
+        0
+      ],
+      "radius": 2,
+      "duration": 50,
+      "count": 6,
+      "color": [
+        0.24,
+        0.49,
+        0.5
+      ]
+    }
+  ],
+  "projectiles": [],
+  "notes": [
+    "折翼展开、尾舵校正、腹爪逐步垂下出生；近战技能，不创建投射物。",
+    "18tick有限速拉扯、25tick爪击、46tick落地冲击、46–71tick恢复。pull使用事件发生时固定世界点，并非挂载或连续携带。",
+    "真实抓起玩家拖行/抛掷、三维俯冲路径及落地判定需宿主接口；当前默认是近身拉扯双段攻击，rig平移仅表现，不改变碰撞箱。"
+  ]
+}

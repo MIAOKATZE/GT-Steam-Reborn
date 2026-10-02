@@ -8,6 +8,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
+import com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoKind;
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho;
 
 /** Dynamic code routing for the append-only echo roster; world-unit rigs need no model scale. */
@@ -34,12 +35,17 @@ public final class EchoEntityRenderer extends Render {
             asset.render(echo.getVisualClip(), echo.getVisualTicks(partial));
         }
         Minecraft mc = Minecraft.getMinecraft();
-        if (!echo.getKind()
-            .isRitual() && mc.objectMouseOver != null && mc.objectMouseOver.entityHit == entity) {
+        if (echo.getKind() == EchoKind.DO02 && echo.getCustomNameTag()
+            .endsWith("99*")) {
             try (GlScope scope = new GlScope()) {
-                func_147906_a(entity, echo.getCommandSenderName(), x, y, z, 32);
+                func_147906_a(entity, echo.getCommandSenderName(), x, y + echo.height, z, 256);
             }
-        }
+        } else if (!echo.getKind()
+            .isRitual() && mc.objectMouseOver != null && mc.objectMouseOver.entityHit == entity) {
+                try (GlScope scope = new GlScope()) {
+                    func_147906_a(entity, echo.getCommandSenderName(), x, y, z, 32);
+                }
+            }
     }
 
     @Override

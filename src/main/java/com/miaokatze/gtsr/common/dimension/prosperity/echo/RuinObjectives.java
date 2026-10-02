@@ -88,6 +88,8 @@ public final class RuinObjectives {
     }
 
     public static boolean isBossReady(World w, String id) {
+        if (id.startsWith("echo:r7:"))
+            return com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.bossReady(w, id);
         RuinSite s = RuinsEncounterData.get(w)
             .site(id);
         if (s == null || s.layout < 2) return true;
@@ -118,6 +120,10 @@ public final class RuinObjectives {
     }
 
     public static void onGuardDeath(World w, String id, int node, int zone) {
+        if (id.startsWith("echo:r7:")) {
+            com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.death(w, id, node);
+            return;
+        }
         RuinsEncounterData d = RuinsEncounterData.get(w);
         d.died(id, node);
         RuinSite s = d.site(id);

@@ -1,0 +1,1375 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "DI-03",
+  "name": "悬针浮垒",
+  "units": "block; OBJ vertices and pivots already in blocks; do not scale by 1/16",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "attachment": null,
+  "hitbox": {
+    "w": 5.470921985816,
+    "h": 7.0,
+    "d": 5.4510638297872
+  },
+  "rest_pose": "OBJ vertices are rest pose; absolute model-space pivots",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        0,
+        4.53,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tower_1",
+      "parent": "body",
+      "pivot": [
+        -2.6684397163120575,
+        4.182624113475178,
+        -2.6684397163120575
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tower_2",
+      "parent": "body",
+      "pivot": [
+        2.6684397163120575,
+        4.182624113475178,
+        -2.6684397163120575
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tower_3",
+      "parent": "body",
+      "pivot": [
+        2.6684397163120575,
+        4.182624113475178,
+        2.6684397163120575
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tower_4",
+      "parent": "body",
+      "pivot": [
+        -2.6684397163120575,
+        4.182624113475178,
+        2.6684397163120575
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body__glow",
+      "parent": "body",
+      "pivot": [
+        0,
+        4.53,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tower_1__glow",
+      "parent": "tower_1",
+      "pivot": [
+        -2.6684397163120575,
+        4.182624113475178,
+        -2.6684397163120575
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tower_2__glow",
+      "parent": "tower_2",
+      "pivot": [
+        2.6684397163120575,
+        4.182624113475178,
+        -2.6684397163120575
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tower_3__glow",
+      "parent": "tower_3",
+      "pivot": [
+        2.6684397163120575,
+        4.182624113475178,
+        2.6684397163120575
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "tower_4__glow",
+      "parent": "tower_4",
+      "pivot": [
+        -2.6684397163120575,
+        4.182624113475178,
+        2.6684397163120575
+      ],
+      "axis": "+X",
+      "motion": "fixed",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "stabilizer",
+      "parent": "body",
+      "pivot": [
+        0,
+        2.15,
+        0.1
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "walk": {
+      "loop": true,
+      "frames": 16,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "root",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0.1
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              12,
+              -0.1
+            ],
+            [
+              16,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -2
+            ],
+            [
+              8,
+              2
+            ],
+            [
+              16,
+              -2
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "attack": {
+      "loop": false,
+      "frames": 56,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "tower_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              -0.08
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              14,
+              0.34
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tower_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              18,
+              -0.08
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              24,
+              0.34
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tower_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              28,
+              -0.08
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              34,
+              0.34
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tower_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              38,
+              -0.08
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              44,
+              0.34
+            ],
+            [
+              49,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              14,
+              1.1
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              24,
+              -1.1
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              34,
+              -1.1
+            ],
+            [
+              39,
+              0
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              44,
+              1.1
+            ],
+            [
+              50,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 56,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              42,
+              42
+            ],
+            [
+              56,
+              68
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "root",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              56,
+              -1
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "body",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tower_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              0
+            ],
+            [
+              20,
+              -1.8
+            ],
+            [
+              56,
+              -2.6
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tower_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              0
+            ],
+            [
+              20,
+              -0.5
+            ],
+            [
+              56,
+              -0.7
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tower_1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              0
+            ],
+            [
+              20,
+              -18.0
+            ],
+            [
+              56,
+              -28.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tower_1",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tower_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              11,
+              0
+            ],
+            [
+              25,
+              -1.8
+            ],
+            [
+              56,
+              -2.6
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tower_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              11,
+              0
+            ],
+            [
+              25,
+              0.5
+            ],
+            [
+              56,
+              0.7
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tower_2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              11,
+              0
+            ],
+            [
+              25,
+              18.0
+            ],
+            [
+              56,
+              28.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tower_2",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              27,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tower_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              30,
+              -1.8
+            ],
+            [
+              56,
+              -2.6
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tower_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              30,
+              0.5
+            ],
+            [
+              56,
+              0.7
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tower_3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              30,
+              18.0
+            ],
+            [
+              56,
+              28.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tower_3",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        },
+        {
+          "group": "tower_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              35,
+              -1.8
+            ],
+            [
+              56,
+              -2.6
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tower_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              35,
+              -0.5
+            ],
+            [
+              56,
+              -0.7
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tower_4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              35,
+              -18.0
+            ],
+            [
+              56,
+              -28.0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tower_4",
+          "channel": "visible",
+          "keys": [
+            [
+              0,
+              1
+            ],
+            [
+              37,
+              0
+            ],
+            [
+              56,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 48,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -5
+            ],
+            [
+              18,
+              -2
+            ],
+            [
+              34,
+              1
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "stabilizer",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.5
+            ],
+            [
+              10,
+              0.5
+            ],
+            [
+              24,
+              -0.1
+            ],
+            [
+              38,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "stabilizer",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -28
+            ],
+            [
+              10,
+              -28
+            ],
+            [
+              28,
+              6
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tower_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.78
+            ],
+            [
+              4,
+              0.78
+            ],
+            [
+              16,
+              -0.06
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tower_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.42
+            ],
+            [
+              4,
+              -0.42
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tower_1",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.42
+            ],
+            [
+              4,
+              -0.42
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tower_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.78
+            ],
+            [
+              10,
+              0.78
+            ],
+            [
+              22,
+              -0.06
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tower_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.42
+            ],
+            [
+              10,
+              0.42
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tower_2",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.42
+            ],
+            [
+              10,
+              -0.42
+            ],
+            [
+              26,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tower_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.78
+            ],
+            [
+              16,
+              0.78
+            ],
+            [
+              28,
+              -0.06
+            ],
+            [
+              36,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tower_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.42
+            ],
+            [
+              16,
+              0.42
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tower_3",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.42
+            ],
+            [
+              16,
+              0.42
+            ],
+            [
+              32,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "tower_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.78
+            ],
+            [
+              22,
+              0.78
+            ],
+            [
+              34,
+              -0.06
+            ],
+            [
+              42,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "tower_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.42
+            ],
+            [
+              22,
+              -0.42
+            ],
+            [
+              38,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+X"
+        },
+        {
+          "group": "tower_4",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0.42
+            ],
+            [
+              22,
+              0.42
+            ],
+            [
+              38,
+              0
+            ],
+            [
+              48,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        }
+      ]
+    },
+    "idle": {
+      "loop": true,
+      "frames": 60,
+      "speed": 1.0,
+      "tracks": [
+        {
+          "group": "root",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              0.06
+            ],
+            [
+              30,
+              0
+            ],
+            [
+              45,
+              -0.06
+            ],
+            [
+              60,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    }
+  },
+  "emissive_frames": {
+    "attack": [
+      [
+        0,
+        0
+      ],
+      [
+        8,
+        1
+      ],
+      [
+        46,
+        0
+      ],
+      [
+        56,
+        0
+      ]
+    ],
+    "death": [
+      [
+        0,
+        0
+      ],
+      [
+        12,
+        2
+      ],
+      [
+        56,
+        2
+      ]
+    ],
+    "idle": [
+      [
+        0,
+        0
+      ],
+      [
+        60,
+        0
+      ]
+    ],
+    "spawn": [
+      [
+        0,
+        2
+      ],
+      [
+        12,
+        0
+      ],
+      [
+        30,
+        1
+      ],
+      [
+        44,
+        0
+      ],
+      [
+        48,
+        0
+      ]
+    ]
+  },
+  "emissive_groups": [
+    "body__glow",
+    "tower_1__glow",
+    "tower_2__glow",
+    "tower_3__glow",
+    "tower_4__glow"
+  ],
+  "emissive_uv_offsets": {
+    "rift__emissive": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -0.21484375
+      ],
+      [
+        0,
+        -0.4296875
+      ]
+    ]
+  },
+  "texture_sampling": {
+    "min": "NEAREST",
+    "mag": "NEAREST",
+    "wrap_s": "CLAMP_TO_EDGE",
+    "wrap_t": "CLAMP_TO_EDGE",
+    "mipmaps": false
+  },
+  "extensions": {
+    "visible": "binary step, inherited from parents; never alpha",
+    "texture_variant": "State(textureVariant=1) selects DO-02 alt atlas"
+  },
+  "production": {
+    "tier": "T2",
+    "size": 256,
+    "budget": 4200,
+    "density": 12.0,
+    "required_clips": [
+      "attack",
+      "death",
+      "spawn",
+      "walk"
+    ],
+    "kind": "entity",
+    "target_size": 7.0,
+    "fit_axis": 1,
+    "emissive_limit": 0.04,
+    "revision": "R2",
+    "no_surface_characters": true,
+    "catalog_sha256": "775bd2a552317848c1b68e6cdd5c1ef3af21161701822d632db37c87de3c5303"
+  }
+}

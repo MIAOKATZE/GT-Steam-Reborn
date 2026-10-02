@@ -1,0 +1,131 @@
+{
+  "schema_version": 2,
+  "code": "dr-08",
+  "archetype": "anchor_bulwark",
+  "stats": {
+    "health": 46,
+    "move_speed": 0.065,
+    "follow_range": 14
+  },
+  "locomotion": "ground",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 40
+  },
+  "death": {
+    "clip": "death",
+    "duration": 48
+  },
+  "skills": [
+    {
+      "id": "anchor_buttress",
+      "name": "负锚顶撞",
+      "clip": "attack",
+      "duration": 28,
+      "cooldown": 100,
+      "range": 1.25,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 3,
+          "type": "vfx",
+          "effect": "gravity",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.18,
+            0
+          ],
+          "radius": 0.46,
+          "duration": 9,
+          "count": 8,
+          "color": [
+            0.55,
+            0.62,
+            0.55
+          ]
+        },
+        {
+          "at": 9,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.06,
+            0
+          ],
+          "radius": 0.65,
+          "duration": 4,
+          "count": 10,
+          "color": [
+            0.73,
+            0.74,
+            0.63
+          ]
+        },
+        {
+          "at": 13,
+          "type": "damage",
+          "shape": "cone",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.2,
+            0
+          ],
+          "radius": 1.25,
+          "angle": 80,
+          "amount": 4,
+          "knockback": 0.32
+        },
+        {
+          "at": 13,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.12,
+            0
+          ],
+          "radius": 0.48,
+          "duration": 7,
+          "count": 10,
+          "color": [
+            0.64,
+            0.7,
+            0.65
+          ]
+        },
+        {
+          "at": 21,
+          "type": "vfx",
+          "effect": "motes",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.2,
+            0
+          ],
+          "radius": 0.3,
+          "duration": 7,
+          "count": 5,
+          "color": [
+            0.4,
+            0.31,
+            0.42
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [],
+  "projectiles": [],
+  "notes": [
+    "负锚顶撞为近距前排自卫，13tick一次命中，无远程弹体。",
+    "保留hurt缩头与death锚倒压背；宿主须把受击短时演出路由到hurt，默认统一时钟不含hurt状态。",
+    "高击退抗性建议服务端SharedMonsterAttributes.knockbackResistance设0.85；schema stats未支持该属性，必须由宿主按code配置。"
+  ]
+}

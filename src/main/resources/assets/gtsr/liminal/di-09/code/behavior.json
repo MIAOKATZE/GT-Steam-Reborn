@@ -1,0 +1,170 @@
+{
+  "schema_version": 2,
+  "code": "di-09",
+  "archetype": "siege_sapper",
+  "stats": {
+    "health": 160,
+    "move_speed": 0.17,
+    "follow_range": 28
+  },
+  "locomotion": "ground",
+  "spawn": {
+    "clip": "spawn",
+    "duration": 40
+  },
+  "death": {
+    "clip": "death",
+    "duration": 36
+  },
+  "skills": [
+    {
+      "id": "breach_crush",
+      "name": "承重断裂",
+      "clip": "attack",
+      "duration": 32,
+      "cooldown": 90,
+      "range": 3.6,
+      "weight": 1,
+      "movement_lock": true,
+      "events": [
+        {
+          "at": 2,
+          "type": "vfx",
+          "effect": "ring",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "radius": 1.3,
+          "duration": 13,
+          "count": 18,
+          "color": [
+            0.76,
+            0.63,
+            0.42
+          ]
+        },
+        {
+          "at": 8,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.8,
+            0
+          ],
+          "radius": 0.9,
+          "duration": 7,
+          "count": 12,
+          "color": [
+            0.76,
+            0.63,
+            0.42
+          ]
+        },
+        {
+          "at": 15,
+          "type": "damage",
+          "shape": "cone",
+          "anchor": "self",
+          "offset": [
+            0,
+            0.7,
+            0
+          ],
+          "radius": 3.6,
+          "angle": 80,
+          "amount": 14,
+          "knockback": 0.5
+        },
+        {
+          "at": 15,
+          "type": "vfx",
+          "effect": "rift",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "radius": 1.3,
+          "duration": 9,
+          "count": 20,
+          "color": [
+            0.76,
+            0.63,
+            0.42
+          ]
+        },
+        {
+          "at": 16,
+          "type": "vfx",
+          "effect": "shards",
+          "anchor": "target",
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "radius": 1.35,
+          "duration": 10,
+          "count": 20,
+          "color": [
+            0.48,
+            0.56,
+            0.57
+          ]
+        },
+        {
+          "at": 24,
+          "type": "vfx",
+          "effect": "steam",
+          "anchor": "self",
+          "offset": [
+            0,
+            1.2,
+            0
+          ],
+          "radius": 0.6,
+          "duration": 8,
+          "count": 8,
+          "color": [
+            0.38,
+            0.42,
+            0.45
+          ]
+        }
+      ]
+    }
+  ],
+  "ambient": [
+    {
+      "at": 0,
+      "type": "vfx",
+      "effect": "motes",
+      "anchor": "self",
+      "offset": [
+        0,
+        1.4,
+        0
+      ],
+      "radius": 0.7,
+      "duration": 48,
+      "count": 4,
+      "color": [
+        0.42,
+        0.48,
+        0.45
+      ]
+    }
+  ],
+  "projectiles": [],
+  "notes": [
+    "出生40tick：六支足依次落地、双螯解锁、背甲落锁；不移动服务端位置。",
+    "承重断裂15tick结算一次前向锥体近战；目标圈是锁定点预警，服务端不会隔空命中圈内目标。",
+    "建筑优先索敌、炮塔伤害倍率、方块破拆属于宿主扩展；默认仅对准许的活体实体造成14伤害，不破坏方块。"
+  ]
+}

@@ -7,7 +7,6 @@ import net.minecraft.world.chunk.IChunkProvider;
 
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSROwnedGenerator;
-import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkClampedSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.PlacementGate;
@@ -133,6 +132,8 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
             return;
         }
         if (com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinsWorldgen.generate(world, chunkX, chunkZ)) return;
+        if (com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterWorldgen.generate(world, chunkX, chunkZ))
+            return;
         final long worldSeed = world.getSeed();
         // 每 chunk 一个钳制 Sink：越界写入协议层丢弃并计数（每 256 chunk 汇总日志，02 代码 15 越界瑕疵修复）
         final BlockSink sink = new ChunkClampedSink(world, chunkX, chunkZ);
@@ -141,46 +142,8 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
         final int rosterIndex = biomeRosterIndex(world, chunkX, chunkZ);
 
         // —— 1. 古代城（S4b）：3×3 cell 检索邻域城市，仅渲染与 C 相交的交集切片（plan §3.1）——
-        final CityPlan[] cities = CityPlanner.citiesNear(worldSeed, chunkX, chunkZ);
-        placeCities(worldSeed, chunkX, chunkZ, cities, sink);
-
-        // 城市缓冲窗（半径+1 chunk）内跳过散布与残缺机器（plan §3.4：城市本身即"结构密度拉满"，
-        // 二者混叠只脏；窗判定与渲染检索同源 CityPlanner.citiesNear，跨 chunk 一致）
-        if (cities.length > 0) {
-            com.miaokatze.gtsr.common.dimension.prosperity.echo.SpecialCaches
-                .generate(world, worldSeed, chunkX, chunkZ, cities);
-            return;
-        }
-
-        // —— 2. 城外中型废墟（S-A5，plan §12 修订 7/8）：1/prosperityOutpostChance 掷骰；同 chunk
-        // 互斥掷骰 = 先 outpost，命中则本 chunk 跳过残缺机器（防 footprint 撞格；散布/装饰仍照常）。
-        // P7（plan §5 P7 / §2.2 H-3）：互斥与预算不再靠"outpost 说它成功了"这句话——本 chunk 建一个
-        // PlacementGate.ChunkGate 交给两个 placer 共用，预算<b>只在真实落块后</b>由 Permit.commit 扣减，
-        // 所以 outpost 若门通过却一块没落进世界，机器照常有机会（改造前那种"假成功吞掉互斥位"已闭合）。——
-        final PlacementGate.ChunkGate structureGate = PlacementGate
-            .beginChunk(SurfaceGate.DIM78, worldSeed, chunkX, chunkZ);
-        boolean structureLanded = ProsperityOutpostPlacer
-            .placeAll(world, worldSeed, chunkX, chunkZ, sink, structureGate);
-        if (!structureLanded) {
-            // —— 3. 残缺机器（1/prosperityMachineChance × 群系机器权重，'C' 位=积碳壳，无 TE）——
-            structureLanded = RuinedMachinePlacer.placeAll(
-                world,
-                worldSeed,
-                chunkX,
-                chunkZ,
-                weightForRosterIndex(rosterIndex, MACHINE_WEIGHTS),
-                sink,
-                structureGate);
-        }
-        // —— 4. 城外废墟族（P8，plan §5 P8）：互斥链的第三环。前两环的掷骰与概率值一个字未改，
-        // 本环只在它们都没真实落块时才问门，过的是同一份每 chunk 预算（默认 1）与同一份同族间距档
-        // ⇒ 废墟是"在既有预算内挤位"，不是叠加密度（实测对照见 tools/dim1/RuinFamilyCheck DENSITY 行）。
-        if (!structureLanded) {
-            structureLanded = RuinPlacer.placeAll(world, worldSeed, chunkX, chunkZ, sink, structureGate);
-        }
-
-        // —— 5. 地表散布（P5：每 chunk 件数 K × 群系散布权重 + 落块/掷点上限，全部 Config 取值；
-        // 最低优先级，只落自然锈变地表+空气让行。掷骰顺序与上方 2→3→4 的互斥关系一字未改）——
+        // Revision seven owns new natural cities; the old planner remains a read-only compatibility API.
+        // Revision-seven cells already reserve every authored structure family.
         ProsperitySurfaceScatter
             .scatter(world, worldSeed, chunkX, chunkZ, weightForRosterIndex(rosterIndex, SCATTER_WEIGHTS), sink);
 
@@ -191,8 +154,7 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
         // 见 {@link #vegRosterIndex}；机器/散布/结构仍用 GenLayer 面 rosterIndex，不受影响）——
         ProsperityDecorPlacer
             .decorate(world, worldSeed, chunkX, chunkZ, vegRosterIndex(worldSeed, chunkX, chunkZ, rosterIndex), sink);
-        com.miaokatze.gtsr.common.dimension.prosperity.echo.SpecialCaches
-            .generate(world, worldSeed, chunkX, chunkZ, cities, !structureLanded);
+        // Authored cache/machine/outpost/ruin families are selected by RemasterPlanner above.
     }
 
     /**
