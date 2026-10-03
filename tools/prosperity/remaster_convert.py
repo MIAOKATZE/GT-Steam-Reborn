@@ -272,6 +272,8 @@ def normalize_nodes(metadata, palette, cells, source_sha=''):
             key = node.get('block', 'gtsr:draft_pressure_console#0')
             if key.split('#')[0] == 'gtsr:draft_notice_board':
                 raise ValueError('Notice boards are not allowed in combat-only scenes')
+        elif role == 'spawner' and key.split('#')[0] in {'gtsr:draft6_spawner_fragile', 'gtsr:draft6_spawner_stable', 'gtsr:draft6_spawner_runaway'}:
+            pass  # Preserve the authored sealed-spawner tier and its real registered geometry.
         elif key.split('#')[0] not in INTERACTIVE:
             key = 'gtsr:draft_notice_board#0' if role in ('memory', 'testimony') else (
                 'gtsr:draft7_index_frame#0' if role == 'puzzle-object' else

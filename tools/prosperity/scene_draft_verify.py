@@ -4,11 +4,12 @@ import json
 import math
 from pathlib import Path
 import re
+import sys
 
 import remaster_convert as converter
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / 'temp/scene-implement-v69'
+OUT = (ROOT / sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT / 'temp/scene-refine-v70'
 
 
 def main():
@@ -46,10 +47,30 @@ def main():
         assert all(n['block'] == 'gtsr:draft_pressure_console#0' and cells[n['x'], n['y'], n['z']] == n['block'] for n in metadata['nodes'] if n['role'] == 'memory')
         assert all(n['block'] == 'gtsr:SealedChest#2' and cells[n['x'], n['y'], n['z']] == n['block'] for n in metadata['lootPlan7'])
         assert all(cells.get((n['x'], n['y']-1, n['z']), 'minecraft:air#0') != 'minecraft:air#0' for n in metadata['lootPlan7'])
+        approaches = []
+        for n in metadata['lootPlan7'] + metadata['spawnerPlan'] + [n for n in metadata['nodes'] if n['role']=='memory']:
+            candidates=[]
+            for dx,dz in [(1,0),(-1,0),(0,1),(0,-1)]:
+                x,y,z=n['x']+dx,n['y'],n['z']+dz
+                # A story console may be placed on a bench one block above its player aisle.
+                for fy in [y,y-1]:
+                    if cells.get((x,fy-1,z),'minecraft:air#0')!='minecraft:air#0' and all(cells.get((x,yy,z))=='minecraft:air#0' for yy in [fy,fy+1]):
+                        candidates.append([x,fy,z])
+            assert candidates, ('inaccessible-interaction',n['id'])
+            approaches.append({'id':n['id'],'standing':candidates[0],'cardinalReachClear':True})
+        assert not any('pollution_' in key or 'draft5_nest_vein' in key for key in data['palette'])
+        assert len(metadata['spawnerPlan'])==9
+        assert {n['tier'] for n in metadata['spawnerPlan']}=={'fragile','stable','runaway'}
+        for n in metadata['spawnerPlan']:
+            assert cells[n['x'],n['y'],n['z']]==n['block']
+            assert n['block']=='gtsr:draft6_spawner_'+n['tier']+'#0'
+            assert n['policy']['batch']=={'fragile':2,'stable':5,'runaway':8}[n['tier']]
+            assert n['policy']['sealAt']=={'fragile':10,'stable':30,'runaway':60}[n['tier']]
+        (OUT / ('interaction-approaches-'+prefab+'.json')).write_text(json.dumps(approaches,indent=2),encoding='utf8')
         collisions = []
         for spawn in metadata['spawns']:
-            width = {'dc-08': 9, 'dc-02': 10.4, 'dr-18': .7, 'dr-08': .78, 'dr-16': 1.05, 'dr-14': .896, 'dr-04': .75}[spawn['code']]
-            height = {'dc-08': 16, 'dc-02': 14, 'dr-18': .6, 'dr-08': .995, 'dr-16': 1.18, 'dr-14': 1.6, 'dr-04': .5}[spawn['code']]
+            width = {'dc-08': 9, 'dc-02': 10.4, 'dr-18': .7, 'dr-08': .78, 'dr-16': 1.05, 'dr-14': .896, 'dr-04': .75, 'dr-02': .65, 'dr-15': .8}[spawn['code']]
+            height = {'dc-08': 16, 'dc-02': 14, 'dr-18': .6, 'dr-08': .995, 'dr-16': 1.18, 'dr-14': 1.6, 'dr-04': .5, 'dr-02': .282, 'dr-15': 1.1}[spawn['code']]
             for x in range(math.floor(spawn['x']+.5-width/2), math.ceil(spawn['x']+.5+width/2)):
                 for z in range(math.floor(spawn['z']+.5-width/2), math.ceil(spawn['z']+.5+width/2)):
                     assert cells.get((x,spawn['y']-1,z),'minecraft:air#0') != 'minecraft:air#0', (spawn['id'],'unsupported',x,z)
@@ -59,7 +80,9 @@ def main():
                             collisions.append({'actor':spawn['id'],'at':[x,y,z],'material':material})
         assert not collisions, collisions[:20]
         boss = next(s for s in metadata['spawns'] if s['role']=='boss')
-        assert boss.get('activationModules', []) == ([] if prefab=='subsided_factory' else ['casting','furnace','cooling'])
+        assert not boss.get('activationModules', [])
+        assert metadata['bossActivation']['kind']=='destroy-all-spawners'
+        assert set(metadata['bossActivation']['spawnerIds'])=={n['id'] for n in metadata['spawnerPlan']}
         for chest in metadata['lootPlan7']:
             assert chest['unlockMode'] in ('direct','story','combat') and chest['lootPool']
             if chest['unlockMode']=='story':

@@ -11,7 +11,7 @@ public final class CompactSceneTerrain {
 
     public static final int CELL_SIZE = 2048;
     // Both authored footprints fit with a natural apron; preserve the original surface anchor.
-    public static final int HALF_X = 64, HALF_Z = 64, TRANSITION = 32;
+    public static final int HALF_X = 60, HALF_Z = 60, TRANSITION = 36;
     public static final int OUTER_X = HALF_X + TRANSITION, OUTER_Z = HALF_Z + TRANSITION;
     private static final long SALT = 0x434F4D5041435438L;
     private static final Map<String, Branch[]> CACHE = new LinkedHashMap<String, Branch[]>(256, .75f, true) {
@@ -107,7 +107,7 @@ public final class CompactSceneTerrain {
                 int dx = ix - OUTER_X - 1, dz = iz - OUTER_Z - 1;
                 int raw = ProsperityTerrainProfile.originalHeightAt(seed, x + dx, z + dz);
                 if (Math.abs(raw - y) > 12) return false;
-                int height = blendedHeight(dx, dz, y, raw);
+                int height = blendedHeight(dx, dz, y, raw, roster);
                 if (ix > 0 && Math.abs(height - left) > 2 || iz > 0 && Math.abs(height - previous[ix]) > 2)
                     return false;
                 left = height;
@@ -117,19 +117,38 @@ public final class CompactSceneTerrain {
         return true;
     }
 
-    private static int blendedHeight(int dx, int dz, int surfaceY, int originalHeight) {
+    private static int blendedHeight(int dx, int dz, int surfaceY, int originalHeight, int roster) {
         double edge = Math.max(Math.max(0, Math.abs(dx) - HALF_X), Math.max(0, Math.abs(dz) - HALF_Z));
         double t = Math.min(1.0D, edge / TRANSITION);
         double blend = t * t * (3.0D - 2.0D * t);
-        return (int) Math.round(surfaceY + (originalHeight - surfaceY) * blend);
+        // Retain the authored 120-square foundation and courtyard, but give its apron broad,
+        // asymmetric knolls and shallow dry hollows. The compact support vanishes smoothly at
+        // both boundaries, so the native terrain outside the branch is byte-for-byte unchanged.
+        double relief = Math.sin(Math.PI * t) * Math.sin(Math.PI * t)
+            * (Math.sin(dx / 19.0D + dz / 31.0D) * (roster == 1 ? 4.0D : 2.6D)
+                + Math.cos(dz / 17.0D - dx / 37.0D) * 1.4D);
+        // South-facing entry routes stay broad and quiet; forest relief grows along the flanks.
+        int routeX = roster == 0 ? -42 : 0;
+        double entry = dz > HALF_Z && Math.abs(dx - routeX) < 18 ? Math.abs(dx - routeX) / 18.0D : 1.0D;
+        double height = surfaceY + (originalHeight - surfaceY) * blend + relief * entry;
+        return (int) Math.round(Math.max(originalHeight - 12, Math.min(originalHeight + 12, height)));
     }
 
     public static int heightAt(long seed, int x, int z, int originalHeight) {
         for (Branch b : cell(seed, Math.floorDiv(x, CELL_SIZE), Math.floorDiv(z, CELL_SIZE))) {
             if (!b.contains(x, z)) continue;
-            return blendedHeight(x - b.centerX, z - b.centerZ, b.surfaceY, originalHeight);
+            return blendedHeight(x - b.centerX, z - b.centerZ, b.surfaceY, originalHeight, b.roster);
         }
         return originalHeight;
+    }
+
+    /** A conservative column mask also protects explicitly authored AIR and the entry sightline. */
+    public static boolean decorColumn(Branch b, int x, int z, int radius) {
+        int dx = x - b.centerX, dz = z - b.centerZ;
+        if (!b.contains(x - radius, z - radius) || !b.contains(x + radius, z + radius)) return false;
+        if (Math.abs(dx) <= HALF_X + radius + 2 && Math.abs(dz) <= HALF_Z + radius + 2) return false;
+        int routeX = b.roster == 0 ? -42 : 0;
+        return !(dz > HALF_Z && Math.abs(dx - routeX) <= 18 + radius);
     }
 
     /** Reserve only chunks intersecting these local branches from natural tree/scatter decoration. */

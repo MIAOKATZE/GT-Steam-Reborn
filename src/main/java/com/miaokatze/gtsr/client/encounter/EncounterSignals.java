@@ -14,6 +14,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public final class EncounterSignals {
 
+    private static final SceneBossCache SCENE = new SceneBossCache();
     private static WorldClient world;
     private static int progressTicks, guideTicks, remaining, entity = -1;
     private static double x, y, z;
@@ -49,6 +50,25 @@ public final class EncounterSignals {
         });
     }
 
+    public static void receiveScene(final com.miaokatze.gtsr.common.dimension.prosperity.encounter.SceneBossSignal s) {
+        final Minecraft mc = Minecraft.getMinecraft();
+        final WorldClient received = mc.theWorld;
+        mc.func_152344_a(new Runnable() {
+
+            @Override
+            public void run() {
+                if (received == null || mc.theWorld != received || mc.thePlayer == null) return;
+                if (world != received) clear();
+                world = received;
+                SCENE.receive(received, mc.thePlayer.dimension, mc.thePlayer.getUniqueID(), s);
+            }
+        });
+    }
+
+    public static com.miaokatze.gtsr.common.dimension.prosperity.encounter.SceneBossSignal scene() {
+        return SCENE.get(Minecraft.getMinecraft().theWorld);
+    }
+
     public static boolean progressActive() {
         return progressTicks > 0;
     }
@@ -58,6 +78,7 @@ public final class EncounterSignals {
     }
 
     public static void clear() {
+        SCENE.clear();
         world = null;
         progressTicks = guideTicks = 0;
         entity = -1;
@@ -69,6 +90,7 @@ public final class EncounterSignals {
             clear();
             return;
         }
+        SCENE.tick(mc.theWorld, mc.thePlayer.dimension, mc.thePlayer.getUniqueID());
         if (progressTicks > 0) progressTicks--;
         if (guideTicks <= 0) return;
         Entity target = entity < 0 ? null : world.getEntityByID(entity);

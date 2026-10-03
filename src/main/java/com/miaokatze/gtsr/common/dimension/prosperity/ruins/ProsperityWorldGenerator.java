@@ -132,11 +132,15 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
             return;
         }
         // Saved legacy buildings remain in the world; do not resume their geometry, nodes or actors.
-        if (com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterWorldgen.generate(world, chunkX, chunkZ))
-            return;
+        boolean authored = com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterWorldgen
+            .generate(world, chunkX, chunkZ);
         final long worldSeed = world.getSeed();
-        if (com.miaokatze.gtsr.common.dimension.prosperity.CompactSceneTerrain.reservedChunk(worldSeed, chunkX, chunkZ))
+        if (com.miaokatze.gtsr.common.dimension.prosperity.CompactSceneTerrain
+            .reservedChunk(worldSeed, chunkX, chunkZ)) {
+            com.miaokatze.gtsr.common.dimension.prosperity.CompactSceneDecor.decorate(world, chunkX, chunkZ);
             return;
+        }
+        if (authored) return;
         // 每 chunk 一个钳制 Sink：越界写入协议层丢弃并计数（每 256 chunk 汇总日志，02 代码 15 越界瑕疵修复）
         final BlockSink sink = new ChunkClampedSink(world, chunkX, chunkZ);
         // P17 S-B2：本 chunk 的 L1 名册下标<b>只解析一次</b>，机器权重 / 散布权重 / 植被档三族共用

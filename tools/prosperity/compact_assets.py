@@ -11,6 +11,37 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'src/main/resources/assets/gtsr/remaster'
 BACKUP = ROOT / 'temp/compact-rebuild/retired-production'
 
+def validate_block_registration(text, wanted):
+    """Require each retained factory to be registered exactly once in registerBlocks."""
+    code = re.sub(r'/\*.*?\*/|//[^\n]*', '', text, flags=re.S)
+    factories = re.findall(
+        r'private\s+static\s+RemasterBlock\s+block(\d+)\s*\(\s*\)\s*\{\s*'
+        r'return\s+new\s+RemasterBlock\s*\(\s*"(gtsr:[a-z0-9_]+)"', code)
+    declarations = re.findall(r'private\s+static\s+RemasterBlock\s+block(\d+)\s*\(\s*\)', code)
+    if len(declarations) != len(factories):
+        raise ValueError('Unsupported block factory body')
+    factory_map = dict(factories)
+    factory_ids = set(factory_map.values())
+    if len(factory_map) != len(factories) or len(factory_ids) != len(factories):
+        raise ValueError('Duplicate block factory method or block ID')
+    if factory_ids != wanted:
+        raise ValueError({'missingFactories': sorted(wanted - factory_ids),
+                          'unusedFactories': sorted(factory_ids - wanted)})
+    registration = re.search(r'public\s+static\s+void\s+registerBlocks\s*\(\s*\)\s*\{'
+                             r'(.*?)\n    \}', code, re.S)
+    if registration is None:
+        raise ValueError('Missing registerBlocks method')
+    indices = re.findall(r'\bregister\s*\(\s*block(\d+)\s*\(\s*\)\s*\)\s*;',
+                         registration.group(1))
+    if len(indices) != len(set(indices)):
+        raise ValueError('Duplicate block registration')
+    registered = set(indices)
+    factory_indices = set(factory_map)
+    if registered != factory_indices:
+        raise ValueError({'unregisteredFactories': sorted(factory_map[i] for i in factory_indices - registered),
+                          'unknownRegisteredFactories': sorted(registered - factory_indices)})
+    return {factory_map[i] for i in registered}
+
 def retire(path, base, group):
     resolved = path.resolve()
     if path.is_symlink() or not resolved.is_relative_to(base.resolve()):
@@ -39,8 +70,6 @@ def main():
         referenced.add(record['file'])
         data = json.loads(gzip.decompress((OUT / record['file']).read_bytes()))
         referenced.update(s['file'] for s in data['slices'])
-    retired = [retire(p, OUT, 'prefabs') for p in (OUT / 'prefabs').rglob('*.json.gz')
-               if p.relative_to(OUT).as_posix() not in referenced]
     blocks = json.loads((OUT / 'blocks.json').read_text(encoding='utf8'))['blocks']
     wanted = {('gtsr:' + b['id'] if ':' not in b['id'] else b['id']) for b in blocks}
     java = ROOT / 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/remaster/RemasterBlocks.java'
@@ -58,11 +87,12 @@ def main():
     text = pattern.sub(select_factory, text)
     text = re.sub(r'(?m)^\s*register\(block(\d+)\(\)\);\n',
                   lambda m: '' if m.group(1) in removed_indices else m.group(), text)
-    remaining = set(re.findall(r'new RemasterBlock\(\s*"(gtsr:[a-z0-9_]+)"', text))
-    assert remaining == wanted, {'missingFactories': sorted(wanted - remaining), 'unusedFactories': sorted(remaining - wanted)}
+    registered = validate_block_registration(text, wanted)
     text = text.replace('Ninety-four authored materials, imported exactly from revision 4 through 7 snapshots.',
                         'Only materials used by the three current scenes are registered.')
     java.write_text(text, encoding='utf8')
+    retired = [retire(p, OUT, 'prefabs') for p in (OUT / 'prefabs').rglob('*.json.gz')
+               if p.relative_to(OUT).as_posix() not in referenced]
     retained_textures = set()
     for source in (ROOT / 'src/main/java').rglob('*.java'):
         retained_textures.update(re.findall(r'remaster_[0-9a-f]{16}', source.read_text(encoding='utf8')))
@@ -71,7 +101,7 @@ def main():
                         if p.stem not in retained_textures]
     actual = {p.relative_to(OUT).as_posix() for p in OUT.rglob('*') if p.is_file()}
     assert actual == referenced
-    report = {'productionScenes': 3, 'registeredBlocks': len(wanted), 'removedBlockFactories': removed,
+    report = {'productionScenes': 3, 'registeredBlocks': len(registered), 'removedBlockFactories': removed,
               'retiredPrefabs': retired, 'retiredTextures': retired_textures,
               'referencedFiles': len(referenced), 'missingOrphanFiles': 0}
     BACKUP.parent.mkdir(parents=True, exist_ok=True)

@@ -477,15 +477,17 @@ process.stdout.write(JSON.stringify(w.REMASTER_TEXTURES));"""
                    'label': '生产注册'}]} for b in block_data['blocks']]
     # The paused engineering testimony chain is retained in design assets, not the active guide.
     items = []
-    terrain = [{'id': 'remaster_compact_branch', 'name': '草原工厂与齿轮森林战场伴生平原', 'group': 'terrain_variant',
-                'description': ['工厂绑定草原分支，战场绑定齿轮森林分支；分支平原与建筑共享确定性锚点。',
-                                '已移除为旧深井工厂添加的全域高台。局部平原取原锚点海拔，只在建筑周边渐变接合原地形。'],
-                'sources': [{'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/CompactSceneTerrain.java', 'label': '伴生分支纯函数'}]},
-               {'id': 'remaster_bounded_footings', 'name': '三个标准场景的地形接合', 'group': 'terrain_variant',
-                'description': ['本轮全盘重构战场与工厂为紧凑建筑，室内和通道显式标注空气；巨树保留体量与真实守卫通路。',
-                                '城市及其他结构已暂缓，仅保留设计介绍，后续大幅简化减量；城市桥路不属于本轮开放生成范围。',
-                                '三个标准场景均在打磨中；通行、岩石侵入和树体接合仍待游戏内验收。'],
-                'sources': [{'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/remaster/RemasterWorldgen.java', 'label': '结构实块与显式空气'} ,
+    terrain = [{'id': 'remaster_compact_branch', 'name': '草原工厂与齿轮森林专属自然化分支', 'group': 'terrain_variant',
+                'description': ['v70：专属分支基底收紧为120（此前128），外围±96格连续低丘与低洼，最大坡差2；沿用原生top/filler，不以草土统一铺盖。',
+                                '工厂核心419个非暴露列与入口x=5..34、z=72..110使用保守保护mask，外围允许本维度flora。',
+                                '铸造战场核心完整保护；仅外围增加岩簇、花草与齿轮森林铜树；owner顺序确保装饰不覆盖核心。',
+                                '已移除旧深井工厂全域抬地形。数据核验覆盖36分支×3种子、1,454,436列与326,954装饰，未发现侵入；这是数据证据，不宣称游戏美术观感已验收。'],
+                'sources': [{'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/CompactSceneTerrain.java', 'label': 'v70专属自然化分支与保护mask'}]},
+               {'id': 'remaster_bounded_footings', 'name': '三个标准场景的地形接合与审阅状态', 'group': 'terrain_variant',
+                'description': ['当前生产范围保留三座标准v0场景，仍处于打磨与游戏内验收阶段；巨树保留原体量和原生守卫通路。',
+                                '62项未来结构仅在独立design-only目录展示真实设计体素，尚未接入游戏；87项旧设计暂停生成并保留介绍。',
+                                '原生地表、低丘低洼与外围装饰的数据检查不替代Minecraft中碰撞、敌人、交互或视觉验收。'],
+                'sources': [{'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/remaster/RemasterWorldgen.java', 'label': '结构实块与显式空气'},
                             {'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/encounter/ForgottenLakeEncounterStructure.java', 'label': '原生巨树八室通路'},
                             {'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/remaster/RemasterRollout.java', 'label': '三个标准场景的当前生成范围'}]}]
     version = re.search(r'^RELEASE_VERSION\s*=\s*(\S+)', (ROOT / 'gradle.properties').read_text(encoding='utf-8'), re.M).group(1)

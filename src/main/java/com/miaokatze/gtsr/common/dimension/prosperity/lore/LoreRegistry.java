@@ -120,6 +120,7 @@ public final class LoreRegistry {
             || player.capabilities.isCreativeMode
             || !awarded.add(player.getUniqueID())) return;
         if (!kingChapterUnlocked(player)) player.addStat(silentKingDefeated, 1);
+        HistoryProgress.majorBossDefeated(player, "dc-10");
         LoreNetwork.send((EntityPlayerMP) player, false);
     }
 

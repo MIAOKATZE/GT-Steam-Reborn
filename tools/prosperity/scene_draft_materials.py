@@ -3,11 +3,12 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import sys
 import shutil
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
-REPORT = ROOT / 'temp/scene-implement-v69'
+REPORT = (ROOT / sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT / 'temp/scene-refine-v70'
 JAVA = ROOT / 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/remaster/RemasterBlocks.java'
 
 
@@ -26,7 +27,10 @@ def main():
         block = re.search(r'"(gtsr:[a-z0-9_]+)"', match.group()).group(1)
         if block not in wanted or block in existing:
             continue
-        current = current.replace('        register(block75());', '        register(block75());\n        register(block' + match.group(1) + '());')
+        anchor = '        if (!REGISTRY.isEmpty()) return;'
+        if current.count(anchor) != 1:
+            raise ValueError('Missing or ambiguous registration insertion point')
+        current = current.replace(anchor, anchor + '\n        register(block' + match.group(1) + '());', 1)
         current = current.rstrip()[:-1] + '\n' + match.group() + '\n\n}\n'
         restored.append(block)
         for texture in sorted(set(re.findall(r'remaster_[0-9a-f]{16}', match.group()))):
@@ -40,6 +44,14 @@ def main():
                 texture_records.append({'file': target.relative_to(ROOT).as_posix(), 'sha256': hashlib.sha256(target.read_bytes()).hexdigest()})
     actual = set(re.findall(r'new RemasterBlock\(\s*"(gtsr:[a-z0-9_]+)"', current))
     assert wanted <= actual, sorted(wanted - actual)
+    code = re.sub(r'/\*.*?\*/|//[^\n]*', '', current, flags=re.S)
+    methods = {block: index for index, block in re.findall(
+        r'private static RemasterBlock block(\d+)\(\)\s*\{\s*return new RemasterBlock\(\s*"(gtsr:[a-z0-9_]+)"', code)}
+    registration = re.search(r'public static void registerBlocks\(\)\s*\{(.*?)\n    \}', code, re.S)
+    if registration is None:
+        raise ValueError('Missing registerBlocks method')
+    registered = set(re.findall(r'register\(block(\d+)\(\)\);', registration.group(1)))
+    assert all(methods[block] in registered for block in wanted), 'Required factory is not registered'
     JAVA.write_text(current, encoding='utf8')
     record = {'requiredDraftMaterials': sorted(wanted), 'restoredFactories': restored, 'restoredTextures': texture_records}
     (REPORT / 'material-report.json').write_text(json.dumps(record, indent=2), encoding='utf8')

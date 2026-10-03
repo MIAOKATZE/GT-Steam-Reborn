@@ -1,4 +1,8 @@
 {
+  "scene.entry": {
+    "category": "music",
+    "sounds": [{ "name": "gtsr:music/scene_entry", "stream": true }]
+  },
   "silent_king.battle": {
     "category": "music",
     "sounds": [

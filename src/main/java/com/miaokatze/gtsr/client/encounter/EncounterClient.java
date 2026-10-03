@@ -9,12 +9,9 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.resources.IResourceManagerReloadListener;
-import net.minecraft.entity.boss.BossStatus;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
-
-import org.lwjgl.opengl.GL11;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.WorldProviderProsperityRuins;
 import com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntityResidualOathguard;
@@ -31,11 +28,11 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 /** Local HUD/music owner. Never sets vanilla BossStatus or cancels another mod's overlay. */
 public final class EncounterClient extends Gui implements IResourceManagerReloadListener {
 
-    private static final ResourceLocation FRAME = new ResourceLocation("gtsr", "textures/gui/silent_king_frame.png");
     private static final int[] COLORS = { 0xCF554D, 0xD26746, 0xD67D42, 0xDB9548, 0xE0AE50, 0xE5C360, 0xCFCF65,
         0xB3C16C, 0x95B774, 0x76AC7C, 0x58A586, 0x439C93, 0x399BA3, 0x3E9EB5, 0x4E9BC8, 0x5C94D5, 0x6E86DB, 0x8178D6,
         0x966CCB, 0xAB66BF, 0xBC69AF, 0xCD72A2, 0xD67E99, 0xE1919E, 0xE6A2AA, 0xDAB0AA, 0xC3BDA0, 0xA8C3AB, 0x8CCBBB,
         0x6ECCCE };
+
     private EntitySilentKing target;
     private ThroneMusic music;
     private final EchoBossOverlay echoOverlay = new EchoBossOverlay();
@@ -104,67 +101,20 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
     @SubscribeEvent
     public void overlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.ALL) return;
-        Minecraft context = Minecraft.getMinecraft();
-        if (target == null && context.theWorld != null
-            && context.thePlayer != null
-            && context.theWorld.provider instanceof WorldProviderProsperityRuins) {
-            com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho echo = EchoBossOverlay.nearest(context);
-            if (echo != null) {
-                echoOverlay.draw(event, echo);
-                return;
-            }
+        com.miaokatze.gtsr.common.dimension.prosperity.encounter.SceneBossSignal scene = EncounterSignals.scene();
+        if (scene != null) {
+            echoOverlay.drawScene(event, scene);
+            return;
         }
-        if (target == null && !EncounterSignals.progressActive()) return;
         Minecraft mc = Minecraft.getMinecraft();
-        float health = target == null ? 0 : Math.max(0, Math.min(EntitySilentKing.MAX_HEALTH, target.getHealth()));
-        int layers = (int) Math.ceil(health / 100.0F);
-        float segment = layers == 0 ? 0 : (health - (layers - 1) * 100) / 100;
-        int x = (event.resolution.getScaledWidth() - 256) / 2;
-        int y = BossStatus.statusBarTime > 0 ? 42 : 17;
-        try (GlScope scope = new GlScope()) {
-            GL11.glDisable(GL11.GL_LIGHTING);
-            GL11.glEnable(GL11.GL_BLEND);
-            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            drawRect(x + 32, y + 13, x + 224, y + 23, 0xFF151918);
-            int color = COLORS[Math.max(0, layers - 1) % COLORS.length];
-            drawRect(x + 33, y + 14, x + 33 + Math.round(190 * segment), y + 22, 0xFF000000 | color);
-            drawRect(x + 33, y + 14, x + 33 + Math.round(190 * segment), y + 16, 0x66000000 | 0xFFFFFF);
-            GL11.glColor4f(1, 1, 1, 1);
-            mc.getTextureManager()
-                .bindTexture(FRAME);
-            func_152125_a(x, y, 0, 0, 256, 40, 256, 40, 256, 40);
-            String name = "(旧日虚影)缄王";
-            String count = "×" + layers;
-            int countWidth = mc.fontRenderer.getStringWidth(count);
-            int countX = Math.max(4, Math.min(x + 260, event.resolution.getScaledWidth() - countWidth - 4));
-            if (target != null) {
-                drawRect(countX - 2, y + 12, countX + countWidth + 2, y + 24, 0xCC151918);
-                mc.fontRenderer.drawStringWithShadow(count, countX, y + 14, 0xE9D7AD);
-            }
-            mc.fontRenderer.drawStringWithShadow(
-                name,
-                (event.resolution.getScaledWidth() - mc.fontRenderer.getStringWidth(name)) / 2,
-                y - 9,
-                0xE9D7AD);
-            if (target == null) {
-                String caption = EncounterSignals.remaining() == 0
-                    ? net.minecraft.util.StatCollector.translateToLocal("encounter.progress.throne")
-                    : net.minecraft.util.StatCollector
-                        .translateToLocalFormatted("encounter.progress.remaining", EncounterSignals.remaining());
-                mc.fontRenderer.drawStringWithShadow(
-                    caption,
-                    (event.resolution.getScaledWidth() - mc.fontRenderer.getStringWidth(caption)) / 2,
-                    y + 31,
-                    0xCCA977);
-            } else if (target.getEncounterState() == 1) {
-                String caption = "王座正在苏醒";
-                mc.fontRenderer.drawStringWithShadow(
-                    caption,
-                    (event.resolution.getScaledWidth() - mc.fontRenderer.getStringWidth(caption)) / 2,
-                    y + 31,
-                    0xCCA977);
-            }
-        }
+        if (mc.theWorld == null || mc.thePlayer == null
+            || !(mc.theWorld.provider instanceof WorldProviderProsperityRuins)) return;
+        com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho legacy = EchoBossOverlay.nearest(mc);
+        if (legacy != null) echoOverlay.draw(event, legacy);
+    }
+
+    static int kingLayerColor(int layers) {
+        return COLORS[Math.max(0, layers - 1) % COLORS.length];
     }
 
     @Override

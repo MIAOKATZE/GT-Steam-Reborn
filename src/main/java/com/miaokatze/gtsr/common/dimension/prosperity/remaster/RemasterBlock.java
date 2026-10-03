@@ -139,6 +139,12 @@ public class RemasterBlock extends Block {
     }
 
     @Override
+    public void breakBlock(World world, int x, int y, int z, Block oldBlock, int oldMeta) {
+        RemasterRuntime.spawnerDestroyed(world, x, y, z, oldBlock, oldMeta);
+        super.breakBlock(world, x, y, z, oldBlock, oldMeta);
+    }
+
+    @Override
     public boolean isOpaqueCube() {
         return fullCube && !transparent;
     }

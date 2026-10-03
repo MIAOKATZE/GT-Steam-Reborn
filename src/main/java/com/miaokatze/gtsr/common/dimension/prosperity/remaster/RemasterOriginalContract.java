@@ -92,7 +92,7 @@ public final class RemasterOriginalContract {
     public static void observePlayer(EntityPlayer player, RemasterSite site) {
         int kind = kind(site);
         if (!valid(player) || !RemasterRollout.allowsGeneration(site) || !withinGeneratedSite(player, site)) return;
-        HistoryProgress.sceneStage(player, site.id(), site.prefab, "entry", true);
+        HistoryProgress.sceneEntered(player, site.id(), site.prefab);
         if (RemasterData.get(player.worldObj)
             .flag(site.id(), "boss-dead")) HistoryProgress.sceneStage(player, site.id(), site.prefab, "battle", false);
         if (site.prefab.equals("forgotten_lake_court")) {

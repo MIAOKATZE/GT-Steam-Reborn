@@ -1,7 +1,7 @@
 /* Compile approved voxel drafts. Never writes production assets or modifies the native lake tree. */
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),crypto=require('crypto');
-const root=path.resolve(__dirname,'../..'),out=path.join(root,'temp/scene-implement-v69');
+const root=path.resolve(__dirname,'../..'),out=path.resolve(root,process.argv[2]||'temp/scene-refine-v70');
 fs.mkdirSync(out,{recursive:true});
 const context={};vm.createContext(context);
 for(const file of ['factory.js','foundry.js'])vm.runInContext(fs.readFileSync(path.join(root,'plan/prosperity/design-draft',file),'utf8'),context);
@@ -24,19 +24,41 @@ for(const id of ['subsided_factory','fallen_foundry']){
  for(const points of routes)for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],n=Math.max(Math.abs(a[0]-b[0]),Math.abs(a[2]-b[2]),1),along=Math.abs(a[0]-b[0])>=Math.abs(a[2]-b[2]);for(let j=0;j<=n;j++){const p=a.map((v,c)=>Math.round(v+(b[c]-v)*j/n));for(let t=-2;t<=2;t++)fill([p[0]+(along?0:t),p[1]+1,p[2]+(along?t:0)],[p[0]+(along?0:t),p[1]+4,p[2]+(along?t:0)]);}}
  const nodes=d.nodes.map(n=>{const q={...n,y:n.y-24};if(q.approach)q.approach=point(q.approach);if(q.footprint)q.footprint={min:point(q.footprint.min),max:point(q.footprint.max)};if(q.clearance?.min)q.clearance={min:point(q.clearance.min),max:point(q.clearance.max)};q.module=factory?(moduleNames[d.rooms.findIndex(r=>r.name===n.module)]||'core'):n.module;if(q.role==='memory'){q.block=CONSOLE;q.previewBlock=CONSOLE;cells.set(key(q.x,q.y,q.z),[q.x,q.y,q.z,CONSOLE]);}return q;});
  const bossModule=factory?'factory-boss-group':'foundry-boss-group';
- const spawns=nodes.filter(n=>['guard','boss'].includes(n.role)).map(n=>{const boss=n.role==='boss',q={id:n.id,role:n.role,code:n.code||({'north-guard-a':'dr-18','north-guard-b':'dr-08','west-guard':'dr-16','east-guard':'dr-14'}[n.id]),x:n.x,y:n.y,z:n.z,module:boss?bossModule:n.module,spawn:true,clearance:boss?{width:factory?9:11,height:factory?16:14,depth:factory?9:11}:{width:3,height:3,depth:3}};if(boss&&!factory)q.activationModules=['casting','furnace','cooling'];return q;});
+ const spawns=nodes.filter(n=>['guard','boss'].includes(n.role)).map(n=>{const boss=n.role==='boss',q={id:n.id,role:n.role,code:n.code||({'north-guard-a':'dr-18','north-guard-b':'dr-08','west-guard':'dr-04','east-guard':'dr-15'}[n.id]),x:n.x,y:n.y,z:n.z,module:boss?bossModule:n.module,spawn:true,clearance:boss?{width:factory?9:11,height:factory?16:14,depth:factory?9:11}:{width:3,height:3,depth:3}};q.actorPhase='independent';return q;});
  // Keep source solids immutable. Actors require supported clear birth positions.
  const solid=(x,y,z)=>cells.has(key(x,y,z))&&cells.get(key(x,y,z))[3]!==A;
  for(const s of spawns){if(s.role==='boss'){const radius=Math.floor(s.clearance.width/2);fill([s.x-radius,s.y,s.z-radius],[s.x+radius,s.y+s.clearance.height-1,s.z+radius]);continue;}
   const safe=(x,y,z)=>solid(x,y-1,z)&&!solid(x,y,z)&&!solid(x,y+1,z)&&!solid(x,y+2,z);
   if(!safe(s.x,s.y,s.z)){let found;for(let radius=1;radius<=8&&!found;radius++)for(let dx=-radius;dx<=radius&&!found;dx++)for(let dz=-radius;dz<=radius&&!found;dz++)if(safe(s.x+dx,s.y,s.z+dz))found=[s.x+dx,s.y,s.z+dz];if(!found)throw Error('Unsupported guard '+s.id);[s.x,s.y,s.z]=found;const n=nodes.find(n=>n.id===s.id);[n.x,n.y,n.z]=found;}
-  fill([s.x-1,s.y,s.z-1],[s.x+1,s.y+2,s.z+1]);
+  fill([s.x,s.y,s.z],[s.x,s.y+2,s.z]);
  }
  for(const s of spawns){const n=nodes.find(n=>n.id===s.id);n.code=s.code;if(n.entityId)n.entityId=s.code;}
+ const reference=JSON.parse(fs.readFileSync(path.join(root,'plan',fs.readdirSync(path.join(root,'plan')).find(n=>fs.existsSync(path.join(root,'plan',n,'config/revision6-spawners.json'))),'config/revision6-spawners.json'),'utf8'));
+ const spawnerPlan=[];
+ const occupied=(x,y,z)=>nodes.some(n=>n.y===y&&Math.hypot(n.x-x,n.z-z)<(n.role==='guard'?2:2))||spawnerPlan.some(n=>Math.hypot(n.x-x,n.z-z)<5);
+ for(let ri=0;ri<rooms.length;ri++){if(factory&&ri===5)continue;const r=rooms[ri],y=r.y+1;
+  const count=factory?(ri<3?2:1):(ri<4?2:1);
+  for(let slot=0;slot<count;slot++){let picked;
+   for(let z=r.z+3;z<r.z+r.d-3&&!picked;z++)for(let x=r.x+2;x<r.x+r.w-2;x++){
+    if(occupied(x,y,z)||!solid(x,y-1,z)||solid(x,y,z)||solid(x,y+1,z))continue;
+    for(const dx of [-2,2]){const cx=x+dx,cz=z;
+     if(cx<=r.x||cx>=r.x+r.w-1)continue;
+     let clear=true;for(let xx=cx-1;xx<=cx+1;xx++)for(let zz=cz;zz<=cz+3;zz++)if(!solid(xx,y-1,zz)||solid(xx,y,zz)||solid(xx,y+1,zz)||solid(xx,y+2,zz))clear=false;
+     if(clear){picked=[x,y,z,cx,cz];break;}
+    }
+    if(picked)break;
+   }
+   if(!picked)throw Error('No accessible spawner bay '+id+':'+ri+':'+slot);
+   const [x,yy,z,cx,cz]=picked,tier=['fragile','stable','runaway'][spawnerPlan.length%3],sample=reference.records.find(n=>n.tier===tier),code=['dr-02','dr-04','dr-08','dr-15','dr-18'][spawnerPlan.length%5];
+   const n={id:id+'-spawner-'+spawnerPlan.length,role:'spawner',x,y:yy,z,code,module:r.moduleId,tier,block:sample.block,label:'工位封印刷怪笼',policy:{...sample.policy},spawnZone:{center:[cx,yy,cz],clearance:{width:3,depth:5,height:3,mode:'ground'}},approach:[cx,yy,cz],runtimeEnabled:true};
+   cells.set(key(x,yy,z),[x,yy,z,n.block]);spawnerPlan.push(n);nodes.push({...n});
+  }
+ }
+ const bossActivation={kind:'destroy-all-spawners',spawnerIds:spawnerPlan.map(n=>n.id)};
  const lootPlan7=nodes.filter(n=>n.role==='chest').map(n=>{const q={...n,block:C,tier:n.unlockMode==='combat'?3:n.unlockMode==='story'?2:1,lootPool:['低阶维护耗材','旧金属散件','有限补给']};if(q.unlockMode==='combat'){q.combatModule=q.id.includes('core')?bossModule:q.module;q.lootPool.push('独立奖励池');}if(!['direct','story','combat'].includes(q.unlockMode))throw Error('Unsupported unlock '+q.id);if(!solid(q.x,q.y-1,q.z))throw Error('Floating chest '+q.id);return q;});
  const encounterClusters7=[...new Set(spawns.map(s=>s.module))].map(module=>({id:module,module,members:spawns.filter(s=>s.module===module).map(s=>s.id)}));
  const views=d.viewpoints.map((v,i)=>({...v,id:id+'-view-'+(i+1),eye:point(v.eye),target:point(v.target)}));
- const metadata={id,variant:0,name:d.name,nominal:factory?[120,60,120]:d.size,compactScene:true,combatOnly:true,nativeScene:false,authoredGeometryFinal:true,nodes,rooms,airBoxes,routes,spawns,spawnerPlan:[],lootPlan7,encounterClusters7,roofKeys:roofs.map(p=>key(...p)),viewpoints:views,playerReviewViews:views,terrain:{...d.terrain,surfaceY:0,underground:factory},story:d.story,signatureFeatures:d.signatureFeatures,triggers:d.triggers,sourceDraft:'plan/prosperity/design-draft/'+(factory?'factory.js':'foundry.js'),contextPolicy:'Native terrain supplies the surface; excluded authored grass/dirt/background strips.'};
+ const metadata={id,variant:0,name:d.name,nominal:factory?[120,60,120]:d.size,compactScene:true,combatOnly:true,nativeScene:false,authoredGeometryFinal:true,nodes,rooms,airBoxes,routes,spawns,spawnerPlan,bossActivation,lootPlan7,encounterClusters7,roofKeys:roofs.map(p=>key(...p)),viewpoints:views,playerReviewViews:views,terrain:{...d.terrain,surfaceY:0,underground:factory},story:d.story,signatureFeatures:d.signatureFeatures,triggers:d.triggers,sourceDraft:'plan/prosperity/design-draft/'+(factory?'factory.js':'foundry.js'),contextPolicy:'Native terrain supplies the surface; excluded authored grass/dirt/background strips.'};
  metadata.sourceAuthorFile=metadata.sourceDraft;
  const palette=[],indices=new Map(),runs=[];
  for(const [x,y,z,m]of [...cells.values()].sort((a,b)=>a[1]-b[1]||a[2]-b[2]||a[0]-b[0])){if(!indices.has(m)){indices.set(m,palette.length);palette.push(m);}const k=indices.get(m),last=runs[runs.length-1];if(last&&last[1]===y&&last[2]===z&&last[0]+last[3]===x&&last[4]===k)last[3]++;else runs.push([x,y,z,1,k]);}

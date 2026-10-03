@@ -28,6 +28,53 @@ public class EntityOldEcho extends EntityEncounterBase {
         objectiveLayout = layout;
         objectiveZone = zone;
         objectiveBoss = boss;
+        if (industrialBoss()) {
+            dataWatcher.updateObject(29, 0);
+            dataWatcher.updateObject(30, 0);
+            dataWatcher.updateObject(28, 120);
+            setHealth(1);
+        }
+    }
+
+    private boolean industrialBoss() {
+        return getEncounterId().startsWith("echo:r7:") && (getKind() == EchoKind.DC02 || getKind() == EchoKind.DC08);
+    }
+
+    /** 0 dormant, 1 restoring, 2 active, 3 defeated; synchronized separately from combat animation. */
+    public int getIndustrialBossStage() {
+        return dead || deathRecorded ? 3 : dataWatcher.getWatchableObjectInt(29);
+    }
+
+    public int getRevivalTicks() {
+        return dataWatcher.getWatchableObjectInt(30);
+    }
+
+    private boolean industrialFrozen() {
+        return industrialBoss() && getIndustrialBossStage() < 2;
+    }
+
+    private boolean tickIndustrialRevival() {
+        if (!industrialFrozen()) return false;
+        if (getIndustrialBossStage() == 0 && com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime
+            .bossReady(worldObj, getEncounterId())) dataWatcher.updateObject(29, 1);
+        if (getSkillId() != 0) stopEffects();
+        skill(0, 0);
+        if (getAttackTarget() != null) setAttackTarget(null);
+        getNavigator().clearPathEntity();
+        motionX = motionY = motionZ = 0;
+        setPosition(anchorX, anchorY, anchorZ);
+        state(IDLE);
+        if (getIndustrialBossStage() == 1) {
+            int ticks = Math.min(208, getRevivalTicks() + 1);
+            dataWatcher.updateObject(30, ticks);
+            setHealth(1 + (getMaxHealth() - 1) * ticks / 208F);
+            if (ticks == 208) {
+                dataWatcher.updateObject(29, 2);
+                cooldown = 40;
+            }
+        } else setHealth(1);
+        com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.rememberBossState(this);
+        return true;
     }
 
     private boolean dormant() {
@@ -121,6 +168,8 @@ public class EntityOldEcho extends EntityEncounterBase {
         dataWatcher.addObject(26, 0);
         dataWatcher.addObject(27, 0);
         dataWatcher.addObject(28, 0);
+        dataWatcher.addObject(29, 2);
+        dataWatcher.addObject(30, 0);
     }
 
     @Override
@@ -277,7 +326,7 @@ public class EntityOldEcho extends EntityEncounterBase {
     @Override
     public boolean attackEntityFrom(DamageSource source, float amount) {
         if (getKind() == EchoKind.DO02) return false;
-        if (getKind().isRitual() || (!worldObj.isRemote && dormant())) return false;
+        if (getKind().isRitual() || industrialFrozen() || (!worldObj.isRemote && dormant())) return false;
         if (!worldObj.isRemote && source.getEntity() instanceof EntityPlayer
             && valid((EntityPlayer) source.getEntity())) {
             setAttackTarget((EntityPlayer) source.getEntity());
@@ -300,6 +349,10 @@ public class EntityOldEcho extends EntityEncounterBase {
 
     @Override
     public void moveEntityWithHeading(float strafe, float forward) {
+        if (industrialFrozen()) {
+            motionX = motionY = motionZ = 0;
+            return;
+        }
         if (!getKind().flies()) {
             if (getKind().stationary()) {
                 motionX = motionZ = 0;
@@ -337,6 +390,9 @@ public class EntityOldEcho extends EntityEncounterBase {
         if (!initialized) {
             initializeEcho(getKind(), "", posX, posY, posZ, false);
         }
+        if (tickIndustrialRevival()) return;
+        if (industrialBoss())
+            com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.rememberBossState(this);
         if (isSummonedEcho()) {
             boolean parentLoaded = false;
             for (Object object : worldObj.loadedEntityList) if (object instanceof EntityOldEcho) {
@@ -821,6 +877,8 @@ public class EntityOldEcho extends EntityEncounterBase {
         n.setBoolean("echoControlledPrepared", controlledPrepared);
         n.setInteger("echoLightningCooldown", lightningCooldown);
         n.setInteger("echoSpawnTicks", dataWatcher.getWatchableObjectInt(28));
+        n.setInteger("industrialBossStage", getIndustrialBossStage());
+        n.setInteger("industrialRevivalTicks", getRevivalTicks());
     }
 
     @Override
@@ -867,6 +925,18 @@ public class EntityOldEcho extends EntityEncounterBase {
         dataWatcher.updateObject(
             28,
             n.hasKey("echoSpawnTicks") ? Math.max(0, Math.min(120, n.getInteger("echoSpawnTicks"))) : 120);
+        if (industrialBoss()) {
+            objectiveLayout = 2;
+            objectiveBoss = true;
+        }
+        if (industrialBoss()) dataWatcher.updateObject(28, 120);
+        dataWatcher.updateObject(
+            29,
+            n.hasKey("industrialBossStage") ? Math.max(0, Math.min(3, n.getInteger("industrialBossStage")))
+                : industrialBoss() ? 0 : 2);
+        dataWatcher.updateObject(30, Math.max(0, Math.min(208, n.getInteger("industrialRevivalTicks"))));
+        if (industrialFrozen())
+            setHealth(getIndustrialBossStage() == 0 ? 1 : 1 + (getMaxHealth() - 1) * getRevivalTicks() / 208F);
         // Cancel a partial authored cast on reload: old events and transient projectiles never replay.
         if (authoredKind()) {
             authored.cancel();

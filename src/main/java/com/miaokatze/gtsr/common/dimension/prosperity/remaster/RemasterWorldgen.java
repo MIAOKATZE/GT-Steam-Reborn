@@ -144,7 +144,15 @@ public final class RemasterWorldgen {
                 .getAsBoolean()) continue;
             if (d.flag(s.id(), "dead:" + RemasterRuntime.string(spawn, "id", Integer.toString(i)))
                 || !RemasterRuntime.spawnReady(w, s, spawn)) continue;
-            EntityOldEcho echo = RemasterSpawn.spawn(w, EchoKind.byCode(code), s.id(), x + .5, y, z + .5, i, false);
+            EntityOldEcho echo = RemasterSpawn.spawn(
+                w,
+                EchoKind.byCode(code),
+                s.id(),
+                x + .5,
+                y,
+                z + .5,
+                i,
+                "boss".equals(RemasterRuntime.string(spawn, "role", "")));
             if (echo != null) {
                 net.minecraft.nbt.NBTTagCompound position = new net.minecraft.nbt.NBTTagCompound();
                 position.setDouble("x", echo.posX);

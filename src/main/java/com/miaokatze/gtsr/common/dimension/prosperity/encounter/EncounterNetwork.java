@@ -23,6 +23,22 @@ public final class EncounterNetwork {
 
     public static void register() {
         NETWORK.registerMessage(Handler.class, Signal.class, 0, Side.CLIENT);
+        NETWORK.registerMessage(SceneHandler.class, SceneBossSignal.class, 1, Side.CLIENT);
+    }
+
+    public static void scene(EntityPlayerMP p, SceneBossSignal s) {
+        s.dimension = p.dimension;
+        s.player = p.getUniqueID();
+        if (p.playerNetServerHandler != null && s.sane()) NETWORK.sendTo(s, p);
+    }
+
+    public static final class SceneHandler implements IMessageHandler<SceneBossSignal, IMessage> {
+
+        @Override
+        public IMessage onMessage(SceneBossSignal s, MessageContext c) {
+            if (s.valid) EncounterSignals.receiveScene(s);
+            return null;
+        }
     }
 
     public static void progress(EntityPlayerMP p, boolean active, int remaining) {

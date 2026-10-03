@@ -75,10 +75,12 @@ public final class HistoryProgress {
         add("railCache", 4, -5, "rail_repair_token");
         add("threeCaches", 0, -7, "patina_seal").setSpecial();
         add("sixWitnesses", 4, -2, "broken_edict").setSpecial();
+        ProsperityAchievements.register();
     }
 
     public static Achievement[] achievements() {
         List<Achievement> list = new ArrayList<>(ACHIEVEMENTS.values());
+        list.addAll(ProsperityAchievements.ACHIEVEMENTS.values());
         list.add(LoreRegistry.silentKingDefeated);
         return list.toArray(new Achievement[list.size()]);
     }
@@ -86,6 +88,7 @@ public final class HistoryProgress {
     private static boolean valid(EntityPlayer p) {
         return p instanceof EntityPlayerMP && p.isEntityAlive()
             && !p.worldObj.isRemote
+            && !(p instanceof net.minecraftforge.common.util.FakePlayer)
             && !p.capabilities.isCreativeMode;
     }
 
@@ -105,6 +108,7 @@ public final class HistoryProgress {
 
     private static void award(EntityPlayer p, String id) {
         Achievement a = ACHIEVEMENTS.get(id);
+        if (a == null && ProsperityAchievements.earnable(id)) a = ProsperityAchievements.ACHIEVEMENTS.get(id);
         if (valid(p) && a != null
             && !((EntityPlayerMP) p).func_147099_x()
                 .hasAchievementUnlocked(a))
@@ -128,13 +132,28 @@ public final class HistoryProgress {
         return strings(data(player), "sceneStages").contains(site + ":" + stage);
     }
 
+    /** Server callers must prove membership in a generated structure before calling this entry point. */
+    public static void sceneEntered(EntityPlayer player, String site, String prefab) {
+        sceneStage(player, site, prefab, "entry", true);
+    }
+
     /** Called only after server geometry, interaction, or death ownership has been proved. */
     public static void sceneStage(EntityPlayer player, String site, String prefab, String stage, boolean title) {
         if (!(player instanceof EntityPlayerMP) || !player.isEntityAlive()
             || player.worldObj.isRemote
             || player instanceof net.minecraftforge.common.util.FakePlayer
             || !(player.worldObj.provider instanceof WorldProviderProsperityRuins)) return;
+        if (stage.startsWith("battle") && player.capabilities.isCreativeMode) return;
         NBTTagCompound n = data(player);
+        if ("entry".equals(stage)) {
+            // Stable type evidence and upgrades are independent of per-site presentation replay.
+            Set<String> enteredTypes = strings(n, "sceneEntryTypes");
+            if (enteredTypes.add(prefab)) {
+                storeStrings(n, "sceneEntryTypes", enteredTypes);
+                save(player, n);
+            }
+            award(player, "explore." + prefab);
+        }
         Set<String> stages = strings(n, "sceneStages");
         if (!stages.add(site + ":" + stage)) return;
         storeStrings(n, "sceneStages", stages);
@@ -153,7 +172,7 @@ public final class HistoryProgress {
             new net.minecraft.util.ChatComponentTranslation(
                 "gtsr.scene.story_unlocked",
                 new net.minecraft.util.ChatComponentTranslation(nameKey)));
-        if (title) LoreNetwork.title((EntityPlayerMP) player, nameKey);
+        if (title && "entry".equals(stage)) LoreNetwork.title((EntityPlayerMP) player, nameKey);
         LoreNetwork.send((EntityPlayerMP) player, false);
     }
 
@@ -209,9 +228,16 @@ public final class HistoryProgress {
 
     public static void observeRelic(EntityPlayer p, String id) {
         if (!valid(p) || !LoreRegistry.RELICS.containsKey(id)) return;
+        boolean held = false;
+        for (ItemStack stack : p.inventory.mainInventory)
+            if (stack != null && stack.stackSize > 0 && stack.getItem() == LoreRegistry.RELICS.get(id)) held = true;
+        if (!held) return;
         NBTTagCompound n = data(p);
         Set<String> relics = strings(n, "relics");
-        if (!relics.add(id)) return;
+        boolean first = relics.add(id);
+        // Recover catalog awards from existing save evidence after upgrading, without replaying presentation.
+        award(p, "relic." + id);
+        if (!first) return;
         storeStrings(n, "relics", relics);
         save(p, n);
         boolean six = true;
@@ -232,8 +258,21 @@ public final class HistoryProgress {
         save(p, n);
         if (bit < 5) award(p, "watch" + bit);
         else award(p, bit == 5 ? "foundry" : "hive");
+        if (bit == 5 || bit == 6) majorBossDefeated(p, kind.code);
         if ((bits & 31) == 31) award(p, "fiveWatches");
         LoreNetwork.send((EntityPlayerMP) p, false);
+    }
+
+    /** Only existing accepted-death hooks may call this. Future boss identities stay pending. */
+    public static void majorBossDefeated(EntityPlayer player, String code) {
+        if (!valid(player) || !(player.worldObj.provider instanceof WorldProviderProsperityRuins)
+            || !ProsperityAchievements.earnable("defeat." + code)) return;
+        NBTTagCompound n = data(player);
+        Set<String> bosses = strings(n, "catalogBossDeaths");
+        bosses.add(code);
+        storeStrings(n, "catalogBossDeaths", bosses);
+        save(player, n);
+        award(player, "defeat." + code);
     }
 
     /** Caller must prove the real event; first returns true exactly once per persisted player. */

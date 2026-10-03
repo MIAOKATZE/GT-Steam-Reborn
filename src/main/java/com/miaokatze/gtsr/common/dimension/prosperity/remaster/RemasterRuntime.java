@@ -265,6 +265,8 @@ public final class RemasterRuntime {
         if (id.isEmpty() || role.isEmpty()) return false;
         if (role.equals("chest") && RemasterData.get(world)
             .flag(site.id(), "claimed:" + id)) return true;
+        if (role.equals("spawner") && RemasterData.get(world)
+            .flag(site.id(), "destroyed:" + id)) return true;
         Block block = resolve(key);
         TileEntity prior = world.getTileEntity(x, y, z);
         if (prior == null && RemasterData.get(world)
@@ -587,6 +589,7 @@ public final class RemasterRuntime {
         if (!active(w, id)) return false;
         RemasterSite owner = RemasterData.get(w)
             .site(id);
+        if (industrialBossSite(owner)) return remainingSpawners(w, owner) == 0 && requiredSpawners(owner).size() > 0;
         boolean found = false;
         for (JsonElement element : array(owner.plan().metadata, "spawns")) {
             JsonObject spawn = element.getAsJsonObject();
@@ -600,6 +603,7 @@ public final class RemasterRuntime {
     /** Both first generation and loaded-chunk retries use the same authored activation contract. */
     public static boolean spawnReady(World world, RemasterSite site, JsonObject spawn) {
         if (world == null || world.isRemote || !RemasterRollout.allowsGeneration(site)) return false;
+        if (industrialBossSite(site) && "boss".equals(string(spawn, "role", ""))) return true;
         if (spawn.has("activationModules") && !spawn.get("activationModules")
             .isJsonArray()) return false;
         for (JsonElement module : array(spawn, "activationModules")) {
@@ -607,6 +611,144 @@ public final class RemasterRuntime {
                 .isString() || !combatCleared(world, site, module.getAsString())) return false;
         }
         return true;
+    }
+
+    public static boolean industrialBossSite(RemasterSite site) {
+        return site != null && ("subsided_factory".equals(site.prefab) || "fallen_foundry".equals(site.prefab));
+    }
+
+    private static List<String> requiredSpawners(RemasterSite site) {
+        List<String> ids = new ArrayList<>();
+        JsonObject metadata = site.plan().metadata;
+        if (!metadata.has("bossActivation") || !metadata.get("bossActivation")
+            .isJsonObject()) return ids;
+        JsonObject activation = metadata.getAsJsonObject("bossActivation");
+        if (!"destroy-all-spawners".equals(string(activation, "kind", ""))) return ids;
+        for (JsonElement id : array(activation, "spawnerIds")) {
+            if (!id.isJsonPrimitive() || !id.getAsJsonPrimitive()
+                .isString() || ids.contains(id.getAsString())) return new ArrayList<>();
+            boolean authored = false;
+            for (JsonObject node : nodes(site)) if ("spawner".equals(string(node, "role", "")) && id.getAsString()
+                .equals(string(node, "id", ""))) authored = true;
+            if (!authored) return new ArrayList<>();
+            ids.add(id.getAsString());
+        }
+        for (JsonObject node : nodes(site))
+            if ("spawner".equals(string(node, "role", "")) && !ids.contains(string(node, "id", "")))
+                return new ArrayList<>();
+        return ids;
+    }
+
+    private static int remainingSpawners(World world, RemasterSite site) {
+        int remaining = 0;
+        for (String id : requiredSpawners(site)) if (!RemasterData.get(world)
+            .flag(site.id(), "destroyed:" + id)) remaining++;
+        return remaining;
+    }
+
+    /** Called by the actual block removal callback while the old tile is still installed. Never infer absence. */
+    public static void spawnerDestroyed(World world, int x, int y, int z, Block oldBlock, int oldMeta) {
+        if (world == null || world.isRemote) return;
+        TileEntity actual = world.getTileEntity(x, y, z);
+        if (!(actual instanceof TileRemasterNode)) return;
+        TileRemasterNode tile = (TileRemasterNode) actual;
+        RemasterData data = RemasterData.get(world);
+        RemasterSite site = data.site(tile.siteId);
+        if (!RemasterRollout.allowsGeneration(site) || !"spawner".equals(tile.role)
+            || !data.flag(tile.siteId, "node:" + tile.nodeId)) return;
+        for (JsonObject node : nodes(site))
+            if (tile.nodeId.equals(string(node, "id", "")) && "spawner".equals(string(node, "role", ""))
+                && atNode(tile, site, node)
+                && oldBlock == resolve(string(node, "block", ""))
+                && oldMeta == meta(string(node, "block", ""))) {
+                    data.flag(tile.siteId, "destroyed:" + tile.nodeId, true);
+                    return;
+                }
+    }
+
+    /** Immutable server snapshot for a scene HUD; loaded entities do not decide cage completion. */
+    public static final class BossStatus {
+
+        public final int totalSpawners, remainingSpawners, state, revivalTicks, entityId;
+        public final float health, maxHealth;
+        public final String bossCode;
+
+        private BossStatus(int total, int remaining, int state, int ticks, int entityId, float health, float max,
+            String code) {
+            this.totalSpawners = total;
+            this.remainingSpawners = remaining;
+            this.state = state;
+            this.revivalTicks = ticks;
+            this.entityId = entityId;
+            this.health = health;
+            this.maxHealth = max;
+            this.bossCode = code;
+        }
+    }
+
+    /** Persist the last authoritative phase even when the boss chunk later unloads. */
+    public static void rememberBossState(EntityOldEcho boss) {
+        World world = boss.worldObj;
+        if (world == null || world.isRemote || !active(world, boss.getEncounterId())) return;
+        RemasterData data = RemasterData.get(world);
+        RemasterSite site = data.site(boss.getEncounterId());
+        if (!industrialBossSite(site)) return;
+        int index = boss.getPlatformId();
+        JsonArray spawns = array(site.plan().metadata, "spawns");
+        if (index < 0 || index >= spawns.size() || !data.flag(site.id(), "entity:" + index)) return;
+        JsonObject spawn = spawns.get(index)
+            .getAsJsonObject();
+        if (!"boss".equals(string(spawn, "role", "")) || !boss.getKind().code.equals(string(spawn, "code", ""))) return;
+        NBTTagCompound state = data.state(site.id());
+        int phase = boss.getIndustrialBossStage(), ticks = boss.getRevivalTicks();
+        float health = phase == 0 ? 0 : boss.getHealth();
+        if (state.getInteger("industrialBossStage") == phase && state.getInteger("industrialRevivalTicks") == ticks
+            && state.getFloat("industrialBossHealth") == health) return;
+        state.setInteger("industrialBossStage", phase);
+        state.setInteger("industrialRevivalTicks", ticks);
+        state.setFloat("industrialBossHealth", health);
+        data.markDirty();
+    }
+
+    public static BossStatus bossStatus(World world, String siteId) {
+        if (!active(world, siteId)) return null;
+        RemasterSite site = RemasterData.get(world)
+            .site(siteId);
+        if (!industrialBossSite(site)) return null;
+        String code = "";
+        for (JsonElement element : array(site.plan().metadata, "spawns")) {
+            JsonObject spawn = element.getAsJsonObject();
+            if ("boss".equals(string(spawn, "role", ""))) {
+                code = string(spawn, "code", "");
+                break;
+            }
+        }
+        int total = requiredSpawners(site).size(), remaining = remainingSpawners(world, site);
+        for (Object object : world.loadedEntityList) if (object instanceof EntityOldEcho) {
+            EntityOldEcho boss = (EntityOldEcho) object;
+            if (siteId.equals(boss.getEncounterId()) && code.equals(boss.getKind().code)) return new BossStatus(
+                total,
+                remaining,
+                boss.getIndustrialBossStage(),
+                boss.getRevivalTicks(),
+                boss.getEntityId(),
+                boss.getIndustrialBossStage() == 0 ? 0 : boss.getHealth(),
+                boss.getMaxHealth(),
+                code);
+        }
+        NBTTagCompound saved = RemasterData.get(world)
+            .state(siteId);
+        boolean defeated = RemasterData.get(world)
+            .flag(siteId, "boss-dead");
+        return new BossStatus(
+            total,
+            remaining,
+            defeated ? 3 : saved.getInteger("industrialBossStage"),
+            saved.getInteger("industrialRevivalTicks"),
+            -1,
+            defeated ? 0 : saved.getFloat("industrialBossHealth"),
+            code.isEmpty() ? 0 : EchoKind.byCode(code).maxHealth,
+            code);
     }
 
     public static boolean disabledRole(String role) {
@@ -677,8 +819,8 @@ public final class RemasterRuntime {
         if (!spawner.hasKey("next")) spawner.setLong("next", now + 100);
         if (now < spawner.getLong("next")) return;
         spawner.setLong("next", now + integer(policy, "intervalTicks", 100));
-        int quota = integer(policy, "sealAt", 10),
-            batch = Math.min(integer(policy, "batch", 2), quota - spawner.getInteger("count"));
+        int quota = integer(policy, "sealAt", 10), candidates = integer(policy, "batch", 2),
+            batch = Math.min(candidates, quota - spawner.getInteger("count"));
         JsonObject zone = n.getAsJsonObject("spawnZone");
         if (zone == null) return;
         JsonArray center = zone.getAsJsonArray("center");
@@ -690,7 +832,8 @@ public final class RemasterRuntime {
             || spawnCode.equals("dr-15")
             || spawnCode.equals("dr-18"))) return;
         int admitted = 0;
-        for (int i = 0; i < batch; i++) {
+        // A partly blocked bay must still try its other authored slots when only one quota remains.
+        for (int i = 0; i < candidates && admitted < batch; i++) {
             double x = s.x + center.get(0)
                 .getAsDouble() + (i % 3 - 1) * (kind.width + .5), y = s.y
                     + center.get(1)
