@@ -9,12 +9,25 @@ public final class RemasterSite {
     public final int variant, x, y, z;
     public final long seed;
     public final String layout;
+    public final int roadVersion;
+    public final int entryApronVersion;
+    public final String entryApronSha;
+    final int[] entryApronWrites;
 
     public RemasterSite(String prefab, int variant, long seed, int x, int y, int z) {
         this(prefab, variant, seed, x, y, z, "prefab");
     }
 
     public RemasterSite(String prefab, int variant, long seed, int x, int y, int z, String layout) {
+        this(prefab, variant, seed, x, y, z, layout, 0);
+    }
+
+    public RemasterSite(String prefab, int variant, long seed, int x, int y, int z, String layout, int roadVersion) {
+        this(prefab, variant, seed, x, y, z, layout, roadVersion, 0, "", new int[0]);
+    }
+
+    public RemasterSite(String prefab, int variant, long seed, int x, int y, int z, String layout, int roadVersion,
+        int entryApronVersion, String entryApronSha, int[] entryApronWrites) {
         this.prefab = prefab;
         this.variant = variant;
         this.seed = seed;
@@ -22,6 +35,10 @@ public final class RemasterSite {
         this.y = y;
         this.z = z;
         this.layout = layout;
+        this.roadVersion = roadVersion;
+        this.entryApronVersion = entryApronVersion;
+        this.entryApronSha = entryApronSha;
+        this.entryApronWrites = entryApronWrites.clone();
     }
 
     public String id() {
@@ -35,6 +52,10 @@ public final class RemasterSite {
             + ":"
             + z
             + ("prefab".equals(layout) ? "" : ":" + layout);
+    }
+
+    public int[] entryApronWrites() {
+        return entryApronWrites.clone();
     }
 
     public RemasterPrefab plan() {
@@ -75,23 +96,29 @@ public final class RemasterSite {
 
     public int entryX() {
         if ("city-grid".equals(layout)) return x + 4;
-        com.google.gson.JsonObject entry = plan().metadata.getAsJsonObject("surfaceEntrance");
+        com.google.gson.JsonObject entry = entrance();
         return entry != null && entry.has("x") ? x + entry.get("x")
             .getAsInt() : x + bound("min", 0) + 4;
     }
 
     public int entryZ() {
         if ("city-grid".equals(layout)) return z + 4;
-        com.google.gson.JsonObject entry = plan().metadata.getAsJsonObject("surfaceEntrance");
+        com.google.gson.JsonObject entry = entrance();
         return entry != null && entry.has("z") ? z + entry.get("z")
             .getAsInt() : z + bound("min", 2) + 4;
     }
 
     public int entryY() {
         if ("city-grid".equals(layout)) return y;
-        com.google.gson.JsonObject entry = plan().metadata.getAsJsonObject("surfaceEntrance");
+        com.google.gson.JsonObject entry = entrance();
         return entry != null && entry.has("topY") ? y + entry.get("topY")
             .getAsInt() + 1 : y + 1;
+    }
+
+    private com.google.gson.JsonObject entrance() {
+        com.google.gson.JsonObject metadata = plan().metadata;
+        com.google.gson.JsonObject entry = metadata.getAsJsonObject("surfaceEntrance");
+        return entry != null ? entry : metadata.getAsJsonObject("productionSurfaceEntrance");
     }
 
     public NBTTagCompound save() {
@@ -103,6 +130,12 @@ public final class RemasterSite {
         n.setInteger("y", y);
         n.setInteger("z", z);
         n.setString("layout", layout);
+        n.setInteger("roadVersion", roadVersion);
+        if (entryApronVersion > 0) {
+            n.setInteger("entryApronVersion", entryApronVersion);
+            n.setString("entryApronSha", entryApronSha);
+            n.setIntArray("entryApronWrites", entryApronWrites.clone());
+        }
         return n;
     }
 
@@ -114,6 +147,10 @@ public final class RemasterSite {
             n.getInteger("x"),
             n.getInteger("y"),
             n.getInteger("z"),
-            n.hasKey("layout") ? n.getString("layout") : "prefab");
+            n.hasKey("layout") ? n.getString("layout") : "prefab",
+            n.getInteger("roadVersion"),
+            n.getInteger("entryApronVersion"),
+            n.getString("entryApronSha"),
+            n.getIntArray("entryApronWrites"));
     }
 }

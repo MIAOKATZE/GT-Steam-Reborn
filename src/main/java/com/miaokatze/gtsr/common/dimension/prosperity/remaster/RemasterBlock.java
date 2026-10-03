@@ -1,9 +1,11 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.remaster;
 
 import java.util.List;
+import java.util.Random;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -18,6 +20,8 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
+
+import com.miaokatze.gtsr.common.fx.GTSRGlowFX;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -65,11 +69,29 @@ public class RemasterBlock extends Block {
     }
 
     public boolean isInteractive() {
-        return !"decoration".equals(category);
+        return !"decoration".equals(category) || id.equals("gtsr:draft_notice_board");
     }
 
     public boolean isHintObject() {
-        return id.startsWith("gtsr:draft7_") && "operation".equals(category);
+        return "operation".equals(category) || id.equals("gtsr:draft_notice_board");
+    }
+
+    public boolean guidanceActive(IBlockAccess world, int x, int y, int z) {
+        if (!isHintObject()) return false;
+        if (id.startsWith("gtsr:draft7_") && completed(world.getBlockMetadata(x, y, z))) return false;
+        TileEntity tile = world.getTileEntity(x, y, z);
+        return tile instanceof TileRemasterNode node && RemasterRollout.allowsSavedId(node.siteId)
+            && !node.nodeId.isEmpty()
+            && !node.role.isEmpty()
+            && !"ambient-notice".equals(node.role)
+            && !"{}".equals(node.display)
+            && !node.guidanceComplete;
+    }
+
+    @Override
+    public int getLightValue(IBlockAccess world, int x, int y, int z) {
+        if (!guidanceActive(world, x, y, z)) return super.getLightValue(world, x, y, z);
+        return id.startsWith("gtsr:draft7_") ? 12 : id.equals("gtsr:draft_notice_board") ? 8 : 9;
     }
 
     public boolean completed(int meta) {
@@ -130,7 +152,22 @@ public class RemasterBlock extends Block {
 
     @Override
     public int getRenderType() {
-        return fullCube ? 0 : RemasterBlocks.renderId;
+        return fullCube && !isHintObject() ? 0 : RemasterBlocks.renderId;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void randomDisplayTick(World world, int x, int y, int z, Random random) {
+        if (!guidanceActive(world, x, y, z) || random.nextInt(3) != 0) return;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null || mc.thePlayer.getDistanceSq(x + .5, y + .75, z + .5) > 24 * 24) return;
+        Vec3 at = Vec3.createVectorHelper(x + .5, y + 1.1, z + .5);
+        Vec3 eye = Vec3
+            .createVectorHelper(mc.thePlayer.posX, mc.thePlayer.posY + mc.thePlayer.getEyeHeight(), mc.thePlayer.posZ);
+        MovingObjectPosition obstruction = world.func_147447_a(eye, at, false, true, false);
+        if (obstruction != null && (obstruction.blockX != x || obstruction.blockY != y || obstruction.blockZ != z))
+            return;
+        GTSRGlowFX.spawn(world, at.xCoord, at.yCoord, at.zCoord, .16F, .70F, .94F, .58F, 18);
     }
 
     @Override
@@ -151,7 +188,10 @@ public class RemasterBlock extends Block {
         // Vanilla player quadrants S/W/N/E map to authored E/W/S/N metadata.
         int[] direction = { 3, 0, 2, 1 };
         int meta = id.startsWith("gtsr:draft_") ? quadrant : direction[quadrant];
-        if ("stairs".equals(render)) meta |= world.getBlockMetadata(x, y, z) & 4;
+        if ("stairs".equals(render)) {
+            int[] stairDirection = { 2, 1, 3, 0 };
+            meta = stairDirection[quadrant] | (world.getBlockMetadata(x, y, z) & 4);
+        }
         world.setBlockMetadataWithNotify(x, y, z, meta, 2);
     }
 

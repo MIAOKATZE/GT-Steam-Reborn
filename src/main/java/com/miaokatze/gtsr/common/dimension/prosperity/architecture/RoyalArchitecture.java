@@ -13,6 +13,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.world.World;
 
+import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -52,6 +53,9 @@ public final class RoyalArchitecture {
         register("oathwood_slab", new Half("oathwood"));
         register("heartwood_stairs", new Stairs(get("heartwood")));
         register("rootstone_stairs", new Stairs(get("rootstone")));
+        register("oathwood_stairs", new Stairs(get("oathwood")));
+        register("crownwood_stairs", new Stairs(get("crownwood")));
+        register("zenith_log_stairs", new Stairs(BlocksGTSR.prosperityZenithLog));
         register("root_fence", new BlockFence("gtsr:royal_heartwood", Material.wood));
         register("oath_fence", new BlockFence("gtsr:royal_oathwood", Material.wood));
         register("amber_pane", new Pane());

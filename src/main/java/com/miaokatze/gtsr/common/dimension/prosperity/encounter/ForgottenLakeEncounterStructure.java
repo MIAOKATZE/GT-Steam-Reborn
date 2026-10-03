@@ -26,6 +26,11 @@ public final class ForgottenLakeEncounterStructure {
         b.setBlock(x, y, z, o, 0, 2);
     }
 
+    private static void logStep(StructureBuilder b, int x, int y, int z, int facing) {
+        if (!inSlice(b, x, z)) return;
+        b.setBlock(x, y, z, RoyalArchitecture.get("zenith_log_stairs"), facing, 2);
+    }
+
     private static void deck(StructureBuilder b, int x, int y, int z, int r) {
         for (int dx = -r; dx <= r; dx++) for (int dz = -r; dz <= r; dz++) {
             block(b, x + dx, y, z + dz, BlocksGTSR.ruinedCasing);
@@ -58,7 +63,9 @@ public final class ForgottenLakeEncounterStructure {
             for (int a = 0; a < 3; a++) {
                 int xx = ax + x + (Math.abs(z) == 12 ? 0 : (x > 0 ? a : -a));
                 int zz = az + z + (Math.abs(z) == 12 ? (z > 0 ? a : -a) : 0);
-                block(b, xx, y, zz, BlocksGTSR.prosperityZenithLog);
+                if (s > 0 && s % 8 == 0)
+                    logStep(b, xx, y, zz, t == 0 ? 3 : t <= 24 ? 0 : t <= 48 ? 2 : t <= 72 ? 1 : 3);
+                else block(b, xx, y, zz, BlocksGTSR.prosperityZenithLog);
                 for (int h = 1; h <= 3; h++) block(b, xx, y + h, zz, Blocks.air);
             }
         }
@@ -70,7 +77,9 @@ public final class ForgottenLakeEncounterStructure {
             for (int j = 14; j <= 30; j++) for (int width = -1; width <= 1; width++) {
                 int x = ax + (i == 0 ? j : i == 2 ? -j : width), z = az + (i == 1 ? j : i == 3 ? -j : width);
                 int y = Math.min(p[1], base + j - 14);
-                block(b, x, y, z, BlocksGTSR.prosperityZenithLog);
+                if (j > 14 && y > Math.min(p[1], base + j - 15))
+                    logStep(b, x, y, z, i == 0 ? 0 : i == 1 ? 2 : i == 2 ? 1 : 3);
+                else block(b, x, y, z, BlocksGTSR.prosperityZenithLog);
                 for (int h = 1; h <= 3; h++) block(b, x, y + h, z, Blocks.air);
             }
 
@@ -79,10 +88,13 @@ public final class ForgottenLakeEncounterStructure {
         int topBase = y0 + 10 + 12 * Math.floorDiv(top - y0 - 10, 12);
         for (int j = -14; j <= 0; j++) for (int a = -1; a <= 1; a++) {
             int y = Math.min(top, topBase + j + 14);
-            block(b, ax + j, y, az + a, BlocksGTSR.prosperityZenithLog);
+            if (j > -14 && y > Math.min(top, topBase + j + 13)) logStep(b, ax + j, y, az + a, 0);
+            else block(b, ax + j, y, az + a, BlocksGTSR.prosperityZenithLog);
             for (int h = 1; h <= 3; h++) block(b, ax + j, y + h, az + a, Blocks.air);
         }
 
+        restoreSpiralWalk(b, ax, az, y0, trunkH, 12, 8, 3);
+        restoreCourtConnector(b, ax, az, y0, trunkH, 12, 3);
     }
 
     public static final float KING_YAW = 90F;
@@ -327,7 +339,9 @@ public final class ForgottenLakeEncounterStructure {
                 int xx = ax + x + (Math.abs(z) == 12 ? 0 : (x > 0 ? a : -a));
                 int zz = az + z + (Math.abs(z) == 12 ? (z > 0 ? a : -a) : 0);
                 if (!inSlice(b, xx, zz)) continue;
-                wood(b, xx, y, zz, Math.abs(z) == 12 ? 4 : 8);
+                if (s > 0 && s % 8 == 0)
+                    logStep(b, xx, y, zz, t == 0 ? 3 : t <= 24 ? 0 : t <= 48 ? 2 : t <= 72 ? 1 : 3);
+                else wood(b, xx, y, zz, Math.abs(z) == 12 ? 4 : 8);
                 for (int h = 1; h <= 4; h++) block(b, xx, y + h, zz, Blocks.air);
             }
         }
@@ -338,9 +352,11 @@ public final class ForgottenLakeEncounterStructure {
             int base = y0 + offsets[i] + 12 * Math.floorDiv(p[1] - y0 - offsets[i], 12);
             for (int j = 14; j <= 38; j++) for (int width = -2; width <= 2; width++) {
                 int x = ax + (i == 0 ? j : i == 2 ? -j : width), z = az + (i == 1 ? j : i == 3 ? -j : width),
-                    y = Math.min(p[1], base + j - 14);
+                    y = Math.min(p[1], base + Math.max(0, j - 15));
                 if (!inSlice(b, x, z)) continue;
-                wood(b, x, y, z, i % 2 == 0 ? 4 : 8);
+                if (j > 14 && y > Math.min(p[1], base + Math.max(0, j - 16)))
+                    logStep(b, x, y, z, i == 0 ? 0 : i == 1 ? 2 : i == 2 ? 1 : 3);
+                else wood(b, x, y, z, i % 2 == 0 ? 4 : 8);
                 for (int h = 1; h <= 4; h++) block(b, x, y + h, z, Blocks.air);
             }
             treeRoom(b, p, i);
@@ -352,9 +368,14 @@ public final class ForgottenLakeEncounterStructure {
         // The final westward riser joins the old spiral to the royal entrance and broad arena.
         int topBase = y0 + 10 + 12 * Math.floorDiv(top - y0 - 10, 12);
         for (int j = -55; j <= 0; j++) for (int a = -3; a <= 3; a++) {
-            int y = j < -14 ? top : Math.min(top, topBase + j + 14);
+            int y = j < -14 ? top - (int) Math.round((top - topBase) * (j + 55) / 41D)
+                : Math.min(top, topBase + j + 14);
             if (!inSlice(b, ax + j, az + a)) continue;
-            wood(b, ax + j, y, az + a, 4);
+            int previousY = j <= -14 ? top - (int) Math.round((top - topBase) * (j + 54) / 41D)
+                : Math.min(top, topBase + j + 13);
+            if (y > previousY) logStep(b, ax + j, y, az + a, 0);
+            else wood(b, ax + j, y, az + a, 4);
+            if (j > -55 && y < previousY) logStep(b, ax + j - 1, previousY, az + a, 1);
             for (int h = 1; h <= 4; h++) block(b, ax + j, y + h, az + a, Blocks.air);
         }
         royalRootBackdrop(b, ax, az, top);
@@ -363,6 +384,8 @@ public final class ForgottenLakeEncounterStructure {
             wood(b, ax + x, top, az + z, 4);
             for (int h = 1; h <= 14; h++) block(b, ax + x, top + h, az + z, Blocks.air);
         }
+        restoreSpiralWalk(b, ax, az, y0, trunkH, 12, 8, 4);
+        restoreCourtConnector(b, ax, az, y0, trunkH, 12, 4);
     }
 
     private static void initializeV2Chunk(World w, int ax, int az, int y0, int trunkH, int cx, int cz) {
@@ -431,16 +454,23 @@ public final class ForgottenLakeEncounterStructure {
                 int xx = ax + x + (Math.abs(z) == 24 ? 0 : (x > 0 ? a : -a));
                 int zz = az + z + (Math.abs(z) == 24 ? (z > 0 ? a : -a) : 0);
                 if (!inSlice(b, xx, zz)) continue;
-                wood(b, xx, y, zz, Math.abs(z) == 24 ? 4 : 8);
+                if (s > 0 && s % 16 == 0)
+                    logStep(b, xx, y, zz, t == 0 ? 3 : t <= 48 ? 0 : t <= 96 ? 2 : t <= 144 ? 1 : 3);
+                else wood(b, xx, y, zz, Math.abs(z) == 24 ? 4 : 8);
                 for (int h = 1; h <= 4; h++) block(b, xx, y + h, zz, Blocks.air);
             }
         }
         // The final westward riser joins the old spiral to the royal entrance and broad arena.
         int topBase = y0 + 10 + 12 * Math.floorDiv(top - y0 - 10, 12);
         for (int j = -55; j <= 0; j++) for (int a = -3; a <= 3; a++) {
-            int y = j < -28 ? top : Math.min(top, topBase + (j + 28) / 2);
+            int y = j < -28 ? top - (int) Math.round((top - topBase) * (j + 55) / 27D)
+                : Math.min(top, topBase + (j + 28) / 2);
             if (!inSlice(b, ax + j, az + a)) continue;
-            wood(b, ax + j, y, az + a, 4);
+            int previousY = j <= -28 ? top - (int) Math.round((top - topBase) * (j + 54) / 27D)
+                : Math.min(top, topBase + (j + 27) / 2);
+            if (y > previousY) logStep(b, ax + j, y, az + a, 0);
+            else wood(b, ax + j, y, az + a, 4);
+            if (j > -55 && y < previousY) logStep(b, ax + j - 1, previousY, az + a, 1);
             for (int h = 1; h <= 4; h++) block(b, ax + j, y + h, az + a, Blocks.air);
         }
         royalRootBackdrop(b, ax, az, top);
@@ -573,16 +603,56 @@ public final class ForgottenLakeEncounterStructure {
         int base = y0 + phase[room] + 12 * Math.floorDiv(p[1] - y0 - phase[room], 12);
         double angle = room * Math.PI / 4, cos = Math.cos(angle), sin = Math.sin(angle);
         double start = room % 2 == 0 ? 24 : Math.sqrt(1152);
+        // Reduce oversampled curve positions to one authored walking height per column.
+        java.util.List<int[]> route = new java.util.ArrayList<>();
         for (int t = 0; t <= 200; t++) {
             double u = t / 200D, r = start + (112 - start) * u, bend = 8 * Math.sin(Math.PI * u);
             int x = ax + (int) Math.round(cos * r - sin * bend), z = az + (int) Math.round(sin * r + cos * bend);
             int y = base + (int) Math.round((p[1] - base) * u + 2 * Math.sin(Math.PI * u));
+            // Preserve the original leaf fringe exactly; only walking timber is reshaped.
             for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) {
-                if (dx * dx + dz * dz > 12 || !inSlice(b, x + dx, z + dz)) continue;
-                wood(b, x + dx, y, z + dz, Math.abs(cos) >= Math.abs(sin) ? 4 : 8);
-                for (int h = 1; h <= 3; h++) wood(b, x + dx, y - h, z + dz, Math.abs(cos) >= Math.abs(sin) ? 4 : 8);
-                for (int h = 1; h <= 5; h++) block(b, x + dx, y + h, z + dz, Blocks.air);
-                if (dx * dx + dz * dz > 8) block(b, x + dx, y - 4, z + dz, BlocksGTSR.prosperityJadeLeaves);
+                if (dx * dx + dz * dz > 8 && dx * dx + dz * dz <= 12 && inSlice(b, x + dx, z + dz))
+                    block(b, x + dx, y - 4, z + dz, BlocksGTSR.prosperityJadeLeaves);
+            }
+            if (!route.isEmpty()) {
+                int[] previous = route.get(route.size() - 1);
+                if (previous[0] == x && previous[2] == z) {
+                    previous[1] = y;
+                    continue;
+                }
+                if (previous[0] != x && previous[2] != z) route.add(new int[] { x, previous[1], previous[2] });
+            }
+            route.add(new int[] { x, y, z });
+        }
+        java.util.Map<String, int[]> floor = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < route.size(); i++) {
+            int[] q = route.get(i), previous = route.get(i == 0 ? 0 : i - 1);
+            boolean alongX = q[0] != previous[0] || i == 0 && Math.abs(cos) >= Math.abs(sin);
+            for (int side = -3; side <= 3; side++) {
+                int x = q[0] + (alongX ? 0 : side), z = q[2] + (alongX ? side : 0);
+                String key = x + ":" + z;
+                int[] old = floor.get(key);
+                if (old == null || q[1] < old[1]) floor.put(key, new int[] { x, q[1], z });
+            }
+        }
+        for (int[] q : route) floor.put(q[0] + ":" + q[2], q);
+        for (int[] q : floor.values()) {
+            if (!inSlice(b, q[0], q[2])) continue;
+            for (int h = 0; h <= 3; h++) wood(b, q[0], q[1] - h, q[2], Math.abs(cos) >= Math.abs(sin) ? 4 : 8);
+            for (int h = 1; h <= 5; h++) block(b, q[0], q[1] + h, q[2], Blocks.air);
+        }
+        // Install rises after their support timber, so subsequent sections cannot bury half steps.
+        for (int i = 1; i < route.size(); i++) {
+            int[] a = route.get(i - 1), c = route.get(i);
+            if (a[1] == c[1]) continue;
+            int[] high = a[1] > c[1] ? a : c, low = a[1] > c[1] ? c : a;
+            int facing = high[0] != low[0] ? (high[0] > low[0] ? 0 : 1) : (high[2] > low[2] ? 2 : 3);
+            boolean alongX = high[0] != low[0];
+            for (int side = -3; side <= 3; side++) {
+                int x = high[0] + (alongX ? 0 : side), z = high[2] + (alongX ? side : 0);
+                int[] f = floor.get(x + ":" + z);
+                if (f == null || f[1] != high[1]) continue;
+                logStep(b, x, high[1], z, facing);
             }
         }
     }
@@ -641,6 +711,218 @@ public final class ForgottenLakeEncounterStructure {
             if (!inSlice(b, c[0] + dx, c[2] + dz)) continue;
             wood(b, c[0] + dx, c[1] - 1, c[2] + dz, 0);
             for (int h = 0; h < 4; h++) block(b, c[0] + dx, c[1] + h, c[2] + dz, Blocks.air);
+        }
+        restoreSpiralWalk(b, ax, az, y0, trunkH, 24, 16, 4);
+        restoreBranchSpiralJoins(b, ax, az, y0, trunkH, tips);
+        restoreCourtConnector(b, ax, az, y0, trunkH, 24, 4);
+    }
+
+    /** Match the outer timber landing to the lower room deck before the sideways door turn. */
+    private static void restoreBranchRoomSteps(StructureBuilder b, int ax, int az, int y0, int trunkH) {
+        for (int room = 0; room < 8; room++) {
+            int[] p = platform(ax, az, y0, trunkH, room), phase = { 4, 6, 7, 9, 10, 0, 1, 3 };
+            int base = y0 + phase[room] + 12 * Math.floorDiv(p[1] - y0 - phase[room], 12);
+            double a = room * Math.PI / 4, cos = Math.cos(a), sin = Math.sin(a),
+                radius = room % 2 == 0 ? 24 : Math.sqrt(1152);
+            int[] start = null;
+            for (int t = 0; t <= 200; t++) {
+                double u = t / 200D, r = radius + (112 - radius) * u, bend = 8 * Math.sin(Math.PI * u);
+                int x = ax + (int) Math.round(cos * r - sin * bend), z = az + (int) Math.round(sin * r + cos * bend);
+                if (Math.hypot(x - p[0], z - p[2]) <= 14) break;
+                start = new int[] { x, base + (int) Math.round((p[1] - base) * u + 2 * Math.sin(Math.PI * u)), z };
+            }
+            int[] dest = roomCellV3(p, room, -17, 0);
+            int count = Math.max(Math.abs(dest[0] - start[0]), Math.abs(dest[1] - start[2]));
+            int[] previous = start;
+            java.util.List<int[]> steps = new java.util.ArrayList<>();
+            for (int i = 1; i <= count; i++) {
+                int[] q = { start[0] + (int) Math.round((dest[0] - start[0]) * i / (double) count),
+                    start[1] + (int) Math.round((p[1] - start[1]) * i / (double) count),
+                    start[2] + (int) Math.round((dest[1] - start[2]) * i / (double) count) };
+                // This is the existing outer walking timber, before the leaf screen.
+                // Its transverse support could otherwise leave a full block above
+                // the lower landing and bury the half step on the return path.
+                for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
+                    if (!inSlice(b, q[0] + dx, q[2] + dz)) continue;
+                    wood(b, q[0] + dx, q[1], q[2] + dz, Math.abs(cos) >= Math.abs(sin) ? 4 : 8);
+                    for (int h = 1; h <= 2; h++) block(b, q[0] + dx, q[1] + h, q[2] + dz, Blocks.air);
+                }
+                if (q[1] != previous[1]) {
+                    int[] high = q[1] > previous[1] ? q : previous, low = q[1] > previous[1] ? previous : q;
+                    int facing = high[0] != low[0] ? (high[0] > low[0] ? 0 : 1) : (high[2] > low[2] ? 2 : 3);
+                    steps.add(new int[] { high[0], high[1], high[2], facing });
+                }
+                previous = q;
+            }
+            for (int[] step : steps) if (inSlice(b, step[0], step[2])) logStep(b, step[0], step[1], step[2], step[3]);
+        }
+    }
+
+    /** The final spiral replay can lower an early branch rise inside its walking band. */
+    private static int branchJoinFloor(int x, int z, int y0, int expected) {
+        int t;
+        if (z >= -27 && z <= -24 && x >= -24 && x <= 24) t = x + 24;
+        else if (x >= 24 && x <= 27 && z > -24 && z < 24) t = 72 + z;
+        else if (z >= 24 && z <= 27 && x >= -24 && x <= 24) t = 120 - x;
+        else if (x >= -27 && x <= -24 && z > -24 && z < 24) t = 168 - z;
+        else return expected;
+        int floor = y0 + t / 16;
+        floor += 12 * Math.round((expected - floor) / 12F);
+        return Math.abs(floor - expected) <= 3 ? floor : expected;
+    }
+
+    private static int actualBranchFloor(int x, int z, int y0, int expected, int ax, int az,
+        java.util.List<int[]> tips) {
+        int floor = branchJoinFloor(x, z, y0, expected);
+        for (int[] tip : tips)
+            if (Math.abs(ax + x - tip[0]) <= 2 && Math.abs(az + z - tip[2]) <= 2 && Math.abs(tip[1] - 1 - floor) <= 3)
+                floor = tip[1] - 1;
+        return floor;
+    }
+
+    private static void restoreBranchSpiralJoins(StructureBuilder b, int ax, int az, int y0, int trunkH,
+        java.util.List<int[]> tips) {
+        for (int room = 0; room < 8; room++) {
+            int[] p = platform(ax, az, y0, trunkH, room), phase = { 4, 6, 7, 9, 10, 0, 1, 3 };
+            int base = y0 + phase[room] + 12 * Math.floorDiv(p[1] - y0 - phase[room], 12);
+            double a = room * Math.PI / 4, cos = Math.cos(a), sin = Math.sin(a),
+                start = room % 2 == 0 ? 24 : Math.sqrt(1152);
+            java.util.List<int[]> route = new java.util.ArrayList<>();
+            for (int t = 0; t <= 200; t++) {
+                double u = t / 200D, r = start + (112 - start) * u, bend = 8 * Math.sin(Math.PI * u);
+                int x = (int) Math.round(cos * r - sin * bend), z = (int) Math.round(sin * r + cos * bend);
+                int y = base + (int) Math.round((p[1] - base) * u + 2 * Math.sin(Math.PI * u));
+                if (!route.isEmpty()) {
+                    int[] previous = route.get(route.size() - 1);
+                    if (previous[0] == x && previous[2] == z) {
+                        previous[1] = y;
+                        continue;
+                    }
+                    if (previous[0] != x && previous[2] != z) route.add(new int[] { x, previous[1], previous[2] });
+                }
+                route.add(new int[] { x, y, z });
+            }
+            java.util.Map<String, Integer> floors = new java.util.HashMap<>();
+            for (int i = 0; i < route.size(); i++) {
+                int[] q = route.get(i), previous = route.get(i == 0 ? 0 : i - 1);
+                boolean alongX = q[0] != previous[0] || i == 0 && Math.abs(cos) >= Math.abs(sin);
+                for (int side = -3; side <= 3; side++) {
+                    int x = q[0] + (alongX ? 0 : side), z = q[2] + (alongX ? side : 0);
+                    String key = x + ":" + z;
+                    Integer old = floors.get(key);
+                    if (old == null || q[1] < old) floors.put(key, q[1]);
+                }
+            }
+            for (int[] q : route) floors.put(q[0] + ":" + q[2], q[1]);
+            int[] entry = route.get(0);
+            for (int[] q : route) {
+                if (Math.hypot(ax + q[0] - p[0], az + q[2] - p[2]) <= 19) break;
+                entry = q;
+            }
+            int accessStart = route.size();
+            route.add(entry.clone());
+            for (int[] uv : new int[][] { { -17, 0 }, { -17, -7 }, { -8, -7 } }) {
+                int[] c = roomCellV3(p, room, uv[0], uv[1]);
+                int x = c[0] - ax, z = c[1] - az, previous[] = route.get(route.size() - 1);
+                int steps = Math.max(Math.abs(x - previous[0]), Math.abs(z - previous[2]));
+                for (int j = 1; j <= steps; j++) {
+                    int xx = previous[0] + (int) Math.round((x - previous[0]) * j / (double) steps);
+                    int zz = previous[2] + (int) Math.round((z - previous[2]) * j / (double) steps);
+                    int[] last = route.get(route.size() - 1);
+                    if (xx != last[0] && zz != last[2])
+                        route.add(new int[] { xx, floors.getOrDefault(xx + ":" + last[2], p[1]), last[2] });
+                    route.add(new int[] { xx, floors.getOrDefault(xx + ":" + zz, p[1]), zz });
+                }
+            }
+            for (int i = 1; i < route.size(); i++) {
+                int[] before = route.get(i - 1), after = route.get(i);
+                if (Math.abs(before[0] - after[0]) + Math.abs(before[2] - after[2]) != 1) continue;
+                int beforeY = actualBranchFloor(before[0], before[2], y0, before[1], ax, az, tips);
+                int afterY = actualBranchFloor(after[0], after[2], y0, after[1], ax, az, tips);
+                if (Math.abs(afterY - beforeY) != 1 || i < accessStart && beforeY == before[1] && afterY == after[1])
+                    continue;
+                int[] low = beforeY < afterY ? before : after, high = beforeY < afterY ? after : before;
+                int lowY = Math.min(beforeY, afterY), highY = lowY + 1;
+                boolean alongX = high[0] != low[0];
+                int facing = alongX ? (high[0] > low[0] ? 0 : 1) : (high[2] > low[2] ? 2 : 3);
+                for (int side = -3; side <= 3; side++) {
+                    int hx = high[0] + (alongX ? 0 : side), hz = high[2] + (alongX ? side : 0);
+                    Integer floor = floors.get(hx + ":" + hz);
+                    if (floor == null && Math.hypot(ax + hx - p[0], az + hz - p[2]) <= 19) floor = p[1];
+                    if (floor == null || actualBranchFloor(hx, hz, y0, floor, ax, az, tips) != highY) continue;
+                    // Keep the spiral's own transverse stair direction and every chest anchor.
+                    if (branchJoinFloor(hx, hz, y0, highY + 1) != highY + 1) continue;
+                    boolean anchor = false;
+                    for (int[] tip : tips) if (tip[0] == ax + hx && tip[2] == az + hz) anchor = true;
+                    if (anchor) continue;
+                    logStep(b, ax + hx, highY, az + hz, facing);
+                    block(
+                        b,
+                        ax + low[0] + (alongX ? 0 : side),
+                        highY + 2,
+                        az + low[2] + (alongX ? side : 0),
+                        Blocks.air);
+                }
+            }
+        }
+    }
+
+    /** Shared walking surface wins over the transverse support timber of an intersecting room branch. */
+    private static void restoreSpiralWalk(StructureBuilder b, int ax, int az, int y0, int trunkH, int radius,
+        int riseRun, int width) {
+        int sideLength = radius * 2, period = sideLength * 4, steps = (trunkH + 2) * riseRun + riseRun - 1;
+        for (int s = 0; s <= steps; s++) {
+            int t = s % period, x, z;
+            if (t < sideLength) {
+                x = -radius + t;
+                z = -radius;
+            } else if (t < sideLength * 2) {
+                x = radius;
+                z = -radius + t - sideLength;
+            } else if (t < sideLength * 3) {
+                x = radius - (t - sideLength * 2);
+                z = radius;
+            } else {
+                x = -radius;
+                z = radius - (t - sideLength * 3);
+            }
+            int y = y0 + s / riseRun;
+            for (int a = 0; a < width; a++) {
+                int xx = ax + x + (Math.abs(z) == radius ? 0 : (x > 0 ? a : -a));
+                int zz = az + z + (Math.abs(z) == radius ? (z > 0 ? a : -a) : 0);
+                if (!inSlice(b, xx, zz)) continue;
+                if (s > 0 && s % riseRun == 0) logStep(
+                    b,
+                    xx,
+                    y,
+                    zz,
+                    t == 0 ? 3 : t <= sideLength ? 0 : t <= sideLength * 2 ? 2 : t <= sideLength * 3 ? 1 : 3);
+                else wood(b, xx, y, zz, Math.abs(z) == radius ? 4 : 8);
+                for (int h = 1; h <= 2; h++) block(b, xx, y + h, zz, Blocks.air);
+            }
+        }
+
+    }
+
+    private static int connectorFloor(int j, int top, int base, int radius, int width) {
+        int westLanding = -radius - width + 1;
+        if (j <= westLanding) return top - (int) Math.round((top - base) * (j + 55) / (double) (westLanding + 55));
+        if (j < -radius) return base;
+        return base + (int) Math.round((top - base) * (j + radius) / (double) radius);
+    }
+
+    /** Join the actual spiral crossing height, including its entire transverse landing. */
+    private static void restoreCourtConnector(StructureBuilder b, int ax, int az, int y0, int trunkH, int radius,
+        int width) {
+        int top = y0 + trunkH + 2, base = y0 + 10 + 12 * Math.floorDiv(trunkH + 2 - 10, 12);
+        for (int j = -55; j <= 0; j++) for (int side = -3; side <= 3; side++) {
+            int y = connectorFloor(j, top, base, radius, width),
+                previous = connectorFloor(j - 1, top, base, radius, width);
+            if (!inSlice(b, ax + j, az + side)) continue;
+            if (j > -55 && y > previous) logStep(b, ax + j, y, az + side, 0);
+            else wood(b, ax + j, y, az + side, 4);
+            if (j > -55 && y < previous) logStep(b, ax + j - 1, previous, az + side, 1);
+            for (int h = 1; h <= 4; h++) block(b, ax + j, y + h, az + side, Blocks.air);
         }
     }
 

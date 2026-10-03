@@ -12,6 +12,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterWorldgen;
 /** Executes the production voxel slice writer against a strict owner sink, without a Minecraft world. */
 public final class RemasterWorldgenCheck {
     public static void main(String[] args) {
+        NativeTerrainFixture.initialize();
         long total = 0, explicitAir = 0;
         for (String id : RemasterCatalog.ids()) {
             for (int variant = 0; variant < RemasterCatalog.variants(id); variant++) {
@@ -60,6 +61,15 @@ public final class RemasterWorldgenCheck {
                     cities++;
                 }
             }
+        // Rare native seed/cell regression, outside the original 625-cell domain.
+        boolean rareFactory = false;
+        for (RemasterSite s : RemasterPlanner.cell(20261001L, 0, -23, -92)) {
+            if (!s.prefab.equals("subsided_factory")) continue;
+            if (s.variant != 2) throw new AssertionError("rare native factory variant");
+            for (RemasterSite actual : RemasterPlanner.near(s.seed, s.entryX() >> 4, s.entryZ() >> 4))
+                if (actual.id().equals(s.id())) { coverage.add(s.prefab); rareFactory = true; }
+        }
+        if (!rareFactory) throw new AssertionError("rare native factory not rediscovered at natural entry");
         coverage.add("forgotten_lake_court"); // Dedicated original natural lake tree entrypoint, never the free-standing pools.
         if (coverage.size() != 90) throw new AssertionError("natural roster coverage=" + coverage.size() + " missing=" + missing(coverage));
         String initial = snapshot(RemasterPlanner.cell(20261001L, 0, 4, -3));

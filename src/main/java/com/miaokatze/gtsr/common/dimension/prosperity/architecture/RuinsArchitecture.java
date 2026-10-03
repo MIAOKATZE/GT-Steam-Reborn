@@ -76,6 +76,10 @@ public final class RuinsArchitecture {
         register("firebrick_stairs", new Stairs(get("furnace_firebrick")));
         register("riveted_plate_slab", new Half(Material.iron));
         register("riveted_plate_stairs", new Stairs(get("rust_riveted_plate")));
+        for (String id : new String[] { "slag_masonry", "sootstone_tiles", "verdigris_pressed_brick", "mossroot_paving",
+            "rootbound_brick", "cast_iron_pillar", "oath_inscription" }) {
+            register(id + "_stairs", new Stairs(get(id)));
+        }
         register("suspended_chain", new Detail(4));
         register("mire_reeds", new Reeds());
     }

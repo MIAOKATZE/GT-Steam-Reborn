@@ -890,7 +890,7 @@ public final class RuinsBlueprint {
                 int xx = x + i * dir;
                 floor(xx, z - 1, xx, z + 1, y + i, "sootstone_tiles");
                 box(xx, y + i + 1, z - 1, xx, y + i + 4, z + 1, Blocks.air, 0);
-                if (i < h) box(xx, y + i, z - 1, xx, y + i, z + 1, mat("firebrick_stairs"), dir > 0 ? 1 : 0);
+                if (i > 0) box(xx, y + i, z - 1, xx, y + i, z + 1, mat("sootstone_tiles_stairs"), dir > 0 ? 0 : 1);
             }
         }
 
@@ -899,7 +899,7 @@ public final class RuinsBlueprint {
                 int zz = z + i * dir;
                 floor(x - 1, zz, x + 1, zz, y + i, "sootstone_tiles");
                 box(x - 1, y + i + 1, zz, x + 1, y + i + 4, zz, Blocks.air, 0);
-                if (i < h) box(x - 1, y + i, zz, x + 1, y + i, zz, mat("firebrick_stairs"), dir > 0 ? 3 : 2);
+                if (i > 0) box(x - 1, y + i, zz, x + 1, y + i, zz, mat("sootstone_tiles_stairs"), dir > 0 ? 2 : 3);
             }
         }
 

@@ -217,6 +217,10 @@ public final class RuinObjectives {
                 && s.y + n.y == tile.yCoord
                 && s.z + n.z == tile.zCoord) authored = n;
         if (authored == null) return;
+        if ("CONTROL".equals(tile.role)) {
+            p.addChatMessage(new net.minecraft.util.ChatComponentText("此旧遗迹机关已暂缓；原有宝箱领取记录保留。当前开放三类 Boss 标准场景。"));
+            return;
+        }
         p.addChatMessage(
             new ChatComponentTranslation(
                 ("MEMORY".equals(tile.role) ? "gtsr.ruin.memory." : "gtsr.ruin.clue.") + RuinSite.NAMES[s.kind]
@@ -228,57 +232,5 @@ public final class RuinObjectives {
             observePlayer(p, s);
             return;
         }
-        if (!"CONTROL".equals(tile.role)) return;
-        if (s.kind < 7 && !allGuards(p.worldObj, s, tile.zone)) {
-            p.addChatMessage(new ChatComponentTranslation("gtsr.ruin.guardsRemain"));
-            return;
-        }
-        int current = d.objectiveMask(s.id()), bit = 1 << tile.objectiveIndex;
-        int all = required(s, -1, "CONTROL");
-        if (all != 0 && (current & all) == all) {
-            p.addChatMessage(new ChatComponentTranslation("gtsr.ruin.accepted"));
-            observePlayer(p, s);
-            return;
-        }
-        int[] order = s.kind == 8 ? new int[] { 1, 2, 0 }
-            : s.kind == 14 ? new int[] { 0, 1, 2 }
-                : s.kind == 21 ? new int[] { 2, 0, 1 } : s.kind == 23 ? new int[] { 2, 1, 0 } : new int[] { 0, 1, 2 };
-        boolean correct = true;
-        int required = required(s, -1, "CONTROL");
-        if (s.kind == 11) {
-            correct = tile.objectiveIndex == 1;
-            if (correct) current = required;
-        } else if (s.kind == 16) {
-            correct = tile.objectiveIndex != 0;
-            if (correct) {
-                current |= bit;
-                if ((current & 6) == 6) current = required;
-            }
-        } else if (s.kind >= 7 || s.kind == 6) {
-            int next = 0;
-            while (next < order.length && (current & (1 << order[next])) != 0) next++;
-            correct = next == order.length || (next < order.length && tile.objectiveIndex == order[next]);
-            if (correct) current |= bit;
-        } else if (s.kind == 3 && tile.zone == 2) {
-            correct = tile.objectiveIndex == 3 || (current & 8) != 0;
-            if (correct) current |= bit;
-        } else current |= bit;
-        if (!correct) current = s.kind == 3 ? (current & 3) : 0;
-        d.objectiveMask(s.id(), current);
-        for (RuinsBlueprint.Node n : RuinsBlueprint.nodes(s)) if ("CONTROL".equals(n.role)) {
-            int x = s.x + n.x, y = s.y + n.y, z = s.z + n.z;
-            if (p.worldObj.getChunkProvider()
-                .chunkExists(x >> 4, z >> 4) && p.worldObj.getBlock(x, y, z) == RuinMechanisms.block)
-                p.worldObj.setBlockMetadataWithNotify(x, y, z, (current & (1 << n.objectiveIndex)) != 0 ? 1 : 0, 3);
-        }
-        p.worldObj.playSoundEffect(
-            tile.xCoord + .5,
-            tile.yCoord + .5,
-            tile.zCoord + .5,
-            correct ? "note.pling" : "note.bass",
-            .6F,
-            correct ? 1.2F : .6F);
-        p.addChatMessage(new ChatComponentTranslation(correct ? "gtsr.ruin.accepted" : "gtsr.ruin.retry"));
-        observePlayer(p, s);
     }
 }

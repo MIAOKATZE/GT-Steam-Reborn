@@ -24,6 +24,9 @@ public final class GuiRemaster extends GuiContainer {
     private int clueScroll;
     private String lastClue = "";
     private int clueLines = 4;
+    private int fieldScroll;
+    private int visibleFields;
+    private int fieldTop;
 
     public GuiRemaster(TileRemasterNode tile) {
         super(new ContainerRemaster(tile));
@@ -46,6 +49,9 @@ public final class GuiRemaster extends GuiContainer {
         lastDisplay = tile.display;
         view = new JsonParser().parse(lastDisplay)
             .getAsJsonObject();
+        boolean readOnly = view.has("readOnly") && view.get("readOnly")
+            .getAsBoolean();
+        clueLines = readOnly ? Math.max(4, (ySize - 112) / 10) : ySize >= 240 ? 5 : 3;
         String clue = view.has("clue") ? view.get("clue")
             .getAsString() : "";
         if (!lastClue.equals(clue)) clueScroll = 0;
@@ -58,20 +64,30 @@ public final class GuiRemaster extends GuiContainer {
                     .size() - clueLines));
         buttonList.clear();
         JsonArray fields = view.has("fields") ? view.getAsJsonArray("fields") : new JsonArray();
-        int fieldTop = 42 + clueLines * 10;
-        int spacing = Math.max(11, (ySize - fieldTop - 56) / 8);
-        for (int i = 0; i < fields.size() && i < 8; i++) buttonList.add(
-            new GuiButton(
-                i,
-                guiLeft + 12,
-                guiTop + fieldTop + i * spacing,
-                276,
-                spacing - 1,
-                fields.get(i)
-                    .getAsString()));
-        buttonList.add(new GuiButton(100, guiLeft + 12, guiTop + ySize - 26, 88, 20, "读取 / 核验"));
-        if (!view.has("readOnly") || !view.get("readOnly")
-            .getAsBoolean()) {
+        fieldTop = 42 + clueLines * 10;
+        visibleFields = Math.max(1, (ySize - fieldTop - 58) / 22);
+        fieldScroll = Math.min(fieldScroll, Math.max(0, fields.size() - visibleFields));
+        for (int row = 0; row < visibleFields && row + fieldScroll < fields.size(); row++) {
+            int i = row + fieldScroll;
+            buttonList.add(
+                new GuiButton(
+                    i,
+                    guiLeft + 12,
+                    guiTop + fieldTop + row * 22,
+                    276,
+                    20,
+                    fontRendererObj.trimStringToWidth(
+                        fields.get(i)
+                            .getAsString(),
+                        260)));
+        }
+        String action = view.has("actionLabel") ? view.get("actionLabel")
+            .getAsString() : "读取 / 核验";
+        boolean singleAction = view.has("singleAction") && view.get("singleAction")
+            .getAsBoolean();
+        buttonList.add(
+            new GuiButton(100, guiLeft + 12, guiTop + ySize - 26, readOnly || singleAction ? 276 : 88, 20, action));
+        if (!readOnly && !singleAction) {
             buttonList.add(new GuiButton(101, guiLeft + 106, guiTop + ySize - 26, 88, 20, "安全复位"));
             buttonList.add(new GuiButton(102, guiLeft + 200, guiTop + ySize - 26, 88, 20, "提交 / 解封"));
         }
@@ -91,26 +107,76 @@ public final class GuiRemaster extends GuiContainer {
 
     @Override
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
+        int localX = mouseX - guiLeft, localY = mouseY - guiTop;
         fontRendererObj.drawString(
-            view.has("title") ? view.get("title")
-                .getAsString() : "现场工单",
+            fontRendererObj.trimStringToWidth(
+                view.has("title") ? view.get("title")
+                    .getAsString() : "现场工单",
+                276),
             12,
             12,
             0xffeddfb8);
+        fontRendererObj.drawString(fontRendererObj.trimStringToWidth(guidance(), 276), 12, 25, 0xffa4cf91);
         String clue = view.has("clue") ? view.get("clue")
             .getAsString() : "";
         java.util.List<String> lines = fontRendererObj.listFormattedStringToWidth(clue, 276);
         int wheel = Mouse.getDWheel();
-        if (wheel != 0) clueScroll = Math
-            .max(0, Math.min(Math.max(0, lines.size() - clueLines), clueScroll + (wheel < 0 ? 1 : -1)));
+        if (wheel != 0) {
+            JsonArray fields = view.has("fields") ? view.getAsJsonArray("fields") : new JsonArray();
+            if (localX >= 12 && localX < 288
+                && localY >= fieldTop
+                && localY < fieldTop + visibleFields * 22
+                && fields.size() > visibleFields) {
+                fieldScroll = Math.max(0, Math.min(fields.size() - visibleFields, fieldScroll + (wheel < 0 ? 1 : -1)));
+                lastDisplay = "";
+            } else clueScroll = Math
+                .max(0, Math.min(Math.max(0, lines.size() - clueLines), clueScroll + (wheel < 0 ? 1 : -1)));
+        }
         for (int i = 0; i < clueLines && i + clueScroll < lines.size(); i++)
             fontRendererObj.drawString(lines.get(i + clueScroll), 12, 36 + i * 10, 0xffc2cebf);
-        if (view.has("status")) fontRendererObj.drawSplitString(
-            view.get("status")
-                .getAsString(),
-            12,
-            ySize - 50,
-            276,
-            0xffe0c98a);
+        if (view.has("status")) {
+            java.util.List<String> status = fontRendererObj.listFormattedStringToWidth(
+                view.get("status")
+                    .getAsString(),
+                276);
+            for (int i = 0; i < Math.min(2, status.size()); i++)
+                fontRendererObj.drawString(status.get(i), 12, ySize - 50 + i * 10, 0xffe0c98a);
+        }
+        JsonArray fields = view.has("fields") ? view.getAsJsonArray("fields") : new JsonArray();
+        if (localX >= 12 && localX < 288 && localY >= fieldTop) {
+            int row = (localY - fieldTop) / 22;
+            if (row < visibleFields && row + fieldScroll < fields.size()) drawHoveringText(
+                fontRendererObj.listFormattedStringToWidth(
+                    fields.get(row + fieldScroll)
+                        .getAsString(),
+                    240),
+                localX,
+                localY,
+                fontRendererObj);
+        }
+    }
+
+    private String guidance() {
+        if (!view.has("guideTarget")) return "绿色角标 · 现场线索与机关 / 滚轮翻阅";
+        JsonArray target = view.getAsJsonArray("guideTarget");
+        if (target.size() != 3) return "沿现场指引寻找关联机关";
+        int dx = target.get(0)
+            .getAsInt() - tile.xCoord;
+        int dy = target.get(1)
+            .getAsInt() - tile.yCoord;
+        int dz = target.get(2)
+            .getAsInt() - tile.zCoord;
+        StringBuilder text = new StringBuilder("关联机关：");
+        if (dx != 0) text.append(dx > 0 ? "东" : "西")
+            .append(Math.abs(dx))
+            .append("格 ");
+        if (dz != 0) text.append(dz > 0 ? "南" : "北")
+            .append(Math.abs(dz))
+            .append("格 ");
+        if (dy != 0) text.append(dy > 0 ? "上层" : "下层")
+            .append(Math.abs(dy))
+            .append("格");
+        if (dx == 0 && dy == 0 && dz == 0) text.append("当前操作台");
+        return text.toString();
     }
 }

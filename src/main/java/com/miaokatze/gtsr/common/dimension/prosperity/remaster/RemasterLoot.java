@@ -52,7 +52,7 @@ public final class RemasterLoot {
         tag.setTag("pages", pages);
         tag.setString("gtsr.site", site.id());
         tag.setString("gtsr.node", RemasterRuntime.string(node, "id", ""));
-        tag.setBoolean("gtsr.uniqueOriginal", entry.equals("故事原件"));
+        tag.setBoolean("gtsr.uniqueOriginal", false);
         book.setTagCompound(tag);
         return book;
     }

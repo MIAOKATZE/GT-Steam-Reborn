@@ -91,6 +91,23 @@ public enum EchoKind {
         return code.startsWith("dc-");
     }
 
+    /** Physical movement is independent of combat state and authored spawn-zone labels. */
+    public boolean flies() {
+        return this == DI01 || this == DI03
+            || this == DI12
+            || this == DR14
+            || this == DR15
+            || this == DR18
+            || this == DR19
+            || this == DR20
+            || this == DO02
+            || this == DO01;
+    }
+
+    public boolean stationary() {
+        return this == DI06 || this == DI11 || this == DI14 || this == DR17;
+    }
+
     public static EchoKind byCode(String code) {
         for (EchoKind kind : values()) if (kind.code.equalsIgnoreCase(code)) return kind;
         throw new IllegalArgumentException("Unknown old echo code: " + code);

@@ -115,7 +115,11 @@ public final class RemasterEngineering {
         JsonObject node = RemasterRuntime.node(tile);
         String code = RemasterRuntime.string(node, "code", "");
         NBTTagCompound n = state(tile);
-        if (n.getBoolean("testimony:" + code)) return true;
+        if (n.getBoolean("testimony:" + code)) {
+            n.setString("feedback", "此身份已归档；重复原件不抵数。");
+            tile.refresh();
+            return true;
+        }
         if (n.getInteger("chapter") < 7) {
             n.setString("feedback", "先完成七阶段工程，再归档身份原件。");
             tile.refresh();
@@ -226,7 +230,10 @@ public final class RemasterEngineering {
         finale.initializeEcho(EchoKind.DO02, tile.siteId, site.x + 72.5, y, site.z + 72.5, false);
         finale.setNodeIndex(-1);
         finale.prepareControlledAntimeme();
-        if (!w.spawnEntityInWorld(finale)) return;
+        if (!RemasterSpawn.safe(w, finale, false) || !w.spawnEntityInWorld(finale)) {
+            n.setString("feedback", "高空终局净空被占用、液体或邻区块未加载；保持原件并稍后重试。");
+            return;
+        }
         // The single world ledger gate is written in the same server event, before the controlled erasure.
         n.setBoolean("final", true);
         n.setBoolean("chapter-complete:7", true);
@@ -331,10 +338,8 @@ public final class RemasterEngineering {
     private static boolean safe(World w, RemasterSite s, Change c) {
         int x = s.x + c.x, y = s.y + c.y, z = s.z + c.z;
         if (y < 1 || y > 254 || !w.blockExists(x, y, z) || w.getTileEntity(x, y, z) != null) return false;
-        if (!c.after.equals("minecraft:air#0")
-            && !w.getEntitiesWithinAABB(Entity.class, AxisAlignedBB.getBoundingBox(x, y, z, x + 1, y + 1, z + 1))
-                .isEmpty())
-            return false;
+        if (!w.getEntitiesWithinAABB(Entity.class, AxisAlignedBB.getBoundingBox(x, y, z, x + 1, y + 2, z + 1))
+            .isEmpty()) return false;
         return w.getBlock(x, y, z) == RemasterRuntime.resolve(c.before)
             && w.getBlockMetadata(x, y, z) == RemasterRuntime.meta(c.before);
     }
@@ -377,12 +382,19 @@ public final class RemasterEngineering {
         updateFinale(w, tile.siteId);
         NBTTagCompound n = state(tile);
         if (n.getBoolean("final")) return;
+        if (n.getBoolean("pending") && !RemasterRuntime.string(RemasterRuntime.node(tile), "id", "")
+            .equals("fiction-station-4")) return;
         long now = w.getTotalWorldTime();
         if (n.getLong("tick") == now) return;
         if (n.hasKey("tick") && now - n.getLong("tick") > 1) n.setInteger("stableTicks", 0);
         n.setLong("tick", now);
         if (n.getBoolean("pending")) {
-            n.setInteger("stableTicks", n.getInteger("stableTicks") + 1);
+            boolean stable = n.getInteger("chapter") == 4 && n.getBoolean("evidence:4");
+            JsonArray expected = spec(tile).getAsJsonArray("answer");
+            for (int i = 0; i < expected.size(); i++) stable &= n.getInteger("field" + i) == expected.get(i)
+                .getAsInt();
+            n.setInteger("stableTicks", stable ? n.getInteger("stableTicks") + 1 : 0);
+            if (!stable) n.setString("feedback", "压力、冷却、泄放或现场档案条件改变；稳定计时归零。");
             if (n.getInteger("stableTicks") >= 200) advance(tile);
         }
         if (n.hasKey("jobPhase")) {

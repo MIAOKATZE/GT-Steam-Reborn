@@ -9,6 +9,7 @@ import java.util.Map;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
+import com.miaokatze.gtsr.common.dimension.prosperity.ChunkProviderProsperityRuins;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
 
 /** Pure revision-seven planning. Every footprint is contained in its parent cell with a dry margin. */
@@ -16,6 +17,7 @@ public final class RemasterPlanner {
 
     private static final int[] CELLS = { 128, 32, 16 };
     private static final Map<String, List<String>> POOLS = new LinkedHashMap<>();
+    private static final Map<String, JsonObject> PLACEMENT = new LinkedHashMap<>();
     private static final Map<String, List<RemasterSite>> CACHE = new LinkedHashMap<String, List<RemasterSite>>(
         256,
         .75f,
@@ -57,76 +59,137 @@ public final class RemasterPlanner {
             .getAsInt();
     }
 
+    private static JsonObject placement(String id, int variant) {
+        synchronized (PLACEMENT) {
+            String key = id + ":" + variant;
+            JsonObject cached = PLACEMENT.get(key);
+            if (cached != null) return cached;
+            JsonObject d = RemasterCatalog.descriptor(id, variant);
+            JsonObject source = d.has("placement") ? d.getAsJsonObject("placement") : new JsonObject();
+            JsonObject result = new JsonObject();
+            for (String field : new String[] { "terrain", "surfaceEntrance", "productionSurfaceEntrance", "rooms",
+                "entryApronEnvelope" }) if (source.has(field)) result.add(field, source.get(field));
+            PLACEMENT.put(key, result);
+            return result;
+        }
+    }
+
     private static RemasterSite anchor(String id, long seed, long h, int minX, int minZ) {
-        int variant = "fiction_expansion_project".equals(id) ? 0
-            : (int) Math.floorMod(h >>> 12, RemasterCatalog.variants(id));
+        int variant = RemasterRollout.standardVariant(id);
         JsonObject d = RemasterCatalog.descriptor(id, variant);
         int x = minX - value(d, "min", 0), z = minZ - value(d, "min", 2);
-        int y = ProsperityTerrainProfile.heightAt(seed, minX, minZ) + 1;
-        y = Math.max(
-            1 - d.get("yMin")
-                .getAsInt(),
-            Math.min(
-                254 - d.get("yMax")
+        JsonObject metadata = placement(id, variant);
+        JsonObject entrance = metadata.getAsJsonObject("surfaceEntrance");
+        if (entrance == null) entrance = metadata.getAsJsonObject("productionSurfaceEntrance");
+        int ex = entrance != null && entrance.has("x") ? entrance.get("x")
+            .getAsInt() : value(d, "min", 0) + 4;
+        int ez = entrance != null && entrance.has("z") ? entrance.get("z")
+            .getAsInt() : value(d, "min", 2) + 4;
+        int top = entrance != null && entrance.has("topY") ? entrance.get("topY")
+            .getAsInt() : 0;
+        int y = ProsperityTerrainProfile.heightAt(seed, x + ex, z + ez) + (entrance == null ? 1 : 0) - top;
+        // Never move a surface entrance upwards to conceal an underground/world-height violation.
+        if (y + d.get("yMin")
+            .getAsInt() < 5 || y
+                + d.get("yMax")
+                    .getAsInt()
+                > 254)
+            return null;
+        if (ChunkProviderProsperityRuins.naturalWaterTopAt(seed, x + ex, z + ez) >= y + top) return null;
+        JsonObject terrain = metadata.getAsJsonObject("terrain");
+        boolean buried = terrain != null && terrain.has("buried")
+            && "full".equals(
+                terrain.get("buried")
+                    .getAsString());
+        if (buried) {
+            // Check every building roof against the real column field; routes/shafts are intentionally open.
+            int cover = terrain.has("cover") ? terrain.get("cover")
+                .getAsInt() : 8;
+            for (JsonElement room : metadata.getAsJsonArray("rooms")) {
+                JsonObject r = room.getAsJsonObject();
+                int rx = r.get("x")
                     .getAsInt(),
-                y));
-        if ("subsided_factory".equals(id)) y = Math.max(y, 180);
+                    rz = r.get("z")
+                        .getAsInt();
+                int rw = r.get("w")
+                    .getAsInt(),
+                    rd = r.get("d")
+                        .getAsInt();
+                int roof = y + r.get("y")
+                    .getAsInt()
+                    + r.get("h")
+                        .getAsInt();
+                if (roof >= y - 2) continue; // Authored surface entrance structures.
+                for (int u : new int[] { 0, rw / 2, rw - 1 }) for (int v : new int[] { 0, rd / 2, rd - 1 })
+                    if (ProsperityTerrainProfile.heightAt(seed, x + rx + u, z + rz + v) < roof + cover) return null;
+            }
+        }
         return new RemasterSite(id, variant, seed, x, y, z);
     }
 
-    /** Parent cells include roads and all 28 real 40/60-block authored plots, never the old full-city shell. */
+    /** Recover the planned plots of a saved parent without applying a new city's eligibility filter. */
+    public static List<RemasterSite> savedCityPlots(RemasterSite parent) {
+        if (!RemasterRollout.allowsGeneration(parent) || !"city-grid".equals(parent.layout))
+            return Collections.emptyList();
+        long h = hash(parent.seed, 0, Math.floorDiv(parent.x, CELLS[0] * 16), Math.floorDiv(parent.z, CELLS[0] * 16));
+        List<String> plots = POOLS.get("city_variant");
+        List<RemasterSite> out = new ArrayList<>();
+        int offset = (int) Math.floorMod(h >>> 20, plots.size());
+        for (int i = 0; i < plots.size(); i++) {
+            String id = plots.get((i + offset) % plots.size());
+            long ph = GTSRWorldgenHash.splitmix64(h + i * 0x9E3779B97F4A7C15L);
+            if (parent.roadVersion == 0) {
+                int variant = (int) Math.floorMod(ph >>> 12, RemasterCatalog.variants(id));
+                JsonObject d = RemasterCatalog.descriptor(id, variant);
+                out.add(
+                    new RemasterSite(
+                        id,
+                        variant,
+                        parent.seed,
+                        parent.x + (i % 7) * 96 + 20 - value(d, "min", 0),
+                        parent.y,
+                        parent.z + (i / 7) * 96 + 20 - value(d, "min", 2),
+                        "city-plot"));
+            } else {
+                RemasterSite p = anchor(
+                    id,
+                    parent.seed,
+                    ph,
+                    parent.x + (i % 7) * 96 + 20,
+                    parent.z + (i / 7) * 96 + 20);
+                if (p != null) out.add(new RemasterSite(p.prefab, p.variant, p.seed, p.x, p.y, p.z, "city-plot"));
+            }
+        }
+        return out;
+    }
+
+    /** Only the two large standard bosses enter cells; the court belongs to the natural-tree pass. */
     public static synchronized List<RemasterSite> cell(long seed, int layer, int gx, int gz) {
         String key = seed + ":" + layer + ":" + gx + ":" + gz;
         List<RemasterSite> cached = CACHE.get(key);
         if (cached != null) return cached;
         List<RemasterSite> out = new ArrayList<>();
+        // The natural-tree pass exclusively owns the third scene. No cities or smaller layers are admitted.
+        if (layer != 0) return Collections.emptyList();
         long h = hash(seed, layer, gx, gz);
-        int cell = CELLS[layer] * 16;
-        if (Math.floorMod(h, layer == 0 ? 3 : layer == 1 ? 2 : 3) == 0) {
-            int bx = gx * cell + 64, bz = gz * cell + 64;
-            if (layer == 0 && Math.floorMod(h >>> 8, 3) == 0) {
-                int x = (bx + (int) Math.floorMod(h >>> 16, cell - 896)) & ~15;
-                int z = (bz + (int) Math.floorMod(h >>> 32, cell - 512)) & ~15;
-                int y = Math.max(60, Math.min(150, ProsperityTerrainProfile.heightAt(seed, x + 336, z + 192) + 1));
-                RemasterSite city = new RemasterSite("prosperity_city_full", 0, seed, x, y, z, "city-grid");
-                out.add(city);
-                List<String> plots = POOLS.get("city_variant");
-                // A cyclic offset changes districts while guaranteeing the entire roster in every city.
-                int offset = (int) Math.floorMod(h >>> 20, plots.size());
-                for (int i = 0; i < plots.size(); i++) {
-                    String id = plots.get((i + offset) % plots.size());
-                    long ph = GTSRWorldgenHash.splitmix64(h + i * 0x9E3779B97F4A7C15L);
-                    RemasterSite p = anchor(id, seed, ph, x + (i % 7) * 96 + 20, z + (i / 7) * 96 + 20);
-                    out.add(new RemasterSite(p.prefab, p.variant, seed, p.x, y, p.z, "city-plot"));
-                }
-            } else {
-                String id;
-                if (layer == 0) {
-                    int pick = (int) Math.floorMod(h >>> 8, 5);
-                    id = pick < 2 ? (pick == 0 ? "fallen_foundry" : "subsided_factory") : select("colossus", h >>> 20);
-                } else if (layer == 1) {
-                    int pick = (int) Math.floorMod(h >>> 8, 4);
-                    if (pick == 0) {
-                        String[] medium = { "boiler_shrine", "weaving_mill", "sniper_watch", "mirror_barracks",
-                            "resonant_station", "cold_altar", "fungus_cellar" };
-                        id = medium[(int) Math.floorMod(h >>> 24, medium.length)];
-                    } else id = select(pick == 1 ? "outpost" : pick == 2 ? "colossus" : "special_cache", h >>> 24);
-                } else {
-                    int pick = (int) Math.floorMod(h >>> 8, 4);
-                    id = pick < 2 ? POOLS.get("echo")
-                        .get(7 + (int) Math.floorMod(h >>> 24, 20)) : select(pick == 2 ? "machine" : "ruin", h >>> 24);
-                }
-                int v = "fiction_expansion_project".equals(id) ? 0
-                    : (int) Math.floorMod(h >>> 12, RemasterCatalog.variants(id));
-                JsonObject d = RemasterCatalog.descriptor(id, v);
-                int width = value(d, "max", 0) - value(d, "min", 0) + 1;
-                int depth = value(d, "max", 2) - value(d, "min", 2) + 1;
-                int terrain = "subsided_factory".equals(id) ? 192 : "fallen_foundry".equals(id) ? 96 : 24;
-                int inset = 32 + terrain;
-                if (width + inset * 2 < cell && depth + inset * 2 < cell) {
-                    int x = (gx * cell + inset + (int) Math.floorMod(h >>> 16, cell - width - inset * 2)) & ~15;
-                    int z = (gz * cell + inset + (int) Math.floorMod(h >>> 32, cell - depth - inset * 2)) & ~15;
-                    out.add(anchor(id, seed, h, x, z));
+        int cell = CELLS[0] * 16;
+        if (Math.floorMod(h, 3) == 0) {
+            String id = (h >>> 8 & 1L) == 0 ? "fallen_foundry" : "subsided_factory";
+            JsonObject d = RemasterCatalog.descriptor(id, RemasterRollout.standardVariant(id));
+            int width = value(d, "max", 0) - value(d, "min", 0) + 1;
+            int depth = value(d, "max", 2) - value(d, "min", 2) + 1;
+            int inset = 40;
+            if (width + inset * 2 < cell && depth + inset * 2 < cell) {
+                for (int attempt = 0; attempt < 12; attempt++) {
+                    long ah = GTSRWorldgenHash.splitmix64(h + attempt * 0x9E3779B97F4A7C15L);
+                    int x = (gx * cell + inset + (int) Math.floorMod(ah >>> 16, cell - width - inset * 2)) & ~15;
+                    int z = (gz * cell + inset + (int) Math.floorMod(ah >>> 32, cell - depth - inset * 2)) & ~15;
+                    RemasterSite candidate = anchor(id, seed, h, x, z);
+                    if (candidate != null) candidate = RemasterEntryApron.admit(candidate);
+                    if (candidate != null) {
+                        out.add(candidate);
+                        break;
+                    }
                 }
             }
         }
@@ -185,6 +248,7 @@ public final class RemasterPlanner {
 
     public static RemasterSite nearest(long seed, String id, int bx, int bz, int radius,
         java.util.function.Predicate<RemasterSite> eligible) {
+        if (!RemasterRollout.isActive(id) || "forgotten_lake_court".equals(id)) return null;
         radius = Math.max(0, Math.min(16, radius));
         RemasterSite best = null;
         double distance = Double.POSITIVE_INFINITY;

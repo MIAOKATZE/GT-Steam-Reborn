@@ -202,6 +202,11 @@ public final class HistoryEvents {
             int cx = ((int) Math.floor(player.posX)) >> 4, cz = ((int) Math.floor(player.posZ)) >> 4;
             if (!world.getChunkProvider()
                 .chunkExists(cx, cz)) continue;
+            for (com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterSite site : com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterData
+                .get(world)
+                .inChunk(cx, cz))
+                com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterOriginalContract
+                    .observePlayer(player, site);
             RuinsEncounterData data = RuinsEncounterData.get(world);
             for (RuinSite site : RuinsSitePlanner.near(world.getSeed(), cx, cz)) {
                 if (data.created(site.id(), "geom:" + cx + ":" + cz) && withinSite(player, site)) {

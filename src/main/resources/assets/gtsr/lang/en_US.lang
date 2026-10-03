@@ -2890,3 +2890,14 @@ echo.warning.di-11=Lightning sacs charging: leave its roots; lightning heals it
 echo.warning.di-12=Ray diving: leave its grasp radius
 echo.warning.di-14=Acid seed launching: evade the projectile
 echo.warning.di-15=Threads tightening: leave the locked point
+
+tile.Ruins_slag_masonry_stairs.name=Slag Masonry Stairs
+tile.Ruins_sootstone_tiles_stairs.name=Sootstone Tiles Stairs
+tile.Ruins_verdigris_pressed_brick_stairs.name=Verdigris Pressed Brick Stairs
+tile.Ruins_mossroot_paving_stairs.name=Mossroot Paving Stairs
+tile.Ruins_rootbound_brick_stairs.name=Rootbound Brick Stairs
+tile.Ruins_cast_iron_pillar_stairs.name=Cast Iron Pillar Stairs
+tile.Ruins_oath_inscription_stairs.name=Oath Inscription Stairs
+tile.Royal_oathwood_stairs.name=Oathwood Stairs
+tile.Royal_crownwood_stairs.name=Crownwood Stairs
+tile.Royal_zenith_log_stairs.name=Zenith Log Stairs

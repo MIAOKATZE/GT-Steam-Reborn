@@ -2885,3 +2885,14 @@ echo.warning.di-11=雷囊蓄势，离开根冠；雷击会为其回血
 echo.warning.di-12=鳐翼将俯冲，离开抓取范围
 echo.warning.di-14=酸种将发射，避开弹道
 echo.warning.di-15=引线将绷紧，离开锁定点
+
+tile.Ruins_slag_masonry_stairs.name=渣岩砌块楼梯
+tile.Ruins_sootstone_tiles_stairs.name=烟石砖楼梯
+tile.Ruins_verdigris_pressed_brick_stairs.name=铜绿压砖楼梯
+tile.Ruins_mossroot_paving_stairs.name=苔根铺石楼梯
+tile.Ruins_rootbound_brick_stairs.name=根缠砖楼梯
+tile.Ruins_cast_iron_pillar_stairs.name=铸铁楼梯
+tile.Ruins_oath_inscription_stairs.name=誓文石楼梯
+tile.Royal_oathwood_stairs.name=誓木楼梯
+tile.Royal_crownwood_stairs.name=冠木楼梯
+tile.Royal_zenith_log_stairs.name=天顶木楼梯

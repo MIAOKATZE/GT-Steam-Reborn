@@ -18,6 +18,26 @@ public class TileEntitySealedChest extends TileEntity {
     private int storyEvent = -1;
     private String storyRelic = "";
     private int gateLayoutVersion, gateZone = -1;
+    private String remasterSite = "", remasterNode = "";
+    public NBTTagCompound remasterGeometryOrigin = new NBTTagCompound();
+
+    public void initializeRemaster(int t, String site, String node) {
+        remasterSite = site;
+        remasterNode = node;
+        initialize(t, site, -1);
+    }
+
+    public boolean isRemasterNode(String site, String node) {
+        return remasterSite.equals(site) && remasterNode.equals(node);
+    }
+
+    public String getRemasterSite() {
+        return remasterSite;
+    }
+
+    public String getRemasterNode() {
+        return remasterNode;
+    }
 
     public void configureRuinGate(int layout, int zone) {
         gateLayoutVersion = layout;
@@ -69,6 +89,8 @@ public class TileEntitySealedChest extends TileEntity {
     }
 
     private boolean allowed() {
+        if (!remasterSite.isEmpty())
+            return com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.chestReady(this);
         if (gateLayoutVersion >= 2) return com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinObjectives
             .isChestReady(worldObj, encounter, gateZone);
         if (clickUnlock) return openingTicks >= 0;
@@ -82,11 +104,21 @@ public class TileEntitySealedChest extends TileEntity {
     }
 
     public void tryUnlockByClick() {
+        if (!remasterSite.isEmpty()) return;
         if (gateLayoutVersion >= 2) {
             if (allowed() && openingTicks < 0) startOpening();
             return;
         }
         if ((tier == 1 || clickUnlock) && openingTicks < 0) startOpening();
+    }
+
+    public void tryUnlockByClick(net.minecraft.entity.player.EntityPlayer player) {
+        if (remasterSite.isEmpty()) {
+            tryUnlockByClick();
+            return;
+        }
+        if (com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.chestClick(player, this)
+            && openingTicks < 0) startOpening();
     }
 
     private void startOpening() {
@@ -114,6 +146,8 @@ public class TileEntitySealedChest extends TileEntity {
     }
 
     public void updateEntity() {
+        if (!worldObj.isRemote && remasterSite.isEmpty() && remasterGeometryOrigin.hasKey("site"))
+            com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.initializeNatural(this);
         if (worldObj.isRemote) {
             if (openingTicks >= 0 && openingTicks < 60) {
                 openingTicks++;
@@ -130,6 +164,8 @@ public class TileEntitySealedChest extends TileEntity {
             return;
         }
         if (openingTicks < 0) {
+            // Remaster rewards require an explicit authenticated survival click; legacy automatic gates remain intact.
+            if (!remasterSite.isEmpty()) return;
             if (allowed()) startOpening();
             return;
         }
@@ -139,6 +175,16 @@ public class TileEntitySealedChest extends TileEntity {
             return;
         }
         if (worldObj.getBlock(xCoord, yCoord, zCoord) != ForgottenLakeEncounterRegistry.sealedChest) return;
+        if (!remasterSite.isEmpty()) {
+            if (!allowed()) {
+                openingTicks = -1;
+                markDirty();
+                worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+                return;
+            }
+            com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.completeChest(this);
+            return;
+        }
         worldObj.playSoundEffect(xCoord + .5, yCoord + .5, zCoord + .5, "random.levelup", .65F, .8F);
         if (worldObj
             .setBlock(xCoord, yCoord, zCoord, ForgottenLakeEncounterRegistry.unsealedChest, getBlockMetadata(), 3)) {
@@ -175,6 +221,9 @@ public class TileEntitySealedChest extends TileEntity {
         gateLayoutVersion = n.getInteger("gateLayoutVersion");
         gateZone = n.hasKey("gateZone") ? n.getInteger("gateZone") : -1;
         openingTicks = n.hasKey("opening") ? n.getInteger("opening") : -1;
+        remasterSite = n.getString("remasterSite");
+        remasterNode = n.getString("remasterNode");
+        remasterGeometryOrigin = n.getCompoundTag("gtsr.remasterGeometryOrigin");
     }
 
     public void writeToNBT(NBTTagCompound n) {
@@ -188,6 +237,9 @@ public class TileEntitySealedChest extends TileEntity {
         n.setInteger("opening", openingTicks);
         n.setInteger("gateLayoutVersion", gateLayoutVersion);
         n.setInteger("gateZone", gateZone);
+        n.setString("remasterSite", remasterSite);
+        n.setString("remasterNode", remasterNode);
+        n.setTag("gtsr.remasterGeometryOrigin", remasterGeometryOrigin);
     }
 
     public Packet getDescriptionPacket() {

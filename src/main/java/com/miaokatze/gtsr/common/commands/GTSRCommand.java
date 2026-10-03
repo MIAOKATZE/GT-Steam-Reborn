@@ -101,7 +101,7 @@ public class GTSRCommand extends CommandBase {
     public String getCommandUsage(ICommandSender sender) {
         return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull|nullplus|nature> [color] [fxRadius]"
             + " | /gtsr structure <name>"
-            + " | /gtsr loacate A <structure> | /gtsr tploacate A <structure>"
+            + " | /gtsr locate A <structure> | /gtsr tplocate A <structure>"
             + " | /gtsr tpdim <A|B> [biome]"
             + " | /gtsr diag [A|B]";
     }
@@ -205,6 +205,10 @@ public class GTSRCommand extends CommandBase {
         if (entry == null) {
             throw new WrongUsageException(
                 getCommandUsage(sender) + "  unknown structure: " + name + " (use Tab completion to list valid names)");
+        }
+        if (entry.dimension == StructureRegistry.Dimension.PROSPERITY) {
+            sender.addChatMessage(new ChatComponentText("旧繁荣结构手动放置已暂停；当前仅开放三类 Boss 标准场景，请使用 locate / tplocate。"));
+            return;
         }
         final EntityPlayerMP player = getCommandSenderAsPlayer(sender);
         if (player.worldObj.isRemote) {
@@ -603,8 +607,6 @@ public class GTSRCommand extends CommandBase {
                 "structure",
                 "tpdim",
                 "diag",
-                "loacate",
-                "tploacate",
                 "locate",
                 "tplocate");
         }
@@ -615,11 +617,11 @@ public class GTSRCommand extends CommandBase {
                 RuinLocateCommand.names()
                     .toArray(new String[0]));
         if (args.length == 2 && "structure".equalsIgnoreCase(args[0])) {
-            // StructureRegistry 排序名单（S4a/S4b 变体动态读取，不硬编码）
-            return getListOfStringsMatchingLastWord(
-                args,
-                StructureRegistry.names()
-                    .toArray(new String[0]));
+            List<String> names = new ArrayList<>();
+            for (StructureRegistry.Entry entry : StructureRegistry.all()) {
+                if (entry.dimension != StructureRegistry.Dimension.PROSPERITY) names.add(entry.name);
+            }
+            return getListOfStringsMatchingLastWord(args, names.toArray(new String[0]));
         }
         if (args.length == 2 && ("tpdim".equalsIgnoreCase(args[0]) || "diag".equalsIgnoreCase(args[0]))) {
             return getListOfStringsMatchingLastWord(args, "A", "B");

@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.client.architecture;
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.IBlockAccess;
 
@@ -56,7 +57,7 @@ public final class RemasterBlockRenderer implements ISimpleBlockRenderingHandler
             }
             // Unsolved objects have a world-space sign. The chunk renderer keeps normal depth testing;
             // an opaque wall hides it and synchronized completion metadata removes it on rebuild.
-            if (remaster.isHintObject() && !remaster.completed(meta)) hint(renderer, block, x, y, z, meta);
+            if (remaster.guidanceActive(world, x, y, z)) hint(renderer, block, x, y, z);
             return true;
         } finally {
             renderer.lockBlockBounds = false;
@@ -71,16 +72,25 @@ public final class RemasterBlockRenderer implements ISimpleBlockRenderingHandler
             renderer.renderMaxY, renderer.renderMaxZ };
     }
 
-    private static void hint(RenderBlocks renderer, Block block, int x, int y, int z, int meta) {
+    private static void hint(RenderBlocks renderer, Block block, int x, int y, int z) {
         Tessellator tessellator = Tessellator.instance;
         tessellator.setBrightness(0xF000F0);
         tessellator.setColorOpaque_F(.70F, .94F, .58F);
-        IIcon icon = block.getIcon(2, meta);
-        // The author supplied the same bracket panel on every side; keep it inset to the object
-        // footprint so that adjacent walls and ceilings cannot receive a through-wall overlay.
-        renderer.setRenderBounds(.0625, .5625, .123, .9375, .9375, .877);
-        renderer.renderFaceZNeg(block, x, y, z, icon);
-        renderer.renderFaceZPos(block, x, y, z, block.getIcon(3, meta));
+        IIcon icon = Blocks.wool.getIcon(0, 0);
+        double near = block.renderAsNormalBlock() ? -.002 : .055;
+        double far = block.renderAsNormalBlock() ? 1.002 : .945;
+        // Four corner brackets are readable at eye height from each approach. They use the normal
+        // chunk depth test and stay at the object's edge; walls still occlude the entire marker.
+        double[][] bars = { { .08, .36, .12, .88 }, { .88, .36, .92, .88 }, { .08, .36, .29, .40 },
+            { .71, .36, .92, .40 }, { .08, .84, .29, .88 }, { .71, .84, .92, .88 } };
+        for (double[] b : bars) {
+            renderer.setRenderBounds(b[0], b[1], near, b[2], b[3], far);
+            renderer.renderFaceZNeg(block, x, y, z, icon);
+            renderer.renderFaceZPos(block, x, y, z, icon);
+            renderer.setRenderBounds(near, b[1], b[0], far, b[3], b[2]);
+            renderer.renderFaceXNeg(block, x, y, z, icon);
+            renderer.renderFaceXPos(block, x, y, z, icon);
+        }
         tessellator.setColorOpaque_F(1, 1, 1);
     }
 

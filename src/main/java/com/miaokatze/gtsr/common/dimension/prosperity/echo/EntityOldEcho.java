@@ -31,7 +31,11 @@ public class EntityOldEcho extends EntityEncounterBase {
     }
 
     private boolean dormant() {
-        return objectiveLayout >= 2 && objectiveBoss && !RuinObjectives.isBossReady(worldObj, getEncounterId());
+        return objectiveLayout >= 2 && objectiveBoss
+            && !(getEncounterId().startsWith("echo:r7:")
+                ? com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime
+                    .bossReady(worldObj, getEncounterId())
+                : RuinObjectives.isBossReady(worldObj, getEncounterId()));
     }
 
     private int cooldown = 40, returnTicks, pathFailures, ritualTicks;
@@ -295,6 +299,38 @@ public class EntityOldEcho extends EntityEncounterBase {
     }
 
     @Override
+    public void moveEntityWithHeading(float strafe, float forward) {
+        if (!getKind().flies()) {
+            if (getKind().stationary()) {
+                motionX = motionZ = 0;
+                strafe = forward = 0;
+            }
+            super.moveEntityWithHeading(strafe, forward);
+            return;
+        }
+        // EntityLivingBase's normal path applies gravity even when combat AI is idle or spawning.
+        moveFlying(strafe, forward, .025F);
+        moveEntity(motionX, motionY, motionZ);
+        motionX *= .8;
+        motionY *= .8;
+        motionZ *= .8;
+        fallDistance = 0;
+    }
+
+    private void flyToward(double x, double y, double z, double speed) {
+        getNavigator().clearPathEntity();
+        double dx = x - posX, dy = y - posY, dz = z - posZ;
+        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (length < .25) {
+            motionX = motionY = motionZ = 0;
+        } else {
+            motionX = dx / length * speed;
+            motionY = dy / length * speed;
+            motionZ = dz / length * speed;
+        }
+    }
+
+    @Override
     public void onLivingUpdate() {
         super.onLivingUpdate();
         if (worldObj.isRemote || !isEntityAlive()) return;
@@ -346,7 +382,7 @@ public class EntityOldEcho extends EntityEncounterBase {
             skill(0, 0);
             setAttackTarget(null);
             getNavigator().clearPathEntity();
-            setPosition(anchorX, anchorY, anchorZ);
+            if (getDistanceSq(anchorX, anchorY, anchorZ) > 1) returnHome();
             faceHome();
             return;
         }
@@ -383,10 +419,6 @@ public class EntityOldEcho extends EntityEncounterBase {
         if (getEncounterState() != COMBAT) state(COMBAT);
         getLookHelper().setLookPositionWithEntity(target, 30, 30);
         if (authoredKind()) {
-            if (authored.hovering()) {
-                motionY = 0;
-                fallDistance = 0;
-            }
             if (getSkillId() != 0) {
                 int ticks = getSkillTicks() + 1, index = getSkillId();
                 skill(index, ticks);
@@ -406,8 +438,8 @@ public class EntityOldEcho extends EntityEncounterBase {
                 skill(selected, 0);
                 authored.begin((EntityPlayer) target, selected);
                 getNavigator().clearPathEntity();
-            } else
-                if (!authored.stationary() && ticksExisted % 10 == 0) getNavigator().tryMoveToEntityLiving(target, .8);
+            } else if (getKind().flies()) flyToward(target.posX, anchorY, target.posZ, .12);
+            else if (!authored.stationary() && ticksExisted % 10 == 0) getNavigator().tryMoveToEntityLiving(target, .8);
             return;
         }
         if (getSkillId() != 0) {
@@ -423,7 +455,8 @@ public class EntityOldEcho extends EntityEncounterBase {
         if (cooldown == 0 && getDistanceSqToEntity(target) < reach * reach && canEntityBeSeen(target)) {
             beginSkill((EntityPlayer) target);
         } else if (ticksExisted % 10 == 0 && (!ranged || getDistanceSqToEntity(target) > reach * reach * .6)) {
-            getNavigator().tryMoveToEntityLiving(target, style == BattleStyle.STALKER ? 1.2 : .8);
+            if (getKind().flies()) flyToward(target.posX, anchorY, target.posZ, .12);
+            else getNavigator().tryMoveToEntityLiving(target, style == BattleStyle.STALKER ? 1.2 : .8);
         }
     }
 
@@ -437,9 +470,13 @@ public class EntityOldEcho extends EntityEncounterBase {
         }
         heal(getKind().hasBossBar() ? 4 : .5F);
         returnTicks++;
+        if (getKind().flies()) {
+            flyToward(anchorX, anchorY, anchorZ, .18);
+            if (getDistanceSq(anchorX, anchorY, anchorZ) < .25) state(IDLE);
+            return;
+        }
         if (ticksExisted % 10 == 0 && !getNavigator().tryMoveToXYZ(anchorX, anchorY, anchorZ, 1)) pathFailures++;
-        if (returnTicks >= 100 || pathFailures >= 3) {
-            setPosition(anchorX, anchorY, anchorZ);
+        if (getDistanceSq(anchorX, anchorY, anchorZ) < 1) {
             motionX = motionY = motionZ = 0;
             getNavigator().clearPathEntity();
             state(IDLE);

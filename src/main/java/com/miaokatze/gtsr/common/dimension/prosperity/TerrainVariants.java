@@ -1101,7 +1101,7 @@ public final class TerrainVariants {
         // 软削顶 A 模板（两道哨兵在观测域内逐位恒等，见类注释）：先封顶 delta，再封顶结果高度
         final double capped = softMin(delta, DELTA_CAP, DELTA_CAP_K);
         final double adjusted = softMin(h0 + capped, HEIGHT_SENTINEL, 4.0D);
-        return (int) Math.round(adjusted);
+        return nativeTablelandAdjustment(worldSeed, x, z, (int) Math.round(adjusted));
     }
 
     /**
@@ -1517,4 +1517,64 @@ public final class TerrainVariants {
         final double h = Math.max(0.0D, k - Math.abs(a - b));
         return Math.min(a, b) - h * h / (4.0D * k);
     }
+
+    /**
+     * Conservative continuous wetland envelope. All original tier/pool-active coarse cells have zero new lift.
+     * Four bilinear nodes cover the column and its adjacent wet coarse cells; this preserves N8 water clamps as well.
+     */
+    static double tablelandWetlandAllowedAt(long seed, int x, int z) {
+        int cx = Math.floorDiv(x, 4), cz = Math.floorDiv(z, 4);
+        double tx = (x - cx * 4) / 4.0D, tz = (z - cz * 4) / 4.0D;
+        double w3 = 0;
+        for (int dz = 0; dz <= 1; dz++) for (int dx = 0; dx <= 1; dx++) {
+            double high = 0;
+            for (int ez = -2; ez <= 2; ez++) for (int ex = -2; ex <= 2; ex++)
+                high = Math.max(high, weightsAt(seed, (cx + dx + ex) * 4, (cz + dz + ez) * 4)[3]);
+            w3 += high * (dx == 0 ? 1 - tx : tx) * (dz == 0 ? 1 - tz : tz);
+        }
+        // Original three-tier gates can activate only when the shared swamp interior gate >= TIER_MIN.
+        // Invert its threshold in w3 space; the conservative envelope is >= the actual source w3.
+        double wetMinimum = SWAMP_INTERIOR_GATE_LO + SWAMP_INTERIOR_GATE_SPAN * 0.5D;
+        return 1.0D - s01((w3 - 0.20D) / (wetMinimum - 0.20D));
+    }
+
+    // The natural tableland field reads only seed/coordinates, never building candidates or World.
+    private static final long TABLELAND_DOMAIN_SALT = 0x4E41544956455442L;
+    private static final long TABLELAND_RELIEF_SALT = 0x54424C544F504CL;
+    private static final int TABLELAND_SPACING = 8192;
+    private static final double TABLELAND_OUTER_RADIUS = 2800.0D;
+    private static final double TABLELAND_TRANSITION_WIDTH = 1200.0D;
+    private static final double TABLELAND_TOP = 145.0D;
+    private static final double TABLELAND_RELIEF_WAVE = 977.0D;
+
+    /** Core radius 1600, transition width 1200, one third of natural domains active; exactly zero outside. */
+    static double nativeTablelandAt(long seed, int x, int z) {
+        int cx = Math.floorDiv(x, TABLELAND_SPACING), cz = Math.floorDiv(z, TABLELAND_SPACING);
+        double gate = 0.0D;
+        for (int dz = -1; dz <= 1; dz++) for (int dx = -1; dx <= 1; dx++) {
+            long hash = GTSRWorldgenHash.cellSeed(seed, cx + dx, cz + dz, TABLELAND_DOMAIN_SALT);
+            if (Math.floorMod(hash, 3) != 0) continue;
+            double px = (cx + dx) * (double) TABLELAND_SPACING + 2048 + Math.floorMod(hash >>> 8, 4096);
+            double pz = (cz + dz) * (double) TABLELAND_SPACING + 2048 + Math.floorMod(hash >>> 28, 4096);
+            double distance = Math.hypot(x - px, z - pz);
+            gate = Math.max(gate, s01((TABLELAND_OUTER_RADIUS - distance) / TABLELAND_TRANSITION_WIDTH));
+        }
+        if (gate == 0.0D) return 0.0D;
+        // The widest active river style supplies a conservative retreat; river/lake beds and levels stay unchanged.
+        double river = GTSRVoronoiRiverField.strengthAt(seed, x, z, SWAMP_ROSTER);
+        double lake = GTSRVoronoiRiverField.lakeAt(seed, x, z);
+        double riverAllowed = s01((river + 0.20D) / 0.20D);
+        double lakeAllowed = s01((lake - GTSRVoronoiRiverField.SANZU_BIOME_SHORE_MAX) / 0.15D);
+        return gate * riverAllowed * lakeAllowed * tablelandWetlandAllowedAt(seed, x, z);
+    }
+
+    /** The target 145 +/- 1 stays below the existing soft ceiling; Profile retains the downstream 180 clamp. */
+    static int nativeTablelandAdjustment(long seed, int x, int z, int height) {
+        double gate = nativeTablelandAt(seed, x, z);
+        if (gate == 0.0D) return height;
+        double target = TABLELAND_TOP + GTSRWorldgenHash
+            .valueNoise(seed ^ TABLELAND_RELIEF_SALT, x / TABLELAND_RELIEF_WAVE, z / TABLELAND_RELIEF_WAVE);
+        return (int) Math.round(height + (target - height) * gate);
+    }
+
 }

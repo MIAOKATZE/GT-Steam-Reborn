@@ -131,7 +131,7 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
         if (!Config.planDimension.prosperityDimension) {
             return;
         }
-        if (com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinsWorldgen.generate(world, chunkX, chunkZ)) return;
+        // Saved legacy buildings remain in the world; do not resume their geometry, nodes or actors.
         if (com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterWorldgen.generate(world, chunkX, chunkZ))
             return;
         final long worldSeed = world.getSeed();
@@ -142,10 +142,7 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
         final int rosterIndex = biomeRosterIndex(world, chunkX, chunkZ);
 
         // —— 1. 古代城（S4b）：3×3 cell 检索邻域城市，仅渲染与 C 相交的交集切片（plan §3.1）——
-        // Revision seven owns new natural cities; the old planner remains a read-only compatibility API.
-        // Revision-seven cells already reserve every authored structure family.
-        ProsperitySurfaceScatter
-            .scatter(world, worldSeed, chunkX, chunkZ, weightForRosterIndex(rosterIndex, SCATTER_WEIGHTS), sink);
+        // Containment keeps registry compatibility while pausing city, industrial and surface structures.
 
         // —— 6. 自然区装饰（S-A1，plan §12 修订 5；<b>P17 S-B2 起带身份</b>：树趟 + 植被趟各按
         // ProsperityDecorPlacer.VEG_TIERS_BY_ROSTER[名册下标] 取档 ⇒ 青铜森林树最多最大、平原矮树、

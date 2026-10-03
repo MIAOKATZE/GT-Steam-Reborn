@@ -1,3 +1,4 @@
+from native_terrain_fixture import native_sources, isolated_sourcepath
 """Run CityGuardCheck against real production worldgen and MC classes; adapt FML factory startup only."""
 import re
 import subprocess
@@ -27,19 +28,24 @@ def main(include_voxels=False):
             target = tmp / f'{name}.java'
             target.write_text(text, encoding='utf8')
             sources.append(str(target))
-        sources += [str(ROOT / f'tools/prosperity/{name}.java') for name in ('RemasterRuntimeCheck', 'CityGuardCheck')]
+        sources += [str(ROOT / f'tools/prosperity/{name}.java') for name in ('RemasterRuntimeCheck', 'CityGuardCheck', 'TerrainPlacementCheck')]
         if include_voxels:
             sources.append(str(ROOT / 'tools/RemasterWorldgenCheck.java'))
         sources += [str(ROOT / f'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/remaster/{name}.java')
-                    for name in ('RemasterRuntime', 'RemasterEngineering', 'RemasterWitness', 'RemasterLoot', 'TileRemasterNode',
-                                 'RemasterWorldgen', 'RemasterSite', 'RemasterData', 'RemasterTerrain', 'RemasterPlanner')]
+                    for name in ('RemasterRuntime', 'RemasterOriginalContract', 'RemasterEngineering', 'RemasterWitness', 'RemasterLoot', 'TileRemasterNode',
+                                 'RemasterWorldgen', 'RemasterSite', 'RemasterData', 'RemasterTerrain', 'RemasterPlanner', 'RemasterSpawn')]
         sources.append(str(ROOT / 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/lore/HistoryProgress.java'))
+        sources += [str(ROOT / f'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/{name}.java')
+                    for name in ('echo/EchoKind', 'echo/EntityOldEcho', 'encounter/TileEntitySealedChest')]
+        sources += [str(p) for p in native_sources(ROOT)]
         args = tmp / 'javac.args'
         classpath = ';'.join(cp).replace('\\', '/')
-        args.write_text('-encoding UTF-8\n-cp "' + classpath + '"\n-d "' + str(tmp).replace('\\', '/')
+        args.write_text('-encoding UTF-8\n-sourcepath "' + isolated_sourcepath(tmp) + '"\n-cp "' + classpath + '"\n-d "' + str(tmp).replace('\\', '/')
                         + '"\n' + '\n'.join('"' + p.replace('\\', '/') + '"' for p in sources), encoding='utf8')
         subprocess.run(['javac', '@' + str(args)], check=True)
         args.write_text('-cp "' + str(tmp).replace('\\', '/') + ';' + classpath + '"\nCityGuardCheck', encoding='utf8')
+        subprocess.run(['java', '@' + str(args)], check=True)
+        args.write_text('-cp "' + str(tmp).replace('\\', '/') + ';' + classpath + '"\nTerrainPlacementCheck', encoding='utf8')
         subprocess.run(['java', '@' + str(args)], check=True)
         if include_voxels:
             args.write_text('-cp "' + str(tmp).replace('\\', '/') + ';' + classpath + '"\nRemasterWorldgenCheck', encoding='utf8')

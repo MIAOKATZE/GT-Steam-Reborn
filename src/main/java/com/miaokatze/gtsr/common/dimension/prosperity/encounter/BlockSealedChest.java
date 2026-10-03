@@ -74,7 +74,7 @@ public class BlockSealedChest extends BlockContainer {
     public boolean onBlockActivated(World w, int x, int y, int z, EntityPlayer p, int side, float a, float b, float c) {
         if (!w.isRemote) {
             TileEntity t = w.getTileEntity(x, y, z);
-            if (t instanceof TileEntitySealedChest) ((TileEntitySealedChest) t).tryUnlockByClick();
+            if (t instanceof TileEntitySealedChest) ((TileEntitySealedChest) t).tryUnlockByClick(p);
         }
         return true;
     }

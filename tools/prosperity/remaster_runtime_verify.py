@@ -1,6 +1,8 @@
+from native_terrain_fixture import native_sources, isolated_sourcepath
 """Execute MC/NBT fixture; only offline FML registration startup is removed from temporary factory copies."""
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from remaster_convert import ROOT
@@ -30,15 +32,20 @@ def main():
             factories.append(str(target))
         args = tmp / 'javac.args'
         classpath = ';'.join(cp).replace('\\', '/')
-        args.write_text('-encoding UTF-8\n-cp "' + classpath + '"\n-d "' + str(tmp).replace('\\', '/')
-                        + '"\n' + '\n'.join('"' + p.replace('\\', '/') + '"' for p in factories +
+        args.write_text('-encoding UTF-8\n-sourcepath "' + isolated_sourcepath(tmp) + '"\n-cp "' + classpath + '"\n-d "' + str(tmp).replace('\\', '/')
+                        + '"\n' + '\n'.join('"' + p.replace('\\', '/') + '"' for p in factories + [str(p) for p in native_sources(ROOT)] +
                           [str(ROOT / 'tools/prosperity/RemasterRuntimeCheck.java')] +
                           [str(ROOT / f'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/remaster/{name}.java')
-                           for name in ('RemasterRuntime', 'RemasterEngineering', 'RemasterWitness', 'RemasterLoot', 'TileRemasterNode')] +
+                           for name in ('RemasterRuntime', 'RemasterOriginalContract', 'RemasterEngineering', 'RemasterWitness', 'RemasterLoot', 'TileRemasterNode', 'RemasterSpawn', 'RemasterBlock', 'RemasterWorldgen', 'RemasterTerrain', 'RemasterPlanner', 'RemasterSite', 'RemasterData')] +
+                          [str(ROOT / f'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/{package}/{name}.java')
+                           for package, name in [('encounter','TileEntitySealedChest'),('encounter','BlockSealedChest'),
+                                                 ('echo','EchoKind'),('echo','EntityOldEcho'),
+                                                 ('encounter','ForgottenLakeEncounterStructure'),
+                                                 ('architecture','BlockZenithLog'),('ruins','ProsperityDecorPlacer')]] +
                           [str(ROOT / 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/lore/HistoryProgress.java')]), encoding='utf8')
         subprocess.run(['javac', '@' + str(args)], check=True)
         args.write_text('-cp "' + str(tmp).replace('\\', '/') + ';' + classpath + '"\nRemasterRuntimeCheck', encoding='utf8')
-        subprocess.run(['java', '@' + str(args)], check=True)
+        subprocess.run(['java', '@' + str(args)] + sys.argv[1:], check=True)
 
 
 if __name__ == '__main__':
