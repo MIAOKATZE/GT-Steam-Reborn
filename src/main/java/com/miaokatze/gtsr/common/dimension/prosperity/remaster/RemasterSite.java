@@ -9,25 +9,12 @@ public final class RemasterSite {
     public final int variant, x, y, z;
     public final long seed;
     public final String layout;
-    public final int roadVersion;
-    public final int entryApronVersion;
-    public final String entryApronSha;
-    final int[] entryApronWrites;
 
     public RemasterSite(String prefab, int variant, long seed, int x, int y, int z) {
-        this(prefab, variant, seed, x, y, z, "prefab");
+        this(prefab, variant, seed, x, y, z, "compact-prefab");
     }
 
     public RemasterSite(String prefab, int variant, long seed, int x, int y, int z, String layout) {
-        this(prefab, variant, seed, x, y, z, layout, 0);
-    }
-
-    public RemasterSite(String prefab, int variant, long seed, int x, int y, int z, String layout, int roadVersion) {
-        this(prefab, variant, seed, x, y, z, layout, roadVersion, 0, "", new int[0]);
-    }
-
-    public RemasterSite(String prefab, int variant, long seed, int x, int y, int z, String layout, int roadVersion,
-        int entryApronVersion, String entryApronSha, int[] entryApronWrites) {
         this.prefab = prefab;
         this.variant = variant;
         this.seed = seed;
@@ -35,27 +22,10 @@ public final class RemasterSite {
         this.y = y;
         this.z = z;
         this.layout = layout;
-        this.roadVersion = roadVersion;
-        this.entryApronVersion = entryApronVersion;
-        this.entryApronSha = entryApronSha;
-        this.entryApronWrites = entryApronWrites.clone();
     }
 
     public String id() {
-        return "echo:r7:" + seed
-            + ":"
-            + prefab
-            + ":"
-            + variant
-            + ":"
-            + x
-            + ":"
-            + z
-            + ("prefab".equals(layout) ? "" : ":" + layout);
-    }
-
-    public int[] entryApronWrites() {
-        return entryApronWrites.clone();
+        return "echo:r7:" + seed + ":" + prefab + ":" + variant + ":" + x + ":" + z + ":" + layout;
     }
 
     public RemasterPrefab plan() {
@@ -67,23 +37,24 @@ public final class RemasterSite {
     }
 
     public int minX() {
-        return x + bound("min", 0) - RemasterTerrain.margin(this);
+        return x + bound("min", 0);
     }
 
     public int minZ() {
-        return z + bound("min", 2) - RemasterTerrain.margin(this);
+        return z + bound("min", 2);
     }
 
     public int maxX() {
-        return x + bound("max", 0) + RemasterTerrain.margin(this);
+        return x + bound("max", 0);
     }
 
     public int maxZ() {
-        return z + bound("max", 2) + RemasterTerrain.margin(this);
+        return z + bound("max", 2);
     }
 
     private int bound(String side, int axis) {
-        if ("city-grid".equals(layout)) return "min".equals(side) ? 0 : axis == 0 ? 767 : 383;
+        // The native canopy/encounter bound is independent of the fixed preview capture's extent.
+        if ("tree-overlay".equals(layout)) return "min".equals(side) ? axis == 0 ? 0 : -8 : axis == 0 ? 320 : 312;
         return RemasterCatalog.descriptor(prefab, variant)
             .getAsJsonArray(side)
             .get(axis)
@@ -95,21 +66,18 @@ public final class RemasterSite {
     }
 
     public int entryX() {
-        if ("city-grid".equals(layout)) return x + 4;
         com.google.gson.JsonObject entry = entrance();
         return entry != null && entry.has("x") ? x + entry.get("x")
             .getAsInt() : x + bound("min", 0) + 4;
     }
 
     public int entryZ() {
-        if ("city-grid".equals(layout)) return z + 4;
         com.google.gson.JsonObject entry = entrance();
         return entry != null && entry.has("z") ? z + entry.get("z")
             .getAsInt() : z + bound("min", 2) + 4;
     }
 
     public int entryY() {
-        if ("city-grid".equals(layout)) return y;
         com.google.gson.JsonObject entry = entrance();
         return entry != null && entry.has("topY") ? y + entry.get("topY")
             .getAsInt() + 1 : y + 1;
@@ -130,12 +98,6 @@ public final class RemasterSite {
         n.setInteger("y", y);
         n.setInteger("z", z);
         n.setString("layout", layout);
-        n.setInteger("roadVersion", roadVersion);
-        if (entryApronVersion > 0) {
-            n.setInteger("entryApronVersion", entryApronVersion);
-            n.setString("entryApronSha", entryApronSha);
-            n.setIntArray("entryApronWrites", entryApronWrites.clone());
-        }
         return n;
     }
 
@@ -147,10 +109,6 @@ public final class RemasterSite {
             n.getInteger("x"),
             n.getInteger("y"),
             n.getInteger("z"),
-            n.hasKey("layout") ? n.getString("layout") : "prefab",
-            n.getInteger("roadVersion"),
-            n.getInteger("entryApronVersion"),
-            n.getString("entryApronSha"),
-            n.getIntArray("entryApronWrites"));
+            n.getString("layout"));
     }
 }

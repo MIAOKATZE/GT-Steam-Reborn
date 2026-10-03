@@ -124,6 +124,47 @@ public final class HistoryProgress {
         n.setTag(key, list);
     }
 
+    public static boolean hasSceneStage(EntityPlayer player, String site, String stage) {
+        return strings(data(player), "sceneStages").contains(site + ":" + stage);
+    }
+
+    /** Called only after server geometry, interaction, or death ownership has been proved. */
+    public static void sceneStage(EntityPlayer player, String site, String prefab, String stage, boolean title) {
+        if (!(player instanceof EntityPlayerMP) || !player.isEntityAlive()
+            || player.worldObj.isRemote
+            || player instanceof net.minecraftforge.common.util.FakePlayer
+            || !(player.worldObj.provider instanceof WorldProviderProsperityRuins)) return;
+        NBTTagCompound n = data(player);
+        Set<String> stages = strings(n, "sceneStages");
+        if (!stages.add(site + ":" + stage)) return;
+        storeStrings(n, "sceneStages", stages);
+        int kind = -1;
+        for (int i = 0; i < com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite.NAMES.length; i++)
+            if (prefab.equals(com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite.NAMES[i])) kind = i;
+        int bit = prefab.equals("forgotten_lake_court") ? 30 : kind;
+        if (bit >= 0 && bit <= 30) {
+            n.setInteger("sceneEntries", n.getInteger("sceneEntries") | (1 << bit));
+            if (stage.startsWith("battle")) n.setInteger("sceneBattles", n.getInteger("sceneBattles") | (1 << bit));
+        }
+        save(player, n);
+        String nameKey = prefab.equals("forgotten_lake_court") ? "lore.chapter.hanging_great_tree.title"
+            : "lore.entry.structures." + prefab + ".title";
+        player.addChatMessage(
+            new net.minecraft.util.ChatComponentTranslation(
+                "gtsr.scene.story_unlocked",
+                new net.minecraft.util.ChatComponentTranslation(nameKey)));
+        if (title) LoreNetwork.title((EntityPlayerMP) player, nameKey);
+        LoreNetwork.send((EntityPlayerMP) player, false);
+    }
+
+    public static int sceneEntries(EntityPlayer player) {
+        return data(player).getInteger("sceneEntries") & VALID_MASK;
+    }
+
+    public static int sceneBattles(EntityPlayer player) {
+        return data(player).getInteger("sceneBattles") & VALID_MASK;
+    }
+
     public static void visit(EntityPlayer p, int kind) {
         if (!valid(p) || !(p.worldObj.provider instanceof WorldProviderProsperityRuins) || kind < 0 || kind > 29)
             return;

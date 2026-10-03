@@ -497,6 +497,11 @@ public final class ProsperityTerrainProfile {
      * v1.20.39 T4 起在 amp 平滑之后追加<b>河谷压低链</b>——plan §3.2）。
      */
     private static int heightCore(long worldSeed, int x, int z) {
+        return CompactSceneTerrain.heightAt(worldSeed, x, z, originalHeightAt(worldSeed, x, z));
+    }
+
+    /** Original relief, river and lake chain, before any compact-scene branch; cannot call a scene planner. */
+    public static int originalHeightAt(long worldSeed, int x, int z) {
         // P27-L（D1·2c，v1.20.50）：湖压力求值上移到振幅位之前——lakeAt 有 LAKE_MEMO 列槽
         // 记忆化 ⇒ 下方湖段（原 :616 起的巨湖压低段）复用同一值，零重扫、零新增求值序变化。
         final double lake = GTSRVoronoiRiverField.lakeAt(worldSeed, x, z);

@@ -47,6 +47,41 @@ public final class GuiProsperityJournal extends GuiScreen {
         if (fontRendererObj != null) rebuildButtons();
     }
 
+    private int sceneEntries, sceneBattles;
+
+    public GuiProsperityJournal(boolean kingUnlocked, int progress, int sceneEntries, int sceneBattles) {
+        this(kingUnlocked, progress);
+        this.sceneEntries = sceneEntries;
+        this.sceneBattles = sceneBattles;
+    }
+
+    public void setSceneEntries(int entries) {
+        sceneEntries = entries;
+        refreshText();
+    }
+
+    public void setSceneBattles(int battles) {
+        sceneBattles = battles;
+        refreshText();
+    }
+
+    private boolean battleUnlocked(JournalEntry entry) {
+        if (entry.tab != JournalTab.STRUCTURES) return true;
+        for (int i = 0; i < com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite.NAMES.length; i++)
+            if (entry.id.equals(com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite.NAMES[i]))
+                return (sceneBattles & (1 << i)) != 0;
+        return true;
+    }
+
+    private boolean sceneUnlocked(JournalEntry entry) {
+        if (entry.isGiantTree()) return (sceneEntries & (1 << 30)) != 0 || kingUnlocked;
+        if (entry.tab != JournalTab.STRUCTURES) return true;
+        for (int i = 0; i < com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite.NAMES.length; i++)
+            if (entry.id.equals(com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite.NAMES[i]))
+                return (sceneEntries & (1 << i)) != 0 || entry.recordConfirmed(progress);
+        return true;
+    }
+
     public void setProgress(int progress) {
         this.progress = progress;
         refreshText();
@@ -137,7 +172,9 @@ public final class GuiProsperityJournal extends GuiScreen {
         if (fontRendererObj == null) return;
         lines.clear();
         JournalEntry entry = getCurrentEntry();
-        if (appendix && entry.isGiantTree()) {
+        if (!sceneUnlocked(entry)) {
+            appendParagraph(StatCollector.translateToLocal("gtsr.scene.story_locked"));
+        } else if (appendix && entry.isGiantTree()) {
             if (kingUnlocked) {
                 for (int i = 0; i < JournalChapter.KING_EPILOGUE.paragraphs; i++) {
                     appendParagraph(StatCollector.translateToLocal(JournalChapter.KING_EPILOGUE.paragraphKey(i)));
@@ -146,7 +183,7 @@ public final class GuiProsperityJournal extends GuiScreen {
         } else {
             for (int i = 0; i < entry.paragraphs; i++) appendParagraph(
                 StatCollector.translateToLocal(
-                    entry.isSmallRuin() && i > 0 && !entry.recordConfirmed(progress) ? "lore.ruin.ending.pending"
+                    entry.tab == JournalTab.STRUCTURES && i > 0 && !battleUnlocked(entry) ? "lore.ruin.ending.pending"
                         : entry.paragraphKey(i)));
             if (entry.recordMask != 0) {
                 if (entry.recordConfirmed(progress)) {

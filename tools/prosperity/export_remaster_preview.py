@@ -37,7 +37,7 @@ def contained_index(models, policy, designs):
         if model is None:
             raise ValueError('Missing standard preview: ' + scene_id)
         model['name'] = re.sub(r' · 第七轮 \d+$', '', model['name']) + ' · 标准场景 v0'
-        model['description'] = ['正在打磨的 Boss 标准大场景；尚未完成游戏内验收。',
+        model['description'] = ['正在打磨的 Boss 标准场景；尚未完成游戏内验收。',
                                 '本轮只保留三个标准场景；其他结构仅留设计介绍，暂缓并待后续大幅简化减量。',
                                 '离线几何与真实材质供检查；地形接合及通行仍需游戏内验收。']
         model['reviewStatus'] = 'refining'
@@ -50,7 +50,7 @@ def contained_index(models, policy, designs):
                                                     '巨树附属真实通路几何样本；不另计场景，尚未完成游戏内验收。'])]
             model['description'].append('作者预制与自然巨树通路快照分别查看；快照属于本场景的附属样本。')
         else:
-            model['description'].append('简单联锁：按入口提示确认入口联锁，再按主场提示确认主场联锁；两处均为一次明确操作。守卫与首领仍须通过游戏内真实战斗击败。')
+            model['description'].append('紧凑场景：进入时展示结构名并解锁剧情；交互单元只读取剧情，无解谜或联锁操作。箱子分别直接开启、阅读剧情后开启、真实战斗结束后开启。')
         active.append(model)
     paused = [d for d in designs if d['id'] not in policy['activeIds']]
     return ('(function(w){const b=w.PROSPERITY_STRUCTURES;'
@@ -322,12 +322,16 @@ def main():
     structures = {e['id']: e for e in catalog['structures']}
     policy = rollout_policy()
     designs = []
-    for entry in catalog['structures']:
+    # Archived designs remain in the plan, while the production catalog contains only three scenes.
+    design_script = "const fs=require('fs'),vm=require('vm'),p=require('path'),s={window:{}};vm.createContext(s);for(const n of ['catalog','catalog5'])vm.runInContext(fs.readFileSync(p.join(process.argv[1],n+'.js'),'utf8'),s);process.stdout.write(JSON.stringify(s.window.REMASTER_CATALOG.structures));"
+    design_entries = json.loads(subprocess.check_output(['node', '-e', design_script,
+        str(ROOT / 'plan/临时计划/preview')], encoding='utf8'))
+    for entry in design_entries:
         fact = next((e for e in legacy['structures'] if e['id'] == entry['id']), {})
         descriptor = next((d for d in catalog['prefabs'] if d['id'] == entry['id'] and d['variant'] == 0), None)
         metadata = json.loads(gzip.decompress((package / descriptor['file']).read_bytes())).get('metadata', {}) if descriptor else {}
         label = metadata.get('productionSiteController', {}).get('label', '')
-        designs.append({'id': entry['id'], 'name': fact.get('name') or label.split(' · ')[0] or entry['id'],
+        designs.append({'id': entry['id'], 'name': fact.get('name') or entry.get('name') or label.split(' · ')[0] or entry['id'],
                         'category': entry['category'], 'description': [label] if label else fact.get('description', [])[:1],
                         'source': entry.get('source', ''), 'status': 'paused-needs-simplification'})
     models = []
@@ -340,11 +344,13 @@ def main():
             raise ValueError('Production manifest changed during export: ' + stem)
         palette = manifest['palette']
         runs = []
+        air_runs = []
         for entry in manifest['slices']:
             data = json.loads(gzip.decompress((package / entry['file']).read_bytes()))
             if hashlib.sha256(gzip.decompress((package / entry['file']).read_bytes())).hexdigest() != entry['sha256']:
                 raise ValueError('Production slice changed during export: ' + entry['file'])
             runs.extend(r for r in data if palette[r[4]] != 'minecraft:air#0')
+            air_runs.extend(r[:4] for r in data if palette[r[4]] == 'minecraft:air#0')
         runs.sort(key=lambda r: (r[1], r[2], r[0]))
         model_data = {'palette': palette, 'runs': runs}
         dump(DEST / f'structures/remaster/{stem}.js',
@@ -371,6 +377,13 @@ def main():
                        'size': descriptor['extent'], 'origin': descriptor['min'],
                        'count': descriptor['solidCount'], 'variant': 'authored', 'description': description,
                        'productionId': descriptor['id'], 'productionVariant': descriptor['variant'],
+                       'compactScene': metadata.get('compactScene', False),
+                       'combatOnly': metadata.get('combatOnly', False),
+                       'nativeScene': metadata.get('nativeScene', False),
+                       'nativeCapture': metadata.get('captureProof'),
+                       'nodes': metadata.get('nodes', []), 'spawns': metadata.get('spawns', []),
+                       'spawnerPlan': metadata.get('spawnerPlan', []),
+                       'lootPlan7': metadata.get('lootPlan7', []), 'airRuns': air_runs,
                        'playerReviewViews': review_views,
                        'playerReviewAbsentViews': manifest.get('metadata', {}).get('playerReviewAbsentViews', []),
                        'interactionApproaches': manifest.get('metadata', {}).get('interactionApproaches', []),
@@ -393,7 +406,7 @@ def main():
         if descriptor['id'] == 'prosperity_city_full':
             models[-1]['description'].append('历史整城作者蓝图；自然生成使用独立道路与28个按自然地形分别定高的地块，见实际城市合成条目。')
         if descriptor['id'] == 'forgotten_lake_court':
-            models[-1]['description'].append('作者蓝图包含树体。实际tree-overlay不写空气、树木或树叶；自然巨树几何与原守卫由原生成器拥有，离线蓝图不能证明与自然树体的接合。')
+            models[-1]['description'].append('直接采集当前原生树体、八室与王庭的完整生成样本，包含真实箱位和守卫标注。树体与战斗由原生生成器拥有，旧作者覆盖层已停止写入；离线样本不代表所有种子或真人通关验收。')
     royal, royal_model = royal_route_snapshot()
     dump(DEST / royal_model['src'],
          'window.PROSPERITY_STRUCTURES_DATA=window.PROSPERITY_STRUCTURES_DATA||{};'
@@ -411,6 +424,8 @@ process.stdout.write(JSON.stringify(w.REMASTER_TEXTURES));"""
     result = subprocess.run(['node', '-e', script, *[str(plan / f'blocks{i}.js') for i in range(4, 8)]],
                             check=True, capture_output=True, text=True, encoding='utf-8')
     textures = json.loads(result.stdout)
+    registered_ids = {('gtsr:' + b['id'] if ':' not in b['id'] else b['id']) for b in block_data['blocks']}
+    textures = {key: value for key, value in textures.items() if key.split('#')[0] in registered_ids}
     production_hashes = {hashlib.sha256(p.read_bytes()).hexdigest()
                          for p in (ASSETS / 'textures/blocks').glob('remaster_*.png')}
     for key, tex in textures.items():
@@ -457,15 +472,15 @@ process.stdout.write(JSON.stringify(w.REMASTER_TEXTURES));"""
                    'label': '生产注册'}]} for b in block_data['blocks']]
     # The paused engineering testimony chain is retained in design assets, not the active guide.
     items = []
-    terrain = [{'id': 'remaster_natural_burial', 'name': '地下工厂自然埋藏与入口定高', 'group': 'terrain_variant',
-                'description': ['入口锚点取真实高度场；地下房间逐屋顶检查自然岩层覆盖与世界高度，条件不满足则放弃候选位置。',
-                                '岩层由原地形生成器拥有；生产不制造假山、不把入口上移来掩盖地下越界。'],
-                'sources': [{'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/remaster/RemasterTerrain.java', 'label': '生产地质分支'}]},
+    terrain = [{'id': 'remaster_compact_branch', 'name': '草原工厂与齿轮森林战场伴生平原', 'group': 'terrain_variant',
+                'description': ['工厂绑定草原分支，战场绑定齿轮森林分支；分支平原与建筑共享确定性锚点。',
+                                '已移除为旧深井工厂添加的全域高台。局部平原取原锚点海拔，只在建筑周边渐变接合原地形。'],
+                'sources': [{'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/CompactSceneTerrain.java', 'label': '伴生分支纯函数'}]},
                {'id': 'remaster_bounded_footings', 'name': '三个标准场景的地形接合', 'group': 'terrain_variant',
-                'description': ['本轮仅打磨铸造战场、地下工厂与巨树王庭：房间与自然地面的小缺口采用有限支脚，巨树通路沿原生树体延伸。',
+                'description': ['本轮全盘重构战场与工厂为紧凑建筑，室内和通道显式标注空气；巨树保留体量与真实守卫通路。',
                                 '城市及其他结构已暂缓，仅保留设计介绍，后续大幅简化减量；城市桥路不属于本轮开放生成范围。',
                                 '三个标准场景均在打磨中；通行、岩石侵入和树体接合仍待游戏内验收。'],
-                'sources': [{'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/remaster/RemasterTerrain.java', 'label': '房间有限支脚'},
+                'sources': [{'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/remaster/RemasterWorldgen.java', 'label': '结构实块与显式空气'} ,
                             {'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/encounter/ForgottenLakeEncounterStructure.java', 'label': '原生巨树八室通路'},
                             {'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/remaster/RemasterRollout.java', 'label': '三个标准场景的当前生成范围'}]}]
     dump(DEST / 'data/remaster.js', '(function(c){c.blocks.push('

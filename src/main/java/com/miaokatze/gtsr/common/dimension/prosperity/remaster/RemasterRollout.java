@@ -34,7 +34,8 @@ public final class RemasterRollout {
             || !isActive(parts[3])
             || !"0".equals(parts[4])) return false;
         boolean tree = "forgotten_lake_court".equals(parts[3]);
-        if (tree ? parts.length != 8 || !"tree-overlay".equals(parts[7]) : parts.length != 7) return false;
+        if (tree ? parts.length != 8 || !"tree-overlay".equals(parts[7])
+            : parts.length != 8 || !"compact-prefab".equals(parts[7])) return false;
         try {
             // Match the canonical decimal fields produced by RemasterSite.id(), not a loose prefix.
             return Long.toString(Long.parseLong(parts[2]))
@@ -53,6 +54,6 @@ public final class RemasterRollout {
         return site != null && isActive(site.prefab)
             && site.variant == standardVariant(site.prefab)
             && ("forgotten_lake_court".equals(site.prefab) ? "tree-overlay".equals(site.layout)
-                : "prefab".equals(site.layout));
+                : "compact-prefab".equals(site.layout));
     }
 }

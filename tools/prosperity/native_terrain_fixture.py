@@ -5,6 +5,7 @@ def native_sources(root):
              base / 'framework/GTSRBiomeAuthority.java',
              base / 'framework/GTSRBiomeBase.java',
              base / 'prosperity/ProsperityTerrainProfile.java',
+             base / 'prosperity/CompactSceneTerrain.java',
              base / 'prosperity/TerrainVariants.java',
              base / 'prosperity/ChunkProviderProsperityRuins.java',
              base / 'prosperity/river/GTSRVoronoiRiverField.java',
@@ -14,8 +15,7 @@ def native_sources(root):
     paths += [base / ('prosperity/biome/' + name + '.java') for name in (
         'BiomeRustedSteppe', 'BiomeGearworkForest', 'BiomeBrassWastes',
         'BiomeFumaroleSwamp', 'BiomeSanzuRiver', 'BiomeWitheredRiverbed')]
-    for name in ('RemasterSite', 'RemasterPlanner', 'RemasterData', 'RemasterCityTerrain',
-                 'RemasterSavedPlacement', 'RemasterCityBridge', 'RemasterEntryApron'):
+    for name in ('RemasterSite', 'RemasterPlanner', 'RemasterRollout', 'RemasterData'):
         related = base / ('prosperity/remaster/' + name + '.java')
         if related.exists():
             paths.append(related)

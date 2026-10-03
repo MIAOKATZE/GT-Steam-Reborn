@@ -147,12 +147,14 @@ public final class ForgottenLakeEncounterStructure {
     /** A sloping central court and five thick outward roots; leaf beds fill the gaps below. */
     private static boolean courtRoot(double dx, double dz) {
         double localAngle = Math.atan2(dz, dx);
-        double core = 31 + 3 * Math.sin(localAngle * 5 + .6) + 2 * Math.sin(localAngle * 9);
+        double core = 31 + 3 * Math.cos(localAngle * 5) + 2 * Math.cos(localAngle * 9);
         if (dx * dx + dz * dz <= core * core) return true;
-        double[] angles = { Math.PI, 0, .9, -.9, Math.PI / 2 };
+        double[] angles = { Math.PI, 0, .9, -.9, Math.PI / 2, -Math.PI / 2 };
         for (double angle : angles) {
             double along = dx * Math.cos(angle) + dz * Math.sin(angle);
             double across = -dx * Math.sin(angle) + dz * Math.cos(angle);
+            if (angle < 0) across = -across;
+            if (angle == 0 || angle == Math.PI) across = Math.abs(across);
             double bend = 3 * Math.sin(along / 17);
             if (along > 25 && along < 65 && Math.abs(across - bend) < 11 - (along - 25) * .12) return true;
         }
@@ -162,7 +164,8 @@ public final class ForgottenLakeEncounterStructure {
     public static int courtLift(int dx, int dz) {
         double distance = Math.sqrt(dx * dx + dz * dz);
         double blend = Math.min(1, Math.max(0, (distance - 8) / 12));
-        double ridge = .9 + .65 * Math.sin((dx + 2 * dz) / 15D) + .6 * Math.cos((2 * dx - dz) / 19D);
+        double ridge = .9 + .65 * Math.sin((dx + 2 * Math.abs(dz)) / 15D)
+            + .6 * Math.cos((2 * dx - Math.abs(dz)) / 19D);
         return Math.min(2, Math.max(0, (int) (ridge * blend)));
     }
 
@@ -186,7 +189,7 @@ public final class ForgottenLakeEncounterStructure {
                     boolean root = throne ? courtRoot(dx * courtScale, dz * courtScale)
                         : distance <= radius - 1.4 + 1.4 * Math.sin(angle * 9 + .4);
                     if (!root) {
-                        if (throne && distance * courtScale < 45 + 4 * Math.sin(angle * 7)) {
+                        if (throne && distance * courtScale < 45 + 4 * Math.cos(angle * 7)) {
                             // Recessed living leaf beds bridge the root gaps, never a level metal disk.
                             int leafY = y - 2 + (Math.abs(dx * 7 + dz * 11) % 3 == 0 ? 1 : 0);
                             block(b, x + dx, leafY, z + dz, BlocksGTSR.prosperityJadeLeaves);
@@ -199,7 +202,7 @@ public final class ForgottenLakeEncounterStructure {
                     int axis = Math.abs(dx) >= Math.abs(dz) ? 4 : 8;
                     wood(b, x + dx, surface, z + dz, axis);
                     if (throne && RoyalArchitecture.get("heartwood") != null) {
-                        double band = Math.sin(angle * 9 + distance * .035);
+                        double band = Math.cos(angle * 9) * Math.sin(distance * .035);
                         if (Math.abs(band) < .10) block(b, x + dx, surface, z + dz, RoyalArchitecture.get("crownwood"));
                         else if (Math.abs(band) < .27)
                             block(b, x + dx, surface, z + dz, RoyalArchitecture.get("heartwood"));
@@ -595,6 +598,22 @@ public final class ForgottenLakeEncounterStructure {
             for (int h = 2; h <= 5; h++) for (int v = -12; v <= -10; v++) roomBlock(b, p, room, 1, h, v, "oathwood");
         if (room % 4 == 1) for (int u = 7; u <= 10; u++) roomBlock(b, p, room, u, 1, -12, "patina_mosaic");
         if (room % 4 == 3) for (int u = 5; u <= 8; u++) roomBlock(b, p, room, u, 1, 12, "heartwood_slab");
+        // Storage belongs to the room: chest alcoves retain the original loot anchors and headroom.
+        for (int side : new int[] { -1, 1 }) {
+            for (int h = 1; h <= 4; h++) roomBlock(b, p, room, 14, h, side * 7, "heartwood");
+            for (int u = 11; u <= 14; u++) roomBlock(b, p, room, u, 4, side * 7, "heartwood_slab");
+            for (int v = 10; v <= 11; v++) {
+                roomBlock(b, p, room, 12, 1, side * v, "root_fence");
+                roomBlock(b, p, room, 12, 2, side * v, "heartwood_slab");
+            }
+        }
+        // Carved shelves and a small plant ledge fill the rear wall without narrowing the guard aisle.
+        for (int u = -7; u <= -3; u++) {
+            roomBlock(b, p, room, u, 1, 14, "heartwood");
+            roomBlock(b, p, room, u, 3, 14, "heartwood_slab");
+            if ((u & 1) == 0) roomBlock(b, p, room, u, 2, 14, room % 2 == 0 ? "oathwood" : "crownwood");
+        }
+        roomBlock(b, p, room, -7, 2, 14, "crown_fern");
     }
 
     private static void roomBranchV3(StructureBuilder b, int ax, int az, int y0, int trunkH, int room) {

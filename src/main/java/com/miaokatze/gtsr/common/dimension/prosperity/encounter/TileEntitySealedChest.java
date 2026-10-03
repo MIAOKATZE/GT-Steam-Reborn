@@ -109,7 +109,7 @@ public class TileEntitySealedChest extends TileEntity {
             if (allowed() && openingTicks < 0) startOpening();
             return;
         }
-        if ((tier == 1 || clickUnlock) && openingTicks < 0) startOpening();
+        if ((tier == 1 || clickUnlock || allowed()) && openingTicks < 0) startOpening();
     }
 
     public void tryUnlockByClick(net.minecraft.entity.player.EntityPlayer player) {
@@ -163,12 +163,8 @@ public class TileEntitySealedChest extends TileEntity {
             }
             return;
         }
-        if (openingTicks < 0) {
-            // Remaster rewards require an explicit authenticated survival click; legacy automatic gates remain intact.
-            if (!remasterSite.isEmpty()) return;
-            if (allowed()) startOpening();
-            return;
-        }
+        // Clearing a fight unlocks the seal; opening still starts only with a player's right click.
+        if (openingTicks < 0) return;
         if (++openingTicks < 60) {
             markDirty();
             if (openingTicks % 5 == 0) worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);

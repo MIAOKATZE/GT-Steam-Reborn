@@ -32,6 +32,9 @@ def snapshot(path):
 
 def official_runtime_node_records(metadata):
     """Preserve the existing formal ownership order, independent of ambient derivation."""
+    if metadata.get('nativeScene'):
+        # These are source-derived annotations. The native encounter owns actual tiles and actors.
+        return []
     records = [(n, n['role']) for n in metadata.get('nodes', [])
                if n.get('role') in ('control', 'memory', 'testimony')]
     for field, role in (('lootPlan7', 'chest'), ('spawnerPlan', 'spawner'),
@@ -66,6 +69,8 @@ def official_runtime_node_owners(metadata):
 
 def derive_ambient_notices(metadata, source_palette, source_cells, palette, cells):
     """Bind only surviving authored notices; never create geometry or story evidence."""
+    if metadata.get('combatOnly'):
+        return []
     owners = official_runtime_node_owners(metadata)
     if metadata.get('variant') == 0 and metadata['id'] in ('fallen_foundry', 'subsided_factory', 'forgotten_lake_court'):
         ids = {'fallen_foundry': ('control-0', 'control-2'),
@@ -262,6 +267,11 @@ def normalize_nodes(metadata, palette, cells, source_sha=''):
             key += '#0'
         if role == 'chest':
             key = 'gtsr:SealedChest#2'
+        elif metadata.get('combatOnly') and role in ('memory', 'testimony'):
+            # Narrative units use a registered console, never an authored notice board.
+            key = node.get('block', 'gtsr:draft_pressure_console#0')
+            if key.split('#')[0] == 'gtsr:draft_notice_board':
+                raise ValueError('Notice boards are not allowed in combat-only scenes')
         elif key.split('#')[0] not in INTERACTIVE:
             key = 'gtsr:draft_notice_board#0' if role in ('memory', 'testimony') else (
                 'gtsr:draft7_index_frame#0' if role == 'puzzle-object' else
@@ -399,7 +409,17 @@ def compile_one(path):
     d = snapshot(path)
     m = d['metadata']
     m['productionPuzzle'] = PUZZLES[m['id']]
-    simple = m.get('variant') == 0 and m['id'] in ('fallen_foundry', 'subsided_factory', 'forgotten_lake_court')
+    active_scene = m.get('variant') == 0 and m['id'] in ('fallen_foundry', 'subsided_factory', 'forgotten_lake_court')
+    simple = active_scene and not m.get('combatOnly')
+    if active_scene and m.get('combatOnly'):
+        for key in ('productionPuzzle', 'productionSimpleScene', 'productionSiteController',
+                    'productionAmbientNotices', 'productionInteractionApproaches', 'entryApronEnvelope'):
+            m.pop(key, None)
+        forbidden = {'control', 'shape', 'puzzle-object', 'ambient-notice'}
+        if any(n.get('role') in forbidden for n in m.get('nodes', [])):
+            raise ValueError('Combat-only scenes cannot contain puzzle nodes')
+        if any(m.get(k) for k in ('shapeMechanisms', 'puzzleObjects7', 'navigationHints')):
+            raise ValueError('Combat-only scenes cannot contain puzzle/notice plans')
     if simple:
         controls = {'fallen_foundry': ['control-0', 'control-2'],
                     'subsided_factory': ['factory-stage-0', 'factory-stage-3'],
@@ -472,15 +492,17 @@ def compile_one(path):
             cells.setdefault(at, 0)
 
     # Preserve every authored solid; record only the formerly implicit negative space.
-    for r in m.get('rooms', []):
-        foot = 1 if simple and m['id'] != 'forgotten_lake_court' else 2
+    # Native snapshots record their own AIR; never invent clearance around annotation-only routes.
+    for r in ([] if m.get('nativeScene') else m.get('rooms', [])):
+        foot = 1 if (simple or m.get('combatOnly')) and m['id'] != 'forgotten_lake_court' else 2
         for y in range(r['y'] + foot, r['y'] + r['h'] + 1):
             for z in range(r['z'] + 1, r['z'] + r['d'] - 1):
                 for x in range(r['x'] + 1, r['x'] + r['w'] - 1):
                     carve(x, y, z)
-    routes = [(r['points'], r.get('width', 5), 4) for r in m.get('stairRoutes', [])]
-    routes += [(r, 3, 3) for r in m.get('routes', [])]
-    for entry in [m.get('entranceLogic7'), m.get('terrain', {})]:
+    routes = [] if m.get('nativeScene') else [(r['points'], r.get('width', 5), 4) for r in m.get('stairRoutes', [])]
+    if not m.get('nativeScene'):
+        routes += [(r, 3, 3) for r in m.get('routes', [])]
+    for entry in ([] if m.get('nativeScene') else [m.get('entranceLogic7'), m.get('terrain', {})]):
         if entry and (entry.get('points') or entry.get('entrance')):
             routes.append((entry.get('points') or entry['entrance'], 5, 4))
     for points, width, height in routes:
@@ -494,9 +516,10 @@ def compile_one(path):
                         carve(q[0] + (0 if along_x else side), q[1] + dy,
                               q[2] + (side if along_x else 0), explicit=True)
     # Exact actor birth clearance is also explicit air, including airborne guards.
-    actors = [(s, [s['x'], s['y'], s['z']], s.get('clearance', {})) for s in m.get('spawns', [])]
-    actors += [(s, s['spawnZone']['center'], s['spawnZone'].get('clearance', {}))
-               for s in m.get('spawnerPlan', [])]
+    actors = [] if m.get('nativeScene') else [(s, [s['x'], s['y'], s['z']], s.get('clearance', {})) for s in m.get('spawns', [])]
+    if not m.get('nativeScene'):
+        actors += [(s, s['spawnZone']['center'], s['spawnZone'].get('clearance', {}))
+                   for s in m.get('spawnerPlan', [])]
     for actor, at, clearance in actors:
         for x in range(at[0] - int(clearance.get('width', 1)) // 2,
                        at[0] + int(clearance.get('width', 1)) // 2 + 1):
@@ -519,8 +542,8 @@ def compile_one(path):
                                       hashlib.sha256(path.read_bytes()).hexdigest())
     if entrance:
         m['productionSurfaceEntrance'] = entrance
-    envelope = entry_apron_envelope(m, source_palette, source_cells, palette, cells,
-                                   hashlib.sha256(path.read_bytes()).hexdigest())
+    envelope = None if m.get('combatOnly') else entry_apron_envelope(
+        m, source_palette, source_cells, palette, cells, hashlib.sha256(path.read_bytes()).hexdigest())
     if envelope:
         m['entryApronEnvelope'] = envelope
     # Derive after formal normalization and all clearance/damage, without changing voxels or bindings.
@@ -580,7 +603,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--prefab', help='Compile one authored id-vN snapshot and replace its catalog entry.')
     args = parser.parse_args()
-    snapshots = sorted((SOURCE / 'preview/prefabs7').glob('*.js'))
+    allowed = {'fallen_foundry-v0', 'subsided_factory-v0', 'forgotten_lake_court-v0'}
+    snapshots = sorted(p for p in (SOURCE / 'preview/prefabs7').glob('*.js') if p.stem in allowed)
     if args.prefab:
         snapshots = [p for p in snapshots if p.stem == args.prefab]
         if len(snapshots) != 1:
@@ -614,10 +638,17 @@ specs,chapters:s.window.STATIC_CHAPTERS,story:s.window.REMASTER_STORY,sets:s.win
         if sum((r['id'], r['variant']) == identity for r in previous) != 1:
             raise ValueError('Partial compilation requires exactly one existing catalog identity: ' + str(identity))
         records = [replacement if (r['id'], r['variant']) == identity else r for r in previous]
-    mapping = [{k: m[k] for k in ('id', 'category', 'source')} for m in declarations['structures']]
-    write_json(OUT / 'catalog.json', {'schemaVersion': 7, 'structures': mapping, 'prefabs': records,
-                                    'puzzleSets': declarations['sets'], 'engineeringChapters': ENGINEERING,
-                                    'story': declarations['story']})
+    records = [r for r in records if f"{r['id']}-v{r['variant']}" in allowed]
+    active = {r['id'] for r in records}
+    mapping = [{k: m[k] for k in ('id', 'category', 'source')} for m in declarations['structures'] if m['id'] in active]
+    write_json(OUT / 'catalog.json', {'schemaVersion': 7, 'structures': mapping, 'prefabs': records})
+    used = set()
+    for record in records:
+        manifest = json.loads(gzip.decompress((OUT / record['file']).read_bytes()))
+        used.update(key.split('#')[0] for key in manifest['palette'])
+    write_json(OUT / 'blocks.json', {'schemaVersion': 7,
+        'blocks': [b for b in declarations['blocks'] if ('gtsr:' + b['id'] if ':' not in b['id'] else b['id']) in used],
+        'materials': {k: v for k, v in declarations['materials'].items() if k.split('#')[0] in used}})
     print(json.dumps({'prefabs': len(records), 'solidCount': sum(r['solidCount'] for r in records),
                       'airCount': sum(r['airCount'] for r in records),
                       'maxVerticalExtent': max(r['extent'][1] for r in records)}))

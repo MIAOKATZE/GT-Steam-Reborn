@@ -17,8 +17,7 @@ public final class RemasterData extends WorldSavedData {
     private final Map<String, NBTTagCompound> records = new HashMap<>();
     private final Map<Long, List<String>> chunks = new HashMap<>();
     private List<GeneratedOwner> generatedOwners;
-    private List<GeneratedOwner> pendingTreeOwners, retryOwners;
-    private Map<String, List<RemasterSite>> savedPlacementGroups;
+    private List<GeneratedOwner> retryOwners;
 
     public static final class GeneratedOwner {
 
@@ -47,7 +46,7 @@ public final class RemasterData extends WorldSavedData {
                 try {
                     int x = Integer.parseInt(parts[1]), z = Integer.parseInt(parts[2]);
                     if (site.intersects(x, z)) result.add(new GeneratedOwner(site, x, z));
-                } catch (NumberFormatException invalid) { /* Ignore malformed legacy flags. */ }
+                } catch (NumberFormatException invalid) { /* Ignore malformed ownership flags. */ }
             }
         }
         result.sort((a, b) -> {
@@ -59,45 +58,14 @@ public final class RemasterData extends WorldSavedData {
         return generatedOwners;
     }
 
-    /** Pending entrance admission is independent of upper geometry, including entrance-only owners. */
-    public List<GeneratedOwner> pendingTreeOwners() {
-        if (pendingTreeOwners != null) return pendingTreeOwners;
-        List<GeneratedOwner> result = new ArrayList<>();
-        for (NBTTagCompound record : records.values()) {
-            RemasterSite site = RemasterSite.read(record);
-            NBTTagCompound state = record.getCompoundTag("state");
-            if (!"tree-overlay".equals(site.layout) || !state.getBoolean("tree-entrance:pending")
-                || state.getBoolean("tree-entrance:closed")
-                || !state.hasKey("legacyAnchorX")
-                || !state.hasKey("legacyAnchorZ")) continue;
-            int x = (state.getInteger("legacyAnchorX") - 24) >> 4;
-            int z = (state.getInteger("legacyAnchorZ") - 27) >> 4;
-            if (site.intersects(x, z)) result.add(new GeneratedOwner(site, x, z));
-        }
-        pendingTreeOwners = java.util.Collections.unmodifiableList(result);
-        return pendingTreeOwners;
-    }
-
-    /** Cached union shares one tick budget and visits a geometry/pending owner only once. */
+    /** Only industrial geometry has runtime node/entity retries; native tree chunks are already complete. */
     public List<GeneratedOwner> retryOwners() {
         if (retryOwners != null) return retryOwners;
-        Map<String, GeneratedOwner> unique = new java.util.LinkedHashMap<>();
+        List<GeneratedOwner> result = new ArrayList<>();
         for (GeneratedOwner owner : generatedOwners())
-            unique.put(owner.site.id() + ":" + owner.x + ":" + owner.z, owner);
-        for (GeneratedOwner owner : pendingTreeOwners())
-            unique.putIfAbsent(owner.site.id() + ":" + owner.x + ":" + owner.z, owner);
-        List<GeneratedOwner> result = new ArrayList<>(unique.values());
-        result.sort((a, b) -> {
-            int id = a.site.id()
-                .compareTo(b.site.id());
-            return id != 0 ? id : a.x != b.x ? Integer.compare(a.x, b.x) : Integer.compare(a.z, b.z);
-        });
+            if ("compact-prefab".equals(owner.site.layout)) result.add(owner);
         retryOwners = java.util.Collections.unmodifiableList(result);
         return retryOwners;
-    }
-
-    public boolean legacyTreeLayout(RemasterSite site) {
-        return "tree-overlay".equals(site.layout) && state(site.id()).getInteger("treeLayoutRevision") == 1;
     }
 
     private static long chunkKey(int x, int z) {
@@ -128,16 +96,10 @@ public final class RemasterData extends WorldSavedData {
     }
 
     public void register(RemasterSite s) {
-        if (records.containsKey(s.id())) return;
+        if (!RemasterRollout.allowsGeneration(s) || records.containsKey(s.id())) return;
         NBTTagCompound record = s.save();
-        if ("tree-overlay".equals(s.layout)) {
-            NBTTagCompound state = new NBTTagCompound();
-            state.setInteger("treeLayoutRevision", 2);
-            record.setTag("state", state);
-        }
         records.put(s.id(), record);
-        savedPlacementGroups = null;
-        generatedOwners = pendingTreeOwners = retryOwners = null;
+        generatedOwners = retryOwners = null;
         index(s);
         markDirty();
     }
@@ -171,27 +133,10 @@ public final class RemasterData extends WorldSavedData {
         return out;
     }
 
-    /** Same IDs retain their saved anchors; new predictions cannot replace an occupied save cell. */
+    /** The same saved identity is stable; different scenes must not overlap an actual saved footprint. */
     public boolean allowsSavedPlacement(RemasterSite candidate) {
-        if (records.containsKey(candidate.id()) || "tree-overlay".equals(candidate.layout)) return true;
-        String group = RemasterSavedPlacement.group(candidate);
-        if (group != null) {
-            if (savedPlacementGroups == null) {
-                savedPlacementGroups = new HashMap<>();
-                for (NBTTagCompound record : records.values()) {
-                    RemasterSite saved = RemasterSite.read(record);
-                    String savedGroup = RemasterSavedPlacement.group(saved);
-                    if (savedGroup != null) savedPlacementGroups.computeIfAbsent(savedGroup, k -> new ArrayList<>())
-                        .add(saved);
-                }
-            }
-            List<RemasterSite> saved = savedPlacementGroups.get(group);
-            if (saved != null) for (RemasterSite prior : saved) {
-                // A city is one family, with one persisted identity per authored prefab.
-                if (!RemasterSavedPlacement.city(candidate) || !RemasterSavedPlacement.city(prior)
-                    || candidate.prefab.equals(prior.prefab)) return false;
-            }
-        }
+        if (!RemasterRollout.allowsGeneration(candidate)) return false;
+        if (records.containsKey(candidate.id())) return true;
         java.util.Set<String> checked = new java.util.HashSet<>();
         for (int x = candidate.minX() >> 4; x <= candidate.maxX() >> 4; x++)
             for (int z = candidate.minZ() >> 4; z <= candidate.maxZ() >> 4; z++) {
@@ -200,8 +145,7 @@ public final class RemasterData extends WorldSavedData {
                 for (String id : ids) {
                     if (!checked.add(id)) continue;
                     RemasterSite prior = site(id);
-                    if (prior.seed != candidate.seed || "tree-overlay".equals(prior.layout)
-                        || RemasterSavedPlacement.cityParentOverlap(candidate, prior)) continue;
+                    if (prior.seed != candidate.seed) continue;
                     if (candidate.overlaps(prior.minX(), prior.minZ(), prior.maxX(), prior.maxZ(), 0)) return false;
                 }
             }
@@ -222,7 +166,6 @@ public final class RemasterData extends WorldSavedData {
     public void flag(String id, String key, boolean value) {
         if (state(id).getBoolean(key) != value) {
             if (key.startsWith("geom:")) generatedOwners = retryOwners = null;
-            if (key.startsWith("tree-entrance:")) pendingTreeOwners = retryOwners = null;
         }
         state(id).setBoolean(key, value);
         markDirty();
@@ -232,30 +175,15 @@ public final class RemasterData extends WorldSavedData {
     public void readFromNBT(NBTTagCompound n) {
         records.clear();
         chunks.clear();
-        savedPlacementGroups = null;
-        generatedOwners = pendingTreeOwners = retryOwners = null;
+        generatedOwners = retryOwners = null;
         NBTTagList list = n.getTagList("sites", 10);
         for (int i = 0; i < list.tagCount(); i++) {
-            NBTTagCompound r = list.getCompoundTagAt(i);
-            if (r.getString("prefab")
-                .isEmpty()) continue;
-            RemasterSite saved = RemasterSite.read(r);
-            if ("tree-overlay".equals(saved.layout)) {
-                NBTTagCompound state = r.getCompoundTag("state");
-                if (!state.hasKey("treeLayoutRevision")) {
-                    boolean anchored = state.hasKey("legacyAnchorX") && state.hasKey("legacyAnchorZ");
-                    boolean oldAnchor = anchored && saved.x == state.getInteger("legacyAnchorX") - 154
-                        && saved.z == state.getInteger("legacyAnchorZ") - 154;
-                    state.setInteger("treeLayoutRevision", !anchored || oldAnchor ? 1 : 2);
-                    r.setTag("state", state);
-                    markDirty();
-                }
-            }
-            records.put(
-                RemasterSite.read(r)
-                    .id(),
-                r);
-            index(RemasterSite.read(r));
+            NBTTagCompound record = list.getCompoundTagAt(i);
+            // Filter before indexing: removed prefabs must never reach descriptor loading.
+            RemasterSite saved = RemasterSite.read(record);
+            if (!RemasterRollout.allowsGeneration(saved) || records.containsKey(saved.id())) continue;
+            records.put(saved.id(), record);
+            index(saved);
         }
     }
 

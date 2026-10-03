@@ -16,15 +16,15 @@ def main():
 public class RemasterLoaderCheck {
  public static void main(String[] args) {
   int count=0;
-  if(RemasterCatalog.ids().size()!=90)throw new AssertionError();
+  if(RemasterCatalog.ids().size()!=3)throw new AssertionError();
   for(String id:RemasterCatalog.ids())for(int v=0;v<RemasterCatalog.variants(id);v++) {
    RemasterPrefab p=RemasterCatalog.get(id,v);count++;
-   if(p.metadata.get("productionPuzzle")==null)throw new AssertionError(id);
+   if(!p.metadata.get("combatOnly").getAsBoolean()||p.metadata.has("productionPuzzle"))throw new AssertionError(id);
    if(p.extent[1]>256||!p.palette[0].equals("minecraft:air#0"))throw new AssertionError(id);
    if(!p.slice(Integer.MAX_VALUE,Integer.MAX_VALUE).isEmpty())throw new AssertionError();
    boolean found=false;
-   for(int x=Math.floorDiv(p.min[0],16);x<=Math.floorDiv(p.max[0],16)&&!found;x++)
-    for(int z=Math.floorDiv(p.min[2],16);z<=Math.floorDiv(p.max[2],16)&&!found;z++)
+   for(int x=Math.floorDiv(p.min[0],16);x<=Math.floorDiv(p.max[0],16);x++)
+    for(int z=Math.floorDiv(p.min[2],16);z<=Math.floorDiv(p.max[2],16);z++)
      if(!p.slice(x,z).isEmpty()) {
       for(RemasterPrefab.Run r:p.slice(x,z))
        if(Math.floorDiv(r.x,16)!=x||Math.floorDiv(r.x+r.length-1,16)!=x||Math.floorDiv(r.z,16)!=z)
@@ -33,9 +33,8 @@ public class RemasterLoaderCheck {
      }
    if(!found)throw new AssertionError(id);
   }
-  if(count!=268||RemasterCatalog.variants("forgotten_lake_court")!=1)throw new AssertionError();
-  if(RemasterCatalog.config().getAsJsonArray("engineeringChapters").size()!=8)throw new AssertionError();
-  System.out.println("passed: 90 catalog ids / 268 lazy manifests and chunk slices / Gson 2.2.4");
+  if(count!=3||RemasterCatalog.config().has("engineeringChapters"))throw new AssertionError();
+  System.out.println("passed: 3 standard manifests / every actual chunk slice / combat-only / Gson 2.2.4");
  }
 }''', encoding='utf8')
         subprocess.run(['javac', '-encoding', 'UTF-8', '-cp', str(gson), '-d', tmp,

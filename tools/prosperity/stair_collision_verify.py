@@ -5,6 +5,8 @@ from pathlib import Path
 from remaster_convert import ROOT
 
 def main():
+    if "--natural-capture" in sys.argv:
+        raise SystemExit("Retired city-watch capture: use native royal stairs --royal")
     jars=list((Path.home()/'.gradle/caches/modules-2/files-2.1').rglob('*.jar'))
     cp=[str(ROOT/'build/classes/java/main'),str(ROOT/'build/classes/java/patchedMc')]
     for n in ('guava-17.0.jar','commons-lang3-3.3.2.jar','log4j-api-2.0-beta9-fixed.jar','log4j-core-2.0-beta9-fixed.jar','gson-2.2.4.jar'):
@@ -19,19 +21,12 @@ def main():
         fixture=(ROOT/'tools/prosperity/RemasterRuntimeCheck.java').read_text('utf8').split(' static class P extends')[0]+'}\n'
         fixture=fixture.replace('P player;', 'EntityPlayerMP player;')
         adapter=tmp/'RemasterRuntimeCheck.java';adapter.write_text(fixture,'utf8');sources += [adapter,ROOT/'tools/prosperity/StairCollisionCheck.java',ROOT/'tools/prosperity/RoyalStairGeometryCheck.java']
-        sources += [ROOT/'tools/prosperity/StairNaturalProfileCapture.java']
         sources += [ROOT/f'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/{p}.java' for p in ('remaster/RemasterBlock','echo/RuinsBlueprint','encounter/ForgottenLakeEncounterStructure','architecture/BlockZenithLog')]
-        if '--natural-capture' in sys.argv:
-            sources += [ROOT/f'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/{p}.java' for p in ('remaster/RemasterPlanner','remaster/RemasterTerrain','remaster/RemasterWorldgen','remaster/RemasterRuntime','remaster/RemasterData','remaster/RemasterOriginalContract','ProsperityTerrainProfile')]
         sources += native_sources(ROOT)
         args=tmp/'javac.args';classpath=';'.join(cp).replace('\\','/')
         args.write_text('-encoding UTF-8\n-sourcepath "' + isolated_sourcepath(tmp) + '"\n-cp "'+classpath+'"\n-d "'+str(tmp).replace('\\','/')+'"\n'+'\n'.join('"'+str(p).replace('\\','/')+'"' for p in sources),'utf8')
         subprocess.run(['javac','@'+str(args)],check=True)
         args.write_text('-cp "'+str(tmp).replace('\\','/')+';'+classpath+'"\n'+('RoyalStairGeometryCheck '+(sys.argv[sys.argv.index('--height')+1] if '--height' in sys.argv else '139')+' '+(sys.argv[sys.argv.index('--layout')+1] if '--layout' in sys.argv else '3') if '--royal' in sys.argv else 'StairCollisionCheck')+(' '+str(ROOT/(sys.argv[sys.argv.index('--fixture')+1] if '--fixture' in sys.argv else 'temp/stair-walk-fixtures.json')).replace('\\','/')+(' '+str(ROOT/sys.argv[sys.argv.index('--report')+1]).replace('\\','/') if '--report' in sys.argv else '') if '--matrix' in sys.argv else ''),'utf8')
-        if '--natural-capture' in sys.argv:
-            args.write_text('-cp "'+str(tmp).replace('\\','/')+';'+classpath+'"\nStairNaturalProfileCapture','utf8')
-            subprocess.run(['java','@'+str(args)],check=True)
-            return
         fixture_path=ROOT/(sys.argv[sys.argv.index('--fixture')+1] if '--fixture' in sys.argv else 'temp/stair-walk-fixtures.json')
         matrix_hash=hashlib.sha256(fixture_path.read_bytes()).hexdigest() if '--matrix' in sys.argv else None
         execution=subprocess.run(['java','@'+str(args)])

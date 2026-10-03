@@ -10,7 +10,6 @@ import net.minecraft.tileentity.TileEntity;
 public final class TileRemasterNode extends TileEntity {
 
     public String siteId = "", nodeId = "", role = "", display = "{}";
-    public boolean guidanceComplete;
     public NBTTagCompound geometryOrigin = new NBTTagCompound();
     private boolean loaded;
 
@@ -24,16 +23,12 @@ public final class TileRemasterNode extends TileEntity {
     public void refresh() {
         if (worldObj == null || worldObj.isRemote || siteId.isEmpty()) return;
         com.google.gson.JsonObject view = RemasterRuntime.view(this);
-        boolean complete = view.has("solved") && view.get("solved")
-            .getAsBoolean();
         String updated = view.toString();
-        if (display.equals(updated) && guidanceComplete == complete) return;
-        boolean lightChanged = guidanceComplete != complete;
-        guidanceComplete = complete;
+        if (display.equals(updated)) return;
         display = updated;
         markDirty();
         worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
-        if (lightChanged) worldObj.func_147451_t(xCoord, yCoord, zCoord);
+        worldObj.func_147451_t(xCoord, yCoord, zCoord);
     }
 
     @Override
@@ -57,7 +52,6 @@ public final class TileRemasterNode extends TileEntity {
         nodeId = n.getString("nodeId");
         role = n.getString("role");
         display = n.hasKey("display") ? n.getString("display") : "{}";
-        guidanceComplete = n.getBoolean("guidanceComplete");
         geometryOrigin = n.getCompoundTag("gtsr.remasterGeometryOrigin");
     }
 
@@ -68,7 +62,6 @@ public final class TileRemasterNode extends TileEntity {
         n.setString("nodeId", nodeId);
         n.setString("role", role);
         n.setString("display", display);
-        n.setBoolean("guidanceComplete", guidanceComplete);
         n.setTag("gtsr.remasterGeometryOrigin", geometryOrigin);
     }
 

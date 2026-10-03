@@ -69,11 +69,11 @@ public class RemasterBlock extends Block {
     }
 
     public boolean isInteractive() {
-        return !"decoration".equals(category) || id.equals("gtsr:draft_notice_board");
+        return id.equals("gtsr:draft_pressure_console") || "spawner".equals(category);
     }
 
     public boolean isHintObject() {
-        return "operation".equals(category) || id.equals("gtsr:draft_notice_board");
+        return id.equals("gtsr:draft_pressure_console");
     }
 
     public boolean guidanceActive(IBlockAccess world, int x, int y, int z) {
@@ -83,15 +83,13 @@ public class RemasterBlock extends Block {
         return tile instanceof TileRemasterNode node && RemasterRollout.allowsSavedId(node.siteId)
             && !node.nodeId.isEmpty()
             && !node.role.isEmpty()
-            && !"ambient-notice".equals(node.role)
-            && !"{}".equals(node.display)
-            && !node.guidanceComplete;
+            && !"{}".equals(node.display);
     }
 
     @Override
     public int getLightValue(IBlockAccess world, int x, int y, int z) {
         if (!guidanceActive(world, x, y, z)) return super.getLightValue(world, x, y, z);
-        return id.startsWith("gtsr:draft7_") ? 12 : id.equals("gtsr:draft_notice_board") ? 8 : 9;
+        return id.startsWith("gtsr:draft7_") ? 12 : 9;
     }
 
     public boolean completed(int meta) {

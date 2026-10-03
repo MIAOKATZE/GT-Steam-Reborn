@@ -76,13 +76,6 @@ public class AggregatorGuiHandler implements IGuiHandler {
      */
     @Override
     public Object getServerGuiElement(int id, EntityPlayer player, World world, int x, int y, int z) {
-        if (id == 1 && world.blockExists(x, y, z)
-            && world.getTileEntity(
-                x,
-                y,
-                z) instanceof com.miaokatze.gtsr.common.dimension.prosperity.remaster.TileRemasterNode tile
-            && com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.valid(player, tile))
-            return new com.miaokatze.gtsr.common.dimension.prosperity.remaster.ContainerRemaster(tile);
         if (id != ID_AGGREGATOR) {
             return null;
         }
@@ -104,11 +97,6 @@ public class AggregatorGuiHandler implements IGuiHandler {
      */
     @Override
     public Object getClientGuiElement(int id, EntityPlayer player, World world, int x, int y, int z) {
-        if (id == 1 && world.getTileEntity(
-            x,
-            y,
-            z) instanceof com.miaokatze.gtsr.common.dimension.prosperity.remaster.TileRemasterNode tile)
-            return new com.miaokatze.gtsr.client.gui.GuiRemaster(tile);
         if (id != ID_AGGREGATOR) {
             return null;
         }

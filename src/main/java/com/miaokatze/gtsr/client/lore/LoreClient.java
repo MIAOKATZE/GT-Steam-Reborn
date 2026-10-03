@@ -14,6 +14,24 @@ public final class LoreClient {
 
     private LoreClient() {}
 
+    public static void receiveTitle(final LoreNetwork.StructureTitle title) {
+        final Minecraft mc = Minecraft.getMinecraft();
+        final WorldClient world = mc.theWorld;
+        mc.func_152344_a(new Runnable() {
+
+            @Override
+            public void run() {
+                if (mc.theWorld != world || world == null
+                    || mc.thePlayer == null
+                    || mc.thePlayer.dimension != title.dimension
+                    || !mc.thePlayer.getUniqueID()
+                        .equals(title.player))
+                    return;
+                StructureTitleOverlay.show(world, title.key);
+            }
+        });
+    }
+
     public static void receive(final LoreNetwork.Snapshot snapshot) {
         final Minecraft mc = Minecraft.getMinecraft();
         final WorldClient receivingWorld = mc.theWorld;
@@ -30,10 +48,17 @@ public final class LoreClient {
                 if (snapshot.open) {
                     if (mc.thePlayer.getHeldItem() == null || mc.thePlayer.getHeldItem()
                         .getItem() != LoreRegistry.journal) return;
-                    mc.displayGuiScreen(new GuiProsperityJournal(snapshot.kingUnlocked, snapshot.progress));
+                    mc.displayGuiScreen(
+                        new GuiProsperityJournal(
+                            snapshot.kingUnlocked,
+                            snapshot.progress,
+                            snapshot.sceneEntries,
+                            snapshot.sceneBattles));
                 } else if (mc.currentScreen instanceof GuiProsperityJournal) {
                     ((GuiProsperityJournal) mc.currentScreen).setKingUnlocked(snapshot.kingUnlocked);
                     ((GuiProsperityJournal) mc.currentScreen).setProgress(snapshot.progress);
+                    ((GuiProsperityJournal) mc.currentScreen).setSceneEntries(snapshot.sceneEntries);
+                    ((GuiProsperityJournal) mc.currentScreen).setSceneBattles(snapshot.sceneBattles);
                 }
             }
         });

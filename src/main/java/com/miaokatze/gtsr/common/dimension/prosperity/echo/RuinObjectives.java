@@ -93,11 +93,7 @@ public final class RuinObjectives {
         RuinSite s = RuinsEncounterData.get(w)
             .site(id);
         if (s == null || s.layout < 2) return true;
-        int mask = required(s, -1, "CONTROL");
-        return s.kind < 7 && allGuards(w, s, -1)
-            && mask != 0
-            && (RuinsEncounterData.get(w)
-                .objectiveMask(id) & mask) == mask;
+        return s.kind < 7 && allGuards(w, s, -1);
     }
 
     public static boolean isChestReady(World w, String id, int zone) {
@@ -108,15 +104,15 @@ public final class RuinObjectives {
         if (s.kind < 7) {
             if (zone < 0) return d.dead(id, 0);
             int mask = required(s, zone, "CONTROL");
-            return allGuards(w, s, zone) && mask != 0 && (d.objectiveMask(id) & mask) == mask;
+            return allGuards(w, s, zone);
         }
         if (exploration(s.kind)) {
             int mask = required(s, -1, "MEMORY");
-            return mask != 0 && (d.objectiveMask(id) & mask) == mask;
+            return true;
         }
         if (combat(s.kind)) return allGuards(w, s, -1);
         int mask = required(s, -1, "CONTROL");
-        return mask != 0 && (d.objectiveMask(id) & mask) == mask;
+        return true;
     }
 
     public static void onGuardDeath(World w, String id, int node, int zone) {
