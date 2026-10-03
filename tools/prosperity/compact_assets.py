@@ -1,4 +1,5 @@
 """Remove retired production prefabs and block factories after compact scene compilation."""
+import argparse
 import gzip
 import hashlib
 import json
@@ -23,6 +24,14 @@ def retire(path, base, group):
     return record
 
 def main():
+    global BACKUP
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--archive-directory', type=Path, default=BACKUP,
+                        help='Isolated archive/report directory for this compilation.')
+    args = parser.parse_args()
+    BACKUP = args.archive_directory.resolve()
+    if not BACKUP.parent.is_relative_to((ROOT / 'temp').resolve()):
+        parser.error('Archive directory must stay within this workspace temp directory')
     catalog = json.loads((OUT / 'catalog.json').read_text(encoding='utf8'))
     assert len(catalog['prefabs']) == 3
     referenced = {'catalog.json', 'blocks.json'}

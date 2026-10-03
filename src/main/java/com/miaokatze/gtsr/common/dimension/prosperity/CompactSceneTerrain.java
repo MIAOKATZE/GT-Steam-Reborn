@@ -10,7 +10,8 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
 public final class CompactSceneTerrain {
 
     public static final int CELL_SIZE = 2048;
-    public static final int HALF_X = 46, HALF_Z = 44, TRANSITION = 32;
+    // Both authored footprints fit with a natural apron; preserve the original surface anchor.
+    public static final int HALF_X = 64, HALF_Z = 64, TRANSITION = 32;
     public static final int OUTER_X = HALF_X + TRANSITION, OUTER_Z = HALF_Z + TRANSITION;
     private static final long SALT = 0x434F4D5041435438L;
     private static final Map<String, Branch[]> CACHE = new LinkedHashMap<String, Branch[]>(256, .75f, true) {
@@ -35,11 +36,11 @@ public final class CompactSceneTerrain {
         }
 
         public int originX() {
-            return centerX - 38;
+            return centerX - 60;
         }
 
         public int originZ() {
-            return centerZ - 36;
+            return centerZ - 60;
         }
 
         public boolean contains(int x, int z) {
@@ -56,9 +57,10 @@ public final class CompactSceneTerrain {
         if (cached != null) return cached.clone();
         long h = GTSRWorldgenHash.cellSeed(seed, gx, gz, SALT);
         Branch accepted = null;
-        if (Math.floorMod(h, 3) == 0) {
+        if (Math.floorMod(h, 3) != 2) {
             int desiredRoster = (int) (h >>> 16 & 1L);
-            for (int attempt = 0; attempt < 64; attempt++) {
+            // Larger authored footprints need more dry-ground candidates, especially in the forest.
+            for (int attempt = 0; attempt < 256; attempt++) {
                 long ah = GTSRWorldgenHash.splitmix64(h + attempt * 0x9E3779B97F4A7C15L);
                 int x = gx * CELL_SIZE + 128 + (int) Math.floorMod(ah >>> 8, CELL_SIZE - 256);
                 int z = gz * CELL_SIZE + 128 + (int) Math.floorMod(ah >>> 32, CELL_SIZE - 256);

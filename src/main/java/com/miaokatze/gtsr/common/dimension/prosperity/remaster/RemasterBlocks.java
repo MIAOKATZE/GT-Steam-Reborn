@@ -68,18 +68,29 @@ public final class RemasterBlocks {
 
     public static void registerBlocks() {
         if (!REGISTRY.isEmpty()) return;
-        register(block6());
         register(block7());
         register(block8());
-        register(block10());
         register(block11());
         register(block13());
-        register(block26());
-        register(block31());
         register(block40());
-        register(block70());
         register(block74());
-        register(block75());
+        register(block86());
+        register(block85());
+        register(block84());
+        register(block83());
+        register(block82());
+        register(block80());
+        register(block63());
+        register(block62());
+        register(block58());
+        register(block54());
+        register(block51());
+        register(block50());
+        register(block29());
+        register(block12());
+        register(block9());
+        register(block3());
+        register(block0());
     }
 
     private static void register(RemasterBlock block) {
@@ -104,30 +115,6 @@ public final class RemasterBlocks {
         public int getMetadata(int damage) {
             return damage & 15;
         }
-    }
-
-    private static RemasterBlock block6() {
-        return new RemasterBlock(
-            "gtsr:draft_tool_rack",
-            "decoration",
-            true,
-            false,
-            "cube",
-            new double[][][] { { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } },
-                { { 0, 0, 0, 1, 1, 1 } } },
-            new String[][] {
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_29fb0c1d18c22cad", "gtsr:remaster_29fb0c1d18c22cad",
-                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d" },
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_29fb0c1d18c22cad", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_29fb0c1d18c22cad" },
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_29fb0c1d18c22cad", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_29fb0c1d18c22cad", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d" },
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_29fb0c1d18c22cad", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_29fb0c1d18c22cad",
-                    "gtsr:remaster_843c2f1bfeea551d" } });
     }
 
     private static RemasterBlock block7() {
@@ -175,30 +162,6 @@ public final class RemasterBlocks {
                     "gtsr:remaster_843c2f1bfeea551d" },
                 { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_2f595d35254e38eb", "gtsr:remaster_843c2f1bfeea551d",
                     "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_2f595d35254e38eb",
-                    "gtsr:remaster_843c2f1bfeea551d" } });
-    }
-
-    private static RemasterBlock block10() {
-        return new RemasterBlock(
-            "gtsr:draft_oil_drum",
-            "decoration",
-            true,
-            false,
-            "cube",
-            new double[][][] { { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } },
-                { { 0, 0, 0, 1, 1, 1 } } },
-            new String[][] {
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_f677eda74168b146", "gtsr:remaster_f677eda74168b146",
-                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d" },
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_f677eda74168b146", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_f677eda74168b146" },
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_f677eda74168b146", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_f677eda74168b146", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d" },
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_f677eda74168b146", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_f677eda74168b146",
                     "gtsr:remaster_843c2f1bfeea551d" } });
     }
 
@@ -250,54 +213,6 @@ public final class RemasterBlocks {
                     "gtsr:remaster_843c2f1bfeea551d" } });
     }
 
-    private static RemasterBlock block26() {
-        return new RemasterBlock(
-            "gtsr:draft_filter_bed",
-            "decoration",
-            true,
-            false,
-            "cube",
-            new double[][][] { { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } },
-                { { 0, 0, 0, 1, 1, 1 } } },
-            new String[][] {
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_f596257b153e5f74", "gtsr:remaster_f596257b153e5f74",
-                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d" },
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_f596257b153e5f74", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_f596257b153e5f74" },
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_f596257b153e5f74", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_f596257b153e5f74", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d" },
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_f596257b153e5f74", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_f596257b153e5f74",
-                    "gtsr:remaster_843c2f1bfeea551d" } });
-    }
-
-    private static RemasterBlock block31() {
-        return new RemasterBlock(
-            "gtsr:draft_feed_hopper",
-            "decoration",
-            true,
-            false,
-            "cube",
-            new double[][][] { { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } },
-                { { 0, 0, 0, 1, 1, 1 } } },
-            new String[][] {
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_c094ffd9a1ece269", "gtsr:remaster_c094ffd9a1ece269",
-                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d" },
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_c094ffd9a1ece269", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_c094ffd9a1ece269" },
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_c094ffd9a1ece269", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_c094ffd9a1ece269", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d" },
-                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_c094ffd9a1ece269", "gtsr:remaster_843c2f1bfeea551d",
-                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_c094ffd9a1ece269",
-                    "gtsr:remaster_843c2f1bfeea551d" } });
-    }
-
     private static RemasterBlock block40() {
         return new RemasterBlock(
             "gtsr:draft_pressure_console",
@@ -320,69 +235,6 @@ public final class RemasterBlocks {
                 { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
                     "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_1a61b0ae0664483a",
                     "gtsr:remaster_843c2f1bfeea551d" } });
-    }
-
-    private static RemasterBlock block70() {
-        return new RemasterBlock(
-            "gtsr:draft6_spawner_fragile",
-            "spawner",
-            false,
-            false,
-            "boxes",
-            new double[][][] {
-                { { 0, 0, 0, 0.125, 1, 0.125 }, { 0, 0, 0.875, 0.125, 1, 1 }, { 0.875, 0, 0, 1, 1, 0.125 },
-                    { 0.875, 0, 0.875, 1, 1, 1 }, { 0, 0, 0, 1, 0.125, 0.125 }, { 0, 0, 0.875, 1, 0.125, 1 },
-                    { 0, 0, 0.125, 0.125, 0.125, 0.875 }, { 0.875, 0, 0.125, 1, 0.125, 0.875 },
-                    { 0, 0.875, 0, 1, 1, 0.125 }, { 0, 0.875, 0.875, 1, 1, 1 }, { 0, 0.875, 0.125, 0.125, 1, 0.875 },
-                    { 0.875, 0.875, 0.125, 1, 1, 0.875 }, { 0.3125, 0.125, 0, 0.375, 0.875, 0.0625 },
-                    { 0, 0.125, 0.3125, 0.0625, 0.875, 0.375 }, { 0.3125, 0.125, 0.9375, 0.375, 0.875, 1 },
-                    { 0.9375, 0.125, 0.3125, 1, 0.875, 0.375 }, { 0.625, 0.125, 0, 0.6875, 0.875, 0.0625 },
-                    { 0, 0.125, 0.625, 0.0625, 0.875, 0.6875 }, { 0.625, 0.125, 0.9375, 0.6875, 0.875, 1 },
-                    { 0.9375, 0.125, 0.625, 1, 0.875, 0.6875 }, { 0.3125, 0, 0.3125, 0.6875, 0.0625, 0.6875 },
-                    { 0.3125, 0.9375, 0.3125, 0.6875, 1, 0.6875 } },
-                { { 0.875, 0, 0.875, 1, 1, 1 }, { 0.875, 0, 0, 1, 1, 0.125 }, { 0, 0, 0.875, 0.125, 1, 1 },
-                    { 0, 0, 0, 0.125, 1, 0.125 }, { 0, 0, 0.875, 1, 0.125, 1 }, { 0, 0, 0, 1, 0.125, 0.125 },
-                    { 0.875, 0, 0.125, 1, 0.125, 0.875 }, { 0, 0, 0.125, 0.125, 0.125, 0.875 },
-                    { 0, 0.875, 0.875, 1, 1, 1 }, { 0, 0.875, 0, 1, 1, 0.125 }, { 0.875, 0.875, 0.125, 1, 1, 0.875 },
-                    { 0, 0.875, 0.125, 0.125, 1, 0.875 }, { 0.625, 0.125, 0.9375, 0.6875, 0.875, 1 },
-                    { 0.9375, 0.125, 0.625, 1, 0.875, 0.6875 }, { 0.625, 0.125, 0, 0.6875, 0.875, 0.0625 },
-                    { 0, 0.125, 0.625, 0.0625, 0.875, 0.6875 }, { 0.3125, 0.125, 0.9375, 0.375, 0.875, 1 },
-                    { 0.9375, 0.125, 0.3125, 1, 0.875, 0.375 }, { 0.3125, 0.125, 0, 0.375, 0.875, 0.0625 },
-                    { 0, 0.125, 0.3125, 0.0625, 0.875, 0.375 }, { 0.3125, 0, 0.3125, 0.6875, 0.0625, 0.6875 },
-                    { 0.3125, 0.9375, 0.3125, 0.6875, 1, 0.6875 } },
-                { { 0.875, 0, 0, 1, 1, 0.125 }, { 0, 0, 0, 0.125, 1, 0.125 }, { 0.875, 0, 0.875, 1, 1, 1 },
-                    { 0, 0, 0.875, 0.125, 1, 1 }, { 0.875, 0, 0, 1, 0.125, 1 }, { 0, 0, 0, 0.125, 0.125, 1 },
-                    { 0.125, 0, 0, 0.875, 0.125, 0.125 }, { 0.125, 0, 0.875, 0.875, 0.125, 1 },
-                    { 0.875, 0.875, 0, 1, 1, 1 }, { 0, 0.875, 0, 0.125, 1, 1 }, { 0.125, 0.875, 0, 0.875, 1, 0.125 },
-                    { 0.125, 0.875, 0.875, 0.875, 1, 1 }, { 0.9375, 0.125, 0.3125, 1, 0.875, 0.375 },
-                    { 0.625, 0.125, 0, 0.6875, 0.875, 0.0625 }, { 0, 0.125, 0.3125, 0.0625, 0.875, 0.375 },
-                    { 0.625, 0.125, 0.9375, 0.6875, 0.875, 1 }, { 0.9375, 0.125, 0.625, 1, 0.875, 0.6875 },
-                    { 0.3125, 0.125, 0, 0.375, 0.875, 0.0625 }, { 0, 0.125, 0.625, 0.0625, 0.875, 0.6875 },
-                    { 0.3125, 0.125, 0.9375, 0.375, 0.875, 1 }, { 0.3125, 0, 0.3125, 0.6875, 0.0625, 0.6875 },
-                    { 0.3125, 0.9375, 0.3125, 0.6875, 1, 0.6875 } },
-                { { 0, 0, 0.875, 0.125, 1, 1 }, { 0.875, 0, 0.875, 1, 1, 1 }, { 0, 0, 0, 0.125, 1, 0.125 },
-                    { 0.875, 0, 0, 1, 1, 0.125 }, { 0, 0, 0, 0.125, 0.125, 1 }, { 0.875, 0, 0, 1, 0.125, 1 },
-                    { 0.125, 0, 0.875, 0.875, 0.125, 1 }, { 0.125, 0, 0, 0.875, 0.125, 0.125 },
-                    { 0, 0.875, 0, 0.125, 1, 1 }, { 0.875, 0.875, 0, 1, 1, 1 }, { 0.125, 0.875, 0.875, 0.875, 1, 1 },
-                    { 0.125, 0.875, 0, 0.875, 1, 0.125 }, { 0, 0.125, 0.625, 0.0625, 0.875, 0.6875 },
-                    { 0.3125, 0.125, 0.9375, 0.375, 0.875, 1 }, { 0.9375, 0.125, 0.625, 1, 0.875, 0.6875 },
-                    { 0.3125, 0.125, 0, 0.375, 0.875, 0.0625 }, { 0, 0.125, 0.3125, 0.0625, 0.875, 0.375 },
-                    { 0.625, 0.125, 0.9375, 0.6875, 0.875, 1 }, { 0.9375, 0.125, 0.3125, 1, 0.875, 0.375 },
-                    { 0.625, 0.125, 0, 0.6875, 0.875, 0.0625 }, { 0.3125, 0, 0.3125, 0.6875, 0.0625, 0.6875 },
-                    { 0.3125, 0.9375, 0.3125, 0.6875, 1, 0.6875 } } },
-            new String[][] {
-                { "gtsr:remaster_fa2b19cd3445496c", "gtsr:remaster_fa2b19cd3445496c", "gtsr:remaster_fa2b19cd3445496c",
-                    "gtsr:remaster_fa2b19cd3445496c", "gtsr:remaster_fa2b19cd3445496c",
-                    "gtsr:remaster_3674e63854fe8305" },
-                { "gtsr:remaster_fa2b19cd3445496c", "gtsr:remaster_fa2b19cd3445496c", "gtsr:remaster_fa2b19cd3445496c",
-                    "gtsr:remaster_fa2b19cd3445496c", "gtsr:remaster_3674e63854fe8305",
-                    "gtsr:remaster_fa2b19cd3445496c" },
-                { "gtsr:remaster_fa2b19cd3445496c", "gtsr:remaster_fa2b19cd3445496c", "gtsr:remaster_fa2b19cd3445496c",
-                    "gtsr:remaster_3674e63854fe8305", "gtsr:remaster_fa2b19cd3445496c",
-                    "gtsr:remaster_fa2b19cd3445496c" },
-                { "gtsr:remaster_fa2b19cd3445496c", "gtsr:remaster_fa2b19cd3445496c", "gtsr:remaster_3674e63854fe8305",
-                    "gtsr:remaster_fa2b19cd3445496c", "gtsr:remaster_fa2b19cd3445496c",
-                    "gtsr:remaster_fa2b19cd3445496c" } });
     }
 
     private static RemasterBlock block74() {
@@ -424,43 +276,565 @@ public final class RemasterBlocks {
                     "gtsr:remaster_8c5699ab901745c7" } });
     }
 
-    private static RemasterBlock block75() {
+    private static RemasterBlock block0() {
         return new RemasterBlock(
-            "gtsr:draft6_chair",
+            "gtsr:draft_roof_tile",
+            "decoration",
+            true,
+            false,
+            "cube",
+            new double[][][] { { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } },
+                { { 0, 0, 0, 1, 1, 1 } } },
+            new String[][] {
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_fe7e76f56cd26c3e", "gtsr:remaster_fe7e76f56cd26c3e",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_fe7e76f56cd26c3e", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_fe7e76f56cd26c3e" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_fe7e76f56cd26c3e", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_fe7e76f56cd26c3e", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_fe7e76f56cd26c3e", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_fe7e76f56cd26c3e",
+                    "gtsr:remaster_843c2f1bfeea551d" } });
+    }
+
+    private static RemasterBlock block3() {
+        return new RemasterBlock(
+            "gtsr:draft_vent_louver",
+            "decoration",
+            true,
+            false,
+            "cube",
+            new double[][][] { { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } },
+                { { 0, 0, 0, 1, 1, 1 } } },
+            new String[][] {
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_d0986dd9badbfb6a", "gtsr:remaster_d0986dd9badbfb6a",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_d0986dd9badbfb6a", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_d0986dd9badbfb6a" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_d0986dd9badbfb6a", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_d0986dd9badbfb6a", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_d0986dd9badbfb6a", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_d0986dd9badbfb6a",
+                    "gtsr:remaster_843c2f1bfeea551d" } });
+    }
+
+    private static RemasterBlock block9() {
+        return new RemasterBlock(
+            "gtsr:draft_coal_bin",
+            "decoration",
+            true,
+            false,
+            "cube",
+            new double[][][] { { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } },
+                { { 0, 0, 0, 1, 1, 1 } } },
+            new String[][] {
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_b9cfe3542aece14c", "gtsr:remaster_b9cfe3542aece14c",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_b9cfe3542aece14c", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_b9cfe3542aece14c" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_b9cfe3542aece14c", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_b9cfe3542aece14c", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_b9cfe3542aece14c", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_b9cfe3542aece14c",
+                    "gtsr:remaster_843c2f1bfeea551d" } });
+    }
+
+    private static RemasterBlock block12() {
+        return new RemasterBlock(
+            "gtsr:draft_reel",
+            "decoration",
+            true,
+            false,
+            "cube",
+            new double[][][] { { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } },
+                { { 0, 0, 0, 1, 1, 1 } } },
+            new String[][] {
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_aa7d0b96068d1cea", "gtsr:remaster_aa7d0b96068d1cea",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_aa7d0b96068d1cea", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_aa7d0b96068d1cea" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_aa7d0b96068d1cea", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_aa7d0b96068d1cea", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_aa7d0b96068d1cea", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_aa7d0b96068d1cea",
+                    "gtsr:remaster_843c2f1bfeea551d" } });
+    }
+
+    private static RemasterBlock block29() {
+        return new RemasterBlock(
+            "gtsr:draft_condenser_fin",
+            "decoration",
+            true,
+            false,
+            "cube",
+            new double[][][] { { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } },
+                { { 0, 0, 0, 1, 1, 1 } } },
+            new String[][] {
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_d0e7eba6f07bef52", "gtsr:remaster_d0e7eba6f07bef52",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_d0e7eba6f07bef52", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_d0e7eba6f07bef52" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_d0e7eba6f07bef52", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_d0e7eba6f07bef52", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d" },
+                { "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_d0e7eba6f07bef52", "gtsr:remaster_843c2f1bfeea551d",
+                    "gtsr:remaster_843c2f1bfeea551d", "gtsr:remaster_d0e7eba6f07bef52",
+                    "gtsr:remaster_843c2f1bfeea551d" } });
+    }
+
+    private static RemasterBlock block50() {
+        return new RemasterBlock(
+            "gtsr:draft5_pressure_band",
+            "decoration",
+            true,
+            false,
+            "cube",
+            new double[][][] { { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } },
+                { { 0, 0, 0, 1, 1, 1 } } },
+            new String[][] {
+                { "gtsr:remaster_9ba1eb1797f056ca", "gtsr:remaster_9ba1eb1797f056ca", "gtsr:remaster_9ba1eb1797f056ca",
+                    "gtsr:remaster_9ba1eb1797f056ca", "gtsr:remaster_9ba1eb1797f056ca",
+                    "gtsr:remaster_9ba1eb1797f056ca" },
+                { "gtsr:remaster_9ba1eb1797f056ca", "gtsr:remaster_9ba1eb1797f056ca", "gtsr:remaster_9ba1eb1797f056ca",
+                    "gtsr:remaster_9ba1eb1797f056ca", "gtsr:remaster_9ba1eb1797f056ca",
+                    "gtsr:remaster_9ba1eb1797f056ca" },
+                { "gtsr:remaster_9ba1eb1797f056ca", "gtsr:remaster_9ba1eb1797f056ca", "gtsr:remaster_9ba1eb1797f056ca",
+                    "gtsr:remaster_9ba1eb1797f056ca", "gtsr:remaster_9ba1eb1797f056ca",
+                    "gtsr:remaster_9ba1eb1797f056ca" },
+                { "gtsr:remaster_9ba1eb1797f056ca", "gtsr:remaster_9ba1eb1797f056ca", "gtsr:remaster_9ba1eb1797f056ca",
+                    "gtsr:remaster_9ba1eb1797f056ca", "gtsr:remaster_9ba1eb1797f056ca",
+                    "gtsr:remaster_9ba1eb1797f056ca" } });
+    }
+
+    private static RemasterBlock block51() {
+        return new RemasterBlock(
+            "gtsr:draft5_tank_access_hatch",
+            "decoration",
+            true,
+            false,
+            "cube",
+            new double[][][] { { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } }, { { 0, 0, 0, 1, 1, 1 } },
+                { { 0, 0, 0, 1, 1, 1 } } },
+            new String[][] {
+                { "gtsr:remaster_263bfab37982b3e4", "gtsr:remaster_263bfab37982b3e4", "gtsr:remaster_263bfab37982b3e4",
+                    "gtsr:remaster_263bfab37982b3e4", "gtsr:remaster_263bfab37982b3e4",
+                    "gtsr:remaster_263bfab37982b3e4" },
+                { "gtsr:remaster_263bfab37982b3e4", "gtsr:remaster_263bfab37982b3e4", "gtsr:remaster_263bfab37982b3e4",
+                    "gtsr:remaster_263bfab37982b3e4", "gtsr:remaster_263bfab37982b3e4",
+                    "gtsr:remaster_263bfab37982b3e4" },
+                { "gtsr:remaster_263bfab37982b3e4", "gtsr:remaster_263bfab37982b3e4", "gtsr:remaster_263bfab37982b3e4",
+                    "gtsr:remaster_263bfab37982b3e4", "gtsr:remaster_263bfab37982b3e4",
+                    "gtsr:remaster_263bfab37982b3e4" },
+                { "gtsr:remaster_263bfab37982b3e4", "gtsr:remaster_263bfab37982b3e4", "gtsr:remaster_263bfab37982b3e4",
+                    "gtsr:remaster_263bfab37982b3e4", "gtsr:remaster_263bfab37982b3e4",
+                    "gtsr:remaster_263bfab37982b3e4" } });
+    }
+
+    private static RemasterBlock block54() {
+        return new RemasterBlock(
+            "gtsr:draft5_casting_press",
             "decoration",
             false,
             false,
             "boxes",
             new double[][][] {
-                { { 0.0625, 0, 0.0625, 0.1875, 0.375, 0.1875 }, { 0.0625, 0, 0.8125, 0.1875, 0.375, 0.9375 },
-                    { 0.8125, 0, 0.0625, 0.9375, 0.375, 0.1875 }, { 0.8125, 0, 0.8125, 0.9375, 0.375, 0.9375 },
-                    { 0.0625, 0.375, 0.0625, 0.9375, 0.5, 0.9375 }, { 0.0625, 0.5, 0.0625, 0.1875, 1, 0.1875 },
-                    { 0.0625, 0.5, 0.8125, 0.1875, 1, 0.9375 }, { 0.0625, 0.75, 0.1875, 0.1875, 0.9375, 0.8125 } },
-                { { 0.8125, 0, 0.8125, 0.9375, 0.375, 0.9375 }, { 0.8125, 0, 0.0625, 0.9375, 0.375, 0.1875 },
-                    { 0.0625, 0, 0.8125, 0.1875, 0.375, 0.9375 }, { 0.0625, 0, 0.0625, 0.1875, 0.375, 0.1875 },
-                    { 0.0625, 0.375, 0.0625, 0.9375, 0.5, 0.9375 }, { 0.8125, 0.5, 0.8125, 0.9375, 1, 0.9375 },
-                    { 0.8125, 0.5, 0.0625, 0.9375, 1, 0.1875 }, { 0.8125, 0.75, 0.1875, 0.9375, 0.9375, 0.8125 } },
-                { { 0.8125, 0, 0.0625, 0.9375, 0.375, 0.1875 }, { 0.0625, 0, 0.0625, 0.1875, 0.375, 0.1875 },
-                    { 0.8125, 0, 0.8125, 0.9375, 0.375, 0.9375 }, { 0.0625, 0, 0.8125, 0.1875, 0.375, 0.9375 },
-                    { 0.0625, 0.375, 0.0625, 0.9375, 0.5, 0.9375 }, { 0.8125, 0.5, 0.0625, 0.9375, 1, 0.1875 },
-                    { 0.0625, 0.5, 0.0625, 0.1875, 1, 0.1875 }, { 0.1875, 0.75, 0.0625, 0.8125, 0.9375, 0.1875 } },
-                { { 0.0625, 0, 0.8125, 0.1875, 0.375, 0.9375 }, { 0.8125, 0, 0.8125, 0.9375, 0.375, 0.9375 },
-                    { 0.0625, 0, 0.0625, 0.1875, 0.375, 0.1875 }, { 0.8125, 0, 0.0625, 0.9375, 0.375, 0.1875 },
-                    { 0.0625, 0.375, 0.0625, 0.9375, 0.5, 0.9375 }, { 0.0625, 0.5, 0.8125, 0.1875, 1, 0.9375 },
-                    { 0.8125, 0.5, 0.8125, 0.9375, 1, 0.9375 }, { 0.1875, 0.75, 0.8125, 0.8125, 0.9375, 0.9375 } } },
+                { { 0.08, 0, 0.08, 0.92, 0.2, 0.92 }, { 0.12, 0.2, 0.15, 0.24, 1, 0.85 },
+                    { 0.76, 0.2, 0.15, 0.88, 1, 0.85 }, { 0.2, 0.8, 0.15, 0.8, 1, 0.85 },
+                    { 0.44, 0.2, 0.3, 0.56, 0.8, 0.7 } },
+                { { 0.08, 0, 0.08, 0.92, 0.2, 0.92 }, { 0.12, 0.2, 0.15, 0.24, 1, 0.85 },
+                    { 0.76, 0.2, 0.15, 0.88, 1, 0.85 }, { 0.2, 0.8, 0.15, 0.8, 1, 0.85 },
+                    { 0.44, 0.2, 0.3, 0.56, 0.8, 0.7 } },
+                { { 0.08, 0, 0.08, 0.92, 0.2, 0.92 }, { 0.12, 0.2, 0.15, 0.24, 1, 0.85 },
+                    { 0.76, 0.2, 0.15, 0.88, 1, 0.85 }, { 0.2, 0.8, 0.15, 0.8, 1, 0.85 },
+                    { 0.44, 0.2, 0.3, 0.56, 0.8, 0.7 } },
+                { { 0.08, 0, 0.08, 0.92, 0.2, 0.92 }, { 0.12, 0.2, 0.15, 0.24, 1, 0.85 },
+                    { 0.76, 0.2, 0.15, 0.88, 1, 0.85 }, { 0.2, 0.8, 0.15, 0.8, 1, 0.85 },
+                    { 0.44, 0.2, 0.3, 0.56, 0.8, 0.7 } } },
             new String[][] {
-                { "gtsr:remaster_20f7606288ad8ff4", "gtsr:remaster_20f7606288ad8ff4", "gtsr:remaster_20f7606288ad8ff4",
-                    "gtsr:remaster_20f7606288ad8ff4", "gtsr:remaster_20f7606288ad8ff4",
-                    "gtsr:remaster_20f7606288ad8ff4" },
-                { "gtsr:remaster_20f7606288ad8ff4", "gtsr:remaster_20f7606288ad8ff4", "gtsr:remaster_20f7606288ad8ff4",
-                    "gtsr:remaster_20f7606288ad8ff4", "gtsr:remaster_20f7606288ad8ff4",
-                    "gtsr:remaster_20f7606288ad8ff4" },
-                { "gtsr:remaster_20f7606288ad8ff4", "gtsr:remaster_20f7606288ad8ff4", "gtsr:remaster_20f7606288ad8ff4",
-                    "gtsr:remaster_20f7606288ad8ff4", "gtsr:remaster_20f7606288ad8ff4",
-                    "gtsr:remaster_20f7606288ad8ff4" },
-                { "gtsr:remaster_20f7606288ad8ff4", "gtsr:remaster_20f7606288ad8ff4", "gtsr:remaster_20f7606288ad8ff4",
-                    "gtsr:remaster_20f7606288ad8ff4", "gtsr:remaster_20f7606288ad8ff4",
-                    "gtsr:remaster_20f7606288ad8ff4" } });
+                { "gtsr:remaster_37f6ce2baf63efce", "gtsr:remaster_37f6ce2baf63efce", "gtsr:remaster_37f6ce2baf63efce",
+                    "gtsr:remaster_37f6ce2baf63efce", "gtsr:remaster_37f6ce2baf63efce",
+                    "gtsr:remaster_37f6ce2baf63efce" },
+                { "gtsr:remaster_37f6ce2baf63efce", "gtsr:remaster_37f6ce2baf63efce", "gtsr:remaster_37f6ce2baf63efce",
+                    "gtsr:remaster_37f6ce2baf63efce", "gtsr:remaster_37f6ce2baf63efce",
+                    "gtsr:remaster_37f6ce2baf63efce" },
+                { "gtsr:remaster_37f6ce2baf63efce", "gtsr:remaster_37f6ce2baf63efce", "gtsr:remaster_37f6ce2baf63efce",
+                    "gtsr:remaster_37f6ce2baf63efce", "gtsr:remaster_37f6ce2baf63efce",
+                    "gtsr:remaster_37f6ce2baf63efce" },
+                { "gtsr:remaster_37f6ce2baf63efce", "gtsr:remaster_37f6ce2baf63efce", "gtsr:remaster_37f6ce2baf63efce",
+                    "gtsr:remaster_37f6ce2baf63efce", "gtsr:remaster_37f6ce2baf63efce",
+                    "gtsr:remaster_37f6ce2baf63efce" } });
+    }
+
+    private static RemasterBlock block58() {
+        return new RemasterBlock(
+            "gtsr:draft5_catwalk_railing",
+            "decoration",
+            false,
+            false,
+            "boxes",
+            new double[][][] {
+                { { 0, 0, 0.43, 0.12, 1, 0.57 }, { 0.88, 0, 0.43, 1, 1, 0.57 }, { 0, 0.42, 0.43, 1, 0.5, 0.57 },
+                    { 0, 0.9, 0.43, 1, 0.98, 0.57 } },
+                { { 0.43, 0, 0, 0.57, 1, 0.12 }, { 0.43, 0, 0.88, 0.57, 1, 1 }, { 0.43, 0.42, 0, 0.57, 0.5, 1 },
+                    { 0.43, 0.9, 0, 0.57, 0.98, 1 } },
+                { { 0, 0, 0.43, 0.12, 1, 0.57 }, { 0.88, 0, 0.43, 1, 1, 0.57 }, { 0, 0.42, 0.43, 1, 0.5, 0.57 },
+                    { 0, 0.9, 0.43, 1, 0.98, 0.57 } },
+                { { 0.43, 0, 0, 0.57, 1, 0.12 }, { 0.43, 0, 0.88, 0.57, 1, 1 }, { 0.43, 0.42, 0, 0.57, 0.5, 1 },
+                    { 0.43, 0.9, 0, 0.57, 0.98, 1 } } },
+            new String[][] {
+                { "gtsr:remaster_4d5dd51ea345de8e", "gtsr:remaster_4d5dd51ea345de8e", "gtsr:remaster_4d5dd51ea345de8e",
+                    "gtsr:remaster_4d5dd51ea345de8e", "gtsr:remaster_4d5dd51ea345de8e",
+                    "gtsr:remaster_4d5dd51ea345de8e" },
+                { "gtsr:remaster_4d5dd51ea345de8e", "gtsr:remaster_4d5dd51ea345de8e", "gtsr:remaster_4d5dd51ea345de8e",
+                    "gtsr:remaster_4d5dd51ea345de8e", "gtsr:remaster_4d5dd51ea345de8e",
+                    "gtsr:remaster_4d5dd51ea345de8e" },
+                { "gtsr:remaster_4d5dd51ea345de8e", "gtsr:remaster_4d5dd51ea345de8e", "gtsr:remaster_4d5dd51ea345de8e",
+                    "gtsr:remaster_4d5dd51ea345de8e", "gtsr:remaster_4d5dd51ea345de8e",
+                    "gtsr:remaster_4d5dd51ea345de8e" },
+                { "gtsr:remaster_4d5dd51ea345de8e", "gtsr:remaster_4d5dd51ea345de8e", "gtsr:remaster_4d5dd51ea345de8e",
+                    "gtsr:remaster_4d5dd51ea345de8e", "gtsr:remaster_4d5dd51ea345de8e",
+                    "gtsr:remaster_4d5dd51ea345de8e" } });
+    }
+
+    private static RemasterBlock block62() {
+        return new RemasterBlock(
+            "gtsr:draft5_nest_vein",
+            "decoration",
+            false,
+            true,
+            "vine",
+            new double[][][] { {}, { { 0, 0, 0.975, 1, 1, 0.99 } }, { { 0.01, 0, 0, 0.025, 1, 1 } },
+                { { 0, 0, 0.975, 1, 1, 0.99 }, { 0.01, 0, 0, 0.025, 1, 1 } }, { { 0, 0, 0.01, 1, 1, 0.025 } },
+                { { 0, 0, 0.01, 1, 1, 0.025 }, { 0, 0, 0.975, 1, 1, 0.99 } },
+                { { 0, 0, 0.01, 1, 1, 0.025 }, { 0.01, 0, 0, 0.025, 1, 1 } },
+                { { 0, 0, 0.01, 1, 1, 0.025 }, { 0, 0, 0.975, 1, 1, 0.99 }, { 0.01, 0, 0, 0.025, 1, 1 } },
+                { { 0.975, 0, 0, 0.99, 1, 1 } }, { { 0, 0, 0.975, 1, 1, 0.99 }, { 0.975, 0, 0, 0.99, 1, 1 } },
+                { { 0.01, 0, 0, 0.025, 1, 1 }, { 0.975, 0, 0, 0.99, 1, 1 } },
+                { { 0, 0, 0.975, 1, 1, 0.99 }, { 0.01, 0, 0, 0.025, 1, 1 }, { 0.975, 0, 0, 0.99, 1, 1 } },
+                { { 0, 0, 0.01, 1, 1, 0.025 }, { 0.975, 0, 0, 0.99, 1, 1 } },
+                { { 0, 0, 0.01, 1, 1, 0.025 }, { 0, 0, 0.975, 1, 1, 0.99 }, { 0.975, 0, 0, 0.99, 1, 1 } },
+                { { 0, 0, 0.01, 1, 1, 0.025 }, { 0.01, 0, 0, 0.025, 1, 1 }, { 0.975, 0, 0, 0.99, 1, 1 } },
+                { { 0, 0, 0.01, 1, 1, 0.025 }, { 0, 0, 0.975, 1, 1, 0.99 }, { 0.01, 0, 0, 0.025, 1, 1 },
+                    { 0.975, 0, 0, 0.99, 1, 1 } } },
+            new String[][] {
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" } });
+    }
+
+    private static RemasterBlock block63() {
+        return new RemasterBlock(
+            "gtsr:draft5_nest_filament",
+            "decoration",
+            false,
+            true,
+            "cross",
+            new double[][][] { {}, {}, {}, {} },
+            new String[][] {
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" },
+                { "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d", "gtsr:remaster_23ae657536306a2d",
+                    "gtsr:remaster_23ae657536306a2d" } });
+    }
+
+    private static RemasterBlock block80() {
+        return new RemasterBlock(
+            "gtsr:draft6_drain_grate",
+            "decoration",
+            false,
+            false,
+            "boxes",
+            new double[][][] {
+                { { 0, 0, 0, 1, 0.125, 0.125 }, { 0, 0, 0.875, 1, 0.125, 1 }, { 0, 0, 0.125, 0.0625, 0.125, 0.875 },
+                    { 0.1875, 0, 0.125, 0.25, 0.125, 0.875 }, { 0.375, 0, 0.125, 0.4375, 0.125, 0.875 },
+                    { 0.5625, 0, 0.125, 0.625, 0.125, 0.875 }, { 0.75, 0, 0.125, 0.8125, 0.125, 0.875 },
+                    { 0.9375, 0, 0.125, 1, 0.125, 0.875 } },
+                { { 0, 0, 0.875, 1, 0.125, 1 }, { 0, 0, 0, 1, 0.125, 0.125 }, { 0.9375, 0, 0.125, 1, 0.125, 0.875 },
+                    { 0.75, 0, 0.125, 0.8125, 0.125, 0.875 }, { 0.5625, 0, 0.125, 0.625, 0.125, 0.875 },
+                    { 0.375, 0, 0.125, 0.4375, 0.125, 0.875 }, { 0.1875, 0, 0.125, 0.25, 0.125, 0.875 },
+                    { 0, 0, 0.125, 0.0625, 0.125, 0.875 } },
+                { { 0.875, 0, 0, 1, 0.125, 1 }, { 0, 0, 0, 0.125, 0.125, 1 }, { 0.125, 0, 0, 0.875, 0.125, 0.0625 },
+                    { 0.125, 0, 0.1875, 0.875, 0.125, 0.25 }, { 0.125, 0, 0.375, 0.875, 0.125, 0.4375 },
+                    { 0.125, 0, 0.5625, 0.875, 0.125, 0.625 }, { 0.125, 0, 0.75, 0.875, 0.125, 0.8125 },
+                    { 0.125, 0, 0.9375, 0.875, 0.125, 1 } },
+                { { 0, 0, 0, 0.125, 0.125, 1 }, { 0.875, 0, 0, 1, 0.125, 1 }, { 0.125, 0, 0.9375, 0.875, 0.125, 1 },
+                    { 0.125, 0, 0.75, 0.875, 0.125, 0.8125 }, { 0.125, 0, 0.5625, 0.875, 0.125, 0.625 },
+                    { 0.125, 0, 0.375, 0.875, 0.125, 0.4375 }, { 0.125, 0, 0.1875, 0.875, 0.125, 0.25 },
+                    { 0.125, 0, 0, 0.875, 0.125, 0.0625 } } },
+            new String[][] {
+                { "gtsr:remaster_74fb70069258fb55", "gtsr:remaster_74fb70069258fb55", "gtsr:remaster_74fb70069258fb55",
+                    "gtsr:remaster_74fb70069258fb55", "gtsr:remaster_74fb70069258fb55",
+                    "gtsr:remaster_74fb70069258fb55" },
+                { "gtsr:remaster_74fb70069258fb55", "gtsr:remaster_74fb70069258fb55", "gtsr:remaster_74fb70069258fb55",
+                    "gtsr:remaster_74fb70069258fb55", "gtsr:remaster_74fb70069258fb55",
+                    "gtsr:remaster_74fb70069258fb55" },
+                { "gtsr:remaster_74fb70069258fb55", "gtsr:remaster_74fb70069258fb55", "gtsr:remaster_74fb70069258fb55",
+                    "gtsr:remaster_74fb70069258fb55", "gtsr:remaster_74fb70069258fb55",
+                    "gtsr:remaster_74fb70069258fb55" },
+                { "gtsr:remaster_74fb70069258fb55", "gtsr:remaster_74fb70069258fb55", "gtsr:remaster_74fb70069258fb55",
+                    "gtsr:remaster_74fb70069258fb55", "gtsr:remaster_74fb70069258fb55",
+                    "gtsr:remaster_74fb70069258fb55" } });
+    }
+
+    private static RemasterBlock block82() {
+        return new RemasterBlock(
+            "gtsr:draft6_rubble_slab",
+            "decoration",
+            false,
+            false,
+            "boxes",
+            new double[][][] {
+                { { 0, 0, 0.0625, 0.4375, 0.1875, 0.5 }, { 0.5, 0, 0, 0.9375, 0.125, 0.375 },
+                    { 0.1875, 0, 0.5625, 0.75, 0.25, 0.9375 }, { 0.75, 0, 0.5, 1, 0.125, 0.8125 },
+                    { 0.0625, 0, 0.8125, 0.25, 0.0625, 1 } },
+                { { 0.5625, 0, 0.5, 1, 0.1875, 0.9375 }, { 0.0625, 0, 0.625, 0.5, 0.125, 1 },
+                    { 0.25, 0, 0.0625, 0.8125, 0.25, 0.4375 }, { 0, 0, 0.1875, 0.25, 0.125, 0.5 },
+                    { 0.75, 0, 0, 0.9375, 0.0625, 0.1875 } },
+                { { 0.5, 0, 0, 0.9375, 0.1875, 0.4375 }, { 0.625, 0, 0.5, 1, 0.125, 0.9375 },
+                    { 0.0625, 0, 0.1875, 0.4375, 0.25, 0.75 }, { 0.1875, 0, 0.75, 0.5, 0.125, 1 },
+                    { 0, 0, 0.0625, 0.1875, 0.0625, 0.25 } },
+                { { 0.0625, 0, 0.5625, 0.5, 0.1875, 1 }, { 0, 0, 0.0625, 0.375, 0.125, 0.5 },
+                    { 0.5625, 0, 0.25, 0.9375, 0.25, 0.8125 }, { 0.5, 0, 0, 0.8125, 0.125, 0.25 },
+                    { 0.8125, 0, 0.75, 1, 0.0625, 0.9375 } },
+                { { 0, 0, 0, 1, 1, 0.1875 } } },
+            new String[][] {
+                { "gtsr:remaster_628f9a3214506ed0", "gtsr:remaster_628f9a3214506ed0", "gtsr:remaster_628f9a3214506ed0",
+                    "gtsr:remaster_628f9a3214506ed0", "gtsr:remaster_628f9a3214506ed0",
+                    "gtsr:remaster_628f9a3214506ed0" },
+                { "gtsr:remaster_628f9a3214506ed0", "gtsr:remaster_628f9a3214506ed0", "gtsr:remaster_628f9a3214506ed0",
+                    "gtsr:remaster_628f9a3214506ed0", "gtsr:remaster_628f9a3214506ed0",
+                    "gtsr:remaster_628f9a3214506ed0" },
+                { "gtsr:remaster_628f9a3214506ed0", "gtsr:remaster_628f9a3214506ed0", "gtsr:remaster_628f9a3214506ed0",
+                    "gtsr:remaster_628f9a3214506ed0", "gtsr:remaster_628f9a3214506ed0",
+                    "gtsr:remaster_628f9a3214506ed0" },
+                { "gtsr:remaster_628f9a3214506ed0", "gtsr:remaster_628f9a3214506ed0", "gtsr:remaster_628f9a3214506ed0",
+                    "gtsr:remaster_628f9a3214506ed0", "gtsr:remaster_628f9a3214506ed0",
+                    "gtsr:remaster_628f9a3214506ed0" },
+                { "gtsr:remaster_a3849c3a31eda8b8", "gtsr:remaster_a3849c3a31eda8b8", "gtsr:remaster_a3849c3a31eda8b8",
+                    "gtsr:remaster_a3849c3a31eda8b8", "gtsr:remaster_a3849c3a31eda8b8",
+                    "gtsr:remaster_a3849c3a31eda8b8" } });
+    }
+
+    private static RemasterBlock block83() {
+        return new RemasterBlock(
+            "gtsr:draft6_industrial_stairs",
+            "decoration",
+            false,
+            false,
+            "stairs",
+            new double[][][] { { { 0, 0, 0, 1, 0.5, 1 }, { 0.5, 0.5, 0, 1, 1, 1 } },
+                { { 0, 0, 0, 1, 0.5, 1 }, { 0, 0.5, 0, 0.5, 1, 1 } },
+                { { 0, 0, 0, 1, 0.5, 1 }, { 0, 0.5, 0.5, 1, 1, 1 } },
+                { { 0, 0, 0, 1, 0.5, 1 }, { 0, 0.5, 0, 1, 1, 0.5 } },
+                { { 0, 0.5, 0, 1, 1, 1 }, { 0.5, 0, 0, 1, 0.5, 1 } },
+                { { 0, 0.5, 0, 1, 1, 1 }, { 0, 0, 0, 0.5, 0.5, 1 } },
+                { { 0, 0.5, 0, 1, 1, 1 }, { 0, 0, 0.5, 1, 0.5, 1 } },
+                { { 0, 0.5, 0, 1, 1, 1 }, { 0, 0, 0, 1, 0.5, 0.5 } } },
+            new String[][] {
+                { "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722" },
+                { "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722" },
+                { "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722" },
+                { "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722" },
+                { "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722" },
+                { "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722" },
+                { "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722" },
+                { "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722", "gtsr:remaster_a726e839311f5722",
+                    "gtsr:remaster_a726e839311f5722" } });
+    }
+
+    private static RemasterBlock block84() {
+        return new RemasterBlock(
+            "gtsr:draft6_pollution_membrane",
+            "decoration",
+            false,
+            false,
+            "boxes",
+            new double[][][] {
+                { { 0, 0.125, 0.125, 0.0625, 0.4375, 0.4375 }, { 0, 0.375, 0.25, 0.0625, 0.8125, 0.6875 },
+                    { 0, 0.5625, 0.5625, 0.0625, 0.9375, 0.875 }, { 0, 0.0625, 0.4375, 0.0625, 0.3125, 0.625 },
+                    { 0, 0.75, 0.125, 0.0625, 0.9375, 0.3125 } },
+                { { 0.9375, 0.125, 0.5625, 1, 0.4375, 0.875 }, { 0.9375, 0.375, 0.3125, 1, 0.8125, 0.75 },
+                    { 0.9375, 0.5625, 0.125, 1, 0.9375, 0.4375 }, { 0.9375, 0.0625, 0.375, 1, 0.3125, 0.5625 },
+                    { 0.9375, 0.75, 0.6875, 1, 0.9375, 0.875 } },
+                { { 0.5625, 0.125, 0, 0.875, 0.4375, 0.0625 }, { 0.3125, 0.375, 0, 0.75, 0.8125, 0.0625 },
+                    { 0.125, 0.5625, 0, 0.4375, 0.9375, 0.0625 }, { 0.375, 0.0625, 0, 0.5625, 0.3125, 0.0625 },
+                    { 0.6875, 0.75, 0, 0.875, 0.9375, 0.0625 } },
+                { { 0.125, 0.125, 0.9375, 0.4375, 0.4375, 1 }, { 0.25, 0.375, 0.9375, 0.6875, 0.8125, 1 },
+                    { 0.5625, 0.5625, 0.9375, 0.875, 0.9375, 1 }, { 0.4375, 0.0625, 0.9375, 0.625, 0.3125, 1 },
+                    { 0.125, 0.75, 0.9375, 0.3125, 0.9375, 1 } } },
+            new String[][] {
+                { "gtsr:remaster_bba5580baba0ba3f", "gtsr:remaster_bba5580baba0ba3f", "gtsr:remaster_bba5580baba0ba3f",
+                    "gtsr:remaster_bba5580baba0ba3f", "gtsr:remaster_bba5580baba0ba3f",
+                    "gtsr:remaster_bba5580baba0ba3f" },
+                { "gtsr:remaster_bba5580baba0ba3f", "gtsr:remaster_bba5580baba0ba3f", "gtsr:remaster_bba5580baba0ba3f",
+                    "gtsr:remaster_bba5580baba0ba3f", "gtsr:remaster_bba5580baba0ba3f",
+                    "gtsr:remaster_bba5580baba0ba3f" },
+                { "gtsr:remaster_bba5580baba0ba3f", "gtsr:remaster_bba5580baba0ba3f", "gtsr:remaster_bba5580baba0ba3f",
+                    "gtsr:remaster_bba5580baba0ba3f", "gtsr:remaster_bba5580baba0ba3f",
+                    "gtsr:remaster_bba5580baba0ba3f" },
+                { "gtsr:remaster_bba5580baba0ba3f", "gtsr:remaster_bba5580baba0ba3f", "gtsr:remaster_bba5580baba0ba3f",
+                    "gtsr:remaster_bba5580baba0ba3f", "gtsr:remaster_bba5580baba0ba3f",
+                    "gtsr:remaster_bba5580baba0ba3f" } });
+    }
+
+    private static RemasterBlock block85() {
+        return new RemasterBlock(
+            "gtsr:draft6_pollution_tendril",
+            "decoration",
+            false,
+            false,
+            "boxes",
+            new double[][][] {
+                { { 0, 0.0625, 0.4375, 0.25, 0.25, 0.625 }, { 0.1875, 0.1875, 0.4375, 0.375, 0.4375, 0.625 },
+                    { 0.3125, 0.375, 0.5, 0.5, 0.625, 0.6875 }, { 0.4375, 0.5625, 0.375, 0.625, 0.75, 0.5625 },
+                    { 0.5625, 0.625, 0.25, 0.75, 0.8125, 0.4375 }, { 0.625, 0.4375, 0.1875, 0.8125, 0.625, 0.375 },
+                    { 0.3125, 0.375, 0.6875, 0.4375, 0.5, 0.9375 }, { 0.375, 0.5, 0.8125, 0.5, 0.6875, 0.9375 } },
+                { { 0.75, 0.0625, 0.375, 1, 0.25, 0.5625 }, { 0.625, 0.1875, 0.375, 0.8125, 0.4375, 0.5625 },
+                    { 0.5, 0.375, 0.3125, 0.6875, 0.625, 0.5 }, { 0.375, 0.5625, 0.4375, 0.5625, 0.75, 0.625 },
+                    { 0.25, 0.625, 0.5625, 0.4375, 0.8125, 0.75 }, { 0.1875, 0.4375, 0.625, 0.375, 0.625, 0.8125 },
+                    { 0.5625, 0.375, 0.0625, 0.6875, 0.5, 0.3125 }, { 0.5, 0.5, 0.0625, 0.625, 0.6875, 0.1875 } },
+                { { 0.375, 0.0625, 0, 0.5625, 0.25, 0.25 }, { 0.375, 0.1875, 0.1875, 0.5625, 0.4375, 0.375 },
+                    { 0.3125, 0.375, 0.3125, 0.5, 0.625, 0.5 }, { 0.4375, 0.5625, 0.4375, 0.625, 0.75, 0.625 },
+                    { 0.5625, 0.625, 0.5625, 0.75, 0.8125, 0.75 }, { 0.625, 0.4375, 0.625, 0.8125, 0.625, 0.8125 },
+                    { 0.0625, 0.375, 0.3125, 0.3125, 0.5, 0.4375 }, { 0.0625, 0.5, 0.375, 0.1875, 0.6875, 0.5 } },
+                { { 0.4375, 0.0625, 0.75, 0.625, 0.25, 1 }, { 0.4375, 0.1875, 0.625, 0.625, 0.4375, 0.8125 },
+                    { 0.5, 0.375, 0.5, 0.6875, 0.625, 0.6875 }, { 0.375, 0.5625, 0.375, 0.5625, 0.75, 0.5625 },
+                    { 0.25, 0.625, 0.25, 0.4375, 0.8125, 0.4375 }, { 0.1875, 0.4375, 0.1875, 0.375, 0.625, 0.375 },
+                    { 0.6875, 0.375, 0.5625, 0.9375, 0.5, 0.6875 }, { 0.8125, 0.5, 0.5, 0.9375, 0.6875, 0.625 } } },
+            new String[][] {
+                { "gtsr:remaster_b0d25971c8390324", "gtsr:remaster_b0d25971c8390324", "gtsr:remaster_b0d25971c8390324",
+                    "gtsr:remaster_b0d25971c8390324", "gtsr:remaster_b0d25971c8390324",
+                    "gtsr:remaster_b0d25971c8390324" },
+                { "gtsr:remaster_b0d25971c8390324", "gtsr:remaster_b0d25971c8390324", "gtsr:remaster_b0d25971c8390324",
+                    "gtsr:remaster_b0d25971c8390324", "gtsr:remaster_b0d25971c8390324",
+                    "gtsr:remaster_b0d25971c8390324" },
+                { "gtsr:remaster_b0d25971c8390324", "gtsr:remaster_b0d25971c8390324", "gtsr:remaster_b0d25971c8390324",
+                    "gtsr:remaster_b0d25971c8390324", "gtsr:remaster_b0d25971c8390324",
+                    "gtsr:remaster_b0d25971c8390324" },
+                { "gtsr:remaster_b0d25971c8390324", "gtsr:remaster_b0d25971c8390324", "gtsr:remaster_b0d25971c8390324",
+                    "gtsr:remaster_b0d25971c8390324", "gtsr:remaster_b0d25971c8390324",
+                    "gtsr:remaster_b0d25971c8390324" } });
+    }
+
+    private static RemasterBlock block86() {
+        return new RemasterBlock(
+            "gtsr:draft6_pollution_crust",
+            "decoration",
+            false,
+            false,
+            "boxes",
+            new double[][][] {
+                { { 0, 0, 0.125, 0.1875, 0.1875, 0.875 }, { 0.0625, 0.125, 0.1875, 0.25, 0.4375, 0.4375 },
+                    { 0.125, 0.375, 0.125, 0.25, 0.625, 0.3125 }, { 0.0625, 0.1875, 0.5, 0.3125, 0.375, 0.6875 },
+                    { 0.25, 0.3125, 0.5625, 0.4375, 0.5, 0.75 }, { 0.0625, 0.125, 0.75, 0.25, 0.3125, 0.9375 },
+                    { 0.1875, 0.25, 0.8125, 0.375, 0.5, 1 } },
+                { { 0.8125, 0, 0.125, 1, 0.1875, 0.875 }, { 0.75, 0.125, 0.5625, 0.9375, 0.4375, 0.8125 },
+                    { 0.75, 0.375, 0.6875, 0.875, 0.625, 0.875 }, { 0.6875, 0.1875, 0.3125, 0.9375, 0.375, 0.5 },
+                    { 0.5625, 0.3125, 0.25, 0.75, 0.5, 0.4375 }, { 0.75, 0.125, 0.0625, 0.9375, 0.3125, 0.25 },
+                    { 0.625, 0.25, 0, 0.8125, 0.5, 0.1875 } },
+                { { 0.125, 0, 0, 0.875, 0.1875, 0.1875 }, { 0.5625, 0.125, 0.0625, 0.8125, 0.4375, 0.25 },
+                    { 0.6875, 0.375, 0.125, 0.875, 0.625, 0.25 }, { 0.3125, 0.1875, 0.0625, 0.5, 0.375, 0.3125 },
+                    { 0.25, 0.3125, 0.25, 0.4375, 0.5, 0.4375 }, { 0.0625, 0.125, 0.0625, 0.25, 0.3125, 0.25 },
+                    { 0, 0.25, 0.1875, 0.1875, 0.5, 0.375 } },
+                { { 0.125, 0, 0.8125, 0.875, 0.1875, 1 }, { 0.1875, 0.125, 0.75, 0.4375, 0.4375, 0.9375 },
+                    { 0.125, 0.375, 0.75, 0.3125, 0.625, 0.875 }, { 0.5, 0.1875, 0.6875, 0.6875, 0.375, 0.9375 },
+                    { 0.5625, 0.3125, 0.5625, 0.75, 0.5, 0.75 }, { 0.75, 0.125, 0.75, 0.9375, 0.3125, 0.9375 },
+                    { 0.8125, 0.25, 0.625, 1, 0.5, 0.8125 } } },
+            new String[][] {
+                { "gtsr:remaster_ee0614c03ec14b3e", "gtsr:remaster_ee0614c03ec14b3e", "gtsr:remaster_ee0614c03ec14b3e",
+                    "gtsr:remaster_ee0614c03ec14b3e", "gtsr:remaster_ee0614c03ec14b3e",
+                    "gtsr:remaster_ee0614c03ec14b3e" },
+                { "gtsr:remaster_ee0614c03ec14b3e", "gtsr:remaster_ee0614c03ec14b3e", "gtsr:remaster_ee0614c03ec14b3e",
+                    "gtsr:remaster_ee0614c03ec14b3e", "gtsr:remaster_ee0614c03ec14b3e",
+                    "gtsr:remaster_ee0614c03ec14b3e" },
+                { "gtsr:remaster_ee0614c03ec14b3e", "gtsr:remaster_ee0614c03ec14b3e", "gtsr:remaster_ee0614c03ec14b3e",
+                    "gtsr:remaster_ee0614c03ec14b3e", "gtsr:remaster_ee0614c03ec14b3e",
+                    "gtsr:remaster_ee0614c03ec14b3e" },
+                { "gtsr:remaster_ee0614c03ec14b3e", "gtsr:remaster_ee0614c03ec14b3e", "gtsr:remaster_ee0614c03ec14b3e",
+                    "gtsr:remaster_ee0614c03ec14b3e", "gtsr:remaster_ee0614c03ec14b3e",
+                    "gtsr:remaster_ee0614c03ec14b3e" } });
     }
 
 }

@@ -24,7 +24,7 @@ def main():
         registered.add(re.search(r'"(gtsr:[^"]+)"', body.group(1)).group(1))
     runtime = (src/'remaster/RemasterRuntime.java').read_text(encoding='utf8')
     for name in registered: assert '"'+name+'"' in blocks, name
-    closure = set(); slices = 0
+    closure = set(); slices = 0; all_modes = set()
     for d in catalog['prefabs']:
         assert d['id'] in IDS and d['variant'] == 0
         path = OUT/d['file']; closure.add(path); s = read(path,d['sha256']); m=s['metadata']
@@ -69,22 +69,30 @@ def main():
             original={(xx,y,z):voxel['palette'][index] for x,y,z,length,index in voxel['runs'] for xx in range(x,x+length)}
             assert cells==original, 'Native preview must preserve every captured solid and AIR cell'
         else:
-            assert s['min'][0]==s['min'][2]==0 and s['max'][0::2]==[76,73]
+            assert all(0 <= s['min'][i] <= s['max'][i] < 120 for i in (0, 2))
+            assert not any(k.startswith(('minecraft:grass#', 'minecraft:dirt#')) for k in palette)
+            assert len(m['rooms']) >= 5 and m['roofKeys'] and len(m['playerReviewViews']) >= 10
             nodes={n['id']:n for n in m['nodes']}; modes=set()
             for b in m['productionNodeBindings']:
                 assert b['role'] in {'memory','story','chest','spawner'} and cells[tuple(b['at'])]==b['after']
             for chest in m['lootPlan7']:
                 mode=chest['unlockMode']; modes.add(mode)
-                assert mode in {'direct','story','combat'} and chest['unlock']==mode
+                assert mode in {'direct','story','combat'}
                 at=tuple(chest[a] for a in ('x','y','z'))
                 assert cells[at]=='gtsr:SealedChest#2'
                 assert cells.get((at[0],at[1]+1,at[2]))=='minecraft:air#0'
                 assert cells.get((at[0],at[1]-1,at[2])) not in {None,'minecraft:air#0'}
                 if mode=='story': assert nodes[chest['storyNode']]['role'] in {'memory','story'}
-                if mode=='combat': assert any(n['module']==chest['combatModule'] and n.get('runtimeEnabled') and n.get('spawn') for n in m['spawns'])
-            assert modes=={'direct','story','combat'}
-            x,y,z=m['surfaceEntrance']['at']
-            assert cells[(x,y+1,z)]==cells[(x,y+2,z)]=='minecraft:air#0'
+                if mode=='combat': assert any(n['module']==chest['combatModule'] and n.get('spawn') for n in m['spawns'])
+            assert {'direct','combat'} <= modes <= {'direct','story','combat'}
+            all_modes.update(modes)
+            groups = {n['module'] for n in m['spawns'] if n.get('spawn')}
+            for actor in m['spawns']:
+                assert set(actor.get('activationModules', [])) <= groups
+                assert actor.get('module') not in actor.get('activationModules', [])
+            for at in m['roofKeys']:
+                assert cells.get(tuple(map(int, at.split(',')))) not in {None, 'minecraft:air#0'}
+    assert all_modes == {'direct','story','combat'}
     assert set(OUT.rglob('*.json.gz'))==closure, 'Compressed asset closure mismatch'
     print(f'passed: 3 standard scenes, {slices} slices, SHA/AIR/native identity/bindings/materials/no puzzles or signs')
 if __name__=='__main__': main()

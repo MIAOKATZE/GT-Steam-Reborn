@@ -142,17 +142,9 @@ public final class RemasterWorldgen {
                 || "dc-10".equals(code)) continue;
             if (spawn.has("spawn") && !spawn.get("spawn")
                 .getAsBoolean()) continue;
-            if (d.flag(s.id(), "dead:" + RemasterRuntime.string(spawn, "id", Integer.toString(i)))) continue;
-            EntityOldEcho echo = RemasterSpawn.spawn(
-                w,
-                EchoKind.byCode(code),
-                s.id(),
-                x + .5,
-                y,
-                z + .5,
-                i,
-                ("dc-02".equals(code) || "dc-08".equals(code))
-                    && "boss".equals(RemasterRuntime.string(spawn, "role", "")));
+            if (d.flag(s.id(), "dead:" + RemasterRuntime.string(spawn, "id", Integer.toString(i)))
+                || !RemasterRuntime.spawnReady(w, s, spawn)) continue;
+            EntityOldEcho echo = RemasterSpawn.spawn(w, EchoKind.byCode(code), s.id(), x + .5, y, z + .5, i, false);
             if (echo != null) {
                 net.minecraft.nbt.NBTTagCompound position = new net.minecraft.nbt.NBTTagCompound();
                 position.setDouble("x", echo.posX);

@@ -381,6 +381,11 @@ def main():
                        'combatOnly': metadata.get('combatOnly', False),
                        'nativeScene': metadata.get('nativeScene', False),
                        'nativeCapture': metadata.get('captureProof'),
+                       'roofKeys': metadata.get('roofKeys', []), 'contextKeys': metadata.get('contextKeys', []),
+                       'branchTerrain': metadata.get('branchTerrain', metadata.get('terrain')), 'burial': metadata.get('burial'),
+                       'story': metadata.get('story', []), 'triggers': metadata.get('triggers', []),
+                       'rooms': metadata.get('rooms', []), 'contextPolicy': metadata.get('contextPolicy'),
+                       'sceneBounds': metadata.get('sceneBounds'), 'implementationRevision': metadata.get('implementationRevision'),
                        'nodes': metadata.get('nodes', []), 'spawns': metadata.get('spawns', []),
                        'spawnerPlan': metadata.get('spawnerPlan', []),
                        'lootPlan7': metadata.get('lootPlan7', []), 'airRuns': air_runs,
@@ -399,7 +404,7 @@ def main():
                                           'absent': manifest.get('metadata', {}).get('playerReviewAbsentViews', [])},
                        'geometryMode': 'authored-blueprint' if descriptor['id'] == 'prosperity_city_full' else 'production-prefab',
                        'source': {'file': 'src/main/resources/assets/gtsr/remaster/' + descriptor['file'],
-                                  'authorFile': 'plan/临时计划/preview/prefabs7/' + descriptor['id'] + '-v' + str(descriptor['variant']) + '.js',
+                                  'authorFile': metadata.get('sourceAuthorFile', 'plan/临时计划/preview/prefabs7/' + descriptor['id'] + '-v' + str(descriptor['variant']) + '.js'),
                                   'authorSha256': descriptor['sourceSha256'],
                                   'sha256': descriptor['sha256'],
                                   'label': '生产预制 SHA256 ' + descriptor['sha256']}})
@@ -483,7 +488,8 @@ process.stdout.write(JSON.stringify(w.REMASTER_TEXTURES));"""
                 'sources': [{'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/remaster/RemasterWorldgen.java', 'label': '结构实块与显式空气'} ,
                             {'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/encounter/ForgottenLakeEncounterStructure.java', 'label': '原生巨树八室通路'},
                             {'file': 'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/remaster/RemasterRollout.java', 'label': '三个标准场景的当前生成范围'}]}]
-    dump(DEST / 'data/remaster.js', '(function(c){c.blocks.push('
+    version = re.search(r'^RELEASE_VERSION\s*=\s*(\S+)', (ROOT / 'gradle.properties').read_text(encoding='utf-8'), re.M).group(1)
+    dump(DEST / 'data/remaster.js', '(function(c){c.meta.sourceVersion=' + json.dumps(version) + ';c.blocks.push('
          + ','.join(json.dumps(b, ensure_ascii=False) for b in blocks) + ');c.items.push('
          + ','.join(json.dumps(b, ensure_ascii=False) for b in items) + ');c.terrainVariants.push('
          + ','.join(json.dumps(b, ensure_ascii=False) for b in terrain) + ');'

@@ -382,7 +382,6 @@ public final class RemasterRuntime {
                 .site(tile.siteId);
             player.addChatMessage(
                 new ChatComponentText(RemasterOriginalContract.narrative(owner, record, new JsonObject())));
-            if (player.capabilities.isCreativeMode) return true;
             RemasterData.get(tile.getWorldObj())
                 .flag(tile.siteId, "story-read:" + tile.nodeId, true);
             HistoryProgress.sceneStage(player, owner.id(), owner.prefab, "read:" + tile.nodeId, false);
@@ -467,30 +466,12 @@ public final class RemasterRuntime {
         if (n == null) return false;
         World w = tile.getWorldObj();
         RemasterData data = RemasterData.get(w);
-        String site = tile.getRemasterSite(), unlock = string(n, "unlock", ""), reference = string(n, "reference", "");
+        String site = tile.getRemasterSite();
         if (data.flag(site, "claimed:" + tile.getRemasterNode())) return false;
-        int tier = integer(n, "tier", 1);
-        boolean exploration = string(n, "kind", "").equals("exploration");
-        if (tier < 1 || tier > 5 || exploration && tier != integer(n, "referenceTier", tier + 2) - 2) return false;
-        if (unlock.equals("right-click") && !n.has("unlockMode")) return exploration;
-        if (n.has("unlockMode")) {
-            String mode = string(n, "unlockMode", "");
-            if (mode.equals("direct")) return true;
-            if (mode.equals("story")) return storyReady(w, data.site(site), string(n, "storyNode", ""));
-            return mode.equals("combat") && combatCleared(w, data.site(site), string(n, "combatModule", ""));
-        }
-        if (unlock.equals("boss-defeated")) {
-            RemasterSite owner = data.site(site);
-            if (owner.prefab.equals("forgotten_lake_court")) {
-                String legacy = data.state(site)
-                    .getString("legacyEncounter");
-                com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterData original = com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterData
-                    .get(w);
-                return !legacy.isEmpty() && original.known(legacy) && original.kingDead(legacy);
-            }
-            return data.flag(site, "dead:" + reference);
-        }
-        return unlock.equals("cluster-cleared") && clusterCleared(w, data.site(site), reference);
+        String mode = string(n, "unlockMode", "");
+        if (mode.equals("direct")) return true;
+        if (mode.equals("story")) return storyReady(w, data.site(site), string(n, "storyNode", ""));
+        return mode.equals("combat") && combatCleared(w, data.site(site), string(n, "combatModule", ""));
     }
 
     public static boolean chestClick(EntityPlayer player, TileEntitySealedChest tile) {
@@ -510,18 +491,18 @@ public final class RemasterRuntime {
         JsonObject n = chestNode(tile);
         if ("story".equals(string(n, "unlockMode", ""))) ready &= HistoryProgress
             .hasSceneStage(player, tile.getRemasterSite(), "read:" + string(n, "storyNode", ""));
-        String prerequisite = string(n, "unlock", "") + " / " + string(n, "reference", "现场工序");
-        RemasterSite owner = RemasterData.get(world)
-            .site(tile.getRemasterSite());
-        if (owner.prefab.equals("forgotten_lake_court") && string(n, "unlock", "").equals("cluster-cleared"))
-            prerequisite = "原王庭守位账本：有平台标记按该室；无平台标记须八室32守位全部解除";
-        if (player.capabilities.isCreativeMode) {
-            player.addChatMessage(
-                new ChatComponentText("封印检查：" + (ready ? "前置已齐" : "缺少前置 " + prerequisite) + "；一次奖励请在生存模式领取。"));
-            return false;
+        String mode = string(n, "unlockMode", "");
+        String prerequisite = string(n, "combatModule", "").endsWith("-boss-group") ? "击败此处的首领后，再右击开启。"
+            : "击败这间厂房的守卫后，再右击开启。";
+        if (mode.equals("story")) {
+            String storyId = string(n, "storyNode", ""), label = "附近的剧情记录";
+            for (JsonObject story : nodes(
+                RemasterData.get(world)
+                    .site(tile.getRemasterSite())))
+                if (storyId.equals(string(story, "id", ""))) label = string(story, "label", label);
+            prerequisite = "先右击阅读“" + label + "”，再返回开启此箱。";
         }
-        player.addChatMessage(
-            new ChatComponentText(ready ? "封印解除中，60tick后打开；奖励只生成一次。" : "封印尚未解除：" + prerequisite + "。沿现场工单完成关联事件。"));
+        player.addChatMessage(new ChatComponentText(ready ? "封印正在解除……" : "封印尚未解除：" + prerequisite));
         return ready;
     }
 
@@ -590,7 +571,7 @@ public final class RemasterRuntime {
         RemasterSite s = data.site(id);
         if (w.isRemote || !RemasterRollout.allowsGeneration(s)) return;
         JsonArray spawns = array(s.plan().metadata, "spawns");
-        if (nodeIndex < 0 || nodeIndex >= spawns.size()) return;
+        if (nodeIndex < 0 || nodeIndex >= spawns.size() || !data.flag(id, "entity:" + nodeIndex)) return;
         JsonObject spawn = spawns.get(nodeIndex)
             .getAsJsonObject();
         data.flag(id, "dead:" + string(spawn, "id", Integer.toString(nodeIndex)), true);
@@ -606,7 +587,26 @@ public final class RemasterRuntime {
         if (!active(w, id)) return false;
         RemasterSite owner = RemasterData.get(w)
             .site(id);
-        return combatCleared(w, owner, "guards");
+        boolean found = false;
+        for (JsonElement element : array(owner.plan().metadata, "spawns")) {
+            JsonObject spawn = element.getAsJsonObject();
+            if (!"boss".equals(string(spawn, "role", ""))) continue;
+            found = true;
+            if (!spawnReady(w, owner, spawn)) return false;
+        }
+        return found;
+    }
+
+    /** Both first generation and loaded-chunk retries use the same authored activation contract. */
+    public static boolean spawnReady(World world, RemasterSite site, JsonObject spawn) {
+        if (world == null || world.isRemote || !RemasterRollout.allowsGeneration(site)) return false;
+        if (spawn.has("activationModules") && !spawn.get("activationModules")
+            .isJsonArray()) return false;
+        for (JsonElement module : array(spawn, "activationModules")) {
+            if (!module.isJsonPrimitive() || !module.getAsJsonPrimitive()
+                .isString() || !combatCleared(world, site, module.getAsString())) return false;
+        }
+        return true;
     }
 
     public static boolean disabledRole(String role) {
@@ -624,7 +624,8 @@ public final class RemasterRuntime {
 
     /** A non-empty authored module needs successful admission and accepted deaths for every real member. */
     public static boolean combatCleared(World world, RemasterSite site, String module) {
-        if (site == null || module.isEmpty()) return false;
+        if (world == null || world.isRemote || !RemasterRollout.allowsGeneration(site) || module.isEmpty())
+            return false;
         RemasterData data = RemasterData.get(world);
         JsonArray spawns = array(site.plan().metadata, "spawns");
         boolean found = false;

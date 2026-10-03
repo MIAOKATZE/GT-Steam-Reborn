@@ -473,6 +473,8 @@ def compile_one(path):
         if at in protected:
             return
         if explicit and at in cells and cells[at]:
+            if m.get('authoredGeometryFinal'):
+                return
             key = palette[cells[at]].lower()
             # Authored machinery/furniture stay intact. Only construction obstructing
             # a declared passage can be removed by synthesized clearance.
@@ -602,9 +604,16 @@ def compile_one(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--prefab', help='Compile one authored id-vN snapshot and replace its catalog entry.')
+    parser.add_argument('--draft-directory', type=Path, help='Use approved compiled drafts for factory/foundry; preserve native tree source.')
     args = parser.parse_args()
     allowed = {'fallen_foundry-v0', 'subsided_factory-v0', 'forgotten_lake_court-v0'}
     snapshots = sorted(p for p in (SOURCE / 'preview/prefabs7').glob('*.js') if p.stem in allowed)
+    if args.draft_directory:
+        directory = args.draft_directory.resolve()
+        replacements = {name: directory / (name + '.js') for name in ('fallen_foundry-v0', 'subsided_factory-v0')}
+        if not all(p.is_file() for p in replacements.values()):
+            parser.error('Draft directory requires both factory/foundry snapshots.')
+        snapshots = [replacements.get(p.stem, p) for p in snapshots]
     if args.prefab:
         snapshots = [p for p in snapshots if p.stem == args.prefab]
         if len(snapshots) != 1:

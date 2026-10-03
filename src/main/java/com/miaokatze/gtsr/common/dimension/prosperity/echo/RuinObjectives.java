@@ -63,8 +63,7 @@ public final class RuinObjectives {
     }
 
     public static void configureChest(TileEntitySealedChest chest, RuinSite s, RuinsBlueprint.Node n) {
-        chest.initialize(n.tier, s.id(), -1);
-        chest.configureRuinGate(s.layout, n.zone);
+        chest.initializeClickUnlock(n.tier, s.id());
         chest.setStoryRelic(com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreSources.chestRelic(s.kind));
     }
 
