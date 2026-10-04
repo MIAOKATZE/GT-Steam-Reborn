@@ -52,8 +52,16 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
         RenderingRegistry.registerEntityRenderingHandler(
             com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho.class,
             new EchoEntityRenderer(repository));
+        RenderingRegistry.registerEntityRenderingHandler(
+            com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoCombatProjectile.class,
+            new EchoProjectileRenderer());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySealedChest.class, new SealedChestRenderer());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityUnsealedChest.class, new UnsealedChestRenderer());
+        CubeRuneParticle cubes = new CubeRuneParticle();
+        MinecraftForge.EVENT_BUS.register(cubes);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(cubes);
         MinecraftForge.EVENT_BUS.register(owner);
         FMLCommonHandler.instance()
             .bus()
@@ -65,6 +73,7 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
         if (event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getMinecraft();
         EncounterSignals.tick();
+        BossSkillVisuals.tick();
         target = null;
         if (mc.theWorld != null && mc.thePlayer != null
             && mc.theWorld.provider instanceof WorldProviderProsperityRuins) {
@@ -127,6 +136,7 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
             music = null;
         }
         target = null;
+        BossSkillVisuals.clear();
     }
 
     private static final class ThroneMusic extends MovingSound {

@@ -12,7 +12,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterPrefab;
 public final class CompactSceneDecor {
 
     private static final long SALT = 0x4150524F4E3730L;
-    private static volatile boolean[] factorySurface;
+    private static volatile boolean[] factorySurface, foundrySurface;
 
     private CompactSceneDecor() {}
 
@@ -24,7 +24,8 @@ public final class CompactSceneDecor {
             Math.floorDiv(cz << 4, CompactSceneTerrain.CELL_SIZE))) {
             for (int z = cz << 4; z < (cz << 4) + 16; z++) for (int x = cx << 4; x < (cx << 4) + 16; x++) {
                 boolean apron = CompactSceneTerrain.decorColumn(b, x, z, 0);
-                if (!apron && !factoryFloraColumn(b, x, z)) continue;
+                boolean core = landscapeColumn(b.roster, x - b.originX(), z - b.originZ(), 0);
+                if (!apron && !core) continue;
                 long h = GTSRWorldgenHash.cellSeed(seed, x, z, SALT);
                 int y = ProsperityTerrainProfile.heightAt(seed, x, z);
                 Block top = b.roster == 0 ? BlocksGTSR.prosperitySteppeTop : BlocksGTSR.prosperityForestTop;
@@ -40,8 +41,9 @@ public final class CompactSceneDecor {
                         ? (b.roster == 0 ? BlocksGTSR.prosperityFlowerRust : BlocksGTSR.prosperityFlowerPatina)
                         : (b.roster == 0 ? BlocksGTSR.prosperityTuftRust : BlocksGTSR.prosperityTuftCopper);
                     air(world, x, y + 1, z, flora);
-                } else if (apron && pick == 39
-                    && CompactSceneTerrain.decorColumn(b, x, z, 2)
+                } else if (pick == 39
+                    && (CompactSceneTerrain.decorColumn(b, x, z, 2)
+                        || landscapeColumn(b.roster, x - b.originX(), z - b.originZ(), 2))
                     && (x & 15) >= 2
                     && (x & 15) <= 13
                     && (z & 15) >= 2
@@ -54,14 +56,14 @@ public final class CompactSceneDecor {
                                 air(world, x + ox, gy + 1, z + oz, BlocksGTSR.prosperityStone);
                         }
                         air(world, x, y + 2, z, BlocksGTSR.prosperityStone);
-                    } else if (apron && pick == 54
-                        && b.roster == 1
-                        && CompactSceneTerrain.decorColumn(b, x, z, 3)
+                    } else if (pick == 54
+                        && (CompactSceneTerrain.decorColumn(b, x, z, 3)
+                            || landscapeColumn(b.roster, x - b.originX(), z - b.originZ(), 3))
                         && (x & 15) >= 3
                         && (x & 15) <= 12
                         && (z & 15) >= 3
                         && (z & 15) <= 12) {
-                            tree(world, x, y, z, 4 + (int) (h >>> 16 & 1));
+                            tree(world, x, y, z, (b.roster == 0 ? 3 : 4) + (int) (h >>> 16 & 1));
                         }
             }
         }
@@ -69,31 +71,39 @@ public final class CompactSceneDecor {
 
     /** Core meadow excludes every authored surface solid/AIR column and the complete entry approach. */
     public static boolean factoryFloraColumn(CompactSceneTerrain.Branch b, int x, int z) {
-        if (b.roster != 0) return false;
-        int lx = x - b.originX(), lz = z - b.originZ();
-        if (lx < 0 || lx >= 120 || lz < 0 || lz >= 120) return false;
-        if (lx >= 5 && lx <= 34 && lz >= 72 && lz <= 110) return false;
-        return !factorySurfaceMask()[lz * 120 + lx];
+        return b.roster == 0 && landscapeColumn(0, x - b.originX(), z - b.originZ(), 0);
     }
 
-    private static boolean[] factorySurfaceMask() {
-        boolean[] mask = factorySurface;
+    public static boolean landscapeColumn(int roster, int lx, int lz, int radius) {
+        if (lx - radius < 0 || lx + radius >= 120 || lz - radius < 0 || lz + radius >= 120) return false;
+        if (roster == 0 && lx + radius >= 5 && lx - radius <= 34 && lz + radius >= 72 && lz - radius <= 110)
+            return false;
+        boolean[] mask = surfaceMask(roster);
+        for (int z = lz - radius; z <= lz + radius; z++)
+            for (int x = lx - radius; x <= lx + radius; x++) if (mask[z * 120 + x]) return false;
+        return true;
+    }
+
+    private static boolean[] surfaceMask(int roster) {
+        boolean[] mask = roster == 0 ? factorySurface : foundrySurface;
         if (mask != null) return mask;
         synchronized (CompactSceneDecor.class) {
-            if (factorySurface != null) return factorySurface;
+            mask = roster == 0 ? factorySurface : foundrySurface;
+            if (mask != null) return mask;
             mask = new boolean[120 * 120];
-            RemasterPrefab plan = RemasterCatalog.get("subsided_factory", 0);
+            RemasterPrefab plan = RemasterCatalog.get(roster == 0 ? "subsided_factory" : "fallen_foundry", 0);
             // One startup-sized pass, never a slice read per decorated column. All material kinds,
             // including explicit AIR, reserve the column whenever their authored Y reaches ground.
             for (int cz = 0; cz < 8; cz++)
                 for (int cx = 0; cx < 8; cx++) for (RemasterPrefab.Run r : plan.slice(cx, cz)) {
-                    if (r.y < 0 || r.z < 0 || r.z >= 120) continue;
+                    if (roster == 0 && r.y < 0 || r.z < 0 || r.z >= 120) continue;
                     for (int i = 0; i < r.length; i++) {
                         int lx = r.x + i;
                         if (lx >= 0 && lx < 120) mask[r.z * 120 + lx] = true;
                     }
                 }
-            factorySurface = mask;
+            if (roster == 0) factorySurface = mask;
+            else foundrySurface = mask;
             return mask;
         }
     }

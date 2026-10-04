@@ -11,6 +11,7 @@ import net.minecraft.entity.ai.EntityAIWatchClosest;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.DamageSource;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
@@ -34,7 +35,7 @@ import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
  * <li>繁殖：{@link #createChild} 只满足 {@code EntityAgeable} 的抽象契约，<b>不加</b>
  * {@code EntityAIMate}/{@code EntityAIEatGrass} ⇒ 名册里没有鸽的繁殖通道；</li>
  * <li>掉落 0-1 锈羽（02 册 §1.4）：锈羽物品尚未立项，本片不新增物品；</li>
- * <li>"齿轮咔哒"音效（02 册 §1.4）：音效资产禁止入本片，另派 {@code gtnh-sound-pipeline}。</li>
+ * <li>音效已在 v1.20.71 接入 {@code creature.*} 的闲置、受伤与死亡声族。</li>
  * </ul>
  * <b>自定义数据</b>：{@link #DATA_SPAWN_BAND}（DataWatcher 索引 <b>16</b>，vanilla 链上最高只到
  * 12={@code EntityAgeable.IsBaby}，故不撞）= 出生时所在维内群系带下标，经
@@ -57,7 +58,9 @@ import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
  * 复算的正确性由 {@code CreatureSpawnAuthorityCheck} 的 I4 组双向钉（我方文件含这三段 + 上游
  * {@code EntityLiving} 那一行仍是这三段），上游一改即红，不会静默漂移。
  */
-public class EntityGearPigeon extends EntityAnimal {
+public class EntityGearPigeon extends EntityAnimal implements ProsperityDeathVisual {
+
+    private final ProsperityDeathLifecycle deathLifecycle = new ProsperityDeathLifecycle();
 
     /** 自定义 DataWatcher 索引（判据 5：必须 ≥16；vanilla 在本链上用到 0/1/6/7/8/9/10/11/12）。 */
     private static final int DATA_SPAWN_BAND = 16;
@@ -88,6 +91,21 @@ public class EntityGearPigeon extends EntityAnimal {
     }
 
     @Override
+    protected String getLivingSound() {
+        return "gtsr:creature.idle";
+    }
+
+    @Override
+    protected String getHurtSound() {
+        return "gtsr:creature.hurt";
+    }
+
+    @Override
+    protected String getDeathSound() {
+        return "gtsr:creature.death";
+    }
+
+    @Override
     protected void applyEntityAttributes() {
         super.applyEntityAttributes();
         // 02 册 §1.4：纯氛围生物 ⇒ 血量低于原版鸡（4）的一半、移速与鸡同档
@@ -101,6 +119,7 @@ public class EntityGearPigeon extends EntityAnimal {
     protected void entityInit() {
         super.entityInit();
         this.dataWatcher.addObject(DATA_SPAWN_BAND, (byte) 0);
+        this.dataWatcher.addObject(ProsperityDeathLifecycle.WATCHER, 0);
     }
 
     /** 出生时记录所在群系带（自然刷怪路径；身份只问 L1）。 */
@@ -119,12 +138,14 @@ public class EntityGearPigeon extends EntityAnimal {
     @Override
     public void writeEntityToNBT(NBTTagCompound tag) {
         super.writeEntityToNBT(tag);
+        deathLifecycle.write(this, tag);
         tag.setByte(TAG_SPAWN_BAND, (byte) this.getSpawnBandOrdinal());
     }
 
     @Override
     public void readEntityFromNBT(NBTTagCompound tag) {
         super.readEntityFromNBT(tag);
+        deathLifecycle.read(this, tag);
         if (tag.hasKey(TAG_SPAWN_BAND)) {
             this.dataWatcher.updateObject(DATA_SPAWN_BAND, tag.getByte(TAG_SPAWN_BAND));
         }
@@ -181,4 +202,41 @@ public class EntityGearPigeon extends EntityAnimal {
             .ordinalAt((int) Math.floor(x), (int) Math.floor(z));
         return resolved == null ? -1 : resolved.ordinal;
     }
+
+    @Override
+    public void onDeath(DamageSource source) {
+        deathLifecycle.capture(recentlyHit > 0 ? getExperiencePoints(attackingPlayer) : 0);
+        super.onDeath(source);
+    }
+
+    @Override
+    protected void onDeathUpdate() {
+        deathLifecycle.tick(this);
+    }
+
+    @Override
+    public int getDeathAnimationTicks() {
+        return deathLifecycle.ticks(this);
+    }
+
+    @Override
+    public int getDeathAnimationDuration() {
+        return ProsperityDeathLifecycle.DURATION;
+    }
+
+    @Override
+    public int getDeathAnimationHoldTicks() {
+        return ProsperityDeathLifecycle.HOLD;
+    }
+
+    @Override
+    public boolean isGoldenDeath() {
+        return false;
+    }
+
+    @Override
+    public float getDeathAlpha(float partial) {
+        return deathLifecycle.alpha(this, partial);
+    }
+
 }

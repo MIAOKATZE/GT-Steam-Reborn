@@ -2,18 +2,13 @@ package com.miaokatze.gtsr.common.dimension.prosperity.echo;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
-import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.DamageSource;
-import net.minecraft.util.Vec3;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -25,7 +20,6 @@ final class AuthoredEchoAbilities {
 
     private static final Map<String, JsonObject> PROFILES = new HashMap<>();
     private final EntityOldEcho owner;
-    private final List<Bolt> bolts = new ArrayList<>();
     private final Map<Integer, CombatGeometry> warnings = new HashMap<>();
     private double targetX, targetY, targetZ;
     private int serial;
@@ -110,6 +104,13 @@ final class AuthoredEchoAbilities {
 
     void begin(EntityPlayer target, int index) {
         warnings.clear();
+        owner.worldObj.playSoundEffect(
+            owner.posX,
+            owner.posY,
+            owner.posZ,
+            "gtsr:entity." + owner.getKind().code + ".attack",
+            .8F,
+            .9F);
         targetX = target.posX;
         targetY = target.posY;
         targetZ = target.posZ;
@@ -153,7 +154,6 @@ final class AuthoredEchoAbilities {
     }
 
     void cancel() {
-        bolts.clear();
         if (owner.worldObj != null && !owner.worldObj.isRemote)
             for (Map.Entry<Integer, CombatGeometry> warning : warnings.entrySet())
                 CombatEffects.send(owner, warning.getKey(), 2, 0, 1, warning.getValue());
@@ -235,6 +235,13 @@ final class AuthoredEchoAbilities {
         }
         if ("summon".equals(type)) {
             summon(event, p);
+            if (owner.getKind() == EchoKind.DI07) {
+                JsonObject pulse = new JsonObject();
+                pulse.addProperty("type", "damage");
+                pulse.addProperty("radius", 5);
+                pulse.addProperty("amount", 6);
+                execute(pulse);
+            }
             return;
         }
         if ("vfx".equals(type)) return;
@@ -299,90 +306,33 @@ final class AuthoredEchoAbilities {
     }
 
     private void launch(JsonObject e, double[] p) {
-        for (int i = 0; i < Math.min(4, (int) number(e, "count", 1)) && bolts.size() < 16; i++) {
-            double dx = targetX - p[0], dy = targetY + .6 - p[1], dz = targetZ - p[2],
-                len = Math.max(.01, Math.sqrt(dx * dx + dy * dy + dz * dz));
-            double spread = Math.toRadians(number(e, "spread", 0)) * (i - ((int) number(e, "count", 1) - 1) * .5),
-                speed = number(e, "speed", .6);
-            bolts.add(
-                new Bolt(
-                    p[0],
-                    p[1],
-                    p[2],
-                    (dx * Math.cos(spread) - dz * Math.sin(spread)) / len * speed,
-                    dy / len * speed,
-                    (dz * Math.cos(spread) + dx * Math.sin(spread)) / len * speed,
-                    (float) number(e, "amount", 3),
-                    number(e, "gravity", 0),
-                    (int) number(e, "lifetime", 60)));
-        }
-    }
-
-    void tickBolts() {
-        Iterator<Bolt> it = bolts.iterator();
-        while (it.hasNext()) {
-            Bolt b = it.next();
-            double nx = b.x + b.vx, ny = b.y + b.vy, nz = b.z + b.vz;
-            if (--b.life <= 0 || !loaded(nx, nz)) {
-                it.remove();
-                continue;
-            }
-            Vec3 from = Vec3.createVectorHelper(b.x, b.y, b.z), to = Vec3.createVectorHelper(nx, ny, nz);
-            net.minecraft.util.MovingObjectPosition block = owner.worldObj.rayTraceBlocks(from, to);
-            EntityPlayer hit = null;
-            double nearest = block == null ? Double.POSITIVE_INFINITY : from.squareDistanceTo(block.hitVec);
-            for (Object o : owner.worldObj.playerEntities) {
-                EntityPlayer p = (EntityPlayer) o;
-                if (!valid(p)) continue;
-                AxisAlignedBB box = p.boundingBox.expand(.12, .12, .12);
-                net.minecraft.util.MovingObjectPosition intercept = box.calculateIntercept(from, to);
-                if (intercept != null || box.isVecInside(from)) {
-                    double d = box.isVecInside(from) ? 0 : from.squareDistanceTo(intercept.hitVec);
-                    if (d < nearest) {
-                        nearest = d;
-                        hit = p;
-                    }
-                }
-            }
-            CombatEffects.send(
+        int count = Math.min(4, (int) number(e, "count", 1));
+        for (int i = 0; i < count; i++) {
+            double spread = (i - (count - 1) * .5) * Math.toRadians(number(e, "spread", 0));
+            double dx = targetX - p[0], dz = targetZ - p[2];
+            EchoCombatProjectile.fire(
                 owner,
-                20000000 + serial * 32,
-                1,
-                2,
-                1,
-                new CombatGeometry(CombatGeometry.LINE, b.x, b.y, b.z, nx, nz, .08, 0));
-            if (hit != null) {
-                hit.attackEntityFrom(DamageSource.causeMobDamage(owner), b.damage);
-                it.remove();
-                continue;
-            }
-            if (block != null) {
-                it.remove();
-                continue;
-            }
-            b.x = nx;
-            b.y = ny;
-            b.z = nz;
-            b.vy -= b.gravity;
+                p[0],
+                p[1],
+                p[2],
+                p[0] + dx * Math.cos(spread) - dz * Math.sin(spread),
+                targetY + .6,
+                p[2] + dz * Math.cos(spread) + dx * Math.sin(spread),
+                number(e, "speed", .6),
+                (float) number(e, "amount", 3),
+                number(e, "radius", 1.2),
+                number(e, "gravity", 0),
+                1);
         }
     }
 
-    private static final class Bolt {
-
-        double x, y, z, vx, vy, vz, gravity;
-        float damage;
-        int life;
-
-        Bolt(double x, double y, double z, double vx, double vy, double vz, float damage, double gravity, int life) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.vx = vx;
-            this.vy = vy;
-            this.vz = vz;
-            this.damage = damage;
-            this.gravity = gravity;
-            this.life = Math.min(100, life);
-        }
+    void write(net.minecraft.nbt.NBTTagCompound n) {
+        n.setInteger("authoredCastSerial", serial);
     }
+
+    void read(net.minecraft.nbt.NBTTagCompound n) {
+        serial = Math.max(0, Math.min(999999, n.getInteger("authoredCastSerial")));
+    }
+
+    void tickBolts() { /* Registered entities tick independently. */ }
 }

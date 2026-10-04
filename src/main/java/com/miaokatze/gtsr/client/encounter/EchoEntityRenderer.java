@@ -32,7 +32,7 @@ public final class EchoEntityRenderer extends Render {
             GL11.glEnable(GL11.GL_NORMALIZE);
             int light = entity.getBrightnessForRender(partial);
             OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, light & 65535, light >>> 16);
-            asset.render(echo.getVisualClip(), echo.getVisualTicks(partial));
+            asset.render(echo.getVisualClip(), echo.getVisualTicks(partial), echo.getDeathAlpha(partial));
         }
         Minecraft mc = Minecraft.getMinecraft();
         if (echo.getKind() == EchoKind.DO02 && echo.getCustomNameTag()

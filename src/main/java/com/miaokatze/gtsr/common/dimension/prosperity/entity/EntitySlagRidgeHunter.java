@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.entity;
 
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.IEntityLivingData;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.EntityAIAttackOnCollide;
@@ -12,6 +13,7 @@ import net.minecraft.entity.ai.EntityAIWatchClosest;
 import net.minecraft.entity.monster.EntityMob;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
 /**
@@ -34,7 +36,9 @@ import net.minecraft.world.World;
  * 群聚与"结构上封顶 2 只"的行为面（见 {@link GTSRCreatureRoster#structureLinkCap}）。
  * 敌对生物会真的打人 ⇒ 这是本片最需要实机目检的一档。
  */
-public class EntitySlagRidgeHunter extends EntityMob {
+public class EntitySlagRidgeHunter extends EntityMob implements ProsperityDeathVisual {
+
+    private final ProsperityDeathLifecycle deathLifecycle = new ProsperityDeathLifecycle();
 
     /** 自定义 DataWatcher 索引（判据 5：≥16）。 */
     private static final int DATA_SPAWN_BAND = 16;
@@ -58,6 +62,30 @@ public class EntitySlagRidgeHunter extends EntityMob {
     }
 
     @Override
+    protected String getLivingSound() {
+        return "gtsr:creature.idle";
+    }
+
+    @Override
+    protected String getHurtSound() {
+        return "gtsr:creature.hurt";
+    }
+
+    @Override
+    protected String getDeathSound() {
+        return "gtsr:creature.death";
+    }
+
+    @Override
+    public boolean attackEntityAsMob(Entity target) {
+        final boolean hit = super.attackEntityAsMob(target);
+        if (hit && !worldObj.isRemote) {
+            worldObj.playSoundEffect(posX, posY, posZ, "gtsr:creature.attack", .55F, .9F);
+        }
+        return hit;
+    }
+
+    @Override
     protected void applyEntityAttributes() {
         super.applyEntityAttributes();
         // 低于原版骷髅（20 血 / 4 点近战）：遗迹里的"渣脊看门狗"，不是新 boss
@@ -73,6 +101,7 @@ public class EntitySlagRidgeHunter extends EntityMob {
     protected void entityInit() {
         super.entityInit();
         this.dataWatcher.addObject(DATA_SPAWN_BAND, (byte) 0);
+        this.dataWatcher.addObject(ProsperityDeathLifecycle.WATCHER, 0);
     }
 
     @Override
@@ -92,14 +121,53 @@ public class EntitySlagRidgeHunter extends EntityMob {
     @Override
     public void writeEntityToNBT(NBTTagCompound tag) {
         super.writeEntityToNBT(tag);
+        deathLifecycle.write(this, tag);
         tag.setByte(TAG_SPAWN_BAND, (byte) this.getSpawnBandOrdinal());
     }
 
     @Override
     public void readEntityFromNBT(NBTTagCompound tag) {
         super.readEntityFromNBT(tag);
+        deathLifecycle.read(this, tag);
         if (tag.hasKey(TAG_SPAWN_BAND)) {
             this.dataWatcher.updateObject(DATA_SPAWN_BAND, tag.getByte(TAG_SPAWN_BAND));
         }
     }
+
+    @Override
+    public void onDeath(DamageSource source) {
+        deathLifecycle.capture(recentlyHit > 0 ? getExperiencePoints(attackingPlayer) : 0);
+        super.onDeath(source);
+    }
+
+    @Override
+    protected void onDeathUpdate() {
+        deathLifecycle.tick(this);
+    }
+
+    @Override
+    public int getDeathAnimationTicks() {
+        return deathLifecycle.ticks(this);
+    }
+
+    @Override
+    public int getDeathAnimationDuration() {
+        return ProsperityDeathLifecycle.DURATION;
+    }
+
+    @Override
+    public int getDeathAnimationHoldTicks() {
+        return ProsperityDeathLifecycle.HOLD;
+    }
+
+    @Override
+    public boolean isGoldenDeath() {
+        return false;
+    }
+
+    @Override
+    public float getDeathAlpha(float partial) {
+        return deathLifecycle.alpha(this, partial);
+    }
+
 }

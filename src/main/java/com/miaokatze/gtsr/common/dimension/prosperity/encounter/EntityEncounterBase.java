@@ -4,9 +4,12 @@ import net.minecraft.entity.EntityCreature;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 
-public abstract class EntityEncounterBase extends EntityCreature {
+public abstract class EntityEncounterBase extends EntityCreature
+    implements com.miaokatze.gtsr.common.dimension.prosperity.entity.ProsperityDeathVisual {
 
     protected double anchorX, anchorY, anchorZ;
+    private int deathExperience;
+    private boolean deathExperienceReleased;
 
     public EntityEncounterBase(World w) {
         super(w);
@@ -20,6 +23,84 @@ public abstract class EntityEncounterBase extends EntityCreature {
         dataWatcher.addObject(22, 0);
         dataWatcher.addObject(23, -1);
         dataWatcher.addObject(24, 90F);
+        dataWatcher.addObject(31, 0);
+        dataWatcher.addObject(19, 0);
+    }
+
+    /** Watched corpse age, also available to renderers when local deathTime lags. */
+    public int getDeathAnimationTicks() {
+        return Math.max(deathTime, dataWatcher.getWatchableObjectInt(31));
+    }
+
+    public int getDeathAnimationDuration() {
+        return 100;
+    }
+
+    public int getDeathAnimationHoldTicks() {
+        return 12;
+    }
+
+    public boolean isGoldenDeath() {
+        return false;
+    }
+
+    public float getDeathAlpha(float partial) {
+        if (getHealth() > 0) return 1;
+        float age = getDeathAnimationTicks() + partial - getDeathAnimationHoldTicks();
+        return Math
+            .max(0, Math.min(1, 1 - age / Math.max(1, getDeathAnimationDuration() - getDeathAnimationHoldTicks())));
+    }
+
+    @Override
+    public void onDeath(net.minecraft.util.DamageSource source) {
+        int pending = !worldObj.isRemote && recentlyHit > 0 ? getExperiencePoints(attackingPlayer) : 0;
+        super.onDeath(source);
+        if (!worldObj.isRemote && dead && !deathExperienceReleased) deathExperience = pending;
+    }
+
+    @Override
+    protected void onDeathUpdate() {
+        deathTime++;
+        syncDeathAnimation();
+        finishDeathAnimation();
+    }
+
+    protected void finishDeathAnimation() {
+        if (deathTime < getDeathAnimationDuration()) return;
+        if (!worldObj.isRemote && !deathExperienceReleased) {
+            deathExperienceReleased = true;
+            if (worldObj.getGameRules()
+                .getGameRuleBooleanValue("doMobLoot")) {
+                int xp = deathExperience;
+                deathExperience = 0;
+                while (xp > 0) {
+                    int split = net.minecraft.entity.item.EntityXPOrb.getXPSplit(xp);
+                    xp -= split;
+                    worldObj.spawnEntityInWorld(
+                        new net.minecraft.entity.item.EntityXPOrb(worldObj, posX, posY, posZ, split));
+                }
+            }
+        }
+        setDead();
+    }
+
+    protected void syncDeathAnimation() {
+        if (!worldObj.isRemote) dataWatcher.updateObject(31, deathTime);
+        motionX = motionY = motionZ = 0;
+        getNavigator().clearPathEntity();
+    }
+
+    public int getSpawnerTier() {
+        return dataWatcher.getWatchableObjectInt(19);
+    }
+
+    @Override
+    public void onUpdate() {
+        super.onUpdate();
+        if (!worldObj.isRemote) {
+            dataWatcher.updateObject(19, Math.max(0, Math.min(3, getEntityData().getInteger("gtsr.spawnerTier"))));
+            if (getHealth() <= 0) syncDeathAnimation();
+        }
     }
 
     public int getEncounterState() {
@@ -96,6 +177,8 @@ public abstract class EntityEncounterBase extends EntityCreature {
         n.setDouble("az", anchorZ);
         n.setFloat("homeYaw", getHomeYaw());
         n.setInteger("corpseTicks", deathTime);
+        n.setInteger("encounterDeathXP", deathExperience);
+        n.setBoolean("encounterDeathXPReleased", deathExperienceReleased);
     }
 
     public void readEntityFromNBT(NBTTagCompound n) {
@@ -110,5 +193,7 @@ public abstract class EntityEncounterBase extends EntityCreature {
         phase(n.getInteger("phase"));
         setHomeYaw(n.hasKey("homeYaw") ? n.getFloat("homeYaw") : legacyHomeYaw());
         deathTime = n.getInteger("corpseTicks");
+        deathExperience = Math.max(0, Math.min(1000, n.getInteger("encounterDeathXP")));
+        deathExperienceReleased = n.getBoolean("encounterDeathXPReleased");
     }
 }

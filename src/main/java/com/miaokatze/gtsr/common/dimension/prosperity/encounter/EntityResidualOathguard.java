@@ -1,9 +1,13 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.encounter;
 
+import java.util.UUID;
+
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.potion.Potion;
+import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
@@ -12,6 +16,8 @@ import com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry;
 public class EntityResidualOathguard extends EntityEncounterBase {
 
     private int ordinal;
+    private UUID kingOwner;
+    private boolean kingDormant, kingElite;
     private int swingCooldown, returnTicks, pathFailures;
     private boolean deathRecorded;
 
@@ -32,8 +38,61 @@ public class EntityResidualOathguard extends EntityEncounterBase {
         return true;
     }
 
-    protected void onDeathUpdate() {
-        if (++deathTime >= 200) setDead();
+    protected String getLivingSound() {
+        return "gtsr:oathguard.idle";
+    }
+
+    protected String getHurtSound() {
+        return "gtsr:oathguard.hurt";
+    }
+
+    protected String getDeathSound() {
+        return "gtsr:oathguard.death";
+    }
+
+    public int getDeathAnimationDuration() {
+        return 260;
+    }
+
+    public int getDeathAnimationHoldTicks() {
+        return 100;
+    }
+
+    public boolean isGoldenDeath() {
+        return true;
+    }
+
+    public boolean isKingSummon(UUID king) {
+        return kingOwner != null && kingOwner.equals(king);
+    }
+
+    public boolean isKingSummonDormant() {
+        return kingOwner != null && kingDormant;
+    }
+
+    public void configureKingSummon(UUID owner, boolean dormant, boolean elite) {
+        kingOwner = owner;
+        kingDormant = dormant;
+        kingElite = elite;
+        applyKingBuffs();
+    }
+
+    private void applyKingBuffs() {
+        addPotionEffect(new PotionEffect(Potion.regeneration.id, Integer.MAX_VALUE, kingElite ? 1 : 0));
+        addPotionEffect(new PotionEffect(Potion.resistance.id, Integer.MAX_VALUE, kingElite ? 2 : 1));
+        addPotionEffect(new PotionEffect(Potion.field_76434_w.id, Integer.MAX_VALUE, kingElite ? 2 : 1));
+        addPotionEffect(new PotionEffect(Potion.damageBoost.id, Integer.MAX_VALUE, kingElite ? 2 : 1));
+        if (kingElite) addPotionEffect(new PotionEffect(Potion.moveSpeed.id, Integer.MAX_VALUE, 0));
+        setHealth(getMaxHealth());
+    }
+
+    public void activateKingSummon(EntityPlayer player) {
+        kingDormant = false;
+        anger(player);
+    }
+
+    public boolean isEntityInvulnerable() {
+        return isKingSummonDormant() || super.isEntityInvulnerable();
     }
 
     public void setOrdinal(int n) {
@@ -42,7 +101,7 @@ public class EntityResidualOathguard extends EntityEncounterBase {
     }
 
     private void registerAnchor() {
-        if (worldObj.isRemote || getEncounterId().isEmpty()) return;
+        if (worldObj.isRemote || kingOwner != null || getEncounterId().isEmpty()) return;
         ForgottenLakeEncounterData d = ForgottenLakeEncounterData.get(worldObj);
         d.registerGuardAnchor(
             getEncounterId(),
@@ -63,6 +122,7 @@ public class EntityResidualOathguard extends EntityEncounterBase {
     }
 
     public boolean attackEntityFrom(DamageSource s, float a) {
+        if (isKingSummonDormant()) return false;
         boolean accepted = super.attackEntityFrom(s, a);
         if (accepted && !worldObj.isRemote && s.getEntity() instanceof EntityPlayer) {
             EntityPlayer p = (EntityPlayer) s.getEntity();
@@ -82,6 +142,30 @@ public class EntityResidualOathguard extends EntityEncounterBase {
     public void onLivingUpdate() {
         super.onLivingUpdate();
         if (worldObj.isRemote || !isEntityAlive()) return;
+        if (kingOwner != null) {
+            if (ForgottenLakeEncounterData.get(worldObj)
+                .kingDead(getEncounterId())) {
+                setDead();
+                return;
+            }
+            for (Object o : worldObj.loadedEntityList)
+                if (o instanceof EntitySilentKing && ((EntitySilentKing) o).getUniqueID()
+                    .equals(kingOwner) && !((EntitySilentKing) o).ownsSummonedGuard(getUniqueID())) {
+                        setDead();
+                        return;
+                    }
+            if (kingDormant) {
+                setAttackTarget(null);
+                getNavigator().clearPathEntity();
+                motionX = motionY = motionZ = 0;
+                faceHome();
+                return;
+            }
+            if (getAttackTarget() == null || !getAttackTarget().isEntityAlive()) {
+                EntityPlayer nearest = worldObj.getClosestVulnerablePlayerToEntity(this, 55);
+                if (validPlayer(nearest)) anger(nearest);
+            }
+        }
         if (ticksExisted == 1) registerAnchor();
         EntityLivingBase t = getAttackTarget();
         if (!(t instanceof EntityPlayer) || !validPlayer((EntityPlayer) t) || getDistanceSqToEntity(t) > 1600) {
@@ -114,7 +198,7 @@ public class EntityResidualOathguard extends EntityEncounterBase {
                 phase(0);
                 worldObj.setEntityState(this, (byte) 4);
             } else phase(getVisualPhaseTicks() + 1);
-            if (Math.abs(posY - anchorY) > 4 || getDistanceSq(anchorX, anchorY, anchorZ) > 225) {
+            if (kingOwner == null && (Math.abs(posY - anchorY) > 4 || getDistanceSq(anchorX, anchorY, anchorZ) > 225)) {
                 setPosition(anchorX, anchorY, anchorZ);
                 getNavigator().clearPathEntity();
             } else if (ticksExisted % 10 == 0) getNavigator().tryMoveToEntityLiving(t, .8);
@@ -130,7 +214,12 @@ public class EntityResidualOathguard extends EntityEncounterBase {
             deathTime = 0;
             return;
         }
-        if (dead && !worldObj.isRemote && !deathRecorded && !getEncounterId().isEmpty()) {
+        if (dead && !worldObj.isRemote && kingOwner != null) {
+            for (Object o : worldObj.loadedEntityList)
+                if (o instanceof EntitySilentKing && ((EntitySilentKing) o).getUniqueID()
+                    .equals(kingOwner)) ((EntitySilentKing) o).summonedGuardDied(getUniqueID());
+        }
+        if (dead && !worldObj.isRemote && !deathRecorded && kingOwner == null && !getEncounterId().isEmpty()) {
             deathRecorded = true;
             ForgottenLakeEncounterData d = ForgottenLakeEncounterData.get(worldObj);
             d.guardDied(getEncounterId(), d.guardIndex(getEncounterId(), getPlatformId(), ordinal));
@@ -139,12 +228,15 @@ public class EntityResidualOathguard extends EntityEncounterBase {
 
     @Override
     protected void dropFewItems(boolean recentlyHit, int looting) {
-        entityDropItem(LoreRegistry.oathFragment(), 0);
+        if (kingOwner == null) entityDropItem(LoreRegistry.oathFragment(), 0);
     }
 
     public void writeEntityToNBT(NBTTagCompound n) {
         super.writeEntityToNBT(n);
         n.setInteger("ordinal", ordinal);
+        if (kingOwner != null) n.setString("kingOwner", kingOwner.toString());
+        n.setBoolean("kingDormant", kingDormant);
+        n.setBoolean("kingElite", kingElite);
         n.setInteger("healthSchema", 2);
         n.setBoolean("deathRecorded", deathRecorded);
     }
@@ -152,6 +244,13 @@ public class EntityResidualOathguard extends EntityEncounterBase {
     public void readEntityFromNBT(NBTTagCompound n) {
         super.readEntityFromNBT(n);
         if (getCustomNameTag().equals("（旧日虚影）残誓兵")) setCustomNameTag("(旧日虚影)残誓兵");
+        try {
+            kingOwner = UUID.fromString(n.getString("kingOwner"));
+        } catch (IllegalArgumentException ignored) {
+            kingOwner = null;
+        }
+        kingDormant = n.getBoolean("kingDormant");
+        kingElite = n.getBoolean("kingElite");
         ordinal = n.getInteger("ordinal");
         deathRecorded = n.getBoolean("deathRecorded");
         if (!n.hasKey("healthSchema")) {

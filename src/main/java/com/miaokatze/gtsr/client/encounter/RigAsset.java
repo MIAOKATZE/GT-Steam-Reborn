@@ -264,6 +264,13 @@ public final class RigAsset {
 
     /** Caller supplies position/yaw. Lightmap and every matrix restored even if a group fails. */
     public void render(String name, double gameTick) {
+        render(name, gameTick, 1F);
+    }
+
+    /** Alpha belongs to the model draw, including emissive parts and cached geometry. */
+    public void render(String name, double gameTick, float alpha) {
+        alpha = Math.max(0, Math.min(1, alpha));
+        if (alpha <= 0) return;
         JsonObject clip = rig.getAsJsonObject("animations")
             .getAsJsonObject(name);
         JsonArray tracks = clip != null ? clip.getAsJsonArray("tracks") : new JsonArray();
@@ -279,8 +286,13 @@ public final class RigAsset {
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
-            GL11.glDisable(GL11.GL_BLEND);
-            GL11.glColor4f(1, 1, 1, 1);
+            if (alpha < 1) {
+                GL11.glEnable(GL11.GL_BLEND);
+                GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                GL11.glDisable(GL11.GL_ALPHA_TEST);
+                GL11.glDepthMask(false);
+            } else GL11.glDisable(GL11.GL_BLEND);
+            GL11.glColor4f(1, 1, 1, alpha);
             for (Map.Entry<String, List<double[]>> part : meshes.entrySet()) {
                 String group = part.getKey();
                 if (!visible(group, tracks, t)) continue;

@@ -90,6 +90,7 @@ public class EntityOldEcho extends EntityEncounterBase {
     private float resonanceDamage;
     private double aimX, aimY, aimZ, originX, originZ;
     private final AuthoredEchoAbilities authored = new AuthoredEchoAbilities(this);
+    private final EchoIndustrialCombat industrialCombat = new EchoIndustrialCombat(this);
     private int summonBudget = 8, summonedLifetime;
     private String summoner = "";
     private float lastAcceptedPlayerDamage = 5;
@@ -102,6 +103,12 @@ public class EntityOldEcho extends EntityEncounterBase {
 
     public boolean isSummonedEcho() {
         return !summoner.isEmpty();
+    }
+
+    boolean isSummonedBy(EntityOldEcho parent) {
+        return summoner.equals(
+            parent.getUniqueID()
+                .toString());
     }
 
     int summonsRemaining() {
@@ -137,8 +144,8 @@ public class EntityOldEcho extends EntityEncounterBase {
         controlledFinished = true;
         setCustomNameTag("(旧日虚影)" + getKind().displayName + " 99*");
         state(DYING);
-        phase(99);
-        setDead();
+        phase(0);
+        setHealth(0);
         return true;
     }
 
@@ -164,6 +171,8 @@ public class EntityOldEcho extends EntityEncounterBase {
     @Override
     protected void entityInit() {
         super.entityInit();
+        dataWatcher.addObject(17, 0);
+        dataWatcher.addObject(18, 0);
         dataWatcher.addObject(25, 0);
         dataWatcher.addObject(26, 0);
         dataWatcher.addObject(27, 0);
@@ -233,6 +242,8 @@ public class EntityOldEcho extends EntityEncounterBase {
     private void configure(EchoKind kind, boolean fill) {
         dataWatcher.updateObject(25, kind.ordinal());
         setSize(kind.width, kind.height);
+        experienceValue = kind.isRitual() || kind == EchoKind.DO02 ? 0
+            : kind.isHeavy() ? 100 : kind.hasBossBar() ? 30 : 8;
         getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(kind.maxHealth);
         getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(kind.isHeavy() ? .12 : .20);
         getEntityAttribute(SharedMonsterAttributes.knockbackResistance).setBaseValue(kind.hasBossBar() ? 1 : .4);
@@ -250,9 +261,25 @@ public class EntityOldEcho extends EntityEncounterBase {
         ignoreFrustumCheck = kind.isRitual();
     }
 
-    private void skill(int id, int ticks) {
+    void skill(int id, int ticks) {
         dataWatcher.updateObject(26, id);
         dataWatcher.updateObject(27, ticks);
+    }
+
+    public int getSkillAnnouncementSerial() {
+        return dataWatcher.getWatchableObjectInt(18);
+    }
+
+    public int getAnnouncedSkill() {
+        return dataWatcher.getWatchableObjectInt(17);
+    }
+
+    /** A cast event, not a skill animation tick; repeated casts of the same skill remain distinct. */
+    void announceSkill(int id) {
+        if (worldObj.isRemote || id <= 0) return;
+        dataWatcher.updateObject(17, id);
+        dataWatcher
+            .updateObject(18, getSkillAnnouncementSerial() == Integer.MAX_VALUE ? 1 : getSkillAnnouncementSerial() + 1);
     }
 
     public String getVisualClip() {
@@ -262,7 +289,7 @@ public class EntityOldEcho extends EntityEncounterBase {
         if (authoredKind() && getSkillId() != 0) return authored.clip(getSkillId());
         if (getKind().isRitual()) return getVisualPhaseTicks() < 80 ? "spawn" : "idle";
         if (getSkillId() != 0) {
-            if (getKind() == EchoKind.DC02) return getSkillId() == 1 ? "seismic_impact" : "fault_line";
+            if (getKind() == EchoKind.DC02) return getSkillId() == 2 ? "fault_line" : "seismic_impact";
             if (getKind() == EchoKind.DC08) return getSkillId() == 1 ? "command_pulse" : "brood_mortar";
             return getKind().skillClip;
         }
@@ -270,7 +297,7 @@ public class EntityOldEcho extends EntityEncounterBase {
     }
 
     public double getVisualTicks(float partial) {
-        if (getKind() == EchoKind.DO02 && getEncounterState() == DYING) return getVisualPhaseTicks() - 99 + partial;
+        if (getKind() == EchoKind.DO02 && getEncounterState() == DYING) return getDeathAnimationTicks() + partial;
         if (getHealth() <= 0) return deathTime + partial;
         if (authoredKind() && dataWatcher.getWatchableObjectInt(28) < authored.spawnDuration())
             return dataWatcher.getWatchableObjectInt(28) + partial;
@@ -492,10 +519,15 @@ public class EntityOldEcho extends EntityEncounterBase {
                 aimY = target.posY;
                 aimZ = target.posZ;
                 skill(selected, 0);
+                announceSkill(selected);
                 authored.begin((EntityPlayer) target, selected);
                 getNavigator().clearPathEntity();
             } else if (getKind().flies()) flyToward(target.posX, anchorY, target.posZ, .12);
             else if (!authored.stationary() && ticksExisted % 10 == 0) getNavigator().tryMoveToEntityLiving(target, .8);
+            return;
+        }
+        if (getKind().isHeavy()) {
+            industrialCombat.tick((EntityPlayer) target);
             return;
         }
         if (getSkillId() != 0) {
@@ -564,11 +596,12 @@ public class EntityOldEcho extends EntityEncounterBase {
             resonanceCooldown = 800;
             resonanceDamage = 0;
         }
+        announceSkill(selected);
         attackSerial = attackSerial >= 60000000 ? 1 : attackSerial + 1;
         for (int j = 0; j < attackSteps(); j++)
             CombatEffects.send(this, attackSerial * 32 + j, 0, windup() + j * stepDelay(), palette(), geometry(j));
         getNavigator().clearPathEntity();
-        worldObj.playSoundEffect(posX, posY, posZ, "note.harp", .65F, getKind().isHeavy() ? .55F : 1.1F);
+        worldObj.playSoundEffect(posX, posY, posZ, combatSound("attack"), .8F, .9F);
     }
 
     private boolean targeted() {
@@ -617,7 +650,7 @@ public class EntityOldEcho extends EntityEncounterBase {
     }
 
     public int getCombatPhase() {
-        return getHealth() <= getMaxHealth() * .3F ? 2 : getHealth() <= getMaxHealth() * .6F ? 1 : 0;
+        return getHealth() <= getMaxHealth() / 3F ? 2 : getHealth() <= getMaxHealth() * 2F / 3F ? 1 : 0;
     }
 
     private int attackSerial;
@@ -702,6 +735,10 @@ public class EntityOldEcho extends EntityEncounterBase {
     }
 
     private void stopEffects() {
+        if (getKind().isHeavy()) {
+            industrialCombat.cancel();
+            return;
+        }
         if (authoredKind()) {
             authored.cancel();
             return;
@@ -725,7 +762,7 @@ public class EntityOldEcho extends EntityEncounterBase {
             CombatEffects.send(this, attackSerial * 32 + j, 1, 8, palette(), g);
             resolveGeometry(target, g);
             CombatEffects.send(this, attackSerial * 32 + j, 2, 18, palette(), g);
-            worldObj.playSoundEffect(posX, posY, posZ, "random.explode", .55F, getKind().isHeavy() ? .6F : 1.6F);
+            worldObj.playSoundEffect(posX, posY, posZ, combatSound("attack"), .8F, .9F);
         }
         if (ticks >= warning + (attackSteps() - 1) * stepDelay() + 20) {
             skill(0, 0);
@@ -761,7 +798,6 @@ public class EntityOldEcho extends EntityEncounterBase {
                 }
             if (style == BattleStyle.MENDER) {
                 heal(4);
-                return;
             }
             // The core can rebuild itself only twice. Sustained accepted damage during the
             // 48-tick warning disrupts the repair, while the advertised ring still resolves.
@@ -772,6 +808,24 @@ public class EntityOldEcho extends EntityEncounterBase {
             } else if (resonanceDamage >= 30) {
                 worldObj.playSoundEffect(posX, posY, posZ, "random.glass", .7F, .7F);
             }
+        }
+        if (style == BattleStyle.BOMBER || style == BattleStyle.SNIPER
+            || style == BattleStyle.GAZER
+            || style == BattleStyle.WEAVER) {
+            EchoCombatProjectile.fire(
+                this,
+                posX,
+                posY + Math.min(height * .6, 3),
+                posZ,
+                aimX,
+                aimY + 1,
+                aimZ,
+                style == BattleStyle.SNIPER ? 1.2 : .65,
+                style == BattleStyle.SNIPER ? 9 : 4,
+                style == BattleStyle.BOMBER ? 3 : 1.4,
+                style == BattleStyle.BOMBER ? .015 : 0,
+                palette());
+            return;
         }
         for (Object o : worldObj.playerEntities) {
             EntityPlayer p = (EntityPlayer) o;
@@ -816,28 +870,65 @@ public class EntityOldEcho extends EntityEncounterBase {
         if (dead && !worldObj.isRemote && !deathRecorded) {
             deathRecorded = true;
             if (getSkillId() != 0) stopEffects();
-            if (getEncounterId().startsWith("echo:"))
+            if (!isSummonedEcho() && getEncounterId().startsWith("echo:"))
                 RuinObjectives.onGuardDeath(worldObj, getEncounterId(), getPlatformId(), objectiveZone);
             state(DYING);
             skill(0, 0);
-            MinecraftForge.EVENT_BUS.post(new EchoDeathEvent(this, source));
+            if (!isSummonedEcho()) MinecraftForge.EVENT_BUS.post(new EchoDeathEvent(this, source));
         }
+    }
+
+    @Override
+    public int getDeathAnimationDuration() {
+        return getKind() == EchoKind.DO02 ? 240 : getKind() == EchoKind.DR09 ? 200 : getKind().hasBossBar() ? 140 : 100;
+    }
+
+    @Override
+    public int getDeathAnimationHoldTicks() {
+        return getKind() == EchoKind.DR09 ? 80 : 12;
+    }
+
+    @Override
+    public boolean isGoldenDeath() {
+        return getKind() == EchoKind.DR09;
+    }
+
+    private String combatSound(String event) {
+        return "gtsr:" + (getKind() == EchoKind.DC02 ? "colossus."
+            : getKind() == EchoKind.DC08 ? "hive." : "entity." + getKind().code + ".") + event;
+    }
+
+    @Override
+    protected String getLivingSound() {
+        return getKind().isRitual() ? null : combatSound("idle");
+    }
+
+    @Override
+    protected String getHurtSound() {
+        return combatSound("hurt");
+    }
+
+    @Override
+    protected String getDeathSound() {
+        return combatSound("death");
     }
 
     @Override
     protected void onDeathUpdate() {
-        if (authoredKind()) {
-            deathTime++;
-            if (!worldObj.isRemote) authored.death(deathTime);
-            if (deathTime >= authored.deathDuration()) setDead();
-            return;
-        }
-        if (++deathTime >= (getKind().hasBossBar() ? 100 : 60)) setDead();
+        deathTime++;
+        syncDeathAnimation();
+        if (authoredKind() && !worldObj.isRemote) authored.death(deathTime);
+        finishDeathAnimation();
+    }
+
+    @Override
+    protected int getExperiencePoints(EntityPlayer player) {
+        return isSummonedEcho() ? 0 : super.getExperiencePoints(player);
     }
 
     @Override
     protected void dropFewItems(boolean hit, int looting) {
-        if (worldObj.isRemote || nightSpawn) return;
+        if (worldObj.isRemote || nightSpawn || isSummonedEcho()) return;
         String witness = com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreSources.bossRelic(getKind());
         net.minecraft.item.Item item = com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry.RELICS
             .get(witness);
@@ -847,6 +938,8 @@ public class EntityOldEcho extends EntityEncounterBase {
     @Override
     public void writeEntityToNBT(NBTTagCompound n) {
         super.writeEntityToNBT(n);
+        industrialCombat.write(n);
+        authored.write(n);
         n.setInteger("objectiveLayout", objectiveLayout);
         n.setInteger("objectiveZone", objectiveZone);
         n.setBoolean("objectiveBoss", objectiveBoss);
@@ -862,6 +955,8 @@ public class EntityOldEcho extends EntityEncounterBase {
         n.setInteger("echoReturn", returnTicks);
         n.setInteger("echoPathFailures", pathFailures);
         n.setInteger("echoRitualTicks", ritualTicks);
+        n.setInteger("echoSkillAnnouncementSerial", getSkillAnnouncementSerial());
+        n.setInteger("echoAnnouncedSkill", getAnnouncedSkill());
         n.setInteger("echoSkill", getSkillId());
         n.setInteger("echoSkillTicks", getSkillTicks());
         n.setDouble("echoAimX", aimX);
@@ -914,7 +1009,7 @@ public class EntityOldEcho extends EntityEncounterBase {
         originX = n.getDouble("echoOriginX");
         originZ = n.getDouble("echoOriginZ");
         summonBudget = n.hasKey("echoSummonBudget") ? Math.max(0, Math.min(8, n.getInteger("echoSummonBudget"))) : 8;
-        summonedLifetime = Math.max(0, Math.min(400, n.getInteger("echoSummonedLifetime")));
+        summonedLifetime = Math.max(0, Math.min(1200, n.getInteger("echoSummonedLifetime")));
         summoner = n.getString("echoSummoner");
         lastAcceptedPlayerDamage = n.hasKey("echoRepriseDamage") ? n.getFloat("echoRepriseDamage") : 5;
         if (!Float.isFinite(lastAcceptedPlayerDamage)) lastAcceptedPlayerDamage = 5;
@@ -937,6 +1032,10 @@ public class EntityOldEcho extends EntityEncounterBase {
         dataWatcher.updateObject(30, Math.max(0, Math.min(208, n.getInteger("industrialRevivalTicks"))));
         if (industrialFrozen())
             setHealth(getIndustrialBossStage() == 0 ? 1 : 1 + (getMaxHealth() - 1) * getRevivalTicks() / 208F);
+        if (getKind().isHeavy()) industrialCombat.read(n);
+        authored.read(n);
+        dataWatcher.updateObject(18, Math.max(0, n.getInteger("echoSkillAnnouncementSerial")));
+        dataWatcher.updateObject(17, Math.max(0, Math.min(5, n.getInteger("echoAnnouncedSkill"))));
         // Cancel a partial authored cast on reload: old events and transient projectiles never replay.
         if (authoredKind()) {
             authored.cancel();

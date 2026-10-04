@@ -50,8 +50,8 @@ public class RemasterBlock extends Block {
         this.parts = parts;
         this.textures = textures;
         setBlockName("Remaster_" + id.substring(id.indexOf(':') + 1));
-        setHardness(3F);
-        setResistance(8F);
+        setHardness("spawner".equals(category) ? 200F : 3F);
+        setResistance("spawner".equals(category) ? 25000F / 3F : 8F);
         setStepSound(soundTypeMetal);
         setLightOpacity(fullCube && !transparent ? 255 : 0);
     }
@@ -136,6 +136,27 @@ public class RemasterBlock extends Block {
         RemasterBlocks.InteractionHandler handler = RemasterBlocks.interactionHandler();
         return handler == null ? super.getBlockHardness(world, x, y, z)
             : handler.hardness(world, x, y, z, super.getBlockHardness(world, x, y, z));
+    }
+
+    @Override
+    public int quantityDropped(Random random) {
+        return "spawner".equals(category) ? 0 : super.quantityDropped(random);
+    }
+
+    @Override
+    public boolean canSilkHarvest(World world, EntityPlayer player, int x, int y, int z, int metadata) {
+        return !"spawner".equals(category) && super.canSilkHarvest(world, player, x, y, z, metadata);
+    }
+
+    @Override
+    public int getExpDrop(IBlockAccess world, int metadata, int fortune) {
+        // Forge awards this only for successful, noncreative player harvesting; explosions never award it.
+        return "spawner".equals(category) ? RemasterSpawnerContract.experience(new Random()) : 0;
+    }
+
+    @Override
+    public float getExplosionResistance(Entity entity) {
+        return "spawner".equals(category) ? 5000F : super.getExplosionResistance(entity);
     }
 
     @Override

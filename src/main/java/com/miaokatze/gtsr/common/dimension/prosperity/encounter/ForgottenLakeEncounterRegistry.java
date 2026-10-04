@@ -46,6 +46,14 @@ public final class ForgottenLakeEncounterRegistry {
             192,
             2,
             true);
+        EntityRegistry.registerModEntity(
+            com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoCombatProjectile.class,
+            "EchoCombatProjectile",
+            43,
+            mod,
+            96,
+            1,
+            true);
         MinecraftForge.EVENT_BUS.register(new ForgottenLakeEncounterRegistry());
         com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoWorldEvents echoes = new com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoWorldEvents();
         MinecraftForge.EVENT_BUS.register(echoes);

@@ -19,7 +19,7 @@ public class BlockSealedChest extends BlockContainer {
         super(Material.iron);
         setBlockName("sealedChest");
         setHardness(-1);
-        setResistance(6000000);
+        setResistance(5000);
         setBlockTextureName("gtsr:prosperity_rust_log_side");
         setBlockBounds(.0625F, 0, .0625F, .9375F, .875F, .9375F);
     }
@@ -47,6 +47,11 @@ public class BlockSealedChest extends BlockContainer {
 
     public int getMobilityFlag() {
         return 2;
+    }
+
+    @Override
+    public float getExplosionResistance(net.minecraft.entity.Entity source) {
+        return 5000F;
     }
 
     public boolean removedByPlayer(World w, EntityPlayer p, int x, int y, int z, boolean harvest) {

@@ -1,0 +1,7 @@
+Combat sound recording layers: rubberduck, "80 CC0 creature SFX"
+https://opengameart.org/content/80-cc0-creature-sfx
+License: CC0 1.0 Universal. Local original license and SHA256 pins:
+plan/model/authored/audio/combat-v71/sources.json and original/License.txt.
+Processing: deterministic granular/respeed/filter/ring-modulation/impulse/reverb
+recipe in tools/prosperity/combat_audio.py, GT-Steam-Reborn v1.20.71 task.
+Additional synthesized layers are original procedural signals.

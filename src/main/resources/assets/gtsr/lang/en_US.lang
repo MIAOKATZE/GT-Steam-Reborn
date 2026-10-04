@@ -2185,7 +2185,7 @@ lore.chapter.hanging_great_tree.title=The Hanging Great Tree
 lore.chapter.hanging_great_tree.p0=The king refused the tallest stone palace. He planted the city's last seed on the island and said: if the earth cannot bear us, let something still willing to grow do so. Branches later hung through cloud shadows, and artisans followed their grain into the court.
 lore.chapter.hanging_great_tree.p1=Royal power here was no banner on a metal platform. It was the root bearing everything. Root ribs became armrests, crown branches framed the throne and leaf curtains sheltered the guards. His majesty grew from a terrible decision: while anyone needed shelter, he would not leave.
 lore.chapter.hanging_great_tree.p2=After the calamity the court bell fell silent. The king remained in the posture of his final edict. Oathguards faced branch paths and entrances where no relief would arrive. They do not attack every traveller; wound one and nearby comrades remember the same oath.
-lore.chapter.hanging_great_tree.p3=To wake the king, end every watch in the tree, then approach his throne. The rising path ends at its front entrance. He accepts challengers face to face. Cross behind him after battle begins and returning to the front will not earn forgiveness.
+lore.chapter.hanging_great_tree.p3=To wake the king, end every watch in the tree, then approach his throne. The rising path ends at its front entrance. He accepts challengers face to face. Cross behind him after battle begins and the court will warn you; ten accumulated seconds behind him will enrage the Silent King.
 lore.chapter.hanging_great_tree.p4=He rises slowly, as though every root must take up his promise again. Silence is no weakness and closeness offers no safety. Luminous circles herald his edicts; the root pulse drives those who crowd him away. Only those who end this watch may read the remaining story.
 lore.chapter.king_epilogue.title=After the Crown
 lore.chapter.king_epilogue.p0=When the last pulse faded, the king did not turn. It was not arrogance. He had forgotten that he too could be escorted away. The tree kept growing, for the first time without needing growth to prove a promise.
@@ -2233,7 +2233,7 @@ tile.Royal_hanging_vine.name=Hanging Vine
 tile.Royal_oath_flower.name=Oath Flower
 tile.Royal_crown_fern.name=Crown Fern
 
-lore.king.condemned=The court has marked your defiance. Returning to the front earns no pardon.
+lore.king.condemned=The court sees you behind the throne. Ten accumulated seconds there will enrage the king.
 
 # P36 encounter progress and oath guidance
 encounter.progress.throne=Come before the throne
@@ -3037,3 +3037,28 @@ achievement.gtsr.ending.fifteen_witnesses=Ending: Fifteen Witnesses
 achievement.gtsr.ending.fifteen_witnesses.desc=Verify all required witness evidence and the ending state. Pending implementation; currently unobtainable.
 achievement.gtsr.ending.suppressed=Ending: Suppressed
 achievement.gtsr.ending.suppressed.desc=Verify all required witness evidence and the ending state. Pending implementation; currently unobtainable.
+
+# Encounter skill announcements and seal requirements
+echo.skill.dc-10.1=Gravity Crush
+echo.skill.dc-10.2=Keep Silent
+echo.skill.dc-10.3=Falling Star
+echo.skill.dc-10.4=Royal Domain
+echo.skill.dc-10.5=Gravity Pull
+echo.skill.dc-02.1=Molten Core Slam
+echo.skill.dc-02.2=Ruin Charge
+echo.skill.dc-02.3=Triple Stomp
+echo.skill.dc-02.4=Frontal Quake
+echo.skill.dc-02.5=Final Rupture
+echo.skill.dc-08.1=Brood Summoning
+echo.skill.dc-08.2=Twin Spores
+echo.skill.dc-08.3=Spore Volley
+echo.skill.dc-08.4=Close Pulse
+echo.skill.dc-08.5=Brood Mortar
+echo.skill.di-02.1=Corrosive Spiral
+echo.skill.di-05.1=Silence Weave
+echo.skill.di-08.1=Needle Snipe
+echo.skill.di-10.1=Mirror Strike
+echo.skill.di-13.1=Resonant Toll
+lore.chest.requires_boss=Seal requirement: defeat the boss of this ruin, then right-click to open.
+lore.chest.requires_king=Seal requirement: defeat the Silent King, then right-click to open.
+lore.chest.requires_guards=Seal requirement: defeat all Residual Oathguards in this room, then right-click to open.

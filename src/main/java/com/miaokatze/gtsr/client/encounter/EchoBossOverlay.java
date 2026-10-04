@@ -56,6 +56,7 @@ public final class EchoBossOverlay extends Gui {
             int cx = Math.max(4, Math.min(x + 260, event.resolution.getScaledWidth() - width - 4));
             drawRect(cx - 2, y + 12, cx + width + 2, y + 24, 0xCC151918);
             mc.fontRenderer.drawStringWithShadow(count, cx, y + 14, 0xE9D7AD);
+            name = "§l" + name + "§r";
             mc.fontRenderer.drawStringWithShadow(
                 name,
                 (event.resolution.getScaledWidth() - mc.fontRenderer.getStringWidth(name)) / 2,
@@ -75,6 +76,12 @@ public final class EchoBossOverlay extends Gui {
                             .translateToLocal("echo.warning." + echo.getKind().code);
                 }
             }
+            caption = "§l" + caption + "§r";
+            BossSkillVisuals.draw(
+                mc.theWorld == null ? null : mc.theWorld.getEntityByID(scene.entity),
+                event.resolution.getScaledWidth(),
+                x,
+                y);
             mc.fontRenderer.drawStringWithShadow(
                 caption,
                 (event.resolution.getScaledWidth() - mc.fontRenderer.getStringWidth(caption)) / 2,
@@ -133,14 +140,17 @@ public final class EchoBossOverlay extends Gui {
             int cx = Math.max(4, Math.min(x + 260, event.resolution.getScaledWidth() - countWidth - 4));
             drawRect(cx - 2, y + 12, cx + countWidth + 2, y + 24, 0xCC151918);
             mc.fontRenderer.drawStringWithShadow(count, cx, y + 14, 0xE9D7AD);
+            name = "§l" + name + "§r";
             mc.fontRenderer.drawStringWithShadow(
                 name,
                 (event.resolution.getScaledWidth() - mc.fontRenderer.getStringWidth(name)) / 2,
                 y - 9,
                 0xE9D7AD);
+            BossSkillVisuals.draw(echo, event.resolution.getScaledWidth(), x, y);
             if (echo.getSkillId() != 0) {
                 String caption = net.minecraft.util.StatCollector
                     .translateToLocal("echo.warning." + echo.getKind().code);
+                caption = "§l" + caption + "§r";
                 mc.fontRenderer.drawStringWithShadow(
                     caption,
                     (event.resolution.getScaledWidth() - mc.fontRenderer.getStringWidth(caption)) / 2,

@@ -12,6 +12,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.ChatStyle;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.FakePlayer;
 
@@ -78,12 +79,12 @@ public final class RemasterRuntime {
 
             public float hardness(World w, int x, int y, int z, float fallback) {
                 TileEntity t = w.getTileEntity(x, y, z);
-                if (!(t instanceof TileRemasterNode)) return 3;
+                if (!(t instanceof TileRemasterNode)) return fallback;
                 TileRemasterNode tile = (TileRemasterNode) t;
+                if (w.isRemote && "spawner".equals(tile.role)) return spawnerHardness(tile);
                 if (node(tile) == null) return fallback;
                 if (!"spawner".equals(tile.role)) return -1;
-                return RemasterData.get(w)
-                    .flag(tile.siteId, "sealed:" + tile.nodeId) ? 100 : -1;
+                return spawnerHardness(tile);
             }
         });
     }
@@ -97,7 +98,9 @@ public final class RemasterRuntime {
         if (!valid(player, tile) || disabledRole(tile.role)) return false;
         if ("memory".equals(tile.role) || "story".equals(tile.role)) return action(player, tile, 100);
         if ("spawner".equals(tile.role)) {
-            player.addChatMessage(new ChatComponentText(string(view(tile), "status", "停用的旧笼体")));
+            player.addChatMessage(
+                new ChatComponentText(string(view(tile), "status", "停用的旧笼体"))
+                    .setChatStyle(new ChatStyle().setBold(true)));
             return true;
         }
         return false;
@@ -371,7 +374,20 @@ public final class RemasterRuntime {
             NBTTagCompound state = RemasterData.get(tile.getWorldObj())
                 .state(tile.siteId)
                 .getCompoundTag("spawner:" + tile.nodeId);
-            out.addProperty("status", string(n, "status", "笼体已生成 " + state.getInteger("count") + " 个守卫。"));
+            int tier = spawnerTier(n);
+            boolean spent = RemasterData.get(tile.getWorldObj())
+                .flag(tile.siteId, "sealed:" + tile.nodeId);
+            out.addProperty("tier", tier);
+            out.addProperty("count", state.getInteger("count"));
+            out.addProperty("quota", RemasterSpawnerContract.quota(tier));
+            out.addProperty("spent", spent);
+            out.addProperty("unlockAt", state.getLong("unlockAt"));
+            out.addProperty("pulseAt", state.getLong("pulseAt"));
+            out.addProperty("rechargeAt", state.getLong("unsealAt"));
+            out.addProperty(
+                "status",
+                spent ? "符文已解锁；十分钟后恢复"
+                    : "已生成 " + state.getInteger("count") + "/" + RemasterSpawnerContract.quota(tier));
         }
         return out;
     }
@@ -436,11 +452,13 @@ public final class RemasterRuntime {
                 .state(tile.siteId);
             String key = "spawner:" + tile.nodeId;
             if (!state.hasKey(key)) state.setTag(key, new NBTTagCompound());
-            state.getCompoundTag(key)
-                .setLong(
-                    "next",
-                    tile.getWorldObj()
-                        .getTotalWorldTime() + 100);
+            if (!state.getCompoundTag(key)
+                .hasKey("next"))
+                state.getCompoundTag(key)
+                    .setLong(
+                        "next",
+                        tile.getWorldObj()
+                            .getTotalWorldTime() + RemasterSpawnerContract.delay(tile.getWorldObj().rand));
             RemasterData.get(tile.getWorldObj())
                 .markDirty();
         }
@@ -504,7 +522,10 @@ public final class RemasterRuntime {
                 if (storyId.equals(string(story, "id", ""))) label = string(story, "label", label);
             prerequisite = "先右击阅读“" + label + "”，再返回开启此箱。";
         }
-        player.addChatMessage(new ChatComponentText(ready ? "封印正在解除……" : "封印尚未解除：" + prerequisite));
+        if (ready) player.addChatMessage(new ChatComponentText("封印正在解除……"));
+        else player.addChatMessage(
+            new ChatComponentText("封印尚未解除：")
+                .appendSibling(new ChatComponentText(prerequisite).setChatStyle(new ChatStyle().setBold(true))));
         return ready;
     }
 
@@ -786,76 +807,128 @@ public final class RemasterRuntime {
         return found;
     }
 
+    public static int spawnerTier(JsonObject node) {
+        String block = string(node, "block", string(node, "material", ""));
+        if (block.contains("runaway")) return 3;
+        if (block.contains("stable")) return 2;
+        if (block.contains("fragile")) return 1;
+        if (node.has("tier") && node.get("tier")
+            .isJsonPrimitive()) {
+            com.google.gson.JsonPrimitive tier = node.getAsJsonPrimitive("tier");
+            if (tier.isNumber()) return Math.max(1, Math.min(3, tier.getAsInt()));
+            String name = tier.getAsString();
+            if ("runaway".equals(name)) return 3;
+            if ("stable".equals(name)) return 2;
+            if ("fragile".equals(name)) return 1;
+        }
+        JsonObject policy = node.has("policy") ? node.getAsJsonObject("policy") : new JsonObject();
+        int quota = integer(policy, "sealAt", 10);
+        return quota >= 45 ? 3 : quota >= 24 ? 2 : 1;
+    }
+
+    public static float spawnerHardness(TileRemasterNode tile) {
+        if (tile.getWorldObj().isRemote) {
+            try {
+                JsonObject display = new com.google.gson.JsonParser().parse(tile.display)
+                    .getAsJsonObject();
+                return display.has("spent") && display.get("spent")
+                    .getAsBoolean()
+                    && tile.getWorldObj()
+                        .getTotalWorldTime()
+                        >= display.get("unlockAt")
+                            .getAsLong() + 40 ? 10 : 200;
+            } catch (RuntimeException ignored) {
+                return 200;
+            }
+        }
+        RemasterData data = RemasterData.get(tile.getWorldObj());
+        NBTTagCompound state = data.state(tile.siteId)
+            .getCompoundTag("spawner:" + tile.nodeId);
+        return data.flag(tile.siteId, "sealed:" + tile.nodeId) && tile.getWorldObj()
+            .getTotalWorldTime() >= state.getLong("unlockAt") + 40 ? 10 : 200;
+    }
+
     public static void tick(TileRemasterNode tile) {
         World w = tile.getWorldObj();
-        if (node(tile) == null) {
+        JsonObject n = node(tile);
+        if (n == null) {
             invalidateDisplay(tile);
             return;
         }
-        if (!"spawner".equals(tile.role) || w.getTotalWorldTime() % 20 != 0 || node(tile) == null) return;
-        JsonObject n = node(tile), policy = n.has("policy") ? n.getAsJsonObject("policy") : new JsonObject();
+        if (!"spawner".equals(tile.role)) return;
         RemasterData data = RemasterData.get(w);
         NBTTagCompound state = data.state(tile.siteId);
         String k = "spawner:" + tile.nodeId;
         if (!state.hasKey(k)) state.setTag(k, new NBTTagCompound());
         NBTTagCompound spawner = state.getCompoundTag(k);
         long now = w.getTotalWorldTime();
+        int tier = spawnerTier(n), quota = RemasterSpawnerContract.quota(tier);
+        if (spawner.getInteger("contract") != 1) {
+            spawner.setInteger("contract", 1);
+            if (data.flag(tile.siteId, "sealed:" + tile.nodeId)) {
+                spawner
+                    .setLong("unsealAt", Math.min(spawner.getLong("unsealAt"), now + RemasterSpawnerContract.COOLDOWN));
+                if (!spawner.hasKey("unlockAt")) spawner.setLong("unlockAt", now - 40);
+            }
+            data.markDirty();
+        }
         if (data.flag(tile.siteId, "sealed:" + tile.nodeId)) {
             if (now < spawner.getLong("unsealAt")) return;
             data.flag(tile.siteId, "sealed:" + tile.nodeId, false);
             spawner.setInteger("count", 0);
-            spawner.setLong("next", now + 100);
-        }
-        EntityPlayer near = w.getClosestPlayer(
-            tile.xCoord + .5,
-            tile.yCoord + .5,
-            tile.zCoord + .5,
-            integer(policy, "activationDistance", 18));
-        if (near == null || !near.isEntityAlive() || near.capabilities.isCreativeMode || near instanceof FakePlayer) {
-            spawner.setLong("next", now + 100);
+            spawner.setLong("next", now + RemasterSpawnerContract.delay(w.rand));
+            w.playSoundEffect(tile.xCoord + .5, tile.yCoord + .5, tile.zCoord + .5, "gtsr:spawner.recharge", 1, 1);
             data.markDirty();
+            tile.refresh();
+        }
+        EntityPlayer near = w.getClosestPlayer(tile.xCoord + .5, tile.yCoord + .5, tile.zCoord + .5, 16);
+        if (near == null || !near.isEntityAlive() || near.capabilities.isCreativeMode || near instanceof FakePlayer)
             return;
+        if (!spawner.hasKey("next")) {
+            spawner.setLong("next", now + RemasterSpawnerContract.delay(w.rand));
+            data.markDirty();
         }
-        if (!spawner.hasKey("next")) spawner.setLong("next", now + 100);
         if (now < spawner.getLong("next")) return;
-        spawner.setLong("next", now + integer(policy, "intervalTicks", 100));
-        int quota = integer(policy, "sealAt", 10), candidates = integer(policy, "batch", 2),
-            batch = Math.min(candidates, quota - spawner.getInteger("count"));
-        JsonObject zone = n.getAsJsonObject("spawnZone");
-        if (zone == null) return;
-        JsonArray center = zone.getAsJsonArray("center");
-        RemasterSite s = data.site(tile.siteId);
+        spawner.setLong("next", now + RemasterSpawnerContract.delay(w.rand));
         EchoKind kind = EchoKind.byCode(string(n, "code", ""));
-        String spawnCode = string(n, "code", "");
-        if (kind == null || !(spawnCode.equals("dr-02") || spawnCode.equals("dr-04")
-            || spawnCode.equals("dr-08")
-            || spawnCode.equals("dr-15")
-            || spawnCode.equals("dr-18"))) return;
-        int admitted = 0;
-        // A partly blocked bay must still try its other authored slots when only one quota remains.
-        for (int i = 0; i < candidates && admitted < batch; i++) {
-            double x = s.x + center.get(0)
-                .getAsDouble() + (i % 3 - 1) * (kind.width + .5), y = s.y
-                    + center.get(1)
-                        .getAsDouble(),
-                z = s.z + center.get(2)
-                    .getAsDouble() + (i / 3) * (kind.width + .5);
-            int bx = (int) Math.floor(x), by = (int) Math.floor(y), bz = (int) Math.floor(z);
-            if (!w.blockExists(bx, by, bz) || !w.blockExists(bx - 2, by, bz - 2)
-                || !w.blockExists(bx + 2, by + 3, bz + 2)) continue;
+        if (kind == null) return;
+        int batch = RemasterSpawnerContract.batch(tier, spawner.getInteger("count")), admitted = 0;
+        // Four random admissions per requested mob, never bypass collision or loaded/support checks.
+        for (int attempt = 0; attempt < batch * 4 && admitted < batch; attempt++) {
+            double x = tile.xCoord + .5 + (w.rand.nextDouble() - w.rand.nextDouble()) * 4;
+            double y = tile.yCoord + w.rand.nextInt(3) - 1;
+            double z = tile.zCoord + .5 + (w.rand.nextDouble() - w.rand.nextDouble()) * 4;
             EntityOldEcho entity = RemasterSpawn
-                .spawn(w, kind, tile.siteId + ":spawn:" + tile.nodeId, x + .5, y, z + .5, -1, false);
-            if (entity != null) {
-                spawner.setInteger("count", spawner.getInteger("count") + 1);
-                admitted++;
-            }
+                .spawn(w, kind, tile.siteId + ":spawn:" + tile.nodeId, x, y, z, -1, false);
+            if (entity == null) continue;
+            entity.getEntityData()
+                .setInteger("gtsr.spawnerTier", tier);
+            entity.getEntityData()
+                .setBoolean("gtsr.spawnerAura", true);
+            int[] effects = { net.minecraft.potion.Potion.damageBoost.id, net.minecraft.potion.Potion.resistance.id,
+                net.minecraft.potion.Potion.field_76434_w.id, net.minecraft.potion.Potion.regeneration.id };
+            int[] chosen = RemasterSpawnerContract.buffs(tier, w.rand);
+            for (int effect : chosen)
+                entity.addPotionEffect(new net.minecraft.potion.PotionEffect(effects[effect], 24000, tier - 1));
+            entity.setHealth(entity.getMaxHealth());
+            spawner.setInteger("count", spawner.getInteger("count") + 1);
+            admitted++;
         }
-        spawner.setString(
-            "feedback",
-            admitted == 0 ? "出生范围支撑、净空、液体或邻区块条件未齐；未消耗配额。" : "本批成功生成 " + admitted + "；其余位置待空间条件满足后重试。");
+        if (admitted > 0) {
+            spawner.setLong("pulseAt", now);
+            w.playSoundEffect(
+                tile.xCoord + .5,
+                tile.yCoord + .5,
+                tile.zCoord + .5,
+                "gtsr:spawner.spawn",
+                .9F,
+                1 + tier * .08F);
+        }
         if (spawner.getInteger("count") >= quota) {
             data.flag(tile.siteId, "sealed:" + tile.nodeId, true);
-            spawner.setLong("unsealAt", now + integer(policy, "unsealAfterTicks", 36000));
+            spawner.setLong("unlockAt", now);
+            spawner.setLong("unsealAt", now + RemasterSpawnerContract.COOLDOWN);
+            w.playSoundEffect(tile.xCoord + .5, tile.yCoord + .5, tile.zCoord + .5, "gtsr:spawner.unlock", 1, 1);
         }
         data.markDirty();
         tile.refresh();

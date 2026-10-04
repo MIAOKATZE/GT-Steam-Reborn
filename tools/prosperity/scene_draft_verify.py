@@ -1,5 +1,6 @@
-"""Verify draft geometry and isolated production compilation without touching formal prefabs."""
+﻿"""Verify draft geometry and isolated production compilation without touching formal prefabs."""
 import gzip
+import itertools
 import json
 import math
 from pathlib import Path
@@ -47,6 +48,22 @@ def main():
         assert all(n['block'] == 'gtsr:draft_pressure_console#0' and cells[n['x'], n['y'], n['z']] == n['block'] for n in metadata['nodes'] if n['role'] == 'memory')
         assert all(n['block'] == 'gtsr:SealedChest#2' and cells[n['x'], n['y'], n['z']] == n['block'] for n in metadata['lootPlan7'])
         assert all(cells.get((n['x'], n['y']-1, n['z']), 'minecraft:air#0') != 'minecraft:air#0' for n in metadata['lootPlan7'])
+        for chest in metadata['lootPlan7']:
+            assert cells.get((chest['x'],chest['y']+1,chest['z']))=='minecraft:air#0', ('blocked-chest-lid',chest['id'])
+            if chest['unlockMode']!='direct':
+                room=next(r for r in metadata['rooms'] if r['moduleId']==chest['module'])
+                assert chest['y']>=room['y']+2, ('conditional-chest-on-floor',chest['id'])
+                for route in metadata['routes']:
+                    for a,b in zip(route,route[1:]):
+                        steps=max(abs(a[0]-b[0]),abs(a[2]-b[2]),1)
+                        for step in range(steps+1):
+                            at=[a[i]+(b[i]-a[i])*step/steps for i in range(3)]
+                            if abs(chest['y']-(at[1]+1))<=3:
+                                assert not(abs(chest['x']-at[0])<1.8 and abs(chest['z']-at[2])<1.8), ('reward-plinth-obstructs-route',chest['id'],at)
+        for a,b in itertools.combinations(metadata['lootPlan7'],2):
+            assert math.hypot(a['x']-b['x'],a['z']-b['z'])>=4, ('clustered-chests',a['id'],b['id'])
+        boss_rewards=[n for n in metadata['lootPlan7'] if n.get('combatModule','').endswith('boss-group')]
+        assert len(boss_rewards)>=3, ('boss-reward-distribution',prefab)
         approaches = []
         for n in metadata['lootPlan7'] + metadata['spawnerPlan'] + [n for n in metadata['nodes'] if n['role']=='memory']:
             candidates=[]
@@ -64,8 +81,8 @@ def main():
         for n in metadata['spawnerPlan']:
             assert cells[n['x'],n['y'],n['z']]==n['block']
             assert n['block']=='gtsr:draft6_spawner_'+n['tier']+'#0'
-            assert n['policy']['batch']=={'fragile':2,'stable':5,'runaway':8}[n['tier']]
-            assert n['policy']['sealAt']=={'fragile':10,'stable':30,'runaway':60}[n['tier']]
+            assert n['policy']['batch']=={'fragile':2,'stable':4,'runaway':6}[n['tier']]
+            assert n['policy']['sealAt']=={'fragile':10,'stable':24,'runaway':45}[n['tier']]
         (OUT / ('interaction-approaches-'+prefab+'.json')).write_text(json.dumps(approaches,indent=2),encoding='utf8')
         collisions = []
         for spawn in metadata['spawns']:
@@ -89,7 +106,7 @@ def main():
                 assert any(n['id']==chest['storyNode'] and n['role']=='memory' for n in metadata['nodes'])
             elif chest['unlockMode']=='combat':
                 assert any(s['module']==chest['combatModule'] for s in metadata['spawns'])
-        reports.append({'id':prefab,'solidCount':data['solidCount'],'airCount':data['airCount'],'productionGeometryChanges':len(metadata['productionGeometryChanges']), 'nodes':len(metadata['productionNodeBindings']), 'chests':len(metadata['lootPlan7']), 'actorAabbCollisions':0, 'floatingChests':0, 'unregisteredDraftMaterials':0, 'roofKeys':len(metadata['roofKeys']), 'playerReviewViews':len(metadata['playerReviewViews']), 'sourceCellsCompared':len(source_cells),'authorizedSealedChestMappings':changed_chests,'additionalProductionAir':len(extra),'unauthorizedSourceToProductionChanges':0})
+        reports.append({'id':prefab,'solidCount':data['solidCount'],'airCount':data['airCount'],'productionGeometryChanges':len(metadata['productionGeometryChanges']), 'nodes':len(metadata['productionNodeBindings']), 'chests':len(metadata['lootPlan7']), 'actorAabbCollisions':0, 'floatingChests':0, 'bossRewardChests':len(boss_rewards), 'minimumChestHorizontalSeparation':min(math.hypot(a['x']-b['x'],a['z']-b['z']) for a,b in itertools.combinations(metadata['lootPlan7'],2)), 'blockedChestLids':0, 'conditionalChestsOnFloor':0, 'unregisteredDraftMaterials':0, 'roofKeys':len(metadata['roofKeys']), 'playerReviewViews':len(metadata['playerReviewViews']), 'sourceCellsCompared':len(source_cells),'authorizedSealedChestMappings':changed_chests,'additionalProductionAir':len(extra),'unauthorizedSourceToProductionChanges':0})
     (OUT / 'geometry-verification.json').write_text(json.dumps({'passed':True,'reports':reports},indent=2),encoding='utf8')
     print(json.dumps(reports))
 

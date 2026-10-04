@@ -6,6 +6,7 @@ import net.minecraft.entity.ai.EntityAILookIdle;
 import net.minecraft.entity.ai.EntityAISwimming;
 import net.minecraft.entity.passive.EntityAmbientCreature;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.DamageSource;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
@@ -24,12 +25,14 @@ import net.minecraft.world.World;
  * <b>画布钉死 64×64</b>（{@code CreatureSpawnAuthorityCheck} I2 组三方对钉）。
  * <p>
  * <b>本片刻意不接</b>：夜间发微光的 client 侧粒子（02 册 §1.4 的 {@code FumeFireflyFX}，
- * 同 {@code GTSRSingularityFX} 挂法）与音效——都是"行为/表现生效"面，无头测不到，另派。
+ * 同 {@code GTSRSingularityFX} 挂法）。音效已在 v1.20.71 接入 {@code creature.*} 声族；真实听感仍需实机。
  * <p>
  * <b>自定义数据</b>：{@link #DATA_SPAWN_BAND}=16（同齿轮鸽口径）与 {@link #DATA_FLICKER_PHASE}=17
  * （明暗相位 0..255，供 P10 的发光/tint 消费，<b>本片只写不消费</b>）。
  */
-public class EntitySteamFirefly extends EntityAmbientCreature {
+public class EntitySteamFirefly extends EntityAmbientCreature implements ProsperityDeathVisual {
+
+    private final ProsperityDeathLifecycle deathLifecycle = new ProsperityDeathLifecycle();
 
     /** 自定义 DataWatcher 索引（判据 5：≥16；本链 vanilla 最高用到 11={@code EntityLiving}）。 */
     private static final int DATA_SPAWN_BAND = 16;
@@ -88,6 +91,21 @@ public class EntitySteamFirefly extends EntityAmbientCreature {
     }
 
     @Override
+    protected String getLivingSound() {
+        return "gtsr:creature.idle";
+    }
+
+    @Override
+    protected String getHurtSound() {
+        return "gtsr:creature.hurt";
+    }
+
+    @Override
+    protected String getDeathSound() {
+        return "gtsr:creature.death";
+    }
+
+    @Override
     protected void applyEntityAttributes() {
         super.applyEntityAttributes();
         this.getEntityAttribute(SharedMonsterAttributes.maxHealth)
@@ -101,6 +119,7 @@ public class EntitySteamFirefly extends EntityAmbientCreature {
     protected void entityInit() {
         super.entityInit();
         this.dataWatcher.addObject(DATA_SPAWN_BAND, (byte) 0);
+        this.dataWatcher.addObject(ProsperityDeathLifecycle.WATCHER, 0);
         this.dataWatcher.addObject(DATA_FLICKER_PHASE, (byte) 0);
     }
 
@@ -128,12 +147,14 @@ public class EntitySteamFirefly extends EntityAmbientCreature {
     @Override
     public void writeEntityToNBT(NBTTagCompound tag) {
         super.writeEntityToNBT(tag);
+        deathLifecycle.write(this, tag);
         tag.setByte(TAG_SPAWN_BAND, (byte) this.getSpawnBandOrdinal());
     }
 
     @Override
     public void readEntityFromNBT(NBTTagCompound tag) {
         super.readEntityFromNBT(tag);
+        deathLifecycle.read(this, tag);
         if (tag.hasKey(TAG_SPAWN_BAND)) {
             this.dataWatcher.updateObject(DATA_SPAWN_BAND, tag.getByte(TAG_SPAWN_BAND));
         }
@@ -219,4 +240,41 @@ public class EntitySteamFirefly extends EntityAmbientCreature {
 
     @Override
     protected void updateFallState(double distanceFallenThisTick, boolean isOnGround) {}
+
+    @Override
+    public void onDeath(DamageSource source) {
+        deathLifecycle.capture(recentlyHit > 0 ? getExperiencePoints(attackingPlayer) : 0);
+        super.onDeath(source);
+    }
+
+    @Override
+    protected void onDeathUpdate() {
+        deathLifecycle.tick(this);
+    }
+
+    @Override
+    public int getDeathAnimationTicks() {
+        return deathLifecycle.ticks(this);
+    }
+
+    @Override
+    public int getDeathAnimationDuration() {
+        return ProsperityDeathLifecycle.DURATION;
+    }
+
+    @Override
+    public int getDeathAnimationHoldTicks() {
+        return ProsperityDeathLifecycle.HOLD;
+    }
+
+    @Override
+    public boolean isGoldenDeath() {
+        return false;
+    }
+
+    @Override
+    public float getDeathAlpha(float partial) {
+        return deathLifecycle.alpha(this, partial);
+    }
+
 }

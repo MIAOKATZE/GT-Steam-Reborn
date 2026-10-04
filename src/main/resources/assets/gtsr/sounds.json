@@ -1,7 +1,12 @@
 {
   "scene.entry": {
     "category": "music",
-    "sounds": [{ "name": "gtsr:music/scene_entry", "stream": true }]
+    "sounds": [
+      {
+        "name": "gtsr:music/scene_entry",
+        "stream": true
+      }
+    ]
   },
   "silent_king.battle": {
     "category": "music",
@@ -9,6 +14,1671 @@
       {
         "name": "gtsr:music/silent_king",
         "stream": true
+      }
+    ]
+  },
+  "colossus.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/colossus_attack",
+        "stream": false
+      }
+    ]
+  },
+  "colossus.charge": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/colossus_charge",
+        "stream": false
+      }
+    ]
+  },
+  "colossus.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/colossus_death",
+        "stream": false
+      }
+    ]
+  },
+  "colossus.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/colossus_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "colossus.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/colossus_idle",
+        "stream": false
+      }
+    ]
+  },
+  "colossus.phase": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/colossus_phase",
+        "stream": false
+      }
+    ]
+  },
+  "colossus.slam": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/colossus_slam",
+        "stream": false
+      }
+    ]
+  },
+  "colossus.stomp": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/colossus_stomp",
+        "stream": false
+      }
+    ]
+  },
+  "creature.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_attack",
+        "stream": false
+      }
+    ]
+  },
+  "creature.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_death",
+        "stream": false
+      }
+    ]
+  },
+  "creature.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "creature.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_idle",
+        "stream": false
+      }
+    ]
+  },
+  "echo.projectile.explode": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/echo_projectile_explode",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-01.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-01_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-01.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-01_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-01.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-01_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-01.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-01_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-02.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-02_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-02.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-02_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-02.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-02_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-02.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-02_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-03.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-03_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-03.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-03_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-03.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-03_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-03.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-03_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-04.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-04_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-04.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-04_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-04.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-04_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-04.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-04_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-05.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-05_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-05.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-05_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-05.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-05_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-05.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-05_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-06.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-06_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-06.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-06_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-06.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-06_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-06.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-06_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-07.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-07_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-07.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-07_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-07.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-07_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-07.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-07_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-08.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-08_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-08.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-08_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-08.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-08_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-08.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-08_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-09.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-09_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-09.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-09_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-09.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-09_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-09.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-09_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-10.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-10_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-10.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-10_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-10.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-10_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-10.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-10_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-11.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-11_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-11.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-11_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-11.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-11_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-11.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-11_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-12.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-12_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-12.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-12_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-12.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-12_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-12.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-12_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-13.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-13_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-13.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-13_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-13.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-13_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-13.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-13_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-14.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-14_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-14.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-14_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-14.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-14_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-14.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-14_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-15.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-15_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-15.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-15_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-15.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-15_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.di-15.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_di-15_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.do-02.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_do-02_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.do-02.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_do-02_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.do-02.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_do-02_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.do-02.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_do-02_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-01.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-01_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-01.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-01_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-01.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-01_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-01.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-01_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-02.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-02_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-02.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-02_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-02.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-02_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-02.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-02_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-03.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-03_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-03.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-03_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-03.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-03_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-03.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-03_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-04.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-04_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-04.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-04_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-04.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-04_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-04.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-04_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-05.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-05_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-05.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-05_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-05.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-05_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-05.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-05_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-06.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-06_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-06.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-06_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-06.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-06_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-06.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-06_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-07.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-07_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-07.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-07_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-07.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-07_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-07.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-07_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-08.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-08_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-08.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-08_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-08.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-08_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-08.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-08_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-09.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-09_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-09.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-09_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-09.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-09_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-09.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-09_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-10.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-10_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-10.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-10_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-10.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-10_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-10.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-10_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-11.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-11_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-11.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-11_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-11.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-11_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-11.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-11_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-12.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-12_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-12.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-12_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-12.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-12_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-12.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-12_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-13.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-13_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-13.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-13_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-13.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-13_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-13.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-13_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-14.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-14_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-14.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-14_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-14.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-14_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-14.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-14_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-15.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-15_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-15.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-15_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-15.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-15_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-15.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-15_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-16.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-16_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-16.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-16_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-16.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-16_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-16.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-16_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-17.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-17_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-17.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-17_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-17.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-17_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-17.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-17_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-18.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-18_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-18.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-18_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-18.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-18_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-18.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-18_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-19.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-19_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-19.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-19_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-19.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-19_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-19.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-19_idle",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-20.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-20_attack",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-20.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-20_death",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-20.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-20_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "entity.dr-20.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_dr-20_idle",
+        "stream": false
+      }
+    ]
+  },
+  "hive.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/hive_attack",
+        "stream": false
+      }
+    ]
+  },
+  "hive.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/hive_death",
+        "stream": false
+      }
+    ]
+  },
+  "hive.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/hive_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "hive.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/hive_idle",
+        "stream": false
+      }
+    ]
+  },
+  "hive.impact": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/hive_impact",
+        "stream": false
+      }
+    ]
+  },
+  "hive.launch": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/hive_launch",
+        "stream": false
+      }
+    ]
+  },
+  "hive.phase": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/hive_phase",
+        "stream": false
+      }
+    ]
+  },
+  "hive.summon": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/hive_summon",
+        "stream": false
+      }
+    ]
+  },
+  "king.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/king_attack",
+        "stream": false
+      }
+    ]
+  },
+  "king.chant": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/king_chant",
+        "stream": false
+      }
+    ]
+  },
+  "king.crush": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/king_crush",
+        "stream": false
+      }
+    ]
+  },
+  "king.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/king_death",
+        "stream": false
+      }
+    ]
+  },
+  "king.domain": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/king_domain",
+        "stream": false
+      }
+    ]
+  },
+  "king.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/king_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "king.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/king_idle",
+        "stream": false
+      }
+    ]
+  },
+  "king.impact": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/king_impact",
+        "stream": false
+      }
+    ]
+  },
+  "king.meteor": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/king_meteor",
+        "stream": false
+      }
+    ]
+  },
+  "king.phase": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/king_phase",
+        "stream": false
+      }
+    ]
+  },
+  "king.pull": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/king_pull",
+        "stream": false
+      }
+    ]
+  },
+  "king.silence": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/king_silence",
+        "stream": false
+      }
+    ]
+  },
+  "king.warning": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/king_warning",
+        "stream": false
+      }
+    ]
+  },
+  "oathguard.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/oathguard_attack",
+        "stream": false
+      }
+    ]
+  },
+  "oathguard.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/oathguard_death",
+        "stream": false
+      }
+    ]
+  },
+  "oathguard.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/oathguard_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "oathguard.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/oathguard_idle",
+        "stream": false
+      }
+    ]
+  },
+  "spawner.recharge": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/spawner_recharge",
+        "stream": false
+      }
+    ]
+  },
+  "spawner.spawn": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/spawner_spawn",
+        "stream": false
+      }
+    ]
+  },
+  "spawner.unlock": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/spawner_unlock",
+        "stream": false
       }
     ]
   }

@@ -101,6 +101,13 @@ public class TileEntitySealedChest extends TileEntity {
     public void tryUnlockByClick(net.minecraft.entity.player.EntityPlayer player) {
         if (remasterSite.isEmpty()) {
             tryUnlockByClick();
+            if (openingTicks < 0 && !allowed()) {
+                String requirement = encounter.startsWith("echo:") ? "lore.chest.requires_boss"
+                    : platform < 0 ? "lore.chest.requires_king" : "lore.chest.requires_guards";
+                player.addChatMessage(
+                    new net.minecraft.util.ChatComponentTranslation(requirement)
+                        .setChatStyle(new net.minecraft.util.ChatStyle().setBold(true)));
+            }
             return;
         }
         if (com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.chestClick(player, this)

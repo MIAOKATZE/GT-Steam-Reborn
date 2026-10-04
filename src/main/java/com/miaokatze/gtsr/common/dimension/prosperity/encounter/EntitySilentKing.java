@@ -1,8 +1,10 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.encounter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -11,28 +13,34 @@ import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.potion.Potion;
+import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.DamageSource;
-import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.CombatEffects;
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.CombatGeometry;
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry;
 
-/** A fixed, front-facing throne encounter. All damage and progression are server authoritative. */
+/** Server authoritative throne encounter. Summoned guards never alter the native platform ledger. */
 public class EntitySilentKing extends EntityEncounterBase {
 
     public static final int DORMANT = 0, AWAKENING = 1, ACTIVE = 2, RECOVERING = 3, DEFEATED = 4;
-    public static final int ALERT_RADIUS = 55, AWAKENING_TICKS = 208;
+    public static final int ALERT_RADIUS = 55, AWAKENING_TICKS = 200;
     public static final float MAX_HEALTH = 3000F;
     public static final int SKILL_NONE = 0, SKILL_ECHO = 1, SKILL_PULSE = 2, SKILL_CROWN = 3, SKILL_SHOCK = 4,
         SKILL_SWEEP = 5, SKILL_CROWN_FALL = 6, SKILL_DOUBLE_PULSE = 7;
-    private final Set<UUID> condemned = new HashSet<>(), participants = new HashSet<>();
+    private final Set<UUID> condemned = new HashSet<>(), participants = new HashSet<>(),
+        pendingGuards = new HashSet<>();
+    private final Map<UUID, Integer> behindTicks = new HashMap<>();
     private final int[] cooldowns = new int[8];
-    private int combatTicks, nextSkill;
-    private double echoX, echoY, echoZ;
-    private boolean engaged, deathRecorded;
+    private int combatTicks, nextSkill = 160, attackSerial, lockTicks, absentTicks, guardWaveTicks;
+    private long lastPlayerPresence = -1;
+    private int meteorTicks = -1, pullDirection, meteorSerial, initialGuardTarget;
+    private double echoX, echoY, echoZ, meteorX, meteorY, meteorZ;
+    private UUID meteorTarget;
+    private boolean engaged, deathRecorded, initialGuardsSummoned;
 
     public EntitySilentKing(World w) {
         super(w);
@@ -42,8 +50,11 @@ public class EntitySilentKing extends EntityEncounterBase {
 
     protected void entityInit() {
         super.entityInit();
-        dataWatcher.addObject(25, 0);
-        dataWatcher.addObject(26, 0);
+        dataWatcher.addObject(17, 0);
+        dataWatcher.addObject(18, 0);
+        for (int i = 25; i <= 30; i++) dataWatcher.addObject(i, 0);
+        dataWatcher.updateObject(27, 1);
+        dataWatcher.updateObject(30, -1);
     }
 
     public int getSkillId() {
@@ -54,9 +65,79 @@ public class EntitySilentKing extends EntityEncounterBase {
         return dataWatcher.getWatchableObjectInt(26);
     }
 
+    public int getCombatPhase() {
+        return dataWatcher.getWatchableObjectInt(27);
+    }
+
+    public boolean isEnraged() {
+        return dataWatcher.getWatchableObjectInt(28) != 0;
+    }
+
+    public int getLockTicks() {
+        return dataWatcher.getWatchableObjectInt(29) & 65535;
+    }
+
+    public int getMeteorTicks() {
+        return dataWatcher.getWatchableObjectInt(30);
+    }
+
+    public int getGravityDirection() {
+        return dataWatcher.getWatchableObjectInt(29) >>> 16;
+    }
+
+    /** Independent modulo-64 counters retain simultaneous and instant casts in one watcher snapshot. */
+    public int getSkillCastSerial(int id) {
+        if (id < 1 || id > 5) return 0;
+        return (dataWatcher.getWatchableObjectInt(17) >>> ((id - 1) * 6)) & 63;
+    }
+
+    public int getSkillAnnouncementSerial() {
+        return dataWatcher.getWatchableObjectInt(18);
+    }
+
+    private void announceSkill(int id) {
+        int shift = (id - 1) * 6, packed = dataWatcher.getWatchableObjectInt(17);
+        int next = (getSkillCastSerial(id) + 1) & 63;
+        dataWatcher.updateObject(17, (packed & ~(63 << shift)) | (next << shift));
+        dataWatcher.updateObject(18, getSkillAnnouncementSerial() + 1);
+    }
+
     private void skill(int id, int ticks) {
         dataWatcher.updateObject(25, id);
         dataWatcher.updateObject(26, ticks);
+    }
+
+    private void lock(int ticks) {
+        lockTicks = ticks;
+        dataWatcher.updateObject(29, ticks | (pullDirection << 16));
+    }
+
+    protected float getSoundPitch() {
+        return isEnraged() ? .85F : .6F;
+    }
+
+    protected String getLivingSound() {
+        return "gtsr:king.idle";
+    }
+
+    protected String getHurtSound() {
+        return "gtsr:king.hurt";
+    }
+
+    protected String getDeathSound() {
+        return "gtsr:king.death";
+    }
+
+    public int getDeathAnimationDuration() {
+        return 240;
+    }
+
+    public int getDeathAnimationHoldTicks() {
+        return 80;
+    }
+
+    public boolean isGoldenDeath() {
+        return true;
     }
 
     protected void applyEntityAttributes() {
@@ -67,11 +148,9 @@ public class EntitySilentKing extends EntityEncounterBase {
     }
 
     public boolean isEntityInvulnerable() {
-        return getEncounterState() != ACTIVE || super.isEntityInvulnerable();
-    }
-
-    protected void onDeathUpdate() {
-        if (++deathTime >= 120) setDead();
+        return getEncounterState() != ACTIVE || lockTicks > 0
+            || getCombatPhase() == 2 && livingSummons() > 0
+            || super.isEntityInvulnerable();
     }
 
     public void moveEntity(double x, double y, double z) {}
@@ -84,29 +163,29 @@ public class EntitySilentKing extends EntityEncounterBase {
         return p.isEntityAlive() && p.worldObj == worldObj && !p.capabilities.isCreativeMode;
     }
 
-    /** Minecraft yaw 90 points west. Position, never the attacker's look vector, defines the half-plane. */
     private boolean front(Entity source) {
         double yaw = getHomeYaw() * Math.PI / 180;
-        return -Math.sin(yaw) * (source.posX - posX) + Math.cos(yaw) * (source.posZ - posZ) >= -1.0e-7;
+        return -Math.sin(yaw) * (source.posX - posX) + Math.cos(yaw) * (source.posZ - posZ) >= 0;
     }
 
-    public boolean attackEntityFrom(DamageSource s, float a) {
-        Entity source = s.getEntity(); // Indirect sources return their shooter, not the projectile's impact position.
-        if (worldObj.isRemote || getEncounterState() != ACTIVE
-            || !(source instanceof EntityPlayer)
-            || !valid((EntityPlayer) source)
-            || !canEntityBeSeen(source)) return false;
-        EntityPlayer p = (EntityPlayer) source;
+    public boolean attackEntityFrom(DamageSource source, float amount) {
+        Entity attacker = source.getEntity();
+        if (worldObj.isRemote || isEntityInvulnerable()
+            || !(attacker instanceof EntityPlayer)
+            || !valid((EntityPlayer) attacker)
+            || !canEntityBeSeen(attacker)) return false;
+        EntityPlayer player = (EntityPlayer) attacker;
+        boolean wasParticipant = participants.contains(player.getUniqueID());
+        participants.add(player.getUniqueID());
         engaged = true;
-        if (!front(p)) {
-            condemn(p);
-            return false;
+        float threshold = getCombatPhase() == 1 ? 1500 : getCombatPhase() == 2 ? 1000 : getCombatPhase() == 3 ? 500 : 0;
+        boolean crossing = threshold > 0 && getHealth() - amount <= threshold;
+        boolean accepted = super.attackEntityFrom(source, crossing ? Math.max(0, getHealth() - threshold) : amount);
+        if (!accepted && !wasParticipant) participants.remove(player.getUniqueID());
+        if (accepted && crossing) {
+            setHealth(threshold);
+            enterPhase(getCombatPhase() + 1, players());
         }
-        // Register before super: a killing hit invokes onDeath synchronously.
-        boolean wasParticipant = participants.contains(p.getUniqueID());
-        participants.add(p.getUniqueID());
-        boolean accepted = super.attackEntityFrom(s, a);
-        if (!accepted && !wasParticipant) participants.remove(p.getUniqueID());
         return accepted;
     }
 
@@ -123,71 +202,137 @@ public class EntitySilentKing extends EntityEncounterBase {
         return condemned.contains(p.getUniqueID());
     }
 
-    private void condemn(EntityPlayer player) {
-        if (!condemned.add(player.getUniqueID())) return;
-        ChatComponentTranslation warning = new ChatComponentTranslation("lore.king.condemned");
-        warning.getChatStyle()
-            .setColor(EnumChatFormatting.DARK_RED);
-        player.addChatMessage(warning);
-        worldObj.playSoundEffect(posX, posY + 4, posZ, "note.bassattack", 1F, .5F);
+    private void sound(String event) {
+        worldObj.playSoundEffect(posX, posY + 4, posZ, "gtsr:king." + event, 2F, isEnraged() ? .85F : .6F);
+    }
+
+    private void trackRear(List<EntityPlayer> ps) {
+        for (EntityPlayer p : ps) if (!front(p)) {
+            UUID id = p.getUniqueID();
+            int t = behindTicks.containsKey(id) ? behindTicks.get(id) + 1 : 1;
+            behindTicks.put(id, t);
+            if (t == 1) {
+                p.addChatMessage(
+                    new ChatComponentTranslation("lore.king.condemned")
+                        .setChatStyle(new net.minecraft.util.ChatStyle().setBold(true)));
+                sound("warning");
+            }
+            if (t >= 200) {
+                condemned.add(id);
+                if (!isEnraged()) {
+                    dataWatcher.updateObject(28, 1);
+                    nextSkill = Math.min(nextSkill, attackInterval());
+                }
+            }
+        }
     }
 
     public void onLivingUpdate() {
         super.onLivingUpdate();
         motionX = motionY = motionZ = 0;
         faceHome();
-        if (worldObj.isRemote) return;
+        updateEncounter();
+    }
+
+    private void updateEncounter() {
+        if (worldObj.isRemote || !isEntityAlive()) return;
         setPosition(anchorX, anchorY, anchorZ);
         if (getEncounterId().isEmpty()) return;
         for (int i = 1; i < cooldowns.length; i++) if (cooldowns[i] > 0) cooldowns[i]--;
-        ForgottenLakeEncounterData d = ForgottenLakeEncounterData.get(worldObj);
-        if (d.kingDead(getEncounterId())) {
+        List<EntityPlayer> ps = players();
+        ForgottenLakeEncounterData data = ForgottenLakeEncounterData.get(worldObj);
+        if (data.kingDead(getEncounterId())) {
             if (getEncounterState() != DEFEATED) setDead();
             return;
         }
-        int s = getEncounterState();
-        List<EntityPlayer> ps = players();
-        if (s == DORMANT) {
-            boolean close = false;
-            for (EntityPlayer p : ps) if (getDistanceSqToEntity(p) <= 24 * 24) close = true;
-            if (d.allGuardsDead(getEncounterId()) && close) {
+        long now = worldObj.getTotalWorldTime();
+        if (lastPlayerPresence < 0 || now < lastPlayerPresence) lastPlayerPresence = now;
+        long absence = Math.max(0, now - lastPlayerPresence);
+        if (getEncounterState() != DORMANT && getEncounterState() != RECOVERING && absence >= 1200) {
+            resetEncounter();
+            lastPlayerPresence = now;
+            absentTicks = 0;
+            return;
+        }
+        if (!ps.isEmpty()) {
+            lastPlayerPresence = now;
+            absentTicks = 0;
+        } else absentTicks = (int) Math.min(Integer.MAX_VALUE, absence);
+        if (getEncounterState() == DORMANT) {
+            for (EntityPlayer p : ps) if (getDistanceSqToEntity(p) <= 24 * 24 && data.allGuardsDead(getEncounterId())) {
                 state(AWAKENING);
-                setHealth(1);
+                setHealth(MAX_HEALTH);
                 setCustomNameTag("(旧日虚影)缄王");
+                initialGuardTarget = 20 + rand.nextInt(11);
+                summonGuards(initialGuardTarget, false, true);
+                initialGuardsSummoned = true;
+                sound("chant");
+                break;
             }
             return;
         }
-        if (s == AWAKENING) {
-            int t = getVisualPhaseTicks() + 1;
-            phase(t);
-            setHealth(Math.max(1, MAX_HEALTH * t / AWAKENING_TICKS));
-            if (t >= AWAKENING_TICKS) {
-                setHealth(MAX_HEALTH);
+        if (getEncounterState() == AWAKENING) {
+            phase(getVisualPhaseTicks() + 1);
+            if (getVisualPhaseTicks() % 20 == 0 && livingSummons() < initialGuardTarget)
+                summonGuards(initialGuardTarget - livingSummons(), false, true);
+            if (getVisualPhaseTicks() >= AWAKENING_TICKS && livingSummons() >= 20) {
                 state(ACTIVE);
+                nextSkill = attackInterval();
             }
             return;
         }
         if (ps.isEmpty()) {
-            if (s != RECOVERING) {
-                state(RECOVERING);
-                if (getSkillId() != 0) stopEffects();
-                skill(SKILL_NONE, 0);
-                nextSkill = 30;
-            }
-            setHealth(Math.min(MAX_HEALTH, getHealth() + 20));
             return;
         }
-        if (s == RECOVERING) state(ACTIVE);
-        if (getEncounterState() != ACTIVE) return;
+        absentTicks = 0;
+        if (getEncounterState() == RECOVERING) {
+            state(AWAKENING);
+            initialGuardTarget = 20 + rand.nextInt(11);
+            summonGuards(initialGuardTarget, false, true);
+            initialGuardsSummoned = true;
+            sound("chant");
+            return;
+        }
+        if (!initialGuardsSummoned && getCombatPhase() == 1) {
+            initialGuardTarget = 20 + rand.nextInt(11);
+            summonGuards(initialGuardTarget, false, true);
+            initialGuardsSummoned = true;
+            state(AWAKENING);
+            sound("chant");
+            return;
+        }
         engaged = true;
-        for (EntityPlayer p : ps) if (engaged && !front(p)) condemn(p);
+        trackRear(ps);
         phase(getVisualPhaseTicks() + 1);
         combatTicks++;
-        if (getSkillId() != SKILL_NONE) {
-            advanceSkill(ps);
-        } else if (--nextSkill <= 0) {
-            chooseSkill(ps);
+        if (lockTicks > 0) lock(lockTicks - 1);
+        advanceMeteor(ps);
+        if (getCombatPhase() == 2 && livingSummons() > 0) return;
+        if (getCombatPhase() == 4 && ++guardWaveTicks >= 600) {
+            summonGuards(8, true, false);
+            guardWaveTicks = 0;
         }
+        if (lockTicks > 0) return;
+        // The proximity field owns its cooldown and does not consume the normal attack schedule.
+        if (cooldowns[SKILL_SHOCK] == 0) for (EntityPlayer p : ps) if (horizontalSq(p, posX, posZ) <= 9) {
+            domain(ps);
+            cooldowns[SKILL_SHOCK] = 400;
+            break;
+        }
+        if (getSkillId() != SKILL_NONE) advanceSkill(ps);
+        if (--nextSkill <= 0 && getSkillId() == SKILL_NONE) {
+            nextSkill = chooseSkill(ps) ? attackInterval() : 0;
+        }
+    }
+
+    private int attackInterval() {
+        int ticks = getCombatPhase() == 1 ? 160 : getCombatPhase() == 2 ? 120 : getCombatPhase() == 3 ? 100 : 80;
+        return isEnraged() ? Math.max(1, ticks / 3) : ticks;
+    }
+
+    private double horizontalSq(Entity p, double x, double z) {
+        double dx = p.posX - x, dz = p.posZ - z;
+        return dx * dx + dz * dz;
     }
 
     private EntityPlayer priorityPlayer(List<EntityPlayer> ps) {
@@ -195,165 +340,295 @@ public class EntitySilentKing extends EntityEncounterBase {
         return ps.get(rand.nextInt(ps.size()));
     }
 
-    private void chooseSkill(List<EntityPlayer> ps) {
-        int id = SKILL_NONE;
-        if (cooldowns[SKILL_SHOCK] == 0) {
-            for (EntityPlayer p : ps) if (getDistanceSqToEntity(p) <= 8 * 8) id = SKILL_SHOCK;
+    private List<EntityResidualOathguard> summons() {
+        List<EntityResidualOathguard> out = new ArrayList<>();
+        for (Object o : worldObj.loadedEntityList) if (o instanceof EntityResidualOathguard) {
+            EntityResidualOathguard g = (EntityResidualOathguard) o;
+            if (g.isKingSummon(getUniqueID())) out.add(g);
         }
-        if (id == SKILL_NONE) {
-            int phase = getCombatPhase();
-            if (phase > 0 && rand.nextInt(3) == 0) {
-                int candidate = phase == 2 ? SKILL_SWEEP + rand.nextInt(3)
-                    : rand.nextBoolean() ? SKILL_SWEEP : SKILL_CROWN_FALL;
-                if (cooldowns[candidate] == 0) id = candidate;
-            }
-        }
-        if (id == SKILL_NONE) {
-            boolean punitive = false;
-            for (EntityPlayer p : ps) if (isCondemned(p)) punitive = true;
-            int[] weights = { 0, punitive ? 6 : 4, 3, punitive ? 6 : 2, 0 };
-            int sum = 0;
-            for (int i = 1; i <= 3; i++) if (cooldowns[i] == 0) sum += weights[i];
-            if (sum == 0) {
-                nextSkill = 10;
-                return;
-            }
-            int pick = rand.nextInt(sum);
-            for (int i = 1; i <= 3; i++) if (cooldowns[i] == 0) {
-                pick -= weights[i];
-                if (pick < 0) {
-                    id = i;
-                    break;
-                }
-            }
-        }
-        EntityPlayer p = priorityPlayer(ps);
-        echoX = p.posX;
-        echoY = CombatGeometry.groundY(worldObj, p.posX, p.posY, p.posZ);
-        echoZ = p.posZ;
-        skill(id, 0);
-        if (!attackSpaceLoaded()) {
-            skill(SKILL_NONE, 0);
-            nextSkill = 40;
-            return;
-        }
-        attackSerial = attackSerial >= 60000000 ? 1 : attackSerial + 1;
-        for (int j = 0; j < steps(); j++)
-            CombatEffects.send(this, attackSerial * 32 + j, 0, warning() + j * 20, 2, geometry(j));
-        cooldowns[id] = id == SKILL_SHOCK ? 1200
-            : id == SKILL_CROWN ? 400 + rand.nextInt(401) : id == SKILL_ECHO ? 80 : 120;
+        return out;
     }
 
-    private void hurt(EntityPlayer p, float amount, double knockback) {
-        float damage = isCondemned(p) ? amount * 2.2F : amount;
-        if (!valid(p) || !canEntityBeSeen(p) || !p.attackEntityFrom(DamageSource.causeMobDamage(this), damage)) return;
-        participants.add(p.getUniqueID());
-        if (knockback > 0) {
+    public boolean ownsSummonedGuard(UUID id) {
+        return pendingGuards.contains(id);
+    }
+
+    public void summonedGuardDied(UUID id) {
+        pendingGuards.remove(id);
+    }
+
+    private int livingSummons() {
+        for (EntityResidualOathguard g : summons()) if (!g.isEntityAlive()) pendingGuards.remove(g.getUniqueID());
+        return pendingGuards.size();
+    }
+
+    private void summonGuards(int count, boolean elite, boolean dormant) {
+        List<EntityPlayer> ps = players();
+        for (int i = 0; i < count; i++) {
+            double a = 2 * Math.PI * i / count + Math.toRadians(getHomeYaw());
+            double r = elite ? 9 : 19 + (i % 3) * 3;
+            double x = anchorX + Math.cos(a) * r, z = anchorZ + Math.sin(a) * r;
+            if (elite) {
+                double yaw = Math.toRadians(getHomeYaw()), side = i < count / 2 ? -1 : 1;
+                double along = (i % (count / 2) - 1.5) * 2;
+                x = anchorX + Math.cos(yaw) * 9 * side - Math.sin(yaw) * along;
+                z = anchorZ + Math.sin(yaw) * 9 * side + Math.cos(yaw) * along;
+            }
+            double y = -1;
+            // Candidate columns stay in loaded chunks. Vanilla collision shapes and liquids veto each body.
+            for (int attempt = 0; attempt < 24; attempt++) {
+                double angle = a + attempt * .43, radius = r + (attempt % 5) * 1.5;
+                double cx = attempt == 0 ? x : anchorX + Math.cos(angle) * radius;
+                double cz = attempt == 0 ? z : anchorZ + Math.sin(angle) * radius;
+                double cy = surface(cx, anchorY + 8, cz);
+                if (cy < 0) continue;
+                net.minecraft.util.AxisAlignedBB body = net.minecraft.util.AxisAlignedBB
+                    .getBoundingBox(cx - .65, cy + .01, cz - .65, cx + .65, cy + 2.6, cz + .65);
+                if (!worldObj.getCollidingBoundingBoxes(this, body)
+                    .isEmpty() || worldObj.isAnyLiquid(body) || !worldObj.checkNoEntityCollision(body)) continue;
+                x = cx;
+                y = cy;
+                z = cz;
+                break;
+            }
+            if (y < 0) continue;
+            EntityResidualOathguard g = new EntityResidualOathguard(worldObj);
+            g.initialize(getEncounterId(), -1, x, y, z);
+            g.configureKingSummon(getUniqueID(), dormant, elite);
+            if (worldObj.spawnEntityInWorld(g)) {
+                pendingGuards.add(g.getUniqueID());
+                if (!dormant && !ps.isEmpty()) g.activateKingSummon(priorityPlayer(ps));
+            }
+        }
+    }
+
+    private double surface(double x, double y, double z) {
+        int bx = (int) Math.floor(x), bz = (int) Math.floor(z);
+        if (!worldObj.getChunkProvider()
+            .chunkExists(bx >> 4, bz >> 4)) return -1;
+        for (int by = Math.min(254, (int) y); by >= 0; by--) {
+            net.minecraft.util.AxisAlignedBB box = worldObj.getBlock(bx, by, bz)
+                .getCollisionBoundingBoxFromPool(worldObj, bx, by, bz);
+            if (box != null) return box.maxY;
+        }
+        return -1;
+    }
+
+    private void resetEncounter() {
+        for (EntityResidualOathguard g : summons()) g.setDead();
+        pendingGuards.clear();
+        stopEffects();
+        skill(SKILL_NONE, 0);
+        meteorTicks = -1;
+        dataWatcher.updateObject(30, -1);
+        setHealth(MAX_HEALTH);
+        dataWatcher.updateObject(27, 1);
+        dataWatcher.updateObject(28, 0);
+        behindTicks.clear();
+        condemned.clear();
+        lock(0);
+        guardWaveTicks = 0;
+        nextSkill = 160;
+        java.util.Arrays.fill(cooldowns, 0);
+        initialGuardsSummoned = false;
+        state(RECOVERING);
+    }
+
+    private void enterPhase(int stage, List<EntityPlayer> ps) {
+        dataWatcher.updateObject(27, stage);
+        stopEffects();
+        skill(SKILL_NONE, 0);
+        sound("phase");
+        nextSkill = attackInterval();
+        if (stage == 2) {
+            for (EntityResidualOathguard g : summons()) if (!ps.isEmpty()) g.activateKingSummon(priorityPlayer(ps));
+            lock(0);
+        } else if (stage == 3) {
+            lock(200);
+            silence(ps);
+            if (!ps.isEmpty()) startMeteor(priorityPlayer(ps));
+        } else if (stage == 4) {
+            announceSkill(SKILL_ECHO);
+            lock(60);
+            guardWaveTicks = 0;
+            for (EntityPlayer p : ps) {
+                p.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 60, 9));
+                // Resolve both impulses in this tick: a checked 20-block lift and immediate ground crush.
+                p.moveEntity(0, 20, 0);
+                p.velocityChanged = true;
+                crush(p);
+            }
+            effect(1, 20, new CombatGeometry(CombatGeometry.CIRCLE, posX, posY, posZ, 0, 0, 24, 0));
+        }
+    }
+
+    private boolean chooseSkill(List<EntityPlayer> ps) {
+        int[] choices = getCombatPhase() >= 3 ? new int[] { 1, 2, 3, 5 } : new int[] { 1, 2, 5 };
+        List<Integer> available = new ArrayList<>();
+        for (int id : choices) if (cooldowns[id] == 0 && (id != 3 || meteorTicks < 0)) available.add(id);
+        if (available.isEmpty()) return false;
+        int id = available.get(rand.nextInt(available.size()));
+        EntityPlayer p = priorityPlayer(ps);
+        if (id == 2) {
+            silence(ps);
+            return true;
+        }
+        if (id == 3) {
+            startMeteor(p);
+            return true;
+        }
+        echoX = p.posX;
+        echoY = surface(p.posX, p.posY, p.posZ);
+        if (echoY < 0) echoY = p.posY;
+        echoZ = p.posZ;
+        pullDirection = 1 + rand.nextInt(5);
+        lock(lockTicks);
+        announceSkill(id);
+        skill(id, 0);
+        attackSerial++;
+        cooldowns[id] = 120;
+        effect(0, 20, geometry());
+        sound(id == 1 ? "crush" : "pull");
+        return true;
+    }
+
+    private CombatGeometry geometry() {
+        return new CombatGeometry(CombatGeometry.POINT, echoX, echoY, echoZ, 0, 0, 3, 0);
+    }
+
+    private void effect(int stage, int duration, CombatGeometry geometry) {
+        CombatEffects.send(this, attackSerial * 32, stage, duration, 2, geometry);
+    }
+
+    private void stopEffects() {
+        if (getSkillId() != 0) effect(2, 0, geometry());
+    }
+
+    private void damage(EntityPlayer p, DamageSource type, float amount) {
+        if (valid(p)) {
+            p.hurtResistantTime = 0;
+            if (p.attackEntityFrom(type, amount)) participants.add(p.getUniqueID());
+        }
+    }
+
+    private void crush(EntityPlayer p) {
+        double ground = surface(p.posX, p.posY, p.posZ);
+        if (ground < 0) return;
+        double height = Math.max(0, p.posY - ground);
+        damage(p, DamageSource.magic, 4);
+        if (height > .1) damage(p, DamageSource.causeMobDamage(this), (float) (height * 2));
+        p.moveEntity(0, -height, 0);
+        p.motionY = -.8;
+        p.velocityChanged = true;
+    }
+
+    private void traction(EntityPlayer p) {
+        damage(p, DamageSource.magic, 4);
+        double dx = pullDirection == 2 ? -5 : pullDirection == 3 ? 5 : 0;
+        double dy = pullDirection == 1 ? 5 : 0;
+        double dz = pullDirection == 4 ? -5 : pullDirection == 5 ? 5 : 0;
+        double x = p.posX, y = p.posY, z = p.posZ;
+        // moveEntity performs vanilla swept AABB clipping: no teleport through a wall.
+        p.moveEntity(dx, dy, dz);
+        p.velocityChanged = true;
+        if (Math.abs(p.posX - x - dx) > .01 || Math.abs(p.posY - y - dy) > .01 || Math.abs(p.posZ - z - dz) > .01)
+            damage(p, DamageSource.causeMobDamage(this), 10);
+    }
+
+    private void advanceSkill(List<EntityPlayer> ps) {
+        int t = getSkillTicks() + 1;
+        skill(getSkillId(), t);
+        if (t == 20) {
+            effect(1, 12, geometry());
+            for (EntityPlayer p : ps) if (horizontalSq(p, echoX, echoZ) <= 9) {
+                if (getSkillId() == 1) crush(p);
+                else traction(p);
+            }
+        }
+        if (t >= 20) {
+            effect(2, 0, geometry());
+            skill(SKILL_NONE, 0);
+        }
+    }
+
+    private void silence(List<EntityPlayer> ps) {
+        announceSkill(SKILL_PULSE);
+        cooldowns[2] = 1200;
+        sound("silence");
+        attackSerial++;
+        effect(1, 20, new CombatGeometry(CombatGeometry.CIRCLE, posX, posY, posZ, 0, 0, 55, 0));
+        for (EntityPlayer p : ps) {
+            p.addPotionEffect(new PotionEffect(Potion.weakness.id, 400, 2));
+            p.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 400, 0));
+        }
+    }
+
+    private void domain(List<EntityPlayer> ps) {
+        announceSkill(SKILL_SHOCK);
+        sound("domain");
+        attackSerial++;
+        effect(1, 12, new CombatGeometry(CombatGeometry.CIRCLE, posX, posY, posZ, 0, 0, 3, 0));
+        for (EntityPlayer p : ps) if (horizontalSq(p, posX, posZ) <= 9) {
+            damage(p, DamageSource.magic, 2);
             double dx = p.posX - posX, dz = p.posZ - posZ, length = Math.sqrt(dx * dx + dz * dz);
             if (length < .001) {
-                dx = -1;
-                dz = 0;
+                dx = -Math.sin(Math.toRadians(getHomeYaw()));
+                dz = Math.cos(Math.toRadians(getHomeYaw()));
                 length = 1;
             }
-            p.addVelocity(dx / length * knockback, .35, dz / length * knockback);
+            p.addVelocity(dx / length * 1.6, .45, dz / length * 1.6);
             p.velocityChanged = true;
         }
     }
 
-    public int getCombatPhase() {
-        return getHealth() <= MAX_HEALTH * .3F ? 2 : getHealth() <= MAX_HEALTH * .6F ? 1 : 0;
+    private void startMeteor(EntityPlayer p) {
+        announceSkill(SKILL_CROWN);
+        meteorSerial++;
+        meteorTicks = 0;
+        meteorTarget = p.getUniqueID();
+        meteorX = p.posX;
+        meteorZ = p.posZ;
+        meteorY = surface(p.posX, p.posY, p.posZ);
+        if (meteorY < 0) meteorY = p.posY;
+        cooldowns[3] = 2400;
+        sound("meteor");
+        dataWatcher.updateObject(30, 0);
+        sendMeteor(0, 120);
     }
 
-    private int attackSerial;
-
-    private boolean attackSpaceLoaded() {
-        for (int cx = ((int) anchorX - 28) >> 4; cx <= ((int) anchorX + 28) >> 4; cx++)
-            for (int cz = ((int) anchorZ - 28) >> 4; cz <= ((int) anchorZ + 28) >> 4; cz++)
-                if (!worldObj.getChunkProvider()
-                    .chunkExists(cx, cz)) return false;
-        return true;
+    private void sendMeteor(int stage, int duration) {
+        CombatEffects.send(
+            this,
+            1900000000 + meteorSerial * 32,
+            stage,
+            duration,
+            2,
+            new CombatGeometry(CombatGeometry.POINT, meteorX, meteorY, meteorZ, 0, 0, 5, 0));
     }
 
-    private int steps() {
-        return getSkillId() == SKILL_CROWN_FALL ? 3 : getSkillId() == SKILL_DOUBLE_PULSE ? 2 : 1;
-    }
-
-    private int warning() {
-        return getSkillId() == SKILL_ECHO ? 40
-            : getSkillId() == SKILL_CROWN || getSkillId() == SKILL_CROWN_FALL ? 60 : 40;
-    }
-
-    private CombatGeometry geometry(int step) {
-        int id = getSkillId();
-        if (id == SKILL_ECHO) return new CombatGeometry(CombatGeometry.POINT, echoX, echoY, echoZ, 0, 0, 4, 0);
-        if (id == SKILL_CROWN || id == SKILL_CROWN_FALL) return new CombatGeometry(
-            CombatGeometry.POINT,
-            echoX + (id == SKILL_CROWN_FALL ? (step - 1) * 6 : 0),
-            echoY,
-            echoZ,
-            0,
-            0,
-            7,
-            0);
-        if (id == SKILL_SWEEP) {
-            double a = Math.toRadians(getHomeYaw());
-            return new CombatGeometry(
-                CombatGeometry.CONE,
-                anchorX,
-                anchorY,
-                anchorZ,
-                anchorX - Math.sin(a) * 24,
-                anchorZ + Math.cos(a) * 24,
-                24,
-                0);
-        }
-        if (id == SKILL_DOUBLE_PULSE) return new CombatGeometry(
-            CombatGeometry.RING,
-            anchorX,
-            anchorY,
-            anchorZ,
-            0,
-            0,
-            step == 0 ? 14 : 24,
-            step == 0 ? 7 : 17);
-        return new CombatGeometry(
-            CombatGeometry.CIRCLE,
-            anchorX,
-            anchorY,
-            anchorZ,
-            0,
-            0,
-            id == SKILL_SHOCK ? 10 : 24,
-            0);
-    }
-
-    private void stopEffects() {
-        for (int j = 0; j < steps(); j++) CombatEffects.send(this, attackSerial * 32 + j, 2, 0, 2, geometry(j));
-    }
-
-    private void advanceSkill(List<EntityPlayer> ps) {
-        if (!attackSpaceLoaded()) {
-            stopEffects();
-            skill(SKILL_NONE, 0);
-            nextSkill = 40;
-            return;
-        }
-        int id = getSkillId(), t = getSkillTicks() + 1;
-        skill(id, t);
-        int windup = warning();
-        for (int j = 0; j < steps(); j++) if (t == windup + j * 20) {
-            CombatGeometry g = geometry(j);
-            CombatEffects.send(this, attackSerial * 32 + j, 1, 8, 2, g);
-            for (EntityPlayer p : ps) if (g.contains(p.posX, p.posY, p.posZ)) hurt(
-                p,
-                id == SKILL_ECHO ? 10 : id == SKILL_CROWN || id == SKILL_CROWN_FALL ? 24 : id == SKILL_SHOCK ? 6 : 8,
-                id == SKILL_ECHO ? 0 : id == SKILL_SHOCK ? 1.5 : .6);
-            CombatEffects.send(this, attackSerial * 32 + j, 2, 18, 2, g);
-            worldObj.playSoundEffect(posX, posY, posZ, "random.explode", 1F, .6F);
-        }
-        if (t >= windup + (steps() - 1) * 20 + 18) {
-            skill(SKILL_NONE, 0);
-            nextSkill = 25 - getCombatPhase() * 5;
+    private void advanceMeteor(List<EntityPlayer> ps) {
+        if (meteorTicks < 0) return;
+        meteorTicks++;
+        dataWatcher.updateObject(30, meteorTicks);
+        if (meteorTicks <= 40) for (EntityPlayer p : ps) if (p.getUniqueID()
+            .equals(meteorTarget)) {
+                meteorX = p.posX;
+                meteorZ = p.posZ;
+                double ground = surface(p.posX, p.posY, p.posZ);
+                if (ground >= 0) meteorY = ground;
+                if (meteorTicks % 5 == 0) sendMeteor(0, 140 - meteorTicks);
+            }
+        // One-second warning, then five seconds of descent (impact six seconds after casting).
+        if (meteorTicks == 120) {
+            sendMeteor(1, 20);
+            sound("impact");
+            DamageSource explosion = new DamageSource("explosion").setExplosion();
+            for (EntityPlayer p : ps) if (horizontalSq(p, meteorX, meteorZ) <= 25) {
+                damage(p, DamageSource.magic, 10);
+                damage(p, explosion, 50);
+            }
+            meteorTicks = -1;
+            dataWatcher.updateObject(30, -1);
         }
     }
 
@@ -367,6 +642,10 @@ public class EntitySilentKing extends EntityEncounterBase {
         }
         if (dead && !worldObj.isRemote && !deathRecorded) {
             deathRecorded = true;
+            for (EntityResidualOathguard guard : summons()) guard.setDead();
+            if (meteorTicks >= 0) sendMeteor(2, 0);
+            meteorTicks = -1;
+            dataWatcher.updateObject(30, -1);
             if (getSkillId() != 0) stopEffects();
             ForgottenLakeEncounterData.get(worldObj)
                 .kingDied(getEncounterId());
@@ -414,41 +693,105 @@ public class EntitySilentKing extends EntityEncounterBase {
 
     public void writeEntityToNBT(NBTTagCompound n) {
         super.writeEntityToNBT(n);
-        n.setInteger("healthSchema", 2);
+        n.setInteger("skillAnnouncements", dataWatcher.getWatchableObjectInt(17));
+        n.setInteger("skillAnnouncementSerial", getSkillAnnouncementSerial());
+        n.setInteger("healthSchema", 3);
         n.setInteger("combat", combatTicks);
         n.setInteger("attackSerial", attackSerial);
         n.setInteger("skillId", getSkillId());
         n.setInteger("skillTicks", getSkillTicks());
         n.setInteger("nextSkill", nextSkill);
+        n.setInteger("kingPhase", getCombatPhase());
+        n.setInteger("lockTicks", lockTicks);
+        n.setInteger("absentTicks", absentTicks);
+        n.setLong("lastPlayerPresence", lastPlayerPresence);
+        n.setInteger("guardWaveTicks", guardWaveTicks);
+        n.setBoolean("enraged", isEnraged());
+        n.setBoolean("engaged", engaged);
+        n.setBoolean("deathRecorded", deathRecorded);
+        n.setInteger("initialGuardTarget", initialGuardTarget);
+        n.setBoolean("initialGuards", initialGuardsSummoned);
+        n.setInteger("pullDirection", pullDirection);
         for (int i = 1; i < cooldowns.length; i++) n.setInteger("cooldown" + i, cooldowns[i]);
         n.setDouble("ex", echoX);
         n.setDouble("ey", echoY);
         n.setDouble("ez", echoZ);
-        n.setBoolean("engaged", engaged);
-        n.setBoolean("deathRecorded", deathRecorded);
+        n.setInteger("meteorSerial", meteorSerial);
+        n.setInteger("meteorTicks", meteorTicks);
+        n.setDouble("mx", meteorX);
+        n.setDouble("my", meteorY);
+        n.setDouble("mz", meteorZ);
+        if (meteorTarget != null) n.setString("meteorTarget", meteorTarget.toString());
+        NBTTagList rear = new NBTTagList();
+        for (Map.Entry<UUID, Integer> e : behindTicks.entrySet()) {
+            NBTTagCompound entry = new NBTTagCompound();
+            entry.setString(
+                "uuid",
+                e.getKey()
+                    .toString());
+            entry.setInteger("ticks", e.getValue());
+            rear.appendTag(entry);
+        }
+        n.setTag("rearTicks", rear);
+        writeIds(n, "pendingGuards", pendingGuards);
         writeIds(n, "condemned", condemned);
         writeIds(n, "participants", participants);
     }
 
     public void readEntityFromNBT(NBTTagCompound n) {
         super.readEntityFromNBT(n);
-        if (getCustomNameTag().equals("（旧日虚影）缄王")) setCustomNameTag("(旧日虚影)缄王");
+        dataWatcher.updateObject(17, n.getInteger("skillAnnouncements"));
+        dataWatcher.updateObject(18, n.getInteger("skillAnnouncementSerial"));
         if (!n.hasKey("healthSchema")) {
-            float oldHealth = getHealth();
             getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(MAX_HEALTH);
-            setHealth(Math.min(MAX_HEALTH, oldHealth * 3));
-            if (getEncounterState() == AWAKENING) phase(getVisualPhaseTicks() * 2);
+            setHealth(Math.min(MAX_HEALTH, getHealth() * 3));
         }
         combatTicks = n.getInteger("combat");
         attackSerial = Math.max(0, n.getInteger("attackSerial"));
         skill(n.getInteger("skillId"), n.getInteger("skillTicks"));
         nextSkill = n.getInteger("nextSkill");
+        int legacyPhase = getHealth() <= 500 ? 4 : getHealth() <= 1000 ? 3 : getHealth() <= 1500 ? 2 : 1;
+        dataWatcher.updateObject(
+            27,
+            n.hasKey("kingPhase") ? Math.max(1, Math.min(4, n.getInteger("kingPhase"))) : legacyPhase);
+        dataWatcher.updateObject(28, n.getBoolean("enraged") ? 1 : 0);
+        lock(Math.max(0, n.getInteger("lockTicks")));
+        absentTicks = Math.max(0, n.getInteger("absentTicks"));
+        long now = worldObj.getTotalWorldTime();
+        lastPlayerPresence = n.hasKey("lastPlayerPresence") && n.getLong("lastPlayerPresence") >= 0
+            ? Math.min(now, n.getLong("lastPlayerPresence"))
+            : Math.max(0, now - absentTicks);
+        guardWaveTicks = n.getInteger("guardWaveTicks");
+        engaged = n.getBoolean("engaged");
+        deathRecorded = n.getBoolean("deathRecorded");
+        initialGuardsSummoned = n.getBoolean("initialGuards");
+        initialGuardTarget = n.hasKey("initialGuardTarget") ? n.getInteger("initialGuardTarget") : 20;
+        pullDirection = n.getInteger("pullDirection");
+        lock(lockTicks);
         for (int i = 1; i < cooldowns.length; i++) cooldowns[i] = Math.max(0, n.getInteger("cooldown" + i));
         echoX = n.getDouble("ex");
         echoY = n.getDouble("ey");
         echoZ = n.getDouble("ez");
-        engaged = n.getBoolean("engaged");
-        deathRecorded = n.getBoolean("deathRecorded");
+        meteorSerial = n.getInteger("meteorSerial");
+        meteorTicks = n.hasKey("meteorTicks") ? n.getInteger("meteorTicks") : -1;
+        meteorX = n.getDouble("mx");
+        meteorY = n.getDouble("my");
+        meteorZ = n.getDouble("mz");
+        dataWatcher.updateObject(30, meteorTicks);
+        try {
+            meteorTarget = UUID.fromString(n.getString("meteorTarget"));
+        } catch (IllegalArgumentException ignored) {
+            meteorTarget = null;
+        }
+        behindTicks.clear();
+        NBTTagList rear = n.getTagList("rearTicks", 10);
+        for (int i = 0; i < rear.tagCount(); i++) {
+            NBTTagCompound entry = rear.getCompoundTagAt(i);
+            try {
+                behindTicks.put(UUID.fromString(entry.getString("uuid")), Math.max(0, entry.getInteger("ticks")));
+            } catch (IllegalArgumentException ignored) {}
+        }
+        readIds(n, "pendingGuards", pendingGuards);
         readIds(n, "condemned", condemned);
         readIds(n, "participants", participants);
     }

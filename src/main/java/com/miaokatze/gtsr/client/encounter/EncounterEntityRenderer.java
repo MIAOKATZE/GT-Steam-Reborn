@@ -41,7 +41,7 @@ public final class EncounterEntityRenderer extends Render {
                 time *= 104.0 / EntitySilentKing.AWAKENING_TICKS;
             } else if (state == 4) {
                 clip = "death";
-                time = king.deathTime + partial;
+                time = king.getDeathAnimationTicks() + partial;
             } else if (state == 2) {
                 int skill = king.getSkillId();
                 if (skill != 0) {
@@ -54,7 +54,7 @@ public final class EncounterEntityRenderer extends Render {
             EntityResidualOathguard guard = (EntityResidualOathguard) entity;
             if (guard.getHealth() <= 0) {
                 clip = "death";
-                time = Math.min(48, guard.deathTime + partial);
+                time = Math.min(48, guard.getDeathAnimationTicks() + partial);
             } else if (guard.getEncounterState() == 1 && guard.getVisualPhaseTicks() < 25) {
                 clip = "attack";
                 time = (guard.getVisualPhaseTicks() + partial) * 1.2;
@@ -73,7 +73,11 @@ public final class EncounterEntityRenderer extends Render {
             GL11.glEnable(GL11.GL_NORMALIZE);
             int light = entity.getBrightnessForRender(partial);
             OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, light & 65535, light >>> 16);
-            asset.render(clip, time);
+            asset.render(
+                clip,
+                time,
+                ((com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntityEncounterBase) entity)
+                    .getDeathAlpha(partial));
         }
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.objectMouseOver != null && mc.objectMouseOver.entityHit == entity) {

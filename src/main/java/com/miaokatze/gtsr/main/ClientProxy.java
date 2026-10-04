@@ -34,6 +34,7 @@ public class ClientProxy extends CommonProxy {
         super.init(event);
         com.miaokatze.gtsr.client.architecture.RuinsArchitectureRenderer.registerRenderer();
         com.miaokatze.gtsr.client.architecture.RemasterBlockRenderer.registerRenderer();
+        com.miaokatze.gtsr.client.architecture.RemasterSpawnerRenderer.registerRenderer();
         com.miaokatze.gtsr.client.encounter.EncounterClient.register();
         com.miaokatze.gtsr.client.echo.CombatEffectsClient.register();
 

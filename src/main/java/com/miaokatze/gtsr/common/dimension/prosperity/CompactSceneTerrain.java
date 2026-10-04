@@ -131,6 +131,15 @@ public final class CompactSceneTerrain {
         int routeX = roster == 0 ? -42 : 0;
         double entry = dz > HALF_Z && Math.abs(dx - routeX) < 18 ? Math.abs(dx - routeX) / 18.0D : 1.0D;
         double height = surfaceY + (originalHeight - surfaceY) * blend + relief * entry;
+        if (Math.abs(dx) < HALF_X && Math.abs(dz) < HALF_Z
+            && CompactSceneDecor.landscapeColumn(roster, dx + 60, dz + 60, 0)) {
+            // Broad, soil-covered factory knoll; foundry shoulders rise between the authored bays.
+            double rim = Math.min(1D, Math.min(HALF_X - Math.abs(dx), HALF_Z - Math.abs(dz)) / 12D);
+            double mound = roster == 0
+                ? 7D * Math.max(0D, 1D - Math.pow((dx - 12D) / 43D, 2) - Math.pow((dz + 23D) / 37D, 2))
+                : Math.min(2D, Math.max(0D, 1.4D + 1.1D * Math.sin(dx / 13D) + .8D * Math.cos(dz / 17D)));
+            height += mound * rim;
+        }
         return (int) Math.round(Math.max(originalHeight - 12, Math.min(originalHeight + 12, height)));
     }
 

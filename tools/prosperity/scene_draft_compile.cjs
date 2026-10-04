@@ -39,7 +39,11 @@ for(const id of ['subsided_factory','fallen_foundry']){
  for(let ri=0;ri<rooms.length;ri++){if(factory&&ri===5)continue;const r=rooms[ri],y=r.y+1;
   const count=factory?(ri<3?2:1):(ri<4?2:1);
   for(let slot=0;slot<count;slot++){let picked;
-   for(let z=r.z+3;z<r.z+r.d-3&&!picked;z++)for(let x=r.x+2;x<r.x+r.w-2;x++){
+   const bays=[];for(let z=r.z+3;z<r.z+r.d-3;z++)for(let x=r.x+3;x<r.x+r.w-3;x++)bays.push([x,z]);
+   // Pick visible aisle/intersection bays, then disperse along the same accessible aisle.
+   const center=[r.x+Math.floor(r.w/2),r.z+Math.floor(r.d/2)];
+   bays.sort((a,b)=>Math.hypot(a[0]-center[0],a[1]-center[1])-Math.hypot(b[0]-center[0],b[1]-center[1]));
+   for(const [x,z]of bays){if(picked)break;
     if(occupied(x,y,z)||!solid(x,y-1,z)||solid(x,y,z)||solid(x,y+1,z))continue;
     for(const dx of [-2,2]){const cx=x+dx,cz=z;
      if(cx<=r.x||cx>=r.x+r.w-1)continue;
@@ -50,7 +54,7 @@ for(const id of ['subsided_factory','fallen_foundry']){
    }
    if(!picked)throw Error('No accessible spawner bay '+id+':'+ri+':'+slot);
    const [x,yy,z,cx,cz]=picked,tier=['fragile','stable','runaway'][spawnerPlan.length%3],sample=reference.records.find(n=>n.tier===tier),code=['dr-02','dr-04','dr-08','dr-15','dr-18'][spawnerPlan.length%5];
-   const n={id:id+'-spawner-'+spawnerPlan.length,role:'spawner',x,y:yy,z,code,module:r.moduleId,tier,block:sample.block,label:'工位封印刷怪笼',policy:{...sample.policy},spawnZone:{center:[cx,yy,cz],clearance:{width:3,depth:5,height:3,mode:'ground'}},approach:[cx,yy,cz],runtimeEnabled:true};
+   const n={id:id+'-spawner-'+spawnerPlan.length,role:'spawner',x,y:yy,z,code,module:r.moduleId,tier,block:sample.block,label:'工位封印刷怪笼',policy:{...sample.policy,batch:{fragile:2,stable:4,runaway:6}[tier],sealAt:{fragile:10,stable:24,runaway:45}[tier],cooldown:12000,interval:200,intervalMin:200,intervalMax:800,range:16},spawnZone:{center:[cx,yy,cz],clearance:{width:3,depth:5,height:3,mode:'ground'}},approach:[cx,yy,cz],runtimeEnabled:true};
    cells.set(key(x,yy,z),[x,yy,z,n.block]);spawnerPlan.push(n);nodes.push({...n});
   }
  }

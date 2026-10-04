@@ -12,9 +12,9 @@ import net.minecraftforge.common.MinecraftForge;
 
 import org.lwjgl.opengl.GL11;
 
+import com.miaokatze.gtsr.client.encounter.CubeRuneParticle;
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.CombatEffects;
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.CombatGeometry;
-import com.miaokatze.gtsr.common.fx.GTSRGlowFX;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -29,7 +29,10 @@ public final class CombatEffectsClient
     private final Map<String, Visual> active = new HashMap<>();
     private WorldClient world;
     private final Map<java.util.UUID, Integer> latest = new java.util.LinkedHashMap<>();
+    private final Map<java.util.UUID, Integer> latestMeteor = new java.util.LinkedHashMap<>();
+    private final Map<java.util.UUID, Integer> meteorStages = new HashMap<>();
     private static boolean registered;
+    private static final int METEOR_SIGNAL = 1900000000;
     private static final net.minecraft.util.ResourceLocation SIGIL = new net.minecraft.util.ResourceLocation(
         "gtsr:textures/fx/echo_attack_sigil.png");
     private static final float[][] COLORS = { { .75F, .43F, .22F }, { .25F, .66F, .51F }, { .95F, .68F, .23F },
@@ -64,6 +67,8 @@ public final class CombatEffectsClient
     public void onResourceManagerReload(net.minecraft.client.resources.IResourceManager manager) {
         active.clear();
         latest.clear();
+        latestMeteor.clear();
+        meteorStages.clear();
         world = null;
     }
 
@@ -85,20 +90,48 @@ public final class CombatEffectsClient
                 if (world != received) {
                     active.clear();
                     latest.clear();
+                    latestMeteor.clear();
+                    meteorStages.clear();
                     world = received;
                 }
+                boolean meteor = isMeteor(s.sequence);
+                if (meteor) {
+                    Integer prior = latestMeteor.get(s.source);
+                    if (prior != null && s.sequence < prior) return;
+                    Integer priorStage = meteorStages.get(s.source);
+                    if (prior != null && s.sequence == prior && priorStage != null && s.stage < priorStage) return;
+                    if (prior == null || s.sequence > prior) {
+                        if (latestMeteor.size() >= 128 && !latestMeteor.containsKey(s.source)) {
+                            java.util.UUID expired = latestMeteor.keySet()
+                                .iterator()
+                                .next();
+                            latestMeteor.remove(expired);
+                            meteorStages.remove(expired);
+                        }
+                        latestMeteor.put(s.source, s.sequence);
+                        meteorStages.put(s.source, s.stage);
+                        // A newer cast supersedes only the older meteor of this source.
+                        Iterator<Visual> existing = active.values()
+                            .iterator();
+                        while (existing.hasNext()) {
+                            CombatEffects.Signal oldSignal = existing.next().signal;
+                            if (oldSignal.source.equals(s.source) && isMeteor(oldSignal.sequence)) existing.remove();
+                        }
+                    }
+                }
+                if (meteor) meteorStages.put(s.source, s.stage);
+                String key = s.source + ":" + s.sequence;
+                Visual old = active.get(key);
                 Integer last = latest.get(s.source);
                 int serial = s.sequence / 32;
-                if (last != null && serial < last) return;
-                if (last == null || serial > last) {
+                if (!meteor && last != null && serial < last && (old == null || s.stage == 0)) return;
+                if (!meteor && (last == null || serial > last)) {
                     if (latest.size() >= 128 && !latest.containsKey(s.source)) latest.remove(
                         latest.keySet()
                             .iterator()
                             .next());
                     latest.put(s.source, serial);
                 }
-                String key = s.source + ":" + s.sequence;
-                Visual old = active.get(key);
                 if (old != null && old.signal.stage > s.stage) return;
                 if (s.stage == 2 && s.duration == 0) active.remove(key);
                 else {
@@ -116,9 +149,12 @@ public final class CombatEffectsClient
         if (mc.theWorld == null || world != mc.theWorld || mc.thePlayer == null) {
             active.clear();
             latest.clear();
+            latestMeteor.clear();
+            meteorStages.clear();
             world = null;
             return;
         }
+        if (mc.isGamePaused()) return;
         int budget = 48;
         Iterator<Visual> it = active.values()
             .iterator();
@@ -147,17 +183,20 @@ public final class CombatEffectsClient
                     u,
                     g.shape == CombatGeometry.LINE || g.shape == CombatGeometry.CHAIN ? .5 : .55);
                 double y = CombatGeometry.groundY(world, pos[0], g.y + 2, pos[1]);
-                GTSRGlowFX glow = GTSRGlowFX.spawn(
+                double angle = u * Math.PI * 2;
+                CubeRuneParticle.emit(
                     world,
                     pos[0],
-                    y + (warning ? .25 : impact ? 1.4 : .5),
+                    y + (warning ? .25 : impact ? .8 : .5),
                     pos[1],
-                    warning ? .14F : impact ? .38F : .16F,
+                    impact ? Math.cos(angle) * .035 : 0,
+                    warning ? .008 : .045,
+                    impact ? Math.sin(angle) * .035 : 0,
+                    warning ? .055 : impact ? .16 : .07,
                     col[0],
                     col[1],
                     col[2],
-                    warning ? 7 : impact ? 10 : 6);
-                glow.setShrinkPerTick(.018F);
+                    warning ? 16 : impact ? 24 : 14);
                 budget--;
             }
         }
@@ -191,10 +230,12 @@ public final class CombatEffectsClient
             oz = mc.thePlayer.lastTickPosZ + (mc.thePlayer.posZ - mc.thePlayer.lastTickPosZ) * p;
         verticesLeft = MAX_VERTICES;
         surfaces.clear();
-        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
-        GL11.glMatrixMode(GL11.GL_MODELVIEW);
-        GL11.glPushMatrix();
-        try {
+        try (com.miaokatze.gtsr.client.encounter.GlScope scope = new com.miaokatze.gtsr.client.encounter.GlScope()) {
+            net.minecraft.client.renderer.OpenGlHelper
+                .setActiveTexture(net.minecraft.client.renderer.OpenGlHelper.lightmapTexUnit);
+            GL11.glDisable(GL11.GL_TEXTURE_2D);
+            net.minecraft.client.renderer.OpenGlHelper
+                .setActiveTexture(net.minecraft.client.renderer.OpenGlHelper.defaultTexUnit);
             GL11.glTranslated(-ox, -oy, -oz);
             GL11.glDisable(GL11.GL_TEXTURE_2D);
             GL11.glDisable(GL11.GL_LIGHTING);
@@ -223,6 +264,7 @@ public final class CombatEffectsClient
                 tint(color, warning ? .55F : (float) (.5 * fade));
                 outline(g, segments, Math.min(.24, g.radius * .09));
                 markings(g, v.signal.palette, age, warning, fade, segments);
+                if (isMeteor(v.signal.sequence) && warning) meteor(v, p);
                 if (warning) {
                     tint(color, .18F);
                     curtain(g, segments, .20, .14);
@@ -246,9 +288,41 @@ public final class CombatEffectsClient
                 }
             }
         } finally {
-            GL11.glPopMatrix();
-            GL11.glPopAttrib();
             surfaces.clear();
+        }
+    }
+
+    private static boolean isMeteor(int sequence) {
+        return sequence >= METEOR_SIGNAL;
+    }
+
+    /** One-second windup, landing six seconds after the cast begins. */
+    private static double meteorHeight(double tick) {
+        double progress = Math.max(0, Math.min(1, (tick - 20) / 100D));
+        return 32 * (1 - progress * progress);
+    }
+
+    private void meteor(Visual v, double partial) {
+        Entity source = world.getEntityByID(v.signal.entity);
+        if (!(source instanceof com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing)) return;
+        int tick = ((com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing) source)
+            .getMeteorTicks();
+        if (tick < 0) return;
+        CombatGeometry g = v.signal.geometry;
+        double height = meteorHeight(tick + partial);
+        // Actual server-timed descent; the footprint remains at the locked danger location.
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glColor4f(.78F, .48F, .96F, .8F);
+        CubeRuneParticle.box(g.x, g.y + height + 1.5, g.z, 1.5);
+        for (int i = 0; i < 12; i++) {
+            double a = i * Math.PI / 6 + (tick + partial) * .035;
+            GL11.glColor4f(1F, .7F, .25F, .55F);
+            CubeRuneParticle
+                .box(g.x + Math.cos(a) * 2.2, g.y + height + 1.5 + Math.sin(a * 2) * .3, g.z + Math.sin(a) * 2.2, .12);
+        }
+        for (int i = 0; i < 5; i++) {
+            GL11.glColor4f(.68F, .3F, 1F, (5 - i) * .09F);
+            CubeRuneParticle.box(g.x, g.y + height + 3 + i * 1.3, g.z, 1.1 - i * .13);
         }
     }
 

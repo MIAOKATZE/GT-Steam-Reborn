@@ -4,11 +4,13 @@ import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.model.ModelChicken;
 import net.minecraft.client.renderer.entity.RenderLiving;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
+import com.miaokatze.gtsr.client.encounter.GlScope;
 import com.miaokatze.gtsr.client.model.GTSRModelSlagRidgeHunter;
 import com.miaokatze.gtsr.client.model.GTSRModelSteamFirefly;
 import com.miaokatze.gtsr.common.dimension.prosperity.entity.GTSRCreatureRoster.Species;
@@ -101,10 +103,68 @@ public final class GTSRCreatureRenderers {
     static class RenderLivingVanillaModel extends RenderLiving {
 
         private final ResourceLocation texture;
+        private float deathPartial;
 
         RenderLivingVanillaModel(ModelBase model, float shadowSize, ResourceLocation texture) {
             super(model, shadowSize);
             this.texture = texture;
+        }
+
+        @Override
+        public void doRender(EntityLiving entity, double x, double y, double z, float yaw, float partial) {
+            // Vanilla's separate red damage pass calls mainModel directly with alpha .4.
+            // Suppress that pass for corpses, then restore the client entity fields even on failure.
+            int death = entity.deathTime, hurt = entity.hurtTime;
+            float previousPartial = deathPartial;
+            deathPartial = partial;
+            boolean corpse = entity instanceof ProsperityDeathVisual && entity.getHealth() <= 0;
+            if (corpse) {
+                entity.deathTime = 0;
+                entity.hurtTime = 0;
+            }
+            try {
+                super.doRender(entity, x, y, z, yaw, partial);
+            } finally {
+                entity.deathTime = death;
+                entity.hurtTime = hurt;
+                deathPartial = previousPartial;
+            }
+        }
+
+        @Override
+        protected void rotateCorpse(EntityLivingBase entity, float age, float yaw, float partial) {
+            super.rotateCorpse(entity, age, yaw, partial);
+            if (entity instanceof ProsperityDeathVisual && entity.getHealth() <= 0) {
+                float progress = Math.min(
+                    1,
+                    (float) Math.sqrt(
+                        Math.max(
+                            0,
+                            (((ProsperityDeathVisual) entity).getDeathAnimationTicks() + partial) / 20F * 1.6F)));
+                GL11.glRotatef(progress * getDeathMaxRotation(entity), 0, 0, 1);
+            }
+        }
+
+        @Override
+        protected void renderModel(EntityLivingBase entity, float swing, float amount, float age, float headYaw,
+            float pitch, float scale) {
+            float alpha = entity instanceof ProsperityDeathVisual
+                ? ((ProsperityDeathVisual) entity).getDeathAlpha(deathPartial)
+                : 1F;
+            if (alpha >= 1) {
+                super.renderModel(entity, swing, amount, age, headYaw, pitch, scale);
+                return;
+            }
+            if (alpha <= 0) return;
+            bindEntityTexture(entity);
+            try (GlScope scope = new GlScope()) {
+                GL11.glEnable(GL11.GL_BLEND);
+                GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                GL11.glDisable(GL11.GL_ALPHA_TEST);
+                GL11.glDepthMask(false);
+                GL11.glColor4f(1, 1, 1, alpha);
+                mainModel.render(entity, swing, amount, age, headYaw, pitch, scale);
+            }
         }
 
         @Override

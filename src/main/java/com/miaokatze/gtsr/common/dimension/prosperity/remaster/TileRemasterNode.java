@@ -66,6 +66,14 @@ public final class TileRemasterNode extends TileEntity {
     }
 
     @Override
+    public net.minecraft.util.AxisAlignedBB getRenderBoundingBox() {
+        return "spawner".equals(role)
+            ? net.minecraft.util.AxisAlignedBB
+                .getBoundingBox(xCoord - 1, yCoord - 1, zCoord - 1, xCoord + 2, yCoord + 2, zCoord + 2)
+            : super.getRenderBoundingBox();
+    }
+
+    @Override
     public Packet getDescriptionPacket() {
         NBTTagCompound n = new NBTTagCompound();
         writeToNBT(n);

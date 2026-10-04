@@ -2180,7 +2180,7 @@ lore.chapter.hanging_great_tree.title=垂天巨树
 lore.chapter.hanging_great_tree.p0=王没有让工匠为自己建造最高的宫殿。他把城邦的最后一片种子埋在湖心，说：若大地不能承载我们，就让仍愿生长的东西承载。后来，巨树的枝柯垂过云影，工匠们把木脉铺成了通往王庭的道路。
 lore.chapter.hanging_great_tree.p1=这里的王权不是金属平台上的旗帜，而是承住一切的根。根肋成为扶手，冠枝围成王座，叶帘隔开守位者的小室。王的威严来自一个可怕的决定：只要还有一人需要庇护，他就不会离开。
 lore.chapter.hanging_great_tree.p2=灾变以后，朝钟不再响，王仍坐在最后一次诏令的姿态里。残誓兵面向枝路，守着无人再来交接的入口。它们并非见人就杀；但当一个守位者被伤害，近处同伴便会记起相同的誓言。
-lore.chapter.hanging_great_tree.p3=想让王醒来，先让树上每一个守位者结束值守，再走到王座之前。旋升道路的尽头便是正门。王只接受当面来者；接战后踏入他的背后，是一种不会因你回到正面而被宽恕的忤逆。
+lore.chapter.hanging_great_tree.p3=想让王醒来，先让树上每一个守位者结束值守，再走到王座之前。旋升道路的尽头便是正门。王只接受当面来者；接战后踏入他的背后，王庭会先发出警告，累计停留十秒才会激怒缄王。
 lore.chapter.hanging_great_tree.p4=王的苏醒很慢，仿佛每一截根都在替他重新承担誓言。不要把沉默当成虚弱，也不要把一次靠近当成安全。王庭会为王的诏令划出光环，而过近的来者会被根脉震开。剩下的故事，只有真正终结这场值守的人才能读到。
 lore.chapter.king_epilogue.title=王冠之后
 lore.chapter.king_epilogue.p0=最后一声震荡消失时，王没有转过身。那并非傲慢，而是他早已忘记，自己也可以是被护送着离开的人。树仍然生长，第一次不再需要用生长来证明一个承诺。
@@ -2228,7 +2228,7 @@ tile.Royal_hanging_vine.name=垂誓藤
 tile.Royal_oath_flower.name=残誓花
 tile.Royal_crown_fern.name=冠羽蕨
 
-lore.king.condemned=王庭已记下你的忤逆。归正亦不赦。
+lore.king.condemned=王庭察觉你立于背后。累计停留十秒，王将震怒。
 
 # P36 encounter progress and oath guidance
 encounter.progress.throne=来到王座之前
@@ -3032,3 +3032,28 @@ achievement.gtsr.ending.fifteen_witnesses=十五见证同在
 achievement.gtsr.ending.fifteen_witnesses.desc=十五种不同终局信物全部有效获得；尚未开放获取（设计预留）
 achievement.gtsr.ending.suppressed=重新命名世界
 achievement.gtsr.ending.suppressed.desc=归档成功且逆模因压制状态确认；尚未开放获取（设计预留）
+
+# Encounter skill announcements and seal requirements
+echo.skill.dc-10.1=重力碾压
+echo.skill.dc-10.2=保持缄默
+echo.skill.dc-10.3=陨星
+echo.skill.dc-10.4=王权领域
+echo.skill.dc-10.5=重力牵引
+echo.skill.dc-02.1=熔核重击
+echo.skill.dc-02.2=崩垣冲撞
+echo.skill.dc-02.3=三连践踏
+echo.skill.dc-02.4=正面震荡
+echo.skill.dc-02.5=崩垣终震
+echo.skill.dc-08.1=巢群召唤
+echo.skill.dc-08.2=双发孢子
+echo.skill.dc-08.3=孢子连射
+echo.skill.dc-08.4=近域爆脉
+echo.skill.dc-08.5=裂巢迫击
+echo.skill.di-02.1=蚀辉旋流
+echo.skill.di-05.1=缄默织网
+echo.skill.di-08.1=裂弦狙击
+echo.skill.di-10.1=镜铠重击
+echo.skill.di-13.1=共振钟鸣
+lore.chest.requires_boss=封印条件：击败此遗址的首领后再右击开启。
+lore.chest.requires_king=封印条件：击败缄王后再右击开启。
+lore.chest.requires_guards=封印条件：击败本房间的全部残誓兵后再右击开启。
