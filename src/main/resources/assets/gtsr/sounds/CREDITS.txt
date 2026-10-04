@@ -1,7 +1,14 @@
-Combat sound recording layers: rubberduck, "80 CC0 creature SFX"
-https://opengameart.org/content/80-cc0-creature-sfx
-License: CC0 1.0 Universal. Local original license and SHA256 pins:
-plan/model/authored/audio/combat-v71/sources.json and original/License.txt.
-Processing: deterministic granular/respeed/filter/ring-modulation/impulse/reverb
-recipe in tools/prosperity/combat_audio.py, GT-Steam-Reborn v1.20.71 task.
+Combat audio refined for GT-Steam-Reborn v1.20.72.
+Physical and short speech recordings: Kenney, Creative Commons CC0 1.0.
+https://kenney.nl/assets/impact-sounds
+https://kenney.nl/assets/sci-fi-sounds
+https://kenney.nl/assets/rpg-audio
+https://kenney.nl/assets/voiceover-pack
+Bird recording: syncopika, Creative Commons CC0 1.0.
+https://opengameart.org/content/bird-chirping-sounds
+Original recording SHA256 and copied licenses are pinned in:
+plan/model/authored/audio/refinement-v72/*sources.json and original/.
+Deterministic body/texture/finite-space layers use anatomy-specific profiles:
+tools/prosperity/combat_audio_{boss_layers,families,publish}.py
 Additional synthesized layers are original procedural signals.
+No v1.20.71 repeated creature-mouth grains are used in the refined production set.

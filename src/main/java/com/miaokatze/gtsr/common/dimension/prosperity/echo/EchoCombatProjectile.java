@@ -9,7 +9,8 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 
 /** A tracked, swept projectile. Detonation never edits blocks or damages friendly echoes. */
-public final class EchoCombatProjectile extends Entity {
+public final class EchoCombatProjectile extends Entity
+    implements cpw.mods.fml.common.registry.IEntityAdditionalSpawnData {
 
     private EntityOldEcho owner;
     private float damage;
@@ -45,6 +46,17 @@ public final class EchoCombatProjectile extends Entity {
         dataWatcher.addObject(21, 0);
     }
 
+    @Override
+    public void writeSpawnData(io.netty.buffer.ByteBuf buffer) {
+        buffer.writeLong(getUniqueID().getMostSignificantBits());
+        buffer.writeLong(getUniqueID().getLeastSignificantBits());
+    }
+
+    @Override
+    public void readSpawnData(io.netty.buffer.ByteBuf buffer) {
+        entityUniqueID = new java.util.UUID(buffer.readLong(), buffer.readLong());
+    }
+
     public boolean hasExploded() {
         return dataWatcher.getWatchableObjectInt(21) != 0;
     }
@@ -67,7 +79,7 @@ public final class EchoCombatProjectile extends Entity {
             setPosition(posX + motionX, posY + motionY, posZ + motionZ);
             return;
         }
-        if (--life <= 0 || owner == null || !owner.isEntityAlive()) {
+        if (--life <= 0 || owner == null || !owner.isEntityAlive() || owner.getKind() == EchoKind.DO02) {
             setDead();
             return;
         }

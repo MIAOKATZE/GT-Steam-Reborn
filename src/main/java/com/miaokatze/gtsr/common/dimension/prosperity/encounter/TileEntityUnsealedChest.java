@@ -14,9 +14,25 @@ public final class TileEntityUnsealedChest extends TileEntity implements IInvent
 
     private ItemStack[] contents = new ItemStack[27];
     private int viewers, ticks;
+    private int rewardTier;
+    private boolean rewardGenerated;
     private String storyOrigin = "";
     private int storyEvent = -1;
     public float lidAngle, prevLidAngle;
+
+    public int getRewardTier() {
+        return rewardTier;
+    }
+
+    /** Never refill a consumed reward or alter an existing player's inventory. */
+    public boolean beginReward(int tier) {
+        if (rewardGenerated) return false;
+        for (ItemStack stack : contents) if (stack != null) return false;
+        rewardTier = com.miaokatze.gtsr.common.dimension.prosperity.remaster.ChestTier.clamp(tier);
+        rewardGenerated = true;
+        markDirty();
+        return true;
+    }
 
     public void setStoryOrigin(String origin, int event) {
         storyOrigin = origin;
@@ -155,6 +171,8 @@ public final class TileEntityUnsealedChest extends TileEntity implements IInvent
     public void readFromNBT(NBTTagCompound tag) {
         super.readFromNBT(tag);
         contents = new ItemStack[27];
+        rewardTier = tag.getInteger("rewardTier");
+        rewardGenerated = tag.getBoolean("rewardGenerated");
         storyOrigin = tag.getString("storyOrigin");
         storyEvent = tag.hasKey("storyEvent") ? tag.getInteger("storyEvent") : -1;
         NBTTagList list = tag.getTagList("Items", 10);
@@ -175,6 +193,8 @@ public final class TileEntityUnsealedChest extends TileEntity implements IInvent
             list.appendTag(item);
         }
         tag.setTag("Items", list);
+        tag.setInteger("rewardTier", rewardTier);
+        tag.setBoolean("rewardGenerated", rewardGenerated);
         tag.setString("storyOrigin", storyOrigin);
         tag.setInteger("storyEvent", storyEvent);
     }

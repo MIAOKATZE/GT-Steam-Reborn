@@ -63,7 +63,8 @@ public final class RemasterData extends WorldSavedData {
         if (retryOwners != null) return retryOwners;
         List<GeneratedOwner> result = new ArrayList<>();
         for (GeneratedOwner owner : generatedOwners())
-            if ("compact-prefab".equals(owner.site.layout)) result.add(owner);
+            if ("compact-prefab".equals(owner.site.layout) || "natural-prefab".equals(owner.site.layout))
+                result.add(owner);
         retryOwners = java.util.Collections.unmodifiableList(result);
         return retryOwners;
     }

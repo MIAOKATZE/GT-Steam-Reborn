@@ -63,24 +63,24 @@ public class EntitySlagRidgeHunter extends EntityMob implements ProsperityDeathV
 
     @Override
     protected String getLivingSound() {
-        return "gtsr:creature.idle";
+        return "gtsr:creature.slag_ridge_hunter.idle";
     }
 
     @Override
     protected String getHurtSound() {
-        return "gtsr:creature.hurt";
+        return "gtsr:creature.slag_ridge_hunter.hurt";
     }
 
     @Override
     protected String getDeathSound() {
-        return "gtsr:creature.death";
+        return "gtsr:creature.slag_ridge_hunter.death";
     }
 
     @Override
     public boolean attackEntityAsMob(Entity target) {
         final boolean hit = super.attackEntityAsMob(target);
         if (hit && !worldObj.isRemote) {
-            worldObj.playSoundEffect(posX, posY, posZ, "gtsr:creature.attack", .55F, .9F);
+            worldObj.playSoundEffect(posX, posY, posZ, "gtsr:creature.slag_ridge_hunter.attack", .55F, .9F);
         }
         return hit;
     }

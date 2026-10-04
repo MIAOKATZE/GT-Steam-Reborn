@@ -35,7 +35,7 @@ import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
  * <li>繁殖：{@link #createChild} 只满足 {@code EntityAgeable} 的抽象契约，<b>不加</b>
  * {@code EntityAIMate}/{@code EntityAIEatGrass} ⇒ 名册里没有鸽的繁殖通道；</li>
  * <li>掉落 0-1 锈羽（02 册 §1.4）：锈羽物品尚未立项，本片不新增物品；</li>
- * <li>音效已在 v1.20.71 接入 {@code creature.*} 的闲置、受伤与死亡声族。</li>
+ * <li>音效使用齿轮鸽独立的闲置、受伤与死亡声族。</li>
  * </ul>
  * <b>自定义数据</b>：{@link #DATA_SPAWN_BAND}（DataWatcher 索引 <b>16</b>，vanilla 链上最高只到
  * 12={@code EntityAgeable.IsBaby}，故不撞）= 出生时所在维内群系带下标，经
@@ -92,17 +92,17 @@ public class EntityGearPigeon extends EntityAnimal implements ProsperityDeathVis
 
     @Override
     protected String getLivingSound() {
-        return "gtsr:creature.idle";
+        return "gtsr:creature.gear_pigeon.idle";
     }
 
     @Override
     protected String getHurtSound() {
-        return "gtsr:creature.hurt";
+        return "gtsr:creature.gear_pigeon.hurt";
     }
 
     @Override
     protected String getDeathSound() {
-        return "gtsr:creature.death";
+        return "gtsr:creature.gear_pigeon.death";
     }
 
     @Override

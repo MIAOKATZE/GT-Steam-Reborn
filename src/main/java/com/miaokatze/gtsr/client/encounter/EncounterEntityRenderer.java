@@ -44,9 +44,17 @@ public final class EncounterEntityRenderer extends Render {
                 time = king.getDeathAnimationTicks() + partial;
             } else if (state == 2) {
                 int skill = king.getSkillId();
-                if (skill != 0) {
+                int recent = BossSkillVisuals.recentMask(king);
+                if (skill == 0 && king.getMeteorTicks() >= 0) {
+                    clip = "crown_gaze";
+                    time = Math.min(88, king.getMeteorTicks() + partial);
+                } else if (skill != 0) {
                     clip = skill == 2 || skill == 4 ? "sound_vacuum" : "silent_edict";
-                    time = king.getSkillTicks() + partial;
+                    double attack = king.getSkillTicks() + partial;
+                    time = attack < 20 ? attack * 1.2 : Math.min(72, 24 + (attack - 20) * 2.4);
+                } else if ((recent & 10) != 0) {
+                    clip = "sound_vacuum";
+                    time = (entity.ticksExisted + partial) % 80;
                 }
 
             }
@@ -77,7 +85,7 @@ public final class EncounterEntityRenderer extends Render {
                 clip,
                 time,
                 ((com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntityEncounterBase) entity)
-                    .getDeathAlpha(partial));
+                    .getDeathAlpha(partial) * CubeRuneParticle.spawnAlpha(entity, partial));
         }
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.objectMouseOver != null && mc.objectMouseOver.entityHit == entity) {

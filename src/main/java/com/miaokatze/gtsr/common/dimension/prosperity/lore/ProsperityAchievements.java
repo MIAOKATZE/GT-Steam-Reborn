@@ -49,8 +49,8 @@ public final class ProsperityAchievements {
             "首次有效获得对应唯一信物",
             "pressure_registry",
             "relic",
-            "brass_chronicle",
-            false);
+            "future_pressure_witness",
+            true);
         define(
             "defeat.mb-pressure-auditor",
             "解除阀印监核",
@@ -73,8 +73,8 @@ public final class ProsperityAchievements {
             "首次有效获得对应唯一信物",
             "recovery_exchange",
             "relic",
-            "brass_chronicle",
-            false);
+            "future_recovery_witness",
+            true);
         define(
             "defeat.mb-return-overseer",
             "解除拒收督工",
@@ -97,8 +97,8 @@ public final class ProsperityAchievements {
             "首次有效获得对应唯一信物",
             "weft_memory_hall",
             "relic",
-            "brass_chronicle",
-            false);
+            "future_weft_witness",
+            true);
         define(
             "defeat.mb-weft-curator",
             "解除断纬主织",
@@ -121,8 +121,8 @@ public final class ProsperityAchievements {
             "首次有效获得对应唯一信物",
             "canal_tollhouse",
             "relic",
-            "brass_chronicle",
-            false);
+            "future_canal_witness",
+            true);
         define(
             "defeat.mb-tide-collector",
             "解除逆潮收税官",
@@ -145,8 +145,8 @@ public final class ProsperityAchievements {
             "首次有效获得对应唯一信物",
             "signal_lensworks",
             "relic",
-            "brass_chronicle",
-            false);
+            "future_lens_witness",
+            true);
         define(
             "defeat.mb-parallax-master",
             "解除偏光鉴定师",
@@ -169,8 +169,8 @@ public final class ProsperityAchievements {
             "首次有效获得对应唯一信物",
             "oath_checkpoint",
             "relic",
-            "brass_chronicle",
-            false);
+            "future_oath_witness",
+            true);
         define(
             "defeat.mb-oath-captain",
             "解除换誓长官",
@@ -193,8 +193,8 @@ public final class ProsperityAchievements {
             "首次有效获得对应唯一信物",
             "ash_name_vault",
             "relic",
-            "brass_chronicle",
-            false);
+            "future_ash_witness",
+            true);
         define(
             "defeat.mb-ash-keeper",
             "解除存名司炉",
@@ -217,8 +217,8 @@ public final class ProsperityAchievements {
             "首次有效获得对应唯一信物",
             "resonance_exchange",
             "relic",
-            "brass_chronicle",
-            false);
+            "future_sound_witness",
+            true);
         define(
             "defeat.mb-counterbeat",
             "解除反拍钟师",
@@ -241,8 +241,8 @@ public final class ProsperityAchievements {
             "首次有效获得对应唯一信物",
             "roadbed_testyard",
             "relic",
-            "brass_chronicle",
-            false);
+            "future_road_witness",
+            true);
         define(
             "defeat.mb-route-warden",
             "解除归途路监",
@@ -265,8 +265,8 @@ public final class ProsperityAchievements {
             "首次有效获得对应唯一信物",
             "anchor_calibration_house",
             "relic",
-            "brass_chronicle",
-            false);
+            "future_anchor_witness",
+            true);
         define(
             "defeat.mb-anchor-surveyor",
             "解除定锚测记官",
@@ -449,7 +449,7 @@ public final class ProsperityAchievements {
             "首次有效获得对应唯一信物",
             "abandoned_city",
             "relic",
-            "brass_chronicle",
+            "future_city_address_witness",
             false);
         define(
             "relic.future_city_return_witness",
@@ -457,7 +457,7 @@ public final class ProsperityAchievements {
             "首次有效获得对应唯一信物",
             "abandoned_city",
             "relic",
-            "brass_chronicle",
+            "future_city_return_witness",
             false);
         define("city.old_era", "探索旧时代", "首次有效阅读三个不同分区的现场档案", "abandoned_city", "city", "brass_chronicle", false);
         define("city.address_original", "旧址仍可寻", "实际获得旧址原件", "abandoned_city", "city", "brass_chronicle", false);
@@ -520,16 +520,16 @@ public final class ProsperityAchievements {
             "十五种不同终局信物全部有效获得",
             "fiction_expansion_project",
             "ending",
-            "brass_chronicle",
-            false);
+            "old_crown",
+            true);
         define(
             "ending.suppressed",
             "重新命名世界",
             "归档成功且逆模因压制状态确认",
             "fiction_expansion_project",
             "ending",
-            "brass_chronicle",
-            false);
+            "old_crown",
+            true);
     }
 
     private ProsperityAchievements() {}

@@ -35,9 +35,13 @@ final class EchoIndustrialCombat {
             .85F);
     }
 
+    void enteredPhase() {
+        lastPhase = owner.getCombatPhase();
+    }
+
     void cancel() {
-        if (owner.getSkillId() != 0)
-            CombatEffects.send(owner, serial * 32, 2, 0, palette(), geometry(owner.getSkillId()));
+        if (owner.getSkillId() != 0) CombatEffects
+            .send(owner, serial * 32, 2, 0, palette(), geometry(owner.getSkillId()), owner.getSkillId(), 0);
         owner.skill(0, 0);
         cooldown = Math.max(40, cooldown);
     }
@@ -53,7 +57,7 @@ final class EchoIndustrialCombat {
         if (id == 0) {
             if (cooldown > 0 || !owner.canEntityBeSeen(target)) {
                 if (!hive() && owner.ticksExisted % 10 == 0) owner.getNavigator()
-                    .tryMoveToEntityLiving(target, .8);
+                    .tryMoveToEntityLiving(target, 1);
                 return;
             }
             id = 1 + owner.getRNG()
@@ -68,7 +72,7 @@ final class EchoIndustrialCombat {
             oz = owner.posZ;
             owner.getNavigator()
                 .clearPathEntity();
-            CombatEffects.send(owner, serial * 32, 0, windup(id), palette(), geometry(id));
+            CombatEffects.send(owner, serial * 32, 0, windup(id), palette(), geometry(id), id, 0);
             sound(hive() ? id == 1 ? "summon" : "launch" : id == 2 ? "charge" : id == 3 ? "stomp" : "attack");
             return;
         }
@@ -83,7 +87,7 @@ final class EchoIndustrialCombat {
             if (Math.abs(owner.posX - beforeX) + Math.abs(owner.posZ - beforeZ) < .05) owner.skill(id, delay + 24);
         }
         if (ticks == delay) {
-            CombatEffects.send(owner, serial * 32, 1, 20, palette(), geometry(id));
+            CombatEffects.send(owner, serial * 32, 1, 20, palette(), geometry(id), id, 0);
             if (hive()) {
                 if (id == 1) summon(2 + phase * 2);
                 else if (id == 4) {
@@ -98,11 +102,12 @@ final class EchoIndustrialCombat {
         if (!hive() && id == 3 && (ticks == delay + 16 || ticks == delay + 32)) {
             hit(geometry(id), 8, .6);
             sound("stomp");
-            CombatEffects.send(owner, serial * 32 + (ticks == delay + 16 ? 1 : 2), 1, 12, palette(), geometry(id));
+            CombatEffects
+                .send(owner, serial * 32 + (ticks == delay + 16 ? 1 : 2), 1, 12, palette(), geometry(id), id, 0);
         }
         if (hive() && id == 3 && ticks == delay + 20) volley(4, 6, 2);
         if (ticks >= delay + 44) {
-            CombatEffects.send(owner, serial * 32, 2, 0, palette(), geometry(id));
+            CombatEffects.send(owner, serial * 32, 2, 0, palette(), geometry(id), id, 0);
             owner.skill(0, 0);
             cooldown = (hive() ? 100 : 120) - phase * 25;
         }

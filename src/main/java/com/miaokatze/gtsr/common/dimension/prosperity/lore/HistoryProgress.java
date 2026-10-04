@@ -27,7 +27,10 @@ public final class HistoryProgress {
     public static final String[] NEW_RELICS = { "switchyard_key", "pump_valve_core", "cold_furnace_ember",
         "shelter_workbadge", "trench_medic_badge", "bridge_pass", "webbed_shuttle", "cracked_sighting_lens",
         "resonant_clapper", "foundry_heart_fragment", "hive_memory_knot", "sky_ritual_foil", "mire_sounding_weight",
-        "sealed_archive_tube", "rail_repair_token" };
+        "sealed_archive_tube", "rail_repair_token", "future_pressure_witness", "future_recovery_witness",
+        "future_weft_witness", "future_canal_witness", "future_lens_witness", "future_oath_witness",
+        "future_ash_witness", "future_sound_witness", "future_road_witness", "future_anchor_witness",
+        "future_city_address_witness", "future_city_return_witness" };
     private static final String[] BOSS_CODES = { "di-02", "di-05", "di-08", "di-10", "di-13", "dc-02", "dc-08" };
 
     private HistoryProgress() {}
@@ -245,6 +248,104 @@ public final class HistoryProgress {
             "broken_edict" }) six &= relics.contains(r);
         if (six) award(p, "sixWitnesses");
         LoreNetwork.send((EntityPlayerMP) p, false);
+    }
+
+    public static boolean hasRelicEvidence(EntityPlayer player, String id) {
+        return strings(data(player), "relics").contains(id);
+    }
+
+    /** Explicit test items are valid collection evidence even in creative; awards retain survival gates. */
+    public static void verifyFictionRelic(EntityPlayer player, String id) {
+        if (!(player instanceof EntityPlayerMP) || !player.isEntityAlive()
+            || player.worldObj.isRemote
+            || player instanceof net.minecraftforge.common.util.FakePlayer) return;
+        Item item = LoreRegistry.RELICS.get(id);
+        if (item == null) return;
+        boolean held = false;
+        for (ItemStack stack : player.inventory.mainInventory)
+            if (stack != null && stack.stackSize > 0 && stack.getItem() == item) held = true;
+        if (!held) return;
+        NBTTagCompound n = data(player);
+        Set<String> relics = strings(n, "relics");
+        if (relics.add(id)) {
+            storeStrings(n, "relics", relics);
+            save(player, n);
+        }
+        award(player, "relic." + id);
+    }
+
+    public static void fictionArchived(EntityPlayer player) {
+        fictionEvidence(player, "fictionArchived");
+        award(player, "ending.fifteen_witnesses");
+    }
+
+    public static void fictionFinished(EntityPlayer player) {
+        fictionEvidence(player, "fictionArchived");
+        fictionEvidence(player, "fictionFinished");
+        award(player, "ending.suppressed");
+    }
+
+    /** Personal story progress survives reconnect, including explicit creative-mode witness testing. */
+    private static void fictionEvidence(EntityPlayer player, String key) {
+        if (!(player instanceof EntityPlayerMP) || !player.isEntityAlive()
+            || player.worldObj.isRemote
+            || player instanceof net.minecraftforge.common.util.FakePlayer
+            || !(player.worldObj.provider instanceof WorldProviderProsperityRuins)) return;
+        NBTTagCompound n = data(player);
+        if (n.getBoolean(key)) return;
+        n.setBoolean(key, true);
+        save(player, n);
+    }
+
+    /** Caller proves an authored, unlocked source. Never call this to replenish an already claimed chest. */
+    public static boolean grantStoryRelicOnce(EntityPlayer player, String nonce, String relicId) {
+        if (!valid(player) || !(player.worldObj.provider instanceof WorldProviderProsperityRuins)
+            || nonce == null
+            || nonce.isEmpty()
+            || nonce.length() > 256
+            || !LoreRegistry.RELICS.containsKey(relicId)) return false;
+        // These two stable item IDs are explicitly registered for manual testing only this release.
+        if ("future_city_address_witness".equals(relicId) || "future_city_return_witness".equals(relicId)) return false;
+        NBTTagCompound n = data(player);
+        Set<String> grants = strings(n, "storyGrants");
+        if (grants.contains(nonce)) return false;
+        Item relic = LoreRegistry.RELICS.get(relicId);
+        boolean held = false;
+        for (ItemStack stack : player.inventory.mainInventory)
+            if (stack != null && stack.stackSize > 0 && stack.getItem() == relic) held = true;
+        if (held || strings(n, "relics").contains(relicId)) {
+            grants.add(nonce);
+            storeStrings(n, "storyGrants", grants);
+            save(player, n);
+            if (held) observeRelic(player, relicId);
+            return false;
+        }
+        ItemStack gift = new ItemStack(relic);
+        if (!player.inventory.addItemStackToInventory(gift)) {
+            net.minecraft.entity.item.EntityItem drop = new net.minecraft.entity.item.EntityItem(
+                player.worldObj,
+                player.posX,
+                player.posY + .3,
+                player.posZ,
+                gift);
+            drop.delayBeforeCanPickup = 10;
+            drop.func_145797_a(player.getCommandSenderName());
+            drop.func_145799_b(player.getCommandSenderName());
+            if (!player.worldObj.spawnEntityInWorld(drop) || drop.isDead
+                || (!player.worldObj.loadedEntityList.contains(drop)
+                    && player.worldObj.getEntityByID(drop.getEntityId()) != drop))
+                return false;
+        }
+        grants.add(nonce);
+        storeStrings(n, "storyGrants", grants);
+        Set<String> relics = strings(n, "relics");
+        relics.add(relicId);
+        storeStrings(n, "relics", relics);
+        save(player, n);
+        award(player, "relic." + relicId);
+        ((EntityPlayerMP) player).inventoryContainer.detectAndSendChanges();
+        LoreNetwork.send((EntityPlayerMP) player, false);
+        return true;
     }
 
     public static void bossDefeated(EntityPlayer p, EchoKind kind) {

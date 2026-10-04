@@ -224,10 +224,9 @@ public final class CombatEffectsClient
     public void render(RenderWorldLastEvent event) {
         Minecraft mc = Minecraft.getMinecraft();
         if (world == null || mc.theWorld != world || mc.thePlayer == null) return;
-        double p = event.partialTicks,
-            ox = mc.thePlayer.lastTickPosX + (mc.thePlayer.posX - mc.thePlayer.lastTickPosX) * p,
-            oy = mc.thePlayer.lastTickPosY + (mc.thePlayer.posY - mc.thePlayer.lastTickPosY) * p,
-            oz = mc.thePlayer.lastTickPosZ + (mc.thePlayer.posZ - mc.thePlayer.lastTickPosZ) * p;
+        double p = event.partialTicks, ox = net.minecraft.client.renderer.entity.RenderManager.renderPosX,
+            oy = net.minecraft.client.renderer.entity.RenderManager.renderPosY,
+            oz = net.minecraft.client.renderer.entity.RenderManager.renderPosZ;
         verticesLeft = MAX_VERTICES;
         surfaces.clear();
         try (com.miaokatze.gtsr.client.encounter.GlScope scope = new com.miaokatze.gtsr.client.encounter.GlScope()) {
@@ -243,6 +242,7 @@ public final class CombatEffectsClient
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
             GL11.glDepthMask(false);
+            com.miaokatze.gtsr.client.encounter.FineRuneRenderer.unlit();
             GL11.glLineWidth(2F);
             for (Visual v : active.values()) {
                 CombatGeometry g = v.signal.geometry;
@@ -254,6 +254,21 @@ public final class CombatEffectsClient
                 double flash = warning ? 0 : v.signal.stage == 1 ? Math.max(0, 1 - age / 10) : Math.max(0, 1 - age / 8);
                 double fade = warning ? 1 : Math.max(0, v.left / (double) Math.max(1, v.signal.duration));
                 float[] color = COLORS[v.signal.palette];
+                Entity source = world.getEntityByID(v.signal.entity);
+                if (source instanceof com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing
+                    && v.signal.skill == 4) {
+                    com.miaokatze.gtsr.client.encounter.RoyalSkillVisual.render(
+                        g,
+                        4,
+                        0,
+                        v.signal.stage,
+                        age,
+                        v.signal.duration,
+                        -1,
+                        (source.boundingBox.maxX - source.boundingBox.minX) * .5,
+                        (source.boundingBox.maxZ - source.boundingBox.minZ) * .5);
+                    continue;
+                }
                 GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                 tint(color, warning ? .14F : (float) (.13 * fade + .17 * flash));
                 fill(g, segments);
@@ -264,7 +279,19 @@ public final class CombatEffectsClient
                 tint(color, warning ? .55F : (float) (.5 * fade));
                 outline(g, segments, Math.min(.24, g.radius * .09));
                 markings(g, v.signal.palette, age, warning, fade, segments);
-                if (isMeteor(v.signal.sequence) && warning) meteor(v, p);
+                if (source instanceof com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing) {
+                    com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing king = (com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing) source;
+                    int skill = v.signal.skill > 0 ? v.signal.skill
+                        : isMeteor(v.signal.sequence) ? 3 : king.getSkillId();
+                    com.miaokatze.gtsr.client.encounter.RoyalSkillVisual.render(
+                        g,
+                        skill,
+                        v.signal.direction,
+                        v.signal.stage,
+                        age,
+                        v.signal.duration,
+                        king.getMeteorTicks() + p);
+                }
                 if (warning) {
                     tint(color, .18F);
                     curtain(g, segments, .20, .14);
@@ -294,36 +321,6 @@ public final class CombatEffectsClient
 
     private static boolean isMeteor(int sequence) {
         return sequence >= METEOR_SIGNAL;
-    }
-
-    /** One-second windup, landing six seconds after the cast begins. */
-    private static double meteorHeight(double tick) {
-        double progress = Math.max(0, Math.min(1, (tick - 20) / 100D));
-        return 32 * (1 - progress * progress);
-    }
-
-    private void meteor(Visual v, double partial) {
-        Entity source = world.getEntityByID(v.signal.entity);
-        if (!(source instanceof com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing)) return;
-        int tick = ((com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing) source)
-            .getMeteorTicks();
-        if (tick < 0) return;
-        CombatGeometry g = v.signal.geometry;
-        double height = meteorHeight(tick + partial);
-        // Actual server-timed descent; the footprint remains at the locked danger location.
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glColor4f(.78F, .48F, .96F, .8F);
-        CubeRuneParticle.box(g.x, g.y + height + 1.5, g.z, 1.5);
-        for (int i = 0; i < 12; i++) {
-            double a = i * Math.PI / 6 + (tick + partial) * .035;
-            GL11.glColor4f(1F, .7F, .25F, .55F);
-            CubeRuneParticle
-                .box(g.x + Math.cos(a) * 2.2, g.y + height + 1.5 + Math.sin(a * 2) * .3, g.z + Math.sin(a) * 2.2, .12);
-        }
-        for (int i = 0; i < 5; i++) {
-            GL11.glColor4f(.68F, .3F, 1F, (5 - i) * .09F);
-            CubeRuneParticle.box(g.x, g.y + height + 3 + i * 1.3, g.z, 1.1 - i * .13);
-        }
     }
 
     private static void tint(float[] c, float alpha) {

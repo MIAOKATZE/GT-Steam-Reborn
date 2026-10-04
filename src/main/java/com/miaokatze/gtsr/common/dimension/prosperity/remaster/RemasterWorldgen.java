@@ -23,7 +23,7 @@ public final class RemasterWorldgen {
     private RemasterWorldgen() {}
 
     public static boolean allowed(World w, RemasterSite s) {
-        return RemasterRollout.allowsGeneration(s) && "compact-prefab".equals(s.layout)
+        return RemasterRollout.allowsGeneration(s) && !"tree-overlay".equals(s.layout)
             && RemasterData.get(w)
                 .allowsSavedPlacement(s);
     }
@@ -51,9 +51,36 @@ public final class RemasterWorldgen {
 
     /** Pure production geometry entrypoint also used by the offline owner-chunk harness. */
     public static int geometry(RemasterSite s, RemasterPrefab p, BlockSink sink, int cx, int cz) {
-        if (!RemasterRollout.allowsGeneration(s) || !"compact-prefab".equals(s.layout)) return 0;
+        if (!RemasterRollout.allowsGeneration(s) || "tree-overlay".equals(s.layout)) return 0;
         int writes = 0;
         int localX0 = (cx << 4) - s.x, localZ0 = (cz << 4) - s.z;
+        // Narrow column footings only beneath authored low structural floors, never a background pad.
+        if ("natural-prefab".equals(s.layout)) {
+            Map<Long, Integer> bottoms = new java.util.HashMap<>();
+            for (int lx = Math.floorDiv(localX0, 16); lx <= Math.floorDiv(localX0 + 15, 16); lx++)
+                for (int lz = Math.floorDiv(localZ0, 16); lz <= Math.floorDiv(localZ0 + 15, 16); lz++)
+                    for (RemasterPrefab.Run r : p.slice(lx, lz)) {
+                        String material = p.palette[r.paletteIndex];
+                        if (r.y > 3 || !(material.contains("floor") || material.contains("tiles")
+                            || material.contains("masonry")
+                            || material.contains("brick")
+                            || material.contains("paving")
+                            || material.contains("riveted_plate"))) continue;
+                        for (int i = 0; i < r.length; i++) {
+                            int x = s.x + r.x + i, z = s.z + r.z;
+                            if (!owned(x, s.y + r.y, z, cx, cz)) continue;
+                            long key = (long) x << 32 ^ (z & 0xffffffffL);
+                            bottoms.merge(key, s.y + r.y, Math::min);
+                        }
+                    }
+            for (Map.Entry<Long, Integer> e : bottoms.entrySet()) {
+                int x = (int) (e.getKey() >> 32), z = (int) (long) e.getKey();
+                int ground = com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile
+                    .heightAt(s.seed, x, z);
+                for (int y = ground + 1; y < e.getValue(); y++)
+                    if (owned(x, y, z, cx, cz) && sink.setBlock(x, y, z, "minecraft:stone", 0, 2)) writes++;
+            }
+        }
         for (int lx = Math.floorDiv(localX0, 16); lx <= Math.floorDiv(localX0 + 15, 16); lx++)
             for (int lz = Math.floorDiv(localZ0, 16); lz <= Math.floorDiv(localZ0 + 15, 16); lz++)
                 for (RemasterPrefab.Run r : p.slice(lx, lz)) {
@@ -138,7 +165,7 @@ public final class RemasterWorldgen {
             if (!owned(x, y, z, cx, cz) || !w.blockExists(x, y, z)
                 || d.flag(s.id(), "entity:" + i)
                 || code.isEmpty()
-                || "dr-09".equals(code)
+                || ("compact-prefab".equals(s.layout) && "dr-09".equals(code))
                 || "dc-10".equals(code)) continue;
             if (spawn.has("spawn") && !spawn.get("spawn")
                 .getAsBoolean()) continue;

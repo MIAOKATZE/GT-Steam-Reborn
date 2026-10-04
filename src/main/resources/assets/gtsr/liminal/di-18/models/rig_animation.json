@@ -1,0 +1,527 @@
+{
+  "schema_version": "2.0-entity",
+  "canonical_code": "di-18",
+  "original_design_code": "mb-weft-curator",
+  "name": "断纬主织",
+  "units": "block",
+  "up_axis": "+Y",
+  "forward_axis": "-Z",
+  "origin": "bbox-bottom-center",
+  "groups": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        0,
+        1.3,
+        0
+      ],
+      "axis": "+Y",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "limb0",
+      "parent": "body",
+      "pivot": [
+        -0.45,
+        1,
+        -0.6
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "limb1",
+      "parent": "body",
+      "pivot": [
+        -0.45,
+        1,
+        0.0
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "limb2",
+      "parent": "body",
+      "pivot": [
+        -0.45,
+        1,
+        0.6
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "limb3",
+      "parent": "body",
+      "pivot": [
+        0.45,
+        1,
+        -0.6
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "limb4",
+      "parent": "body",
+      "pivot": [
+        0.45,
+        1,
+        0.0
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "limb5",
+      "parent": "body",
+      "pivot": [
+        0.45,
+        1,
+        0.6
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "actuator",
+      "parent": "body",
+      "pivot": [
+        0,
+        1.7,
+        0
+      ],
+      "axis": "+Z",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "sensor",
+      "parent": "body",
+      "pivot": [
+        0,
+        1.35,
+        -0.7
+      ],
+      "axis": "+X",
+      "motion": "rotate",
+      "rest": 0,
+      "min": -180,
+      "max": 180
+    }
+  ],
+  "animations": {
+    "idle": {
+      "loop": true,
+      "frames": 40,
+      "speed": 1,
+      "tracks": [
+        {
+          "group": "sensor",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -4
+            ],
+            [
+              20,
+              4
+            ],
+            [
+              40,
+              -4
+            ]
+          ]
+        }
+      ]
+    },
+    "walk": {
+      "loop": true,
+      "frames": 24,
+      "speed": 1,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              0.06
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              18,
+              -0.03
+            ],
+            [
+              24,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "limb0",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              14
+            ],
+            [
+              12,
+              -14
+            ],
+            [
+              24,
+              14
+            ]
+          ]
+        },
+        {
+          "group": "limb1",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -14
+            ],
+            [
+              12,
+              14
+            ],
+            [
+              24,
+              -14
+            ]
+          ]
+        },
+        {
+          "group": "limb2",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              14
+            ],
+            [
+              12,
+              -14
+            ],
+            [
+              24,
+              14
+            ]
+          ]
+        },
+        {
+          "group": "limb3",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -14
+            ],
+            [
+              12,
+              14
+            ],
+            [
+              24,
+              -14
+            ]
+          ]
+        },
+        {
+          "group": "limb4",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              14
+            ],
+            [
+              12,
+              -14
+            ],
+            [
+              24,
+              14
+            ]
+          ]
+        },
+        {
+          "group": "limb5",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              -14
+            ],
+            [
+              12,
+              14
+            ],
+            [
+              24,
+              -14
+            ]
+          ]
+        }
+      ]
+    },
+    "spawn": {
+      "loop": false,
+      "frames": 40,
+      "speed": 1,
+      "tracks": [
+        {
+          "group": "root",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              -0.25
+            ],
+            [
+              30,
+              0.08
+            ],
+            [
+              40,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        }
+      ]
+    },
+    "weft_cross": {
+      "loop": false,
+      "frames": 74,
+      "speed": 1,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              34,
+              -0.12
+            ],
+            [
+              38,
+              0.14
+            ],
+            [
+              46,
+              0
+            ],
+            [
+              74,
+              0
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "actuator",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              34,
+              -16.25
+            ],
+            [
+              38,
+              65
+            ],
+            [
+              46,
+              -26.0
+            ],
+            [
+              50,
+              -65
+            ],
+            [
+              58,
+              -26.0
+            ],
+            [
+              74,
+              0
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "sensor",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              34,
+              18
+            ],
+            [
+              38,
+              -20
+            ],
+            [
+              74,
+              0
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    },
+    "death": {
+      "loop": false,
+      "frames": 140,
+      "speed": 1,
+      "tracks": [
+        {
+          "group": "body",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              15
+            ],
+            [
+              32,
+              -25
+            ],
+            [
+              60,
+              75
+            ],
+            [
+              140,
+              75
+            ]
+          ],
+          "axis": "+Z"
+        },
+        {
+          "group": "body",
+          "channel": "translate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              24,
+              -0.3
+            ],
+            [
+              60,
+              -0.8
+            ],
+            [
+              140,
+              -0.8
+            ]
+          ],
+          "axis": "+Y"
+        },
+        {
+          "group": "actuator",
+          "channel": "rotate",
+          "keys": [
+            [
+              0,
+              0
+            ],
+            [
+              20,
+              40
+            ],
+            [
+              60,
+              90
+            ],
+            [
+              140,
+              90
+            ]
+          ],
+          "axis": "+X"
+        }
+      ]
+    }
+  },
+  "emissive_groups": [
+    "sensor"
+  ],
+  "production": {
+    "independent_design": true,
+    "no_surface_characters": true,
+    "revision": "v72"
+  }
+}

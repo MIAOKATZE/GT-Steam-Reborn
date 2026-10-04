@@ -33,16 +33,21 @@ public final class CombatEffects {
 
     public static void send(Entity source, int sequence, int stage, int duration, int palette,
         CombatGeometry geometry) {
+        send(source, sequence, stage, duration, palette, geometry, 0, 0);
+    }
+
+    public static void send(Entity source, int sequence, int stage, int duration, int palette, CombatGeometry geometry,
+        int skill, int direction) {
         for (Object o : source.worldObj.playerEntities) if (o instanceof EntityPlayerMP) {
             EntityPlayerMP p = (EntityPlayerMP) o;
             if (p.getDistanceSqToEntity(source) > 128 * 128 || p.playerNetServerHandler == null) continue;
-            NETWORK.sendTo(new Signal(p, source, sequence, stage, duration, palette, geometry), p);
+            NETWORK.sendTo(new Signal(p, source, sequence, stage, duration, palette, geometry, skill, direction), p);
         }
     }
 
     public static final class Signal implements IMessage {
 
-        public int dimension, entity, sequence, stage, duration, palette;
+        public int dimension, entity, sequence, stage, duration, palette, skill, direction;
         public UUID player, source;
         public CombatGeometry geometry;
         public boolean valid;
@@ -50,6 +55,13 @@ public final class CombatEffects {
         public Signal() {}
 
         Signal(EntityPlayerMP p, Entity e, int sequence, int stage, int duration, int palette, CombatGeometry g) {
+            this(p, e, sequence, stage, duration, palette, g, 0, 0);
+        }
+
+        Signal(EntityPlayerMP p, Entity e, int sequence, int stage, int duration, int palette, CombatGeometry g,
+            int skill, int direction) {
+            this.skill = skill;
+            this.direction = direction;
             dimension = p.dimension;
             player = p.getUniqueID();
             source = e.getUniqueID();
@@ -81,11 +93,15 @@ public final class CombatEffects {
             b.writeDouble(geometry.tz);
             b.writeDouble(geometry.radius);
             b.writeDouble(geometry.inner);
+            b.writeByte(skill);
+            b.writeByte(direction);
         }
 
         public void fromBytes(ByteBuf b) {
             valid = false;
-            if (b.readableBytes() != 105) return;
+            int length = b.readableBytes();
+            if (length != 105 && length != 107) return;
+            skill = direction = 0;
             dimension = b.readInt();
             entity = b.readInt();
             sequence = b.readInt();
@@ -104,6 +120,10 @@ public final class CombatEffects {
                 b.readDouble(),
                 b.readDouble(),
                 b.readDouble());
+            if (length == 107) {
+                skill = b.readUnsignedByte();
+                direction = b.readUnsignedByte();
+            }
             double[] values = { geometry.x, geometry.y, geometry.z, geometry.tx, geometry.tz, geometry.radius,
                 geometry.inner };
             for (double v : values) if (!Double.isFinite(v)) return;
@@ -111,6 +131,8 @@ public final class CombatEffects {
             if ((shape == CombatGeometry.LINE || shape == CombatGeometry.CHAIN)
                 && spanX * spanX + spanZ * spanZ > 128 * 128) return;
             valid = entity >= 0 && sequence >= 0
+                && skill <= 5
+                && direction <= 5
                 && stage <= 2
                 && duration <= 240
                 && palette < 4

@@ -10,7 +10,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho;
 
-/** One local bar owner, seven identity frames, with 100-HP layers and no vanilla BossStatus mutation. */
+/** One local bar owner, stable identity frames, with 100-HP layers and no vanilla BossStatus mutation. */
 public final class EchoBossOverlay extends Gui {
 
     private static final int[] metals = { 0xC98556, 0xD7B674, 0x6CA991, 0x799FBB, 0xAF94B6 };
@@ -117,10 +117,7 @@ public final class EchoBossOverlay extends Gui {
         float segment = layers == 0 ? 0 : (health - (layers - 1) * 100) / 100F;
         int x = (event.resolution.getScaledWidth() - 256) / 2;
         int y = BossStatus.statusBarTime > 0 ? 42 : 17;
-        int color = layerColor(
-            PALETTES[echo.getKind()
-                .ordinal() - 9],
-            layers);
+        int color = layerColor(EchoBossStyle.palette(echo.getKind().code), layers);
         try (GlScope scope = new GlScope()) {
             GL11.glDisable(GL11.GL_LIGHTING);
             GL11.glEnable(GL11.GL_BLEND);
@@ -130,7 +127,7 @@ public final class EchoBossOverlay extends Gui {
             drawRect(x + 33, y + 14, x + 33 + Math.round(190 * segment), y + 16, 0x66FFFFFF);
             GL11.glColor4f(1, 1, 1, 1);
             mc.getTextureManager()
-                .bindTexture(new ResourceLocation("gtsr", "textures/gui/" + echo.getKind().code + "_boss_frame.png"));
+                .bindTexture(EchoBossStyle.frame(echo.getKind().code));
             func_152125_a(x, y, 0, 0, 256, 40, 256, 40, 256, 40);
             String name = "(" + net.minecraft.util.StatCollector.translateToLocal("echo.name.prefix")
                 + ")"

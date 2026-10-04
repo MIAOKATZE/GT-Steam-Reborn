@@ -30,7 +30,7 @@ public class EntityResidualOathguard extends EntityEncounterBase {
     protected void applyEntityAttributes() {
         super.applyEntityAttributes();
         getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(200);
-        getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(.18);
+        getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(.23);
         getEntityAttribute(SharedMonsterAttributes.knockbackResistance).setBaseValue(1);
     }
 
@@ -201,7 +201,7 @@ public class EntityResidualOathguard extends EntityEncounterBase {
             if (kingOwner == null && (Math.abs(posY - anchorY) > 4 || getDistanceSq(anchorX, anchorY, anchorZ) > 225)) {
                 setPosition(anchorX, anchorY, anchorZ);
                 getNavigator().clearPathEntity();
-            } else if (ticksExisted % 10 == 0) getNavigator().tryMoveToEntityLiving(t, .8);
+            } else if (ticksExisted % 10 == 0) getNavigator().tryMoveToEntityLiving(t, 1);
         }
     }
 

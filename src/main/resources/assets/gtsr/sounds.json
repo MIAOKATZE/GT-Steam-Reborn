@@ -1681,5 +1681,554 @@
         "stream": false
       }
     ]
+  },
+  "entity.do-02.birth": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/entity_do-02_birth",
+        "stream": false
+      }
+    ]
+  },
+  "creature.gear_pigeon.idle": {
+    "category": "ambient",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_gear_pigeon_idle",
+        "stream": false
+      }
+    ]
+  },
+  "creature.gear_pigeon.hurt": {
+    "category": "ambient",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_gear_pigeon_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "creature.gear_pigeon.death": {
+    "category": "ambient",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_gear_pigeon_death",
+        "stream": false
+      }
+    ]
+  },
+  "creature.steam_firefly.idle": {
+    "category": "ambient",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_steam_firefly_idle",
+        "stream": false
+      }
+    ]
+  },
+  "creature.steam_firefly.hurt": {
+    "category": "ambient",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_steam_firefly_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "creature.steam_firefly.death": {
+    "category": "ambient",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_steam_firefly_death",
+        "stream": false
+      }
+    ]
+  },
+  "creature.slag_ridge_hunter.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_slag_ridge_hunter_idle",
+        "stream": false
+      }
+    ]
+  },
+  "creature.slag_ridge_hunter.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_slag_ridge_hunter_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "creature.slag_ridge_hunter.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_slag_ridge_hunter_death",
+        "stream": false
+      }
+    ]
+  },
+  "creature.slag_ridge_hunter.attack": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/creature_slag_ridge_hunter_attack",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-16.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-16_idle",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-16.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-16_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-16.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-16_death",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-16.windup": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-16_windup",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-16.release": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-16_release",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-17.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-17_idle",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-17.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-17_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-17.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-17_death",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-17.windup": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-17_windup",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-17.release": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-17_release",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-18.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-18_idle",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-18.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-18_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-18.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-18_death",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-18.windup": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-18_windup",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-18.release": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-18_release",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-19.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-19_idle",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-19.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-19_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-19.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-19_death",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-19.windup": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-19_windup",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-19.release": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-19_release",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-20.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-20_idle",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-20.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-20_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-20.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-20_death",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-20.windup": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-20_windup",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-20.release": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-20_release",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-21.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-21_idle",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-21.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-21_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-21.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-21_death",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-21.windup": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-21_windup",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-21.release": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-21_release",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-22.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-22_idle",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-22.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-22_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-22.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-22_death",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-22.windup": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-22_windup",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-22.release": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-22_release",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-23.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-23_idle",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-23.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-23_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-23.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-23_death",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-23.windup": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-23_windup",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-23.release": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-23_release",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-24.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-24_idle",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-24.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-24_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-24.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-24_death",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-24.windup": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-24_windup",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-24.release": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-24_release",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-25.idle": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-25_idle",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-25.hurt": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-25_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-25.death": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-25_death",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-25.windup": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-25_windup",
+        "stream": false
+      }
+    ]
+  },
+  "mini.di-25.release": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "gtsr:combat/mini_di-25_release",
+        "stream": false
+      }
+    ]
   }
 }

@@ -17,9 +17,13 @@ import com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoKind.BattleStyle;
 import com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntityEncounterBase;
 
 /** Weak echoes: server owns all combat; clients only consume watched animation phases. */
-public class EntityOldEcho extends EntityEncounterBase {
+public class EntityOldEcho extends EntityEncounterBase
+    implements cpw.mods.fml.common.registry.IEntityAdditionalSpawnData {
 
     public static final int IDLE = 0, COMBAT = 1, RETURNING = 2, DYING = 4;
+    private static final int MINI_BIRTH_TICKS = 40;
+    public static final int DEMONSTRATION_BIRTH_TICKS = 120, DEMONSTRATION_DEATH_START = 200,
+        DEMONSTRATION_END_TICKS = 440;
     private boolean initialized, nightSpawn, deathRecorded;
     private int objectiveLayout, objectiveZone = -1;
     private boolean objectiveBoss;
@@ -91,11 +95,13 @@ public class EntityOldEcho extends EntityEncounterBase {
     private double aimX, aimY, aimZ, originX, originZ;
     private final AuthoredEchoAbilities authored = new AuthoredEchoAbilities(this);
     private final EchoIndustrialCombat industrialCombat = new EchoIndustrialCombat(this);
+    private final MiniBossCombat miniBossCombat = new MiniBossCombat(this);
     private int summonBudget = 8, summonedLifetime;
     private String summoner = "";
     private float lastAcceptedPlayerDamage = 5;
     private boolean controlledPrepared, controlledFinished;
     private int lightningCooldown;
+    private boolean resolvingDamage;
 
     private boolean authoredKind() {
         return getKind().style == BattleStyle.AUTHORED;
@@ -140,12 +146,56 @@ public class EntityOldEcho extends EntityEncounterBase {
 
     /** Explicit server-only terminal removal; never scheduled by the natural-spawn handler. */
     public boolean finishControlledAntimeme() {
+        return beginDemonstrationDeath();
+    }
+
+    /** Story-only visual disappearance. No combat death hook, rewards or objective ledger. */
+    public boolean beginDemonstrationDeath() {
         if (worldObj.isRemote || getKind() != EchoKind.DO02 || controlledFinished) return false;
         controlledFinished = true;
-        setCustomNameTag("(旧日虚影)" + getKind().displayName + " 99*");
+        setAttackTarget(null);
+        authored.cancel();
+        skill(0, 0);
         state(DYING);
         phase(0);
         setHealth(0);
+        return true;
+    }
+
+    /** Restore the story's authoritative elapsed time without replaying combat or birth. */
+    public void restoreDemonstrationTimeline(int elapsedTicks) {
+        if (worldObj.isRemote || getKind() != EchoKind.DO02) return;
+        int elapsed = Math.max(0, elapsedTicks);
+        setAttackTarget(null);
+        skill(0, 0);
+        getNavigator().clearPathEntity();
+        motionX = motionY = motionZ = 0;
+        dataWatcher.updateObject(28, Math.min(DEMONSTRATION_BIRTH_TICKS, elapsed));
+        if (elapsed >= DEMONSTRATION_DEATH_START) {
+            beginDemonstrationDeath();
+            deathTime = Math
+                .min(DEMONSTRATION_END_TICKS - DEMONSTRATION_DEATH_START, elapsed - DEMONSTRATION_DEATH_START);
+            syncDeathAnimation();
+            if (elapsed >= DEMONSTRATION_END_TICKS) setDead();
+        } else if (!controlledFinished) state(IDLE);
+    }
+
+    public int getDemonstrationStage() {
+        if (getKind() != EchoKind.DO02) return -1;
+        return getHealth() <= 0 || controlledFinished || getEncounterState() == DYING ? 2
+            : dataWatcher.getWatchableObjectInt(28) < 120 ? 0 : 1;
+    }
+
+    /** Birth, idle and scripted disappearance are the apparition's only executable states. */
+    boolean tickDemonstration() {
+        if (getKind() != EchoKind.DO02) return false;
+        setAttackTarget(null);
+        skill(0, 0);
+        getNavigator().clearPathEntity();
+        motionX = motionY = motionZ = 0;
+        setPosition(anchorX, anchorY, anchorZ);
+        if (!controlledFinished && dataWatcher.getWatchableObjectInt(28) < 120)
+            dataWatcher.updateObject(28, dataWatcher.getWatchableObjectInt(28) + 1);
         return true;
     }
 
@@ -171,6 +221,7 @@ public class EntityOldEcho extends EntityEncounterBase {
     @Override
     protected void entityInit() {
         super.entityInit();
+        dataWatcher.addObject(14, 0);
         dataWatcher.addObject(17, 0);
         dataWatcher.addObject(18, 0);
         dataWatcher.addObject(25, 0);
@@ -209,6 +260,21 @@ public class EntityOldEcho extends EntityEncounterBase {
         return EchoKind.byWireId(dataWatcher.getWatchableObjectInt(25));
     }
 
+    @Override
+    public void writeSpawnData(io.netty.buffer.ByteBuf buffer) {
+        buffer.writeLong(getUniqueID().getMostSignificantBits());
+        buffer.writeLong(getUniqueID().getLeastSignificantBits());
+    }
+
+    @Override
+    public void readSpawnData(io.netty.buffer.ByteBuf buffer) {
+        entityUniqueID = new java.util.UUID(buffer.readLong(), buffer.readLong());
+    }
+
+    public int getPhaseLockTicks() {
+        return dataWatcher.getWatchableObjectInt(14);
+    }
+
     public boolean isNightSpawn() {
         return nightSpawn;
     }
@@ -237,6 +303,7 @@ public class EntityOldEcho extends EntityEncounterBase {
         state(IDLE);
         skill(0, 0);
         dataWatcher.updateObject(28, 0);
+        dataWatcher.updateObject(14, 0);
     }
 
     private void configure(EchoKind kind, boolean fill) {
@@ -256,6 +323,13 @@ public class EntityOldEcho extends EntityEncounterBase {
                 getEntityAttribute(SharedMonsterAttributes.knockbackResistance).setBaseValue(.85);
         }
         setCustomNameTag("(旧日虚影)" + kind.displayName);
+        boolean fixed = kind.stationary() || kind.isRitual() || kind == EchoKind.DC08 || kind == EchoKind.DO02;
+        if (!fixed) {
+            boolean smallCrawler = kind.code.startsWith("dr-") && kind.height <= 1 && !kind.flies();
+            double minimum = kind.flies() ? .28 : smallCrawler ? .25 : .23;
+            getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(
+                Math.max(minimum, getEntityAttribute(SharedMonsterAttributes.movementSpeed).getBaseValue()));
+        }
         if (fill) setHealth(kind.maxHealth);
         noClip = kind.isRitual();
         ignoreFrustumCheck = kind.isRitual();
@@ -283,9 +357,14 @@ public class EntityOldEcho extends EntityEncounterBase {
     }
 
     public String getVisualClip() {
-        if (getKind() == EchoKind.DO02) return controlledFinished || getEncounterState() == DYING ? "death_a" : "idle";
+        if (getKind() == EchoKind.DO02)
+            return getHealth() <= 0 || controlledFinished || getEncounterState() == DYING ? "death_a"
+                : dataWatcher.getWatchableObjectInt(28) < 120 ? "spawn" : "idle";
         if (getHealth() <= 0 || getEncounterState() == DYING) return "death";
+        if (MiniBossCombat.supports(getKind()) && dataWatcher.getWatchableObjectInt(28) < MINI_BIRTH_TICKS)
+            return "spawn";
         if (authoredKind() && dataWatcher.getWatchableObjectInt(28) < authored.spawnDuration()) return "spawn";
+        if (MiniBossCombat.supports(getKind()) && getSkillId() != 0) return MiniBossCombat.clip(getKind());
         if (authoredKind() && getSkillId() != 0) return authored.clip(getSkillId());
         if (getKind().isRitual()) return getVisualPhaseTicks() < 80 ? "spawn" : "idle";
         if (getSkillId() != 0) {
@@ -297,8 +376,12 @@ public class EntityOldEcho extends EntityEncounterBase {
     }
 
     public double getVisualTicks(float partial) {
-        if (getKind() == EchoKind.DO02 && getEncounterState() == DYING) return getDeathAnimationTicks() + partial;
+        if (getKind() == EchoKind.DO02) return getHealth() <= 0 ? getDeathAnimationTicks() + partial
+            : dataWatcher.getWatchableObjectInt(28) < 120 ? dataWatcher.getWatchableObjectInt(28) + partial
+                : ticksExisted + partial;
         if (getHealth() <= 0) return deathTime + partial;
+        if (MiniBossCombat.supports(getKind()) && dataWatcher.getWatchableObjectInt(28) < MINI_BIRTH_TICKS)
+            return dataWatcher.getWatchableObjectInt(28) + partial;
         if (authoredKind() && dataWatcher.getWatchableObjectInt(28) < authored.spawnDuration())
             return dataWatcher.getWatchableObjectInt(28) + partial;
         if (getKind().isRitual()) return getVisualPhaseTicks() + partial;
@@ -350,9 +433,50 @@ public class EntityOldEcho extends EntityEncounterBase {
         if (!getKind().isRitual()) super.applyEntityCollision(entity);
     }
 
+    /** Clamp the health actually accepted after Forge hurt hooks, armor and absorption. */
+    @Override
+    public void setHealth(float health) {
+        float before = getHealth();
+        boolean transition = false;
+        if (Float.isNaN(health)) health = Float.isFinite(before) ? before : 1;
+        if (resolvingDamage && worldObj != null && !worldObj.isRemote && getKind().isHeavy() && before > 0) {
+            if (getPhaseLockTicks() > 0 && health < before) health = before;
+            else {
+                float upper = getMaxHealth() * 2F / 3F, lower = getMaxHealth() / 3F;
+                float floor = before > upper ? upper : before > lower ? lower : 0;
+                if (floor > 0 && health <= floor) {
+                    health = floor;
+                    transition = true;
+                }
+            }
+        }
+        super.setHealth(health);
+        if (transition) {
+            dataWatcher.updateObject(14, 60);
+            stopEffects();
+            skill(0, 0);
+            getNavigator().clearPathEntity();
+            motionX = motionY = motionZ = 0;
+            industrialCombat.enteredPhase();
+            worldObj.playSoundEffect(posX, posY, posZ, combatSound("phase"), 1, .85F);
+        }
+    }
+
+    @Override
+    protected void damageEntity(DamageSource source, float amount) {
+        if (getKind() == EchoKind.DO02 || Float.isNaN(amount) || amount <= 0 || getPhaseLockTicks() > 0) return;
+        boolean previous = resolvingDamage;
+        resolvingDamage = true;
+        try {
+            super.damageEntity(source, Math.min(amount, 1.0E30F));
+        } finally {
+            resolvingDamage = previous;
+        }
+    }
+
     @Override
     public boolean attackEntityFrom(DamageSource source, float amount) {
-        if (getKind() == EchoKind.DO02) return false;
+        if (getKind() == EchoKind.DO02 || Float.isNaN(amount) || amount <= 0 || getPhaseLockTicks() > 0) return false;
         if (getKind().isRitual() || industrialFrozen() || (!worldObj.isRemote && dormant())) return false;
         if (!worldObj.isRemote && source.getEntity() instanceof EntityPlayer
             && valid((EntityPlayer) source.getEntity())) {
@@ -366,7 +490,7 @@ public class EntityOldEcho extends EntityEncounterBase {
             if (dx * -Math.sin(angle) + dz * Math.cos(angle) > 0) amount *= .35F;
         }
         float before = getHealth();
-        boolean accepted = super.attackEntityFrom(source, amount);
+        boolean accepted = super.attackEntityFrom(source, Math.min(amount, 1.0E30F));
         if (accepted && source.getEntity() instanceof EntityPlayer)
             lastAcceptedPlayerDamage = Math.max(2, Math.min(12, before - getHealth()));
         if (accepted && getKind() == EchoKind.DC08 && getSkillId() == 4)
@@ -376,7 +500,7 @@ public class EntityOldEcho extends EntityEncounterBase {
 
     @Override
     public void moveEntityWithHeading(float strafe, float forward) {
-        if (industrialFrozen()) {
+        if (industrialFrozen() || getPhaseLockTicks() > 0 || getKind() == EchoKind.DO02) {
             motionX = motionY = motionZ = 0;
             return;
         }
@@ -410,6 +534,23 @@ public class EntityOldEcho extends EntityEncounterBase {
         }
     }
 
+    boolean tickMiniBossBirth() {
+        if (!MiniBossCombat.supports(getKind()) || dataWatcher.getWatchableObjectInt(28) >= MINI_BIRTH_TICKS)
+            return false;
+        dataWatcher.updateObject(28, dataWatcher.getWatchableObjectInt(28) + 1);
+        getNavigator().clearPathEntity();
+        motionX = motionY = motionZ = 0;
+        return true;
+    }
+
+    boolean tickPhaseTransition() {
+        if (getPhaseLockTicks() <= 0) return false;
+        dataWatcher.updateObject(14, getPhaseLockTicks() - 1);
+        getNavigator().clearPathEntity();
+        motionX = motionY = motionZ = 0;
+        return true;
+    }
+
     @Override
     public void onLivingUpdate() {
         super.onLivingUpdate();
@@ -418,6 +559,7 @@ public class EntityOldEcho extends EntityEncounterBase {
             initializeEcho(getKind(), "", posX, posY, posZ, false);
         }
         if (tickIndustrialRevival()) return;
+        if (tickPhaseTransition()) return;
         if (industrialBoss())
             com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.rememberBossState(this);
         if (isSummonedEcho()) {
@@ -436,15 +578,8 @@ public class EntityOldEcho extends EntityEncounterBase {
                 return;
             }
         }
-        if (getKind() == EchoKind.DO02) {
-            getNavigator().clearPathEntity();
-            motionX = motionY = motionZ = 0;
-            if (controlledFinished) {
-                phase(getVisualPhaseTicks() + 1);
-                if (getVisualPhaseTicks() >= 239) setDead();
-            }
-            return;
-        }
+        if (tickDemonstration()) return;
+        if (tickMiniBossBirth()) return;
         if (authoredKind()) authored.tickBolts();
         if (lightningCooldown > 0) lightningCooldown--;
         if (authoredKind() && dataWatcher.getWatchableObjectInt(28) < authored.spawnDuration()) {
@@ -479,7 +614,7 @@ public class EntityOldEcho extends EntityEncounterBase {
             if (authoredKind()) {
                 authored.cancel();
                 skill(0, 0);
-            }
+            } else if (MiniBossCombat.supports(getKind())) miniBossCombat.cancel();
             if (getDistanceSq(anchorX, anchorY, anchorZ) > 1) {
                 returnHome();
                 return;
@@ -522,8 +657,12 @@ public class EntityOldEcho extends EntityEncounterBase {
                 announceSkill(selected);
                 authored.begin((EntityPlayer) target, selected);
                 getNavigator().clearPathEntity();
-            } else if (getKind().flies()) flyToward(target.posX, anchorY, target.posZ, .12);
-            else if (!authored.stationary() && ticksExisted % 10 == 0) getNavigator().tryMoveToEntityLiving(target, .8);
+            } else if (getKind().flies()) flyToward(target.posX, anchorY, target.posZ, .32);
+            else if (!authored.stationary() && ticksExisted % 10 == 0) getNavigator().tryMoveToEntityLiving(target, 1);
+            return;
+        }
+        if (MiniBossCombat.supports(getKind())) {
+            miniBossCombat.tick((EntityPlayer) target);
             return;
         }
         if (getKind().isHeavy()) {
@@ -542,9 +681,10 @@ public class EntityOldEcho extends EntityEncounterBase {
         double reach = ranged ? (style == BattleStyle.SNIPER ? 28 : 18) : getKind().width + 3;
         if (cooldown == 0 && getDistanceSqToEntity(target) < reach * reach && canEntityBeSeen(target)) {
             beginSkill((EntityPlayer) target);
-        } else if (ticksExisted % 10 == 0 && (!ranged || getDistanceSqToEntity(target) > reach * reach * .6)) {
-            if (getKind().flies()) flyToward(target.posX, anchorY, target.posZ, .12);
-            else getNavigator().tryMoveToEntityLiving(target, style == BattleStyle.STALKER ? 1.2 : .8);
+        } else if (!ranged || getDistanceSqToEntity(target) > reach * reach * .6) {
+            if (getKind().flies()) flyToward(target.posX, anchorY, target.posZ, .32);
+            else if (ticksExisted % 10 == 0)
+                getNavigator().tryMoveToEntityLiving(target, style == BattleStyle.STALKER ? 1.2 : 1);
         }
     }
 
@@ -559,7 +699,7 @@ public class EntityOldEcho extends EntityEncounterBase {
         heal(getKind().hasBossBar() ? 4 : .5F);
         returnTicks++;
         if (getKind().flies()) {
-            flyToward(anchorX, anchorY, anchorZ, .18);
+            flyToward(anchorX, anchorY, anchorZ, .32);
             if (getDistanceSq(anchorX, anchorY, anchorZ) < .25) state(IDLE);
             return;
         }
@@ -735,6 +875,10 @@ public class EntityOldEcho extends EntityEncounterBase {
     }
 
     private void stopEffects() {
+        if (MiniBossCombat.supports(getKind())) {
+            miniBossCombat.cancel();
+            return;
+        }
         if (getKind().isHeavy()) {
             industrialCombat.cancel();
             return;
@@ -860,6 +1004,10 @@ public class EntityOldEcho extends EntityEncounterBase {
 
     @Override
     public void onDeath(DamageSource source) {
+        if (getKind() == EchoKind.DO02) {
+            beginDemonstrationDeath();
+            return;
+        }
         if (dead || deathRecorded) return;
         super.onDeath(source);
         if (!dead && !worldObj.isRemote && getHealth() <= 0) {
@@ -894,8 +1042,10 @@ public class EntityOldEcho extends EntityEncounterBase {
     }
 
     private String combatSound(String event) {
-        return "gtsr:" + (getKind() == EchoKind.DC02 ? "colossus."
-            : getKind() == EchoKind.DC08 ? "hive." : "entity." + getKind().code + ".") + event;
+        return "gtsr:" + (MiniBossCombat.supports(getKind()) ? "mini." + getKind().code + "."
+            : getKind() == EchoKind.DC02 ? "colossus."
+                : getKind() == EchoKind.DC08 ? "hive." : "entity." + getKind().code + ".")
+            + event;
     }
 
     @Override
@@ -923,12 +1073,12 @@ public class EntityOldEcho extends EntityEncounterBase {
 
     @Override
     protected int getExperiencePoints(EntityPlayer player) {
-        return isSummonedEcho() ? 0 : super.getExperiencePoints(player);
+        return isSummonedEcho() || getKind() == EchoKind.DO02 ? 0 : super.getExperiencePoints(player);
     }
 
     @Override
     protected void dropFewItems(boolean hit, int looting) {
-        if (worldObj.isRemote || nightSpawn || isSummonedEcho()) return;
+        if (worldObj.isRemote || nightSpawn || isSummonedEcho() || getKind() == EchoKind.DO02) return;
         String witness = com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreSources.bossRelic(getKind());
         net.minecraft.item.Item item = com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry.RELICS
             .get(witness);
@@ -939,6 +1089,7 @@ public class EntityOldEcho extends EntityEncounterBase {
     public void writeEntityToNBT(NBTTagCompound n) {
         super.writeEntityToNBT(n);
         industrialCombat.write(n);
+        miniBossCombat.write(n);
         authored.write(n);
         n.setInteger("objectiveLayout", objectiveLayout);
         n.setInteger("objectiveZone", objectiveZone);
@@ -955,6 +1106,7 @@ public class EntityOldEcho extends EntityEncounterBase {
         n.setInteger("echoReturn", returnTicks);
         n.setInteger("echoPathFailures", pathFailures);
         n.setInteger("echoRitualTicks", ritualTicks);
+        n.setInteger("echoPhaseLockTicks", getPhaseLockTicks());
         n.setInteger("echoSkillAnnouncementSerial", getSkillAnnouncementSerial());
         n.setInteger("echoAnnouncedSkill", getAnnouncedSkill());
         n.setInteger("echoSkill", getSkillId());
@@ -988,7 +1140,13 @@ public class EntityOldEcho extends EntityEncounterBase {
             kind = EchoKind.DR01;
         }
         configure(kind, false);
-        super.readEntityFromNBT(n);
+        NBTTagCompound body = n;
+        if (kind == EchoKind.DO02) {
+            body = (NBTTagCompound) n.copy();
+            body.setInteger("encounterDeathXP", 0);
+            body.setBoolean("encounterDeathXPReleased", true);
+        }
+        super.readEntityFromNBT(body);
         configure(kind, false);
         initialized = n.getBoolean("echoInitialized");
         nightSpawn = n.getBoolean("echoNight");
@@ -1033,9 +1191,31 @@ public class EntityOldEcho extends EntityEncounterBase {
         if (industrialFrozen())
             setHealth(getIndustrialBossStage() == 0 ? 1 : 1 + (getMaxHealth() - 1) * getRevivalTicks() / 208F);
         if (getKind().isHeavy()) industrialCombat.read(n);
+        if (MiniBossCombat.supports(kind)) miniBossCombat.read(n);
         authored.read(n);
+        dataWatcher.updateObject(14, Math.max(0, Math.min(60, n.getInteger("echoPhaseLockTicks"))));
         dataWatcher.updateObject(18, Math.max(0, n.getInteger("echoSkillAnnouncementSerial")));
         dataWatcher.updateObject(17, Math.max(0, Math.min(5, n.getInteger("echoAnnouncedSkill"))));
+        if (kind == EchoKind.DO02) {
+            initialized = true;
+            summoner = "";
+            summonedLifetime = summonBudget = 0;
+            objectiveLayout = 0;
+            objectiveZone = -1;
+            objectiveBoss = false;
+            deathRecorded = false;
+            setAttackTarget(null);
+            authored.cancel();
+            skill(0, 0);
+            dataWatcher.updateObject(14, 0);
+            dataWatcher.updateObject(17, 0);
+            dataWatcher.updateObject(18, 0);
+            if (controlledFinished || getHealth() <= 0) {
+                controlledFinished = true;
+                state(DYING);
+                setHealth(0);
+            } else state(IDLE);
+        }
         // Cancel a partial authored cast on reload: old events and transient projectiles never replay.
         if (authoredKind()) {
             authored.cancel();
@@ -1047,6 +1227,7 @@ public class EntityOldEcho extends EntityEncounterBase {
     @Override
     public void setDead() {
         if (authored != null) authored.cancel();
+        if (miniBossCombat != null && MiniBossCombat.supports(getKind())) miniBossCombat.cancel();
         super.setDead();
     }
 }

@@ -16,6 +16,7 @@ public final class RemasterPlanner {
         List<RemasterSite> sites = new ArrayList<>();
         for (CompactSceneTerrain.Branch branch : CompactSceneTerrain.cell(seed, gx, gz))
             sites.add(new RemasterSite(branch.prefab, 0, seed, branch.originX(), branch.surfaceY, branch.originZ()));
+        sites.addAll(FutureStructurePlanner.cell(seed, gx, gz));
         return Collections.unmodifiableList(sites);
     }
 
@@ -25,7 +26,8 @@ public final class RemasterPlanner {
             seed,
             0,
             Math.floorDiv(cx << 4, CompactSceneTerrain.CELL_SIZE),
-            Math.floorDiv(cz << 4, CompactSceneTerrain.CELL_SIZE))) if (site.intersects(cx, cz)) sites.add(site);
+            Math.floorDiv(cz << 4, CompactSceneTerrain.CELL_SIZE)))
+            if (site.overlaps(cx << 4, cz << 4, (cx << 4) + 15, (cz << 4) + 15, 8)) sites.add(site);
         return sites;
     }
 

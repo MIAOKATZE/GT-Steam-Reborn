@@ -103,7 +103,7 @@ public final class RemasterOriginalContract {
                 .get(player.worldObj)
                 .kingDead(legacy)) HistoryProgress.sceneStage(player, site.id(), site.prefab, "battle", false);
         }
-        if (site.layout.equals("compact-prefab")) {
+        if (site.layout.equals("compact-prefab") || site.layout.equals("natural-prefab")) {
             for (JsonObject node : RemasterRuntime.nodes(site)) {
                 if ("combat".equals(RemasterRuntime.string(node, "unlockMode", "")) && RemasterRuntime
                     .combatCleared(player.worldObj, site, RemasterRuntime.string(node, "combatModule", "")))
@@ -121,6 +121,12 @@ public final class RemasterOriginalContract {
 
     public static boolean eligibleGuard(JsonObject spawn) {
         String role = RemasterRuntime.string(spawn, "role", ""), code = RemasterRuntime.string(spawn, "code", "");
+        if (spawn.has("productionBattleGuard") && spawn.get("productionBattleGuard")
+            .getAsBoolean())
+            return (role.equals("guard") || role.equals("elite") || role.equals("mob")) && !code.equals("dc-10")
+                && com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoKind.byCode(code) != null
+                && (!spawn.has("spawn") || spawn.get("spawn")
+                    .getAsBoolean());
         return (role.equals("guard") || role.equals("elite")) && !code.equals("dr-09")
             && !code.equals("dc-10")
             && com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoKind.byCode(code) != null

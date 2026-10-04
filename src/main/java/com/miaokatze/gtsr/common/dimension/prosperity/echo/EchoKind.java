@@ -41,7 +41,17 @@ public enum EchoKind {
     DR16("dr-16", "浮渣聚块", 32, 1.050F, 1.180F, BattleStyle.AUTHORED, "attack"),
     DR17("dr-17", "缝隙根须", 45, 0.750F, 2.150F, BattleStyle.AUTHORED, "attack"),
     DR18("dr-18", "采蚀工蜂", 24, 0.700F, 0.600F, BattleStyle.AUTHORED, "attack"),
-    DR19("dr-19", "回响残响", 34, 1.081F, 2.500F, BattleStyle.AUTHORED, "echo_reprise");
+    DR19("dr-19", "回响残响", 34, 1.081F, 2.500F, BattleStyle.AUTHORED, "echo_reprise"),
+    DI16("di-16", "阀印监核", 220, 2.2F, 2.8F, BattleStyle.MINIBOSS, "pressure_seal"),
+    DI17("di-17", "拒收督工", 240, 2.6F, 2.6F, BattleStyle.MINIBOSS, "return_draw"),
+    DI18("di-18", "断纬主织", 190, 2.8F, 2.4F, BattleStyle.MINIBOSS, "weft_cross"),
+    DI19("di-19", "逆潮收税官", 210, 2.4F, 2.8F, BattleStyle.MINIBOSS, "tide_levy"),
+    DI20("di-20", "偏光鉴定师", 180, 2.2F, 3F, BattleStyle.MINIBOSS, "parallax_split"),
+    DI21("di-21", "换誓长官", 230, 2F, 3F, BattleStyle.MINIBOSS, "oath_cut"),
+    DI22("di-22", "存名司炉", 240, 2.6F, 3F, BattleStyle.MINIBOSS, "ash_names"),
+    DI23("di-23", "反拍钟师", 200, 2.4F, 3F, BattleStyle.MINIBOSS, "counterbeat"),
+    DI24("di-24", "归途路监", 210, 2.6F, 2.4F, BattleStyle.MINIBOSS, "route_bar"),
+    DI25("di-25", "定锚测记官", 220, 2.8F, 3F, BattleStyle.MINIBOSS, "anchor_boundary");
 
     public enum BattleStyle {
         STALKER,
@@ -62,7 +72,8 @@ public enum EchoKind {
         HIVE,
         RITUAL,
         AUTHORED,
-        CONTROLLED
+        CONTROLLED,
+        MINIBOSS
     }
 
     public final String code, displayName, skillClip;

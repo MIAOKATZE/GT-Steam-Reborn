@@ -4,8 +4,11 @@ import net.minecraft.entity.EntityCreature;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 
+import cpw.mods.fml.common.registry.IEntityAdditionalSpawnData;
+import io.netty.buffer.ByteBuf;
+
 public abstract class EntityEncounterBase extends EntityCreature
-    implements com.miaokatze.gtsr.common.dimension.prosperity.entity.ProsperityDeathVisual {
+    implements com.miaokatze.gtsr.common.dimension.prosperity.entity.ProsperityDeathVisual, IEntityAdditionalSpawnData {
 
     protected double anchorX, anchorY, anchorZ;
     private int deathExperience;
@@ -14,6 +17,17 @@ public abstract class EntityEncounterBase extends EntityCreature
     public EntityEncounterBase(World w) {
         super(w);
         func_110163_bv();
+    }
+
+    @Override
+    public void writeSpawnData(ByteBuf data) {
+        data.writeLong(getUniqueID().getMostSignificantBits());
+        data.writeLong(getUniqueID().getLeastSignificantBits());
+    }
+
+    @Override
+    public void readSpawnData(ByteBuf data) {
+        if (data.readableBytes() >= 16) entityUniqueID = new java.util.UUID(data.readLong(), data.readLong());
     }
 
     protected void entityInit() {

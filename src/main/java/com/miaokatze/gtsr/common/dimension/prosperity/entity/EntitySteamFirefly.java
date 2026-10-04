@@ -25,7 +25,7 @@ import net.minecraft.world.World;
  * <b>画布钉死 64×64</b>（{@code CreatureSpawnAuthorityCheck} I2 组三方对钉）。
  * <p>
  * <b>本片刻意不接</b>：夜间发微光的 client 侧粒子（02 册 §1.4 的 {@code FumeFireflyFX}，
- * 同 {@code GTSRSingularityFX} 挂法）。音效已在 v1.20.71 接入 {@code creature.*} 声族；真实听感仍需实机。
+ * 同 {@code GTSRSingularityFX} 挂法）。音效使用蒸汽萤独立声族；真实听感仍需实机。
  * <p>
  * <b>自定义数据</b>：{@link #DATA_SPAWN_BAND}=16（同齿轮鸽口径）与 {@link #DATA_FLICKER_PHASE}=17
  * （明暗相位 0..255，供 P10 的发光/tint 消费，<b>本片只写不消费</b>）。
@@ -92,17 +92,17 @@ public class EntitySteamFirefly extends EntityAmbientCreature implements Prosper
 
     @Override
     protected String getLivingSound() {
-        return "gtsr:creature.idle";
+        return "gtsr:creature.steam_firefly.idle";
     }
 
     @Override
     protected String getHurtSound() {
-        return "gtsr:creature.hurt";
+        return "gtsr:creature.steam_firefly.hurt";
     }
 
     @Override
     protected String getDeathSound() {
-        return "gtsr:creature.death";
+        return "gtsr:creature.steam_firefly.death";
     }
 
     @Override

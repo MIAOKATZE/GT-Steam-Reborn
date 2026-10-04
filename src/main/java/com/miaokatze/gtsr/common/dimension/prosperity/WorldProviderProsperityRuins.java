@@ -27,6 +27,10 @@ public class WorldProviderProsperityRuins extends GTSRWorldProviderBase {
 
     @Override
     public Vec3 getSkyColor(Entity cameraEntity, float partialTicks) {
+        if (worldObj.isRemote) {
+            Vec3 cinematic = com.miaokatze.gtsr.client.lore.FictionSky.color(worldObj);
+            if (cinematic != null) return cinematic;
+        }
         return Vec3.createVectorHelper(SKY_R, SKY_G, SKY_B);
     }
 }

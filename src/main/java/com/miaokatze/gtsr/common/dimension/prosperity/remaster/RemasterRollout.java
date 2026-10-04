@@ -1,23 +1,19 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.remaster;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /** Contained rollout: three standard scenes; saved records and registered assets remain readable. */
 public final class RemasterRollout {
 
-    private static final List<String> ACTIVE = Collections
-        .unmodifiableList(Arrays.asList("fallen_foundry", "subsided_factory", "forgotten_lake_court"));
-
     private RemasterRollout() {}
 
     public static List<String> activeIds() {
-        return ACTIVE;
+        return RemasterCatalog.ids();
     }
 
     public static boolean isActive(String id) {
-        return ACTIVE.contains(id);
+        return RemasterCatalog.ids()
+            .contains(id);
     }
 
     public static int standardVariant(String id) {
@@ -35,7 +31,9 @@ public final class RemasterRollout {
             || !"0".equals(parts[4])) return false;
         boolean tree = "forgotten_lake_court".equals(parts[3]);
         if (tree ? parts.length != 8 || !"tree-overlay".equals(parts[7])
-            : parts.length != 8 || !"compact-prefab".equals(parts[7])) return false;
+            : parts.length != 8
+                || !(FutureStructurePlanner.isFuture(parts[3]) ? "natural-prefab" : "compact-prefab").equals(parts[7]))
+            return false;
         try {
             // Match the canonical decimal fields produced by RemasterSite.id(), not a loose prefix.
             return Long.toString(Long.parseLong(parts[2]))
@@ -54,6 +52,7 @@ public final class RemasterRollout {
         return site != null && isActive(site.prefab)
             && site.variant == standardVariant(site.prefab)
             && ("forgotten_lake_court".equals(site.prefab) ? "tree-overlay".equals(site.layout)
-                : "compact-prefab".equals(site.layout));
+                : (FutureStructurePlanner.isFuture(site.prefab) ? "natural-prefab" : "compact-prefab")
+                    .equals(site.layout));
     }
 }

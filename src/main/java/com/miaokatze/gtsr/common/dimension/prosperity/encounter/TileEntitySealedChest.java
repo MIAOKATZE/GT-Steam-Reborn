@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.encounter;
 
-import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -15,6 +14,7 @@ public class TileEntitySealedChest extends TileEntity {
     private int tier = 1, platform = -1, openingTicks = -1;
     private String encounter = "";
     private boolean clickUnlock;
+    private int lootContract;
     private int storyEvent = -1;
     private String storyRelic = "";
     private String remasterSite = "", remasterNode = "";
@@ -56,6 +56,9 @@ public class TileEntitySealedChest extends TileEntity {
 
     public void initialize(int t, String id, int p) {
         tier = Math.max(1, Math.min(5, t));
+        if (nativeBossReward(id, p)) tier = 5;
+        else if (remasterSite.isEmpty()) tier = Math.min(4, tier);
+        lootContract = 1;
         encounter = id;
         platform = p;
         markDirty();
@@ -80,11 +83,27 @@ public class TileEntitySealedChest extends TileEntity {
         markDirty();
     }
 
+    private boolean nativeBossReward(String id, int p) {
+        return remasterSite.isEmpty() && !clickUnlock && !id.isEmpty() && !id.startsWith("cache:") && p < 0;
+    }
+
+    private void migrateLootContract() {
+        if (lootContract != 0) return;
+        if (!remasterSite.isEmpty()) {
+            int resolved = com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime
+                .resolveChestTier(this);
+            if (resolved == 0) return;
+            tier = resolved;
+        } else tier = nativeBossReward(encounter, platform) ? 5 : Math.min(4, Math.max(1, tier));
+        lootContract = 1;
+        markDirty();
+        worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+    }
+
     private boolean allowed() {
         if (!remasterSite.isEmpty())
             return com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.chestReady(this);
         if (clickUnlock) return openingTicks >= 0;
-        if (tier == 1) return openingTicks >= 0;
         if (encounter.isEmpty()) return false;
         if (encounter.startsWith("echo:"))
             return com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinsEncounterData.get(worldObj)
@@ -95,7 +114,7 @@ public class TileEntitySealedChest extends TileEntity {
 
     public void tryUnlockByClick() {
         if (!remasterSite.isEmpty()) return;
-        if ((tier == 1 || clickUnlock || allowed()) && openingTicks < 0) startOpening();
+        if ((clickUnlock || allowed()) && openingTicks < 0) startOpening();
     }
 
     public void tryUnlockByClick(net.minecraft.entity.player.EntityPlayer player) {
@@ -124,21 +143,22 @@ public class TileEntitySealedChest extends TileEntity {
     public static ItemStack lootForTier(int tier) {
         switch (tier) {
             case 1:
-                return new ItemStack(Items.iron_ingot);
+                return new ItemStack(Items.coal);
             case 2:
-                return new ItemStack(Items.gold_ingot);
+                return new ItemStack(Items.iron_ingot);
             case 3:
-                return new ItemStack(Items.diamond);
+                return new ItemStack(Items.gold_ingot);
             case 4:
-                return new ItemStack(Blocks.diamond_block);
+                return new ItemStack(Items.diamond);
             case 5:
-                return new ItemStack(Blocks.emerald_block);
+                return new ItemStack(Items.emerald);
             default:
                 throw new IllegalArgumentException("tier");
         }
     }
 
     public void updateEntity() {
+        if (!worldObj.isRemote) migrateLootContract();
         if (!worldObj.isRemote && remasterSite.isEmpty() && remasterGeometryOrigin.hasKey("site"))
             com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.initializeNatural(this);
         if (worldObj.isRemote) {
@@ -180,7 +200,7 @@ public class TileEntitySealedChest extends TileEntity {
             TileEntity t = worldObj.getTileEntity(xCoord, yCoord, zCoord);
             if (t instanceof TileEntityUnsealedChest) {
                 TileEntityUnsealedChest chest = (TileEntityUnsealedChest) t;
-                chest.setInventorySlotContents(13, lootForTier(tier));
+                if (chest.beginReward(tier)) chest.setInventorySlotContents(13, lootForTier(tier));
                 chest.setStoryOrigin(encounter, storyEvent);
                 net.minecraft.item.Item relic = com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry.RELICS
                     .get(storyRelic);
@@ -201,7 +221,8 @@ public class TileEntitySealedChest extends TileEntity {
 
     public void readFromNBT(NBTTagCompound n) {
         super.readFromNBT(n);
-        tier = n.hasKey("tier") ? n.getInteger("tier") : 1;
+        tier = n.hasKey("tier") ? Math.max(1, Math.min(5, n.getInteger("tier"))) : 1;
+        lootContract = n.getInteger("lootContract");
         platform = n.hasKey("platform") ? n.getInteger("platform") : -1;
         encounter = n.getString("encounter");
         clickUnlock = n.getBoolean("clickUnlock");
@@ -216,6 +237,7 @@ public class TileEntitySealedChest extends TileEntity {
     public void writeToNBT(NBTTagCompound n) {
         super.writeToNBT(n);
         n.setInteger("tier", tier);
+        n.setInteger("lootContract", lootContract);
         n.setInteger("platform", platform);
         n.setString("encounter", encounter);
         n.setBoolean("clickUnlock", clickUnlock);

@@ -72,6 +72,12 @@ public final class LoreRegistry {
         FMLCommonHandler.instance()
             .bus()
             .register(events);
+        FictionNetwork.register();
+        FictionCinematic cinematic = new FictionCinematic();
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(cinematic);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(cinematic);
         initialized = true;
     }
 

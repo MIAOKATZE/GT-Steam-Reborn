@@ -245,7 +245,10 @@ public final class RemasterRuntime {
 
     /** Authored node coordinates belong to the admitted scene anchor. */
     public static int[] nodePosition(World world, RemasterSite site, JsonObject node) {
-        if (!"compact-prefab".equals(site.layout)) return null;
+        if (site == null || node == null) return null;
+        boolean natural = "natural-prefab".equals(site.layout);
+        if (!"compact-prefab".equals(site.layout) && !natural) return null;
+        if (natural && !RemasterRollout.allowsGeneration(site)) return null;
         return new int[] { site.x + integer(node, "x", 0), site.y + integer(node, "y", 0),
             site.z + integer(node, "z", 0) };
     }
@@ -300,20 +303,19 @@ public final class RemasterRuntime {
                     .isEmpty()
                 && generatedFor(chest, site)
                 && matches(world, x, y, z, key)) {
-                chest.initializeRemaster(integer(node, "tier", 1), site.id(), id);
+                chest.initializeRemaster(ChestTier.resolveTier(site, node), site.id(), id);
                 chest.remasterGeometryOrigin = new NBTTagCompound();
                 chest.markDirty();
                 return true;
             }
-            return chest.isRemasterNode(site.id(), id) && chest.getTier() == integer(node, "tier", 1)
-                && matches(world, x, y, z, key);
+            return chest.isRemasterNode(site.id(), id) && matches(world, x, y, z, key);
         }
         if (prior != null) return false;
         if (!world.setBlock(x, y, z, block, meta(key), 3) && !matches(world, x, y, z, key)) return false;
         TileEntity tile = world.getTileEntity(x, y, z);
         if (role.equals("chest")) {
             if (!(tile instanceof TileEntitySealedChest)) return false;
-            ((TileEntitySealedChest) tile).initializeRemaster(integer(node, "tier", 1), site.id(), id);
+            ((TileEntitySealedChest) tile).initializeRemaster(ChestTier.resolveTier(site, node), site.id(), id);
         } else {
             if (!(tile instanceof TileRemasterNode)) return false;
             ((TileRemasterNode) tile).initialize(site.id(), id, role);
@@ -403,6 +405,8 @@ public final class RemasterRuntime {
             RemasterData.get(tile.getWorldObj())
                 .flag(tile.siteId, "story-read:" + tile.nodeId, true);
             HistoryProgress.sceneStage(player, owner.id(), owner.prefab, "read:" + tile.nodeId, false);
+            if (player instanceof EntityPlayerMP) com.miaokatze.gtsr.common.dimension.prosperity.lore.FictionCinematic
+                .read((EntityPlayerMP) player, owner, tile.nodeId);
             return true;
         }
         return false;
@@ -476,9 +480,18 @@ public final class RemasterRuntime {
         for (JsonObject n : nodes(site)) if ("chest".equals(string(n, "role", "")) && tile.getRemasterNode()
             .equals(string(n, "id", ""))
             && atNode(tile, site, n)
-            && tile.getTier() == integer(n, "tier", 1)
             && tile.getBlockMetadata() == meta(string(n, "block", ""))) return n;
         return null;
+    }
+
+    /** Used only for one-time migration of unopened legacy seals; existing reward containers are never touched. */
+    public static int resolveChestTier(TileEntitySealedChest tile) {
+        JsonObject node = chestNode(tile);
+        if (node == null) return 0;
+        return ChestTier.resolveTier(
+            RemasterData.get(tile.getWorldObj())
+                .site(tile.getRemasterSite()),
+            node);
     }
 
     public static boolean chestReady(TileEntitySealedChest tile) {
@@ -491,6 +504,10 @@ public final class RemasterRuntime {
         String mode = string(n, "unlockMode", "");
         if (mode.equals("direct")) return true;
         if (mode.equals("story")) return storyReady(w, data.site(site), string(n, "storyNode", ""));
+        if (mode.equals("puzzle")) {
+            String puzzle = string(n, "puzzleNode", "");
+            return !puzzle.isEmpty() && data.flag(site, "puzzle:" + puzzle);
+        }
         return mode.equals("combat") && combatCleared(w, data.site(site), string(n, "combatModule", ""));
     }
 
@@ -546,7 +563,7 @@ public final class RemasterRuntime {
         if (!(opened instanceof TileEntityUnsealedChest))
             throw new IllegalStateException("Missing remaster reward container");
         TileEntityUnsealedChest chest = (TileEntityUnsealedChest) opened;
-        RemasterLoot.fill(chest, site, node);
+        RemasterLoot.fill(chest, site, node, tile.getTier());
         data.flag(site.id(), "claimed:" + tile.getRemasterNode(), true);
         chest.markDirty();
         world.markBlockForUpdate(tile.xCoord, tile.yCoord, tile.zCoord);
@@ -560,7 +577,19 @@ public final class RemasterRuntime {
             JsonObject cluster = e.getAsJsonObject();
             if (!reference.equals(string(cluster, "id", ""))) continue;
             JsonArray members = array(cluster, "members");
-            if (members.size() == 0) return false;
+            JsonArray cages = array(cluster, "sealedSpawners");
+            if (members.size() == 0 && cages.size() == 0) return false;
+            for (JsonElement cage : cages) {
+                String id = cage.getAsString();
+                boolean authored = false;
+                for (JsonObject node : nodes(s))
+                    if (id.equals(string(node, "id", "")) && "spawner".equals(string(node, "role", "")))
+                        authored = true;
+                if (!authored || !data.flag(s.id(), "destroyed:" + id)) return false;
+                NBTTagCompound state = data.state(s.id())
+                    .getCompoundTag("spawner:" + id);
+                if (state.getInteger("deadCount") < state.getInteger("serial")) return false;
+            }
             if (s.prefab.equals("forgotten_lake_court")) {
                 String legacy = data.state(s.id())
                     .getString("legacyEncounter");
@@ -592,6 +621,24 @@ public final class RemasterRuntime {
     public static void death(World w, String id, int nodeIndex) {
         RemasterData data = RemasterData.get(w);
         RemasterSite s = data.site(id);
+        if (s == null && id.contains(":spawn:")) {
+            int split = id.lastIndexOf(":spawn:");
+            String owner = id.substring(0, split), cage = id.substring(split + 7);
+            s = data.site(owner);
+            if (w.isRemote || !RemasterRollout.allowsGeneration(s) || nodeIndex < 0) return;
+            boolean authored = false;
+            for (JsonObject node : nodes(s))
+                if (cage.equals(string(node, "id", "")) && "spawner".equals(string(node, "role", ""))) authored = true;
+            String member = cage + ":" + nodeIndex;
+            if (!authored || !data.flag(owner, "spawner-admitted:" + member)
+                || data.flag(owner, "spawner-dead:" + member)) return;
+            data.flag(owner, "spawner-dead:" + member, true);
+            NBTTagCompound state = data.state(owner)
+                .getCompoundTag("spawner:" + cage);
+            state.setInteger("deadCount", state.getInteger("deadCount") + 1);
+            data.markDirty();
+            return;
+        }
         if (w.isRemote || !RemasterRollout.allowsGeneration(s)) return;
         JsonArray spawns = array(s.plan().metadata, "spawns");
         if (nodeIndex < 0 || nodeIndex >= spawns.size() || !data.flag(id, "entity:" + nodeIndex)) return;
@@ -790,6 +837,8 @@ public final class RemasterRuntime {
         if (world == null || world.isRemote || !RemasterRollout.allowsGeneration(site) || module.isEmpty())
             return false;
         RemasterData data = RemasterData.get(world);
+        for (JsonElement raw : array(site.plan().metadata, "encounterClusters7"))
+            if (module.equals(string(raw.getAsJsonObject(), "id", ""))) return clusterCleared(world, site, module);
         JsonArray spawns = array(site.plan().metadata, "spawns");
         boolean found = false;
         for (int i = 0; i < spawns.size(); i++) {
@@ -848,6 +897,19 @@ public final class RemasterRuntime {
             .getTotalWorldTime() >= state.getLong("unlockAt") + 40 ? 10 : 200;
     }
 
+    /** Effects applied after spawn/tracker admission must also reach already tracking clients. */
+    public static void synchronizeSpawnerEffects(EntityOldEcho entity) {
+        if (!(entity.worldObj instanceof net.minecraft.world.WorldServer)) return;
+        net.minecraft.world.WorldServer server = (net.minecraft.world.WorldServer) entity.worldObj;
+        for (Object value : entity.getActivePotionEffects()) {
+            net.minecraft.potion.PotionEffect effect = (net.minecraft.potion.PotionEffect) value;
+            server.getEntityTracker()
+                .func_151247_a(
+                    entity,
+                    new net.minecraft.network.play.server.S1DPacketEntityEffect(entity.getEntityId(), effect));
+        }
+    }
+
     public static void tick(TileRemasterNode tile) {
         World w = tile.getWorldObj();
         JsonObject n = node(tile);
@@ -901,6 +963,10 @@ public final class RemasterRuntime {
             EntityOldEcho entity = RemasterSpawn
                 .spawn(w, kind, tile.siteId + ":spawn:" + tile.nodeId, x, y, z, -1, false);
             if (entity == null) continue;
+            int serial = spawner.getInteger("serial");
+            entity.setNodeIndex(serial);
+            spawner.setInteger("serial", serial + 1);
+            data.flag(tile.siteId, "spawner-admitted:" + tile.nodeId + ":" + serial, true);
             entity.getEntityData()
                 .setInteger("gtsr.spawnerTier", tier);
             entity.getEntityData()
@@ -911,6 +977,7 @@ public final class RemasterRuntime {
             for (int effect : chosen)
                 entity.addPotionEffect(new net.minecraft.potion.PotionEffect(effects[effect], 24000, tier - 1));
             entity.setHealth(entity.getMaxHealth());
+            synchronizeSpawnerEffects(entity);
             spawner.setInteger("count", spawner.getInteger("count") + 1);
             admitted++;
         }

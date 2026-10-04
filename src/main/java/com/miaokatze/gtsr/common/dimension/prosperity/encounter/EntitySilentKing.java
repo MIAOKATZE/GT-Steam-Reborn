@@ -36,6 +36,8 @@ public class EntitySilentKing extends EntityEncounterBase {
     private final Map<UUID, Integer> behindTicks = new HashMap<>();
     private final int[] cooldowns = new int[8];
     private int combatTicks, nextSkill = 160, attackSerial, lockTicks, absentTicks, guardWaveTicks;
+    private boolean resolvingDamage, damageReachedFloor;
+    private float resolvingFloor;
     private long lastPlayerPresence = -1;
     private int meteorTicks = -1, pullDirection, meteorSerial, initialGuardTarget;
     private double echoX, echoY, echoZ, meteorX, meteorY, meteorZ;
@@ -178,15 +180,54 @@ public class EntitySilentKing extends EntityEncounterBase {
         boolean wasParticipant = participants.contains(player.getUniqueID());
         participants.add(player.getUniqueID());
         engaged = true;
-        float threshold = getCombatPhase() == 1 ? 1500 : getCombatPhase() == 2 ? 1000 : getCombatPhase() == 3 ? 500 : 0;
-        boolean crossing = threshold > 0 && getHealth() - amount <= threshold;
-        boolean accepted = super.attackEntityFrom(source, crossing ? Math.max(0, getHealth() - threshold) : amount);
-        if (!accepted && !wasParticipant) participants.remove(player.getUniqueID());
-        if (accepted && crossing) {
-            setHealth(threshold);
-            enterPhase(getCombatPhase() + 1, players());
+        if (Float.isNaN(amount) || amount <= 0) {
+            if (!wasParticipant) participants.remove(player.getUniqueID());
+            return false;
         }
+        boolean accepted = super.attackEntityFrom(source, Float.isInfinite(amount) ? Float.MAX_VALUE : amount);
+        if (!accepted && !wasParticipant) participants.remove(player.getUniqueID());
         return accepted;
+    }
+
+    /** Enforce the phase floor at the final health mutation, after Forge hurt hooks, armor and absorption. */
+    @Override
+    protected void damageEntity(DamageSource source, float amount) {
+        if (resolvingDamage || isEntityInvulnerable()) return;
+        int phaseBefore = getCombatPhase();
+        float threshold = phaseBefore == 1 ? 1500 : phaseBefore == 2 ? 1000 : phaseBefore == 3 ? 500 : 0;
+        resolvingFloor = Math.min(threshold, getHealth());
+        damageReachedFloor = false;
+        resolvingDamage = true;
+        try {
+            super.damageEntity(source, amount);
+        } finally {
+            resolvingDamage = false;
+            if (!Float.isFinite(getAbsorptionAmount())) setAbsorptionAmount(0);
+        }
+        if (damageReachedFloor && threshold > 0 && getCombatPhase() == phaseBefore && getHealth() > 0)
+            enterPhase(phaseBefore + 1, players());
+    }
+
+    @Override
+    public void setHealth(float health) {
+        if (resolvingDamage) {
+            float before = getHealth();
+            if (Float.isNaN(health) || health == Float.NEGATIVE_INFINITY) health = resolvingFloor;
+            else if (health == Float.POSITIVE_INFINITY) health = before;
+            health = Math.max(resolvingFloor, health);
+            if (resolvingFloor > 0 && health <= resolvingFloor && health < before) damageReachedFloor = true;
+        }
+        super.setHealth(health);
+    }
+
+    @Override
+    protected float applyArmorCalculations(DamageSource source, float amount) {
+        return super.applyArmorCalculations(source, Float.isInfinite(amount) ? Float.MAX_VALUE : amount);
+    }
+
+    @Override
+    protected float applyPotionDamageCalculations(DamageSource source, float amount) {
+        return super.applyPotionDamageCalculations(source, Float.isInfinite(amount) ? Float.MAX_VALUE : amount);
     }
 
     private List<EntityPlayer> players() {
@@ -314,7 +355,7 @@ public class EntitySilentKing extends EntityEncounterBase {
         }
         if (lockTicks > 0) return;
         // The proximity field owns its cooldown and does not consume the normal attack schedule.
-        if (cooldowns[SKILL_SHOCK] == 0) for (EntityPlayer p : ps) if (horizontalSq(p, posX, posZ) <= 9) {
+        if (cooldowns[SKILL_SHOCK] == 0) for (EntityPlayer p : ps) if (horizontalBodyDistanceSq(p) <= 9) {
             domain(ps);
             cooldowns[SKILL_SHOCK] = 400;
             break;
@@ -328,6 +369,15 @@ public class EntitySilentKing extends EntityEncounterBase {
     private int attackInterval() {
         int ticks = getCombatPhase() == 1 ? 160 : getCombatPhase() == 2 ? 120 : getCombatPhase() == 3 ? 100 : 80;
         return isEnraged() ? Math.max(1, ticks / 3) : ticks;
+    }
+
+    /** Horizontal separation between collision bodies, not the six-wide king's inaccessible center. */
+    public double horizontalBodyDistanceSq(Entity entity) {
+        double dx = Math
+            .max(0, Math.max(boundingBox.minX - entity.boundingBox.maxX, entity.boundingBox.minX - boundingBox.maxX));
+        double dz = Math
+            .max(0, Math.max(boundingBox.minZ - entity.boundingBox.maxZ, entity.boundingBox.minZ - boundingBox.maxZ));
+        return dx * dx + dz * dz;
     }
 
     private double horizontalSq(Entity p, double x, double z) {
@@ -364,28 +414,30 @@ public class EntitySilentKing extends EntityEncounterBase {
 
     private void summonGuards(int count, boolean elite, boolean dormant) {
         List<EntityPlayer> ps = players();
+        double yaw = Math.toRadians(getHomeYaw()), fx = -Math.sin(yaw), fz = Math.cos(yaw);
+        double sx = Math.cos(yaw), sz = Math.sin(yaw);
         for (int i = 0; i < count; i++) {
-            double a = 2 * Math.PI * i / count + Math.toRadians(getHomeYaw());
-            double r = elite ? 9 : 19 + (i % 3) * 3;
-            double x = anchorX + Math.cos(a) * r, z = anchorZ + Math.sin(a) * r;
-            if (elite) {
-                double yaw = Math.toRadians(getHomeYaw()), side = i < count / 2 ? -1 : 1;
-                double along = (i % (count / 2) - 1.5) * 2;
-                x = anchorX + Math.cos(yaw) * 9 * side - Math.sin(yaw) * along;
-                z = anchorZ + Math.sin(yaw) * 9 * side + Math.cos(yaw) * along;
-            }
-            double y = -1;
-            // Candidate columns stay in loaded chunks. Vanilla collision shapes and liquids veto each body.
-            for (int attempt = 0; attempt < 24; attempt++) {
-                double angle = a + attempt * .43, radius = r + (attempt % 5) * 1.5;
-                double cx = attempt == 0 ? x : anchorX + Math.cos(angle) * radius;
-                double cz = attempt == 0 ? z : anchorZ + Math.sin(angle) * radius;
-                double cy = surface(cx, anchorY + 8, cz);
+            double side = (i & 1) == 0 ? -1 : 1;
+            int row = i / 2;
+            double x = 0, y = -1, z = 0;
+            // Front-facing staggered banks leave the western entrance's z +/-3 walk clear.
+            for (int attempt = 0; attempt < 60; attempt++) {
+                double forward = 2 + ((row + attempt) % (elite ? 4 : 7)) * 2.8;
+                double lateral = side * ((elite ? 8 : 9) + ((row / 4 + attempt / 7) % 4) * 3.2);
+                double cx = anchorX + fx * forward + sx * lateral;
+                double cz = anchorZ + fz * forward + sz * lateral;
+                double cy = guardSurface(cx, cz);
                 if (cy < 0) continue;
                 net.minecraft.util.AxisAlignedBB body = net.minecraft.util.AxisAlignedBB
                     .getBoundingBox(cx - .65, cy + .01, cz - .65, cx + .65, cy + 2.6, cz + .65);
                 if (!worldObj.getCollidingBoundingBoxes(this, body)
                     .isEmpty() || worldObj.isAnyLiquid(body) || !worldObj.checkNoEntityCollision(body)) continue;
+                boolean supported = true;
+                for (double dx : new double[] { -.55, .55 }) for (double dz : new double[] { -.55, .55 }) {
+                    double floor = guardSurface(cx + dx, cz + dz);
+                    if (floor < 0 || Math.abs(floor - cy) > .5) supported = false;
+                }
+                if (!supported) continue;
                 x = cx;
                 y = cy;
                 z = cz;
@@ -400,6 +452,18 @@ public class EntitySilentKing extends EntityEncounterBase {
                 if (!dormant && !ps.isEmpty()) g.activateKingSummon(priorityPlayer(ps));
             }
         }
+    }
+
+    private double guardSurface(double x, double z) {
+        int bx = (int) Math.floor(x), bz = (int) Math.floor(z);
+        if (!worldObj.getChunkProvider()
+            .chunkExists(bx >> 4, bz >> 4)) return -1;
+        for (int by = Math.min(254, (int) anchorY + 8); by >= Math.max(0, (int) anchorY - 6); by--) {
+            net.minecraft.util.AxisAlignedBB support = worldObj.getBlock(bx, by, bz)
+                .getCollisionBoundingBoxFromPool(worldObj, bx, by, bz);
+            if (support != null && support.maxY >= anchorY - 5 && support.maxY <= anchorY + 8) return support.maxY;
+        }
+        return -1;
     }
 
     private double surface(double x, double y, double z) {
@@ -419,6 +483,7 @@ public class EntitySilentKing extends EntityEncounterBase {
         pendingGuards.clear();
         stopEffects();
         skill(SKILL_NONE, 0);
+        if (meteorTicks >= 0) sendMeteor(2, 0);
         meteorTicks = -1;
         dataWatcher.updateObject(30, -1);
         setHealth(MAX_HEALTH);
@@ -442,7 +507,7 @@ public class EntitySilentKing extends EntityEncounterBase {
         nextSkill = attackInterval();
         if (stage == 2) {
             for (EntityResidualOathguard g : summons()) if (!ps.isEmpty()) g.activateKingSummon(priorityPlayer(ps));
-            lock(0);
+            lock(60);
         } else if (stage == 3) {
             lock(200);
             silence(ps);
@@ -458,7 +523,7 @@ public class EntitySilentKing extends EntityEncounterBase {
                 p.velocityChanged = true;
                 crush(p);
             }
-            effect(1, 20, new CombatGeometry(CombatGeometry.CIRCLE, posX, posY, posZ, 0, 0, 24, 0));
+            effect(1, 20, new CombatGeometry(CombatGeometry.CIRCLE, posX, posY, posZ, 0, 0, 24, 0), SKILL_ECHO);
         }
     }
 
@@ -497,7 +562,19 @@ public class EntitySilentKing extends EntityEncounterBase {
     }
 
     private void effect(int stage, int duration, CombatGeometry geometry) {
-        CombatEffects.send(this, attackSerial * 32, stage, duration, 2, geometry);
+        effect(stage, duration, geometry, getSkillId());
+    }
+
+    private void effect(int stage, int duration, CombatGeometry geometry, int id) {
+        CombatEffects.send(
+            this,
+            attackSerial * 32,
+            stage,
+            duration,
+            2,
+            geometry,
+            id,
+            id == SKILL_SWEEP ? getGravityDirection() : 0);
     }
 
     private void stopEffects() {
@@ -546,7 +623,6 @@ public class EntitySilentKing extends EntityEncounterBase {
             }
         }
         if (t >= 20) {
-            effect(2, 0, geometry());
             skill(SKILL_NONE, 0);
         }
     }
@@ -556,7 +632,7 @@ public class EntitySilentKing extends EntityEncounterBase {
         cooldowns[2] = 1200;
         sound("silence");
         attackSerial++;
-        effect(1, 20, new CombatGeometry(CombatGeometry.CIRCLE, posX, posY, posZ, 0, 0, 55, 0));
+        effect(1, 20, new CombatGeometry(CombatGeometry.CIRCLE, posX, posY, posZ, 0, 0, 55, 0), SKILL_PULSE);
         for (EntityPlayer p : ps) {
             p.addPotionEffect(new PotionEffect(Potion.weakness.id, 400, 2));
             p.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 400, 0));
@@ -567,8 +643,8 @@ public class EntitySilentKing extends EntityEncounterBase {
         announceSkill(SKILL_SHOCK);
         sound("domain");
         attackSerial++;
-        effect(1, 12, new CombatGeometry(CombatGeometry.CIRCLE, posX, posY, posZ, 0, 0, 3, 0));
-        for (EntityPlayer p : ps) if (horizontalSq(p, posX, posZ) <= 9) {
+        effect(1, 12, new CombatGeometry(CombatGeometry.CIRCLE, posX, posY, posZ, 0, 0, 3, 0), SKILL_SHOCK);
+        for (EntityPlayer p : ps) if (horizontalBodyDistanceSq(p) <= 9) {
             damage(p, DamageSource.magic, 2);
             double dx = p.posX - posX, dz = p.posZ - posZ, length = Math.sqrt(dx * dx + dz * dz);
             if (length < .001) {
@@ -603,7 +679,9 @@ public class EntitySilentKing extends EntityEncounterBase {
             stage,
             duration,
             2,
-            new CombatGeometry(CombatGeometry.POINT, meteorX, meteorY, meteorZ, 0, 0, 5, 0));
+            new CombatGeometry(CombatGeometry.POINT, meteorX, meteorY, meteorZ, 0, 0, 5, 0),
+            SKILL_CROWN,
+            0);
     }
 
     private void advanceMeteor(List<EntityPlayer> ps) {

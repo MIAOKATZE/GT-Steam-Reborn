@@ -42,6 +42,47 @@ public final class CubeRuneParticle {
         }
     }
 
+    private static final java.util.Map<java.util.UUID, DeathBurst> deaths = new java.util.LinkedHashMap<>();
+    private static final java.util.Set<java.util.UUID> deathSeen = new java.util.HashSet<>();
+    private static final java.util.Map<java.util.UUID, SpawnRune> spawns = new java.util.LinkedHashMap<>();
+    private static final java.util.Set<java.util.UUID> spawnSeen = new java.util.HashSet<>();
+
+    private static final class DeathBurst {
+
+        final double x, y, z, width, height;
+        final long born, seed;
+        final boolean gold;
+        final int count;
+
+        DeathBurst(Entity source, ProsperityDeathVisual visual, long time) {
+            x = source.posX;
+            y = source.posY;
+            z = source.posZ;
+            width = source.width;
+            height = source.height;
+            gold = visual.isGoldenDeath();
+            count = BoundedDeathVisual.count(width, height);
+            born = time - visual.getDeathAnimationTicks() + visual.getDeathAnimationHoldTicks();
+            seed = source.getUniqueID()
+                .getMostSignificantBits()
+                ^ source.getUniqueID()
+                    .getLeastSignificantBits();
+        }
+    }
+
+    private static final class SpawnRune {
+
+        final int entity;
+        final java.util.UUID source;
+        final long born;
+
+        SpawnRune(Entity source, long time) {
+            entity = source.getEntityId();
+            this.source = source.getUniqueID();
+            born = time;
+        }
+    }
+
     private static WorldClient owner;
     private static int emitted;
     private static final float[][] TIERS = { { 1F, .42F, .08F }, { 1F, .12F, .16F }, { .7F, .2F, 1F } };
@@ -84,6 +125,10 @@ public final class CubeRuneParticle {
         if (mc.theWorld != owner) {
             particles.clear();
             bodyRunes.clear();
+            deaths.clear();
+            deathSeen.clear();
+            spawns.clear();
+            spawnSeen.clear();
             owner = mc.theWorld;
         }
         if (owner == null || mc.thePlayer == null || mc.isGamePaused()) return;
@@ -128,13 +173,35 @@ public final class CubeRuneParticle {
                 bodyRunes.add(new BodyRune(source, kind, mask, source.ticksExisted * 2 + i, awakening));
             if (bodyBudget <= 0) break;
         }
-        int size = owner.loadedEntityList.size();
-        int start = size == 0 ? 0 : (int) (owner.getTotalWorldTime() % size);
-        for (int cursor = 0; cursor < size && emitted < TICK_BUDGET / 2 && particles.size() < MAX_CUBES / 2; cursor++) {
-            Object o = owner.loadedEntityList.get((cursor + start) % size);
-            if (o instanceof com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoCombatProjectile) {
-                com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoCombatProjectile bolt = (com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoCombatProjectile) o;
-                if (!bolt.hasExploded() && mc.thePlayer.getDistanceSqToEntity(bolt) < 4096) emit(
+        long now = owner.getTotalWorldTime();
+        java.util.Set<java.util.UUID> loaded = new java.util.HashSet<>();
+        for (Object object : owner.loadedEntityList) {
+            if (!(object instanceof Entity)) continue;
+            Entity e = (Entity) object;
+            loaded.add(e.getUniqueID());
+            if (e instanceof ProsperityDeathVisual) {
+                ProsperityDeathVisual visual = (ProsperityDeathVisual) e;
+                if (visual.getDeathAnimationTicks() > 0 && !deathSeen.contains(e.getUniqueID())
+                    && deaths.size() < 96
+                    && mc.thePlayer.getDistanceSqToEntity(e) < 64 * 64) {
+                    deaths.put(e.getUniqueID(), new DeathBurst(e, visual, now));
+                    deathSeen.add(e.getUniqueID());
+                }
+            }
+            if (e instanceof EntityEncounterBase && !e.isDead
+                && ((EntityEncounterBase) e).getHealth() > 0
+                && e.ticksExisted < 60
+                && !bodyActive(e)
+                && !spawnSeen.contains(e.getUniqueID())
+                && (((EntityEncounterBase) e).getSpawnerTier() > 0 || positiveBuffMask((EntityEncounterBase) e) > 0)
+                && spawns.size() < 24
+                && mc.thePlayer.getDistanceSqToEntity(e) < 64 * 64) {
+                spawns.put(e.getUniqueID(), new SpawnRune(e, now));
+                spawnSeen.add(e.getUniqueID());
+            }
+            if (e instanceof com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoCombatProjectile) {
+                com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoCombatProjectile bolt = (com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoCombatProjectile) e;
+                if (!bolt.hasExploded() && emitted < 12 && mc.thePlayer.getDistanceSqToEntity(bolt) < 4096) emit(
                     owner,
                     bolt.posX,
                     bolt.posY,
@@ -142,41 +209,52 @@ public final class CubeRuneParticle {
                     -bolt.motionX * .05,
                     .008,
                     -bolt.motionZ * .05,
-                    .08,
+                    .045,
                     bolt.getPalette() == 0 ? 1F : .7F,
                     .3F,
                     bolt.getPalette() == 0 ? .15F : 1F,
-                    16);
-                continue;
+                    12);
             }
-            if (!(o instanceof ProsperityDeathVisual) || !(o instanceof Entity)) continue;
-            Entity e = (Entity) o;
-            ProsperityDeathVisual deathVisual = (ProsperityDeathVisual) o;
-            int death = deathVisual.getDeathAnimationTicks();
-            if (death <= deathVisual.getDeathAnimationHoldTicks() || e.isDead
-                || mc.thePlayer.getDistanceSqToEntity(e) > 4096) continue;
-            int count = deathVisual.isGoldenDeath() ? 3 : 2;
-            for (int i = 0; i < count; i++) {
-                long seed = (long) e.getEntityId() * 7919 + death * 31L + i * 163;
-                double a = (seed & 1023) * Math.PI / 512;
-                double h = ((seed >>> 10) & 255) / 255D;
-                boolean gold = deathVisual.isGoldenDeath();
-                emit(
-                    owner,
-                    e.posX + Math.cos(a) * e.width * .45,
-                    e.posY + h * e.height,
-                    e.posZ + Math.sin(a) * e.width * .45,
-                    Math.cos(a) * .012,
-                    .025,
-                    Math.sin(a) * .012,
-                    .055 + .065 * h,
-                    gold ? 1F : .66F,
-                    gold ? .73F : .32F,
-                    gold ? .2F : .92F,
-                    gold ? 48 : 30);
-            }
-            if (emitted >= TICK_BUDGET / 2) break;
         }
+        Iterator<DeathBurst> dead = deaths.values()
+            .iterator();
+        while (dead.hasNext()) {
+            DeathBurst burst = dead.next();
+            if (now - burst.born >= BoundedDeathVisual.duration(burst.gold)) dead.remove();
+        }
+        deathSeen.retainAll(loaded);
+        spawnSeen.retainAll(loaded);
+        Iterator<SpawnRune> births = spawns.values()
+            .iterator();
+        while (births.hasNext()) {
+            SpawnRune spawn = births.next();
+            Entity source = owner.getEntityByID(spawn.entity);
+            if (now - spawn.born >= 32 || source == null
+                || source.isDead
+                || !source.getUniqueID()
+                    .equals(spawn.source))
+                births.remove();
+        }
+    }
+
+    public static int positiveBuffMask(net.minecraft.entity.EntityLivingBase entity) {
+        int mask = 0;
+        for (Object object : entity.getActivePotionEffects()) {
+            net.minecraft.potion.PotionEffect effect = (net.minecraft.potion.PotionEffect) object;
+            int id = effect.getPotionID();
+            if (id == 5) mask |= 1;
+            else if (id == 11) mask |= 2;
+            else if (id == 21) mask |= 4;
+            else if (id == 10) mask |= 8;
+            else if (id == 1) mask |= 16;
+        }
+        return mask;
+    }
+
+    public static float spawnAlpha(Entity entity, float partial) {
+        SpawnRune spawn = spawns.get(entity.getUniqueID());
+        if (spawn == null || owner == null) return 1;
+        return (float) Math.max(.25, Math.min(1, (owner.getTotalWorldTime() - spawn.born + partial) / 18D));
     }
 
     private static boolean bodyActive(Entity entity) {
@@ -202,9 +280,9 @@ public final class CubeRuneParticle {
         if (owner == null || owner != mc.theWorld || mc.renderViewEntity == null) return;
         Entity camera = mc.renderViewEntity;
         double partial = event.partialTicks;
-        double ox = camera.lastTickPosX + (camera.posX - camera.lastTickPosX) * partial;
-        double oy = camera.lastTickPosY + (camera.posY - camera.lastTickPosY) * partial;
-        double oz = camera.lastTickPosZ + (camera.posZ - camera.lastTickPosZ) * partial;
+        double ox = net.minecraft.client.renderer.entity.RenderManager.renderPosX,
+            oy = net.minecraft.client.renderer.entity.RenderManager.renderPosY,
+            oz = net.minecraft.client.renderer.entity.RenderManager.renderPosZ;
         try (GlScope scope = new GlScope()) {
             GL11.glTranslated(-ox, -oy, -oz);
             OpenGlHelper.setActiveTexture(OpenGlHelper.lightmapTexUnit);
@@ -217,10 +295,19 @@ public final class CubeRuneParticle {
             GL11.glDisable(GL11.GL_ALPHA_TEST);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             GL11.glDepthMask(false);
+            FineRuneRenderer.unlit();
             for (CubeRuneParticle c : particles) {
                 double age = c.age + partial, fade = Math.max(0, 1 - age / c.life);
-                GL11.glColor4f(c.r, c.g, c.b, (float) (.65 * fade));
-                box(c.x + c.vx * age, c.y + c.vy * age, c.z + c.vz * age, c.size * (.35 + .65 * fade));
+                FineRuneRenderer.voxel(
+                    c.x + c.vx * age,
+                    c.y + c.vy * age,
+                    c.z + c.vz * age,
+                    c.size * (.35 + .65 * fade),
+                    c.r,
+                    c.g,
+                    c.b,
+                    (float) (.6 * fade),
+                    c.size > .07);
             }
             for (BodyRune rune : bodyRunes) {
                 Entity source = owner.getEntityByID(rune.entity);
@@ -237,34 +324,129 @@ public final class CubeRuneParticle {
                 double ex = source.lastTickPosX + (source.posX - source.lastTickPosX) * partial;
                 double ey = source.lastTickPosY + (source.posY - source.lastTickPosY) * partial;
                 double ez = source.lastTickPosZ + (source.posZ - source.lastTickPosZ) * partial;
-                GL11.glColor4f(
+                FineRuneRenderer.voxel(
+                    ex + rx,
+                    ey + c[1],
+                    ez + rz,
+                    c[3],
                     (float) c[4],
                     (float) c[5],
                     (float) c[6],
-                    (float) (c[7] * (1 - (rune.age + partial) / 24D)));
-                box(ex + rx, ey + c[1], ez + rz, c[3]);
+                    (float) (c[7] * (1 - (rune.age + partial) / 24D)),
+                    true);
             }
-            int budget = 192;
-            for (Object o : owner.loadedEntityList) {
-                if (!(o instanceof EntityEncounterBase)) continue;
-                EntityEncounterBase e = (EntityEncounterBase) o;
-                int tier = e.getSpawnerTier();
-                if (tier <= 0 || e.getHealth() <= 0 || e.isDead || camera.getDistanceSqToEntity(e) > 4096) continue;
-                int count = 4 + Math.min(3, tier) * 2;
-                float[] color = TIERS[Math.min(2, tier - 1)];
-                double ex = e.lastTickPosX + (e.posX - e.lastTickPosX) * partial;
-                double ey = e.lastTickPosY + (e.posY - e.lastTickPosY) * partial;
-                double ez = e.lastTickPosZ + (e.posZ - e.lastTickPosZ) * partial;
-                for (int i = 0; i < count && budget-- > 0; i++) {
-                    double a = (e.ticksExisted + partial) * .07 + i * Math.PI * 2 / count;
-                    GL11.glColor4f(color[0], color[1], color[2], .65F);
-                    box(
-                        ex + Math.cos(a) * (e.width * .6 + .35),
-                        ey + e.height * .55 + Math.sin(a * 2) * .22,
-                        ez + Math.sin(a) * (e.width * .6 + .35),
-                        .07 + .02 * Math.sin(a * 3));
+            int coreBudget = 3;
+            for (Object object : owner.loadedEntityList) {
+                if (!(object instanceof Entity) || coreBudget <= 0) continue;
+                Entity source = (Entity) object;
+                if (!bodyActive(source) || camera.getDistanceSqToEntity(source) > 64 * 64) continue;
+                boolean royal = source instanceof com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing;
+                boolean foundry = !royal
+                    && ((com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho) source).getKind()
+                        == com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoKind.DC02;
+                int skill = royal
+                    ? ((com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing) source).getSkillId()
+                    : ((com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho) source).getSkillId();
+                int mask = BossSkillVisuals.recentMask(source) | (skill > 0 ? 1 << (skill - 1) : 0);
+                boolean awake = royal
+                    ? ((com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing) source)
+                        .getEncounterState() == 1
+                    : ((com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho) source)
+                        .getIndustrialBossStage() == 1;
+                double yaw = royal
+                    ? ((com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing) source).getHomeYaw()
+                    : source.prevRotationYaw + (source.rotationYaw - source.prevRotationYaw) * partial;
+                try (GlScope core = new GlScope()) {
+                    GL11.glTranslated(
+                        source.lastTickPosX + (source.posX - source.lastTickPosX) * partial,
+                        source.lastTickPosY + (source.posY - source.lastTickPosY) * partial,
+                        source.lastTickPosZ + (source.posZ - source.lastTickPosZ) * partial);
+                    GL11.glRotated(180 - yaw, 0, 1, 0);
+                    GL11.glTranslated(0, royal ? 6.53 : foundry ? 9.1 : 1.415, royal ? -.81 : foundry ? 1.07 : -.506);
+                    if (royal || foundry) GL11.glRotated(90, 1, 0, 0);
+                    float[] color = foundry ? new float[] { 1, .52F, .13F }
+                        : royal && (mask & 5) == 0 ? new float[] { 1, .75F, .24F } : new float[] { .77F, .38F, 1 };
+                    FineRuneRenderer.orbit(
+                        royal ? 1.05 : foundry ? .8 : 1.05,
+                        source.ticksExisted + partial,
+                        awake ? 6 : mask == 0 ? 3 : 5,
+                        color[0],
+                        color[1],
+                        color[2],
+                        awake ? .7F : mask == 0 ? .38F : .62F,
+                        awake ? .3 : .08);
                 }
-                if (budget <= 0) break;
+                coreBudget--;
+            }
+            int deathBudget = 384;
+            double now = owner.getTotalWorldTime() + partial;
+            for (DeathBurst burst : deaths.values()) {
+                if (camera.getDistanceSq(burst.x, burst.y, burst.z) > 64 * 64) continue;
+                for (int i = 0; i < burst.count && deathBudget > 0; i++) {
+                    double[] c = BoundedDeathVisual
+                        .sample(burst.seed, i, now - burst.born, burst.width, burst.height, burst.gold);
+                    if (c[4] <= 0) continue;
+                    FineRuneRenderer.voxel(
+                        burst.x + c[0],
+                        burst.y + c[1],
+                        burst.z + c[2],
+                        c[3],
+                        burst.gold ? 1F : .66F,
+                        burst.gold ? .73F : .32F,
+                        burst.gold ? .2F : .92F,
+                        (float) c[4],
+                        i % 3 == 0);
+                    deathBudget--;
+                }
+            }
+            for (SpawnRune spawn : spawns.values()) {
+                Entity source = owner.getEntityByID(spawn.entity);
+                if (source == null || !source.getUniqueID()
+                    .equals(spawn.source)) continue;
+                double age = now - spawn.born, p = Math.max(0, Math.min(1, age / 32D));
+                try (GlScope scopeSpawn = new GlScope()) {
+                    GL11.glTranslated(source.posX, source.posY + .12 + Math.sin(p * Math.PI) * .2, source.posZ);
+                    int tier = ((EntityEncounterBase) source).getSpawnerTier();
+                    float[] color = TIERS[Math.max(0, Math.min(2, tier - 1))];
+                    double radius = Math.max(.5, source.width * .7) * (1.7 - .7 * p);
+                    FineRuneRenderer.orbit(
+                        radius,
+                        age * 4,
+                        6,
+                        color[0],
+                        color[1],
+                        color[2],
+                        (float) (Math.sin(Math.PI * p) * .7),
+                        1 - p);
+                    GL11.glColor4f(color[0], color[1], color[2], (float) ((1 - p) * .28));
+                    FineRuneRenderer.arc(radius * .8, .014, source.height * p, age, 1, 1);
+                }
+            }
+            int runeBudget = 96;
+            for (Object object : owner.loadedEntityList) {
+                if (!(object instanceof EntityEncounterBase)) continue;
+                EntityEncounterBase e = (EntityEncounterBase) object;
+                int buffs = positiveBuffMask(e), tier = e.getSpawnerTier();
+                if (buffs == 0 || e.getHealth() <= 0 || e.isDead || camera.getDistanceSqToEntity(e) > 48 * 48) continue;
+                int count = Math.min(runeBudget, 4 + Integer.bitCount(buffs) * 2);
+                if (count <= 0) break;
+                runeBudget -= count;
+                float[] color = TIERS[Math.max(0, Math.min(2, tier - 1))];
+                try (GlScope ring = new GlScope()) {
+                    GL11.glTranslated(
+                        e.lastTickPosX + (e.posX - e.lastTickPosX) * partial,
+                        e.lastTickPosY + (e.posY - e.lastTickPosY) * partial + e.height * .55,
+                        e.lastTickPosZ + (e.posZ - e.lastTickPosZ) * partial);
+                    FineRuneRenderer.orbit(
+                        Math.max(.4, e.width * .6 + .2),
+                        e.ticksExisted + partial,
+                        count,
+                        color[0],
+                        color[1],
+                        color[2],
+                        .7F,
+                        .2);
+                }
             }
         }
     }
