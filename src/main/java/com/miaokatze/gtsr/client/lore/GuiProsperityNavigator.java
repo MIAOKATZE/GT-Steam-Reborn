@@ -123,14 +123,16 @@ public final class GuiProsperityNavigator extends GuiScreen {
         pending = false;
         status = result.status == 1
             ? StatCollector.translateToLocalFormatted("gtsr.navigator.coordinates", result.x, result.z, result.distance)
-            : tr(result.status == 3 ? "gtsr.navigator.cooldown" : "gtsr.navigator.missing");
+            : tr(
+                result.status == 3 ? "gtsr.navigator.cooldown"
+                    : result.status == 4 ? "gtsr.navigator.timeout" : "gtsr.navigator.missing");
         buttons();
     }
 
     @Override
     public void updateScreen() {
         search.updateCursorCounter();
-        if (pending && System.currentTimeMillis() - requestedAt > 10000) {
+        if (pending && System.currentTimeMillis() - requestedAt > 60000) {
             pending = false;
             status = tr("gtsr.navigator.timeout");
             buttons();

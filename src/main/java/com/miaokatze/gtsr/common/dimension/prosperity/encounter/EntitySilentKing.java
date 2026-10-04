@@ -36,7 +36,7 @@ public class EntitySilentKing extends EntityEncounterBase {
     private final Map<UUID, Integer> behindTicks = new HashMap<>();
     private final int[] cooldowns = new int[8];
     private int combatTicks, nextSkill = 160, attackSerial, lockTicks, absentTicks, guardWaveTicks;
-    private boolean resolvingDamage, damageReachedFloor;
+    private boolean resolvingDamage, damageReachedFloor, restoringHealth;
     private float resolvingFloor;
     private long lastPlayerPresence = -1;
     private int meteorTicks = -1, pullDirection, meteorSerial, initialGuardTarget;
@@ -157,6 +157,17 @@ public class EntitySilentKing extends EntityEncounterBase {
 
     public void moveEntity(double x, double y, double z) {}
 
+    @Override
+    public void applyEntityCollision(Entity entity) {}
+
+    @Override
+    public void addVelocity(double x, double y, double z) {}
+
+    @Override
+    public float getCollisionBorderSize() {
+        return .6F;
+    }
+
     public boolean canBePushed() {
         return false;
     }
@@ -192,9 +203,9 @@ public class EntitySilentKing extends EntityEncounterBase {
     /** Enforce the phase floor at the final health mutation, after Forge hurt hooks, armor and absorption. */
     @Override
     protected void damageEntity(DamageSource source, float amount) {
-        if (resolvingDamage || isEntityInvulnerable()) return;
+        if (resolvingDamage || isEntityInvulnerable() || Float.isNaN(amount) || amount <= 0) return;
         int phaseBefore = getCombatPhase();
-        float threshold = phaseBefore == 1 ? 1500 : phaseBefore == 2 ? 1000 : phaseBefore == 3 ? 500 : 0;
+        float threshold = phaseBefore == 1 ? 2400 : phaseBefore == 2 ? 1600 : phaseBefore == 3 ? 800 : 0;
         resolvingFloor = Math.min(threshold, getHealth());
         damageReachedFloor = false;
         resolvingDamage = true;
@@ -210,14 +221,36 @@ public class EntitySilentKing extends EntityEncounterBase {
 
     @Override
     public void setHealth(float health) {
-        if (resolvingDamage) {
-            float before = getHealth();
-            if (Float.isNaN(health) || health == Float.NEGATIVE_INFINITY) health = resolvingFloor;
-            else if (health == Float.POSITIVE_INFINITY) health = before;
-            health = Math.max(resolvingFloor, health);
-            if (resolvingFloor > 0 && health <= resolvingFloor && health < before) damageReachedFloor = true;
+        float before = getHealth();
+        if (Float.isNaN(health) || health == Float.POSITIVE_INFINITY) health = before;
+        boolean transition = false;
+        int phaseBefore = 0;
+        if (!restoringHealth && worldObj != null && !worldObj.isRemote && before > 0) {
+            phaseBefore = getCombatPhase();
+            if (health < before && isEntityInvulnerable()) health = before;
+            else if (getEncounterState() == ACTIVE) {
+                float threshold = phaseBefore == 1 ? 2400 : phaseBefore == 2 ? 1600 : phaseBefore == 3 ? 800 : 0;
+                float floor = resolvingDamage ? resolvingFloor : Math.min(threshold, before);
+                if (floor > 0 && health <= floor && health < before) {
+                    health = floor;
+                    if (resolvingDamage) damageReachedFloor = true;
+                    else transition = true;
+                }
+            }
         }
         super.setHealth(health);
+        if (transition && getCombatPhase() == phaseBefore) enterPhase(phaseBefore + 1, players());
+    }
+
+    /** Only encounter initialization/recovery and persisted health bypass combat phase transitions. */
+    private void restoreHealth(float health) {
+        boolean previous = restoringHealth;
+        restoringHealth = true;
+        try {
+            setHealth(health);
+        } finally {
+            restoringHealth = previous;
+        }
     }
 
     @Override
@@ -284,7 +317,7 @@ public class EntitySilentKing extends EntityEncounterBase {
             return false;
         if (getEncounterState() != DORMANT && getEncounterState() != RECOVERING) return true;
         state(AWAKENING);
-        setHealth(MAX_HEALTH);
+        restoreHealth(1);
         setCustomNameTag("(旧日虚影)缄王");
         initialGuardTarget = 20 + rand.nextInt(11);
         summonGuards(initialGuardTarget, false, true);
@@ -326,6 +359,7 @@ public class EntitySilentKing extends EntityEncounterBase {
         }
         if (getEncounterState() == AWAKENING) {
             phase(getVisualPhaseTicks() + 1);
+            restoreHealth(1 + (MAX_HEALTH - 1) * Math.min(AWAKENING_TICKS, getVisualPhaseTicks()) / AWAKENING_TICKS);
             if (getVisualPhaseTicks() % 20 == 0 && livingSummons() < initialGuardTarget)
                 summonGuards(initialGuardTarget - livingSummons(), false, true);
             if (getVisualPhaseTicks() >= AWAKENING_TICKS && livingSummons() >= 20) {
@@ -340,6 +374,7 @@ public class EntitySilentKing extends EntityEncounterBase {
         absentTicks = 0;
         if (getEncounterState() == RECOVERING) {
             state(AWAKENING);
+            restoreHealth(1);
             initialGuardTarget = 20 + rand.nextInt(11);
             summonGuards(initialGuardTarget, false, true);
             initialGuardsSummoned = true;
@@ -351,6 +386,7 @@ public class EntitySilentKing extends EntityEncounterBase {
             summonGuards(initialGuardTarget, false, true);
             initialGuardsSummoned = true;
             state(AWAKENING);
+            restoreHealth(1);
             sound("chant");
             return;
         }
@@ -498,7 +534,7 @@ public class EntitySilentKing extends EntityEncounterBase {
         if (meteorTicks >= 0) sendMeteor(2, 0);
         meteorTicks = -1;
         dataWatcher.updateObject(30, -1);
-        setHealth(MAX_HEALTH);
+        restoreHealth(MAX_HEALTH);
         dataWatcher.updateObject(27, 1);
         dataWatcher.updateObject(28, 0);
         behindTicks.clear();
@@ -785,7 +821,7 @@ public class EntitySilentKing extends EntityEncounterBase {
         super.writeEntityToNBT(n);
         n.setInteger("skillAnnouncements", dataWatcher.getWatchableObjectInt(17));
         n.setInteger("skillAnnouncementSerial", getSkillAnnouncementSerial());
-        n.setInteger("healthSchema", 3);
+        n.setInteger("healthSchema", 4);
         n.setInteger("combat", combatTicks);
         n.setInteger("attackSerial", attackSerial);
         n.setInteger("skillId", getSkillId());
@@ -829,18 +865,28 @@ public class EntitySilentKing extends EntityEncounterBase {
     }
 
     public void readEntityFromNBT(NBTTagCompound n) {
-        super.readEntityFromNBT(n);
+        boolean previous = restoringHealth;
+        restoringHealth = true;
+        try {
+            super.readEntityFromNBT(n);
+        } finally {
+            restoringHealth = previous;
+        }
         dataWatcher.updateObject(17, n.getInteger("skillAnnouncements"));
         dataWatcher.updateObject(18, n.getInteger("skillAnnouncementSerial"));
         if (!n.hasKey("healthSchema")) {
             getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(MAX_HEALTH);
-            setHealth(Math.min(MAX_HEALTH, getHealth() * 3));
+            restoreHealth(Math.min(MAX_HEALTH, getHealth() * 3));
+        }
+        if (n.getInteger("healthSchema") < 4 && getHealth() > 0) {
+            float old = getHealth();
+            restoreHealth(old > 1500 ? 2400 + (old - 1500) * .4F : old * 1.6F);
         }
         combatTicks = n.getInteger("combat");
         attackSerial = Math.max(0, n.getInteger("attackSerial"));
         skill(n.getInteger("skillId"), n.getInteger("skillTicks"));
         nextSkill = n.getInteger("nextSkill");
-        int legacyPhase = getHealth() <= 500 ? 4 : getHealth() <= 1000 ? 3 : getHealth() <= 1500 ? 2 : 1;
+        int legacyPhase = getHealth() <= 800 ? 4 : getHealth() <= 1600 ? 3 : getHealth() <= 2400 ? 2 : 1;
         dataWatcher.updateObject(
             27,
             n.hasKey("kingPhase") ? Math.max(1, Math.min(4, n.getInteger("kingPhase"))) : legacyPhase);

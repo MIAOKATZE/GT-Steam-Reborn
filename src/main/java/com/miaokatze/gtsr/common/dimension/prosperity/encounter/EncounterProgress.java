@@ -38,7 +38,7 @@ public final class EncounterProgress {
     @SubscribeEvent
     public void tick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || !(event.player instanceof EntityPlayerMP)
-            || event.player.ticksExisted % 20 != 0) return;
+            || event.player.ticksExisted % 10 != 0) return;
         EntityPlayerMP p = (EntityPlayerMP) event.player;
         SceneBossSignal signal = new SceneBossSignal();
         if (p.isEntityAlive() && !(p instanceof FakePlayer)

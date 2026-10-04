@@ -13,6 +13,17 @@ public final class SceneBossCache {
 
     public void receive(Object current, int dimension, UUID player, SceneBossSignal s) {
         if (current == null || !s.valid || !s.sane() || dimension != s.dimension || !s.player.equals(player)) return;
+        if (s.state == 1) {
+            s.renderRevivalTicks = s.revivalTicks;
+            if (current == world && signal != null
+                && signal.state == 1
+                && s.kind == signal.kind
+                && s.entity == signal.entity
+                && s.site.equals(signal.site)) {
+                s.renderRevivalTicks = Math.max(s.renderRevivalTicks, signal.renderRevivalTicks);
+                s.minimumVisibleHealth = signal.minimumVisibleHealth;
+            }
+        }
         world = current;
         signal = s.kind == 0 ? null : s;
         ticks = signal == null ? 0 : 60;
@@ -25,7 +36,11 @@ public final class SceneBossCache {
 
     public void tick(Object current) {
         if (current == null || current != world || ticks <= 1) clear();
-        else ticks--;
+        else {
+            ticks--;
+            if (signal != null && signal.state == 1) signal.renderRevivalTicks = Math
+                .min(signal.revivalDuration(), Math.min(signal.revivalTicks + 10, signal.renderRevivalTicks + 1));
+        }
     }
 
     public SceneBossSignal get(Object current) {

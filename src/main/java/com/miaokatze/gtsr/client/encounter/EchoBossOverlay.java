@@ -29,8 +29,8 @@ public final class EchoBossOverlay extends Gui {
     public void drawScene(RenderGameOverlayEvent.Post event,
         com.miaokatze.gtsr.common.dimension.prosperity.encounter.SceneBossSignal scene) {
         Minecraft mc = Minecraft.getMinecraft();
-        int layers = scene.layers();
-        float segment = scene.segment();
+        int layers = scene.layers(event.partialTicks);
+        float segment = scene.segment(event.partialTicks);
         int x = (event.resolution.getScaledWidth() - 256) / 2;
         int y = BossStatus.statusBarTime > 0 ? 42 : 17;
         int color = scene.kind == 1 ? EncounterClient.kingLayerColor(layers)
@@ -63,7 +63,7 @@ public final class EchoBossOverlay extends Gui {
                 y - 9,
                 0xE9D7AD);
             String caption = scene.state == 3 ? "已完成"
-                : scene.state == 1 ? "正在复苏 · " + scene.revivalTicks + "/208"
+                : scene.state == 1 ? "正在复苏 · " + scene.revivalTicks + "/" + scene.revivalDuration()
                     : scene.state == 2 ? "战斗中"
                         : scene.kind == 1 ? scene.remaining > 0 ? "休眠 · 剩余守卫 " + scene.remaining + "/" + scene.total
                             : "守卫已肃清 · 靠近王座唤醒缄王" : "休眠 · 待拆毁刷怪笼 " + scene.remaining + "/" + scene.total;

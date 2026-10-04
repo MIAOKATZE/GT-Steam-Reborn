@@ -1,11 +1,14 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.lore;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
@@ -38,6 +41,8 @@ public final class NavigatorNetwork {
     private static final SimpleNetworkWrapper NETWORK = NetworkRegistry.INSTANCE.newSimpleChannel("gtsr_navigator");
     private static final ConcurrentLinkedQueue<Pending> QUEUE = new ConcurrentLinkedQueue<>();
     private static final AtomicInteger QUEUED = new AtomicInteger();
+    private static final Deque<LocateJob> ACTIVE = new ArrayDeque<>();
+    private static final long TICK_BUDGET_NS = 10000000L, SESSION_TTL_NS = 55000000000L;
     private static final Map<EntityPlayerMP, Long> LAST_QUERY = new WeakHashMap<>();
     private static final Map<EntityPlayerMP, EntityItem> PENDING_GIFTS = new WeakHashMap<>();
 
@@ -107,12 +112,74 @@ public final class NavigatorNetwork {
     @SubscribeEvent
     public void tick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
-        // Four bounded searches per tick prevents a packet burst from monopolizing a server tick.
+        // Netty only enqueues; admission and all world access belong to this thread.
         for (int count = 0; count < 4; count++) {
             Pending pending = QUEUE.poll();
             if (pending == null) break;
             QUEUED.decrementAndGet();
-            execute(pending.player, pending.query);
+            if (System.nanoTime() - pending.created <= SESSION_TTL_NS) execute(pending.player, pending.query);
+        }
+        long deadline = System.nanoTime() + TICK_BUDGET_NS;
+        for (int steps = 0; steps < 1024 && !ACTIVE.isEmpty() && System.nanoTime() < deadline; steps++) {
+            LocateJob job = ACTIVE.removeFirst();
+            if (!job.valid()) continue;
+            if (System.nanoTime() - job.created > SESSION_TTL_NS) {
+                job.expired.run();
+                continue;
+            }
+            job.lookup.step();
+            if (job.lookup.done()) job.complete.accept(job.lookup.result());
+            else ACTIVE.addLast(job);
+        }
+    }
+
+    /** Main-thread admission shared with locate/tplocate; one session per player and four globally. */
+    public static boolean submitLocate(EntityPlayerMP player, RuinLocateCommand.Lookup lookup,
+        Consumer<RuinLocateCommand.Location> complete) {
+        return submitLocate(
+            player,
+            lookup,
+            complete,
+            () -> player.addChatMessage(new ChatComponentTranslation("gtsr.navigator.timeout")),
+            false);
+    }
+
+    private static boolean submitLocate(EntityPlayerMP player, RuinLocateCommand.Lookup lookup,
+        Consumer<RuinLocateCommand.Location> complete, Runnable expired, boolean compass) {
+        if (ACTIVE.size() >= 4) return false;
+        for (LocateJob job : ACTIVE) if (job.player == player) return false;
+        ACTIVE.addLast(new LocateJob(player, lookup, complete, expired, compass));
+        return true;
+    }
+
+    private static final class LocateJob {
+
+        final EntityPlayerMP player;
+        final net.minecraft.world.World world;
+        final net.minecraft.network.NetHandlerPlayServer connection;
+        final RuinLocateCommand.Lookup lookup;
+        final Consumer<RuinLocateCommand.Location> complete;
+        final Runnable expired;
+        final boolean compass;
+        final long created = System.nanoTime();
+
+        LocateJob(EntityPlayerMP player, RuinLocateCommand.Lookup lookup, Consumer<RuinLocateCommand.Location> complete,
+            Runnable expired, boolean compass) {
+            this.player = player;
+            world = player.worldObj;
+            connection = player.playerNetServerHandler;
+            this.lookup = lookup;
+            this.complete = complete;
+            this.expired = expired;
+            this.compass = compass;
+        }
+
+        boolean valid() {
+            return player.isEntityAlive() && player.worldObj == world
+                && connection != null
+                && player.playerNetServerHandler == connection
+                && !world.isRemote
+                && (!compass || eligible(player));
         }
     }
 
@@ -129,8 +196,17 @@ public final class NavigatorNetwork {
         LAST_QUERY.put(player, now);
         WorldServer world = (WorldServer) player.worldObj;
         int ox = MathHelper.floor_double(player.posX), oz = MathHelper.floor_double(player.posZ);
-        RuinLocateCommand.Location nearest = RuinLocateCommand
-            .nearest(world.getSeed(), ids.get(query.index), ox, oz, world);
+        String id = ids.get(query.index);
+        if (!submitLocate(
+            player,
+            RuinLocateCommand.beginNearest(world.getSeed(), id, ox, oz, world),
+            nearest -> respond(player, query, id, ox, oz, nearest),
+            () -> NETWORK.sendTo(new Result(player, query.index, query.serial, 4, 0), player),
+            true)) NETWORK.sendTo(new Result(player, query.index, query.serial, 3, 0), player);
+    }
+
+    private static void respond(EntityPlayerMP player, Query query, String id, int ox, int oz,
+        RuinLocateCommand.Location nearest) {
         Result result = new Result(
             player,
             query.index,
@@ -146,8 +222,8 @@ public final class NavigatorNetwork {
             new ChatComponentTranslation(
                 "gtsr.navigator.found",
                 new ChatComponentTranslation(
-                    "forgotten_lake_court".equals(ids.get(query.index)) ? "lore.chapter.hanging_great_tree.title"
-                        : "lore.entry.structures." + ids.get(query.index) + ".title"),
+                    "forgotten_lake_court".equals(id) ? "lore.chapter.hanging_great_tree.title"
+                        : "lore.entry.structures." + id + ".title"),
                 nearest.x,
                 nearest.z,
                 result.distance));
@@ -157,6 +233,7 @@ public final class NavigatorNetwork {
 
         final EntityPlayerMP player;
         final Query query;
+        final long created = System.nanoTime();
 
         Pending(EntityPlayerMP player, Query query) {
             this.player = player;
@@ -237,7 +314,7 @@ public final class NavigatorNetwork {
             z = buf.readInt();
             distance = buf.readInt();
             valid = (index == -1 && status == 0 && serial == 0)
-                || (index >= 0 && index < 64 && serial > 0 && status >= 1 && status <= 3 && distance >= 0);
+                || (index >= 0 && index < 64 && serial > 0 && status >= 1 && status <= 4 && distance >= 0);
         }
     }
 

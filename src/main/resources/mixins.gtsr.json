@@ -19,8 +19,9 @@
     "StructureCheckerMixin",
     "BaseMetaTileEntityMixin",
     "GameRegistryMixin",
+    "EncounterReachMixin",
     "gtnl/SteamMultiMachineBaseGTNLMixin"
   ],
-  "client": [],
+  "client": ["EncounterMouseOverMixin"],
   "server": []
 }

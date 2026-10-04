@@ -2590,59 +2590,72 @@ public final class GTSRVoronoiRiverField {
 
     /** outArrivalXZ == null 时保持原「最近活湖」语义；非 null 时只接纳有安全干滩的湖。 */
     private static boolean nearestActiveLake(long worldSeed, int x, int z, int[] outCenterXY, int[] outArrivalXZ) {
-        final double[] c = new double[4];
-        final int baseGx = (int) Math.floor(x / LAKE_INTERVAL + 0.5D);
-        final int baseGz = (int) Math.floor(z / LAKE_INTERVAL + 0.5D);
-        boolean found = false;
-        double bestD = Double.POSITIVE_INFINITY;
-        int bestX = 0;
-        int bestZ = 0;
-        int bestArrivalX = 0;
-        int bestArrivalZ = 0;
-        for (int gz = baseGz - 3; gz <= baseGz + 3; gz++) {
-            for (int gx = baseGx - 3; gx <= baseGx + 3; gx++) {
-                // 站标称格点（warp 前整数列）：自家站恒最近，见方法注释的间距论证
-                final int qx = (int) Math.round(gx * LAKE_INTERVAL);
-                final int qz = (int) Math.round(gz * LAKE_INTERVAL);
-                lakeCellCenterAt(worldSeed, qx, qz, c);
-                if ((int) c[2] == Integer.MIN_VALUE) {
-                    continue; // 防御臂（P23 R1 去 trunk 门后理论不可达；见 lakeCellCenterAt 注释）
-                }
-                final int ax = (int) Math.round(c[0]);
-                final int az = (int) Math.round(c[1]);
-                if (lakeAt(worldSeed, ax, az) >= LAKE_ISLAND) {
-                    continue; // 死湖（与 MegaTreeAnchors.anchorAt 同一条活湖门）
-                }
-                final double ddx = ax - x;
-                final double ddz = az - z;
-                final double d = ddx * ddx + ddz * ddz;
-                if (d >= bestD) {
-                    continue;
-                }
-                final int[] arrival = outArrivalXZ == null ? null : sanzuArrivalColumn(worldSeed, ax, az);
-                if (outArrivalXZ != null && arrival == null) {
-                    continue; // 活湖但无群系内干滩：传送通道跳过，几何/巨树通道仍承认该湖
-                }
-                bestD = d;
-                bestX = ax;
-                bestZ = az;
-                if (arrival != null) {
-                    bestArrivalX = arrival[0];
-                    bestArrivalZ = arrival[1];
-                }
-                found = true;
-            }
-        }
-        if (!found) {
-            return false;
-        }
-        outCenterXY[0] = bestX;
-        outCenterXY[1] = bestZ;
+        ArrivalSearch search = beginNearestArrival(worldSeed, x, z, outArrivalXZ != null);
+        while (!search.done()) search.step();
+        if (!search.found) return false;
+        outCenterXY[0] = search.bestX;
+        outCenterXY[1] = search.bestZ;
         if (outArrivalXZ != null) {
-            outArrivalXZ[0] = bestArrivalX;
-            outArrivalXZ[1] = bestArrivalZ;
+            outArrivalXZ[0] = search.bestArrivalX;
+            outArrivalXZ[1] = search.bestArrivalZ;
         }
         return true;
+    }
+
+    public static ArrivalSearch beginNearestArrival(long seed, int x, int z, boolean arrival) {
+        return new ArrivalSearch(seed, x, z, arrival);
+    }
+
+    /** One lake per step, in precisely the original seven-by-seven order. */
+    public static final class ArrivalSearch {
+
+        private final long seed;
+        private final int x, z, baseGx, baseGz;
+        private final boolean arrival;
+        private final double[] c = new double[4];
+        private int index;
+        private boolean found;
+        private double bestD = Double.POSITIVE_INFINITY;
+        private int bestX, bestZ, bestArrivalX, bestArrivalZ;
+
+        private ArrivalSearch(long seed, int x, int z, boolean arrival) {
+            this.seed = seed;
+            this.x = x;
+            this.z = z;
+            this.arrival = arrival;
+            baseGx = (int) Math.floor(x / LAKE_INTERVAL + 0.5D);
+            baseGz = (int) Math.floor(z / LAKE_INTERVAL + 0.5D);
+        }
+
+        public boolean done() {
+            return index == 49;
+        }
+
+        public int[] result() {
+            return found ? new int[] { bestArrivalX, bestArrivalZ } : null;
+        }
+
+        public void step() {
+            if (done()) return;
+            int gx = baseGx - 3 + index % 7, gz = baseGz - 3 + index / 7;
+            index++;
+            lakeCellCenterAt(seed, (int) Math.round(gx * LAKE_INTERVAL), (int) Math.round(gz * LAKE_INTERVAL), c);
+            if ((int) c[2] == Integer.MIN_VALUE) return;
+            int ax = (int) Math.round(c[0]), az = (int) Math.round(c[1]);
+            if (lakeAt(seed, ax, az) >= LAKE_ISLAND) return;
+            double dx = ax - (double) x, dz = az - (double) z, d = dx * dx + dz * dz;
+            if (d >= bestD) return;
+            int[] target = arrival ? sanzuArrivalColumn(seed, ax, az) : null;
+            if (arrival && target == null) return;
+            bestD = d;
+            bestX = ax;
+            bestZ = az;
+            if (target != null) {
+                bestArrivalX = target[0];
+                bestArrivalZ = target[1];
+            }
+            found = true;
+        }
     }
 
     /**

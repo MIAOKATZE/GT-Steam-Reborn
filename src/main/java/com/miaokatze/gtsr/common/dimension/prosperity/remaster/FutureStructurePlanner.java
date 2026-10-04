@@ -23,7 +23,16 @@ public final class FutureStructurePlanner {
 
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, List<RemasterSite>> e) {
-            return size() > 512;
+            return size() > 1024;
+        }
+    };
+
+    // Seed-only partial cells can be shared across simultaneous lookup cursors. World predicates stay outside.
+    private static final Map<String, CellSearch> IN_PROGRESS = new LinkedHashMap<String, CellSearch>() {
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, CellSearch> e) {
+            return size() > 128;
         }
     };
 
@@ -38,19 +47,72 @@ public final class FutureStructurePlanner {
     }
 
     public static synchronized List<RemasterSite> cell(long seed, int gx, int gz) {
-        String cache = seed + ":" + gx + ":" + gz;
-        if (CACHE.containsKey(cache)) return CACHE.get(cache);
-        List<RemasterSite> sites = new ArrayList<>();
-        long base = GTSRWorldgenHash.cellSeed(seed, gx, gz, 0x4655545552453732L);
-        for (int slot = 0; slot < 16; slot++) {
-            long h = GTSRWorldgenHash.splitmix64(base + slot * 0x9E3779B97F4A7C15L);
-            int roll = (int) Math.floorMod(h, 100);
-            if (roll >= 75) continue;
-            String category = roll == 0 ? "expansion" : roll < 16 ? "medium" : roll < 43 ? "small" : "ruin";
-            for (int attempt = 0; attempt < 6; attempt++) {
-                long a = GTSRWorldgenHash.splitmix64(h + attempt * 0x632BE59BD9B4E019L);
-                int centerX = gx * 2048 + (slot % 4) * 512 + 128 + (int) Math.floorMod(a >>> 8, 256);
-                int centerZ = gz * 2048 + (slot / 4) * 512 + 128 + (int) Math.floorMod(a >>> 32, 256);
+        CellSearch search = beginCell(seed, gx, gz);
+        while (!search.done()) search.step();
+        return search.result();
+    }
+
+    /** Pure seed placement cursor; each step admits at most one candidate attempt. */
+    public static synchronized CellSearch beginCell(long seed, int gx, int gz) {
+        String key = seed + ":" + gx + ":" + gz;
+        CellSearch search = IN_PROGRESS.get(key);
+        if (search != null) return search;
+        search = new CellSearch(seed, gx, gz);
+        if (!search.done()) IN_PROGRESS.put(key, search);
+        return search;
+    }
+
+    public static final class CellSearch {
+
+        private final long seed, base;
+        private final int gx, gz;
+        private final String key;
+        private final List<RemasterSite> sites = new ArrayList<>();
+        private volatile List<RemasterSite> result;
+        private int slot, attempt;
+
+        private CellSearch(long seed, int gx, int gz) {
+            this.seed = seed;
+            this.gx = gx;
+            this.gz = gz;
+            key = seed + ":" + gx + ":" + gz;
+            base = GTSRWorldgenHash.cellSeed(seed, gx, gz, 0x4655545552453732L);
+            result = CACHE.get(key);
+        }
+
+        public boolean done() {
+            return result != null;
+        }
+
+        public List<RemasterSite> result() {
+            return result;
+        }
+
+        public void step() {
+            synchronized (FutureStructurePlanner.class) {
+                if (done()) return;
+                if (slot == 16) {
+                    result = Collections.unmodifiableList(sites);
+                    CACHE.put(key, result);
+                    if (IN_PROGRESS.get(key) == this) IN_PROGRESS.remove(key);
+                    return;
+                }
+                int currentSlot = slot, currentAttempt = attempt;
+                long h = GTSRWorldgenHash.splitmix64(base + slot * 0x9E3779B97F4A7C15L);
+                int roll = (int) Math.floorMod(h, 100);
+                if (roll >= 75) {
+                    slot++;
+                    attempt = 0;
+                    return;
+                }
+                String category = roll == 0 ? "expansion" : roll < 16 ? "medium" : roll < 43 ? "small" : "ruin";
+                if (++attempt == 6) {
+                    slot++;
+                    attempt = 0;
+                }
+                long a = GTSRWorldgenHash.splitmix64(h + currentAttempt * 0x632BE59BD9B4E019L);
+                int centerX = gx * 2048 + (currentSlot % 4) * 512 + 128 + (int) Math.floorMod(a >>> 8, 256);
+                int centerZ = gz * 2048 + (currentSlot / 4) * 512 + 128 + (int) Math.floorMod(a >>> 32, 256);
                 int roster = ProsperityTerrainProfile.chainRosterIndexAt(seed, centerX >> 2, centerZ >> 2);
                 List<String> candidates = new ArrayList<>();
                 for (String id : RemasterCatalog.ids()) if (isFuture(id)) {
@@ -66,7 +128,7 @@ public final class FutureStructurePlanner {
                             roster))
                         candidates.add(id);
                 }
-                if (candidates.isEmpty()) continue;
+                if (candidates.isEmpty()) return;
                 String id = candidates.get((int) Math.floorMod(a >>> 16, candidates.size()));
                 JsonObject d = RemasterCatalog.descriptor(id, 0), p = d.getAsJsonObject("placement")
                     .getAsJsonObject("futurePlacement");
@@ -82,19 +144,17 @@ public final class FutureStructurePlanner {
                 int floor = ProsperityTerrainProfile.heightAt(seed, ex, ez), y = floor - entry.get(1)
                     .getAsInt();
                 if (y < 8 || y + d.get("yMax")
-                    .getAsInt() > 250) continue;
+                    .getAsInt() > 250) return;
                 RemasterSite s = new RemasterSite(id, 0, seed, x, y, z, "natural-prefab");
                 boolean occupied = false;
                 for (CompactSceneTerrain.Branch b : CompactSceneTerrain.cell(seed, gx, gz))
                     if (s.overlaps(b.centerX - 96, b.centerZ - 96, b.centerX + 96, b.centerZ + 96, 24)) occupied = true;
-                if (occupied || !admit(seed, s, floor, ex, ez)) continue;
+                if (occupied || !admit(seed, s, floor, ex, ez)) return;
                 sites.add(s);
-                break;
+                slot = currentSlot + 1;
+                attempt = 0;
             }
         }
-        List<RemasterSite> result = Collections.unmodifiableList(sites);
-        CACHE.put(cache, result);
-        return result;
     }
 
     private static boolean biome(String biome, int roster) {

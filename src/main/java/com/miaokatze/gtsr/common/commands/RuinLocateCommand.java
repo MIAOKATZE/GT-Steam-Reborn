@@ -19,6 +19,7 @@ import net.minecraftforge.common.DimensionManager;
 import com.miaokatze.gtsr.common.dimension.framework.DimensionRegistrar;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimTeleporter;
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite;
+import com.miaokatze.gtsr.common.dimension.prosperity.lore.NavigatorNetwork;
 import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterCatalog;
 import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterData;
 import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterPlanner;
@@ -97,7 +98,20 @@ public final class RuinLocateCommand {
             .worldServerForDimension(0)
             .getSeed() : loaded.getSeed();
         int ox = MathHelper.floor_double(player.posX), oz = MathHelper.floor_double(player.posZ);
-        Location location = nearest(seed, requestedId, ox, oz, loaded);
+        final String id = requestedId;
+        final WorldServer queryWorld = loaded;
+        final boolean teleport = "tplocate".equalsIgnoreCase(args[0]);
+        if (!NavigatorNetwork.submitLocate(player, beginNearest(seed, id, ox, oz, queryWorld), location -> {
+            if (queryWorld != null && DimensionManager.getWorld(dimension) != queryWorld) {
+                say(sender, "定位目标维度已卸载，请重新查询。");
+                return;
+            }
+            finish(sender, player, id, teleport, dimension, queryWorld, ox, oz, location);
+        })) say(sender, "定位查询繁忙，请稍后重试。");
+    }
+
+    private static void finish(ICommandSender sender, EntityPlayerMP player, String requestedId, boolean teleport,
+        int dimension, WorldServer destinationWorld, int ox, int oz, Location location) {
         if (location == null) {
             say(sender, "搜索范围内未找到该结构，请换一个探索位置后重试。");
             return;
@@ -114,18 +128,17 @@ public final class RuinLocateCommand {
                 + "，距离约 "
                 + Math.round(Math.hypot(x - (double) ox, z - (double) oz))
                 + " 格。");
-        boolean teleport = "tplocate".equalsIgnoreCase(args[0]);
         if (!teleport) return;
-        if (loaded == null) {
+        if (destinationWorld == null) {
             DimensionManager.initDimension(dimension);
-            loaded = DimensionManager.getWorld(dimension);
+            destinationWorld = DimensionManager.getWorld(dimension);
         }
-        if (loaded == null) {
+        if (destinationWorld == null) {
             say(sender, "维度初始化失败，未移动玩家。");
             return;
         }
         final int tx = x, ty = TELEPORT_Y, tz = z;
-        final WorldServer destination = loaded;
+        final WorldServer destination = destinationWorld;
         if (player.dimension != dimension) {
             player.mcServer.getConfigurationManager()
                 .transferPlayerToDimension(player, dimension, new GTSRDimTeleporter(destination) {
@@ -145,32 +158,85 @@ public final class RuinLocateCommand {
 
     /** Shared read-only bounded lookup. Never loads or generates a dimension. */
     public static Location nearest(long seed, String id, int ox, int oz, WorldServer loaded) {
-        if (!names().contains(id)) return null;
-        if ("forgotten_lake_court".equals(id)) {
-            int[] center = new int[2], arrival = new int[2];
-            return GTSRVoronoiRiverField.nearestSanzuArrival(seed, ox, oz, center, arrival)
-                ? new Location(arrival[0], arrival[1])
+        Lookup lookup = beginNearest(seed, id, ox, oz, loaded);
+        while (!lookup.done()) lookup.step();
+        return lookup.result();
+    }
+
+    public static Lookup beginNearest(long seed, String id, int ox, int oz, WorldServer loaded) {
+        return new Lookup(seed, id, ox, oz, loaded);
+    }
+
+    /** Read-only world predicates and save-anchor resolution run only on the caller's server thread. */
+    public static final class Lookup {
+
+        private final long seed;
+        private final String id;
+        private final int ox, oz;
+        private final WorldServer loaded;
+        private final RemasterPlanner.NearestSearch search;
+        private final GTSRVoronoiRiverField.ArrivalSearch river;
+        private boolean done;
+        private Location result;
+
+        private Lookup(long seed, String id, int ox, int oz, WorldServer loaded) {
+            this.seed = seed;
+            this.id = id;
+            this.ox = ox;
+            this.oz = oz;
+            this.loaded = loaded;
+            done = !names().contains(id);
+            river = !done && "forgotten_lake_court".equals(id)
+                ? GTSRVoronoiRiverField.beginNearestArrival(seed, ox, oz, true)
                 : null;
+            search = done || river != null ? null
+                : RemasterPlanner.beginNearest(
+                    seed,
+                    id,
+                    ox,
+                    oz,
+                    12,
+                    s -> loaded == null
+                        || com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterWorldgen.allowed(loaded, s));
         }
-        RemasterSite site = RemasterPlanner.nearest(
-            seed,
-            id,
-            ox,
-            oz,
-            12,
-            s -> loaded == null
-                || com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterWorldgen.allowed(loaded, s));
-        if (loaded != null) {
-            RemasterData data = RemasterData.get(loaded);
-            if (site != null) {
-                RemasterSite saved = data.site(site.id());
-                if (saved != null) site = saved;
+
+        public boolean done() {
+            return done;
+        }
+
+        public Location result() {
+            return result;
+        }
+
+        public void step() {
+            if (done) return;
+            if (river != null) {
+                if (!river.done()) {
+                    river.step();
+                    return;
+                }
+                int[] target = river.result();
+                result = target == null ? null : new Location(target[0], target[1]);
+            } else {
+                if (!search.done()) {
+                    search.step();
+                    return;
+                }
+                RemasterSite site = search.result();
+                if (loaded != null) {
+                    RemasterData data = RemasterData.get(loaded);
+                    if (site != null) {
+                        RemasterSite saved = data.site(site.id());
+                        if (saved != null) site = saved;
+                    }
+                    RemasterSite saved = data.nearestExisting(seed, id, ox, oz);
+                    if (RemasterRollout.allowsGeneration(saved)
+                        && (site == null || distance(saved, ox, oz) < distance(site, ox, oz))) site = saved;
+                }
+                result = site == null ? null : new Location(site.entryX(), site.entryZ());
             }
-            RemasterSite saved = data.nearestExisting(seed, id, ox, oz);
-            if (RemasterRollout.allowsGeneration(saved)
-                && (site == null || distance(saved, ox, oz) < distance(site, ox, oz))) site = saved;
+            done = true;
         }
-        return site == null ? null : new Location(site.entryX(), site.entryZ());
     }
 
     public static String displayName(String id) {

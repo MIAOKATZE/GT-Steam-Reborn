@@ -35,7 +35,7 @@ public class EntityOldEcho extends EntityEncounterBase
             dataWatcher.updateObject(29, 0);
             dataWatcher.updateObject(30, 0);
             dataWatcher.updateObject(28, 120);
-            setHealth(1);
+            restoreHealth(1);
         }
     }
 
@@ -70,12 +70,12 @@ public class EntityOldEcho extends EntityEncounterBase
         if (getIndustrialBossStage() == 1) {
             int ticks = Math.min(208, getRevivalTicks() + 1);
             dataWatcher.updateObject(30, ticks);
-            setHealth(1 + (getMaxHealth() - 1) * ticks / 208F);
+            restoreHealth(1 + (getMaxHealth() - 1) * ticks / 208F);
             if (ticks == 208) {
                 dataWatcher.updateObject(29, 2);
                 cooldown = 40;
             }
-        } else setHealth(1);
+        } else restoreHealth(1);
         com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.rememberBossState(this);
         return true;
     }
@@ -99,7 +99,7 @@ public class EntityOldEcho extends EntityEncounterBase
     private float lastAcceptedPlayerDamage = 5;
     private boolean controlledPrepared, controlledFinished;
     private int lightningCooldown;
-    private boolean resolvingDamage;
+    private boolean restoringHealth;
 
     private boolean authoredKind() {
         return getKind().style == BattleStyle.AUTHORED;
@@ -156,7 +156,7 @@ public class EntityOldEcho extends EntityEncounterBase
         skill(0, 0);
         state(DYING);
         phase(0);
-        setHealth(0);
+        restoreHealth(0);
         return true;
     }
 
@@ -328,7 +328,7 @@ public class EntityOldEcho extends EntityEncounterBase
             getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(
                 Math.max(minimum, getEntityAttribute(SharedMonsterAttributes.movementSpeed).getBaseValue()));
         }
-        if (fill) setHealth(kind.maxHealth);
+        if (fill) restoreHealth(kind.maxHealth);
         noClip = kind.isRitual();
         ignoreFrustumCheck = kind.isRitual();
     }
@@ -412,18 +412,30 @@ public class EntityOldEcho extends EntityEncounterBase
     }
 
     @Override
+    public float getCollisionBorderSize() {
+        return getKind().isRitual() ? super.getCollisionBorderSize()
+            : getKind().isHeavy() || getKind() == EchoKind.DO02 ? .6F
+                : getKind().hasBossBar() ? .45F : getKind().height >= 2F ? .25F : super.getCollisionBorderSize();
+    }
+
+    @Override
     public boolean canBeCollidedWith() {
         return !getKind().isRitual() && super.canBeCollidedWith();
     }
 
     @Override
     public boolean canBePushed() {
-        return !getKind().isRitual() && super.canBePushed();
+        return !getKind().hasBossBar() && !getKind().isRitual() && super.canBePushed();
     }
 
     @Override
     public void applyEntityCollision(Entity entity) {
-        if (!getKind().isRitual()) super.applyEntityCollision(entity);
+        if (!getKind().hasBossBar() && !getKind().isRitual()) super.applyEntityCollision(entity);
+    }
+
+    @Override
+    public void addVelocity(double x, double y, double z) {
+        if (!getKind().hasBossBar()) super.addVelocity(x, y, z);
     }
 
     /** Clamp the health actually accepted after Forge hurt hooks, armor and absorption. */
@@ -431,9 +443,9 @@ public class EntityOldEcho extends EntityEncounterBase
     public void setHealth(float health) {
         float before = getHealth();
         boolean transition = false;
-        if (Float.isNaN(health)) health = Float.isFinite(before) ? before : 1;
-        if (resolvingDamage && worldObj != null && !worldObj.isRemote && getKind().isHeavy() && before > 0) {
-            if (getPhaseLockTicks() > 0 && health < before) health = before;
+        if (Float.isNaN(health) || health == Float.POSITIVE_INFINITY) health = Float.isFinite(before) ? before : 1;
+        if (!restoringHealth && worldObj != null && !worldObj.isRemote && getKind().isHeavy() && before > 0) {
+            if ((industrialFrozen() || getPhaseLockTicks() > 0) && health < before) health = before;
             else {
                 float upper = getMaxHealth() * 2F / 3F, lower = getMaxHealth() / 3F;
                 float floor = before > upper ? upper : before > lower ? lower : 0;
@@ -455,16 +467,21 @@ public class EntityOldEcho extends EntityEncounterBase
         }
     }
 
+    private void restoreHealth(float health) {
+        boolean previous = restoringHealth;
+        restoringHealth = true;
+        try {
+            setHealth(health);
+        } finally {
+            restoringHealth = previous;
+        }
+    }
+
     @Override
     protected void damageEntity(DamageSource source, float amount) {
         if (getKind() == EchoKind.DO02 || Float.isNaN(amount) || amount <= 0 || getPhaseLockTicks() > 0) return;
-        boolean previous = resolvingDamage;
-        resolvingDamage = true;
-        try {
-            super.damageEntity(source, Math.min(amount, 1.0E30F));
-        } finally {
-            resolvingDamage = previous;
-        }
+        super.damageEntity(source, Math.min(amount, 1.0E30F));
+        if (!Float.isFinite(getAbsorptionAmount())) setAbsorptionAmount(0);
     }
 
     @Override
@@ -986,7 +1003,7 @@ public class EntityOldEcho extends EntityEncounterBase
         if (dead || deathRecorded) return;
         super.onDeath(source);
         if (!dead && !worldObj.isRemote && getHealth() <= 0) {
-            setHealth(1);
+            restoreHealth(1);
             deathTime = 0;
             return;
         }
@@ -1133,7 +1150,13 @@ public class EntityOldEcho extends EntityEncounterBase
             body.setInteger("encounterDeathXP", 0);
             body.setBoolean("encounterDeathXPReleased", true);
         }
-        super.readEntityFromNBT(body);
+        boolean previous = restoringHealth;
+        restoringHealth = true;
+        try {
+            super.readEntityFromNBT(body);
+        } finally {
+            restoringHealth = previous;
+        }
         configure(kind, false);
         initialized = n.getBoolean("echoInitialized");
         nightSpawn = n.getBoolean("echoNight");
@@ -1176,7 +1199,7 @@ public class EntityOldEcho extends EntityEncounterBase
                 : industrialBoss() ? 0 : 2);
         dataWatcher.updateObject(30, Math.max(0, Math.min(208, n.getInteger("industrialRevivalTicks"))));
         if (industrialFrozen())
-            setHealth(getIndustrialBossStage() == 0 ? 1 : 1 + (getMaxHealth() - 1) * getRevivalTicks() / 208F);
+            restoreHealth(getIndustrialBossStage() == 0 ? 1 : 1 + (getMaxHealth() - 1) * getRevivalTicks() / 208F);
         if (getKind().isHeavy()) industrialCombat.read(n);
         authored.read(n);
         dataWatcher.updateObject(14, Math.max(0, Math.min(60, n.getInteger("echoPhaseLockTicks"))));
@@ -1199,7 +1222,7 @@ public class EntityOldEcho extends EntityEncounterBase
             if (controlledFinished || getHealth() <= 0) {
                 controlledFinished = true;
                 state(DYING);
-                setHealth(0);
+                restoreHealth(0);
             } else state(IDLE);
         }
         // Cancel a partial authored cast on reload: old events and transient projectiles never replay.

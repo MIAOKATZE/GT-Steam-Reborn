@@ -14,6 +14,8 @@ public final class SceneBossSignal implements IMessage {
     public float health, maxHealth;
     public String site = "", code = "";
     public boolean valid;
+    /** Client-only clock and floor; neither changes the authoritative network snapshot. */
+    public transient float renderRevivalTicks = -1, minimumVisibleHealth;
 
     public boolean sane() {
         return player != null && kind >= 0
@@ -90,12 +92,35 @@ public final class SceneBossSignal implements IMessage {
         return state == 0 || state == 3 ? 0 : health;
     }
 
+    public float visibleHealth(float partialTicks) {
+        if (state != 1 || renderRevivalTicks < 0) return visibleHealth();
+        float partial = Float.isFinite(partialTicks) ? Math.max(0, Math.min(1, partialTicks)) : 0;
+        float age = Math.min(revivalDuration(), Math.min(revivalTicks + 10, renderRevivalTicks + partial));
+        float predicted = 1 + (maxHealth - 1) * age / revivalDuration();
+        minimumVisibleHealth = Math.min(maxHealth, Math.max(minimumVisibleHealth, predicted));
+        return minimumVisibleHealth;
+    }
+
+    public int revivalDuration() {
+        return kind == 1 ? 200 : 208;
+    }
+
     public int layers() {
         return (int) Math.ceil(visibleHealth() / 100F);
+    }
+
+    public int layers(float partialTicks) {
+        return (int) Math.ceil(visibleHealth(partialTicks) / 100F);
     }
 
     public float segment() {
         int n = layers();
         return n == 0 ? 0 : (visibleHealth() - (n - 1) * 100) / 100F;
+    }
+
+    public float segment(float partialTicks) {
+        float visible = visibleHealth(partialTicks);
+        int n = (int) Math.ceil(visible / 100F);
+        return n == 0 ? 0 : (visible - (n - 1) * 100) / 100F;
     }
 }

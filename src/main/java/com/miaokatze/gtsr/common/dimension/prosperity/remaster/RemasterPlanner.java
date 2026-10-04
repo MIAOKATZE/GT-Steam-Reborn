@@ -38,22 +38,82 @@ public final class RemasterPlanner {
 
     public static RemasterSite nearest(long seed, String id, int bx, int bz, int radius,
         java.util.function.Predicate<RemasterSite> eligible) {
-        if (!RemasterRollout.isActive(id) || "forgotten_lake_court".equals(id)) return null;
-        radius = Math.max(0, Math.min(16, radius));
-        long radiusBlocks = (long) radius * CompactSceneTerrain.CELL_SIZE;
-        int gx = Math.floorDiv(bx, CompactSceneTerrain.CELL_SIZE),
+        NearestSearch search = beginNearest(seed, id, bx, bz, radius, eligible);
+        while (!search.done()) search.step();
+        return search.result();
+    }
+
+    public static NearestSearch beginNearest(long seed, String id, int bx, int bz, int radius,
+        java.util.function.Predicate<RemasterSite> eligible) {
+        return new NearestSearch(seed, id, bx, bz, radius, eligible);
+    }
+
+    /** Preserves the original dx/dz/site order, circle and strict distance tie handling. */
+    public static final class NearestSearch {
+
+        private final long seed, radiusSquared;
+        private final String id;
+        private final int bx, bz, gx, gz, radius;
+        private final java.util.function.Predicate<RemasterSite> eligible;
+        private int dx, dz;
+        private boolean done;
+        private RemasterSite best;
+        private double distance = Double.POSITIVE_INFINITY;
+        private FutureStructurePlanner.CellSearch future;
+        private List<RemasterSite> sites;
+
+        private NearestSearch(long seed, String id, int bx, int bz, int radius,
+            java.util.function.Predicate<RemasterSite> eligible) {
+            this.seed = seed;
+            this.id = id;
+            this.bx = bx;
+            this.bz = bz;
+            this.eligible = eligible;
+            this.radius = Math.max(0, Math.min(16, radius));
+            long blocks = (long) this.radius * CompactSceneTerrain.CELL_SIZE;
+            radiusSquared = blocks * blocks;
+            gx = Math.floorDiv(bx, CompactSceneTerrain.CELL_SIZE);
             gz = Math.floorDiv(bz, CompactSceneTerrain.CELL_SIZE);
-        RemasterSite best = null;
-        double distance = Double.POSITIVE_INFINITY;
-        for (int dx = -radius; dx <= radius; dx++)
-            for (int dz = -radius; dz <= radius; dz++) for (RemasterSite site : cell(seed, 0, gx + dx, gz + dz)) {
+            dx = dz = -this.radius;
+            done = !RemasterRollout.isActive(id) || "forgotten_lake_court".equals(id);
+        }
+
+        public boolean done() {
+            return done;
+        }
+
+        public RemasterSite result() {
+            return best;
+        }
+
+        public void step() {
+            if (done) return;
+            if (future == null) {
+                sites = new ArrayList<>();
+                for (CompactSceneTerrain.Branch branch : CompactSceneTerrain.cell(seed, gx + dx, gz + dz)) sites
+                    .add(new RemasterSite(branch.prefab, 0, seed, branch.originX(), branch.surfaceY, branch.originZ()));
+                future = FutureStructurePlanner.beginCell(seed, gx + dx, gz + dz);
+                return;
+            }
+            if (!future.done()) {
+                future.step();
+                return;
+            }
+            sites.addAll(future.result());
+            for (RemasterSite site : sites) {
                 if (!site.prefab.equals(id) || !eligible.test(site)) continue;
                 double x = site.entryX() - (double) bx, z = site.entryZ() - (double) bz, d = x * x + z * z;
-                if (d <= radiusBlocks * radiusBlocks && d < distance) {
+                if (d <= radiusSquared && d < distance) {
                     best = site;
                     distance = d;
                 }
             }
-        return best;
+            future = null;
+            sites = null;
+            if (++dz > radius) {
+                dz = -radius;
+                if (++dx > radius) done = true;
+            }
+        }
     }
 }
