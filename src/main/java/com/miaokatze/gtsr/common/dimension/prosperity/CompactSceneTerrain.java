@@ -50,71 +50,158 @@ public final class CompactSceneTerrain {
 
     private CompactSceneTerrain() {}
 
+    private static final Map<String, CellSearch> IN_PROGRESS = new LinkedHashMap<String, CellSearch>() {
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, CellSearch> e) {
+            return size() > 128;
+        }
+    };
+
     /** Returned array is copied: callers cannot mutate the cached branch set. */
     public static synchronized Branch[] cell(long seed, int gx, int gz) {
-        String key = seed + ":" + gx + ":" + gz;
-        Branch[] cached = CACHE.get(key);
-        if (cached != null) return cached.clone();
-        long h = GTSRWorldgenHash.cellSeed(seed, gx, gz, SALT);
-        Branch accepted = null;
-        if (Math.floorMod(h, 3) != 2) {
-            int desiredRoster = (int) (h >>> 16 & 1L);
-            // Larger authored footprints need more dry-ground candidates, especially in the forest.
-            for (int attempt = 0; attempt < 256; attempt++) {
-                long ah = GTSRWorldgenHash.splitmix64(h + attempt * 0x9E3779B97F4A7C15L);
-                int x = gx * CELL_SIZE + 128 + (int) Math.floorMod(ah >>> 8, CELL_SIZE - 256);
-                int z = gz * CELL_SIZE + 128 + (int) Math.floorMod(ah >>> 32, CELL_SIZE - 256);
-                int roster = ProsperityTerrainProfile.chainRosterIndexAt(seed, x >> 2, z >> 2);
-                if (roster != desiredRoster) continue;
-                int y = ProsperityTerrainProfile.originalHeightAt(seed, x, z);
-                if (y < 24 || y > 200 || !admit(seed, x, z, y, roster)) continue;
-                accepted = new Branch(roster, x, z, y);
-                break;
-            }
-        }
-        Branch[] result = accepted == null ? new Branch[0] : new Branch[] { accepted };
-        CACHE.put(key, result);
-        return result.clone();
+        CellSearch search = beginCell(seed, gx, gz);
+        while (!search.done()) search.step();
+        return search.result();
     }
 
-    private static boolean admit(long seed, int x, int z, int y, int roster) {
-        // Every coarse identity cell in the complete branch belongs to its original parent biome.
-        for (int zz = (z - OUTER_Z) >> 2; zz <= (z + OUTER_Z) >> 2; zz++)
-            for (int xx = (x - OUTER_X) >> 2; xx <= (x + OUTER_X) >> 2; xx++)
-                if (ProsperityTerrainProfile.chainRosterIndexAt(seed, xx, zz) != roster) return false;
-        // Only gentle dry ground: never bridge a river, lake, cliff, or manufacture a raised massif.
-        for (int dz = -OUTER_Z; dz <= OUTER_Z; dz += 8) for (int dx = -OUTER_X; dx <= OUTER_X; dx += 8) {
-            int xx = x + dx, zz = z + dz;
-            if (GTSRVoronoiRiverField.strengthAt(seed, xx, zz, roster) < 0.0D
-                || GTSRVoronoiRiverField.lakeAt(seed, xx, zz) < GTSRVoronoiRiverField.SANZU_BIOME_SHORE_MAX + 0.15D
-                || Math.abs(ProsperityTerrainProfile.originalHeightAt(seed, xx, zz) - y) > 12) return false;
+    /** Same industrial placement, advanced one candidate or admission row at a time. */
+    public static synchronized CellSearch beginCell(long seed, int gx, int gz) {
+        String key = seed + ":" + gx + ":" + gz;
+        CellSearch search = IN_PROGRESS.get(key);
+        if (search == null) {
+            search = new CellSearch(seed, gx, gz, key);
+            if (!search.done()) IN_PROGRESS.put(key, search);
         }
-        // This tree reservation reads only the lake field; MegaTreeAnchors would recurse through heightAt.
-        double[] lake = new double[5];
-        for (int dz = -320; dz <= 320; dz += 128) for (int dx = -320; dx <= 320; dx += 128) {
-            GTSRVoronoiRiverField.lakeCellCenterAt(seed, x + dx, z + dz, lake);
-            if ((int) lake[2] == Integer.MIN_VALUE) continue;
-            int ax = (int) Math.round(lake[0]), az = (int) Math.round(lake[1]);
-            if (Math.abs((long) ax - x) <= OUTER_X + 176 && Math.abs((long) az - z) <= OUTER_Z + 176
-                && GTSRVoronoiRiverField.lakeAt(seed, ax, az) < GTSRVoronoiRiverField.LAKE_ISLAND) return false;
+        return search;
+    }
+
+    public static final class CellSearch {
+
+        private final long seed, hash;
+        private final int gx, gz, roster;
+        private final String key;
+        private Branch[] result;
+        private int attempt, stage, row, x, z, y;
+        private int[] previous;
+        private final double[] lake = new double[5];
+
+        private CellSearch(long seed, int gx, int gz, String key) {
+            this.seed = seed;
+            this.gx = gx;
+            this.gz = gz;
+            this.key = key;
+            hash = GTSRWorldgenHash.cellSeed(seed, gx, gz, SALT);
+            roster = (int) (hash >>> 16 & 1L);
+            result = CACHE.get(key);
         }
-        // Verify every resulting column, including the original edge: sparse height probes alone miss steep ribs.
-        int width = OUTER_X * 2 + 3, depth = OUTER_Z * 2 + 3;
-        int[] previous = new int[width];
-        for (int iz = 0; iz < depth; iz++) {
-            int left = 0;
-            for (int ix = 0; ix < width; ix++) {
-                int dx = ix - OUTER_X - 1, dz = iz - OUTER_Z - 1;
-                int raw = ProsperityTerrainProfile.originalHeightAt(seed, x + dx, z + dz);
-                if (Math.abs(raw - y) > 12) return false;
-                int height = blendedHeight(dx, dz, y, raw, roster);
-                if (ix > 0 && Math.abs(height - left) > 2 || iz > 0 && Math.abs(height - previous[ix]) > 2)
-                    return false;
-                left = height;
-                previous[ix] = height;
+
+        public boolean done() {
+            return result != null;
+        }
+
+        public Branch[] result() {
+            return result == null ? null : result.clone();
+        }
+
+        private void finish(Branch branch) {
+            result = branch == null ? new Branch[0] : new Branch[] { branch };
+            CACHE.put(key, result);
+            if (IN_PROGRESS.get(key) == this) IN_PROGRESS.remove(key);
+        }
+
+        private void reject() {
+            stage = 0;
+            row = 0;
+            previous = null;
+        }
+
+        public void step() {
+            synchronized (CompactSceneTerrain.class) {
+                if (done()) return;
+                if (stage == 0) {
+                    if (Math.floorMod(hash, 3) == 2 || attempt == 256) {
+                        finish(null);
+                        return;
+                    }
+                    long h = GTSRWorldgenHash.splitmix64(hash + attempt++ * 0x9E3779B97F4A7C15L);
+                    x = gx * CELL_SIZE + 128 + (int) Math.floorMod(h >>> 8, CELL_SIZE - 256);
+                    z = gz * CELL_SIZE + 128 + (int) Math.floorMod(h >>> 32, CELL_SIZE - 256);
+                    if (ProsperityTerrainProfile.chainRosterIndexAt(seed, x >> 2, z >> 2) != roster) return;
+                    y = ProsperityTerrainProfile.originalHeightAt(seed, x, z);
+                    if (y < 24 || y > 200) return;
+                    stage = 1;
+                    row = (z - OUTER_Z) >> 2;
+                    return;
+                }
+                if (stage == 1) {
+                    for (int xx = (x - OUTER_X) >> 2; xx <= (x + OUTER_X) >> 2; xx++)
+                        if (ProsperityTerrainProfile.chainRosterIndexAt(seed, xx, row) != roster) {
+                            reject();
+                            return;
+                        }
+                    if (++row > (z + OUTER_Z) >> 2) {
+                        stage = 2;
+                        row = -OUTER_Z;
+                    }
+                    return;
+                }
+                if (stage == 2) {
+                    for (int dx = -OUTER_X; dx <= OUTER_X; dx += 8) {
+                        int xx = x + dx, zz = z + row;
+                        if (GTSRVoronoiRiverField.strengthAt(seed, xx, zz, roster) < 0.0D
+                            || GTSRVoronoiRiverField.lakeAt(seed, xx, zz)
+                                < GTSRVoronoiRiverField.SANZU_BIOME_SHORE_MAX + 0.15D
+                            || Math.abs(ProsperityTerrainProfile.originalHeightAt(seed, xx, zz) - y) > 12) {
+                            reject();
+                            return;
+                        }
+                    }
+                    row += 8;
+                    if (row > OUTER_Z) {
+                        stage = 3;
+                        row = -320;
+                    }
+                    return;
+                }
+                if (stage == 3) {
+                    for (int dx = -320; dx <= 320; dx += 128) {
+                        GTSRVoronoiRiverField.lakeCellCenterAt(seed, x + dx, z + row, lake);
+                        if ((int) lake[2] == Integer.MIN_VALUE) continue;
+                        int ax = (int) Math.round(lake[0]), az = (int) Math.round(lake[1]);
+                        if (Math.abs((long) ax - x) <= OUTER_X + 176 && Math.abs((long) az - z) <= OUTER_Z + 176
+                            && GTSRVoronoiRiverField.lakeAt(seed, ax, az) < GTSRVoronoiRiverField.LAKE_ISLAND) {
+                            reject();
+                            return;
+                        }
+                    }
+                    row += 128;
+                    if (row > 320) {
+                        stage = 4;
+                        row = 0;
+                        previous = new int[OUTER_X * 2 + 3];
+                    }
+                    return;
+                }
+                int left = 0;
+                for (int ix = 0; ix < previous.length; ix++) {
+                    int dx = ix - OUTER_X - 1, dz = row - OUTER_Z - 1;
+                    int raw = ProsperityTerrainProfile.originalHeightAt(seed, x + dx, z + dz);
+                    if (Math.abs(raw - y) > 12) {
+                        reject();
+                        return;
+                    }
+                    int height = blendedHeight(dx, dz, y, raw, roster);
+                    if (ix > 0 && Math.abs(height - left) > 2 || row > 0 && Math.abs(height - previous[ix]) > 2) {
+                        reject();
+                        return;
+                    }
+                    left = height;
+                    previous[ix] = height;
+                }
+                if (++row == OUTER_Z * 2 + 3) finish(new Branch(roster, x, z, y));
             }
         }
-        return true;
     }
 
     private static int blendedHeight(int dx, int dz, int surfaceY, int originalHeight, int roster) {

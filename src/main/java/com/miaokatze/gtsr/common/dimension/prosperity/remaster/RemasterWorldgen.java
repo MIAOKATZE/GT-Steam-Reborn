@@ -54,6 +54,29 @@ public final class RemasterWorldgen {
         if (!RemasterRollout.allowsGeneration(s) || "tree-overlay".equals(s.layout)) return 0;
         int writes = 0;
         int localX0 = (cx << 4) - s.x, localZ0 = (cz << 4) - s.z;
+        // A five-square natural entry may differ by one block; support and clear it before authored runs.
+        if ("natural-prefab".equals(s.layout)) {
+            com.google.gson.JsonArray entrance = RemasterCatalog.descriptor(s.prefab, s.variant)
+                .getAsJsonObject("placement")
+                .getAsJsonObject("futurePlacement")
+                .getAsJsonArray("entrance");
+            int ex = s.x + entrance.get(0)
+                .getAsInt(), floor = s.y
+                    + entrance.get(1)
+                        .getAsInt();
+            int ez = s.z + entrance.get(2)
+                .getAsInt();
+            for (int x = ex - 2; x <= ex + 2; x++) for (int z = ez - 2; z <= ez + 2; z++) {
+                if (!owned(x, floor, z, cx, cz)) continue;
+                int ground = com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile
+                    .heightAt(s.seed, x, z);
+                if (Math.abs(ground - floor) > 1) continue;
+                for (int y = ground + 1; y <= floor; y++)
+                    if (owned(x, y, z, cx, cz) && sink.setBlock(x, y, z, "minecraft:stone", 0, 2)) writes++;
+                for (int y = floor + 1; y <= Math.min(ground, floor + 2); y++)
+                    if (owned(x, y, z, cx, cz) && sink.setBlock(x, y, z, "minecraft:air", 0, 2)) writes++;
+            }
+        }
         // Narrow column footings only beneath authored low structural floors, never a background pad.
         if ("natural-prefab".equals(s.layout)) {
             Map<Long, Integer> bottoms = new java.util.HashMap<>();

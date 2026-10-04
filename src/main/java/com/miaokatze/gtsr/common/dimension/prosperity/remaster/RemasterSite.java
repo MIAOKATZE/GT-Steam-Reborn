@@ -55,10 +55,18 @@ public final class RemasterSite {
     private int bound(String side, int axis) {
         // The native canopy/encounter bound is independent of the fixed preview capture's extent.
         if ("tree-overlay".equals(layout)) return "min".equals(side) ? axis == 0 ? 0 : -8 : axis == 0 ? 320 : 312;
-        return RemasterCatalog.descriptor(prefab, variant)
-            .getAsJsonArray(side)
+        com.google.gson.JsonObject descriptor = RemasterCatalog.descriptor(prefab, variant);
+        int authored = descriptor.getAsJsonArray(side)
             .get(axis)
             .getAsInt();
+        if (!"natural-prefab".equals(layout)) return authored;
+        int entry = descriptor.getAsJsonObject("placement")
+            .getAsJsonObject("futurePlacement")
+            .getAsJsonArray("entrance")
+            .get(axis)
+            .getAsInt();
+        // The small natural apron participates in owner indexing and placement collision checks.
+        return "min".equals(side) ? Math.min(authored, entry - 2) : Math.max(authored, entry + 2);
     }
 
     public boolean overlaps(int x0, int z0, int x1, int z1, int margin) {
@@ -68,13 +76,21 @@ public final class RemasterSite {
     public int entryX() {
         com.google.gson.JsonObject entry = entrance();
         return entry != null && entry.has("x") ? x + entry.get("x")
-            .getAsInt() : x + bound("min", 0) + 4;
+            .getAsInt() : x + authoredMin(0) + 4;
     }
 
     public int entryZ() {
         com.google.gson.JsonObject entry = entrance();
         return entry != null && entry.has("z") ? z + entry.get("z")
-            .getAsInt() : z + bound("min", 2) + 4;
+            .getAsInt() : z + authoredMin(2) + 4;
+    }
+
+    private int authoredMin(int axis) {
+        return "tree-overlay".equals(layout) ? bound("min", axis)
+            : RemasterCatalog.descriptor(prefab, variant)
+                .getAsJsonArray("min")
+                .get(axis)
+                .getAsInt();
     }
 
     public int entryY() {
@@ -84,9 +100,7 @@ public final class RemasterSite {
     }
 
     private com.google.gson.JsonObject entrance() {
-        com.google.gson.JsonObject metadata = plan().metadata;
-        com.google.gson.JsonObject entry = metadata.getAsJsonObject("surfaceEntrance");
-        return entry != null ? entry : metadata.getAsJsonObject("productionSurfaceEntrance");
+        return RemasterCatalog.entrance(prefab, variant);
     }
 
     public NBTTagCompound save() {

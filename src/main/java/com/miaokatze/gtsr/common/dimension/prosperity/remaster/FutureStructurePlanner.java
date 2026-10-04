@@ -36,6 +36,28 @@ public final class FutureStructurePlanner {
         }
     };
 
+    private static final Map<String, List<String>> POOLS = new LinkedHashMap<>();
+    static {
+        for (String category : new String[] { "expansion", "medium", "small", "ruin" })
+            for (int roster = -1; roster < 4; roster++) {
+                List<String> pool = new ArrayList<>();
+                for (String id : RemasterCatalog.ids()) if (isFuture(id)) {
+                    JsonObject p = RemasterCatalog.descriptor(id, 0)
+                        .getAsJsonObject("placement")
+                        .getAsJsonObject("futurePlacement");
+                    if (category.equals(
+                        p.get("category")
+                            .getAsString())
+                        && biome(
+                            p.get("biome")
+                                .getAsString(),
+                            roster))
+                        pool.add(id);
+                }
+                POOLS.put(category + ":" + roster, Collections.unmodifiableList(pool));
+            }
+    }
+
     private FutureStructurePlanner() {}
 
     public static boolean isFuture(String id) {
@@ -57,8 +79,21 @@ public final class FutureStructurePlanner {
         String key = seed + ":" + gx + ":" + gz;
         CellSearch search = IN_PROGRESS.get(key);
         if (search != null) return search;
-        search = new CellSearch(seed, gx, gz);
+        search = new CellSearch(seed, gx, gz, null);
         if (!search.done()) IN_PROGRESS.put(key, search);
+        return search;
+    }
+
+    /** Target-only cursor retains all earlier attempts in any slot that can select the target. */
+    public static synchronized CellSearch beginCell(long seed, int gx, int gz, String target) {
+        String fullKey = seed + ":" + gx + ":" + gz;
+        if (CACHE.containsKey(fullKey)) return new CellSearch(seed, gx, gz, null);
+        String key = fullKey + ":" + target;
+        CellSearch search = IN_PROGRESS.get(key);
+        if (search == null) {
+            search = new CellSearch(seed, gx, gz, target);
+            if (!search.done()) IN_PROGRESS.put(key, search);
+        }
         return search;
     }
 
@@ -66,16 +101,24 @@ public final class FutureStructurePlanner {
 
         private final long seed, base;
         private final int gx, gz;
-        private final String key;
+        private final String key, target, targetCategory;
         private final List<RemasterSite> sites = new ArrayList<>();
         private volatile List<RemasterSite> result;
         private int slot, attempt;
+        private CompactSceneTerrain.CellSearch compact;
 
-        private CellSearch(long seed, int gx, int gz) {
+        private CellSearch(long seed, int gx, int gz, String target) {
+            this.target = target;
+            targetCategory = target == null ? null
+                : RemasterCatalog.descriptor(target, 0)
+                    .getAsJsonObject("placement")
+                    .getAsJsonObject("futurePlacement")
+                    .get("category")
+                    .getAsString();
             this.seed = seed;
             this.gx = gx;
             this.gz = gz;
-            key = seed + ":" + gx + ":" + gz;
+            key = seed + ":" + gx + ":" + gz + (target == null ? "" : ":" + target);
             base = GTSRWorldgenHash.cellSeed(seed, gx, gz, 0x4655545552453732L);
             result = CACHE.get(key);
         }
@@ -86,6 +129,16 @@ public final class FutureStructurePlanner {
 
         public List<RemasterSite> result() {
             return result;
+        }
+
+        private String choice(long h, int currentSlot, int currentAttempt, String category) {
+            long a = GTSRWorldgenHash.splitmix64(h + currentAttempt * 0x632BE59BD9B4E019L);
+            int x = gx * 2048 + (currentSlot % 4) * 512 + 128 + (int) Math.floorMod(a >>> 8, 256);
+            int z = gz * 2048 + (currentSlot / 4) * 512 + 128 + (int) Math.floorMod(a >>> 32, 256);
+            int roster = ProsperityTerrainProfile.chainRosterIndexAt(seed, x >> 2, z >> 2);
+            List<String> candidates = POOLS.get(category + ":" + (roster >= 0 && roster < 4 ? roster : -1));
+            return candidates == null || candidates.isEmpty() ? null
+                : candidates.get((int) Math.floorMod(a >>> 16, candidates.size()));
         }
 
         public void step() {
@@ -106,30 +159,39 @@ public final class FutureStructurePlanner {
                     return;
                 }
                 String category = roll == 0 ? "expansion" : roll < 16 ? "medium" : roll < 43 ? "small" : "ruin";
-                if (++attempt == 6) {
+                if (target != null && !category.equals(targetCategory)) {
                     slot++;
                     attempt = 0;
+                    return;
                 }
                 long a = GTSRWorldgenHash.splitmix64(h + currentAttempt * 0x632BE59BD9B4E019L);
                 int centerX = gx * 2048 + (currentSlot % 4) * 512 + 128 + (int) Math.floorMod(a >>> 8, 256);
                 int centerZ = gz * 2048 + (currentSlot / 4) * 512 + 128 + (int) Math.floorMod(a >>> 32, 256);
-                int roster = ProsperityTerrainProfile.chainRosterIndexAt(seed, centerX >> 2, centerZ >> 2);
-                List<String> candidates = new ArrayList<>();
-                for (String id : RemasterCatalog.ids()) if (isFuture(id)) {
-                    JsonObject p = RemasterCatalog.descriptor(id, 0)
-                        .getAsJsonObject("placement")
-                        .getAsJsonObject("futurePlacement");
-                    if (category.equals(
-                        p.get("category")
-                            .getAsString())
-                        && biome(
-                            p.get("biome")
-                                .getAsString(),
-                            roster))
-                        candidates.add(id);
+                if (target != null && currentAttempt == 0) {
+                    boolean possible = false;
+                    for (int i = 0; i < 6; i++) if (target.equals(choice(h, currentSlot, i, category))) {
+                        possible = true;
+                        break;
+                    }
+                    if (!possible) {
+                        slot = currentSlot + 1;
+                        attempt = 0;
+                        return;
+                    }
                 }
-                if (candidates.isEmpty()) return;
-                String id = candidates.get((int) Math.floorMod(a >>> 16, candidates.size()));
+                String id = choice(h, currentSlot, currentAttempt, category);
+                if (id != null && target != null) {
+                    if (compact == null) compact = CompactSceneTerrain.beginCell(seed, gx, gz);
+                    if (!compact.done()) {
+                        compact.step();
+                        return;
+                    }
+                }
+                if (++attempt == 6) {
+                    slot++;
+                    attempt = 0;
+                }
+                if (id == null) return;
                 JsonObject d = RemasterCatalog.descriptor(id, 0), p = d.getAsJsonObject("placement")
                     .getAsJsonObject("futurePlacement");
                 JsonArray size = d.getAsJsonArray("nominal"), entry = p.getAsJsonArray("entrance");
@@ -165,6 +227,25 @@ public final class FutureStructurePlanner {
         return true; // River/lake structures use dry banks rather than their water interiors.
     }
 
+    private static boolean waterAtLeast(long seed, int x, int z, int threshold) {
+        int height = ProsperityTerrainProfile.heightAt(seed, x, z);
+        if (com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField.islandPillarAt(seed, x, z))
+            return -1 >= threshold;
+        int direct = com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
+            .sanzuShoreWaterAt(seed, x, z) && height < ProsperityTerrainProfile.SEA_LEVEL
+                ? ProsperityTerrainProfile.SEA_LEVEL - 1
+                : -1;
+        if (direct >= threshold) return true;
+        int roster = ProsperityTerrainProfile.chainRosterIndexAt(seed, x >> 2, z >> 2);
+        // Only roster three creates a nominal pool top; fixed neighbors never create one here.
+        if (roster != 3) return false;
+        long nominal = (long) com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
+            .poolLevelAt(seed, x, z, roster) - 1;
+        // Relaxation only lowers nominal tops, and the public water query emits them only above the bed.
+        if (nominal < threshold || nominal < height + 1L) return false;
+        return ChunkProviderProsperityRuins.naturalWaterTopAt(seed, x, z) >= threshold;
+    }
+
     private static boolean admit(long seed, RemasterSite s, int floor, int ex, int ez) {
         double[] lake = new double[5];
         for (int dx = -320; dx <= 320; dx += 128) for (int dz = -320; dz <= 320; dz += 128) {
@@ -177,13 +258,26 @@ public final class FutureStructurePlanner {
                     < com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField.LAKE_ISLAND)
                 return false;
         }
-        for (int x = ex - 2; x <= ex + 2; x++)
-            for (int z = ez - 2; z <= ez + 2; z++) if (ProsperityTerrainProfile.heightAt(seed, x, z) != floor
-                || ChunkProviderProsperityRuins.naturalWaterTopAt(seed, x, z) >= floor) return false;
-        for (int x = s.minX() - 2; x <= s.maxX() + 2; x += 8) for (int z = s.minZ() - 2; z <= s.maxZ() + 2; z += 8) {
-            int height = ProsperityTerrainProfile.heightAt(seed, x, z);
-            if (Math.abs(height - floor) > 5 || ChunkProviderProsperityRuins.naturalWaterTopAt(seed, x, z) >= height)
+        for (int x = ex - 2; x <= ex + 2; x++) for (int z = ez - 2; z <= ez + 2; z++)
+            if (Math.abs(ProsperityTerrainProfile.heightAt(seed, x, z) - floor) > 1 || waterAtLeast(seed, x, z, floor))
                 return false;
+        JsonObject descriptor = RemasterCatalog.descriptor(s.prefab, s.variant);
+        int minX = s.x + descriptor.getAsJsonArray("min")
+            .get(0)
+            .getAsInt();
+        int maxX = s.x + descriptor.getAsJsonArray("max")
+            .get(0)
+            .getAsInt();
+        int minZ = s.z + descriptor.getAsJsonArray("min")
+            .get(2)
+            .getAsInt();
+        int maxZ = s.z + descriptor.getAsJsonArray("max")
+            .get(2)
+            .getAsInt();
+        // Preserve authored footprint sampling; apron ownership must not shift the eight-block probe grid.
+        for (int x = minX - 2; x <= maxX + 2; x += 8) for (int z = minZ - 2; z <= maxZ + 2; z += 8) {
+            int height = ProsperityTerrainProfile.heightAt(seed, x, z);
+            if (Math.abs(height - floor) > 5 || waterAtLeast(seed, x, z, height)) return false;
         }
         return true;
     }

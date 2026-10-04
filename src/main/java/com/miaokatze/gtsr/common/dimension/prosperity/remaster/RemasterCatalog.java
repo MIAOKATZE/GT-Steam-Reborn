@@ -14,6 +14,7 @@ import java.util.zip.GZIPInputStream;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
 
 /** Small immutable catalog; large metadata and voxel slices are loaded on demand. */
 public final class RemasterCatalog {
@@ -89,6 +90,43 @@ public final class RemasterCatalog {
             CACHE.put(key, p);
         }
         return p;
+    }
+
+    private static final Map<String, JsonObject> ENTRANCES = new LinkedHashMap<String, JsonObject>(128, .75f, true) {
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, JsonObject> e) {
+            return size() > 128;
+        }
+    };
+
+    /** Reads only entrance metadata; voxel slices never become prefab runs during a lookup. */
+    public static synchronized JsonObject entrance(String id, int variant) {
+        String key = key(id, variant);
+        if (ENTRANCES.containsKey(key)) return ENTRANCES.get(key);
+        String resource = "/assets/gtsr/remaster/" + descriptor(id, variant).get("file")
+            .getAsString();
+        InputStream stream = RemasterCatalog.class.getResourceAsStream(resource);
+        if (stream == null) throw new IllegalStateException("Missing remaster asset " + resource);
+        JsonObject entry = null;
+        try (JsonReader reader = new JsonReader(
+            new InputStreamReader(new GZIPInputStream(stream), StandardCharsets.UTF_8))) {
+            reader.beginObject();
+            while (reader.hasNext()) {
+                if ("metadata".equals(reader.nextName())) {
+                    JsonObject metadata = new JsonParser().parse(reader)
+                        .getAsJsonObject();
+                    entry = metadata.getAsJsonObject("surfaceEntrance");
+                    if (entry == null) entry = metadata.getAsJsonObject("productionSurfaceEntrance");
+                    break;
+                }
+                reader.skipValue();
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Invalid remaster entrance " + resource, e);
+        }
+        ENTRANCES.put(key, entry);
+        return entry;
     }
 
     static JsonElement read(String path, boolean compressed) {
