@@ -12,6 +12,7 @@ final class EchoIndustrialCombat {
     private final EntityOldEcho owner;
     private int cooldown = 80, serial, lastPhase = -1;
     private double x, y, z, ox, oz;
+    private int broodCount, broodIndex;
 
     EchoIndustrialCombat(EntityOldEcho owner) {
         this.owner = owner;
@@ -43,6 +44,7 @@ final class EchoIndustrialCombat {
         if (owner.getSkillId() != 0) CombatEffects
             .send(owner, serial * 32, 2, 0, palette(), geometry(owner.getSkillId()), owner.getSkillId(), 0);
         owner.skill(0, 0);
+        broodCount = broodIndex = 0;
         cooldown = Math.max(40, cooldown);
     }
 
@@ -70,10 +72,15 @@ final class EchoIndustrialCombat {
             z = target.posZ;
             ox = owner.posX;
             oz = owner.posZ;
+            broodCount = hive() && (id == 1 || id == 4) ? 6 + owner.getRNG()
+                .nextInt(7) : 0;
+            broodIndex = 0;
             owner.getNavigator()
                 .clearPathEntity();
-            CombatEffects.send(owner, serial * 32, 0, windup(id), palette(), geometry(id), id, 0);
-            sound(hive() ? id == 1 ? "summon" : "launch" : id == 2 ? "charge" : id == 3 ? "stomp" : "attack");
+            if (hive() && id != 1 && id != 4) fanEffects(id, 0, windup(id), 0);
+            else CombatEffects.send(owner, serial * 32, 0, windup(id), palette(), geometry(id), id, 0);
+            sound(
+                hive() ? id == 1 || id == 4 ? "summon" : "launch" : id == 2 ? "charge" : id == 3 ? "stomp" : "attack");
             return;
         }
         int ticks = owner.getSkillTicks() + 1;
@@ -87,13 +94,10 @@ final class EchoIndustrialCombat {
             if (Math.abs(owner.posX - beforeX) + Math.abs(owner.posZ - beforeZ) < .05) owner.skill(id, delay + 24);
         }
         if (ticks == delay) {
-            CombatEffects.send(owner, serial * 32, 1, 20, palette(), geometry(id), id, 0);
+            if (!hive() || id == 1 || id == 4)
+                CombatEffects.send(owner, serial * 32, 1, 20, palette(), geometry(id), id, 0);
             if (hive()) {
-                if (id == 1) summon(2 + phase * 2);
-                else if (id == 4) {
-                    summon(3 + phase);
-                    pulse(6, 3);
-                } else volley(id == 5 ? 6 : id == 3 ? 4 : 2, id == 5 ? 9 : 6, id == 5 ? 3 : 2);
+                if (id == 4) pulse(6, 3);
             } else {
                 if (id != 2) hit(geometry(id), id == 5 ? 16 : id == 4 ? 14 : 10, id == 4 ? 1.3 : .7);
                 sound(id == 3 ? "stomp" : "slam");
@@ -105,10 +109,22 @@ final class EchoIndustrialCombat {
             CombatEffects
                 .send(owner, serial * 32 + (ticks == delay + 16 ? 1 : 2), 1, 12, palette(), geometry(id), id, 0);
         }
-        if (hive() && id == 3 && ticks == delay + 20) volley(4, 6, 2);
+        if (hive() && (id == 1 || id == 4) && ticks >= delay && (ticks - delay) % 2 == 0 && broodIndex < broodCount)
+            summonNext();
+        if (hive() && id != 1 && id != 4 && ticks >= delay && ticks <= delay + 36 && (ticks - delay) % 12 == 0) {
+            x = target.posX;
+            y = target.posY;
+            z = target.posZ;
+            ox = owner.posX;
+            oz = owner.posZ;
+            int step = (ticks - delay) / 12;
+            fanEffects(id, 1, 12, step);
+            volley(id == 5 ? 6 : id == 3 ? 4 : 2, id == 5 ? 9 : 6, id == 5 ? 3 : 2);
+        }
         if (ticks >= delay + 44) {
             CombatEffects.send(owner, serial * 32, 2, 0, palette(), geometry(id), id, 0);
             owner.skill(0, 0);
+            broodCount = broodIndex = 0;
             cooldown = (hive() ? 100 : 120) - phase * 25;
         }
     }
@@ -150,18 +166,40 @@ final class EchoIndustrialCombat {
         hit(new CombatGeometry(CombatGeometry.CIRCLE, owner.posX, owner.posY, owner.posZ, 0, 0, radius, 0), damage, .4);
     }
 
+    private void fanEffects(int id, int stage, int duration, int step) {
+        double dx = x - ox, dz = z - oz;
+        if (dx * dx + dz * dz < .01) {
+            dx = -Math.sin(Math.toRadians(owner.rotationYaw));
+            dz = Math.cos(Math.toRadians(owner.rotationYaw));
+        }
+        for (int side = 0; side < 2; side++) {
+            double sign = side == 0 ? 1 : -1;
+            CombatEffects.send(
+                owner,
+                serial * 32 + step * 2 + side,
+                stage,
+                duration,
+                palette(),
+                new CombatGeometry(CombatGeometry.CONE, ox, y, oz, ox + dx * sign, oz + dz * sign, 24, 0),
+                id,
+                side);
+        }
+    }
+
     private void volley(int count, float damage, double radius) {
         sound("launch");
-        for (int i = 0; i < count; i++) {
-            double offset = (i - (count - 1) * .5) * 1.4;
+        double dx = x - owner.posX, dz = z - owner.posZ, distance = Math.max(8, Math.sqrt(dx * dx + dz * dz));
+        double heading = dx * dx + dz * dz < .01 ? Math.toRadians(owner.rotationYaw + 90) : Math.atan2(dz, dx);
+        for (int side = 0; side < 2; side++) for (int i = 0; i < count; i++) {
+            double angle = heading + side * Math.PI + (i / (double) (count - 1) - .5) * Math.PI / 2;
             EchoCombatProjectile.fire(
                 owner,
                 owner.posX,
                 owner.posY + Math.min(5, owner.height * .4),
                 owner.posZ,
-                x + offset,
+                owner.posX + Math.cos(angle) * distance,
                 y + 1,
-                z,
+                owner.posZ + Math.sin(angle) * distance,
                 .8,
                 damage,
                 radius,
@@ -170,13 +208,17 @@ final class EchoIndustrialCombat {
         }
     }
 
-    private void summon(int count) {
+    private void summonNext() {
+        int index = broodIndex++;
         int live = 0;
         for (Object object : owner.worldObj.loadedEntityList)
             if (object instanceof EntityOldEcho && ((EntityOldEcho) object).isSummonedBy(owner)
                 && ((EntityOldEcho) object).isEntityAlive()) live++;
-        for (int i = 0; i < count && live < 12; i++) {
-            double a = 2 * Math.PI * i / count, sx = owner.posX + Math.cos(a) * 8, sz = owner.posZ + Math.sin(a) * 8;
+        // At the fastest phase cadence at most ten 12-member waves coexist in the 1200-tick TTL.
+        if (live >= 120) return;
+        for (int attempt = 0; attempt < 8; attempt++) {
+            double a = 2 * Math.PI * index / broodCount + attempt * .21;
+            double sx = owner.posX + Math.cos(a) * (8 + attempt), sz = owner.posZ + Math.sin(a) * (8 + attempt);
             if (!owner.worldObj.getChunkProvider()
                 .chunkExists(((int) Math.floor(sx)) >> 4, ((int) Math.floor(sz)) >> 4)) continue;
             double sy = CombatGeometry.groundY(owner.worldObj, sx, owner.posY + 3, sz);
@@ -186,13 +228,25 @@ final class EchoIndustrialCombat {
                     .getCollisionBoundingBoxFromPool(owner.worldObj, bx, by, bz) == null)
                 continue;
             EntityOldEcho child = new EntityOldEcho(owner.worldObj);
-            child.initializeEcho(EchoKind.DR04, "", sx, sy, sz, false);
+            child.initializeEcho(index % 2 == 0 ? EchoKind.DR04 : EchoKind.DR14, "", sx, sy, sz, false);
             child.markSummoned(owner, 1200);
             child.addPotionEffect(new PotionEffect(Potion.damageBoost.id, 1200, owner.getCombatPhase()));
             if (!owner.worldObj.getCollidingBoundingBoxes(child, child.boundingBox)
                 .isEmpty() || !owner.worldObj.checkNoEntityCollision(child.boundingBox)
                 || owner.worldObj.isAnyLiquid(child.boundingBox)) continue;
-            if (owner.worldObj.spawnEntityInWorld(child)) live++;
+            if (owner.worldObj.spawnEntityInWorld(child)) {
+                CombatEffects.send(
+                    owner,
+                    serial * 32 + 8 + index,
+                    1,
+                    16,
+                    palette(),
+                    new CombatGeometry(CombatGeometry.CIRCLE, sx, sy, sz, 0, 0, 1.5, 0),
+                    owner.getSkillId(),
+                    0);
+                sound("summon");
+                return;
+            }
         }
     }
 
@@ -207,5 +261,6 @@ final class EchoIndustrialCombat {
         lastPhase = n.getInteger("industrialCombatPhase");
         serial = Math.max(0, Math.min(999999, n.getInteger("industrialCombatSerial")));
         owner.skill(0, 0);
+        broodCount = broodIndex = 0;
     }
 }

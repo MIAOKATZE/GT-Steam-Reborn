@@ -100,6 +100,20 @@ public class EntityOldEcho extends EntityEncounterBase
     private boolean controlledPrepared, controlledFinished;
     private int lightningCooldown;
     private boolean restoringHealth;
+    // Last accepted server health also guards direct watcher writes at the death boundary.
+    private float protectedBossHealth;
+
+    private boolean summoningImmune() {
+        return getKind() == EchoKind.DC08 && (getSkillId() == 1 || getSkillId() == 4);
+    }
+
+    private float upperPhaseHealth() {
+        return getKind() == EchoKind.DC08 ? 1200 : getMaxHealth() * 2F / 3F;
+    }
+
+    private float lowerPhaseHealth() {
+        return getKind() == EchoKind.DC08 ? 600 : getMaxHealth() / 3F;
+    }
 
     private boolean authoredKind() {
         return getKind().style == BattleStyle.AUTHORED;
@@ -442,12 +456,14 @@ public class EntityOldEcho extends EntityEncounterBase
     @Override
     public void setHealth(float health) {
         float before = getHealth();
+        if (!restoringHealth && getKind().isHeavy() && protectedBossHealth > before) before = protectedBossHealth;
         boolean transition = false;
         if (Float.isNaN(health) || health == Float.POSITIVE_INFINITY) health = Float.isFinite(before) ? before : 1;
         if (!restoringHealth && worldObj != null && !worldObj.isRemote && getKind().isHeavy() && before > 0) {
-            if ((industrialFrozen() || getPhaseLockTicks() > 0) && health < before) health = before;
+            if ((industrialFrozen() || getPhaseLockTicks() > 0 || summoningImmune()) && health < before)
+                health = before;
             else {
-                float upper = getMaxHealth() * 2F / 3F, lower = getMaxHealth() / 3F;
+                float upper = upperPhaseHealth(), lower = lowerPhaseHealth();
                 float floor = before > upper ? upper : before > lower ? lower : 0;
                 if (floor > 0 && health <= floor) {
                     health = floor;
@@ -456,6 +472,7 @@ public class EntityOldEcho extends EntityEncounterBase
             }
         }
         super.setHealth(health);
+        if (getKind().isHeavy()) protectedBossHealth = getHealth();
         if (transition) {
             dataWatcher.updateObject(14, 60);
             stopEffects();
@@ -479,14 +496,21 @@ public class EntityOldEcho extends EntityEncounterBase
 
     @Override
     protected void damageEntity(DamageSource source, float amount) {
-        if (getKind() == EchoKind.DO02 || Float.isNaN(amount) || amount <= 0 || getPhaseLockTicks() > 0) return;
+        if (getKind() == EchoKind.DO02 || Float.isNaN(amount)
+            || amount <= 0
+            || getPhaseLockTicks() > 0
+            || industrialFrozen()
+            || summoningImmune()) return;
         super.damageEntity(source, Math.min(amount, 1.0E30F));
         if (!Float.isFinite(getAbsorptionAmount())) setAbsorptionAmount(0);
     }
 
     @Override
     public boolean attackEntityFrom(DamageSource source, float amount) {
-        if (getKind() == EchoKind.DO02 || Float.isNaN(amount) || amount <= 0 || getPhaseLockTicks() > 0) return false;
+        if (getKind() == EchoKind.DO02 || Float.isNaN(amount)
+            || amount <= 0
+            || getPhaseLockTicks() > 0
+            || summoningImmune()) return false;
         if (getKind().isRitual() || industrialFrozen() || (!worldObj.isRemote && dormant())) return false;
         if (!worldObj.isRemote && source.getEntity() instanceof EntityPlayer
             && valid((EntityPlayer) source.getEntity())) {
@@ -610,6 +634,7 @@ public class EntityOldEcho extends EntityEncounterBase
         if (!(target instanceof EntityPlayer) || !valid((EntityPlayer) target)
             || target.getDistanceSq(anchorX, anchorY, anchorZ) > leash() * leash()
             || getDistanceSq(anchorX, anchorY, anchorZ) > leash() * leash()) {
+            if (summoningImmune()) stopEffects();
             setAttackTarget(null);
             if (authoredKind()) {
                 authored.cancel();
@@ -786,7 +811,7 @@ public class EntityOldEcho extends EntityEncounterBase
     }
 
     public int getCombatPhase() {
-        return getHealth() <= getMaxHealth() / 3F ? 2 : getHealth() <= getMaxHealth() * 2F / 3F ? 1 : 0;
+        return getHealth() <= lowerPhaseHealth() ? 2 : getHealth() <= upperPhaseHealth() ? 1 : 0;
     }
 
     private int attackSerial;
@@ -1001,6 +1026,17 @@ public class EntityOldEcho extends EntityEncounterBase
             return;
         }
         if (dead || deathRecorded) return;
+        if (!worldObj.isRemote && getKind().isHeavy()) {
+            // Reject before Forge death/loot hooks, never resurrect after publishing a death.
+            if (getHealth() > 0) return;
+            if (industrialFrozen() || getPhaseLockTicks() > 0
+                || summoningImmune()
+                || protectedBossHealth > lowerPhaseHealth()) {
+                setHealth(0);
+                deathTime = 0;
+                return;
+            }
+        }
         super.onDeath(source);
         if (!dead && !worldObj.isRemote && getHealth() <= 0) {
             restoreHealth(1);
@@ -1055,6 +1091,16 @@ public class EntityOldEcho extends EntityEncounterBase
 
     @Override
     protected void onDeathUpdate() {
+        if (!worldObj.isRemote && getKind().isHeavy()
+            && !dead
+            && !deathRecorded
+            && (industrialFrozen() || getPhaseLockTicks() > 0
+                || summoningImmune()
+                || protectedBossHealth > lowerPhaseHealth())) {
+            setHealth(0);
+            deathTime = 0;
+            return;
+        }
         deathTime++;
         syncDeathAnimation();
         if (authoredKind() && !worldObj.isRemote) authored.death(deathTime);
@@ -1157,7 +1203,19 @@ public class EntityOldEcho extends EntityEncounterBase
         } finally {
             restoringHealth = previous;
         }
+        float loadedMax = getMaxHealth(), loadedHealth = getHealth();
         configure(kind, false);
+        if (kind.isHeavy() && loadedMax > 0 && loadedMax != kind.maxHealth) {
+            // Preserve the old phase and its progress, including exact transition floors.
+            float oldUpper = loadedMax * 2F / 3F, oldLower = loadedMax / 3F;
+            float migrated = loadedHealth <= oldLower ? loadedHealth / oldLower * lowerPhaseHealth()
+                : loadedHealth <= oldUpper
+                    ? lowerPhaseHealth()
+                        + (loadedHealth - oldLower) / (oldUpper - oldLower) * (upperPhaseHealth() - lowerPhaseHealth())
+                    : upperPhaseHealth()
+                        + (loadedHealth - oldUpper) / (loadedMax - oldUpper) * (kind.maxHealth - upperPhaseHealth());
+            restoreHealth(Math.max(0, Math.min(kind.maxHealth, migrated)));
+        } else if (kind.isHeavy()) protectedBossHealth = getHealth();
         initialized = n.getBoolean("echoInitialized");
         nightSpawn = n.getBoolean("echoNight");
         deathRecorded = n.getBoolean("echoDeathRecorded");
