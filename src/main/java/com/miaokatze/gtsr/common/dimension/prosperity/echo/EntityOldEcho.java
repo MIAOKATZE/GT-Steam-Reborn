@@ -21,7 +21,6 @@ public class EntityOldEcho extends EntityEncounterBase
     implements cpw.mods.fml.common.registry.IEntityAdditionalSpawnData {
 
     public static final int IDLE = 0, COMBAT = 1, RETURNING = 2, DYING = 4;
-    private static final int MINI_BIRTH_TICKS = 40;
     public static final int DEMONSTRATION_BIRTH_TICKS = 120, DEMONSTRATION_DEATH_START = 200,
         DEMONSTRATION_END_TICKS = 440;
     private boolean initialized, nightSpawn, deathRecorded;
@@ -95,7 +94,6 @@ public class EntityOldEcho extends EntityEncounterBase
     private double aimX, aimY, aimZ, originX, originZ;
     private final AuthoredEchoAbilities authored = new AuthoredEchoAbilities(this);
     private final EchoIndustrialCombat industrialCombat = new EchoIndustrialCombat(this);
-    private final MiniBossCombat miniBossCombat = new MiniBossCombat(this);
     private int summonBudget = 8, summonedLifetime;
     private String summoner = "";
     private float lastAcceptedPlayerDamage = 5;
@@ -361,10 +359,7 @@ public class EntityOldEcho extends EntityEncounterBase
             return getHealth() <= 0 || controlledFinished || getEncounterState() == DYING ? "death_a"
                 : dataWatcher.getWatchableObjectInt(28) < 120 ? "spawn" : "idle";
         if (getHealth() <= 0 || getEncounterState() == DYING) return "death";
-        if (MiniBossCombat.supports(getKind()) && dataWatcher.getWatchableObjectInt(28) < MINI_BIRTH_TICKS)
-            return "spawn";
         if (authoredKind() && dataWatcher.getWatchableObjectInt(28) < authored.spawnDuration()) return "spawn";
-        if (MiniBossCombat.supports(getKind()) && getSkillId() != 0) return MiniBossCombat.clip(getKind());
         if (authoredKind() && getSkillId() != 0) return authored.clip(getSkillId());
         if (getKind().isRitual()) return getVisualPhaseTicks() < 80 ? "spawn" : "idle";
         if (getSkillId() != 0) {
@@ -380,8 +375,6 @@ public class EntityOldEcho extends EntityEncounterBase
             : dataWatcher.getWatchableObjectInt(28) < 120 ? dataWatcher.getWatchableObjectInt(28) + partial
                 : ticksExisted + partial;
         if (getHealth() <= 0) return deathTime + partial;
-        if (MiniBossCombat.supports(getKind()) && dataWatcher.getWatchableObjectInt(28) < MINI_BIRTH_TICKS)
-            return dataWatcher.getWatchableObjectInt(28) + partial;
         if (authoredKind() && dataWatcher.getWatchableObjectInt(28) < authored.spawnDuration())
             return dataWatcher.getWatchableObjectInt(28) + partial;
         if (getKind().isRitual()) return getVisualPhaseTicks() + partial;
@@ -534,15 +527,6 @@ public class EntityOldEcho extends EntityEncounterBase
         }
     }
 
-    boolean tickMiniBossBirth() {
-        if (!MiniBossCombat.supports(getKind()) || dataWatcher.getWatchableObjectInt(28) >= MINI_BIRTH_TICKS)
-            return false;
-        dataWatcher.updateObject(28, dataWatcher.getWatchableObjectInt(28) + 1);
-        getNavigator().clearPathEntity();
-        motionX = motionY = motionZ = 0;
-        return true;
-    }
-
     boolean tickPhaseTransition() {
         if (getPhaseLockTicks() <= 0) return false;
         dataWatcher.updateObject(14, getPhaseLockTicks() - 1);
@@ -579,7 +563,6 @@ public class EntityOldEcho extends EntityEncounterBase
             }
         }
         if (tickDemonstration()) return;
-        if (tickMiniBossBirth()) return;
         if (authoredKind()) authored.tickBolts();
         if (lightningCooldown > 0) lightningCooldown--;
         if (authoredKind() && dataWatcher.getWatchableObjectInt(28) < authored.spawnDuration()) {
@@ -614,7 +597,7 @@ public class EntityOldEcho extends EntityEncounterBase
             if (authoredKind()) {
                 authored.cancel();
                 skill(0, 0);
-            } else if (MiniBossCombat.supports(getKind())) miniBossCombat.cancel();
+            }
             if (getDistanceSq(anchorX, anchorY, anchorZ) > 1) {
                 returnHome();
                 return;
@@ -659,10 +642,6 @@ public class EntityOldEcho extends EntityEncounterBase
                 getNavigator().clearPathEntity();
             } else if (getKind().flies()) flyToward(target.posX, anchorY, target.posZ, .32);
             else if (!authored.stationary() && ticksExisted % 10 == 0) getNavigator().tryMoveToEntityLiving(target, 1);
-            return;
-        }
-        if (MiniBossCombat.supports(getKind())) {
-            miniBossCombat.tick((EntityPlayer) target);
             return;
         }
         if (getKind().isHeavy()) {
@@ -875,10 +854,6 @@ public class EntityOldEcho extends EntityEncounterBase
     }
 
     private void stopEffects() {
-        if (MiniBossCombat.supports(getKind())) {
-            miniBossCombat.cancel();
-            return;
-        }
         if (getKind().isHeavy()) {
             industrialCombat.cancel();
             return;
@@ -1042,10 +1017,8 @@ public class EntityOldEcho extends EntityEncounterBase
     }
 
     private String combatSound(String event) {
-        return "gtsr:" + (MiniBossCombat.supports(getKind()) ? "mini." + getKind().code + "."
-            : getKind() == EchoKind.DC02 ? "colossus."
-                : getKind() == EchoKind.DC08 ? "hive." : "entity." + getKind().code + ".")
-            + event;
+        return "gtsr:" + (getKind() == EchoKind.DC02 ? "colossus."
+            : getKind() == EchoKind.DC08 ? "hive." : "entity." + getKind().code + ".") + event;
     }
 
     @Override
@@ -1089,7 +1062,6 @@ public class EntityOldEcho extends EntityEncounterBase
     public void writeEntityToNBT(NBTTagCompound n) {
         super.writeEntityToNBT(n);
         industrialCombat.write(n);
-        miniBossCombat.write(n);
         authored.write(n);
         n.setInteger("objectiveLayout", objectiveLayout);
         n.setInteger("objectiveZone", objectiveZone);
@@ -1128,6 +1100,21 @@ public class EntityOldEcho extends EntityEncounterBase
         n.setInteger("industrialRevivalTicks", getRevivalTicks());
     }
 
+    /** Retired rollout identities migrate only while reading saved entities. */
+    private static EchoKind savedEchoKind(String code) {
+        if ("di-16".equalsIgnoreCase(code)) return EchoKind.DI15;
+        if ("di-17".equalsIgnoreCase(code)) return EchoKind.DI09;
+        if ("di-18".equalsIgnoreCase(code)) return EchoKind.DI05;
+        if ("di-19".equalsIgnoreCase(code)) return EchoKind.DI12;
+        if ("di-20".equalsIgnoreCase(code)) return EchoKind.DI08;
+        if ("di-21".equalsIgnoreCase(code)) return EchoKind.DI10;
+        if ("di-22".equalsIgnoreCase(code)) return EchoKind.DI06;
+        if ("di-23".equalsIgnoreCase(code)) return EchoKind.DI13;
+        if ("di-24".equalsIgnoreCase(code)) return EchoKind.DI04;
+        if ("di-25".equalsIgnoreCase(code)) return EchoKind.DI03;
+        return EchoKind.byCode(code);
+    }
+
     @Override
     public void readEntityFromNBT(NBTTagCompound n) {
         objectiveLayout = n.getInteger("objectiveLayout");
@@ -1135,7 +1122,7 @@ public class EntityOldEcho extends EntityEncounterBase
         objectiveBoss = n.getBoolean("objectiveBoss");
         EchoKind kind;
         try {
-            kind = EchoKind.byCode(n.getString("echoKind"));
+            kind = savedEchoKind(n.getString("echoKind"));
         } catch (IllegalArgumentException e) {
             kind = EchoKind.DR01;
         }
@@ -1191,7 +1178,6 @@ public class EntityOldEcho extends EntityEncounterBase
         if (industrialFrozen())
             setHealth(getIndustrialBossStage() == 0 ? 1 : 1 + (getMaxHealth() - 1) * getRevivalTicks() / 208F);
         if (getKind().isHeavy()) industrialCombat.read(n);
-        if (MiniBossCombat.supports(kind)) miniBossCombat.read(n);
         authored.read(n);
         dataWatcher.updateObject(14, Math.max(0, Math.min(60, n.getInteger("echoPhaseLockTicks"))));
         dataWatcher.updateObject(18, Math.max(0, n.getInteger("echoSkillAnnouncementSerial")));
@@ -1227,7 +1213,6 @@ public class EntityOldEcho extends EntityEncounterBase
     @Override
     public void setDead() {
         if (authored != null) authored.cancel();
-        if (miniBossCombat != null && MiniBossCombat.supports(getKind())) miniBossCombat.cancel();
         super.setDead();
     }
 }

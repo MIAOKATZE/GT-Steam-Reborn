@@ -223,6 +223,19 @@ public class ForgottenLakeEncounterData extends WorldSavedData {
         return (deaths(id) & mask) == mask;
     }
 
+    /** Debug mission completion changes only the king activation gate, never guard death or reward state. */
+    public boolean kingReady(String id) {
+        NBTTagCompound n = records.get(id);
+        return n != null && !kingDead(id) && (n.getBoolean("missionBossReady") || allGuardsDead(id));
+    }
+
+    public void completeKingMission(String id) {
+        if (!known(id) || kingDead(id)) return;
+        records.get(id)
+            .setBoolean("missionBossReady", true);
+        markDirty();
+    }
+
     public boolean kingDead(String id) {
         NBTTagCompound n = records.get(id);
         return n != null && n.getBoolean("kingDead");

@@ -37,7 +37,7 @@ public final class ProsperityAchievements {
     static {
         define(
             "explore.pressure_registry",
-            "探访失压登记所",
+            "探访引线校压所",
             "首次进入该结构实例范围；每种结构只授予一次",
             "pressure_registry",
             "explore",
@@ -51,17 +51,10 @@ public final class ProsperityAchievements {
             "relic",
             "future_pressure_witness",
             true);
-        define(
-            "defeat.mb-pressure-auditor",
-            "解除阀印监核",
-            "该小首领实际死亡且玩家有效参与；进入结构或阅读不替代击败",
-            "pressure_registry",
-            "minor-boss",
-            "brass_chronicle",
-            false);
+        define("defeat.di-15", "击败引线傀儡", "既有精英实际死亡且玩家有效参与", "pressure_registry", "minor-boss", "brass_chronicle", true);
         define(
             "explore.recovery_exchange",
-            "探访回收交换站",
+            "探访退件拆垒场",
             "首次进入该结构实例范围；每种结构只授予一次",
             "recovery_exchange",
             "explore",
@@ -75,17 +68,10 @@ public final class ProsperityAchievements {
             "relic",
             "future_recovery_witness",
             true);
-        define(
-            "defeat.mb-return-overseer",
-            "解除拒收督工",
-            "该小首领实际死亡且玩家有效参与；进入结构或阅读不替代击败",
-            "recovery_exchange",
-            "minor-boss",
-            "brass_chronicle",
-            false);
+        define("defeat.di-09", "击败拆垒工螯", "既有精英实际死亡且玩家有效参与", "recovery_exchange", "minor-boss", "brass_chronicle", true);
         define(
             "explore.weft_memory_hall",
-            "探访纬忆织造馆",
+            "探访缄网织谱馆",
             "首次进入该结构实例范围；每种结构只授予一次",
             "weft_memory_hall",
             "explore",
@@ -99,17 +85,10 @@ public final class ProsperityAchievements {
             "relic",
             "future_weft_witness",
             true);
-        define(
-            "defeat.mb-weft-curator",
-            "解除断纬主织",
-            "该小首领实际死亡且玩家有效参与；进入结构或阅读不替代击败",
-            "weft_memory_hall",
-            "minor-boss",
-            "brass_chronicle",
-            false);
+        define("defeat.di-05", "击败织网缄虫", "既有精英实际死亡且玩家有效参与", "weft_memory_hall", "minor-boss", "brass_chronicle", true);
         define(
             "explore.canal_tollhouse",
-            "探访逆流税关",
+            "探访蚀渊税关",
             "首次进入该结构实例范围；每种结构只授予一次",
             "canal_tollhouse",
             "explore",
@@ -123,17 +102,10 @@ public final class ProsperityAchievements {
             "relic",
             "future_canal_witness",
             true);
-        define(
-            "defeat.mb-tide-collector",
-            "解除逆潮收税官",
-            "该小首领实际死亡且玩家有效参与；进入结构或阅读不替代击败",
-            "canal_tollhouse",
-            "minor-boss",
-            "brass_chronicle",
-            false);
+        define("defeat.di-12", "击败蚀渊鳐", "既有精英实际死亡且玩家有效参与", "canal_tollhouse", "minor-boss", "brass_chronicle", true);
         define(
             "explore.signal_lensworks",
-            "探访偏光镜务所",
+            "探访裂弦观测所",
             "首次进入该结构实例范围；每种结构只授予一次",
             "signal_lensworks",
             "explore",
@@ -147,17 +119,10 @@ public final class ProsperityAchievements {
             "relic",
             "future_lens_witness",
             true);
-        define(
-            "defeat.mb-parallax-master",
-            "解除偏光鉴定师",
-            "该小首领实际死亡且玩家有效参与；进入结构或阅读不替代击败",
-            "signal_lensworks",
-            "minor-boss",
-            "brass_chronicle",
-            false);
+        define("defeat.di-08", "击败裂弦狙手", "既有精英实际死亡且玩家有效参与", "signal_lensworks", "minor-boss", "brass_chronicle", true);
         define(
             "explore.oath_checkpoint",
-            "探访换誓关堡",
+            "探访镜铠换誓关堡",
             "首次进入该结构实例范围；每种结构只授予一次",
             "oath_checkpoint",
             "explore",
@@ -171,17 +136,10 @@ public final class ProsperityAchievements {
             "relic",
             "future_oath_witness",
             true);
-        define(
-            "defeat.mb-oath-captain",
-            "解除换誓长官",
-            "该小首领实际死亡且玩家有效参与；进入结构或阅读不替代击败",
-            "oath_checkpoint",
-            "minor-boss",
-            "brass_chronicle",
-            false);
+        define("defeat.di-10", "击败镜铠卫", "既有精英实际死亡且玩家有效参与", "oath_checkpoint", "minor-boss", "brass_chronicle", true);
         define(
             "explore.ash_name_vault",
-            "探访存名灰堂",
+            "探访腐壤存名灰庭",
             "首次进入该结构实例范围；每种结构只授予一次",
             "ash_name_vault",
             "explore",
@@ -195,17 +153,10 @@ public final class ProsperityAchievements {
             "relic",
             "future_ash_witness",
             true);
-        define(
-            "defeat.mb-ash-keeper",
-            "解除存名司炉",
-            "该小首领实际死亡且玩家有效参与；进入结构或阅读不替代击败",
-            "ash_name_vault",
-            "minor-boss",
-            "brass_chronicle",
-            false);
+        define("defeat.di-06", "击败腐壤蔓母", "既有精英实际死亡且玩家有效参与", "ash_name_vault", "minor-boss", "brass_chronicle", true);
         define(
             "explore.resonance_exchange",
-            "探访异拍钟务院",
+            "探访共振钟务院",
             "首次进入该结构实例范围；每种结构只授予一次",
             "resonance_exchange",
             "explore",
@@ -220,16 +171,16 @@ public final class ProsperityAchievements {
             "future_sound_witness",
             true);
         define(
-            "defeat.mb-counterbeat",
-            "解除反拍钟师",
-            "该小首领实际死亡且玩家有效参与；进入结构或阅读不替代击败",
+            "defeat.di-13",
+            "击败共振钟螺",
+            "既有精英实际死亡且玩家有效参与",
             "resonance_exchange",
             "minor-boss",
             "brass_chronicle",
-            false);
+            true);
         define(
             "explore.roadbed_testyard",
-            "探访旧路试验院",
+            "探访跃隙路试场",
             "首次进入该结构实例范围；每种结构只授予一次",
             "roadbed_testyard",
             "explore",
@@ -243,17 +194,10 @@ public final class ProsperityAchievements {
             "relic",
             "future_road_witness",
             true);
-        define(
-            "defeat.mb-route-warden",
-            "解除归途路监",
-            "该小首领实际死亡且玩家有效参与；进入结构或阅读不替代击败",
-            "roadbed_testyard",
-            "minor-boss",
-            "brass_chronicle",
-            false);
+        define("defeat.di-04", "击败跃隙猎手", "既有精英实际死亡且玩家有效参与", "roadbed_testyard", "minor-boss", "brass_chronicle", true);
         define(
             "explore.anchor_calibration_house",
-            "探访定锚校准馆",
+            "探访悬针定锚台",
             "首次进入该结构实例范围；每种结构只授予一次",
             "anchor_calibration_house",
             "explore",
@@ -268,13 +212,13 @@ public final class ProsperityAchievements {
             "future_anchor_witness",
             true);
         define(
-            "defeat.mb-anchor-surveyor",
-            "解除定锚测记官",
-            "该小首领实际死亡且玩家有效参与；进入结构或阅读不替代击败",
+            "defeat.di-03",
+            "击败悬针浮垒",
+            "既有精英实际死亡且玩家有效参与",
             "anchor_calibration_house",
             "minor-boss",
             "brass_chronicle",
-            false);
+            true);
         define(
             "explore.last_shift_shelter",
             "探访末班候车亭",
@@ -436,33 +380,21 @@ public final class ProsperityAchievements {
             "brass_chronicle",
             false);
         define(
-            "explore.abandoned_city",
-            "探访废弃城市",
-            "首次进入该结构实例范围；每种结构只授予一次",
-            "abandoned_city",
-            "explore",
-            "brass_chronicle",
-            false);
-        define(
             "relic.future_city_address_witness",
-            "见证·旧址原件",
-            "首次有效获得对应唯一信物",
-            "abandoned_city",
+            "见证·繁荣测绘罗盘",
+            "首次进入繁荣维度并有效收到导航信物",
+            "prosperity_arrival",
             "relic",
             "future_city_address_witness",
-            false);
+            true);
         define(
             "relic.future_city_return_witness",
-            "见证·未归名单",
-            "首次有效获得对应唯一信物",
-            "abandoned_city",
+            "见证·扩建工程见证",
+            "阅读扩建校准记录后开启工程见证箱",
+            "fiction_expansion_project",
             "relic",
             "future_city_return_witness",
-            false);
-        define("city.old_era", "探索旧时代", "首次有效阅读三个不同分区的现场档案", "abandoned_city", "city", "brass_chronicle", false);
-        define("city.address_original", "旧址仍可寻", "实际获得旧址原件", "abandoned_city", "city", "brass_chronicle", false);
-        define("city.unreturned", "让姓名归来", "实际击败未归者守录人并获得对应证据", "abandoned_city", "city", "brass_chronicle", false);
-        define("city.districts", "走过空城六区", "实际进入全部六个不同分区", "abandoned_city", "city", "brass_chronicle", false);
+            true);
         define(
             "relic.foundry_heart_fragment",
             "见证·铸造之心碎片",

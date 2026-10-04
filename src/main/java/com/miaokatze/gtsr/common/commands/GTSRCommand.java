@@ -103,7 +103,7 @@ public class GTSRCommand extends CommandBase {
             + " | /gtsr structure <name>"
             + " | /gtsr locate A <structure> | /gtsr tplocate A <structure>"
             + " | /gtsr tpdim <A|B> [biome]"
-            + " | /gtsr diag [A|B]";
+            + " | /gtsr diag [A|B] | /gtsr mission";
     }
 
     @Override
@@ -113,6 +113,10 @@ public class GTSRCommand extends CommandBase {
 
     @Override
     public void processCommand(ICommandSender sender, String[] args) {
+        if (args.length >= 1 && "mission".equalsIgnoreCase(args[0])) {
+            MissionCommand.execute(sender, args);
+            return;
+        }
         if (args.length >= 1 && RuinLocateCommand.handles(args[0])) {
             RuinLocateCommand.execute(sender, args);
             return;
@@ -608,7 +612,8 @@ public class GTSRCommand extends CommandBase {
                 "tpdim",
                 "diag",
                 "locate",
-                "tplocate");
+                "tplocate",
+                "mission");
         }
         if (args.length == 2 && RuinLocateCommand.handles(args[0])) return getListOfStringsMatchingLastWord(args, "A");
         if (args.length == 3 && RuinLocateCommand.handles(args[0]) && "A".equalsIgnoreCase(args[1]))

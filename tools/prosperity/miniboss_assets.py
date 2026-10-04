@@ -175,6 +175,8 @@ def main():
     ap=argparse.ArgumentParser();ap.add_argument('--publish',action='store_true')
     ap.add_argument('--obj-only',action='store_true',help='Rewrite only OBJ files, preserving published rigs and PNGs')
     args=ap.parse_args()
+    if args.publish:
+        raise SystemExit('DI16-DI25 withdrawn: historical model generation is archive-only; production publish is disabled')
     out=ROOT/('src/main/resources/assets/gtsr/liminal' if args.publish else 'temp/refinement-v72/miniboss/assets')
     report=[]
     for i,code in enumerate(CODES):
@@ -210,7 +212,7 @@ def main():
     design_path=dest/'design.json'
     if design_path.exists():
         design=json.loads(design_path.read_text(encoding='utf8'))
-        design['status']='production-DI16-DI25'
+        design['status']='withdrawn-historical-archive-only'
         for i,p in enumerate(design['profiles']):p.update(code=CODES[i],originalDesignCode=DESIGN_CODES[i],condition_en=CONDITIONS_EN[i])
         design_path.write_text(json.dumps(design,ensure_ascii=False,indent=2),encoding='utf8')
         for locale in ['zh_CN','en_US']:

@@ -140,6 +140,15 @@ public final class RemasterWorldgen {
 
     /** Retry only the completion of existing geometry; never regenerate player-edited buildings. */
     public static void completeChunk(World w, RemasterSite s, int cx, int cz) {
+        completeChunk(w, s, cx, cz, false);
+    }
+
+    /** Mission completion reuses spawn admission without installing nodes or admitting ordinary guards. */
+    public static void completeBossChunk(World w, RemasterSite s, int cx, int cz) {
+        completeChunk(w, s, cx, cz, true);
+    }
+
+    private static void completeChunk(World w, RemasterSite s, int cx, int cz, boolean bossOnly) {
         if (!RemasterRollout.allowsGeneration(s) || w.isRemote
             || !s.intersects(cx, cz)
             || !w.blockExists(cx << 4, s.y, cz << 4)) return;
@@ -147,7 +156,7 @@ public final class RemasterWorldgen {
         RemasterData d = RemasterData.get(w);
         if (!d.flag(s.id(), "geom:" + cx + ":" + cz)) return;
         List<JsonObject> nodes = RemasterRuntime.nodes(s);
-        for (JsonObject n : nodes) {
+        if (!bossOnly) for (JsonObject n : nodes) {
             int[] at = RemasterRuntime.nodePosition(w, s, n);
             if (at == null) continue;
             int x = at[0], y = at[1], z = at[2];
@@ -159,6 +168,7 @@ public final class RemasterWorldgen {
         for (JsonElement e : RemasterRuntime.array(s.plan().metadata, "spawns")) {
             JsonObject spawn = e.getAsJsonObject();
             int i = index++;
+            if (bossOnly && !"boss".equals(RemasterRuntime.string(spawn, "role", ""))) continue;
             int x = s.x + RemasterRuntime.integer(spawn, "x", 0), y = s.y + RemasterRuntime.integer(spawn, "y", 0),
                 z = s.z + RemasterRuntime.integer(spawn, "z", 0);
             String code = RemasterRuntime.string(spawn, "code", "");

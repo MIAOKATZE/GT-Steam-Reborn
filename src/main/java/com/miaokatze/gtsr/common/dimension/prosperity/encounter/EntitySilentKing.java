@@ -275,6 +275,24 @@ public class EntitySilentKing extends EntityEncounterBase {
         updateEncounter();
     }
 
+    /** Start ordinary awakening even when the mission administrator is in creative mode. */
+    public boolean awakenForMission() {
+        if (worldObj.isRemote || !isEntityAlive()
+            || getEncounterState() == DEFEATED
+            || !ForgottenLakeEncounterData.get(worldObj)
+                .kingReady(getEncounterId()))
+            return false;
+        if (getEncounterState() != DORMANT && getEncounterState() != RECOVERING) return true;
+        state(AWAKENING);
+        setHealth(MAX_HEALTH);
+        setCustomNameTag("(旧日虚影)缄王");
+        initialGuardTarget = 20 + rand.nextInt(11);
+        summonGuards(initialGuardTarget, false, true);
+        initialGuardsSummoned = true;
+        sound("chant");
+        return true;
+    }
+
     private void updateEncounter() {
         if (worldObj.isRemote || !isEntityAlive()) return;
         setPosition(anchorX, anchorY, anchorZ);
@@ -300,14 +318,8 @@ public class EntitySilentKing extends EntityEncounterBase {
             absentTicks = 0;
         } else absentTicks = (int) Math.min(Integer.MAX_VALUE, absence);
         if (getEncounterState() == DORMANT) {
-            for (EntityPlayer p : ps) if (getDistanceSqToEntity(p) <= 24 * 24 && data.allGuardsDead(getEncounterId())) {
-                state(AWAKENING);
-                setHealth(MAX_HEALTH);
-                setCustomNameTag("(旧日虚影)缄王");
-                initialGuardTarget = 20 + rand.nextInt(11);
-                summonGuards(initialGuardTarget, false, true);
-                initialGuardsSummoned = true;
-                sound("chant");
+            for (EntityPlayer p : ps) if (getDistanceSqToEntity(p) <= 24 * 24 && data.kingReady(getEncounterId())) {
+                awakenForMission();
                 break;
             }
             return;

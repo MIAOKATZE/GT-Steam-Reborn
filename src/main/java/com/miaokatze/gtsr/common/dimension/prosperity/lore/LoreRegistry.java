@@ -67,12 +67,14 @@ public final class LoreRegistry {
         FMLCommonHandler.instance()
             .bus()
             .register(new LoreRegistry());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new LoreRegistry());
         HistoryEvents events = new HistoryEvents();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(events);
         FMLCommonHandler.instance()
             .bus()
             .register(events);
         FictionNetwork.register();
+        NavigatorNetwork.register();
         FictionCinematic cinematic = new FictionCinematic();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(cinematic);
         FMLCommonHandler.instance()
@@ -133,15 +135,26 @@ public final class LoreRegistry {
     @SubscribeEvent
     public void changedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
         giveFirstJournal(event.player);
+        NavigatorNetwork.giveCompass(event.player);
     }
 
     @SubscribeEvent
     public void loggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         giveFirstJournal(event.player);
+        NavigatorNetwork.giveCompass(event.player);
     }
 
     @SubscribeEvent
     public void respawned(PlayerEvent.PlayerRespawnEvent event) {
         giveFirstJournal(event.player);
+        NavigatorNetwork.giveCompass(event.player);
+    }
+
+    @SubscribeEvent
+    public void joinedWorld(net.minecraftforge.event.entity.EntityJoinWorldEvent event) {
+        if (event.entity instanceof EntityPlayer) {
+            giveFirstJournal((EntityPlayer) event.entity);
+            NavigatorNetwork.giveCompass((EntityPlayer) event.entity);
+        }
     }
 }

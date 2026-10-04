@@ -193,7 +193,8 @@ public class EntityResidualOathguard extends EntityEncounterBase {
             }
         } else {
             if (getDistanceSqToEntity(t) < 8 && --swingCooldown <= 0) {
-                t.attackEntityFrom(DamageSource.causeMobDamage(this), 5);
+                if (t.attackEntityFrom(DamageSource.causeMobDamage(this), 5))
+                    playSound("gtsr:oathguard.attack", .45F, getSoundPitch());
                 swingCooldown = 25;
                 phase(0);
                 worldObj.setEntityState(this, (byte) 4);

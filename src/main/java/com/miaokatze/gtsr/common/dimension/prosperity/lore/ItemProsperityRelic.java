@@ -25,7 +25,11 @@ public class ItemProsperityRelic extends Item {
 
     @Override
     public ItemStack onItemRightClick(ItemStack stack, net.minecraft.world.World world, EntityPlayer player) {
-        if (!world.isRemote) HistoryProgress.observeRelic(player, id);
+        if (!world.isRemote) {
+            HistoryProgress.observeRelic(player, id);
+            if (NavigatorNetwork.RELIC_ID.equals(id) && player instanceof net.minecraft.entity.player.EntityPlayerMP)
+                NavigatorNetwork.open((net.minecraft.entity.player.EntityPlayerMP) player);
+        }
         return stack;
     }
 

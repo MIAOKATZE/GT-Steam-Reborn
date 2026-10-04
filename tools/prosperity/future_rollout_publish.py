@@ -2,11 +2,12 @@
 import gzip
 import hashlib
 import json
+import sys
 from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / 'temp/refinement-v72/structure/refined'
+SRC = ROOT / (sys.argv[1] if len(sys.argv)>1 else 'temp/refinement-v72/structure/refined')
 OUT = ROOT / 'src/main/resources/assets/gtsr/remaster'
 
 
@@ -37,7 +38,7 @@ def publish(path):
     for n in loot:
         old = next(q for q in model['nodes'] if q['id'] == n['id'])
         mode = old.get('lootMode', old.get('mode', old.get('unlockMode', 'direct')))
-        if mode == 'minor-boss-defeat':
+        if mode == 'minor-boss-defeat' or old.get('requiredBoss'):
             n.update(unlockMode='combat', combatModule=ident+'-boss-group', tier=5)
             boss_loot.append(n)
         elif n['unlockMode'] == 'combat':
@@ -49,11 +50,9 @@ def publish(path):
             n.update(unlockMode='direct', tierMin=1, tierMax=3 if entry['category']=='medium' else 2)
     if boss_loot and entry.get('relic'):
         boss_loot[0]['storyRelic'] = entry['relic']['id']
-    boss_codes=['mb-pressure-auditor','mb-return-overseer','mb-weft-curator','mb-tide-collector','mb-parallax-master','mb-oath-captain','mb-ash-keeper','mb-counterbeat','mb-route-warden','mb-anchor-surveyor']
     for n in actors:
-        if n.get('code') in boss_codes:
-            n['originalDesignCode']=n['code']
-            n['code']='di-'+str(16+boss_codes.index(n['code']))
+        assert not n.get('code','').startswith('mb-'), 'Unimplemented actor identity '+str(n.get('code'))
+        if n.get('code','').startswith('di-'): assert int(n['code'][3:])<=15
         n.update(designOnly=False, implemented=True, spawn=True,
                  module=ident+('-boss-group' if n['role']=='boss' else '-guard-group'), productionBattleGuard=n['role']!='boss')
     spawners = [n for n in nodes if n['role'] == 'spawner']
@@ -107,14 +106,18 @@ if __name__=='__main__':
     baseline=json.loads((SRC/'model-baseline.json').read_text(encoding='utf8'))
     assert baseline['models']==61 and baseline['passed'], 'Original source geometry checks must pass first'
     catalog=json.loads((OUT/'catalog.json').read_text(encoding='utf8'))
-    originals={'fallen_foundry','subsided_factory','forgotten_lake_court'}
+    changed={r['id'] for r in baseline['reports']}
+    medium_only='--medium-only' in sys.argv
+    if medium_only: changed={r['id'] for r in baseline['reports'] if r['category']=='medium'}
+    originals={e['id'] for e in catalog['structures'] if e['id'] not in changed}
     catalog['structures']=[e for e in catalog['structures'] if e['id'] in originals]
     catalog['prefabs']=[e for e in catalog['prefabs'] if e['id'] in originals]
     for report in baseline['reports']:
+        if report['id'] not in changed: continue
         path=SRC/(report['id']+'.json')
         catalog['prefabs'].append(publish(path))
         catalog['structures'].append({'id':report['id'],'category':report['category'],'source':'plan/prosperity/structures/future/'+path.name})
     write(OUT/'catalog.json',catalog)
     write(SRC/'published.json',{'prefabs':len(catalog['prefabs']),'structures':len(catalog['structures']),
         'futureIds':[r['id'] for r in baseline['reports']], 'sourceExact':True})
-    print('Published 61 future prefabs; preserved 3 original scenes')
+    print('Published '+str(len(changed))+' future prefabs; preserved '+str(len(originals))+' existing scenes')

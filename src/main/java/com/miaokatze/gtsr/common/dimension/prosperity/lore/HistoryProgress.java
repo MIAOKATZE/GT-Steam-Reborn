@@ -254,6 +254,21 @@ public final class HistoryProgress {
         return strings(data(player), "relics").contains(id);
     }
 
+    /** Trusted gift callers first prove successful inventory insertion or an owned world drop. */
+    static void recordGrantedRelic(EntityPlayer player, String id) {
+        if (!(player instanceof EntityPlayerMP) || player.worldObj.isRemote
+            || player instanceof net.minecraftforge.common.util.FakePlayer
+            || !(player.worldObj.provider instanceof WorldProviderProsperityRuins)
+            || !LoreRegistry.RELICS.containsKey(id)) return;
+        NBTTagCompound n = data(player);
+        Set<String> relics = strings(n, "relics");
+        if (relics.add(id)) {
+            storeStrings(n, "relics", relics);
+            save(player, n);
+        }
+        award(player, "relic." + id);
+    }
+
     /** Explicit test items are valid collection evidence even in creative; awards retain survival gates. */
     public static void verifyFictionRelic(EntityPlayer player, String id) {
         if (!(player instanceof EntityPlayerMP) || !player.isEntityAlive()
@@ -304,8 +319,6 @@ public final class HistoryProgress {
             || nonce.isEmpty()
             || nonce.length() > 256
             || !LoreRegistry.RELICS.containsKey(relicId)) return false;
-        // These two stable item IDs are explicitly registered for manual testing only this release.
-        if ("future_city_address_witness".equals(relicId) || "future_city_return_witness".equals(relicId)) return false;
         NBTTagCompound n = data(player);
         Set<String> grants = strings(n, "storyGrants");
         if (grants.contains(nonce)) return false;
@@ -350,6 +363,7 @@ public final class HistoryProgress {
 
     public static void bossDefeated(EntityPlayer p, EchoKind kind) {
         if (!valid(p) || kind == null) return;
+        majorBossDefeated(p, kind.code);
         int bit = -1;
         for (int i = 0; i < BOSS_CODES.length; i++) if (BOSS_CODES[i].equals(kind.code)) bit = i;
         if (bit < 0) return;

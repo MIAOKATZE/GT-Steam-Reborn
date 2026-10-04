@@ -97,47 +97,13 @@ public final class RuinLocateCommand {
             .worldServerForDimension(0)
             .getSeed() : loaded.getSeed();
         int ox = MathHelper.floor_double(player.posX), oz = MathHelper.floor_double(player.posZ);
-        RemasterSite remaster = null;
-        int x, z;
-        String display;
-        if (kind == 27) {
-            int[] center = new int[2], arrival = new int[2];
-            if (!GTSRVoronoiRiverField.nearestSanzuArrival(seed, ox, oz, center, arrival)) {
-                say(sender, "搜索范围内未找到带安全入口的垂天巨树。");
-                return;
-            }
-            x = arrival[0];
-            z = arrival[1];
-            display = "垂天巨树";
-        } else {
-            final WorldServer observed = loaded;
-            remaster = RemasterPlanner.nearest(
-                seed,
-                requestedId,
-                ox,
-                oz,
-                12,
-                s -> observed == null
-                    || com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterWorldgen.allowed(observed, s));
-            if (loaded != null) {
-                RemasterData savedData = RemasterData.get(loaded);
-                if (remaster != null) {
-                    RemasterSite saved = savedData.site(remaster.id());
-                    if (saved != null) remaster = saved;
-                }
-                RemasterSite nearestSaved = savedData.nearestExisting(seed, requestedId, ox, oz);
-                if (RemasterRollout.allowsGeneration(nearestSaved)
-                    && (remaster == null || distance(nearestSaved, ox, oz) < distance(remaster, ox, oz)))
-                    remaster = nearestSaved;
-            }
-            if (remaster == null) {
-                say(sender, "搜索范围内未找到该遗址；请换一个探索位置后重试。");
-                return;
-            }
-            x = remaster.entryX();
-            z = remaster.entryZ();
-            display = kind >= 0 ? CHINESE_NAMES[kind] : requestedId;
+        Location location = nearest(seed, requestedId, ox, oz, loaded);
+        if (location == null) {
+            say(sender, "搜索范围内未找到该结构，请换一个探索位置后重试。");
+            return;
         }
+        int x = location.x, z = location.z;
+        String display = displayName(requestedId);
         say(
             sender,
             "搜索范围内最近的" + display
@@ -175,6 +141,52 @@ public final class RuinLocateCommand {
         player.motionX = player.motionY = player.motionZ = 0;
         player.fallDistance = 0;
         say(sender, "已传送至" + display + "定位坐标上空（" + tx + "，" + ty + "，" + tz + "）。");
+    }
+
+    /** Shared read-only bounded lookup. Never loads or generates a dimension. */
+    public static Location nearest(long seed, String id, int ox, int oz, WorldServer loaded) {
+        if (!names().contains(id)) return null;
+        if ("forgotten_lake_court".equals(id)) {
+            int[] center = new int[2], arrival = new int[2];
+            return GTSRVoronoiRiverField.nearestSanzuArrival(seed, ox, oz, center, arrival)
+                ? new Location(arrival[0], arrival[1])
+                : null;
+        }
+        RemasterSite site = RemasterPlanner.nearest(
+            seed,
+            id,
+            ox,
+            oz,
+            12,
+            s -> loaded == null
+                || com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterWorldgen.allowed(loaded, s));
+        if (loaded != null) {
+            RemasterData data = RemasterData.get(loaded);
+            if (site != null) {
+                RemasterSite saved = data.site(site.id());
+                if (saved != null) site = saved;
+            }
+            RemasterSite saved = data.nearestExisting(seed, id, ox, oz);
+            if (RemasterRollout.allowsGeneration(saved)
+                && (site == null || distance(saved, ox, oz) < distance(site, ox, oz))) site = saved;
+        }
+        return site == null ? null : new Location(site.entryX(), site.entryZ());
+    }
+
+    public static String displayName(String id) {
+        String key = "forgotten_lake_court".equals(id) ? "lore.chapter.hanging_great_tree.title"
+            : "lore.entry.structures." + id + ".title";
+        return StatCollector.translateToLocal(key);
+    }
+
+    public static final class Location {
+
+        public final int x, z;
+
+        public Location(int x, int z) {
+            this.x = x;
+            this.z = z;
+        }
     }
 
     private static double distance(RemasterSite s, int x, int z) {

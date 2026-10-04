@@ -653,10 +653,112 @@ public final class RemasterRuntime {
         }
     }
 
+    /** Match persisted generated ownership, never a predicted or merely nearby scene. */
+    public static String completeBossMission(EntityPlayerMP player) {
+        World world = player.worldObj;
+        if (world.isRemote || !(world.provider instanceof WorldProviderProsperityRuins)) return "此指令只能在繁荣遗迹维度使用。";
+        RemasterData data = RemasterData.get(world);
+        int cx = net.minecraft.util.MathHelper.floor_double(player.posX) >> 4;
+        int cz = net.minecraft.util.MathHelper.floor_double(player.posZ) >> 4;
+        RemasterSite selected = null;
+        for (RemasterSite site : data.inChunk(cx, cz)) {
+            if (site.seed != world.getSeed() || !RemasterRollout.allowsGeneration(site)
+                || !data.flag(site.id(), "geom:" + cx + ":" + cz)
+                || player.posX < site.minX()
+                || player.posX >= site.maxX() + 1
+                || player.posZ < site.minZ()
+                || player.posZ >= site.maxZ() + 1) continue;
+            if ("tree-overlay".equals(site.layout)) {
+                String encounter = data.state(site.id())
+                    .getString("legacyEncounter");
+                if (!com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterData.get(world)
+                    .contains(encounter, player.posX, player.posY, player.posZ)) continue;
+            } else {
+                JsonObject descriptor = RemasterCatalog.descriptor(site.prefab, site.variant);
+                int minY = site.y + descriptor.getAsJsonArray("min")
+                    .get(1)
+                    .getAsInt();
+                int maxY = site.y + descriptor.getAsJsonArray("max")
+                    .get(1)
+                    .getAsInt();
+                if (player.posY < minY || player.posY >= maxY + 2) continue;
+            }
+            if (selected != null) return "当前位置同时属于多个结构，无法安全确定首领。";
+            selected = site;
+        }
+        if (selected == null) return "当前位置不在已生成的结构范围内。";
+        if ("tree-overlay".equals(selected.layout)) return completeKingMission(world, data, selected);
+        List<Integer> bosses = new ArrayList<>();
+        JsonArray spawns = array(selected.plan().metadata, "spawns");
+        for (int i = 0; i < spawns.size(); i++) {
+            JsonObject spawn = spawns.get(i)
+                .getAsJsonObject();
+            if (!"boss".equals(string(spawn, "role", "")) || (spawn.has("spawn") && !spawn.get("spawn")
+                .getAsBoolean())) continue;
+            if (data.flag(selected.id(), "boss-dead")
+                || data.flag(selected.id(), "dead:" + string(spawn, "id", Integer.toString(i))))
+                return "此结构的首领已被击败；mission 不会复活首领。";
+            int bx = (selected.x + integer(spawn, "x", 0)) >> 4;
+            int bz = (selected.z + integer(spawn, "z", 0)) >> 4;
+            if (!data.flag(selected.id(), "geom:" + bx + ":" + bz)) return "首领所在区块尚未生成，请先探索该结构。";
+            bosses.add(i);
+        }
+        if (bosses.isEmpty()) return "此结构没有可召唤的首领。";
+        data.flag(selected.id(), "mission-boss-ready", true);
+        for (int i : bosses) {
+            JsonObject spawn = spawns.get(i)
+                .getAsJsonObject();
+            int bx = (selected.x + integer(spawn, "x", 0)) >> 4;
+            int bz = (selected.z + integer(spawn, "z", 0)) >> 4;
+            // Only previously generated chunks may be loaded; surrounding space still passes safe admission.
+            loadGeneratedBossChunks(world, data, selected, bx, bz);
+            RemasterWorldgen.completeBossChunk(world, selected, bx, bz);
+            boolean present = false;
+            for (Object raw : world.loadedEntityList) if (raw instanceof EntityOldEcho) {
+                EntityOldEcho entity = (EntityOldEcho) raw;
+                if (entity.isEntityAlive() && selected.id()
+                    .equals(entity.getEncounterId()) && entity.getPlatformId() == i) {
+                    present = true;
+                    break;
+                }
+            }
+            if (!present) return "召唤条件已满足，但首领未能安全出现；请检查首领位置的支撑、空间及区块，再重试。";
+        }
+        return "已满足当前结构的首领召唤条件；首领已就绪（休眠首领将开始正常觉醒）。";
+    }
+
+    private static void loadGeneratedBossChunks(World world, RemasterData data, RemasterSite site, int cx, int cz) {
+        for (int x = cx - 1; x <= cx + 1; x++) for (int z = cz - 1; z <= cz + 1; z++)
+            if (data.flag(site.id(), "geom:" + x + ":" + z) && !world.blockExists(x << 4, site.y, z << 4))
+                world.getChunkFromChunkCoords(x, z);
+    }
+
+    private static String completeKingMission(World world, RemasterData data, RemasterSite site) {
+        NBTTagCompound state = data.state(site.id());
+        String id = state.getString("legacyEncounter");
+        com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterData encounter = com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterData
+            .get(world);
+        if (!encounter.known(id)) return "王庭尚未登记首领遭遇，请先探索王座。";
+        if (encounter.kingDead(id)) return "缄王已被击败；mission 不会复活首领。";
+        int cx = state.getInteger("legacyAnchorX") >> 4, cz = state.getInteger("legacyAnchorZ") >> 4;
+        if (!data.flag(site.id(), "geom:" + cx + ":" + cz)) return "王座所在区块尚未生成，请先探索王庭。";
+        loadGeneratedBossChunks(world, data, site, cx, cz);
+        for (Object raw : new ArrayList<>(world.loadedEntityList))
+            if (raw instanceof com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing) {
+                com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing king = (com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing) raw;
+                if (!id.equals(king.getEncounterId()) || !king.isEntityAlive()) continue;
+                encounter.completeKingMission(id);
+                if (king.awakenForMission()) return "已满足王庭首领召唤条件；缄王已开始正常觉醒。";
+            }
+        return "王座区块中未找到存活的缄王，无法完成唤醒；请先检查王庭生成情况。";
+    }
+
     public static boolean bossReady(World w, String id) {
         if (!active(w, id)) return false;
         RemasterSite owner = RemasterData.get(w)
             .site(id);
+        if (RemasterData.get(w)
+            .flag(id, "mission-boss-ready")) return true;
         if (industrialBossSite(owner)) return remainingSpawners(w, owner) == 0 && requiredSpawners(owner).size() > 0;
         boolean found = false;
         for (JsonElement element : array(owner.plan().metadata, "spawns")) {
@@ -671,6 +773,8 @@ public final class RemasterRuntime {
     /** Both first generation and loaded-chunk retries use the same authored activation contract. */
     public static boolean spawnReady(World world, RemasterSite site, JsonObject spawn) {
         if (world == null || world.isRemote || !RemasterRollout.allowsGeneration(site)) return false;
+        if ("boss".equals(string(spawn, "role", "")) && RemasterData.get(world)
+            .flag(site.id(), "mission-boss-ready")) return true;
         if (industrialBossSite(site) && "boss".equals(string(spawn, "role", ""))) return true;
         if (spawn.has("activationModules") && !spawn.get("activationModules")
             .isJsonArray()) return false;
