@@ -211,11 +211,20 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
                 68,
                 14,
                 ellipsized("gtsr.cache_hub_status.auto_off", 68)));
+        if (this.editingNode != null) {
+            this.valueField.xPosition = this.guiLeft + 62;
+            this.valueField.yPosition = this.guiTop + 104;
+            this.confirmButton.xPosition = this.guiLeft + 158;
+            this.confirmButton.yPosition = this.guiTop + 148;
+            this.cancelButton.xPosition = this.guiLeft + 250;
+            this.cancelButton.yPosition = this.guiTop + 148;
+        }
     }
 
     @Override
     public void updateScreen() {
         super.updateScreen();
+        if (this.valueField != null) this.valueField.updateCursorCounter();
         // 按钮可用态/文案随选中节点活取值刷新（等价旧 onUpdateListener + setEnabled）
         CacheNodeInfo cur = selectedInfo();
         boolean offline = cur == null || cur.type.isEmpty();
@@ -294,7 +303,10 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
 
     @Override
     public void handleMouseInput() {
-        if (this.editingNode != null) return;
+        if (this.editingNode != null) {
+            super.handleMouseInput();
+            return;
+        }
         if (this.list.handleMouseInput()) {
             return;
         }
@@ -328,6 +340,7 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
 
     @Override
     protected void mouseMovedOrUp(int mouseX, int mouseY, int state) {
+        if (this.editingNode != null) return;
         this.list.mouseReleased(mouseX, mouseY, state);
         super.mouseMovedOrUp(mouseX, mouseY, state);
     }
@@ -638,7 +651,15 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
 
     private void drawValueEditor(int mouseX, int mouseY) {
         drawRect(0, 0, this.width, this.height, 0xA0000000);
-        drawRect(this.guiLeft + 50, this.guiTop + 64, this.guiLeft + 350, this.guiTop + 176, 0xFF24201A);
+        // Preserve the hub panel's header, corner details and amber footer at native size.
+        GtsrGuiDrawing.drawNineSlice(
+            GtsrGuiTextures.PANEL_HUB_STATUS,
+            24,
+            this.guiLeft + 50,
+            this.guiTop + 64,
+            300,
+            112,
+            this.zLevel);
         boolean rate = this.editingAction == CacheHubTerminalData.ACTION_SET_RATE;
         this.fontRendererObj.drawStringWithShadow(
             StatCollector

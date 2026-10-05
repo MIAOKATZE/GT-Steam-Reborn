@@ -102,7 +102,7 @@ public class GTSRCommand extends CommandBase {
         return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull|nullplus|nature> [color] [fxRadius]"
             + " | /gtsr structure <name>"
             + " | /gtsr locate A <structure> | /gtsr tplocate A <structure>"
-            + " | /gtsr tpdim <A|B> [biome]"
+            + " | /gtsr tpdim|tpmid <A|B> [biome]"
             + " | /gtsr diag [A|B] | /gtsr mission";
     }
 
@@ -125,7 +125,7 @@ public class GTSRCommand extends CommandBase {
             processStructure(sender, args);
             return;
         }
-        if (args.length >= 1 && "tpdim".equalsIgnoreCase(args[0])) {
+        if (args.length >= 1 && isDimensionTeleport(args[0])) {
             processTpdim(sender, args);
             return;
         }
@@ -610,6 +610,7 @@ public class GTSRCommand extends CommandBase {
                 "singularity",
                 "structure",
                 "tpdim",
+                "tpmid",
                 "diag",
                 "locate",
                 "tplocate",
@@ -628,10 +629,10 @@ public class GTSRCommand extends CommandBase {
             }
             return getListOfStringsMatchingLastWord(args, names.toArray(new String[0]));
         }
-        if (args.length == 2 && ("tpdim".equalsIgnoreCase(args[0]) || "diag".equalsIgnoreCase(args[0]))) {
+        if (args.length == 2 && (isDimensionTeleport(args[0]) || "diag".equalsIgnoreCase(args[0]))) {
             return getListOfStringsMatchingLastWord(args, "A", "B");
         }
-        if (args.length == 3 && "tpdim".equalsIgnoreCase(args[0])
+        if (args.length == 3 && isDimensionTeleport(args[0])
             && ("A".equalsIgnoreCase(args[1]) || "B".equalsIgnoreCase(args[1]))) {
             // P14：第 2 参补全该维 roster 群系名。1.7.10 服务端切分是指令级的 String.split(" ")
             // （无引号感知，CommandHandler.executeCommand 字节码实证），补全词必须是单 token，
@@ -665,6 +666,10 @@ public class GTSRCommand extends CommandBase {
             }
         }
         return null;
+    }
+
+    private static boolean isDimensionTeleport(String subcommand) {
+        return "tpdim".equalsIgnoreCase(subcommand) || "tpmid".equalsIgnoreCase(subcommand);
     }
 
     private double parseClampedDouble(String arg, double min, double max) {
