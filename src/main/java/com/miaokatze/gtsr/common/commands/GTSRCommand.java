@@ -102,7 +102,7 @@ public class GTSRCommand extends CommandBase {
         return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull|nullplus|nature> [color] [fxRadius]"
             + " | /gtsr structure <name>"
             + " | /gtsr locate A <structure> | /gtsr tplocate A <structure>"
-            + " | /gtsr tpdim|tpmid <A|B> [biome]"
+            + " | /gtsr tpdim <A|B> [biome]"
             + " | /gtsr diag [A|B] | /gtsr mission";
     }
 
@@ -610,7 +610,6 @@ public class GTSRCommand extends CommandBase {
                 "singularity",
                 "structure",
                 "tpdim",
-                "tpmid",
                 "diag",
                 "locate",
                 "tplocate",
@@ -669,7 +668,7 @@ public class GTSRCommand extends CommandBase {
     }
 
     private static boolean isDimensionTeleport(String subcommand) {
-        return "tpdim".equalsIgnoreCase(subcommand) || "tpmid".equalsIgnoreCase(subcommand);
+        return "tpdim".equalsIgnoreCase(subcommand);
     }
 
     private double parseClampedDouble(String arg, double min, double max) {
