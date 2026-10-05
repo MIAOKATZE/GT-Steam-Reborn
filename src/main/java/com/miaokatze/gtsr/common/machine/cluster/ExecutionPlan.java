@@ -91,10 +91,10 @@ public final class ExecutionPlan {
      * @param unitStat {@link #enabledUnitStats} 统计结果（非 null）
      * @return 该链步的有效耗时权重（tick，恒 &gt; 0）
      */
-    private static double linkWeightTicks(ChainLink link, int tierIdx, int[] unitStat) {
-        int unitTier = Math.max(0, Math.min(unitStat[1], ClusterParams.TIER_COUNT - 1));
+    private static double linkWeightTicks(ChainLink link, int tierIdx, long unitStat) {
+        int unitTier = Math.max(0, Math.min((int) (unitStat >>> 32), ClusterParams.TIER_COUNT - 1));
         double t = link.getBaseTicks() * ClusterParams.TIER_TIME_FACTOR[tierIdx]
-            / Math.max(1, unitStat[0])
+            / Math.max(1, (int) unitStat)
             / ClusterParams.PROCESSING_UNIT_TIME_DIVISOR[unitTier];
         return Math.max(0.2D, t);
     }
@@ -105,21 +105,23 @@ public final class ExecutionPlan {
      *
      * @param topology 集群拓扑；null 计 0（等价 max(1, 0)、unitTier 按 0 语义）
      * @param type     link 所需工作单元类型（instanceof 语义，含子类）
-     * @return [0]=该类型且已启用的单元数；[1]=首个已启用单元的 unitStructureTier（无单元或 -1 时为 0，
+     * @return 低 32 位=该类型且已启用的单元数；高 32 位=首个已启用单元的 unitStructureTier（无单元或 -1 时为 0，
      *         时间除数/蒸汽倍率表回退青铜档）
      */
-    private static int[] enabledUnitStats(ClusterTopology topology, Class<? extends MTEClusterUnitBase> type) {
+    private static long enabledUnitStats(ClusterTopology topology, Class<? extends MTEClusterUnitBase> type) {
         int count = 0;
         int tier = 0;
         if (topology != null) {
-            for (MTEClusterUnitBase unit : topology.getUnits()) {
-                if (type.isInstance(unit) && unit.isModuleEnabled()) {
+            List<? extends MTEClusterUnitBase> matches = topology.getUnitsOfType(type);
+            for (int i = 0; i < matches.size(); i++) {
+                MTEClusterUnitBase unit = matches.get(i);
+                if (unit.isModuleEnabled()) {
                     if (count == 0) tier = Math.max(0, unit.getUnitStructureTier());
                     count++;
                 }
             }
         }
-        return new int[] { count, tier };
+        return ((long) tier << 32) | (count & 0xFFFFFFFFL);
     }
 
     /**
@@ -223,12 +225,12 @@ public final class ExecutionPlan {
         double weightSum = 0.0;
         for (ChainLink link : chain) {
             if (link == null) continue;
-            int[] stat = enabledUnitStats(topology, link.getRequiredUnitClass());
+            long stat = enabledUnitStats(topology, link.getRequiredUnitClass());
             double t = linkWeightTicks(link, tierIdx, stat);
-            int unitTier = Math.max(0, Math.min(stat[1], ClusterParams.TIER_COUNT - 1));
+            int unitTier = Math.max(0, Math.min((int) (stat >>> 32), ClusterParams.TIER_COUNT - 1));
             // T11：链路蒸汽按参与该链步的同类加工模块数累计（×N，与 T4 档位蒸汽倍率叠加）。
             weightedSum += link.getBaseSteamLps() * ClusterParams.PROCESSING_UNIT_STEAM_MULT[unitTier]
-                * Math.max(1, stat[0])
+                * Math.max(1, (int) stat)
                 * t;
             weightSum += t;
         }

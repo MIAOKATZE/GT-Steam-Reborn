@@ -26,6 +26,10 @@ public final class ClusterParticleFx {
     /** 模块侧（客户端 tick）注册自身 'e' 空气候选位；重复注册以最后一次为准。 */
     public static void registerAirCandidates(MTEClusterUnitBase unit, List<int[]> controllerRelativeOffsets) {
         if (unit == null) return;
+        if (controllerRelativeOffsets == null || controllerRelativeOffsets.isEmpty()) {
+            clearAirCandidates(unit);
+            return;
+        }
         unitAirCandidates.put(unit, controllerRelativeOffsets);
     }
 
@@ -38,6 +42,10 @@ public final class ClusterParticleFx {
     public static void registerClusterAirCandidates(MTESteamMineralLogisticsCluster cluster,
         List<int[]> controllerRelativeOffsets) {
         if (cluster == null) return;
+        if (controllerRelativeOffsets == null || controllerRelativeOffsets.isEmpty()) {
+            clearClusterAirCandidates(cluster);
+            return;
+        }
         clusterAirCandidates.put(cluster, controllerRelativeOffsets);
     }
 

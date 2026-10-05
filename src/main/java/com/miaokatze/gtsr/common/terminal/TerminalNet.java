@@ -238,6 +238,8 @@ public class TerminalNet {
                     return AggregatorTerminalData.assembleSnapshot(aggregator);
                 }
                 return null; // 机器类不符（锚点被换机器）：valid=false
+            case CACHE_NODE:
+                return CacheNodeTerminalData.assembleSnapshot(player, base);
             case TCDS:
                 if (base.getMetaTileEntity() instanceof MTEThermoChemicalDenseSteamGenerator generator) {
                     return TcdsTerminalData.assembleSnapshot(generator);
@@ -279,6 +281,9 @@ public class TerminalNet {
                     AggregatorTerminalData.executeAction(aggregator, player, actionCode, payload);
                 }
                 break; // 机器类不符：静默拒绝
+            case CACHE_NODE:
+                CacheNodeTerminalData.executeAction(player, base, actionCode, payload);
+                break;
             case TCDS:
                 if (base.getMetaTileEntity() instanceof MTEThermoChemicalDenseSteamGenerator generator) {
                     TcdsTerminalData.executeAction(generator, actionCode, payload);

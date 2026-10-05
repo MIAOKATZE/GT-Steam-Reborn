@@ -1,6 +1,6 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
-import java.util.ArrayList;
+import java.lang.ref.WeakReference;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +30,9 @@ public final class ClusterParticleFxClient {
 
     private ClusterParticleFxClient() {}
 
+    private static WeakReference<World> lastPrunedWorld = new WeakReference<>(null);
+    private static long lastPruneTick;
+
     /**
      * 客户端入口（主控 onPostTick 客户端分支调用，调用方以 mWorkingForFX 为唯一工作态权威判据）：
      * 从候选位池（active 单元的 'e' 位 + 本主控集群 'e' 精准候选）独立取两位各喷一个 cloud 粒子；
@@ -40,56 +43,68 @@ public final class ClusterParticleFxClient {
         World world = cluster.getBaseMetaTileEntity()
             .getWorld();
         if (world == null) return;
-        pruneStaleUnits(world);
-        List<Candidate> candidates = new ArrayList<>();
+        long tick = world.getTotalWorldTime();
+        if (lastPrunedWorld.get() != world || tick < lastPruneTick || tick - lastPruneTick >= 20) {
+            pruneStaleUnits(world);
+            lastPrunedWorld = new WeakReference<>(world);
+            lastPruneTick = tick;
+        }
+        int count = 0;
         for (Map.Entry<MTEClusterUnitBase, List<int[]>> entry : ClusterParticleFx.unitAirCandidates.entrySet()) {
-            if (!isActiveUnit(entry.getKey(), world)) continue;
-            MTEClusterUnitBase unit = entry.getKey();
-            IGregTechTileEntity base = unit.getBaseMetaTileEntity();
-            if (base == null) continue;
-            for (int[] off : entry.getValue()) {
-                candidates.add(
-                    new Candidate(
-                        base.getXCoord(),
-                        base.getYCoord(),
-                        base.getZCoord(),
-                        unit.getExtendedFacing()
-                            .getWorldOffset(new Vec3Impl(off[0], off[1], off[2]))));
-            }
+            if (isActiveUnit(entry.getKey(), world)) count += entry.getValue()
+                .size();
         }
         List<int[]> clusterOffsets = ClusterParticleFx.clusterAirCandidates.get(cluster);
-        if (clusterOffsets != null) {
-            IGregTechTileEntity base = cluster.getBaseMetaTileEntity();
-            for (int[] off : clusterOffsets) {
-                candidates.add(
-                    new Candidate(
-                        base.getXCoord(),
-                        base.getYCoord(),
-                        base.getZCoord(),
-                        cluster.getExtendedFacing()
-                            .getWorldOffset(new Vec3Impl(off[0], off[1], off[2]))));
+        if (clusterOffsets != null) count += clusterOffsets.size();
+        if (count == 0) return;
+        // Sample the same uniform pool with replacement; transform only the two selected offsets.
+        int first = world.rand.nextInt(count);
+        int second = world.rand.nextInt(count);
+        for (Map.Entry<MTEClusterUnitBase, List<int[]>> entry : ClusterParticleFx.unitAirCandidates.entrySet()) {
+            MTEClusterUnitBase unit = entry.getKey();
+            if (!isActiveUnit(unit, world)) continue;
+            List<int[]> offsets = entry.getValue();
+            if (first >= 0 && first < offsets.size()) {
+                spawnUnitOffset(unit, offsets.get(first), world);
+                first = -1;
             }
+            if (second >= 0 && second < offsets.size()) {
+                spawnUnitOffset(unit, offsets.get(second), world);
+                second = -1;
+            }
+            if (first < 0 && second < 0) return;
+            if (first >= 0) first -= offsets.size();
+            if (second >= 0) second -= offsets.size();
         }
-        if (candidates.isEmpty()) return;
-        for (int i = 0; i < 2; i++) {
-            Candidate candidate = candidates.get(world.rand.nextInt(candidates.size()));
-            spawnOne(candidate.x, candidate.y, candidate.z, candidate.offset, world);
+        if (clusterOffsets != null) {
+            if (first >= 0 && first < clusterOffsets.size())
+                spawnClusterOffset(cluster, clusterOffsets.get(first), world);
+            if (second >= 0 && second < clusterOffsets.size()) {
+                spawnClusterOffset(cluster, clusterOffsets.get(second), world);
+            }
         }
     }
 
-    private static final class Candidate {
+    private static void spawnUnitOffset(MTEClusterUnitBase unit, int[] off, World world) {
+        IGregTechTileEntity base = unit.getBaseMetaTileEntity();
+        spawnOne(
+            base.getXCoord(),
+            base.getYCoord(),
+            base.getZCoord(),
+            unit.getExtendedFacing()
+                .getWorldOffset(new Vec3Impl(off[0], off[1], off[2])),
+            world);
+    }
 
-        private final int x;
-        private final int y;
-        private final int z;
-        private final Vec3Impl offset;
-
-        private Candidate(int x, int y, int z, Vec3Impl offset) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.offset = offset;
-        }
+    private static void spawnClusterOffset(MTESteamMineralLogisticsCluster cluster, int[] off, World world) {
+        IGregTechTileEntity base = cluster.getBaseMetaTileEntity();
+        spawnOne(
+            base.getXCoord(),
+            base.getYCoord(),
+            base.getZCoord(),
+            cluster.getExtendedFacing()
+                .getWorldOffset(new Vec3Impl(off[0], off[1], off[2])),
+            world);
     }
 
     /** 清理基座已失效（区块卸载残留）的单元/主控注册项。 */

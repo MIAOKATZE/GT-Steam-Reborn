@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Locale;
 
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -22,6 +24,7 @@ import com.miaokatze.gtsr.common.terminal.TerminalUiType;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
+import io.netty.buffer.Unpooled;
 
 /**
  * 蒸汽/蓄水枢纽「缓存节点状态管理界面」公共基类（terminal-native-ui N11，
@@ -62,12 +65,18 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
     /** 速率列右缘（行相对；列宽 60） */
     private static final int COL_RATE_RIGHT = 374;
     /** 左列（图标+名/流体）文本可用宽：图标位 24 起，至储量列左缘（232-70=162）留 6px 间隔 */
-    private static final int LEFT_CELL_W = 162 - 24 - 6;
+    private static final int LEFT_CELL_W = 162 - 34 - 6;
 
     /** 「输入模式」按钮宽：短标签键在 zh/en 双语下均完整显示（en 最长 ~130px；ellipsized 仍兜底），完整「点击切换」提示留在 hover tooltip */
     private static final int MODE_BTN_W = 136;
 
     private GtsrGuiList list;
+    private GuiTextField filterField;
+    private GuiTextField valueField;
+    private CacheNodeInfo editingNode;
+    private int editingAction;
+    private String inputError = "";
+    private GtsrGuiButton confirmButton, cancelButton;
 
     /** 终端类型（蒸汽/蓄水；构造传入，服务端分派对应 array 委托表的凭据） */
     private final TerminalUiType uiType;
@@ -98,7 +107,7 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
 
     /** 目标机器类随 uiType 定（与服务端 N31 交叉复核同表；客户端锚点复核口径） */
     @Override
-    protected final Class<? extends IMetaTileEntity> targetMachineClass() {
+    protected Class<? extends IMetaTileEntity> targetMachineClass() {
         return this.uiType == TerminalUiType.STEAM_HUB ? MTESteamHubArray.class : MTEWaterHubArray.class;
     }
 
@@ -124,13 +133,15 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
                 if (cur == null) return null;
                 // 旧 tooltip：当前百分比 + 说明
                 List<String> rate = new ArrayList<String>(2);
-                rate.add(cur.rate + "%");
+                rate.add(cur.actualRate + " L/s");
+                rate.add(StatCollector.translateToLocal("gtsr.cache_hub_status.maximum") + " " + cur.maxRate + " L/s");
                 rate.add(StatCollector.translateToLocal("gtsr.cache_hub_status.rate_tip"));
                 return rate;
             case BTN_CAP:
                 if (cur == null) return null;
                 List<String> cap = new ArrayList<String>(2);
-                cap.add(cur.capPct + "%");
+                cap.add(cur.cap + " L");
+                cap.add(StatCollector.translateToLocal("gtsr.cache_hub_status.maximum") + " " + cur.maxCap + " L");
                 cap.add(StatCollector.translateToLocal("gtsr.cache_hub_status.cap_tip"));
                 return cap;
             case BTN_MODE:
@@ -157,6 +168,8 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
     @Override
     public void initGui() {
         super.initGui();
+        this.filterField = new GuiTextField(this.fontRendererObj, this.guiLeft + 250, this.guiTop + 3, 110, 11);
+        this.filterField.setMaxStringLength(64);
         this.list = new GtsrGuiList(this, this.guiLeft + LIST_X, this.guiTop + LIST_Y, LIST_W, LIST_H);
         this.list.setRowSource(this::rowCount);
         this.list.setRowPainter(this::paintRow);
@@ -214,13 +227,13 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
         setButtonEnabled(BTN_CAP, capEnabled);
         setButtonEnabled(BTN_MODE, modeEnabled);
         setButtonEnabled(BTN_AUTO, rateEnabled);
-        setButtonEnabled(BTN_RENAME, cur != null);
+        setButtonEnabled(BTN_RENAME, rateEnabled);
         if (this.renameField != null) {
-            this.renameField.setEnabled(cur != null);
+            this.renameField.setEnabled(rateEnabled);
         }
         if (cur != null) {
-            setButtonText(BTN_RATE, cur.rate + "%");
-            setButtonText(BTN_CAP, cur.capPct + "%");
+            setButtonText(BTN_RATE, ellipsized("gtsr.cache_hub_status.edit_rate", 48));
+            setButtonText(BTN_CAP, ellipsized("gtsr.cache_hub_status.edit_capacity", 48));
             setButtonText(
                 BTN_MODE,
                 ellipsized(
@@ -256,15 +269,11 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
                     HubTerminalClientCache.posPayload(cur.x, cur.y, cur.z, cur.dim));
                 break;
             case BTN_RATE:
-                this.sendAction(
-                    CacheHubTerminalData.ACTION_CYCLE_RATE,
-                    HubTerminalClientCache.posPayload(cur.x, cur.y, cur.z, cur.dim));
-                break;
+                openValueEditor(cur, CacheHubTerminalData.ACTION_SET_RATE);
+                return;
             case BTN_CAP:
-                this.sendAction(
-                    CacheHubTerminalData.ACTION_CYCLE_CAP,
-                    HubTerminalClientCache.posPayload(cur.x, cur.y, cur.z, cur.dim));
-                break;
+                openValueEditor(cur, CacheHubTerminalData.ACTION_SET_CAPACITY);
+                return;
             case BTN_MODE:
                 // 目标值 = 客户端取反（旧 sendSetMode 同参）
                 this.sendAction(
@@ -285,6 +294,7 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
 
     @Override
     public void handleMouseInput() {
+        if (this.editingNode != null) return;
         if (this.list.handleMouseInput()) {
             return;
         }
@@ -293,6 +303,13 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (this.editingNode != null) {
+            this.valueField.mouseClicked(mouseX, mouseY, mouseButton);
+            if (mouseButton == 0 && this.confirmButton.mousePressed(this.mc, mouseX, mouseY)) confirmValue();
+            else if (mouseButton == 0 && this.cancelButton.mousePressed(this.mc, mouseX, mouseY)) closeValueEditor();
+            return;
+        }
+        this.filterField.mouseClicked(mouseX, mouseY, mouseButton);
         if (this.renameField != null) {
             this.renameField.mouseClicked(mouseX, mouseY, mouseButton);
         }
@@ -304,6 +321,7 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
 
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+        if (this.editingNode != null) return;
         this.list.mouseClickMove(mouseX, mouseY, clickedMouseButton);
         super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
     }
@@ -329,6 +347,19 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
                 GtsrGuiPalette.TEXT_MUTED);
         }
         this.drawRenameField();
+        this.filterField.drawTextBox();
+        if (this.filterField.getText()
+            .isEmpty() && !this.filterField.isFocused()) {
+            this.fontRendererObj.drawString(
+                StatCollector.translateToLocal("gtsr.cache_hub_status.filter"),
+                this.guiLeft + 254,
+                this.guiTop + 5,
+                GtsrGuiPalette.TEXT_MUTED);
+        }
+        if (this.editingNode != null) {
+            drawValueEditor(mouseX, mouseY);
+            return;
+        }
 
         final int hovered = this.list.hoveredIndex();
         if (hovered >= 0 && hovered < rowCount() && this.list.hoverElapsedMillis() >= 500) {
@@ -360,12 +391,21 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
             return;
         }
         final CacheNodeInfo info = nodes.get(index);
-        final int textX = x + 24;
+        if (this.hasSelection && info.matchesPos(this.selX, this.selY, this.selZ, this.selDim)) {
+            drawRect(x, y, x + LIST_W - 8, y + 20, 0xAA805020);
+            drawRect(x, y, x + 2, y + 20, GtsrGuiPalette.TEXT_ACCENT);
+        }
+        final int textX = x + 34;
         final boolean offline = info.type.isEmpty();
 
         // 节点图标（子类静态映射）；未知类型无图标（旧同款仅省图标位）
         ItemStack iconStack = getNodeIcon(info.type);
         this.renderItemIcon(iconStack, x + 4, y + 2);
+        this.fontRendererObj.drawStringWithShadow(
+            info.out ? "<" : ">",
+            x + 23,
+            y + 6,
+            info.out ? GtsrGuiPalette.STATE_ONLINE : GtsrGuiPalette.TEXT_ACCENT);
 
         // 左列第 1 行：名字 + 离线红字后缀（名字空回退默认名：图标栈显示名/未知节点）
         String defaultName = iconStack != null ? iconStack.getDisplayName()
@@ -397,7 +437,7 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
         // 右侧数值列（右对齐、y+6 垂直居中；formatKMG K/M/G 逐行移植）
         drawRightAligned(formatKMG(info.stored), x + COL_STORED_RIGHT, y + 6, GtsrGuiPalette.TEXT_BODY);
         drawRightAligned(formatKMG(info.cap), x + COL_CAP_RIGHT, y + 6, GtsrGuiPalette.TEXT_MUTED);
-        drawRightAligned(info.rate + "%", x + COL_RATE_RIGHT, y + 6, GtsrGuiPalette.TEXT_ACCENT);
+        drawRightAligned(formatKMG(info.actualRate) + "/s", x + COL_RATE_RIGHT, y + 6, GtsrGuiPalette.TEXT_ACCENT);
     }
 
     /** 右缘定位文字绘制（数值列/列头共用；右对齐保证同列逐行对齐） */
@@ -442,6 +482,9 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
         final CacheNodeInfo info = nodes.get(index);
         List<String> lines = new ArrayList<String>();
         lines.add(info.name.isEmpty() ? info.type : info.name);
+        lines.add(
+            StatCollector.translateToLocal(
+                info.out ? "gtsr.cache_hub_status.direction_out" : "gtsr.cache_hub_status.direction_in"));
         lines.add("(" + info.x + ", " + info.y + ", " + info.z + ") DIM: " + info.dim);
         return lines;
     }
@@ -451,7 +494,27 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
     private List<CacheNodeInfo> matchedSnapshotNodes() {
         HubTerminalClientCache.CacheSnapshot snapshot = HubTerminalClientCache.cacheSnapshot();
         if (snapshot != null && snapshot.matchesAnchor(this.anchorX, this.anchorY, this.anchorZ, this.anchorDim)) {
-            return snapshot.nodes;
+            String query = this.filterField == null ? ""
+                : this.filterField.getText()
+                    .trim()
+                    .toLowerCase(Locale.ROOT);
+            if (query.isEmpty()) return snapshot.nodes;
+            List<CacheNodeInfo> filtered = new ArrayList<CacheNodeInfo>();
+            for (CacheNodeInfo node : snapshot.nodes) {
+                if ((node.name + " "
+                    + node.type
+                    + " "
+                    + localizeFluid(node.fluid)
+                    + " "
+                    + node.x
+                    + " "
+                    + node.y
+                    + " "
+                    + node.z).toLowerCase(Locale.ROOT)
+                        .contains(query))
+                    filtered.add(node);
+            }
+            return filtered;
         }
         return Collections.emptyList();
     }
@@ -487,6 +550,115 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
         if (this.renameField != null) {
             this.renameField.setText(info.name);
         }
+    }
+
+    protected void selectAnchorNode() {
+        this.hasSelection = true;
+        this.selX = this.anchorX;
+        this.selY = this.anchorY;
+        this.selZ = this.anchorZ;
+        this.selDim = this.anchorDim;
+    }
+
+    @Override
+    protected void keyTyped(char typedChar, int keyCode) {
+        if (this.editingNode != null) {
+            if (keyCode == 1) closeValueEditor();
+            else if (keyCode == 28 || keyCode == 156) confirmValue();
+            else this.valueField.textboxKeyTyped(typedChar, keyCode);
+            return;
+        }
+        if (this.filterField.isFocused() && this.filterField.textboxKeyTyped(typedChar, keyCode)) return;
+        super.keyTyped(typedChar, keyCode);
+    }
+
+    private void openValueEditor(CacheNodeInfo node, int action) {
+        if (node.type.isEmpty() || action == CacheHubTerminalData.ACTION_SET_CAPACITY && !supportsCapTier(node.type))
+            return;
+        this.editingNode = node;
+        this.editingAction = action;
+        this.inputError = "";
+        this.valueField = new GuiTextField(this.fontRendererObj, this.guiLeft + 62, this.guiTop + 104, 276, 16);
+        this.valueField.setMaxStringLength(19);
+        this.valueField
+            .setText(Long.toString(action == CacheHubTerminalData.ACTION_SET_RATE ? node.actualRate : node.cap));
+        this.valueField.setFocused(true);
+        this.confirmButton = new GtsrGuiButton(
+            90,
+            this.guiLeft + 158,
+            this.guiTop + 148,
+            86,
+            16,
+            StatCollector.translateToLocal("gtsr.cache_hub_status.confirm"));
+        this.cancelButton = new GtsrGuiButton(
+            91,
+            this.guiLeft + 250,
+            this.guiTop + 148,
+            86,
+            16,
+            StatCollector.translateToLocal("gtsr.cache_hub_status.cancel"));
+    }
+
+    private void closeValueEditor() {
+        this.editingNode = null;
+        this.valueField = null;
+    }
+
+    private void confirmValue() {
+        CacheNodeInfo current = selectedInfo();
+        if (current == null || current.type.isEmpty()
+            || !current.matchesPos(editingNode.x, editingNode.y, editingNode.z, editingNode.dim)) {
+            closeValueEditor();
+            return;
+        }
+        String text = this.valueField.getText()
+            .trim();
+        try {
+            if (!text.matches("[0-9]+")) throw new NumberFormatException();
+            long value = Long.parseLong(text);
+            long minimum = this.editingAction == CacheHubTerminalData.ACTION_SET_RATE ? 0 : 1;
+            long maximum = this.editingAction == CacheHubTerminalData.ACTION_SET_RATE ? current.maxRate
+                : current.maxCap;
+            if (value < minimum || value > maximum) throw new NumberFormatException();
+            PacketBuffer pb = new PacketBuffer(Unpooled.buffer(24));
+            pb.writeInt(current.x);
+            pb.writeInt(current.y);
+            pb.writeInt(current.z);
+            pb.writeInt(current.dim);
+            pb.writeLong(value);
+            byte[] payload = new byte[pb.readableBytes()];
+            pb.readBytes(payload);
+            sendAction(this.editingAction, payload);
+            requestImmediateRefresh();
+            closeValueEditor();
+        } catch (NumberFormatException invalid) {
+            this.inputError = StatCollector.translateToLocal("gtsr.cache_hub_status.invalid_value");
+        }
+    }
+
+    private void drawValueEditor(int mouseX, int mouseY) {
+        drawRect(0, 0, this.width, this.height, 0xA0000000);
+        drawRect(this.guiLeft + 50, this.guiTop + 64, this.guiLeft + 350, this.guiTop + 176, 0xFF24201A);
+        boolean rate = this.editingAction == CacheHubTerminalData.ACTION_SET_RATE;
+        this.fontRendererObj.drawStringWithShadow(
+            StatCollector
+                .translateToLocal(rate ? "gtsr.cache_hub_status.edit_rate" : "gtsr.cache_hub_status.edit_capacity"),
+            this.guiLeft + 62,
+            this.guiTop + 74,
+            GtsrGuiPalette.TEXT_TITLE);
+        String range = (rate ? "0" : "1") + " - "
+            + (rate ? editingNode.maxRate : editingNode.maxCap)
+            + (rate ? " L/s" : " L");
+        this.fontRendererObj.drawStringWithShadow(
+            StatCollector.translateToLocal("gtsr.cache_hub_status.range") + " " + range,
+            this.guiLeft + 62,
+            this.guiTop + 89,
+            GtsrGuiPalette.TEXT_MUTED);
+        this.valueField.drawTextBox();
+        this.fontRendererObj
+            .drawStringWithShadow(this.inputError, this.guiLeft + 62, this.guiTop + 130, GtsrGuiPalette.STATE_OFFLINE);
+        this.confirmButton.drawButton(this.mc, mouseX, mouseY);
+        this.cancelButton.drawButton(this.mc, mouseX, mouseY);
     }
 
     // ==================== 工具（旧实现逐行移植） ====================

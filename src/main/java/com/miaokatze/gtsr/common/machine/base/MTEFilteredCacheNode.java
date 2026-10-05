@@ -68,6 +68,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
     protected boolean mIsOutputMode = true;
     protected boolean mRegistered = false;
     protected int mTransferRatePercent = 100;
+    private long mHubTransferRate = -1;
+    private long mFluidCapacityLimit = -1;
     private long mNextRegistrationTick;
     // 是否已绑定到枢纽（独立于 mHubDim，避免主世界 dim=0 被误判为未绑定）
     protected boolean mBound = false;
@@ -131,20 +133,113 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
                     return true;
                 }
                 // 循环逻辑抽为公共方法，供枢纽状态 UI 的「速率循环」按钮远程复用
-                cycleTransferRatePercent();
-                long actualRate = (long) getBaseHubTransferRate() * mTransferRatePercent / 100;
-                String msg = StatCollector.translateToLocal("gtsr.cache_node.transfer_rate") + " "
-                    + mTransferRatePercent
-                    + "% ("
-                    + String.format("%,d", actualRate)
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s")
-                    + ")";
-                GTUtility.sendChatToPlayer(aPlayer, msg);
+                com.miaokatze.gtsr.common.items.HubTerminal.openNodeEditor(aPlayer, aBaseMetaTileEntity);
                 return true;
             }
         }
         return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+    }
+
+    @Override
+    public long getMaximumHubTransferRate() {
+        return getBaseHubTransferRate();
+    }
+
+    @Override
+    public long getMaximumFluidCapacity() {
+        return getBaseRealCapacity();
+    }
+
+    @Override
+    public void setHubTransferRate(long value) {
+        mHubTransferRate = Math.max(0L, Math.min(value, getMaximumHubTransferRate()));
+        mTransferRatePercent = (int) (mHubTransferRate * 100 / getMaximumHubTransferRate());
+        markNodeDirty();
+    }
+
+    @Override
+    public void setFluidCapacityLimit(long value) {
+        mFluidCapacityLimit = Math.max(1L, Math.min(value, getMaximumFluidCapacity()));
+        mCapacityLimitPercent = (int) (mFluidCapacityLimit * 100 / getMaximumFluidCapacity());
+        markNodeDirty();
+    }
+
+    private void markNodeDirty() {
+        if (getBaseMetaTileEntity() != null) {
+            getBaseMetaTileEntity().markDirty();
+            getBaseMetaTileEntity().issueTileUpdate();
+        }
+    }
+
+    @Override
+    public boolean allowOverflow() {
+        return !mBound && super.allowOverflow();
+    }
+
+    @Override
+    public void setVoidFluidPart(boolean value) {
+        super.setVoidFluidPart(value && !mBound);
+    }
+
+    @Override
+    public void setVoidFluidFull(boolean value) {
+        if (mBound && value) return;
+        super.setVoidFluidFull(value);
+    }
+
+    @Override
+    public FluidStack setFillableStack(FluidStack value) {
+        // Capacity reductions must never truncate existing stock.
+        mFluid = value;
+        return mFluid;
+    }
+
+    @Override
+    public FluidStack setDrainableStack(FluidStack value) {
+        mFluid = value;
+        return mFluid;
+    }
+
+    @Override
+    public boolean doesEmptyContainers() {
+        return super.doesEmptyContainers();
+    }
+
+    @Override
+    public void onPreTick(IGregTechTileEntity base, long tick) {
+        if (!base.isServerSide()) return;
+        fluidTank.setAllowOverflow(allowOverflow());
+        if (isFluidChangingAllowed() && mFluid != null && mFluid.amount <= 0) setFillableStack(null);
+        if (!mBound && mVoidFluidFull && mFluid != null) {
+            mVoidFluidPart = false;
+            mLockFluid = false;
+            setFillableStack(null);
+        }
+        if (doesEmptyContainers() && mInventory[getInputSlot()] != null) {
+            FluidStack incoming = GTUtility.getFluidForFilledItem(mInventory[getInputSlot()], true);
+            // Simulate the same admission rules used by pipes and the GUI before consuming a container.
+            if (incoming != null && incoming.amount > 0 && fill(incoming, false) == incoming.amount) {
+                boolean empty = getFillableStack() == null;
+                if (base.addStackToSlot(
+                    getOutputSlot(),
+                    GTUtility.getContainerForFilledItem(mInventory[getInputSlot()], true),
+                    1)) {
+                    fill(incoming, true);
+                    if (empty) onEmptyingContainerWhenEmpty();
+                    base.decrStackSize(getInputSlot(), 1);
+                }
+            }
+        }
+        if (doesFillContainers() && mInventory[getInputSlot()] != null) {
+            ItemStack output = GTUtility
+                .fillFluidContainer(getDrainableStack(), mInventory[getInputSlot()], false, true);
+            if (output != null && base.addStackToSlot(getOutputSlot(), output, 1)) {
+                FluidStack outgoing = GTUtility.getFluidForFilledItem(output, true);
+                base.decrStackSize(getInputSlot(), 1);
+                if (outgoing != null) getDrainableStack().amount -= outgoing.amount;
+                if (getDrainableStack().amount <= 0 && isFluidChangingAllowed()) setDrainableStack(null);
+            }
+        }
     }
 
     public int getTransferRatePercent() {
@@ -165,6 +260,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         }
         int nextIdx = (currentIdx + 1) % TRANSFER_RATE_CYCLE.length;
         mTransferRatePercent = TRANSFER_RATE_CYCLE[nextIdx];
+        mHubTransferRate = -1;
         return mTransferRatePercent;
     }
 
@@ -197,6 +293,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         }
         int nextIdx = (currentIdx + 1) % cycle.length;
         mCapacityLimitPercent = cycle[nextIdx];
+        mFluidCapacityLimit = -1;
         return mCapacityLimitPercent;
     }
 
@@ -214,7 +311,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
      */
     @Override
     public int getRealCapacity() {
-        long capped = (long) getBaseRealCapacity() * mCapacityLimitPercent / 100;
+        long capped = getFluidCapacityLong();
         return capped > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) capped;
     }
 
@@ -269,6 +366,10 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
     }
 
     /** 是否已绑定到枢纽（供 HubTerminal 等跨包调用方判断，mBound 为 protected 字段）。 */
+    public boolean isBoundToHubAt(int x, int y, int z, int dim) {
+        return mBound && mHubX == x && mHubY == y && mHubZ == z && mHubDim == dim;
+    }
+
     public boolean isBoundToHub() {
         return mBound;
     }
@@ -308,7 +409,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
 
     /** 节点容量（long，强化/超压节点容量超出 int 范围）：基量×容量档的精确乘后值（不经 int 钳位）。 */
     public long getFluidCapacityLong() {
-        return (long) getBaseRealCapacity() * mCapacityLimitPercent / 100;
+        return mFluidCapacityLimit >= 0 ? mFluidCapacityLimit
+            : (long) getBaseRealCapacity() * mCapacityLimitPercent / 100;
     }
 
     // ===== 流体门控四件套模板（SR-A05：原六变体 isFluidInputAllowed/fill×2/allowPutStack +
@@ -336,10 +438,25 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
      */
     @Override
     public final int fill(FluidStack aFluid, boolean doFill) {
-        if (!isFluidStackAllowed(aFluid)) return 0;
-        FluidStack fillable = getFillableStack();
-        if (fillable != null && (long) getRealCapacity() - fillable.amount <= 0) return 0;
-        return super.fill(aFluid, doFill);
+        if (!isFluidStackAllowed(aFluid) || aFluid.amount <= 0 || !canTankBeFilled()) return 0;
+        FluidStack stored = getFillableStack();
+        if (stored != null && !stored.isFluidEqual(aFluid)) return 0;
+        if (isFluidLocked() && getLockedFluid() != null && !getLockedFluid().equals(aFluid.getFluid())) return 0;
+        long space = Math.max(0L, (long) getRealCapacity() - (stored == null ? 0L : stored.amount));
+        int retained = (int) Math.min(aFluid.amount, space);
+        int accepted = allowOverflow() ? aFluid.amount : retained;
+        if (doFill && accepted > 0) {
+            if (retained > 0) {
+                if (stored == null) {
+                    stored = aFluid.copy();
+                    stored.amount = retained;
+                    setFillableStack(stored);
+                } else stored.amount += retained;
+            }
+            if (mLockFluid && lockedFluid == null) setLockedFluid(aFluid.getFluid());
+            if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
+        }
+        return accepted;
     }
 
     @Override
@@ -383,7 +500,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
     }
 
     public long getEffectiveHubTransferRate() {
-        return (long) getBaseHubTransferRate() * mTransferRatePercent / 100;
+        return mHubTransferRate >= 0 ? mHubTransferRate : (long) getBaseHubTransferRate() * mTransferRatePercent / 100;
     }
 
     // ===== 顶面流体窗 + 枢纽框架层（客户端渲染）=====
@@ -485,6 +602,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         aNBT.setBoolean("mIsOutputMode", mIsOutputMode);
         aNBT.setInteger("mTransferRatePercent", mTransferRatePercent);
         aNBT.setInteger("mCapacityLimitPercent", mCapacityLimitPercent);
+        aNBT.setLong("gtsr.transferRate", getEffectiveHubTransferRate());
+        aNBT.setLong("gtsr.capacityLimit", getFluidCapacityLong());
         // 窗流体记忆名（仅服务端存档携带；setItemNBT 不写——破坏重置语义）
         if (!mMemoryFluidName.isEmpty()) aNBT.setString("gtsr.memoryFluid", mMemoryFluidName);
         // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定
@@ -514,6 +633,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         super.setItemNBT(aNBT);
         aNBT.setInteger("mTransferRatePercent", mTransferRatePercent);
         aNBT.setInteger("mCapacityLimitPercent", mCapacityLimitPercent);
+        aNBT.setLong("gtsr.transferRate", getEffectiveHubTransferRate());
+        aNBT.setLong("gtsr.capacityLimit", getFluidCapacityLong());
         if (mBound) {
             // 反转语义：与 saveNBTData 一致，与 loadNBTData 的反转读取对称
             aNBT.setTag(
@@ -562,6 +683,12 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
             }
         }
         // 窗流体记忆名读回；旧档无键回退空串（窗回退三段兜底，存档兼容）
+        mHubTransferRate = aNBT.hasKey("gtsr.transferRate")
+            ? Math.max(0L, Math.min(aNBT.getLong("gtsr.transferRate"), getMaximumHubTransferRate()))
+            : -1;
+        mFluidCapacityLimit = aNBT.hasKey("gtsr.capacityLimit")
+            ? Math.max(1L, Math.min(aNBT.getLong("gtsr.capacityLimit"), getMaximumFluidCapacity()))
+            : -1;
         mMemoryFluidName = aNBT.hasKey("gtsr.memoryFluid") ? aNBT.getString("gtsr.memoryFluid") : "";
         if (aNBT.hasKey("gtsr.hubPos")) {
             NBTTagCompound hubTag = aNBT.getCompoundTag("gtsr.hubPos");

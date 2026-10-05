@@ -3,10 +3,8 @@ package com.miaokatze.gtsr.common.machine.cluster;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -507,8 +505,7 @@ public final class ClusterChainExecutor {
      * （决策 12：冷却仅计实际加工链步），null 原样透传；每步尾 {@link #compress} 合并同类项。
      * SIMPLE_WASH 配方图缺失（GT++ 不在场）时该步整体透传。解析出的生效峰写入
      * {@code unit.lastEffectivePeak}（瞬态，供终端详情 PEAK 行）。链含 FURNACE_PRIMARY 时（R9，
-     * 决策 b/b'）先沿前缀推导主线物品集（{@link #derivePrimaryItemIds}，物品级动态主线）并穿参
-     * 峰探测/正式两遍遍历——集合外（副产）物品在炉步透传随批排出。
+     * 决策 b/b'）先在峰探测/正式两遍中跟踪主源数量——副源物品在炉步透传随批排出。
      *
      * @param processedLinks 实际命中配方的链步集合（调用方持有，EnumSet 去重；方法内只增不改他项）
      * @param tier           集群结构层级下标（r6-S6 粉碎副产物乘率的档位来源；调用方已保证 ≥0）
@@ -519,15 +516,10 @@ public final class ClusterChainExecutor {
     private static List<ItemStack> runChain(LogisticsChain chain, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
         BatchFluidLedger fluids, BoosterState booster, EnumSet<ChainLink> processedLinks, int tier,
         Map<Long, Long> bonusSink, BatchFluidSignalCache fluidSignals) {
-        // R9 B.1：链含 FURNACE_PRIMARY 时在峰探测/正式遍历前推导一次主线物品集（不含时 null=门直通，
-        // 零成本零行为变化）；推导与两遍遍历同源同 tick（mid 尚未被加工）
+        // 来源台账仅用于 PRIMARY 链，直接在已有两遍流水线中推进，不另做前缀配方遍历。
         List<ChainLink> links = chain.getLinks();
-        Set<Integer> primaryIds = null;
-        int furnaceIndex = links.indexOf(ChainLink.FURNACE_PRIMARY);
-        if (furnaceIndex >= 0) {
-            primaryIds = derivePrimaryItemIds(links, furnaceIndex, mid, unit, fluidSignals);
-        }
-        int effectivePeak = resolveEffectivePeak(chain, mid, unit, fluidSignals, primaryIds);
+        boolean trackPrimary = links.contains(ChainLink.FURNACE_PRIMARY);
+        int effectivePeak = resolveEffectivePeak(chain, mid, unit, fluidSignals, trackPrimary);
         unit.setLastEffectivePeak(effectivePeak);
         return runChainPass(
             chain,
@@ -540,20 +532,20 @@ public final class ClusterChainExecutor {
             bonusSink,
             effectivePeak,
             fluidSignals,
-            primaryIds);
+            trackPrimary);
     }
 
     /**
      * 生效峰解析（S1-T9）：自 {@code chain.getPeakIndex()}（越界按边界钳制）起，首个实际命中配方步
      * = 峰；其后无命中则回落<b>全链首个命中步</b>；全链无命中 = -1。解析经独立探测遍历
-     * （{@link #probeChainHits}）：真实配方查询、不 roll 不扣液——命中判定只看物品种类，
+     * （{@link #traverseChain}）：真实配方查询、不 roll 不扣液——命中判定只看物品种类，
      * 与正式遍历的随机 roll 无关（概率副产物不参与探测流，主流=保底输出）。
      */
     private static int resolveEffectivePeak(LogisticsChain chain, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
-        BatchFluidSignalCache fluidSignals, Set<Integer> primaryIds) {
+        BatchFluidSignalCache fluidSignals, boolean trackPrimary) {
         List<ChainLink> links = chain.getLinks();
         boolean[] linkHit = new boolean[links.size()];
-        probeChainHits(links, mid, unit, linkHit, fluidSignals, primaryIds);
+        traverseChain(links, mid, unit, null, null, null, 0, null, -1, fluidSignals, trackPrimary, linkHit);
         int configuredPeak = Math.max(0, Math.min(links.size() - 1, chain.getPeakIndex()));
         for (int i = configuredPeak; i < linkHit.length; i++) {
             if (linkHit[i]) return i;
@@ -565,64 +557,39 @@ public final class ClusterChainExecutor {
         return -1;
     }
 
-    /**
-     * 峰解析探测遍历（S1-T9，只读）：按链序对每个 stack 走形态过滤 + 真实配方查询，记录命中步；
-     * 命中处以<b>保底输出</b>（chance ≥ 10000 的原始模板，主流物品）推进探测物品流——与正式遍历的
-     * 物品种类主流一致，不产生 roll 随机、不扣液、不记账。尾步 {@link #compress} 合并保持口径一致。
-     */
-    private static void probeChainHits(List<ChainLink> links, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
-        boolean[] linkHit, BatchFluidSignalCache fluidSignals, Set<Integer> primaryIds) {
-        boolean seenReduction = false;
-        List<ItemStack> current = mid;
-        for (int i = 0; i < links.size(); i++) {
-            ChainLink link = links.get(i);
-            boolean firstReduction = false;
-            if (link == ChainLink.CRUSH || link == ChainLink.HAMMER) {
-                firstReduction = !seenReduction;
-                seenReduction = true;
-            }
-            RecipeMap<?> map = link.getRecipeMap();
-            List<ItemStack> output = new ArrayList<>(current.size());
-            for (ItemStack stack : current) {
-                ClusterItemForms.OreForm form = ClusterItemForms.classify(stack);
-                if (map == null || !acceptsForm(link, form, firstReduction)) {
-                    output.add(stack);
-                    continue;
-                }
-                // R9 B.2 镜像门（与 runChainPass 同式）：探测遍历与正式遍历物品种类主流一致——集合外
-                // （副产）物品不计命中、不推进探测流（炉步恒末步，无人消费其峰增益）
-                if (link == ChainLink.FURNACE_PRIMARY && primaryIds != null
-                    && !primaryIds.contains(GTUtility.stackToInt(stack))) {
-                    output.add(stack);
-                    continue;
-                }
-                GTRecipe recipe = findLinkRecipe(link, map, GTUtility.copyOrNull(stack), unit, fluidSignals);
-                if (recipe != null) {
-                    linkHit[i] = true;
-                    for (int slot = 0; slot < recipe.mOutputs.length; slot++) {
-                        ItemStack template = recipe.getOutput(slot);
-                        if (template != null && recipe.getOutputChance(slot) >= 10000) {
-                            output.add(template.copy());
-                        }
-                    }
-                } else {
-                    output.add(stack);
-                }
-            }
-            current = compress(output);
-        }
+    /** 正式遍历与只读峰探针共用来源流；不含 PRIMARY 的链不分配来源台账。 */
+    private static List<ItemStack> runChainPass(LogisticsChain chain, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
+        BatchFluidLedger fluids, BoosterState booster, EnumSet<ChainLink> processedLinks, int tier,
+        Map<Long, Long> bonusSink, int effectivePeak, BatchFluidSignalCache fluidSignals, boolean trackPrimary) {
+        return traverseChain(
+            chain.getLinks(),
+            mid,
+            unit,
+            fluids,
+            booster,
+            processedLinks,
+            tier,
+            bonusSink,
+            effectivePeak,
+            fluidSignals,
+            trackPrimary,
+            null);
     }
 
     /**
-     * 正式链加工单遍（S1-T9）：峰步 {@code i == effectivePeak} 的命中以 {@code peakStep=true}
-     * roll（主产物增益满额），其余步 {@code peakStep=false}（主产物增益缩至 10%）。
-     * FURNACE_PRIMARY 步在 acceptsForm 通过后另有物品级主线门（R9 B.2，primaryIds）——集合外
-     * （副产）物品透传给下一步、随批原样排出（决策 b'）。
+     * 保留旧的同类合并、总量配方查询，纯来源维持每槽一次 roll；来源只标记槽 0 中的主源数量。
+     * 混合来源在总量配方命中后分别 roll，维持概率公式并保留来源。PRIMARY 仅用主源数量查配方，
+     * 同 id 副源独立透传。每一步重建来源台账，因此后续重复 PRIMARY 使用当前数量而非首炉集合。
      */
-    private static List<ItemStack> runChainPass(LogisticsChain chain, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
+    private static List<ItemStack> traverseChain(List<ChainLink> links, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
         BatchFluidLedger fluids, BoosterState booster, EnumSet<ChainLink> processedLinks, int tier,
-        Map<Long, Long> bonusSink, int effectivePeak, BatchFluidSignalCache fluidSignals, Set<Integer> primaryIds) {
-        List<ChainLink> links = chain.getLinks();
+        Map<Long, Long> bonusSink, int effectivePeak, BatchFluidSignalCache fluidSignals, boolean trackPrimary,
+        boolean[] linkHit) {
+        boolean probe = linkHit != null;
+        Map<Integer, Integer> primary = trackPrimary ? new HashMap<>() : null;
+        if (trackPrimary) {
+            for (ItemStack stack : mid) addPrimary(primary, stack, stack.stackSize);
+        }
         boolean seenReduction = false;
         for (int i = 0; i < links.size(); i++) {
             ChainLink link = links.get(i);
@@ -632,83 +599,100 @@ public final class ClusterChainExecutor {
                 seenReduction = true;
             }
             RecipeMap<?> map = link.getRecipeMap();
-
             List<ItemStack> output = new ArrayList<>(mid.size());
+            Map<Integer, Integer> nextPrimary = trackPrimary ? new HashMap<>() : null;
+            // 初始 mid 可含多个同 id 单件；每件分配后立即从剩余台账中减去，避免重复归属。
             for (ItemStack stack : mid) {
-                ClusterItemForms.OreForm form = ClusterItemForms.classify(stack);
-                if (map == null || !acceptsForm(link, form, firstReduction)) {
+                int primaryAmount = 0;
+                if (trackPrimary) {
+                    int id = GTUtility.stackToInt(stack);
+                    int remaining = primary.getOrDefault(id, 0);
+                    primaryAmount = Math.min(stack.stackSize, remaining);
+                    primary.put(id, remaining - primaryAmount);
+                }
+                if (map == null || !acceptsForm(link, ClusterItemForms.classify(stack), firstReduction)
+                    || (link == ChainLink.FURNACE_PRIMARY && primaryAmount == 0)) {
                     output.add(stack);
+                    addPrimary(nextPrimary, stack, primaryAmount);
                     continue;
                 }
-                // R9 B.2 主线物品门（决策 b'）：集合外（副产）物品透传给下一步，最终随批原样排出
-                // （与上方形态拒收同一条透传路径，b' 机制零额外代码）
-                if (link == ChainLink.FURNACE_PRIMARY && primaryIds != null
-                    && !primaryIds.contains(GTUtility.stackToInt(stack))) {
+                int amount = link == ChainLink.FURNACE_PRIMARY ? primaryAmount : stack.stackSize;
+                GTRecipe recipe = findLinkRecipe(
+                    link,
+                    map,
+                    GTUtility.copyAmountUnsafe(amount, stack),
+                    unit,
+                    fluidSignals);
+                if (recipe == null) {
                     output.add(stack);
+                    addPrimary(nextPrimary, stack, primaryAmount);
                     continue;
                 }
-                GTRecipe recipe = findLinkRecipe(link, map, GTUtility.copyOrNull(stack), unit, fluidSignals);
-                if (recipe != null) {
-                    processedLinks.add(link);
-                    fluids.charge(link, recipe, stack.stackSize);
-                    output.addAll(
-                        rollOutputs(recipe, stack.stackSize, booster, link, tier, i == effectivePeak, bonusSink));
+                if (link == ChainLink.FURNACE_PRIMARY && amount < stack.stackSize) {
+                    output.add(GTUtility.copyAmountUnsafe(stack.stackSize - amount, stack));
+                }
+                if (probe) {
+                    linkHit[i] = true;
+                    for (int slot = 0; slot < recipe.mOutputs.length; slot++) {
+                        ItemStack template = recipe.getOutput(slot);
+                        if (template == null || recipe.getOutputChance(slot) < 10000) continue;
+                        // 来源链保留数量以便后续 >=2 输入配方正确命中；普通链保持历史峰探针口径。
+                        ItemStack result = trackPrimary
+                            ? GTUtility.copyAmountUnsafe(amount * template.stackSize, template)
+                            : template.copy();
+                        output.add(result);
+                        if (slot == 0)
+                            addPrimary(nextPrimary, result, (int) ((long) result.stackSize * primaryAmount / amount));
+                    }
                 } else {
-                    output.add(stack);
+                    processedLinks.add(link);
+                    fluids.charge(link, recipe, amount);
+                    if (trackPrimary && primaryAmount > 0 && primaryAmount < amount) {
+                        output.addAll(
+                            rollOutputs(
+                                recipe,
+                                primaryAmount,
+                                booster,
+                                link,
+                                tier,
+                                i == effectivePeak,
+                                bonusSink,
+                                nextPrimary,
+                                primaryAmount));
+                        output.addAll(
+                            rollOutputs(
+                                recipe,
+                                amount - primaryAmount,
+                                booster,
+                                link,
+                                tier,
+                                i == effectivePeak,
+                                bonusSink));
+                    } else {
+                        output.addAll(
+                            rollOutputs(
+                                recipe,
+                                amount,
+                                booster,
+                                link,
+                                tier,
+                                i == effectivePeak,
+                                bonusSink,
+                                nextPrimary,
+                                primaryAmount));
+                    }
                 }
             }
             mid = compress(output);
+            primary = nextPrimary;
         }
         return mid;
     }
 
-    /**
-     * FURNACE_PRIMARY 物品级主线集合推导（R9 B.1，决策 b）：沿 {@code links[0..furnaceIndex)} 前缀
-     * 逐物品复刻 {@link #runChainPass} 的形态过滤 + firstReduction + {@link #findLinkRecipe} 口径，
-     * 每步命中则以配方槽 0（主产物——槽 0 吃主产增益的既有先例）推进主线，未接受/未命中保留
-     * （玩家投料即主线意图，K 语义）；副产槽 1+ 永不入集。初始值 = 批输入物品集（投料即主线意图，
-     * 前缀为空时行为 ≡ FURNACE）。全程只读模拟：流体探测同 findLinkRecipe 的批内只读缓存，零副作用。
-     * 集合元素为 {@link GTUtility#stackToInt} 打包 int（与 {@link #compress} 同一恒等口径，矿石链
-     * 物品无 NBT）。
-     */
-    private static Set<Integer> derivePrimaryItemIds(List<ChainLink> links, int furnaceIndex, List<ItemStack> batchMid,
-        MTEBasicLogisticsUnit unit, BatchFluidSignalCache fluidSignals) {
-        Set<Integer> primary = new HashSet<>();
-        for (ItemStack s : batchMid) {
-            if (!GTUtility.isStackInvalid(s)) primary.add(GTUtility.stackToInt(s));
+    private static void addPrimary(Map<Integer, Integer> primary, ItemStack stack, int amount) {
+        if (primary != null && amount > 0 && !GTUtility.isStackInvalid(stack)) {
+            primary.merge(GTUtility.stackToInt(stack), amount, Integer::sum);
         }
-        boolean seenReduction = false;
-        for (int i = 0; i < furnaceIndex; i++) {
-            ChainLink link = links.get(i);
-            boolean firstReduction = false;
-            if (link == ChainLink.CRUSH || link == ChainLink.HAMMER) { // 复刻 runChainPass/probeChainHits 同款
-                firstReduction = !seenReduction;
-                seenReduction = true;
-            }
-            RecipeMap<?> map = link.getRecipeMap();
-            Set<Integer> next = new HashSet<>();
-            for (Integer id : primary) {
-                ItemStack stack = GTUtility.intToStack(id); // compress 重建同款还原（1 份/堆）
-                if (stack == null || map == null) {
-                    next.add(id);
-                    continue;
-                }
-                if (!acceptsForm(link, ClusterItemForms.classify(stack), firstReduction)) {
-                    next.add(id);
-                    continue;
-                }
-                // 红线：必须走 findLinkRecipe（ORE_WASH 蒸馏/水路径、CHEM_BATH 信号等流体口径一致）
-                GTRecipe recipe = findLinkRecipe(link, map, stack, unit, fluidSignals);
-                if (recipe == null) {
-                    next.add(id);
-                    continue;
-                }
-                ItemStack main = recipe.getOutput(0); // 槽 0 = 该步主线产物
-                if (main != null) next.add(GTUtility.stackToInt(main)); // 槽 0 病态 null → 移出主线
-            }
-            primary = next;
-        }
-        return primary;
     }
 
     /**
@@ -719,7 +703,7 @@ public final class ClusterChainExecutor {
      * DUST_IMPURE/DUST_PURE；SIFTER 收 CRUSHED_PURIFIED；MAGNETIC_SEPARATOR 收 DUST_PURE；
      * FURNACE 收任意非 OTHER 形态（§3.6.6-2：普通 DUST/INGOT 终态可达，不再被 OTHER 拒绝）；
      * FURNACE_PRIMARY 形态层同做 OTHER 粗滤（2026-10-05 AUQ 物品级动态主线，R9 B.4）——两链口径差异
-     * 在物品级：真正的「仅主产」由 runChainPass/probeChainHits 消费点的主线集合门承担（集合外副产
+     * 在物品级：真正的「仅主产」由共用遍历的主源数量门承担（副源
      * 透传随批排出），DUST 形态副产（石粉/副产材料粉）等同形态非主线物品由集合门拦截。
      */
     private static boolean acceptsForm(ChainLink link, ClusterItemForms.OreForm form, boolean firstReduction) {
@@ -749,7 +733,7 @@ public final class ClusterChainExecutor {
                 return form != ClusterItemForms.OreForm.OTHER;
             case FURNACE_PRIMARY:
                 // 物品级动态主线（2026-10-05 AUQ，R9 B.4）：形态层仅做 OTHER 粗滤（副产 gem/nugget 等），
-                // 真正「仅主产」由 runChainPass/probeChainHits 消费点的主线集合门承担
+                // 真正「仅主产」由共用遍历的主源数量门承担
                 return form != ClusterItemForms.OreForm.OTHER;
             default:
                 return false;
@@ -870,6 +854,11 @@ public final class ClusterChainExecutor {
         int tier, boolean peakStep, Map<Long, Long> bonusSink) {
         // T3 D5：两条熔炼链（FURNACE/FURNACE_PRIMARY）豁免主/副产物增幅（增益清零；峰步缩放、CRUSH
         // 乘率、roll 机制、bonusSink、增幅液扣费均零触碰——0 增益对峰步 ×0.1 仍为 0）
+        return rollOutputs(recipe, aTime, booster, link, tier, peakStep, bonusSink, null, 0);
+    }
+
+    private static List<ItemStack> rollOutputs(GTRecipe recipe, int aTime, BoosterState booster, ChainLink link,
+        int tier, boolean peakStep, Map<Long, Long> bonusSink, Map<Integer, Integer> primary, int primaryInput) {
         boolean furnaceChain = link == ChainLink.FURNACE || link == ChainLink.FURNACE_PRIMARY;
         double primaryBonusRaw = (booster == null || furnaceChain) ? 0.0 : booster.getPrimaryBonus();
         // S1-T9 主产物单峰：峰步拿满主产物增益，非峰步缩至 10%（副产物增益不缩）
@@ -907,6 +896,7 @@ public final class ClusterChainExecutor {
             }
             if (quantity > 0) {
                 outputs.add(GTUtility.copyAmountUnsafe(quantity, template));
+                if (i == 0) addPrimary(primary, template, (int) ((long) quantity * primaryInput / aTime));
                 // S1-T10 增幅产出统计：超出基础 chance 期望的额外产出按 item+meta 累计
                 if (bonusSink != null) {
                     long baseExpected = Math.round(chance / 10000.0 * aTime * template.stackSize);

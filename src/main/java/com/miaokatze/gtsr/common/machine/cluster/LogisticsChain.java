@@ -12,13 +12,16 @@ import java.util.Objects;
  * 本切片只保证可变有序表语义；后续批次在本骨架上扩展：链有效性验证（能否产出最终纯净粉/有效终端）、
  * 批量写入（{@link #setLinks}）与 NBT 持久化（六预设数据已于批2 E6 删除）。
  * <p>
- * 线约定：仅主线程（游戏逻辑 tick）读写；{@link #getLinks()} 返回 live 视图，调用方遍历期间的
+ * 线约定：仅主线程（游戏逻辑 tick）读写；{@link #getLinks()} 返回只读 live 视图，调用方遍历期间的
  * 结构变更责任在调用方。
  */
 public final class LogisticsChain {
 
-    /** 有序可重复链表（live 视图直接暴露）。 */
+    /** 有序可重复链表（只读 live 视图）。 */
     private final List<ChainLink> links = new ArrayList<>();
+    private final List<ChainLink> linkView = Collections.unmodifiableList(links);
+    private boolean structureDirty = true;
+    private boolean validStructure;
 
     /**
      * 主产物峰步配置下标（S1-T9 主产物单峰）：玩家指定的链步下标，生效峰 = 自此起首个实际命中
@@ -29,9 +32,9 @@ public final class LogisticsChain {
     /** 脏标记：任一变更方法置位，供持有方（物流模块/持久化路径）检测后落盘（§3.6.7）。 */
     private boolean dirty;
 
-    /** live 视图：外部只读遍历/按索引访问，勿缓存引用后假设其不可变。 */
+    /** 只读 live 视图：外部只读遍历/按索引访问，勿缓存引用后假设其不可变。 */
     public List<ChainLink> getLinks() {
-        return links;
+        return linkView;
     }
 
     /** @return 主产物峰步配置下标（S1-T9；不保证界内——越界由执行器解析口径回落处理）。 */
@@ -93,6 +96,7 @@ public final class LogisticsChain {
      * 服务端强制链长上限。
      */
     public void setLinks(List<ChainLink> newLinks) {
+        if (newLinks == links || newLinks == linkView) newLinks = new ArrayList<>(newLinks);
         links.clear();
         if (newLinks != null) {
             int limit = Math.min(newLinks.size(), ClusterParams.CHAIN_MAX_LINKS);
@@ -109,6 +113,7 @@ public final class LogisticsChain {
     /** 置脏标记（本类全部变更方法已自动调用；持有方可额外显式调用）。 */
     public void markDirty() {
         this.dirty = true;
+        this.structureDirty = true;
     }
 
     /** @return 自上次 {@link #clearDirty()} 以来是否发生变更（持久化/重校验触发用）。 */
@@ -139,13 +144,16 @@ public final class LogisticsChain {
      * 终态 ∈ {dust, ingot} 即有效；与 GUI 推演器/服务器执行器共用同一状态机。
      */
     public boolean isValidStructure() {
+        if (!structureDirty) return validStructure;
         ClusterChainFSM.Form form = ClusterChainFSM.start();
         int terminalCount = 0;
         for (ChainLink link : links) {
             form = ClusterChainFSM.next(form, link);
             if (ClusterChainFSM.isTerminal(form)) terminalCount++;
         }
-        return terminalCount == 1;
+        validStructure = terminalCount == 1;
+        structureDirty = false;
+        return validStructure;
     }
 
     /** @return 有效返回 {@code null}；否则返回恰一终态产物提示键。 */
@@ -190,8 +198,10 @@ public final class LogisticsChain {
 
     /** 遍历拓扑单元，判定是否存在「所需类型且 {@code isModuleEnabled()}」的单元（通电判定）。 */
     private static boolean hasEnabledUnit(Class<? extends MTEClusterUnitBase> requiredClass, ClusterTopology topology) {
-        for (MTEClusterUnitBase unit : topology.getUnits()) {
-            if (requiredClass.isInstance(unit) && unit.isModuleEnabled()) return true;
+        List<? extends MTEClusterUnitBase> matches = topology.getUnitsOfType(requiredClass);
+        for (int i = 0; i < matches.size(); i++) {
+            if (matches.get(i)
+                .isModuleEnabled()) return true;
         }
         return false;
     }

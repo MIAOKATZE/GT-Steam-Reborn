@@ -207,7 +207,14 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         BoundCacheNode bound = findBoundNode(x, y, z, dim);
         if (bound == null) return null;
         bound.invalidateCache();
-        return resolveCacheNode(bound, true);
+        IHubCacheNode node = resolveCacheNode(bound, false);
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return node != null && base != null
+            && node.isBoundToHubAt(
+                base.getXCoord(),
+                base.getYCoord(),
+                base.getZCoord(),
+                base.getWorld().provider.dimensionId) ? node : null;
     }
 
     /**
@@ -284,6 +291,9 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
             tag.setLong("cap", cacheNode != null ? cacheNode.getFluidCapacityLong() : 0L);
             // 速率百分比（奇点仓无速率档恒 100；GUI 侧 S4 再对仓隐藏/改容量按钮）
             tag.setInteger("rate", cacheNode != null ? cacheNode.getTransferRatePercent() : 0);
+            tag.setLong("actualRate", cacheNode != null ? cacheNode.getEffectiveHubTransferRate() : 0L);
+            tag.setLong("maxRate", cacheNode != null ? cacheNode.getMaximumHubTransferRate() : 0L);
+            tag.setLong("maxCap", cacheNode != null ? cacheNode.getMaximumFluidCapacity() : 0L);
             // 容量档百分比（S4：缓存节点与接收仓生效；发送仓恒 100，GUI 容量按钮对其禁用）
             tag.setInteger("capPct", cacheNode != null ? cacheNode.getCapacityLimitPercent() : 100);
             tag.setBoolean("out", cacheNode != null ? cacheNode.isOutputMode() : node.isOutputMode);
@@ -296,6 +306,17 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
     }
 
     /** 状态 UI 循环节点交互速率百分比（与手持芯片右击同一循环逻辑；奇点仓为 no-op）。 */
+    public void setCacheNodeRateFromGui(int x, int y, int z, int dim, long value) {
+        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
+        if (node != null && value >= 0 && value <= node.getMaximumHubTransferRate()) node.setHubTransferRate(value);
+    }
+
+    public void setCacheNodeCapacityFromGui(int x, int y, int z, int dim, long value) {
+        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
+        if (node != null && node.supportsCapacityTier() && value > 0 && value <= node.getMaximumFluidCapacity())
+            node.setFluidCapacityLimit(value);
+    }
+
     public void cycleCacheNodeRateFromGui(int x, int y, int z, int dim) {
         IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
         if (node == null) return;
@@ -378,12 +399,15 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         }
     }
 
-    private boolean canUseStatusAction(EntityPlayer player) {
+    public boolean canUseStatusAction(EntityPlayer player) {
         IGregTechTileEntity base = getBaseMetaTileEntity();
         World world = base == null ? null : base.getWorld();
-        if (player == null || base == null || world == null || player.dimension != world.provider.dimensionId)
-            return false;
-        return base.canAccessData()
+        if (!(player instanceof net.minecraft.entity.player.EntityPlayerMP)
+            || player instanceof net.minecraftforge.common.util.FakePlayer
+            || base == null
+            || world == null
+            || player.dimension != world.provider.dimensionId) return false;
+        return base.canAccessData() && base.isUseableByPlayer(player)
             && player.getDistanceSq(base.getXCoord() + 0.5D, base.getYCoord() + 0.5D, base.getZCoord() + 0.5D) <= 64.0D;
     }
 

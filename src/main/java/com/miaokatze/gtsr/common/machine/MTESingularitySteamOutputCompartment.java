@@ -133,6 +133,11 @@ public class MTESingularitySteamOutputCompartment extends MTEPressureSteamOutput
     // ===== 容量与外部输入阻断（先例 MTEPressureSteamOutputHatch "No External Input Allowed"）=====
 
     @Override
+    public long getMaximumFluidCapacity() {
+        return CAPACITY;
+    }
+
+    @Override
     public int getCapacity() {
         // 近亲为 1,024,000，此处覆写终值
         return CAPACITY;
@@ -182,6 +187,24 @@ public class MTESingularitySteamOutputCompartment extends MTEPressureSteamOutput
     }
 
     // ===== 仅枢纽交互：方向参数版 fill/drain 只放行 UNKNOWN =====
+
+    /** Boiler and hub internal insertion; external real-side input remains blocked. */
+    @Override
+    public int fill(FluidStack fluid, boolean execute) {
+        if (fluid == null || fluid.amount <= 0 || !isFluidAllowed(fluid.getFluid()) || !isFluidInputAllowed(fluid))
+            return 0;
+        if (mFluid != null && !mFluid.isFluidEqual(fluid)) return 0;
+        int accepted = (int) Math
+            .min(fluid.amount, Math.max(0L, (long) getCapacity() - (mFluid == null ? 0 : mFluid.amount)));
+        if (execute && accepted > 0) {
+            if (mFluid == null) {
+                mFluid = fluid.copy();
+                mFluid.amount = accepted;
+            } else mFluid.amount += accepted;
+            if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
+        }
+        return accepted;
+    }
 
     @Override
     public int fill(ForgeDirection side, FluidStack aFluid, boolean doFill) {

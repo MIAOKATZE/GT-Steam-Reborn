@@ -110,14 +110,19 @@ public class MTESingularityFluidInputCompartment extends MTEWaterHubInputHatch
     // ===== 容量（基量×容量档，屏蔽近亲 mController 视图）=====
 
     @Override
+    public long getMaximumFluidCapacity() {
+        return CAPACITY;
+    }
+
+    @Override
     public int getCapacity() {
         // S4 容量档：基量×百分比；下方自管 fill 的 space<=0 防御保证降档拒新入、超额温和保留
-        return (int) ((long) CAPACITY * getCapacityLimitPercent() / 100);
+        return (int) getEffectiveFluidCapacityLimit();
     }
 
     @Override
     public long getCapacityLong() {
-        return (long) CAPACITY * getCapacityLimitPercent() / 100;
+        return getEffectiveFluidCapacityLimit();
     }
 
     @Override

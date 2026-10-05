@@ -67,6 +67,8 @@ public final class CacheHubTerminalData {
     public static final int ACTION_TELEPORT = 5;
     /** 容量上限档循环（S4；发送类仓 no-op 由机器方法自持）（payload：pos） */
     public static final int ACTION_CYCLE_CAP = 6;
+    public static final int ACTION_SET_RATE = 7;
+    public static final int ACTION_SET_CAPACITY = 8;
 
     private CacheHubTerminalData() {}
 
@@ -124,7 +126,10 @@ public final class CacheHubTerminalData {
                     tag.getInteger("capPct"),
                     tag.getBoolean("out"),
                     tag.getBoolean("auto"),
-                    tag.getBoolean("modeLocked")));
+                    tag.getBoolean("modeLocked"),
+                    tag.getLong("actualRate"),
+                    tag.getLong("maxRate"),
+                    tag.getLong("maxCap")));
         }
         byte[] payload = new byte[buf.readableBytes()];
         buf.readBytes(payload);
@@ -148,7 +153,7 @@ public final class CacheHubTerminalData {
         if (uiType == TerminalUiType.WATER_HUB && !(mte instanceof MTEWaterHubArray)) {
             return;
         }
-        if (payload == null) {
+        if (!hub.canUseStatusAction(player) || payload == null) {
             return;
         }
         ByteBuf buf = Unpooled.wrappedBuffer(payload);
@@ -185,6 +190,14 @@ public final class CacheHubTerminalData {
             case ACTION_TELEPORT:
                 hub.teleportPlayerToNodeFromGui(player, x, y, z, dim);
                 break;
+            case ACTION_SET_RATE:
+                if (buf.readableBytes() != 8) return;
+                hub.setCacheNodeRateFromGui(x, y, z, dim, pb.readLong());
+                break;
+            case ACTION_SET_CAPACITY:
+                if (buf.readableBytes() != 8) return;
+                hub.setCacheNodeCapacityFromGui(x, y, z, dim, pb.readLong());
+                break;
             case ACTION_CYCLE_CAP:
                 hub.cycleCacheNodeCapFromGui(x, y, z, dim);
                 break;
@@ -211,6 +224,9 @@ public final class CacheHubTerminalData {
         pb.writeBoolean(info.out);
         pb.writeBoolean(info.auto);
         pb.writeBoolean(info.modeLocked);
+        pb.writeLong(info.actualRate);
+        pb.writeLong(info.maxRate);
+        pb.writeLong(info.maxCap);
     }
 
     /** 列表读取（与 {@link #write} 严格对称；客户端缓存用） */
@@ -229,7 +245,10 @@ public final class CacheHubTerminalData {
             pb.readInt(),
             pb.readBoolean(),
             pb.readBoolean(),
-            pb.readBoolean());
+            pb.readBoolean(),
+            pb.readLong(),
+            pb.readLong(),
+            pb.readLong());
     }
 
     /**
@@ -287,9 +306,19 @@ public final class CacheHubTerminalData {
         public final boolean auto;
         /** 输出模式锁定（奇点仓）；锁定时 GUI 模式按钮禁用。 */
         public final boolean modeLocked;
+        public final long actualRate, maxRate, maxCap;
 
         public CacheNodeInfo(int x, int y, int z, int dim, String type, String name, String fluid, long stored,
             long cap, int rate, int capPct, boolean out, boolean auto, boolean modeLocked) {
+            this(x, y, z, dim, type, name, fluid, stored, cap, rate, capPct, out, auto, modeLocked, 0, 0, 0);
+        }
+
+        public CacheNodeInfo(int x, int y, int z, int dim, String type, String name, String fluid, long stored,
+            long cap, int rate, int capPct, boolean out, boolean auto, boolean modeLocked, long actualRate,
+            long maxRate, long maxCap) {
+            this.actualRate = actualRate;
+            this.maxRate = maxRate;
+            this.maxCap = maxCap;
             this.x = x;
             this.y = y;
             this.z = z;

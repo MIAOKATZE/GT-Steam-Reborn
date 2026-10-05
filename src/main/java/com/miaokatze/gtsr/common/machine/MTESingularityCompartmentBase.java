@@ -89,6 +89,9 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
 
         /** 枢纽传输速率档百分比（默认 100；四仓均支持九档）。 */
         public int transferRatePercent = 100;
+        public long transferRate = -1;
+        public long capacityLimit = -1;
+        public String customName = "";
 
         // 客户端渲染副本（description packet 同步）：默认值=未绑定外观（收到包前可接受）
         public boolean clientBound = false;
@@ -121,15 +124,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
             GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.cache_node.need_bind_first"));
             return true;
         }
-        int percent = node.cycleTransferRatePercent();
-        String msg = StatCollector.translateToLocal("gtsr.cache_node.transfer_rate") + " "
-            + percent
-            + "% ("
-            + String.format("%,d", node.getEffectiveHubTransferRate())
-            + " "
-            + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s")
-            + ")";
-        GTUtility.sendChatToPlayer(aPlayer, msg);
+        com.miaokatze.gtsr.common.items.HubTerminal.openNodeEditor(aPlayer, gte);
         return true;
     }
 
@@ -196,6 +191,12 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
     }
 
     @Override
+    default boolean isBoundToHubAt(int x, int y, int z, int dim) {
+        HubCompartmentState s = getHubState();
+        return s.bound && s.hubX == x && s.hubY == y && s.hubZ == z && s.hubDim == dim;
+    }
+
+    @Override
     default boolean isBoundToHub() {
         return getHubState().bound;
     }
@@ -203,11 +204,50 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
     /** 奇点仓无自定义名机制（缓存节点 GUI 机制已随 S1 删除）。 */
     @Override
     default String getCustomName() {
-        return "";
+        return getHubState().customName;
     }
 
     @Override
-    default void setCustomName(String name) {}
+    default void setCustomName(String name) {
+        getHubState().customName = name == null ? "" : name;
+        markCompartmentDirty();
+    }
+
+    default void markCompartmentDirty() {
+        IGregTechTileEntity base = ((IMetaTileEntity) this).getBaseMetaTileEntity();
+        if (base != null) {
+            base.markDirty();
+            base.issueTileUpdate();
+        }
+    }
+
+    @Override
+    default long getMaximumHubTransferRate() {
+        return getBaseHubTransferRate();
+    }
+
+    @Override
+    default void setHubTransferRate(long value) {
+        HubCompartmentState s = getHubState();
+        s.transferRate = Math.max(0L, Math.min(value, getMaximumHubTransferRate()));
+        s.transferRatePercent = (int) (s.transferRate * 100 / getMaximumHubTransferRate());
+        markCompartmentDirty();
+    }
+
+    default long getEffectiveFluidCapacityLimit() {
+        HubCompartmentState s = getHubState();
+        return !supportsCapacityTier() ? getMaximumFluidCapacity()
+            : s.capacityLimit >= 0 ? s.capacityLimit : getMaximumFluidCapacity() * s.capacityLimitPercent / 100;
+    }
+
+    @Override
+    default void setFluidCapacityLimit(long value) {
+        if (!supportsCapacityTier()) return;
+        HubCompartmentState s = getHubState();
+        s.capacityLimit = Math.max(1L, Math.min(value, getMaximumFluidCapacity()));
+        s.capacityLimitPercent = (int) (s.capacityLimit * 100 / getMaximumFluidCapacity());
+        markCompartmentDirty();
+    }
 
     @Override
     default String getStoredFluidName() {
@@ -257,13 +297,15 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
             }
         }
         s.transferRatePercent = cycle[(currentIdx + 1) % cycle.length];
+        s.transferRate = -1;
         return s.transferRatePercent;
     }
 
     /** 仓固定基准速率按档位生效，使用 long 中间量防溢出。 */
     @Override
     default long getEffectiveHubTransferRate() {
-        return (long) getBaseHubTransferRate() * getTransferRatePercent() / 100;
+        return getHubState().transferRate >= 0 ? getHubState().transferRate
+            : (long) getBaseHubTransferRate() * getTransferRatePercent() / 100;
     }
 
     // ===== 容量上限档（S4，仅接收仓；发送仓罐只出不进、容量上限无意义）=====
@@ -297,6 +339,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
             }
         }
         s.capacityLimitPercent = cycle[(currentIdx + 1) % cycle.length];
+        s.capacityLimit = -1;
         return s.capacityLimitPercent;
     }
 
@@ -319,6 +362,11 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         HubCompartmentState s = getHubState();
         // 锁定状态持久化（子类语义恒定，写标记只为防御与外部工具可读）
         aNBT.setBoolean("gtsr.modeLocked", true);
+        aNBT.setLong("gtsr.transferRate", getEffectiveHubTransferRate());
+        if (supportsCapacityTier()) aNBT.setLong("gtsr.capacityLimit", getEffectiveFluidCapacityLimit());
+        NBTTagCompound display = new NBTTagCompound();
+        display.setString("Name", getCustomName());
+        aNBT.setTag("display", display);
         // S4 容量档（仅接收仓持久化；键名与缓存节点 mCapacityLimitPercent 对称）
         if (supportsCapacityTier()) aNBT.setInteger("mCapacityLimitPercent", s.capacityLimitPercent);
         aNBT.setInteger("mTransferRatePercent", s.transferRatePercent);
@@ -364,6 +412,14 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
             }
         }
         // 窗流体记忆名读回；旧档无键回退空串（窗回退族默认流体，存档兼容）
+        s.transferRate = aNBT.hasKey("gtsr.transferRate")
+            ? Math.max(0L, Math.min(aNBT.getLong("gtsr.transferRate"), getMaximumHubTransferRate()))
+            : -1;
+        s.capacityLimit = supportsCapacityTier() && aNBT.hasKey("gtsr.capacityLimit")
+            ? Math.max(1L, Math.min(aNBT.getLong("gtsr.capacityLimit"), getMaximumFluidCapacity()))
+            : -1;
+        s.customName = aNBT.getCompoundTag("display")
+            .getString("Name");
         s.memoryFluidName = aNBT.hasKey("gtsr.memoryFluid") ? aNBT.getString("gtsr.memoryFluid") : "";
         if (aNBT.hasKey("gtsr.hubPos")) {
             NBTTagCompound hubTag = aNBT.getCompoundTag("gtsr.hubPos");
@@ -396,6 +452,11 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
                 HubBindingUtil.createHubPosTag(s.hubX, s.hubY, s.hubZ, s.hubDim, s.hubType, !isOutputMode()));
         }
         aNBT.setBoolean("gtsr.modeLocked", true);
+        aNBT.setLong("gtsr.transferRate", getEffectiveHubTransferRate());
+        if (supportsCapacityTier()) aNBT.setLong("gtsr.capacityLimit", getEffectiveFluidCapacityLimit());
+        NBTTagCompound display = new NBTTagCompound();
+        display.setString("Name", getCustomName());
+        aNBT.setTag("display", display);
         // S4 容量档随掉落物保留（仅接收仓）
         if (supportsCapacityTier()) aNBT.setInteger("mCapacityLimitPercent", getHubState().capacityLimitPercent);
         aNBT.setInteger("mTransferRatePercent", getHubState().transferRatePercent);
@@ -409,6 +470,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
     /** getDescriptionData 增量：正面流体窗渲染状态（绑定 + 窗显示流体名——罐内流体或记忆流体）。 */
     default NBTTagCompound writeCompartmentDescriptionData(NBTTagCompound data) {
         HubCompartmentState s = getHubState();
+        data.setString("gtsr.customName", getCustomName());
         data.setBoolean("gtsr.bound", s.bound);
         data.setString("gtsr.fluid", getDisplayedWindowFluidName());
         return data;
@@ -417,6 +479,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
     /** onDescriptionPacket 增量：客户端渲染副本落地。 */
     default void readCompartmentDescriptionData(NBTTagCompound data) {
         HubCompartmentState s = getHubState();
+        s.customName = data.getString("gtsr.customName");
         s.clientBound = data.getBoolean("gtsr.bound");
         s.clientFluidName = data.getString("gtsr.fluid");
         IGregTechTileEntity base = ((IMetaTileEntity) this).getBaseMetaTileEntity();
@@ -435,6 +498,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
      */
     default void writeCompartmentToStream(ByteBuf buf) {
         HubCompartmentState s = getHubState();
+        ByteBufUtils.writeUTF8String(buf, getCustomName());
         buf.writeBoolean(s.bound);
         ByteBufUtils.writeUTF8String(buf, getDisplayedWindowFluidName());
     }
@@ -446,6 +510,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
      */
     default void readCompartmentFromStream(ByteBuf buf) {
         HubCompartmentState s = getHubState();
+        s.customName = ByteBufUtils.readUTF8String(buf);
         s.clientBound = buf.readBoolean();
         s.clientFluidName = ByteBufUtils.readUTF8String(buf);
     }

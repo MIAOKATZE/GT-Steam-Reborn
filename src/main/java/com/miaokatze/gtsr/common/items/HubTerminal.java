@@ -14,7 +14,6 @@ import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
-import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.util.GTUtility;
 
@@ -47,36 +46,20 @@ public class HubTerminal extends Item {
             GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.cache_node.need_bind_first"));
             return true;
         }
-        IMetaTileEntity meta = gte.getMetaTileEntity();
-        if (player.isSneaking()) {
-            if (!node.supportsCapacityTier()) {
-                GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.cache_node.capacity_locked"));
-                return true;
-            }
-            int percent = node.cycleCapacityLimitPercent();
-            GTUtility.sendChatToPlayer(
-                player,
-                StatCollector.translateToLocal("gtsr.cache_node.capacity_limit") + " "
-                    + percent
-                    + "% ("
-                    + String.format("%,d", node.getFluidCapacityLong())
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.shared.l")
-                    + ")");
-        } else {
-            int percent = node.cycleTransferRatePercent();
-            GTUtility.sendChatToPlayer(
-                player,
-                StatCollector.translateToLocal("gtsr.cache_node.transfer_rate") + " "
-                    + percent
-                    + "% ("
-                    + String.format("%,d", node.getEffectiveHubTransferRate())
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s")
-                    + ")");
-        }
-        if (meta != null && meta.getBaseMetaTileEntity() != null) meta.getBaseMetaTileEntity()
-            .issueTileUpdate();
+        openNodeEditor(player, gte);
+        return true;
+    }
+
+    public static boolean openNodeEditor(EntityPlayer player, IGregTechTileEntity base) {
+        if (!(player instanceof net.minecraft.entity.player.EntityPlayerMP serverPlayer)
+            || !com.miaokatze.gtsr.common.terminal.CacheNodeTerminalData.canUse(player, base)) return false;
+        com.miaokatze.gtsr.common.terminal.TerminalNet.sendOpen(
+            com.miaokatze.gtsr.common.terminal.TerminalUiType.CACHE_NODE,
+            serverPlayer,
+            base.getXCoord(),
+            base.getYCoord(),
+            base.getZCoord(),
+            0);
         return true;
     }
 

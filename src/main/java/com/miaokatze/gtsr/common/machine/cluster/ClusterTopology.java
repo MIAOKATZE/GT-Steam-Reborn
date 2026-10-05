@@ -2,7 +2,10 @@ package com.miaokatze.gtsr.common.machine.cluster;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 集群拓扑：段/垫/槽模型簿记 + GUI 快照数据源。
@@ -75,6 +78,10 @@ public final class ClusterTopology {
 
     /** 已收集的集群单元（保序：按结构扫描顺序即垫位出现顺序存放）。 */
     private final List<MTEClusterUnitBase> units = new ArrayList<>();
+    private final List<MTEClusterUnitBase> unitView = Collections.unmodifiableList(units);
+
+    // Only membership is cached; enabled/energy state must be tested live.
+    private final Map<Class<? extends MTEClusterUnitBase>, List<? extends MTEClusterUnitBase>> unitsByType = new HashMap<>();
 
     /** 槽位登记表：[segment][pad]，null = 未登记/空槽。 */
     private final SlotSnapshot[][] slots = new SlotSnapshot[MAX_SEGMENTS][PAD_COUNT];
@@ -100,6 +107,7 @@ public final class ClusterTopology {
     /** 清空单元清单与全部槽位登记，段数复位为 1、断裂记录复位为无（结构破坏/重检时由总控调用；单元侧 disconnect 通知归总控 rebuild 流程）。 */
     public void clear() {
         units.clear();
+        unitsByType.clear();
         for (SlotSnapshot[] row : slots) {
             Arrays.fill(row, null);
         }
@@ -117,6 +125,7 @@ public final class ClusterTopology {
         for (MTEClusterUnitBase existing : units) {
             if (existing == unit) return false;
         }
+        unitsByType.clear();
         return units.add(unit);
     }
 
@@ -189,9 +198,9 @@ public final class ClusterTopology {
         return brokenExtensionSegment;
     }
 
-    /** @return 单元列表的 live 视图（已 connect 的全部单元；调用方不得缓存引用，遍历期间禁止增删）。 */
+    /** @return 单元列表的只读 live 视图（已 connect 的全部单元；调用方不得缓存引用，遍历期间禁止增删）。 */
     public List<MTEClusterUnitBase> getUnits() {
-        return units;
+        return unitView;
     }
 
     /**
@@ -233,29 +242,31 @@ public final class ClusterTopology {
      * @return 该类型单元的数量
      */
     public int countUnits(Class<? extends MTEClusterUnitBase> type) {
-        int count = 0;
-        for (MTEClusterUnitBase unit : units) {
-            if (type.isInstance(unit)) count++;
-        }
-        return count;
+        return getUnitsOfType(type).size();
     }
 
-    /** @return 全部物流单元（每次调用新建列表，非 live 视图）。 */
+    /** Structural membership snapshot, reused until add/remove/clear; read-only and subclass-aware. */
+    @SuppressWarnings("unchecked")
+    public <T extends MTEClusterUnitBase> List<T> getUnitsOfType(Class<T> type) {
+        List<T> cached = (List<T>) unitsByType.get(type);
+        if (cached != null) return cached;
+        List<T> matches = new ArrayList<>();
+        for (MTEClusterUnitBase unit : units) {
+            if (type.isInstance(unit)) matches.add(type.cast(unit));
+        }
+        List<T> result = Collections.unmodifiableList(matches);
+        unitsByType.put(type, result);
+        return result;
+    }
+
+    /** @return 全部物流单元（只读分类快照，成员变更后重建）。 */
     public List<MTEBasicLogisticsUnit> getLogisticsUnits() {
-        List<MTEBasicLogisticsUnit> result = new ArrayList<>();
-        for (MTEClusterUnitBase unit : units) {
-            if (unit instanceof MTEBasicLogisticsUnit logistics) result.add(logistics);
-        }
-        return result;
+        return getUnitsOfType(MTEBasicLogisticsUnit.class);
     }
 
-    /** @return 全部增幅单元（每次调用新建列表，非 live 视图）。 */
+    /** @return 全部增幅单元（只读分类快照，成员变更后重建）。 */
     public List<MTEBasicAmplifierUnit> getBoosterUnits() {
-        List<MTEBasicAmplifierUnit> result = new ArrayList<>();
-        for (MTEClusterUnitBase unit : units) {
-            if (unit instanceof MTEBasicAmplifierUnit amplifier) result.add(amplifier);
-        }
-        return result;
+        return getUnitsOfType(MTEBasicAmplifierUnit.class);
     }
 
     /**
@@ -266,6 +277,7 @@ public final class ClusterTopology {
      */
     public boolean removeUnit(MTEClusterUnitBase unit) {
         boolean removed = units.removeIf(existing -> existing == unit);
+        if (removed) unitsByType.clear();
         for (int s = 0; s < MAX_SEGMENTS; s++) {
             for (int p = 0; p < PAD_COUNT; p++) {
                 if (slots[s][p] != null && slots[s][p].unit == unit) slots[s][p] = null;

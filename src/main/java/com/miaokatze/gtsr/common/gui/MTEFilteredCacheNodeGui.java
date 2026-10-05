@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.gui;
 import java.util.function.Predicate;
 
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidTankInfo;
 import net.minecraftforge.fluids.IFluidTank;
 
 import org.apache.logging.log4j.LogManager;
@@ -47,7 +48,38 @@ public class MTEFilteredCacheNodeGui extends MTEDigitalTankBaseGui<MTEFilteredCa
 
         // 重建 FluidSlotSyncHandler 以保留 setLockIfEmpty 回调，
         // 同时重新施加流体过滤，避免非目标流体通过拖动流体单元注入。
-        FluidSlotSyncHandler fluidSlotSH = new FluidSlotSyncHandler(fluidTank);
+        FluidSlotSyncHandler fluidSlotSH = new FluidSlotSyncHandler(new IFluidTank() {
+
+            @Override
+            public FluidStack getFluid() {
+                return machine.getFillableStack();
+            }
+
+            @Override
+            public int getFluidAmount() {
+                return machine.getFluidAmount();
+            }
+
+            @Override
+            public int getCapacity() {
+                return machine.getRealCapacity();
+            }
+
+            @Override
+            public FluidTankInfo getInfo() {
+                return new FluidTankInfo(getFluid(), getCapacity());
+            }
+
+            @Override
+            public int fill(FluidStack stack, boolean execute) {
+                return machine.fill(stack, execute);
+            }
+
+            @Override
+            public FluidStack drain(int amount, boolean execute) {
+                return machine.drain(amount, execute);
+            }
+        });
         fluidSlotSH.setChangeListener(machine::setLockIfEmpty);
         // [GT-compat] beta 兼容层（beta1/beta2/beta3）：正式版发布时移除本分支并切换至最新 API。
         // MUI2 2.3.70（beta-1）无 FluidSlotSyncHandler#filter（beta-2 2.3.79+ 引入）；

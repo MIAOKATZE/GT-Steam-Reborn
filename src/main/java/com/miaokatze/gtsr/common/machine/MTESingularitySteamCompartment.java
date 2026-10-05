@@ -107,10 +107,15 @@ public class MTESingularitySteamCompartment extends MTEHatchPressureSteamInput
     // ===== 容量与流体过滤 =====
 
     @Override
+    public long getMaximumFluidCapacity() {
+        return CAPACITY;
+    }
+
+    @Override
     public int getCapacity() {
         // 近亲构造链硬编码 512,000，此处覆写终值×容量档（S4）；继承的 MTEHatchPressureSteamInput.fill
         // 实时读本方法且自带负 space 防御（space<=0 拒绝入账）——降档即时拒新入，超额温和保留不销毁
-        return (int) ((long) CAPACITY * getCapacityLimitPercent() / 100);
+        return (int) getEffectiveFluidCapacityLimit();
     }
 
     @Override

@@ -54,6 +54,8 @@ public interface IHubCacheNode {
     /** 是否已绑定到枢纽（独立于 dim 字段，主世界 dim=0 不被误判为未绑定）。 */
     boolean isBoundToHub();
 
+    boolean isBoundToHubAt(int x, int y, int z, int dim);
+
     // ===== 状态 UI 列表与传输 =====
 
     /** 自定义名（无则空串；奇点仓无自定义名机制）。 */
@@ -78,6 +80,14 @@ public interface IHubCacheNode {
 
     /** 实际枢纽交互速率 L/s（节点=基础×百分比；奇点仓=固定常量）。 */
     long getEffectiveHubTransferRate();
+
+    long getMaximumHubTransferRate();
+
+    long getMaximumFluidCapacity();
+
+    void setHubTransferRate(long litresPerSecond);
+
+    void setFluidCapacityLimit(long litres);
 
     // ===== 容量上限档（S4）=====
 

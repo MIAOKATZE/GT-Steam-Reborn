@@ -85,6 +85,20 @@ public final class TerminalClientPacketSink {
         if (world == null || world.provider.dimensionId != msg.getDim()) {
             return; // dim 不匹配：静默忽略
         }
+        if (msg.getUiType() == TerminalUiType.CACHE_NODE) {
+            TileEntity nodeTile = world.getTileEntity(msg.getX(), msg.getY(), msg.getZ());
+            if (nodeTile instanceof IGregTechTileEntity base
+                && base.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.base.IHubCacheNode) {
+                Minecraft.getMinecraft()
+                    .displayGuiScreen(
+                        new com.miaokatze.gtsr.client.gui.terminal.GuiCacheNodeEditorScreen(
+                            msg.getX(),
+                            msg.getY(),
+                            msg.getZ(),
+                            msg.getDim()));
+            }
+            return;
+        }
         Class<? extends MetaTileEntity> target = TerminalClientPacketSink.resolveTargetMachineClass(msg.getUiType());
         if (target == null) {
             return; // 目标类映射未就位 / AGGREGATOR 不收 open 包：静默忽略
@@ -151,6 +165,7 @@ public final class TerminalClientPacketSink {
             case SINGULARITY_HUB:
             case STEAM_HUB:
             case WATER_HUB:
+            case CACHE_NODE:
                 if (!msg.isValid()) {
                     // 服务端复核失败（TE 失活/超 64 格/机器类不符）：清对应仓 + 自关（等价旧 canInteractWith）
                     HubTerminalClientCache.invalidate(msg);

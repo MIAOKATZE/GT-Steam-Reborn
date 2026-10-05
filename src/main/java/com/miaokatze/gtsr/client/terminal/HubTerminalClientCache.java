@@ -113,17 +113,18 @@ public final class HubTerminalClientCache {
                 return; // 迟到旧包：单调门控拒绝
             }
             drilling = new DrillingSnapshot(x, y, z, dim, version, nodes);
-        } else if (msg.getUiType() == TerminalUiType.STEAM_HUB || msg.getUiType() == TerminalUiType.WATER_HUB) {
-            List<CacheHubTerminalData.CacheNodeInfo> nodes = CacheHubTerminalData.readList(msg.getPayload());
-            if (nodes == null) {
-                return; // 解码失败：整包丢弃（保留旧快照，防撕裂）
+        } else if (msg.getUiType() == TerminalUiType.STEAM_HUB || msg.getUiType() == TerminalUiType.WATER_HUB
+            || msg.getUiType() == TerminalUiType.CACHE_NODE) {
+                List<CacheHubTerminalData.CacheNodeInfo> nodes = CacheHubTerminalData.readList(msg.getPayload());
+                if (nodes == null) {
+                    return; // 解码失败：整包丢弃（保留旧快照，防撕裂）
+                }
+                CacheSnapshot prev = cache;
+                if (prev != null && prev.matchesAnchor(x, y, z, dim) && version < prev.snapshotVersion) {
+                    return; // 迟到旧包：单调门控拒绝
+                }
+                cache = new CacheSnapshot(x, y, z, dim, version, nodes);
             }
-            CacheSnapshot prev = cache;
-            if (prev != null && prev.matchesAnchor(x, y, z, dim) && version < prev.snapshotVersion) {
-                return; // 迟到旧包：单调门控拒绝
-            }
-            cache = new CacheSnapshot(x, y, z, dim, version, nodes);
-        }
     }
 
     /**
@@ -140,12 +141,13 @@ public final class HubTerminalClientCache {
             if (prev != null && prev.matchesAnchor(x, y, z, dim)) {
                 drilling = null;
             }
-        } else if (msg.getUiType() == TerminalUiType.STEAM_HUB || msg.getUiType() == TerminalUiType.WATER_HUB) {
-            CacheSnapshot prev = cache;
-            if (prev != null && prev.matchesAnchor(x, y, z, dim)) {
-                cache = null;
+        } else if (msg.getUiType() == TerminalUiType.STEAM_HUB || msg.getUiType() == TerminalUiType.WATER_HUB
+            || msg.getUiType() == TerminalUiType.CACHE_NODE) {
+                CacheSnapshot prev = cache;
+                if (prev != null && prev.matchesAnchor(x, y, z, dim)) {
+                    cache = null;
+                }
             }
-        }
     }
 
     /** 动作 payload 构造（客户端统一入口）：pos（x,y,z,dim int×4） */

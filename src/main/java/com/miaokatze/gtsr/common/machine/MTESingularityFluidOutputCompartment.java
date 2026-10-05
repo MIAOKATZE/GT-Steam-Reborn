@@ -111,6 +111,11 @@ public class MTESingularityFluidOutputCompartment extends MTEWaterHubOutputHatch
     // ===== 容量/模式/外部输入阻断（固定终值，屏蔽近亲 mController 视图）=====
 
     @Override
+    public long getMaximumFluidCapacity() {
+        return CAPACITY;
+    }
+
+    @Override
     public int getCapacity() {
         return CAPACITY;
     }

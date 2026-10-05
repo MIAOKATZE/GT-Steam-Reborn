@@ -35,7 +35,10 @@ public enum TerminalUiType {
      * S2C open + 轮询 + 动作全走 {@code PacketOpenTerminalUi}/Request/Data/Action 四包，
      * 由机器 onRightclick 手持终端触发（MTEThermoChemicalDenseSteamGenerator）。
      */
-    TCDS;
+    TCDS,
+
+    /** Direct, nearby cache-node configuration. Appended protocol id. */
+    CACHE_NODE;
 
     /**
      * 线上 varint → 枚举的安全解析（未知 id 返回 null，调用方静默丢弃）。

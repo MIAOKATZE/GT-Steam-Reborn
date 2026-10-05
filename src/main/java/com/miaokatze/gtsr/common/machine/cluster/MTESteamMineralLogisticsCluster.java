@@ -1170,7 +1170,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * 13=物流（无分型，在槽即 13）；255=占位未识别（加工/增幅控制器在槽但未自成型或未连接本主控，
      * GUI「未运行，暂无法识别」，不得伪装空位）；</li>
      * <li>[1] tier：主控下发集群 tier 0-3，0xFF=未下发（-1）/空槽；</li>
-     * <li>[2] stateOrdinal：{@link ClusterUnitStatus} ordinal，0xFF=空槽（解码端现不读取，布局契约保留）；</li>
+     * <li>[2] stateOrdinal：保留字段恒为 0xFF（实时状态走 KEY_RUN；解码端不读取，布局契约保留）；</li>
      * <li>[3] errId（优先级 1&gt;2&gt;3，空槽恒 0）：1=模块冲突（lastModuleConflicts 命中本槽）；
      * 2=tier 不匹配（已连接且自身成型 tier 与主控下发 tier 不一致）；3=未关联集群（cluster 引用非
      * 本主控）；4=延伸断裂为结构级错误，走 KEY_BREAK 独立通道，本快照不编出；</li>
@@ -1198,8 +1198,8 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             out[o] = (byte) unitTypeId(unit);
             int tier = unit.getClusterTier();
             out[o + 1] = (byte) (tier < 0 || tier > 255 ? 0xFF : tier);
-            out[o + 2] = (byte) unit.getUnitStatus()
-                .ordinal();
+            // Reserved byte; runtime state comes from KEY_RUN, not this topology payload.
+            out[o + 2] = (byte) 0xFF;
             out[o + 3] = (byte) unitErrId(unit, conflictMarks[i]);
             out[o + 4] = (byte) logisticsLinkIndex(unit, logisticsUnits);
         }
