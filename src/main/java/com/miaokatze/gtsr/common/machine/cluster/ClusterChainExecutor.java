@@ -161,14 +161,19 @@ public final class ClusterChainExecutor {
         BoosterState booster = BoosterState.aggregate(topology.getBoosterUnits());
         int parallel = ExecutionPlan.effectiveParallel(tier, booster);
         List<InputTake> takes = new ArrayList<>();
-        unit.beginMEBusProcessing();
+        // T2③ ME 空批握手节流：节流期内不开窗（meOpened=false，普通总线取料照常、来料即时不受影响）；
+        // 开过窗且空批 → finally 关窗并武装节流（有消耗的窗口不武装，纯 ME 供料恢复延迟 ≤ 节流间隔）
+        boolean meOpened = unit.beginMEBusProcessingIfDue();
         int batch;
         try {
             batch = collectOreBatch(unit, parallel, takes);
         } finally {
-            if (takes.isEmpty()) unit.endMEBusProcessing(cluster);
+            if (meOpened && takes.isEmpty()) {
+                unit.endMEBusProcessing(cluster);
+                unit.armMeProbeThrottle();
+            }
         }
-        boolean meWindow = !takes.isEmpty();
+        boolean meWindow = meOpened && !takes.isEmpty();
         if (batch <= 0) return 0;
 
         // 5b) 队列模式闸（S1 新增）：queueMode 开启时要求收集输入中存在单种 item+meta 数量

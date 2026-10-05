@@ -225,6 +225,9 @@ public final class ClusterParams {
     /** 批失败短退避（tick）：流体/输出预检失败后武装，防卡住单元每 tick 全量重跑（GT5U P2 失败冷却范式）。 */
     public static final int BATCH_FAIL_BACKOFF_TICKS = 20;
 
+    /** ME 空批握手节流间隔（tick）：上次 ME 窗口空手而归后，下次空批探测握手最早重试间隔（T2③）。 */
+    public static final int ME_PROBE_INTERVAL_TICKS = 20;
+
     // ==================== GUI ====================
 
     /** 集群 GUI 宽度（像素）。 */

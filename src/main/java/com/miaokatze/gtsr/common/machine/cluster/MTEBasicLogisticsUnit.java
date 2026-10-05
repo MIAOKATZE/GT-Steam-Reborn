@@ -333,6 +333,41 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         }
     }
 
+    /**
+     * T2③：节流到期才开启 ME 窗口（空批握手门）：当前刻仍处 {@link #meProbeNotBeforeTick} 节流期内时
+     * 不开窗直接返回 false（省去每 ME 总线每次握手最多 16 槽 AE SIMULATE 全量查询）；否则等价
+     * {@link #beginMEBusProcessing()} 并返回 true。调用方以返回值承载"本次确实开过窗"，
+     * 与全部关闭点严格成对（未开窗的路径一律不得调 endMEBusProcessing）。
+     */
+    public boolean beginMEBusProcessingIfDue() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        long now = base == null ? 0L : base.getTimer();
+        if (now < meProbeNotBeforeTick) return false;
+        beginMEBusProcessing();
+        return true;
+    }
+
+    /**
+     * T2③：空窗退避武装——仅当存在 ME 输入总线时把 {@link #meProbeNotBeforeTick} 置为当前刻 +
+     * {@link ClusterParams#ME_PROBE_INTERVAL_TICKS}（无 ME 总线的集群字段恒 0、零行为变化）；
+     * 由 ClusterChainExecutor 在「开过窗且空批」的 finally 关窗后调用（有消耗的窗口不武装，
+     * ME 来料恢复延迟上界即本间隔；普通总线来料不经开窗节流、即时不受影响）。
+     */
+    public void armMeProbeThrottle() {
+        if (!hasMeInputBus()) return;
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        long now = base == null ? 0L : base.getTimer();
+        meProbeNotBeforeTick = now + ClusterParams.ME_PROBE_INTERVAL_TICKS;
+    }
+
+    /** T2③：是否存在 ME 输入总线（沿 begin/endMEBusProcessing 的 instanceof 遍历同口径）。 */
+    private boolean hasMeInputBus() {
+        for (MTEHatchInputBus bus : mInputBusses) {
+            if (bus instanceof MTEHatchInputBusME) return true;
+        }
+        return false;
+    }
+
     /** 本模块自身输出总线（GT 标准列表 live 视图；结构成型时 1..2 枚，A 位自由化计数校验）。 */
     public List<MTEHatchOutputBus> getLogisticsOutputBusses() {
         return mOutputBusses;
@@ -710,6 +745,13 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     public void setChainCooldownTicks(long ticks) {
         this.chainCooldownTicks = ticks;
     }
+
+    /**
+     * ME 空批握手节流门（T2③）：空窗退避武装（{@link #armMeProbeThrottle()}）写入的最早重开窗 tick，
+     * {@link #beginMEBusProcessingIfDue()} 据此拦截节流期内的握手。瞬态不落 NBT——读档丢失
+     * = 多探测一次，无害。
+     */
+    private long meProbeNotBeforeTick;
 
     // ------------------------------------------------------------------
     // Tooltip（v1.11.15）
