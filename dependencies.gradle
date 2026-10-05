@@ -34,18 +34,18 @@
  * For more details, see https://docs.gradle.org/8.0.1/userguide/java_library_plugin.html#sec:java_library_configuration_graph
  */
 dependencies {
-    // GT5-Unofficial 2.9.0 RC-1
-    api("com.github.GTNewHorizons:GT5-Unofficial:5.09.54.183") { transitive = false }
+    // GT5-Unofficial：GTNH 2.9.0 beta1-3 & RC1-2 基线
+    api("com.github.GTNewHorizons:GT5-Unofficial:5.09.54.205") { transitive = false }
 
     // [GT-compat] beta 兼容层（beta1/beta2/beta3）：MTEEnhancedMultiBlockBase#getCenter() 返回 org.joml.Vector3f，
     // beta-1/2 客户端同步垫片（MTEGTSRMultiBlockBase）需读该类型符号；compileOnly 不发布，运行时由 GT5U 环境提供。
     compileOnly("org.joml:joml:1.10.8")
 
-    // Dependencies aligned with GT5U 2.9.0 RC-1
-    api("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-1073-GTNH:dev") { transitive = false }
+    // Dependencies aligned with GTNH 2.9.0 beta1-3 & RC1-2 基线
+    api("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-1080-GTNH:dev") { transitive = false }
     api("com.github.GTNewHorizons:ModularUI:1.3.4:dev") { transitive = false }
-    api("com.github.GTNewHorizons:ModularUI2:2.3.91-1.7.10:dev") { transitive = false }
-    api("com.github.GTNewHorizons:GTNHLib:0.11.51:dev") { transitive = false }
+    api("com.github.GTNewHorizons:ModularUI2:2.3.92-1.7.10:dev") { transitive = false }
+    api("com.github.GTNewHorizons:GTNHLib:0.11.52:dev") { transitive = false }
 
     // StructureLib is required for multiblock machine structure definitions and building.
     api("com.github.GTNewHorizons:StructureLib:1.4.45:dev") { transitive = false }
@@ -64,7 +64,7 @@ dependencies {
     compileOnly("com.github.GTNewHorizons:Botania:1.13.36-GTNH:dev") { transitive = false }
 
     // Waila API：节点自定义名显示在 WAILA tooltip 头部（GTSRWailaCompat/GTSRNodeWailaProvider）。
-    // 版本对齐 GT5U 2.9.0 RC-1（RC-1 未变更 waila，仍取 1.19.34；API 面与 1.19.30 逐字节相同已核对）；运行时缺失 Waila 时 IMC 不激活，兼容层不生效。
+    // 版本对齐 GTNH 2.9.0 beta1-3 & RC1-2 基线（beta1-3 & RC1-2 未变更 waila，仍取 1.19.34；API 面与 1.19.30 逐字节相同已核对）；运行时缺失 Waila 时 IMC 不激活，兼容层不生效。
     compileOnly("com.github.GTNewHorizons:waila:1.19.34:dev") { transitive = false }
 
     // BetterQuesting：任务线运行时注入（crossmod/bq/BqQuestInjector，按 assets/gtsr/bqquests/index.json 清单装载）。

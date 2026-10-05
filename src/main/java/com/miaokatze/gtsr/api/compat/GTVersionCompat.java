@@ -21,12 +21,12 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.recipe.RecipeMap;
 
 /**
- * GT 版本兼容层：通过运行时探测 GT5U 版本号，实现 beta-1 / beta-2 / beta-3 的单代码库兼容。
+ * GT 版本兼容层：通过运行时探测 GT5U 版本号，实现 GTNH 2.9.0 beta1-3 & RC1-2 的单代码库兼容（三态判定，RC1-2 落 beta-3 态）。
  *
  * <p>
  * 背景：GTSR 原本需要维护两个分支——master 用 beta-2 的 GT5U (5.09.54.20) 编译，beta-1 分支用 beta-1 的 GT5U
  * (5.09.52.594) 编译。本兼容层通过运行时探测 GT5U 版本号，让单一代码库同时兼容多个版本，免去双分支维护负担；
- * 现扩展为三态（beta-3 = GT5U 5.09.54.133+，亦为当前编译目标）。
+ * 现扩展为三态（beta-3 = GT5U 5.09.54.133+，亦为当前编译目标；GTNH beta-3 / RC1 / RC2 的 GT5U 均落 beta-3 态）。
  * </p>
  *
  * <p>
@@ -86,7 +86,7 @@ public class GTVersionCompat {
         /** beta-2：GT5U 5.09.54.0 ~ 5.09.54.132（如 5.09.54.20）。 */
         BETA2,
 
-        /** beta-3：GT5U 5.09.54.133+ 或 PATCH &gt; 54（如 5.09.54.133），当前编译目标。 */
+        /** beta-3：GT5U 5.09.54.133+ 或 PATCH &gt; 54（当前编译目标 5.09.54.205），GTNH beta-3 / RC1-2 均落本态。 */
         BETA3
     }
 

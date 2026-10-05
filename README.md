@@ -8,7 +8,7 @@
   <a href="LICENSE"><img alt="License AGPL-3.0" src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg"></a>
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
-  <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0 beta-1&2&3" src="https://img.shields.io/badge/GTNH-2.9.0%20beta--1%262%263-orange.svg"></a>
+  <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0 beta1-3 & RC1-2" src="https://img.shields.io/badge/GTNH-2.9.0%20beta1--3%20%26%20RC1--2-orange.svg"></a>
   <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.20.26" src="https://img.shields.io/badge/Release-1.20.26-green.svg"></a>
 </p>
 
@@ -26,7 +26,7 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 
 | GTNH         | GTSR           | Maintenance / 维护 |
 | ------------ | -------------- | :--------------: |
-| 2.9.0 beta-1&2&3&RC1 | **1.20.0 +**（当前 / current） |        ✔️        |
+| 2.9.0 beta1-3 & RC1-2 | **1.20.0 +**（当前 / current） |        ✔️        |
 | 2.9.0 beta-1&2 | 1.7.31~1.11.37  |        ✔️        |
 | 2.9.0 beta-2 | 1.7.16~1.7.30  |        ✔️        |
 | 2.9.0 beta-1 | 1.7.1\~1.7.15  |        ✔️        |
