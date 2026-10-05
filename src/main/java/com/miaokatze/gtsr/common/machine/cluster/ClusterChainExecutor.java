@@ -202,7 +202,19 @@ public final class ClusterChainExecutor {
         BatchFluidLedger fluids = new BatchFluidLedger();
         EnumSet<ChainLink> processedLinks = EnumSet.noneOf(ChainLink.class);
         Map<Long, Long> bonusSink = new HashMap<>();
-        List<ItemStack> outputs = runChain(chain, mid, unit, fluids, booster, processedLinks, tier, bonusSink);
+        // T2⑤ 批内流体信号缓存：一次 executeBatch 一例，穿参至链加工两遍（峰探测 + 正式）的
+        // 配方流体信号解析——批内只读窗口零失效（论证见 BatchFluidSignalCache）
+        BatchFluidSignalCache fluidSignals = new BatchFluidSignalCache();
+        List<ItemStack> outputs = runChain(
+            chain,
+            mid,
+            unit,
+            fluids,
+            booster,
+            processedLinks,
+            tier,
+            bonusSink,
+            fluidSignals);
 
         // 7) 批流体预检（§3.6.5-3）：本批将处理物品的累计需求任一不足 → 整批零副作用
         if (!fluids.isSatisfiable(unit)) {
@@ -497,14 +509,25 @@ public final class ClusterChainExecutor {
      * @param processedLinks 实际命中配方的链步集合（调用方持有，EnumSet 去重；方法内只增不改他项）
      * @param tier           集群结构层级下标（r6-S6 粉碎副产物乘率的档位来源；调用方已保证 ≥0）
      * @param bonusSink      增幅额外产出累计表（S1-T10，可空；提交成功后由调用方回填主控统计）
+     * @param fluidSignals   批内流体信号缓存（T2⑤：一次 executeBatch 一例，蒸馏水可得性每批一次懒计算）
      * @return 合并后的最终产物列表（调用方负责写入输出总线）
      */
     private static List<ItemStack> runChain(LogisticsChain chain, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
         BatchFluidLedger fluids, BoosterState booster, EnumSet<ChainLink> processedLinks, int tier,
-        Map<Long, Long> bonusSink) {
-        int effectivePeak = resolveEffectivePeak(chain, mid, unit);
+        Map<Long, Long> bonusSink, BatchFluidSignalCache fluidSignals) {
+        int effectivePeak = resolveEffectivePeak(chain, mid, unit, fluidSignals);
         unit.setLastEffectivePeak(effectivePeak);
-        return runChainPass(chain, mid, unit, fluids, booster, processedLinks, tier, bonusSink, effectivePeak);
+        return runChainPass(
+            chain,
+            mid,
+            unit,
+            fluids,
+            booster,
+            processedLinks,
+            tier,
+            bonusSink,
+            effectivePeak,
+            fluidSignals);
     }
 
     /**
@@ -513,10 +536,11 @@ public final class ClusterChainExecutor {
      * （{@link #probeChainHits}）：真实配方查询、不 roll 不扣液——命中判定只看物品种类，
      * 与正式遍历的随机 roll 无关（概率副产物不参与探测流，主流=保底输出）。
      */
-    private static int resolveEffectivePeak(LogisticsChain chain, List<ItemStack> mid, MTEBasicLogisticsUnit unit) {
+    private static int resolveEffectivePeak(LogisticsChain chain, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
+        BatchFluidSignalCache fluidSignals) {
         List<ChainLink> links = chain.getLinks();
         boolean[] linkHit = new boolean[links.size()];
-        probeChainHits(links, mid, unit, linkHit);
+        probeChainHits(links, mid, unit, linkHit, fluidSignals);
         int configuredPeak = Math.max(0, Math.min(links.size() - 1, chain.getPeakIndex()));
         for (int i = configuredPeak; i < linkHit.length; i++) {
             if (linkHit[i]) return i;
@@ -534,7 +558,7 @@ public final class ClusterChainExecutor {
      * 物品种类主流一致，不产生 roll 随机、不扣液、不记账。尾步 {@link #compress} 合并保持口径一致。
      */
     private static void probeChainHits(List<ChainLink> links, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
-        boolean[] linkHit) {
+        boolean[] linkHit, BatchFluidSignalCache fluidSignals) {
         boolean seenReduction = false;
         List<ItemStack> current = mid;
         for (int i = 0; i < links.size(); i++) {
@@ -552,7 +576,7 @@ public final class ClusterChainExecutor {
                     output.add(stack);
                     continue;
                 }
-                GTRecipe recipe = findLinkRecipe(link, map, GTUtility.copyOrNull(stack), unit);
+                GTRecipe recipe = findLinkRecipe(link, map, GTUtility.copyOrNull(stack), unit, fluidSignals);
                 if (recipe != null) {
                     linkHit[i] = true;
                     for (int slot = 0; slot < recipe.mOutputs.length; slot++) {
@@ -575,7 +599,7 @@ public final class ClusterChainExecutor {
      */
     private static List<ItemStack> runChainPass(LogisticsChain chain, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
         BatchFluidLedger fluids, BoosterState booster, EnumSet<ChainLink> processedLinks, int tier,
-        Map<Long, Long> bonusSink, int effectivePeak) {
+        Map<Long, Long> bonusSink, int effectivePeak, BatchFluidSignalCache fluidSignals) {
         List<ChainLink> links = chain.getLinks();
         boolean seenReduction = false;
         for (int i = 0; i < links.size(); i++) {
@@ -594,7 +618,7 @@ public final class ClusterChainExecutor {
                     output.add(stack);
                     continue;
                 }
-                GTRecipe recipe = findLinkRecipe(link, map, GTUtility.copyOrNull(stack), unit);
+                GTRecipe recipe = findLinkRecipe(link, map, GTUtility.copyOrNull(stack), unit, fluidSignals);
                 if (recipe != null) {
                     processedLinks.add(link);
                     fluids.charge(link, recipe, stack.stackSize);
@@ -648,20 +672,43 @@ public final class ClusterChainExecutor {
     }
 
     /**
+     * 批内流体信号缓存（T2⑤）：把「每物品每遍 2 次跨仓探测」（峰探测遍 + 正式遍）的流体匹配信号
+     * 降为「每批一次懒计算」。<b>栈帧生命周期</b>：一次 {@code executeBatch} 一例，方法局部穿参、
+     * 无字段无 NBT 无失效逻辑。<b>零失效问题</b>（批内只读窗口论证，R2⑤）：{@link #findLinkRecipe}
+     * 的全部调用（探测遍与正式遍背靠背）均早于本批任何仓室写入（applyTakes 改输入总线、
+     * {@code fluids.consume} 改物流输入仓，都在 runChain 返回之后）——批内信号不可能变化。
+     */
+    private static final class BatchFluidSignalCache {
+
+        /**
+         * 蒸馏水跨仓可得性（null = 未算，首次判定后批内复用）。判据<b>同源搬移</b>自
+         * {@link #findLinkRecipe} ORE_WASH 分支原探测（同一 {@code GTModHandler.getDistilledWater(1)}
+         * 探针 + 同一 {@link GTSRHatchFluidAccess#hasEnoughAcross} 条件结构，方向不变）。
+         */
+        Boolean distilledAvailable;
+    }
+
+    /**
      * 各 link 查配方的流体匹配信号（§3.6.5 真实配方口径 + r6 S2 直结输入仓，仅匹配用；实扣走台账）：
      * ORE_WASH → 物流单元输入仓合计探得蒸馏水时先查蒸馏路径（蒸馏 MAX，命中即按配方 200mB 计），
      * 否则/未命中查普通水路径（水 MAX，命中按配方 1000mB 计）；SIMPLE_WASH → 普通水信号（仅用于配方查询，实扣按配方流体输入）
      * （IOF :489）；CHEM_BATH → 输入仓实际非水流体 MAX（IOF :503-506 按仓内实际流体的口径，
      * 跨仓取首个探得的非水流体的泛化版；仓内无任何非水流体 → 无信号，化浴配方必有流体输入
-     * → 必 miss 透传，不以「任意有液体」冒充）；其余 link 无流体信号。
+     * → 必 miss 透传，不以「任意有液体」冒充）；其余 link 无流体信号。ORE_WASH 的蒸馏水跨仓
+     * 可得性按批缓存（T2⑤ {@link BatchFluidSignalCache#distilledAvailable} 懒计算，判据同源搬移）。
      */
     private static GTRecipe findLinkRecipe(ChainLink link, RecipeMap<?> map, ItemStack stackCopy,
-        MTEBasicLogisticsUnit unit) {
+        MTEBasicLogisticsUnit unit, BatchFluidSignalCache fluidSignals) {
         switch (link) {
             case ORE_WASH: {
-                FluidStack distilledProbe = GTModHandler.getDistilledWater(1);
-                if (distilledProbe != null && distilledProbe.getFluid() != null
-                    && GTSRHatchFluidAccess.hasEnoughAcross(unit.getLogisticsInputHatches(), distilledProbe)) {
+                // T2⑤ 判据同源搬移为批内懒缓存：同一探针、同一条件结构、同一判定方向，
+                // 仅从「每物品每遍」提为「每批首次判定、后续复用」
+                if (fluidSignals.distilledAvailable == null) {
+                    FluidStack distilledProbe = GTModHandler.getDistilledWater(1);
+                    fluidSignals.distilledAvailable = distilledProbe != null && distilledProbe.getFluid() != null
+                        && GTSRHatchFluidAccess.hasEnoughAcross(unit.getLogisticsInputHatches(), distilledProbe);
+                }
+                if (fluidSignals.distilledAvailable) {
                     GTRecipe distilled = findRecipe(map, stackCopy, GTModHandler.getDistilledWater(Integer.MAX_VALUE));
                     if (distilled != null) return distilled;
                 }
