@@ -130,24 +130,27 @@ public final class ClusterChainExecutor {
         LogisticsChain chain = unit.getChain();
         if (chain == null || chain.isEmpty()) return 0;
 
-        // 1) 门控：主控开机 + 单元自身允许工作（成型/通电）+ 物理电源开（软锤关停即
+        // 1) 廉价门（O(1)，T2① 前置）：主控开机 + 单元自身允许工作（成型/通电）+ 物理电源开（软锤关停即
         // isPowerAllowed()=false 的单元在满热下不得执行批处理，口径同
-        // MTEBasicLogisticsUnit.isChainExecutableNow）+ 链可执行 + tier 有效
+        // MTEBasicLogisticsUnit.isChainExecutableNow）+ tier 有效。门控按 廉价→贵 排序：
+        // 各谓词零副作用，换序语义保持（返 0 条件集合不变）
         int tier = cluster.getStructureTierIndex();
         ClusterTopology topology = cluster.getTopology();
-        if (!cluster.isMachineEnabled() || !unit.isModuleEnabled()
-            || !unit.isPowerAllowed()
-            || !chain.isExecutable(topology)
-            || tier < 0) return 0;
+        if (!cluster.isMachineEnabled() || !unit.isModuleEnabled() || !unit.isPowerAllowed() || tier < 0) return 0;
 
-        // 2) 暂存产出未排空（r-logi-power-bind）：在飞产出/待排空产出仍占着输出预检结论，
+        // 2) 批冷却（O(1)；runChains 侧已预滤冷却>0 单元，此处防御性复核）：r6 S3 批冷却即
+        // 本批配方时间，由物流单元自身 onPostTick 逐刻递减，本方法不递减
+        if (unit.getChainCooldownTicks() > 0) return 0;
+
+        // 3) 暂存产出未排空（O(1)；r-logi-power-bind）：在飞产出/待排空产出仍占着输出预检结论，
         // 开新批会覆盖 stash 丢产出——拒绝开批（零副作用）
         if (unit.hasPendingOutputs()) return 0;
 
-        // 3) 配方时间未到（r6 S3：批冷却即本批配方时间，由物流单元自身 onPostTick 逐刻递减，本方法不递减）
-        if (unit.getChainCooldownTicks() > 0) return 0;
+        // 4) 链可执行（重谓词 O(L×2N)，最后付）：FSM 终态 + 逐链步 countUnits/hasEnabledUnit
+        // 全拓扑扫描——自原复合门拆出、后置于全部 O(1) 门
+        if (!chain.isExecutable(topology)) return 0;
 
-        // 4) 低温门控（§3.6.4 取料前，决策 2）：热量不满 → 直接返 0 零副作用——不取料/不加工/
+        // 5) 低温门控（§3.6.4 取料前，决策 2）：热量不满 → 直接返 0 零副作用——不取料/不加工/
         // 不输出/不扣批流体/不记吞吐/不停机（低温不再吞批，热量回满后自动恢复开批）
         if (batchHost.heatFraction() < 1.0) return 0;
 
