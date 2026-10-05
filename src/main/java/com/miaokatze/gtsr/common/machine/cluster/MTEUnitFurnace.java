@@ -14,7 +14,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
  * 工作单元：熔炉（能力闸门）。
  *
  * <p>
- * 仅声明解锁的 ChainLink（熔炼 FURNACE），自身零配方执行；配方匹配与执行由集群总控侧完成。
+ * 仅声明解锁的 ChainLink（熔炼 FURNACE / 熔炼仅主产 FURNACE_PRIMARY，T3 双链路），自身零配方执行；配方匹配与执行由集群总控侧完成。
  * 纹理、集群接线与流体缓冲等公共行为全部继承自 MTEBasicProcessingUnit/MTEClusterUnitBase；
  * overlay 取 GT5U 蒸汽熔炉前脸 inactive/active（同 GTSR 大型蒸汽熔炉 MTELargeSteamFurnace 绑定）。
  *
@@ -29,8 +29,8 @@ public class MTEUnitFurnace extends MTEBasicProcessingUnit {
     /** GUI 类型词条 key。 */
     private static final String TYPE_NAME_KEY = "gtsr.gui.cluster.unit_type.furnace";
 
-    /** 本单元解锁的链路：熔炼。 */
-    private static final ChainLink[] PROVIDED_LINKS = { ChainLink.FURNACE };
+    /** 本单元解锁的链路：熔炼（全部）/ 熔炼（仅主产）。 */
+    private static final ChainLink[] PROVIDED_LINKS = { ChainLink.FURNACE, ChainLink.FURNACE_PRIMARY };
 
     /** 注册用构造器。 */
     public MTEUnitFurnace(int aID, String aName, String aNameRegional) {
@@ -109,7 +109,11 @@ public class MTEUnitFurnace extends MTEBasicProcessingUnit {
         return "gtsr.tooltip.cluster.unit.furnace.desc";
     }
 
-    /** 功能群（v1.11.15）：熔炼链步「耗时 / 蒸汽消耗」行（数据源 {@link ChainLink#FURNACE}）。 */
+    /**
+     * 功能群（v1.11.15 + T3）：熔炼（全部）/（仅主产）两条链步的「耗时 / 蒸汽消耗」行——数值取自
+     * {@link ChainLink#FURNACE}/{@link ChainLink#FURNACE_PRIMARY} 基础表（{@code ChainLink} 唯一数值
+     * 来源，Java 侧 YELLOW 注入，lang 只放纯文本标签；双行先例 MTEUnitCrusher）。
+     */
     @Override
     protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
         super.addUnitTooltipInfo(tt);
@@ -117,6 +121,11 @@ public class MTEUnitFurnace extends MTEBasicProcessingUnit {
             EnumChatFormatting.YELLOW + String.format(
                 StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.furnace.func"),
                 linkSeconds(ChainLink.FURNACE),
-                linkSteam(ChainLink.FURNACE)));
+                linkSteam(ChainLink.FURNACE)))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.furnace.func_primary"),
+                    linkSeconds(ChainLink.FURNACE_PRIMARY),
+                    linkSteam(ChainLink.FURNACE_PRIMARY)));
     }
 }

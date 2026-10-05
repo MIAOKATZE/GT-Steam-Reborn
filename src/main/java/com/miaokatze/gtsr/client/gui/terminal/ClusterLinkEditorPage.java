@@ -429,7 +429,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
             case THERMOCENTRIFUGE -> "gtsr.gui.cluster.unit_type.thermal_centrifuge";
             case SIFTER -> "gtsr.gui.cluster.unit_type.sifter";
             case MAGNETIC_SEPARATOR -> "gtsr.gui.cluster.unit_type.magnetic_separator";
-            case FURNACE -> "gtsr.gui.cluster.unit_type.furnace";
+            case FURNACE, FURNACE_PRIMARY -> "gtsr.gui.cluster.unit_type.furnace";
         };
     }
 

@@ -12,7 +12,8 @@ import java.util.Map;
  * 结构性判定口径 = 配方网并集（GT 原版 + bartworks Werkstoff 双轨）：转换表取两轨配方网中
  * 「该链步对该前驱形态存在任一配方」的并集，只判定链的形状是否能走通到终态；
  * 运行时逐物品透传由执行器负责（查不到配方的物品原样进入下一步，见 IOF {@code processStep}），
- * 本类只做链形状判定，不做配方存在性判定。
+ * 本类只做链形状判定，不做配方存在性判定；FURNACE_PRIMARY（熔炼·仅主产）与 FURNACE 的「仅主产」
+ * 差异在执行器侧物品级主线集合门（R9），本表为其登记七形态→INGOT（DUST 键惰性，R9 B.5 引理 2）。
  * <p>
  * 终态 = {@link Form#DUST} 或 {@link Form#INGOT}（plan §5.3：有效链 = 推演终态属于二者）。
  */
@@ -135,6 +136,9 @@ public final class ClusterChainFSM {
      * <li>SIFTER：CRUSHED_PURIFIED→DUST
      * <li>MAGNETIC_SEPARATOR：DUST_PURE→DUST
      * <li>FURNACE：任意非 UNKNOWN 形态→INGOT
+     * <li>FURNACE_PRIMARY（熔炼·仅主产，R9 物品级动态主线）：ORE/CRUSHED/CRUSHED_PURIFIED/
+     * CRUSHED_CENTRIFUGED/DUST_IMPURE/DUST_PURE/DUST 七形态→INGOT（DUST→INGOT 为合法性惰性登记，R9
+     * B.5 引理 2；「仅主产」判定在执行器侧物品级集合门，本表只保链形状）
      * </ul>
      * 其余「链步 × 形态」组合不登记，由 {@link #next(Form, ChainLink)} 透传。
      */
@@ -184,6 +188,26 @@ public final class ClusterChainFSM {
                 Form.DUST,
                 Form.INGOT,
                 Form.INGOT,
+                Form.INGOT));
+        // 熔炼（仅主产·物品级动态主线，R9）：七形态→INGOT。DUST→INGOT 为合法性惰性登记（R9 B.5 引理 2，
+        // 与六形态行对一切链的合法性判定等价）；实际「仅主产」由执行器物品级主线集合门承担，FSM 只保链形状。
+        // 不与 FURNACE 共享内层实例（行内容不同源：FURNACE 行含 INGOT→INGOT，本行不含 INGOT 键）。
+        table.put(
+            ChainLink.FURNACE_PRIMARY,
+            rules(
+                Form.ORE,
+                Form.INGOT,
+                Form.CRUSHED,
+                Form.INGOT,
+                Form.CRUSHED_PURIFIED,
+                Form.INGOT,
+                Form.CRUSHED_CENTRIFUGED,
+                Form.INGOT,
+                Form.DUST_IMPURE,
+                Form.INGOT,
+                Form.DUST_PURE,
+                Form.INGOT,
+                Form.DUST,
                 Form.INGOT));
         return Collections.unmodifiableMap(table);
     }

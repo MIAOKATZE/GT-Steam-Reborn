@@ -52,7 +52,14 @@ public enum ChainLink {
     MAGNETIC_SEPARATOR(40, 100),
 
     /** 熔炼：将处理后的矿物熔为锭。 */
-    FURNACE(40, 2000);
+    FURNACE(40, 2000),
+
+    /**
+     * 熔炼（仅主产）：物品级动态主线（决策 b/b'，R9）——批开始沿链前缀逐步查配方推导「主线产物物品
+     * 集合」（每步取配方槽 0 主输出链），集合内物品能熔就熔（含粉尘形态主产），集合外副产不熔、
+     * 透传随批排出。只许枚举尾追（ordinal 序列化硬约束：插中段=旧存档静默错位）。
+     */
+    FURNACE_PRIMARY(40, 2000);
 
     /** tick 与秒换算基准（20t = 1s）。 */
     public static final int TICKS_PER_SECOND = 20;
@@ -139,6 +146,7 @@ public enum ChainLink {
             case MAGNETIC_SEPARATOR:
                 return MTEUnitMagneticSeparator.class;
             case FURNACE:
+            case FURNACE_PRIMARY:
                 return MTEUnitFurnace.class;
             default:
                 throw new AssertionError("未处理的链步: " + this);
@@ -169,6 +177,7 @@ public enum ChainLink {
             case MAGNETIC_SEPARATOR:
                 return RecipeMaps.electroMagneticSeparatorRecipes;
             case FURNACE:
+            case FURNACE_PRIMARY:
                 return RecipeMaps.furnaceRecipes;
             default:
                 throw new AssertionError("未处理的链步: " + this);
