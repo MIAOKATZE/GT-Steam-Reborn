@@ -228,6 +228,9 @@ public final class ClusterParams {
     /** ME 空批握手节流间隔（tick）：上次 ME 窗口空手而归后，下次空批探测握手最早重试间隔（T2③）。 */
     public static final int ME_PROBE_INTERVAL_TICKS = 20;
 
+    /** 暂存产出排空失败退避（tick）：输出满排空失败后武装，退避期内跳过逐组探测-实放重跑（T2④）。 */
+    public static final int DRAIN_RETRY_BACKOFF_TICKS = 20;
+
     // ==================== GUI ====================
 
     /** 集群 GUI 宽度（像素）。 */

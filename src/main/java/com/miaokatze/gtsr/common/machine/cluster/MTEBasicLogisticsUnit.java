@@ -462,8 +462,8 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     /**
-     * 终止在飞配方运行（主控断供中止 supplyAbort 调用）：进度与批冷却归零、暂存产出丢弃——
-     * 输入在开批时已整批扣料吞入，此处不回填输入总线（吞料语义）；处理窗口闩同步清零
+     * 终止在飞配方运行（主控断供中止 supplyAbort 调用）：进度、批冷却与排空退避归零、暂存产出
+     * 丢弃——输入在开批时已整批扣料吞入，此处不回填输入总线（吞料语义）；处理窗口闩同步清零
      * （工作态显示立即回 STANDBY）。对空闲单元调用为无害归零。
      */
     public void abortPendingRun() {
@@ -472,6 +472,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         chainCooldownTicks = 0;
         processingDisplayUntilTick = 0;
         pendingOutputs = null;
+        drainRetryDelayTicks = 0;
     }
 
     /**
@@ -481,7 +482,8 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
      * 单元侧自驱与主控解耦，关电收尾/断供边沿照减），随后持有暂存产出且进度已读零
      * （{@code mMaxProgresstime <= 0}，含关电/断供后基类 runMachine 不再推进的边界）时
      * 经 {@link ClusterChainExecutor#emitPendingOutputs} 排空——探测-实放-失败回滚整组原子；
-     * 输出总线满则保留暂存下 tick 重试（空转等排空，零消耗零丢料）。
+     * 输出总线满则保留暂存，按排空失败退避（T2④，
+     * {@link ClusterParams#DRAIN_RETRY_BACKOFF_TICKS} tick）重试（零消耗零丢料）。
      */
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
@@ -490,8 +492,13 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
             // 批冷却逐刻递减（v1.20.17 方案 C，瞬态字段幂等口径：仅 >0 时 -1）
             if (chainCooldownTicks > 0) chainCooldownTicks--;
             if (pendingOutputs != null && mMaxProgresstime <= 0) {
-                if (ClusterChainExecutor.emitPendingOutputs(this, pendingOutputs)) {
+                // 排空失败退避（T2④）：退避期内递减跳过；成功清暂存语义不变、失败保留暂存零丢料
+                if (drainRetryDelayTicks > 0) {
+                    drainRetryDelayTicks--;
+                } else if (ClusterChainExecutor.emitPendingOutputs(this, pendingOutputs)) {
                     pendingOutputs = null;
+                } else {
+                    drainRetryDelayTicks = ClusterParams.DRAIN_RETRY_BACKOFF_TICKS;
                 }
             }
         }
@@ -752,6 +759,15 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
      * = 多探测一次，无害。
      */
     private long meProbeNotBeforeTick;
+
+    /**
+     * 排空失败退避计数（T2④）：暂存产出排空失败（输出总线满）后武装为
+     * {@link ClusterParams#DRAIN_RETRY_BACKOFF_TICKS}，退避期内 {@link #onPostTick} 逐刻递减并
+     * 跳过排空重试，避免输出满期间每 tick 逐组探测-实放全量重跑。刻意独立于
+     * {@link #chainCooldownTicks}——排空发生在配方读零之后，混写会污染批冷却节拍语义（成功开批
+     * 覆写关系不可推理）。瞬态不落 NBT——读档丢失 = 多试一次排空，无害。
+     */
+    private int drainRetryDelayTicks;
 
     // ------------------------------------------------------------------
     // Tooltip（v1.11.15）
