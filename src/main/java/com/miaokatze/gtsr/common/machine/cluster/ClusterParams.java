@@ -222,6 +222,9 @@ public final class ClusterParams {
     /** 单元周期重连节流间隔（tick，NAC 范式）。 */
     public static final int RECONNECT_INTERVAL_TICKS = 20;
 
+    /** 批失败短退避（tick）：流体/输出预检失败后武装，防卡住单元每 tick 全量重跑（GT5U P2 失败冷却范式）。 */
+    public static final int BATCH_FAIL_BACKOFF_TICKS = 20;
+
     // ==================== GUI ====================
 
     /** 集群 GUI 宽度（像素）。 */

@@ -1115,6 +1115,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * O(1)/单元资格检查：冷却 &gt;0 即跳过，其余交 {@code ClusterChainExecutor.executeBatch}
      * 三参批执行（本类即 ClusterBatchHost）——执行器自带门控（暂存未排空/低温/取料不足/链不可
      * 执行等零副作用返 0），资格不满足时零开销级返回。
+     * 流体/输出预检失败的短退避（S5/T2②）同样经 chainCooldownTicks 生效——本处冷却跳过即退避跳过。
      *
      * @return 本 tick 是否至少一条链实际执行成功
      */

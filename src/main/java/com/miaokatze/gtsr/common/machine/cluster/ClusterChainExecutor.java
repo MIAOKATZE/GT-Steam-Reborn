@@ -202,6 +202,7 @@ public final class ClusterChainExecutor {
         // 7) 批流体预检（§3.6.5-3）：本批将处理物品的累计需求任一不足 → 整批零副作用
         if (!fluids.isSatisfiable(unit)) {
             if (meWindow) unit.endMEBusProcessing(cluster);
+            unit.setChainCooldownTicks(ClusterParams.BATCH_FAIL_BACKOFF_TICKS);
             return 0;
         }
 
@@ -212,6 +213,7 @@ public final class ClusterChainExecutor {
         List<OutputLedger> probeLedger = tryEmitOutputs(unit, outputs, false);
         if (probeLedger == null) {
             if (meWindow) unit.endMEBusProcessing(cluster);
+            unit.setChainCooldownTicks(ClusterParams.BATCH_FAIL_BACKOFF_TICKS);
             return 0;
         }
         rollbackOutputs(probeLedger);

@@ -689,12 +689,15 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     // ------------------------------------------------------------------
 
     /**
-     * 本批配方时间剩余 tick：每批执行后由 ClusterChainExecutor 置为本批"配方时间"（tick，
-     * ExecutionPlan 时间口径向上取整且至少 1 tick），服务端 {@link #onPostTick} 每刻 &gt;0 时
+     * 下次可尝试开批剩余 tick：成功开批时由 ClusterChainExecutor 覆写为本批"配方时间"（tick，
+     * ExecutionPlan 时间口径向上取整且至少 1 tick，覆写点不变）；流体/输出批预检失败时武装为
+     * 固定短退避（ClusterParams.BATCH_FAIL_BACKOFF_TICKS，T2②）。递减/清零机制不变：服务端
+     * {@link #onPostTick} 每刻 &gt;0 时
      * -1（v1.20.17 方案 C：与虚拟配方进度同速，恰于"批提交后第 R 刻"=配方完成刻归零——主控
      * 每刻 runChains 资格检查即可无缝衔接下一批，批周期 = 配方时间整、批间零空转；主控 20t
      * 结算递减退役，关电收尾/断供边沿照减）。该值同时是 {@link #onBatchProcessed(int)} 虚拟
-     * 空配方的总时长与处理窗口基准。瞬态不持久化——重载/重摆后从零开始（节拍器语义，非玩家资产）。
+     * 空配方的总时长与处理窗口基准（该方法仅在成功覆写之后被调，不会读到退避值）。瞬态不
+     * 持久化——重载/重摆后从零开始（节拍器语义，非玩家资产）。
      */
     private long chainCooldownTicks;
 
