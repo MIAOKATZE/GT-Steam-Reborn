@@ -68,6 +68,8 @@ public final class RemasterBlocks {
 
     public static void registerBlocks() {
         if (!REGISTRY.isEmpty()) return;
+        register(new FictionPedestalBlock(false));
+        register(new FictionPedestalBlock(true));
         register(block7());
         register(block8());
         register(block11());

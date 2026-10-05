@@ -45,6 +45,76 @@ public final class FictionCinematic {
         return result;
     }
 
+    /** Deposits are server-authoritative, consume exactly one, and remain in the world ledger. */
+    public static boolean deposit(EntityPlayer player,
+        com.miaokatze.gtsr.common.dimension.prosperity.remaster.TileRemasterNode tile,
+        com.google.gson.JsonObject node) {
+        if (!server(player.worldObj) || !(player instanceof EntityPlayerMP)
+            || player instanceof FakePlayer
+            || !player.isEntityAlive()
+            || tile.getWorldObj() != player.worldObj
+            || player.getDistanceSq(tile.xCoord + .5, tile.yCoord + .5, tile.zCoord + .5) > 64
+            || RemasterRuntime.node(tile) == null
+            || !tile.nodeId.startsWith("witness-")) return false;
+        node = RemasterRuntime.node(tile);
+        RemasterSite owner = RemasterData.get(player.worldObj)
+            .site(tile.siteId);
+        if (owner == null || !"fiction_expansion_project".equals(owner.prefab)) return false;
+        String relic = RemasterRuntime.string(node, "relicId", "");
+        if (!java.util.Arrays.asList(REQUIRED)
+            .contains(relic)) return false;
+        RemasterData data = RemasterData.get(player.worldObj);
+        if (data.flag(tile.siteId, "witness:" + tile.nodeId)) {
+            player.addChatMessage(new ChatComponentTranslation("gtsr.fiction.pedestal_filled"));
+            return true;
+        }
+        net.minecraft.item.ItemStack held = player.getHeldItem();
+        if (held == null || held.stackSize <= 0 || held.getItem() != LoreRegistry.RELICS.get(relic)) {
+            requirement(player, relic, "gtsr.fiction.pedestal_requires");
+            return true;
+        }
+        HistoryProgress.verifyFictionRelic(player, relic);
+        if (!HistoryProgress.hasRelicEvidence(player, relic)) return false;
+        // No removable inventory or reward exists: the stored copy is proof of the one consumed offering.
+        net.minecraft.nbt.NBTTagCompound offering = new net.minecraft.nbt.NBTTagCompound();
+        net.minecraft.item.ItemStack deposited = held.copy();
+        deposited.stackSize = 1;
+        deposited.writeToNBT(offering);
+        data.state(tile.siteId)
+            .setTag("offering:" + tile.nodeId, offering);
+        data.flag(tile.siteId, "witness:" + tile.nodeId, true);
+        held.stackSize--;
+        if (held.stackSize == 0) player.inventory.setInventorySlotContents(player.inventory.currentItem, null);
+        player.inventory.markDirty();
+        ((EntityPlayerMP) player).inventoryContainer.detectAndSendChanges();
+        tile.refresh();
+        player.addChatMessage(new ChatComponentTranslation("gtsr.fiction.pedestal_deposited"));
+        return true;
+    }
+
+    private static void requirement(EntityPlayer player, String relic, String key) {
+        ProsperityAchievements.Definition definition = ProsperityAchievements.CATALOG.get("relic." + relic);
+        String source = definition == null ? "unknown" : definition.source;
+        player.addChatMessage(
+            new ChatComponentTranslation(
+                key,
+                new ChatComponentTranslation("item.prosperity." + relic + ".name"),
+                new ChatComponentTranslation("lore.entry.structures." + source + ".title")));
+    }
+
+    public static List<String> missingPedestals(World world, RemasterSite site) {
+        List<String> missing = new ArrayList<>();
+        RemasterData data = RemasterData.get(world);
+        for (int i = 0; i < REQUIRED.length; i++)
+            if (!data.flag(site.id(), "witness:witness-" + i)) missing.add(REQUIRED[i]);
+        return missing;
+    }
+
+    /** Prefab maxY is a local coordinate, not an extent; site.y is its persisted world anchor. */
+    public static int demonstrationY(RemasterSite site) {
+        return site.y + site.plan().max[1] + 20;
+    }
+
     /** Runtime must first prove the real generated reading tile and persist its story-read flag. */
     public static boolean read(EntityPlayerMP player, RemasterSite site, String nodeId) {
         if (site == null || !"fiction_expansion_project".equals(site.prefab)
@@ -70,7 +140,7 @@ public final class FictionCinematic {
             if (timeline.sites.containsKey(site.id())) return false;
             for (NBTTagCompound prior : timeline.sites.values()) if (!prior.getBoolean("complete")) return false;
         }
-        List<String> missing = missing(player);
+        List<String> missing = timeline.worldCompleted() ? missing(player) : missingPedestals(world, site);
         if (!missing.isEmpty() || !HistoryProgress.hasSceneStage(player, site.id(), "read:core-story-reading")) {
             player.addChatMessage(
                 new ChatComponentTranslation("gtsr.fiction.requirements", 15 - missing.size())
@@ -100,7 +170,7 @@ public final class FictionCinematic {
         record.setLong("start", world.getTotalWorldTime());
         record.setLong("startWall", System.currentTimeMillis());
         record.setInteger("x", center[0]);
-        record.setInteger("y", center[1] + 1);
+        record.setInteger("y", demonstrationY(site));
         record.setInteger("z", center[2]);
         record.setString(
             "reader",
@@ -164,7 +234,8 @@ public final class FictionCinematic {
             }
             phase = FictionTimeline.phase(elapsed);
             int x = record.getInteger("x"), y = record.getInteger("y"), z = record.getInteger("z");
-            if (world.blockExists(x, y, z)) {
+            if (world.getChunkProvider()
+                .chunkExists(x >> 4, z >> 4)) {
                 if (echo == null) {
                     echo = new EntityOldEcho(world);
                     echo.initializeEcho(EchoKind.DO02, id, x + .5, y, z + .5, false);

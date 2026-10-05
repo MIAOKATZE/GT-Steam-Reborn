@@ -97,30 +97,86 @@ public final class FutureStructurePlanner {
         return search;
     }
 
+    private static final class Candidate {
+
+        final String id;
+        final int x, z;
+        final long rank;
+
+        Candidate(String id, int x, int z, long rank) {
+            this.id = id;
+            this.x = x;
+            this.z = z;
+            this.rank = rank;
+        }
+
+        RemasterSite footprint(long seed) {
+            return new RemasterSite(id, 0, seed, x, 0, z, "natural-prefab");
+        }
+    }
+
+    /** Independent global category lattices: parent cells are only cache/lookup ownership. */
+    private static List<Candidate> candidates(long seed, int gx, int gz, int margin) {
+        List<Candidate> result = new ArrayList<>();
+        for (String category : new String[] { "medium", "small", "ruin" }) {
+            int spacing = "medium".equals(category) ? 384 : 160;
+            long salt = "medium".equals(category) ? 0x4D454449554D3832L
+                : "small".equals(category) ? 0x534D414C4C38324CL : 0x5255494E5338324CL;
+            int minX = gx * 2048 - margin, maxX = (gx + 1) * 2048 - 1 + margin;
+            int minZ = gz * 2048 - margin, maxZ = (gz + 1) * 2048 - 1 + margin;
+            for (int ix = Math.floorDiv(minX, spacing); ix <= Math.floorDiv(maxX, spacing); ix++)
+                for (int iz = Math.floorDiv(minZ, spacing); iz <= Math.floorDiv(maxZ, spacing); iz++) {
+                    long h = GTSRWorldgenHash.cellSeed(seed, ix, iz, salt);
+                    int cx = ix * spacing + spacing / 2 + (int) Math.floorMod(h >>> 8, spacing / 3) - spacing / 6;
+                    int cz = iz * spacing + spacing / 2 + (int) Math.floorMod(h >>> 32, spacing / 3) - spacing / 6;
+                    if (cx < minX || cx > maxX || cz < minZ || cz > maxZ || Math.floorMod(h, 100) >= 90) continue;
+                    int roster = ProsperityTerrainProfile.chainRosterIndexAt(seed, cx >> 2, cz >> 2);
+                    List<String> pool = POOLS.get(category + ":" + (roster >= 0 && roster < 4 ? roster : -1));
+                    if (pool == null || pool.isEmpty()) continue;
+                    String id = pool.get((int) Math.floorMod(h >>> 16, pool.size()));
+                    JsonArray size = RemasterCatalog.descriptor(id, 0)
+                        .getAsJsonArray("nominal");
+                    result.add(
+                        new Candidate(
+                            id,
+                            cx - size.get(0)
+                                .getAsInt() / 2,
+                            cz - size.get(2)
+                                .getAsInt() / 2,
+                            h));
+                }
+        }
+        return result;
+    }
+
     public static final class CellSearch {
 
-        private final long seed, base;
+        private final long seed;
+        private final String key;
         private final int gx, gz;
-        private final String key, target, targetCategory;
+        private final List<Candidate> nearby, owned = new ArrayList<>();
         private final List<RemasterSite> sites = new ArrayList<>();
         private volatile List<RemasterSite> result;
-        private int slot, attempt;
+        private int slot;
         private CompactSceneTerrain.CellSearch compact;
 
         private CellSearch(long seed, int gx, int gz, String target) {
-            this.target = target;
-            targetCategory = target == null ? null
-                : RemasterCatalog.descriptor(target, 0)
-                    .getAsJsonObject("placement")
-                    .getAsJsonObject("futurePlacement")
-                    .get("category")
-                    .getAsString();
             this.seed = seed;
             this.gx = gx;
             this.gz = gz;
-            key = seed + ":" + gx + ":" + gz + (target == null ? "" : ":" + target);
-            base = GTSRWorldgenHash.cellSeed(seed, gx, gz, 0x4655545552453732L);
+            // Full planning is authoritative for target cursors as well: all overlap competitors remain present.
+            key = seed + ":" + gx + ":" + gz;
             result = CACHE.get(key);
+            nearby = result == null ? candidates(seed, gx, gz, 256) : Collections.emptyList();
+            for (Candidate c : nearby) {
+                JsonArray size = RemasterCatalog.descriptor(c.id, 0)
+                    .getAsJsonArray("nominal");
+                int cx = c.x + size.get(0)
+                    .getAsInt() / 2, cz = c.z
+                        + size.get(2)
+                            .getAsInt() / 2;
+                if (Math.floorDiv(cx, 2048) == gx && Math.floorDiv(cz, 2048) == gz) owned.add(c);
+            }
         }
 
         public boolean done() {
@@ -131,90 +187,50 @@ public final class FutureStructurePlanner {
             return result;
         }
 
-        private String choice(long h, int currentSlot, int currentAttempt, String category) {
-            long a = GTSRWorldgenHash.splitmix64(h + currentAttempt * 0x632BE59BD9B4E019L);
-            int x = gx * 2048 + (currentSlot % 4) * 512 + 128 + (int) Math.floorMod(a >>> 8, 256);
-            int z = gz * 2048 + (currentSlot / 4) * 512 + 128 + (int) Math.floorMod(a >>> 32, 256);
-            int roster = ProsperityTerrainProfile.chainRosterIndexAt(seed, x >> 2, z >> 2);
-            List<String> candidates = POOLS.get(category + ":" + (roster >= 0 && roster < 4 ? roster : -1));
-            return candidates == null || candidates.isEmpty() ? null
-                : candidates.get((int) Math.floorMod(a >>> 16, candidates.size()));
-        }
-
         public void step() {
             synchronized (FutureStructurePlanner.class) {
                 if (done()) return;
-                if (slot == 16) {
+                if (compact == null) compact = CompactSceneTerrain.beginCell(seed, gx, gz);
+                if (!compact.done()) {
+                    compact.step();
+                    return;
+                }
+                if (slot == owned.size()) {
                     result = Collections.unmodifiableList(sites);
                     CACHE.put(key, result);
-                    if (IN_PROGRESS.get(key) == this) IN_PROGRESS.remove(key);
+                    IN_PROGRESS.values()
+                        .removeIf(search -> search == this);
                     return;
                 }
-                int currentSlot = slot, currentAttempt = attempt;
-                long h = GTSRWorldgenHash.splitmix64(base + slot * 0x9E3779B97F4A7C15L);
-                int roll = (int) Math.floorMod(h, 100);
-                if (roll >= 75) {
-                    slot++;
-                    attempt = 0;
-                    return;
+                Candidate c = owned.get(slot++);
+                RemasterSite footprint = c.footprint(seed);
+                // Compare seed-only footprints before terrain admission. This stable priority also works across parent
+                // boundaries.
+                for (Candidate other : nearby) if (other != c && Long.compareUnsigned(other.rank, c.rank) < 0) {
+                    RemasterSite o = other.footprint(seed);
+                    if (footprint.overlaps(o.minX(), o.minZ(), o.maxX(), o.maxZ(), 12)) return;
                 }
-                String category = roll == 0 ? "expansion" : roll < 16 ? "medium" : roll < 43 ? "small" : "ruin";
-                if (target != null && !category.equals(targetCategory)) {
-                    slot++;
-                    attempt = 0;
-                    return;
-                }
-                long a = GTSRWorldgenHash.splitmix64(h + currentAttempt * 0x632BE59BD9B4E019L);
-                int centerX = gx * 2048 + (currentSlot % 4) * 512 + 128 + (int) Math.floorMod(a >>> 8, 256);
-                int centerZ = gz * 2048 + (currentSlot / 4) * 512 + 128 + (int) Math.floorMod(a >>> 32, 256);
-                if (target != null && currentAttempt == 0) {
-                    boolean possible = false;
-                    for (int i = 0; i < 6; i++) if (target.equals(choice(h, currentSlot, i, category))) {
-                        possible = true;
-                        break;
-                    }
-                    if (!possible) {
-                        slot = currentSlot + 1;
-                        attempt = 0;
-                        return;
-                    }
-                }
-                String id = choice(h, currentSlot, currentAttempt, category);
-                if (id != null && target != null) {
-                    if (compact == null) compact = CompactSceneTerrain.beginCell(seed, gx, gz);
-                    if (!compact.done()) {
-                        compact.step();
-                        return;
-                    }
-                }
-                if (++attempt == 6) {
-                    slot++;
-                    attempt = 0;
-                }
-                if (id == null) return;
-                JsonObject d = RemasterCatalog.descriptor(id, 0), p = d.getAsJsonObject("placement")
+                JsonObject d = RemasterCatalog.descriptor(c.id, 0), placement = d.getAsJsonObject("placement")
                     .getAsJsonObject("futurePlacement");
-                JsonArray size = d.getAsJsonArray("nominal"), entry = p.getAsJsonArray("entrance");
-                int x = centerX - size.get(0)
-                    .getAsInt() / 2, z = centerZ
-                        - size.get(2)
-                            .getAsInt() / 2;
-                int ex = x + entry.get(0)
-                    .getAsInt(), ez = z
+                JsonArray entry = placement.getAsJsonArray("entrance");
+                int ex = c.x + entry.get(0)
+                    .getAsInt(), ez = c.z
                         + entry.get(2)
                             .getAsInt();
                 int floor = ProsperityTerrainProfile.heightAt(seed, ex, ez), y = floor - entry.get(1)
                     .getAsInt();
                 if (y < 8 || y + d.get("yMax")
                     .getAsInt() > 250) return;
-                RemasterSite s = new RemasterSite(id, 0, seed, x, y, z, "natural-prefab");
-                boolean occupied = false;
-                for (CompactSceneTerrain.Branch b : CompactSceneTerrain.cell(seed, gx, gz))
-                    if (s.overlaps(b.centerX - 96, b.centerZ - 96, b.centerX + 96, b.centerZ + 96, 24)) occupied = true;
-                if (occupied || !admit(seed, s, floor, ex, ez)) return;
-                sites.add(s);
-                slot = currentSlot + 1;
-                attempt = 0;
+                RemasterSite site = new RemasterSite(c.id, 0, seed, c.x, y, c.z, "natural-prefab");
+                for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++)
+                    for (CompactSceneTerrain.Branch branch : CompactSceneTerrain.cell(seed, gx + dx, gz + dz))
+                        if (site.overlaps(
+                            branch.centerX - 96,
+                            branch.centerZ - 96,
+                            branch.centerX + 96,
+                            branch.centerZ + 96,
+                            24)) return;
+                if (admit(seed, site, floor, ex, ez)) sites.add(site);
             }
         }
     }

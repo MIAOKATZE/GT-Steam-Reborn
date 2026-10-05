@@ -35,6 +35,11 @@ public class ClientProxy extends CommonProxy {
         com.miaokatze.gtsr.client.architecture.RuinsArchitectureRenderer.registerRenderer();
         com.miaokatze.gtsr.client.architecture.RemasterBlockRenderer.registerRenderer();
         com.miaokatze.gtsr.client.architecture.RemasterSpawnerRenderer.registerRenderer();
+        com.miaokatze.gtsr.client.lore.FictionSky fictionSky = new com.miaokatze.gtsr.client.lore.FictionSky();
+        MinecraftForge.EVENT_BUS.register(fictionSky);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(fictionSky);
         com.miaokatze.gtsr.client.encounter.EncounterClient.register();
         com.miaokatze.gtsr.client.echo.CombatEffectsClient.register();
 

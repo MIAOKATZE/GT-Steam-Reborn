@@ -22,6 +22,12 @@ public class WorldProviderProsperityRuins extends GTSRWorldProviderBase {
 
     @Override
     public Vec3 getFogColor(float partialTicks, float renderPass) {
+        if (worldObj.isRemote) {
+            Vec3 cinematic = com.miaokatze.gtsr.client.lore.FictionSky.color(worldObj);
+            if (cinematic != null) return cinematic;
+            if (com.miaokatze.gtsr.client.lore.FictionSky.restored(worldObj))
+                return new net.minecraft.world.WorldProviderSurface().getFogColor(partialTicks, renderPass);
+        }
         return Vec3.createVectorHelper(FOG_R, FOG_G, FOG_B);
     }
 
@@ -30,6 +36,8 @@ public class WorldProviderProsperityRuins extends GTSRWorldProviderBase {
         if (worldObj.isRemote) {
             Vec3 cinematic = com.miaokatze.gtsr.client.lore.FictionSky.color(worldObj);
             if (cinematic != null) return cinematic;
+            if (com.miaokatze.gtsr.client.lore.FictionSky.restored(worldObj))
+                return worldObj.getSkyColorBody(cameraEntity, partialTicks);
         }
         return Vec3.createVectorHelper(SKY_R, SKY_G, SKY_B);
     }

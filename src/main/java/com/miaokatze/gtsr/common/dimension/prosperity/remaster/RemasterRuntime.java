@@ -172,7 +172,13 @@ public final class RemasterRuntime {
             && (authored == null || !authored.hasTileEntity(meta(block)))) {
             block = "gtsr:draft_pressure_console#0";
         }
-        if (role.equals("chest")) block = "gtsr:SealedChest#2";
+        if (role.equals("chest"))
+            block = "gtsr:SealedChest#" + RemasterFacing.nodeMeta(s, n, meta(material(s.plan(), x, y, z)));
+        if ("fiction_expansion_project".equals(s.prefab)) {
+            if (string(n, "id", "").startsWith("witness-") && n.has("relicId"))
+                block = "gtsr:fiction_witness_pedestal#0";
+            else if ("core-story-reading".equals(string(n, "id", ""))) block = "gtsr:fiction_starter#0";
+        }
         n.addProperty("block", block);
         out.put(x + "," + y + "," + z, n);
     }
@@ -302,13 +308,21 @@ public final class RemasterRuntime {
                 && chest.getRemasterNode()
                     .isEmpty()
                 && generatedFor(chest, site)
-                && matches(world, x, y, z, key)) {
+                && world.getBlock(x, y, z) == ForgottenLakeEncounterRegistry.sealedChest
+                && (matches(world, x, y, z, key)
+                    || matches(world, x, y, z, material(site.plan(), x - site.x, y - site.y, z - site.z)))) {
+                // Newly admitted authored geometry carries its palette direction until node initialization.
+                if (world.getBlockMetadata(x, y, z) != meta(key)) {
+                    if (!world.setBlockMetadataWithNotify(x, y, z, meta(key), 2)) return false;
+                    chest.blockMetadata = meta(key);
+                }
                 chest.initializeRemaster(ChestTier.resolveTier(site, node), site.id(), id);
                 chest.remasterGeometryOrigin = new NBTTagCompound();
                 chest.markDirty();
                 return true;
             }
-            return chest.isRemasterNode(site.id(), id) && matches(world, x, y, z, key);
+            return chest.isRemasterNode(site.id(), id)
+                && (matches(world, x, y, z, key) || legacyChestFacing(chest, site, node));
         }
         if (prior != null) return false;
         if (!world.setBlock(x, y, z, block, meta(key), 3) && !matches(world, x, y, z, key)) return false;
@@ -372,6 +386,17 @@ public final class RemasterRuntime {
         out.addProperty("title", string(n, "label", "现场记录"));
         out.addProperty("role", tile.role);
         out.addProperty("readOnly", true);
+        if ("fiction_expansion_project".equals(
+            RemasterData.get(tile.getWorldObj())
+                .site(tile.siteId).prefab)
+            && tile.nodeId.startsWith("witness-")
+            && n.has("relicId")) {
+            out.addProperty("relicId", string(n, "relicId", ""));
+            out.addProperty(
+                "deposited",
+                RemasterData.get(tile.getWorldObj())
+                    .flag(tile.siteId, "witness:" + tile.nodeId));
+        }
         if ("spawner".equals(tile.role)) {
             NBTTagCompound state = RemasterData.get(tile.getWorldObj())
                 .state(tile.siteId)
@@ -400,7 +425,12 @@ public final class RemasterRuntime {
             JsonObject record = node(tile);
             RemasterSite owner = RemasterData.get(tile.getWorldObj())
                 .site(tile.siteId);
-            player.addChatMessage(
+            if ("fiction_expansion_project".equals(owner.prefab) && tile.nodeId.startsWith("witness-"))
+                return com.miaokatze.gtsr.common.dimension.prosperity.lore.FictionCinematic
+                    .deposit(player, tile, record);
+            if ("fiction_expansion_project".equals(owner.prefab) && "core-story-reading".equals(tile.nodeId))
+                player.addChatMessage(new net.minecraft.util.ChatComponentTranslation("gtsr.fiction.starter"));
+            else player.addChatMessage(
                 new ChatComponentText(RemasterOriginalContract.narrative(owner, record, new JsonObject())));
             RemasterData.get(tile.getWorldObj())
                 .flag(tile.siteId, "story-read:" + tile.nodeId, true);
@@ -446,7 +476,33 @@ public final class RemasterRuntime {
         return w.getBlock(x, y, z) == resolve(key) && w.getBlockMetadata(x, y, z) == meta(key);
     }
 
+    /** Migrate only a ledger-owned legacy console at the immutable authored node coordinate. */
+    private static boolean migrateFictionConsole(TileRemasterNode tile) {
+        World world = tile.getWorldObj();
+        if (world == null || world.isRemote
+            || world.getBlock(tile.xCoord, tile.yCoord, tile.zCoord)
+                != RemasterBlocks.get("gtsr:draft_pressure_console"))
+            return false;
+        RemasterData data = RemasterData.get(world);
+        RemasterSite site = data.site(tile.siteId);
+        if (site == null || !"fiction_expansion_project".equals(site.prefab)
+            || !data.flag(site.id(), "node:" + tile.nodeId)) return false;
+        for (JsonObject n : nodes(site)) {
+            if (!tile.nodeId.equals(string(n, "id", "")) || !tile.role.equals(string(n, "role", ""))
+                || !atNode(tile, site, n)) continue;
+            String key = string(n, "block", "");
+            if (!key.startsWith("gtsr:fiction_")) return false;
+            if (!world.setBlock(tile.xCoord, tile.yCoord, tile.zCoord, resolve(key), meta(key), 3)) return false;
+            TileEntity replacement = world.getTileEntity(tile.xCoord, tile.yCoord, tile.zCoord);
+            if (!(replacement instanceof TileRemasterNode)) return false;
+            ((TileRemasterNode) replacement).initialize(site.id(), tile.nodeId, tile.role);
+            return true;
+        }
+        return false;
+    }
+
     public static void initializeLoaded(TileRemasterNode tile) {
+        if (migrateFictionConsole(tile)) return;
         if (disabledRole(tile.role) || node(tile) == null) {
             invalidateDisplay(tile);
             return;
@@ -480,8 +536,25 @@ public final class RemasterRuntime {
         for (JsonObject n : nodes(site)) if ("chest".equals(string(n, "role", "")) && tile.getRemasterNode()
             .equals(string(n, "id", ""))
             && atNode(tile, site, n)
-            && tile.getBlockMetadata() == meta(string(n, "block", ""))) return n;
+            && (tile.getBlockMetadata() == meta(string(n, "block", "")) || legacyChestFacing(tile, site, n))) return n;
         return null;
+    }
+
+    /** Keep the old north-facing seal usable without rotating or replacing a player's saved block. */
+    private static boolean legacyChestFacing(TileEntitySealedChest tile, RemasterSite site, JsonObject node) {
+        World world = tile.getWorldObj();
+        String id = string(node, "id", "");
+        return world != null && !world.isRemote
+            && site != null
+            && atNode(tile, site, node)
+            && world.getTileEntity(tile.xCoord, tile.yCoord, tile.zCoord) == tile
+            && world.getBlock(tile.xCoord, tile.yCoord, tile.zCoord) == ForgottenLakeEncounterRegistry.sealedChest
+            && tile.getBlockMetadata() == 2
+            && tile.isRemasterNode(site.id(), id)
+            && RemasterData.get(world)
+                .flag(site.id(), "node:" + id)
+            && !RemasterData.get(world)
+                .flag(site.id(), "claimed:" + id);
     }
 
     /** Used only for one-time migration of unopened legacy seals; existing reward containers are never touched. */

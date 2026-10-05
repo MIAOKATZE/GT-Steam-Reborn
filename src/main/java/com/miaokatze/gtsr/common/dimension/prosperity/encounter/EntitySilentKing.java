@@ -17,6 +17,7 @@ import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.DamageSource;
+import net.minecraft.util.EntityDamageSourceIndirect;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.CombatEffects;
@@ -155,6 +156,20 @@ public class EntitySilentKing extends EntityEncounterBase {
             || super.isEntityInvulnerable();
     }
 
+    @Override
+    public int getTotalArmorValue() {
+        return 12;
+    }
+
+    private boolean isRangedDamage(DamageSource source) {
+        return source.isProjectile() || source instanceof EntityDamageSourceIndirect
+            || source.getSourceOfDamage() != null && source.getSourceOfDamage() != source.getEntity();
+    }
+
+    private float limitRangedDamage(DamageSource source, float amount) {
+        return isRangedDamage(source) ? Math.min(30F, amount) : amount;
+    }
+
     public void moveEntity(double x, double y, double z) {}
 
     @Override
@@ -195,7 +210,9 @@ public class EntitySilentKing extends EntityEncounterBase {
             if (!wasParticipant) participants.remove(player.getUniqueID());
             return false;
         }
-        boolean accepted = super.attackEntityFrom(source, Float.isInfinite(amount) ? Float.MAX_VALUE : amount);
+        boolean accepted = super.attackEntityFrom(
+            source,
+            limitRangedDamage(source, Float.isInfinite(amount) ? Float.MAX_VALUE : amount));
         if (!accepted && !wasParticipant) participants.remove(player.getUniqueID());
         return accepted;
     }
@@ -207,10 +224,12 @@ public class EntitySilentKing extends EntityEncounterBase {
         int phaseBefore = getCombatPhase();
         float threshold = phaseBefore == 1 ? 2400 : phaseBefore == 2 ? 1600 : phaseBefore == 3 ? 800 : 0;
         resolvingFloor = Math.min(threshold, getHealth());
+        // Forge hurt hooks run inside super.damageEntity; also bound the final health loss after those hooks.
+        if (isRangedDamage(source)) resolvingFloor = Math.max(resolvingFloor, getHealth() - 30F);
         damageReachedFloor = false;
         resolvingDamage = true;
         try {
-            super.damageEntity(source, amount);
+            super.damageEntity(source, limitRangedDamage(source, amount));
         } finally {
             resolvingDamage = false;
             if (!Float.isFinite(getAbsorptionAmount())) setAbsorptionAmount(0);
@@ -233,7 +252,7 @@ public class EntitySilentKing extends EntityEncounterBase {
                 float floor = resolvingDamage ? resolvingFloor : Math.min(threshold, before);
                 if (floor > 0 && health <= floor && health < before) {
                     health = floor;
-                    if (resolvingDamage) damageReachedFloor = true;
+                    if (resolvingDamage) damageReachedFloor = health <= threshold;
                     else transition = true;
                 }
             }
@@ -600,8 +619,9 @@ public class EntitySilentKing extends EntityEncounterBase {
         skill(id, 0);
         attackSerial++;
         cooldowns[id] = 120;
-        effect(0, 20, geometry());
         sound(id == 1 ? "crush" : "pull");
+        if (getCombatPhase() == 4) resolveGravitySkill(ps);
+        else effect(0, 20, geometry());
         return true;
     }
 
@@ -649,9 +669,9 @@ public class EntitySilentKing extends EntityEncounterBase {
 
     private void traction(EntityPlayer p) {
         damage(p, DamageSource.magic, 4);
-        double dx = pullDirection == 2 ? -5 : pullDirection == 3 ? 5 : 0;
-        double dy = pullDirection == 1 ? 5 : 0;
-        double dz = pullDirection == 4 ? -5 : pullDirection == 5 ? 5 : 0;
+        double dx = pullDirection == 2 ? -10 : pullDirection == 3 ? 10 : 0;
+        double dy = pullDirection == 1 ? 10 : 0;
+        double dz = pullDirection == 4 ? -10 : pullDirection == 5 ? 10 : 0;
         double x = p.posX, y = p.posY, z = p.posZ;
         // moveEntity performs vanilla swept AABB clipping: no teleport through a wall.
         p.moveEntity(dx, dy, dz);
@@ -663,16 +683,16 @@ public class EntitySilentKing extends EntityEncounterBase {
     private void advanceSkill(List<EntityPlayer> ps) {
         int t = getSkillTicks() + 1;
         skill(getSkillId(), t);
-        if (t == 20) {
-            effect(1, 12, geometry());
-            for (EntityPlayer p : ps) if (horizontalSq(p, echoX, echoZ) <= 9) {
-                if (getSkillId() == 1) crush(p);
-                else traction(p);
-            }
+        if (t >= 20) resolveGravitySkill(ps);
+    }
+
+    private void resolveGravitySkill(List<EntityPlayer> ps) {
+        effect(1, 12, geometry());
+        for (EntityPlayer p : ps) if (horizontalSq(p, echoX, echoZ) <= 9) {
+            if (getSkillId() == SKILL_ECHO) crush(p);
+            else traction(p);
         }
-        if (t >= 20) {
-            skill(SKILL_NONE, 0);
-        }
+        skill(SKILL_NONE, 0);
     }
 
     private void silence(List<EntityPlayer> ps) {

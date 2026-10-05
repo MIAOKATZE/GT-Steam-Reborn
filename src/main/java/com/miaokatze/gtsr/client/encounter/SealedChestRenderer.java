@@ -32,7 +32,7 @@ public final class SealedChestRenderer extends TileEntitySpecialRenderer {
             faceDirection(tile.getBlockMetadata());
             bindTexture(TEXTURE);
             GL11.glColor4f(1, 1, 1, 1);
-            RoyalChestModel.render((float) Math.max(0, (phase - .85) / .15) * .18F);
+            RoyalChestModel.render(0);
         }
         try (GlScope scope = new GlScope()) {
             GL11.glTranslated(x + .5, y + .54, z + .5);

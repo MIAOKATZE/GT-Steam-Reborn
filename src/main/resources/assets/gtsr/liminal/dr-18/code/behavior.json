@@ -4,7 +4,7 @@
   "archetype": "corroded_mining_drone",
   "stats": {
     "health": 24,
-    "move_speed": 0.22,
+    "move_speed": 0.42,
     "follow_range": 20
   },
   "locomotion": "flying",

@@ -978,13 +978,20 @@ public final class ForgottenLakeEncounterStructure {
             int[] c = tips.get(i);
             String node = "branchChest" + i;
             if (!owner(c[0], c[2], cx, cz) || d.created(id, node)) continue;
-            if (!w.setBlock(c[0], c[1], c[2], ForgottenLakeEncounterRegistry.sealedChest, 0, 2)) continue;
+            if (!w.setBlock(
+                c[0],
+                c[1],
+                c[2],
+                ForgottenLakeEncounterRegistry.sealedChest,
+                chestFacing(ax - c[0], az - c[2]),
+                2)) continue;
             TileEntity tile = w.getTileEntity(c[0], c[1], c[2]);
             if (tile instanceof TileEntitySealedChest) {
                 ((TileEntitySealedChest) tile).initializeClickUnlock(1 + (i % 2), id);
                 d.createdNode(id, node);
             }
         }
+        initializeBees(w, d, id, ax, az, y0, trunkH, cx, cz, tips);
         for (int room = 0; room < 8; room++) {
             for (int n = 0; n < ROOM_CHEST_COUNTS[room]; n++) {
                 int[] c = chestPosition(ax, az, y0, trunkH, room, n);
@@ -1018,6 +1025,78 @@ public final class ForgottenLakeEncounterStructure {
         com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterWorldgen.treeOverlay(w, ax, az, y0, cx, cz);
     }
 
+    public static int chestFacing(double dx, double dz) {
+        return Math.abs(dx) >= Math.abs(dz) ? dx < 0 ? 4 : 5 : dz < 0 ? 2 : 3;
+    }
+
+    /** Independent wildlife: durable creation flags never feed the court's guard/death masks. */
+    private static void initializeBees(World world, ForgottenLakeEncounterData data, String id, int ax, int az, int y0,
+        int trunkH, int cx, int cz, java.util.List<int[]> tips) {
+        for (int i = 0; i < 8; i++) {
+            int[] p = tips.get(i);
+            int x = p[0] + 2, y = p[1], z = p[2];
+            String node = "beeSpawner82:" + i;
+            if (!owner(x, z, cx, cz) || data.created(id, node)) continue;
+            if (!world.setBlock(x, y, z, Blocks.mob_spawner, 0, 2)) continue;
+            TileEntity tile = world.getTileEntity(x, y, z);
+            if (!(tile instanceof net.minecraft.tileentity.TileEntityMobSpawner)) continue;
+            com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho bee = new com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho(
+                world);
+            bee.initializeEcho(
+                com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoKind.DR18,
+                "",
+                x + .5,
+                y + 1,
+                z + .5,
+                false);
+            net.minecraft.nbt.NBTTagCompound entity = new net.minecraft.nbt.NBTTagCompound();
+            bee.writeToNBT(entity);
+            entity.removeTag("Pos");
+            entity.removeTag("Motion");
+            entity.removeTag("Rotation");
+            entity.removeTag("UUIDMost");
+            entity.removeTag("UUIDLeast");
+            net.minecraft.nbt.NBTTagCompound state = new net.minecraft.nbt.NBTTagCompound();
+            tile.writeToNBT(state);
+            state.setString("EntityId", net.minecraft.entity.EntityList.getEntityString(bee));
+            state.setTag("SpawnData", entity);
+            state.setShort("SpawnCount", (short) 2);
+            state.setShort("MaxNearbyEntities", (short) 8);
+            state.setShort("SpawnRange", (short) 6);
+            state.setShort("RequiredPlayerRange", (short) 24);
+            state.setShort("MinSpawnDelay", (short) 400);
+            state.setShort("MaxSpawnDelay", (short) 800);
+            tile.readFromNBT(state);
+            tile.markDirty();
+            data.createdNode(id, node);
+        }
+        for (int i = 0; i < 50; i++) {
+            double angle = i * 2.399963D;
+            double radius = 118 + (i % 5) * 6;
+            double x = ax + Math.cos(angle) * radius + .5, z = az + Math.sin(angle) * radius + .5;
+            double y = y0 + trunkH * (.58 + (i % 5) * .035);
+            String node = "wildBee82:" + i;
+            if (!owner((int) Math.floor(x), (int) Math.floor(z), cx, cz) || data.created(id, node)) continue;
+            com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho bee = new com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho(
+                world);
+            bee.initializeEcho(com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoKind.DR18, "", x, y, z, false);
+            for (int rise = 0; rise <= 40 && y + rise < 249; rise += 2) {
+                bee.setPosition(x, y + rise, z);
+                if (!com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterSpawn.safe(world, bee, false))
+                    continue;
+                bee.initializeEcho(
+                    com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoKind.DR18,
+                    "",
+                    x,
+                    y + rise,
+                    z,
+                    false);
+                if (world.spawnEntityInWorld(bee)) data.createdNode(id, node);
+                break;
+            }
+        }
+    }
+
     private static boolean owner(int x, int z, int cx, int cz) {
         return x >> 4 == cx && z >> 4 == cz;
     }
@@ -1025,7 +1104,11 @@ public final class ForgottenLakeEncounterStructure {
     private static void chest(World w, ForgottenLakeEncounterData d, String id, String node, int x, int y, int z,
         int tier, int platform, int cx, int cz) {
         if (!owner(x, z, cx, cz) || d.created(id, node)) return;
-        if (!w.setBlock(x, y, z, ForgottenLakeEncounterRegistry.sealedChest, 0, 2)) return;
+        int facing = platform < 0 ? 4
+            : chestFacing(
+                -Math.cos(platform * Math.PI / (d.layoutVersion(id) == 3 ? 4 : 2)),
+                -Math.sin(platform * Math.PI / (d.layoutVersion(id) == 3 ? 4 : 2)));
+        if (!w.setBlock(x, y, z, ForgottenLakeEncounterRegistry.sealedChest, facing, 2)) return;
         TileEntity t = w.getTileEntity(x, y, z);
         if (t instanceof TileEntitySealedChest) {
             ((TileEntitySealedChest) t).initialize(tier, id, platform);

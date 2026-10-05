@@ -14,21 +14,31 @@ public final class RemasterPlanner {
     public static List<RemasterSite> cell(long seed, int layer, int gx, int gz) {
         if (layer != 0) return Collections.emptyList();
         List<RemasterSite> sites = new ArrayList<>();
-        for (CompactSceneTerrain.Branch branch : CompactSceneTerrain.cell(seed, gx, gz))
-            sites.add(new RemasterSite(branch.prefab, 0, seed, branch.originX(), branch.surfaceY, branch.originZ()));
+        for (CompactSceneTerrain.Branch branch : CompactSceneTerrain.cell(seed, gx, gz)) sites.add(
+            new RemasterSite(
+                branch.prefab,
+                0,
+                seed,
+                branch.originX(),
+                branch.surfaceY,
+                branch.originZ(),
+                branch.roster == 2 ? "natural-prefab" : "compact-prefab"));
         sites.addAll(FutureStructurePlanner.cell(seed, gx, gz));
         return Collections.unmodifiableList(sites);
     }
 
     public static List<RemasterSite> near(long seed, int cx, int cz) {
-        List<RemasterSite> sites = new ArrayList<>();
-        for (RemasterSite site : cell(
-            seed,
-            0,
-            Math.floorDiv(cx << 4, CompactSceneTerrain.CELL_SIZE),
-            Math.floorDiv(cz << 4, CompactSceneTerrain.CELL_SIZE)))
-            if (site.overlaps(cx << 4, cz << 4, (cx << 4) + 15, (cz << 4) + 15, 8)) sites.add(site);
-        return sites;
+        int bx = cx << 4, bz = cz << 4, size = CompactSceneTerrain.CELL_SIZE;
+        int gx = Math.floorDiv(bx, size), gz = Math.floorDiv(bz, size);
+        int lx = Math.floorMod(bx, size), lz = Math.floorMod(bz, size);
+        // Global small/medium lattices can straddle a parent-cell edge; populate both halves.
+        int minDx = lx < 192 ? -1 : 0, maxDx = lx + 15 >= size - 192 ? 1 : 0;
+        int minDz = lz < 192 ? -1 : 0, maxDz = lz + 15 >= size - 192 ? 1 : 0;
+        java.util.Map<String, RemasterSite> sites = new java.util.LinkedHashMap<>();
+        for (int dx = minDx; dx <= maxDx; dx++)
+            for (int dz = minDz; dz <= maxDz; dz++) for (RemasterSite site : cell(seed, 0, gx + dx, gz + dz))
+                if (site.overlaps(bx, bz, bx + 15, bz + 15, 8)) sites.put(site.id(), site);
+        return new ArrayList<>(sites.values());
     }
 
     /** Radius is measured in 2048-block parent cells (12 means 24576 blocks); never loads chunks. */
@@ -92,7 +102,8 @@ public final class RemasterPlanner {
             radiusSquared = blocks * blocks;
             gx = Math.floorDiv(bx, CompactSceneTerrain.CELL_SIZE);
             gz = Math.floorDiv(bz, CompactSceneTerrain.CELL_SIZE);
-            industrial = "fallen_foundry".equals(id) || "subsided_factory".equals(id);
+            industrial = "fallen_foundry".equals(id) || "subsided_factory".equals(id)
+                || "fiction_expansion_project".equals(id);
             if (RemasterRollout.isActive(id) && !"forgotten_lake_court".equals(id)) {
                 com.google.gson.JsonObject descriptor = RemasterCatalog.descriptor(id, 0);
                 com.google.gson.JsonObject entry = RemasterCatalog.entrance(id, 0);
@@ -106,21 +117,26 @@ public final class RemasterPlanner {
                     : descriptor.getAsJsonArray("min")
                         .get(2)
                         .getAsInt() + 4;
-                int offsetX = ex - (industrial ? 60
-                    : descriptor.getAsJsonArray("nominal")
-                        .get(0)
-                        .getAsInt() / 2);
-                int offsetZ = ez - (industrial ? 60
-                    : descriptor.getAsJsonArray("nominal")
-                        .get(2)
-                        .getAsInt() / 2);
+                int offsetX = ex - ("fiction_expansion_project".equals(id) ? 78
+                    : industrial ? 60
+                        : descriptor.getAsJsonArray("nominal")
+                            .get(0)
+                            .getAsInt() / 2);
+                int offsetZ = ez - ("fiction_expansion_project".equals(id) ? 78
+                    : industrial ? 60
+                        : descriptor.getAsJsonArray("nominal")
+                            .get(2)
+                            .getAsInt() / 2);
                 int rank = 0;
+                int centerMin = industrial ? 128 : 0, centerMax = industrial ? 1919 : 2047;
                 for (int dx = -this.radius; dx <= this.radius; dx++)
                     for (int dz = -this.radius; dz <= this.radius; dz++, rank++) {
                         long x = (long) (gx + dx) * CompactSceneTerrain.CELL_SIZE;
                         long z = (long) (gz + dz) * CompactSceneTerrain.CELL_SIZE;
-                        double px = Math.max(0L, Math.max(x + 128 + offsetX - bx, bx - (x + 1919 + offsetX)));
-                        double pz = Math.max(0L, Math.max(z + 128 + offsetZ - bz, bz - (z + 1919 + offsetZ)));
+                        double px = Math
+                            .max(0L, Math.max(x + centerMin + offsetX - bx, bx - (x + centerMax + offsetX)));
+                        double pz = Math
+                            .max(0L, Math.max(z + centerMin + offsetZ - bz, bz - (z + centerMax + offsetZ)));
                         double lower = px * px + pz * pz;
                         if (lower <= radiusSquared) pending.add(new Cell(gx + dx, gz + dz, rank, lower));
                     }
@@ -166,8 +182,15 @@ public final class RemasterPlanner {
                     compact.step();
                     return;
                 }
-                for (CompactSceneTerrain.Branch branch : compact.result()) if (id.equals(branch.prefab)) sites
-                    .add(new RemasterSite(branch.prefab, 0, seed, branch.originX(), branch.surfaceY, branch.originZ()));
+                for (CompactSceneTerrain.Branch branch : compact.result()) if (id.equals(branch.prefab)) sites.add(
+                    new RemasterSite(
+                        branch.prefab,
+                        0,
+                        seed,
+                        branch.originX(),
+                        branch.surfaceY,
+                        branch.originZ(),
+                        branch.roster == 2 ? "natural-prefab" : "compact-prefab"));
                 compact = null;
             }
             if (future != null) {

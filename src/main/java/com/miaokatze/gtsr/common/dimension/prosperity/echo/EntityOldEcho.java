@@ -99,13 +99,9 @@ public class EntityOldEcho extends EntityEncounterBase
     private float lastAcceptedPlayerDamage = 5;
     private boolean controlledPrepared, controlledFinished;
     private int lightningCooldown;
-    private boolean restoringHealth;
+    private boolean restoringHealth, resolvingDamage, resolvingRangedDamage;
     // Last accepted server health also guards direct watcher writes at the death boundary.
     private float protectedBossHealth;
-
-    private boolean summoningImmune() {
-        return getKind() == EchoKind.DC08 && (getSkillId() == 1 || getSkillId() == 4);
-    }
 
     private float upperPhaseHealth() {
         return getKind() == EchoKind.DC08 ? 1200 : getMaxHealth() * 2F / 3F;
@@ -242,6 +238,7 @@ public class EntityOldEcho extends EntityEncounterBase
         dataWatcher.addObject(28, 0);
         dataWatcher.addObject(29, 2);
         dataWatcher.addObject(30, 0);
+        dataWatcher.addObject(16, 0);
     }
 
     @Override
@@ -459,9 +456,10 @@ public class EntityOldEcho extends EntityEncounterBase
         if (!restoringHealth && getKind().isHeavy() && protectedBossHealth > before) before = protectedBossHealth;
         boolean transition = false;
         if (Float.isNaN(health) || health == Float.POSITIVE_INFINITY) health = Float.isFinite(before) ? before : 1;
+        if (resolvingDamage && resolvingRangedDamage && getKind().isHeavy() && health < before - 30)
+            health = before - 30;
         if (!restoringHealth && worldObj != null && !worldObj.isRemote && getKind().isHeavy() && before > 0) {
-            if ((industrialFrozen() || getPhaseLockTicks() > 0 || summoningImmune()) && health < before)
-                health = before;
+            if ((industrialFrozen() || getPhaseLockTicks() > 0) && health < before) health = before;
             else {
                 float upper = upperPhaseHealth(), lower = lowerPhaseHealth();
                 float floor = before > upper ? upper : before > lower ? lower : 0;
@@ -499,18 +497,26 @@ public class EntityOldEcho extends EntityEncounterBase
         if (getKind() == EchoKind.DO02 || Float.isNaN(amount)
             || amount <= 0
             || getPhaseLockTicks() > 0
-            || industrialFrozen()
-            || summoningImmune()) return;
-        super.damageEntity(source, Math.min(amount, 1.0E30F));
+            || industrialFrozen()) return;
+        boolean ranged = rangedDamage(source);
+        if (getKind().isHeavy() && industrialCombat.rangedImmune() && ranged) return;
+        boolean previous = resolvingDamage, previousRanged = resolvingRangedDamage;
+        resolvingDamage = true;
+        resolvingRangedDamage = ranged;
+        try {
+            super.damageEntity(
+                source,
+                getKind().isHeavy() && ranged ? Math.min(30, amount) : Math.min(amount, 1.0E30F));
+        } finally {
+            resolvingDamage = previous;
+            resolvingRangedDamage = previousRanged;
+        }
         if (!Float.isFinite(getAbsorptionAmount())) setAbsorptionAmount(0);
     }
 
     @Override
     public boolean attackEntityFrom(DamageSource source, float amount) {
-        if (getKind() == EchoKind.DO02 || Float.isNaN(amount)
-            || amount <= 0
-            || getPhaseLockTicks() > 0
-            || summoningImmune()) return false;
+        if (getKind() == EchoKind.DO02 || Float.isNaN(amount) || amount <= 0 || getPhaseLockTicks() > 0) return false;
         if (getKind().isRitual() || industrialFrozen() || (!worldObj.isRemote && dormant())) return false;
         if (!worldObj.isRemote && source.getEntity() instanceof EntityPlayer
             && valid((EntityPlayer) source.getEntity())) {
@@ -523,13 +529,34 @@ public class EntityOldEcho extends EntityEncounterBase
             double angle = Math.toRadians(rotationYaw);
             if (dx * -Math.sin(angle) + dz * Math.cos(angle) > 0) amount *= .35F;
         }
+        boolean ranged = rangedDamage(source);
+        if (getKind().isHeavy() && ranged) {
+            if (industrialCombat.rangedImmune()) return false;
+            amount = Math.min(30, amount);
+        }
         float before = getHealth();
         boolean accepted = super.attackEntityFrom(source, Math.min(amount, 1.0E30F));
+        if (accepted && before > getHealth() && getKind().isHeavy()) industrialCombat.damaged(source, ranged);
         if (accepted && source.getEntity() instanceof EntityPlayer)
             lastAcceptedPlayerDamage = Math.max(2, Math.min(12, before - getHealth()));
         if (accepted && getKind() == EchoKind.DC08 && getSkillId() == 4)
             resonanceDamage += Math.max(0, before - getHealth());
         return accepted;
+    }
+
+    static boolean rangedDamage(DamageSource source) {
+        return source.isProjectile() || source instanceof net.minecraft.util.EntityDamageSourceIndirect
+            || (source.getSourceOfDamage() != null && source.getSourceOfDamage() != source.getEntity());
+    }
+
+    @Override
+    public int getTotalArmorValue() {
+        return getKind() == EchoKind.DC02 ? 16 + getCombatPhase() * 2
+            : getKind() == EchoKind.DC08 ? 8 : super.getTotalArmorValue();
+    }
+
+    public boolean hasReinforcedBones() {
+        return getKind() == EchoKind.DC02 && dataWatcher.getWatchableObjectInt(16) > 0;
     }
 
     @Override
@@ -548,11 +575,23 @@ public class EntityOldEcho extends EntityEncounterBase
         }
         // EntityLivingBase's normal path applies gravity even when combat AI is idle or spawning.
         moveFlying(strafe, forward, .025F);
+        if (getKind() == EchoKind.DR18 && !loadedDroneStep(motionX, motionZ)) motionX = motionY = motionZ = 0;
         moveEntity(motionX, motionY, motionZ);
         motionX *= .8;
         motionY *= .8;
         motionZ *= .8;
         fallDistance = 0;
+    }
+
+    private boolean loadedDroneStep(double dx, double dz) {
+        double half = width * .5;
+        int minX = ((int) Math.floor(Math.min(posX, posX + dx) - half)) >> 4;
+        int maxX = ((int) Math.floor(Math.max(posX, posX + dx) + half)) >> 4;
+        int minZ = ((int) Math.floor(Math.min(posZ, posZ + dz) - half)) >> 4;
+        int maxZ = ((int) Math.floor(Math.max(posZ, posZ + dz) + half)) >> 4;
+        for (int cx = minX; cx <= maxX; cx++) for (int cz = minZ; cz <= maxZ; cz++) if (!worldObj.getChunkProvider()
+            .chunkExists(cx, cz)) return false;
+        return true;
     }
 
     private void flyToward(double x, double y, double z, double speed) {
@@ -583,6 +622,7 @@ public class EntityOldEcho extends EntityEncounterBase
         if (!initialized) {
             initializeEcho(getKind(), "", posX, posY, posZ, false);
         }
+        if (getKind().isHeavy()) industrialCombat.tickTimers();
         if (tickIndustrialRevival()) return;
         if (tickPhaseTransition()) return;
         if (industrialBoss())
@@ -634,7 +674,7 @@ public class EntityOldEcho extends EntityEncounterBase
         if (!(target instanceof EntityPlayer) || !valid((EntityPlayer) target)
             || target.getDistanceSq(anchorX, anchorY, anchorZ) > leash() * leash()
             || getDistanceSq(anchorX, anchorY, anchorZ) > leash() * leash()) {
-            if (summoningImmune()) stopEffects();
+            if (getKind().isHeavy() && getSkillId() != 0) stopEffects();
             setAttackTarget(null);
             if (authoredKind()) {
                 authored.cancel();
@@ -682,7 +722,11 @@ public class EntityOldEcho extends EntityEncounterBase
                 announceSkill(selected);
                 authored.begin((EntityPlayer) target, selected);
                 getNavigator().clearPathEntity();
-            } else if (getKind().flies()) flyToward(target.posX, anchorY, target.posZ, .32);
+            } else if (getKind().flies()) flyToward(
+                target.posX,
+                getKind() == EchoKind.DR18 ? target.posY + .5 : anchorY,
+                target.posZ,
+                getKind() == EchoKind.DR18 ? .7 : .32);
             else if (!authored.stationary() && ticksExisted % 10 == 0) getNavigator().tryMoveToEntityLiving(target, 1);
             return;
         }
@@ -1029,9 +1073,7 @@ public class EntityOldEcho extends EntityEncounterBase
         if (!worldObj.isRemote && getKind().isHeavy()) {
             // Reject before Forge death/loot hooks, never resurrect after publishing a death.
             if (getHealth() > 0) return;
-            if (industrialFrozen() || getPhaseLockTicks() > 0
-                || summoningImmune()
-                || protectedBossHealth > lowerPhaseHealth()) {
+            if (industrialFrozen() || getPhaseLockTicks() > 0 || protectedBossHealth > lowerPhaseHealth()) {
                 setHealth(0);
                 deathTime = 0;
                 return;
@@ -1094,9 +1136,7 @@ public class EntityOldEcho extends EntityEncounterBase
         if (!worldObj.isRemote && getKind().isHeavy()
             && !dead
             && !deathRecorded
-            && (industrialFrozen() || getPhaseLockTicks() > 0
-                || summoningImmune()
-                || protectedBossHealth > lowerPhaseHealth())) {
+            && (industrialFrozen() || getPhaseLockTicks() > 0 || protectedBossHealth > lowerPhaseHealth())) {
             setHealth(0);
             deathTime = 0;
             return;

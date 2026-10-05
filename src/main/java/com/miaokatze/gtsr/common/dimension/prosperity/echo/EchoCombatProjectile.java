@@ -135,7 +135,23 @@ public final class EchoCombatProjectile extends Entity
             // Nudge the blast point out of its impact surface before testing line of sight.
             Vec3 origin = Vec3.createVectorHelper(posX - motionX * .1, posY - motionY * .1, posZ - motionZ * .1);
             if (worldObj.rayTraceBlocks(origin, head) != null) continue;
-            if (p.attackEntityFrom(DamageSource.causeIndirectMagicDamage(this, owner), damage)) {
+            boolean accepted = p.attackEntityFrom(DamageSource.causeIndirectMagicDamage(this, owner), damage);
+            if (accepted && owner.getKind() == EchoKind.DC08 && getPalette() == 3) {
+                // The second typed hit must pass the vanilla hurt-resistance gate independently.
+                int resistance = p.hurtResistantTime;
+                p.hurtResistantTime = 0;
+                try {
+                    p.attackEntityFrom(
+                        new net.minecraft.util.EntityDamageSourceIndirect("mob", this, owner).setProjectile(),
+                        6);
+                } finally {
+                    p.hurtResistantTime = Math.max(resistance, p.hurtResistantTime);
+                }
+                p.addPotionEffect(new net.minecraft.potion.PotionEffect(net.minecraft.potion.Potion.poison.id, 200, 0));
+                p.addPotionEffect(
+                    new net.minecraft.potion.PotionEffect(net.minecraft.potion.Potion.weakness.id, 200, 0));
+            }
+            if (accepted) {
                 double dx = p.posX - posX, dz = p.posZ - posZ, len = Math.max(.1, Math.sqrt(dx * dx + dz * dz));
                 p.addVelocity(dx / len * .25, .12, dz / len * .25);
                 p.velocityChanged = true;

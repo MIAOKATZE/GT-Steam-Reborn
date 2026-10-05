@@ -81,6 +81,20 @@ public final class BossSkillVisuals {
                 casts.put(e.getUniqueID(), c);
             }
             c.seen = true;
+            if (e instanceof EntityOldEcho && ((EntityOldEcho) e).hasReinforcedBones()) {
+                // Watched duration keeps this armor shell alive for the full server immunity window.
+                for (int i = 0; i < 4; i++) {
+                    double angle = e.ticksExisted * .14 + i * Math.PI / 2;
+                    world.spawnParticle(
+                        "crit",
+                        e.posX + Math.cos(angle) * (e.width * .65),
+                        e.posY + e.height * (.25 + i * .16),
+                        e.posZ + Math.sin(angle) * (e.width * .65),
+                        0,
+                        .025,
+                        0);
+                }
+            }
             if (king) {
                 EntitySilentKing k = (EntitySilentKing) e;
                 for (int i = 0; i < 5; i++) {
@@ -93,7 +107,10 @@ public final class BossSkillVisuals {
             } else {
                 EntityOldEcho echo = (EntityOldEcho) e;
                 int serial = echo.getSkillAnnouncementSerial();
-                if (!fresh && serial != c.serial) add(c, echo.getAnnouncedSkill());
+                if (!fresh && serial != c.serial) {
+                    add(c, echo.getAnnouncedSkill());
+                    if (echo.getKind() == com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoKind.DC08) add(c, 8);
+                }
                 if (fresh && echo.getSkillId() != 0) add(c, echo.getSkillId());
                 c.serial = serial;
             }
@@ -104,7 +121,7 @@ public final class BossSkillVisuals {
     }
 
     private static void add(Casts c, int skill) {
-        if (skill < 1 || skill > 5) return;
+        if (skill < 1 || skill > 8) return;
         // A repeated cast jumps again, while distinct simultaneous royal skills remain separate.
         Iterator<Notice> it = c.notices.iterator();
         while (it.hasNext()) if (it.next().skill == skill) it.remove();

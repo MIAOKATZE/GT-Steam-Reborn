@@ -7,7 +7,7 @@ public final class BossRigMotion {
 
     public static String clip(boolean foundry, int skill) {
         if (foundry) return skill == 2 || skill == 5 ? "gravity_salvo" : skill == 4 ? "fault_line" : "seismic_impact";
-        return skill == 1 || skill == 4 ? "summon_brood" : skill == 2 ? "command_pulse" : "brood_mortar";
+        return skill == 1 || skill == 5 ? "summon_brood" : skill == 2 ? "command_pulse" : "brood_mortar";
     }
 
     public static double clock(boolean foundry, int skill, double tick) {
@@ -21,7 +21,7 @@ public final class BossRigMotion {
             if (skill == 4) return tick < 40 ? tick * 28 / 40 : Math.min(70, 28 + (tick - 40) * 2);
             return tick < 40 ? tick * 22 / 40 : Math.min(62, 22 + (tick - 40) * 2);
         }
-        return skill == 1 || skill == 4 ? Math.min(84, tick * 1.3) : Math.min(76, tick * 1.25);
+        return skill == 1 || skill == 5 ? Math.min(84, tick * 1.3) : Math.min(76, tick * 1.25);
     }
 
     /** Whole-body motion supplements bone articulation without changing server collision or position. */

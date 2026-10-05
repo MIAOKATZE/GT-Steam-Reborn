@@ -26,6 +26,7 @@ public final class RemasterSpawnerRenderer extends TileEntitySpecialRenderer {
 
     public void renderTileEntityAt(TileEntity tile, double x, double y, double z, float partial) {
         TileRemasterNode node = (TileRemasterNode) tile;
+        if (com.miaokatze.gtsr.client.lore.FictionPedestalRenderer.render(node, x, y, z, partial)) return;
         if (!"spawner".equals(node.role) || node.getWorldObj() == null) return;
         JsonObject view;
         try {

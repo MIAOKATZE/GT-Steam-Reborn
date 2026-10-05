@@ -336,7 +336,10 @@ public final class IslandMegaTree {
         v.tuft(0, capDy, 0, CAP_TUFT_R, CAP_TUFT_LAYERS, false);
     }
 
-    /** Six primary limb tips, replaying the exact tree random prefix without consuming placement RNG. */
+    /**
+     * Fourteen lower and middle primary limb tips, replaying the exact tree random prefix without consuming placement
+     * RNG.
+     */
     public static List<int[]> branchChestPositions(long seed, int ax, int az, int y0, int trunkH) {
         Random r = new Random(
             com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash.chunkSeed(seed, ax >> 4, az >> 4)
@@ -356,7 +359,7 @@ public final class IslandMegaTree {
             public void tuft(int dx, int dy, int dz, int radius, int layers, boolean outer) {
                 if (layers == TUFT_LAYERS_TIP) {
                     int index = primary++;
-                    if (index == 0 || index == 2 || index == 8 || index == 20 || index == 24 || index == 28)
+                    if (index < 20 && (index % 3 != 1 || index == 1))
                         positions.add(new int[] { ax + dx, y0 + trunkH + dy + layers, az + dz });
                 }
             }

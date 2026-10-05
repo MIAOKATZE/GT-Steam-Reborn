@@ -21,7 +21,7 @@ final class AuthoredEchoAbilities {
     private static final Map<String, JsonObject> PROFILES = new HashMap<>();
     private final EntityOldEcho owner;
     private final Map<Integer, CombatGeometry> warnings = new HashMap<>();
-    private double targetX, targetY, targetZ;
+    private double targetX, targetY, targetZ, diveX, diveZ;
     private int serial;
 
     AuthoredEchoAbilities(EntityOldEcho owner) {
@@ -111,6 +111,9 @@ final class AuthoredEchoAbilities {
             "gtsr:entity." + owner.getKind().code + ".attack",
             .8F,
             .9F);
+        diveX = owner.posX - target.posX;
+        diveZ = owner.posZ - target.posZ;
+        if (owner.getKind() == EchoKind.DR18) owner.motionX = owner.motionY = owner.motionZ = 0;
         targetX = target.posX;
         targetY = target.posY;
         targetZ = target.posZ;
@@ -138,13 +141,31 @@ final class AuthoredEchoAbilities {
     }
 
     void tickSkill(int index, int ticks) {
-        // Actual leap movement is swept against the loaded collision world, never a teleport.
-        if ((owner.getKind() == EchoKind.DI04 || owner.getKind() == EchoKind.DR18) && ticks >= 10 && ticks < 28) {
+        // Swept movement uses loaded chunks and normal entity collisions for both dive and retreat.
+        if (owner.getKind() == EchoKind.DR18 && ticks >= 10 && ticks < 28) {
+            double dx, dy, dz, speed;
+            if (ticks <= 16) {
+                dx = targetX - owner.posX;
+                dy = targetY + .5 - owner.posY;
+                dz = targetZ - owner.posZ;
+                speed = .9;
+            } else {
+                dx = diveX;
+                dy = .35;
+                dz = diveZ;
+                speed = .85;
+                if (dx * dx + dz * dz < .01) dx = 1;
+            }
+            double length = Math.max(.001, Math.sqrt(dx * dx + dy * dy + dz * dz));
+            double step = ticks <= 16 ? Math.min(speed, length) : speed;
+            double mx = dx / length * step, my = dy / length * step, mz = dz / length * step;
+            if (loadedFootprint(new double[] { owner.posX + mx, owner.posY + my, owner.posZ + mz }, owner.width * .5))
+                owner.moveEntity(mx, my, mz);
+        } else if (owner.getKind() == EchoKind.DI04 && ticks >= 10 && ticks < 28) {
             double dx = targetX - owner.posX, dz = targetZ - owner.posZ,
                 len = Math.max(1, Math.sqrt(dx * dx + dz * dz));
-            double vy = owner.getKind() == EchoKind.DI04 ? (ticks < 18 ? .18 : -.18) : 0;
             if (loaded(owner.posX + dx / len * .18, owner.posZ + dz / len * .18))
-                owner.moveEntity(dx / len * .18, vy, dz / len * .18);
+                owner.moveEntity(dx / len * .18, ticks < 18 ? .18 : -.18, dz / len * .18);
         }
         events(skill(index), ticks);
     }

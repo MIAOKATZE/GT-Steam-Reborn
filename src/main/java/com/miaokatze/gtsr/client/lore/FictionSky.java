@@ -17,8 +17,32 @@ public final class FictionSky {
     private static WorldClient bound;
     private static int phase;
     private static long serial = -1, expires;
+    private static boolean tinted;
 
-    private FictionSky() {}
+    public FictionSky() {}
+
+    public static boolean restored(World world) {
+        return world == bound && phase == 4;
+    }
+
+    public static boolean purple(World world) {
+        return world == bound && phase > 0 && phase < 4 && System.currentTimeMillis() <= expires;
+    }
+
+    @cpw.mods.fml.common.eventhandler.SubscribeEvent
+    public void grass(net.minecraftforge.event.terraingen.BiomeEvent.GetGrassColor event) {
+        if (purple(Minecraft.getMinecraft().theWorld)) event.newColor = 0x8962B0;
+    }
+
+    @cpw.mods.fml.common.eventhandler.SubscribeEvent
+    public void foliage(net.minecraftforge.event.terraingen.BiomeEvent.GetFoliageColor event) {
+        if (purple(Minecraft.getMinecraft().theWorld)) event.newColor = 0x79549D;
+    }
+
+    @cpw.mods.fml.common.eventhandler.SubscribeEvent
+    public void water(net.minecraftforge.event.terraingen.BiomeEvent.GetWaterColor event) {
+        if (purple(Minecraft.getMinecraft().theWorld)) event.newColor = 0x8452AF;
+    }
 
     public static void receive(final FictionNetwork.Sky message) {
         final Minecraft mc = Minecraft.getMinecraft();
@@ -36,16 +60,30 @@ public final class FictionSky {
                     serial = -1;
                 }
                 if (message.serial < serial) return;
+                boolean wasPurple = purple(receiving), wasRestored = restored(receiving);
                 phase = message.phase;
                 serial = message.serial;
                 expires = System.currentTimeMillis() + 3000;
+                boolean nowPurple = purple(receiving);
+                if ((wasPurple != nowPurple || tinted != nowPurple || !wasRestored && phase == 4)
+                    && mc.renderGlobal != null) mc.renderGlobal.loadRenderers();
+                tinted = nowPurple;
             }
         });
     }
 
+    @cpw.mods.fml.common.eventhandler.SubscribeEvent
+    public void tick(cpw.mods.fml.common.gameevent.TickEvent.ClientTickEvent event) {
+        if (event.phase != cpw.mods.fml.common.gameevent.TickEvent.Phase.END) return;
+        Minecraft mc = Minecraft.getMinecraft();
+        boolean current = purple(mc.theWorld);
+        if (tinted != current) {
+            tinted = current;
+            if (mc.theWorld != null && mc.renderGlobal != null) mc.renderGlobal.loadRenderers();
+        }
+    }
+
     public static Vec3 color(World world) {
-        if (world != bound || phase == 0) return null;
-        if (phase == 4 || System.currentTimeMillis() > expires) return Vec3.createVectorHelper(.35, .65, .95);
-        return Vec3.createVectorHelper(.48, .18, .68);
+        return purple(world) ? Vec3.createVectorHelper(.48, .18, .68) : null;
     }
 }

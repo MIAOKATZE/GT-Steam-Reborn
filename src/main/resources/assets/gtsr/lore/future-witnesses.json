@@ -124,26 +124,26 @@
     {
       "id": "future_city_address_witness",
       "display": "旧址原件",
-      "sourceId": "abandoned_city",
-      "acquisition": "manual-testing-only",
+      "sourceId": "prosperity_arrival",
+      "acquisition": "dimension-arrival-compass",
       "lore": "城市中真实的姓名与街道互为证据",
-      "status": "registered/testingOnly",
+      "status": "registered/natural",
       "runtimeItemId": "future_city_address_witness",
       "identityRule": "同种唯一身份去重；确认实际持有或成功发放并校验来源，目录勾选不是游戏证据",
       "achievementId": "relic.future_city_address_witness",
-      "earnableNaturally": false
+      "earnableNaturally": true
     },
     {
       "id": "future_city_return_witness",
       "display": "未归名单",
-      "sourceId": "abandoned_city",
-      "acquisition": "manual-testing-only",
+      "sourceId": "engineering-maintenance-6",
+      "acquisition": "expansion-calibration-record-story-chest",
       "lore": "名册没有替事故开脱，却让未归者重新拥有关系与姓名",
-      "status": "registered/testingOnly",
+      "status": "registered/natural",
       "runtimeItemId": "future_city_return_witness",
       "identityRule": "同种唯一身份去重；确认实际持有或成功发放并校验来源，目录勾选不是游戏证据",
       "achievementId": "relic.future_city_return_witness",
-      "earnableNaturally": false
+      "earnableNaturally": true
     }
   ],
   "unimplementedCityStructures": [

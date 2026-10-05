@@ -256,16 +256,16 @@ public final class TerrainVariants {
     /** 山地碎坡噪声域盐（波长 40）。 */
     private static final long S_MTN_ROUGH = 0x6811C25DL;
     /** plateau 双档下檐（ATG ledgelevel 低档）。 */
-    private static final double MTN_LEDGE_LOW = 88.0D;
+    private static final double MTN_LEDGE_LOW = 82.0D;
     /** plateau 双档上檐（高档 = 低档 + 16 ⇒ 104，恰在软削顶哨兵之下）。 */
-    private static final double MTN_LEDGE_HIGH = 104.0D;
+    private static final double MTN_LEDGE_HIGH = 94.0D;
     /**
      * 山地门下檐（<b>v1.20.41 由 0.30 放宽到 0.24</b>，带宽 0.30→0.36 ⇒ 覆盖率 P≈10% → ≥15%，
      * 需求 4「山地门覆盖率」子句；出处 = {@code :229-230} 注释自陈的 valueNoise 实测边际）。
      */
-    private static final double MTN_GATE_LO = 0.24D;
+    private static final double MTN_GATE_LO = 0.38D;
     /** 山地门带宽（同上；上檐 = {@link #MTN_GATE_LO}+本值 = 0.60 未动）。 */
-    private static final double MTN_GATE_SPAN = 0.36D;
+    private static final double MTN_GATE_SPAN = 0.30D;
 
     // —— 岭脊变体（v1.20.41 P20 S4 新增，仅森林；RTG ridged 形状范式）——
     /** 岭脊门噪声域盐（波长 {@link #RIDGE_SCALE}=188，介于丘陵门 320 与山地门 512 之间）。 */
@@ -287,7 +287,7 @@ public final class TerrainVariants {
      * 门放宽把低尾脊列抬向均值 ⇒ spread 收缩（钳制列也降 556→435，同机制互证）；<b>DELTA_CAP 32→36
      * 不启用</b>：全部 rung 高度域上沿已 = 108 哨兵（顶部路径被哨兵吃死，与 P20 §21-B ② 同判）。
      */
-    private static final double RIDGE_AMP = 18.0D;
+    private static final double RIDGE_AMP = 14.0D;
 
     // —— 延绵山脉脊（v1.20.49 P26-B4 ② 新增，仅森林；D7' 破顶放大档的"延绵"主形态）——
     /**
@@ -311,7 +311,7 @@ public final class TerrainVariants {
      * {@link #HEIGHT_SENTINEL}=172（k=4 ⇒ ≤168 逐位不动带）与 {@link #DELTA_CAP}=96
      * 联合给脊峰上界（h0 + 96 后再过哨兵渐近 172 ⇒ 恒 &lt; 180 钳制线）。
      */
-    private static final double FOREST_SPINE_AMP = 52.0D;
+    private static final double FOREST_SPINE_AMP = 34.0D;
 
     // —— 森林谷地负瓣（v1.20.42 P22 A4 新增，仅森林；"山脉丘陵状"的下侧形态）——
     /**

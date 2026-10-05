@@ -140,7 +140,7 @@ public final class ProsperityTerrainProfile {
      * （与档表族"4→5 + 长度一致"约定一致，判据/后续消费面用）；"四档算数均值精确 = 1.0"的 P17
      * 不变量按 selector 口径（前 4 元）保持不变。
      */
-    public static final double[] RELIEF_AMPLITUDE_BY_ROSTER = { 1.10D, 1.70D, 1.30D, 0.40D, 0.38D };
+    public static final double[] RELIEF_AMPLITUDE_BY_ROSTER = { 1.10D, 1.40D, 1.30D, 0.40D, 0.38D };
 
     /**
      * 默认档（身份不可得 = {@link GTSRGenLayerRosterFace#NO_IDENTITY}，即该维名册零配槽的 EMPTY

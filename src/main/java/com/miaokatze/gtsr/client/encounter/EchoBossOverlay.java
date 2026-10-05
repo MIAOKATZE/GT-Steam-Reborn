@@ -51,11 +51,6 @@ public final class EchoBossOverlay extends Gui {
                             + ".png"));
             func_152125_a(x, y, 0, 0, 256, 40, 256, 40, 256, 40);
             String name = scene.kind == 1 ? "巨树王庭 · 缄王" : scene.kind == 2 ? "巢识沉降工厂 · 巢识" : "崩垣铸造战场 · 崩垣";
-            String count = "×" + layers;
-            int width = mc.fontRenderer.getStringWidth(count);
-            int cx = Math.max(4, Math.min(x + 260, event.resolution.getScaledWidth() - width - 4));
-            drawRect(cx - 2, y + 12, cx + width + 2, y + 24, 0xCC151918);
-            mc.fontRenderer.drawStringWithShadow(count, cx, y + 14, 0xE9D7AD);
             name = "§l" + name + "§r";
             mc.fontRenderer.drawStringWithShadow(
                 name,
@@ -63,7 +58,7 @@ public final class EchoBossOverlay extends Gui {
                 y - 9,
                 0xE9D7AD);
             String caption = scene.state == 3 ? "已完成"
-                : scene.state == 1 ? "正在复苏 · " + scene.revivalTicks + "/" + scene.revivalDuration()
+                : scene.state == 1 ? "正在复苏"
                     : scene.state == 2 ? "战斗中"
                         : scene.kind == 1 ? scene.remaining > 0 ? "休眠 · 剩余守卫 " + scene.remaining + "/" + scene.total
                             : "守卫已肃清 · 靠近王座唤醒缄王" : "休眠 · 待拆毁刷怪笼 " + scene.remaining + "/" + scene.total;
@@ -131,12 +126,15 @@ public final class EchoBossOverlay extends Gui {
             func_152125_a(x, y, 0, 0, 256, 40, 256, 40, 256, 40);
             String name = "(" + net.minecraft.util.StatCollector.translateToLocal("echo.name.prefix")
                 + ")"
-                + net.minecraft.util.StatCollector.translateToLocal("echo.name." + echo.getKind().code),
-                count = "×" + layers;
-            int countWidth = mc.fontRenderer.getStringWidth(count);
-            int cx = Math.max(4, Math.min(x + 260, event.resolution.getScaledWidth() - countWidth - 4));
-            drawRect(cx - 2, y + 12, cx + countWidth + 2, y + 24, 0xCC151918);
-            mc.fontRenderer.drawStringWithShadow(count, cx, y + 14, 0xE9D7AD);
+                + net.minecraft.util.StatCollector.translateToLocal("echo.name." + echo.getKind().code);
+            if (!echo.getKind()
+                .isHeavy()) {
+                String count = "×" + layers;
+                int countWidth = mc.fontRenderer.getStringWidth(count);
+                int cx = Math.max(4, Math.min(x + 260, event.resolution.getScaledWidth() - countWidth - 4));
+                drawRect(cx - 2, y + 12, cx + countWidth + 2, y + 24, 0xCC151918);
+                mc.fontRenderer.drawStringWithShadow(count, cx, y + 14, 0xE9D7AD);
+            }
             name = "§l" + name + "§r";
             mc.fontRenderer.drawStringWithShadow(
                 name,

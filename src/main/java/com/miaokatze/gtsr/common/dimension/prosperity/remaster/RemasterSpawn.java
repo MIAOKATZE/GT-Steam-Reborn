@@ -21,6 +21,21 @@ public final class RemasterSpawn {
         EntityOldEcho entity = new EntityOldEcho(world);
         // Keep authored floor ownership: a missing support never relocates an industrial guard to another level.
         entity.initializeEcho(kind, owner, x, kind.flies() ? y : Math.floor(y), z, false);
+        RemasterSite site = RemasterData.get(world)
+            .site(owner);
+        if (site != null && index >= 0 && site.plan().metadata.has("spawns")) {
+            com.google.gson.JsonArray spawns = site.plan().metadata.getAsJsonArray("spawns");
+            if (index < spawns.size()) {
+                float yaw = RemasterFacing.yaw(
+                    site,
+                    spawns.get(index)
+                        .getAsJsonObject());
+                entity.setHomeYaw(yaw);
+                entity.rotationYaw = entity.prevRotationYaw = yaw;
+                entity.rotationYawHead = entity.prevRotationYawHead = yaw;
+                entity.renderYawOffset = entity.prevRenderYawOffset = yaw;
+            }
+        }
         entity.setNodeIndex(index);
         if (!safe(world, entity, !kind.flies())) return null;
         if (objectiveGate) entity.configureObjective(2, -1, true);
