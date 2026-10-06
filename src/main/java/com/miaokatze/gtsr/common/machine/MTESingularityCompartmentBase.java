@@ -21,7 +21,6 @@ import com.miaokatze.gtsr.common.machine.base.IHubArray;
 import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
 import com.miaokatze.gtsr.common.util.GTSRFluidWindowTexture;
-import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.HubBindingUtil;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 import com.miaokatze.gtsr.register.TextureManager;
@@ -651,6 +650,5 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_all_hint"));
         tooltip.add(
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_hub_transfer"));
-        tooltip.add(GTSRUtils.getAddedByLine());
     }
 }

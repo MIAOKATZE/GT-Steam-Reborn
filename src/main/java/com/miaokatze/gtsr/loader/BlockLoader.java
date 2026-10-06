@@ -7,9 +7,12 @@ import com.miaokatze.gtsr.common.blocks.BlockAbyssalFluid;
 import com.miaokatze.gtsr.common.blocks.BlockProsperityFalling;
 import com.miaokatze.gtsr.common.blocks.BlockProsperityStone;
 import com.miaokatze.gtsr.common.blocks.BlockRunawaySingularity;
+import com.miaokatze.gtsr.common.blocks.BlockSpacetimeSingularity;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.blocks.ItemBlockRunawaySingularity;
+import com.miaokatze.gtsr.common.blocks.ItemBlockSpacetimeSingularity;
 import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
+import com.miaokatze.gtsr.common.blocks.TileSpacetimeSingularity;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityCanopyLeaves;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalBase;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalTop;
@@ -47,6 +50,14 @@ public class BlockLoader {
         CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.runawaySingularity, 1, 1));
         CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.runawaySingularity, 1, 2));
         CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.runawaySingularity, 1, 3));
+
+        BlocksGTSR.spacetimeSingularity = new BlockSpacetimeSingularity();
+        GameRegistry.registerBlock(
+            BlocksGTSR.spacetimeSingularity,
+            ItemBlockSpacetimeSingularity.class,
+            "SpacetimeSingularity");
+        GameRegistry.registerTileEntity(TileSpacetimeSingularity.class, "gtsr.spacetimeSingularity");
+        CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.spacetimeSingularity));
 
         // dim1 S2：繁荣维度 meta 族方块（runawaySingularity 自持持有者范式）。
         // 必须先于 ProsperityBiomes.init（群系 top/filler 引用 BlocksGTSR.prosperitySurface，

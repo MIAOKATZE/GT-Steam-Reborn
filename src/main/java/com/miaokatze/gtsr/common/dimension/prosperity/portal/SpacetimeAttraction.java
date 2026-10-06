@@ -23,6 +23,10 @@ public final class SpacetimeAttraction {
     private final Map<Entity, Integer> stages = new HashMap<>();
 
     public void tick(MTESpacetimeCalibration machine, Vec3 centre) {
+        if (!machine.isPortalActive()) {
+            releaseAll();
+            return;
+        }
         @SuppressWarnings("unchecked")
         List<Entity> nearby = machine.getBaseMetaTileEntity()
             .getWorld()
@@ -52,6 +56,8 @@ public final class SpacetimeAttraction {
                 || entity.riddenByEntity != null
                 || entity.isSneaking()
                 || !intersectsSphere(entity.boundingBox, centre)) continue;
+            if (entity instanceof EntityPlayer && ((EntityPlayer) entity).capabilities.isCreativeMode
+                && ((EntityPlayer) entity).capabilities.isFlying) continue;
             if (entity.getEntityData()
                 .getLong("gtsrSpacetimeCooldownUntil") > now) continue;
             Vec3 local = machine.worldToLocal(entity.posX, entity.posY, entity.posZ);
@@ -106,6 +112,13 @@ public final class SpacetimeAttraction {
                 .isEmpty()) continue;
             retained.add(entity);
             stages.put(entity, stage);
+            if (entity instanceof EntityPlayer) {
+                EntityPlayer player = (EntityPlayer) entity;
+                if (!player.capabilities.isCreativeMode && player.capabilities.isFlying) {
+                    player.capabilities.isFlying = false;
+                    player.sendPlayerAbilities();
+                }
+            }
             entity.motionX = dx;
             entity.motionY = dy;
             entity.motionZ = dz;

@@ -33,9 +33,15 @@ public final class SpacetimeEffects {
 
     public static void portalState(IGregTechTileEntity tile, boolean active, double x, double y, double z,
         ForgeDirection front) {
+        portalState(tile, active, x, y, z, front, 0);
+    }
+
+    public static void portalState(IGregTechTileEntity tile, boolean active, double x, double y, double z,
+        ForgeDirection front, int preheatTicks) {
         if (tile.getWorld().isRemote || front == null || front == ForgeDirection.UNKNOWN) return;
         Signal s = new Signal();
-        s.kind = active ? 1 : 0;
+        s.kind = active || preheatTicks > 0 ? 1 : 0;
+        s.preheatTicks = Math.max(0, Math.min(600, preheatTicks));
         s.dimension = tile.getWorld().provider.dimensionId;
         s.keyX = tile.getXCoord();
         s.keyY = tile.getYCoord();
@@ -66,7 +72,7 @@ public final class SpacetimeEffects {
 
     public static final class Signal implements IMessage {
 
-        public int dimension, kind, keyX, keyY, keyZ, front;
+        public int dimension, kind, keyX, keyY, keyZ, front, preheatTicks;
         public double x, y, z;
         public boolean valid;
 
@@ -80,10 +86,11 @@ public final class SpacetimeEffects {
             b.writeDouble(x);
             b.writeDouble(y);
             b.writeDouble(z);
+            b.writeShort(preheatTicks);
         }
 
         public void fromBytes(ByteBuf b) {
-            if (b.readableBytes() != 42) return;
+            if (b.readableBytes() != 44) return;
             dimension = b.readInt();
             kind = b.readUnsignedByte();
             keyX = b.readInt();
@@ -93,7 +100,9 @@ public final class SpacetimeEffects {
             x = b.readDouble();
             y = b.readDouble();
             z = b.readDouble();
+            preheatTicks = b.readUnsignedShort();
             valid = kind <= 2 && front < 6
+                && preheatTicks <= 600
                 && Double.isFinite(x)
                 && Double.isFinite(y)
                 && Double.isFinite(z)

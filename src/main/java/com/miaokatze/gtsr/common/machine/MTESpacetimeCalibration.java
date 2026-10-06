@@ -9,8 +9,12 @@ import java.util.List;
 
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.util.Vec3;
+import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
@@ -18,25 +22,30 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.alignment.enumerable.Flip;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
+import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
-import com.miaokatze.gtsr.common.dimension.prosperity.portal.SpacetimeAttraction;
+import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
+import com.miaokatze.gtsr.common.blocks.TileSpacetimeSingularity;
 import com.miaokatze.gtsr.common.dimension.prosperity.portal.SpacetimeGeometry;
 import com.miaokatze.gtsr.common.dimension.prosperity.travel.SpacetimeEffects;
+import com.miaokatze.gtsr.common.gui.MTESpacetimeCalibrationGui;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import bartworks.system.material.WerkstoffLoader;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
-import gregtech.api.enums.HatchElement;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
+import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.shutdown.ShutDownReason;
 
 /** LuV utility machine. No recipe or synthetic progress timer is used to sustain its portal. */
 public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacetimeCalibration>
@@ -44,7 +53,11 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
 
     private static IStructureDefinition<MTESpacetimeCalibration> definition;
     private static final int OFFSET_X = 21, OFFSET_Y = 43, OFFSET_Z = 0;
-    private final SpacetimeAttraction attraction = new SpacetimeAttraction();
+    private boolean corePositionKnown;
+    private int coreX, coreY, coreZ;
+    private int guiState;
+    private boolean lastPublishedVisible;
+    private Vec3 lastPublishedCentre;
     private int preheatTicks;
     private boolean portalActive;
 
@@ -88,7 +101,12 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
                 throw new IllegalStateException("Missing Rhodium Plated Palladium material");
             definition = StructureDefinition.<MTESpacetimeCalibration>builder()
                 .addShape("main", transpose(SpacetimeGeometry.shape()))
-                .addElement('C', ofBlock(GregTechAPI.sBlockCasings1, 6))
+                .addElement(
+                    'C',
+                    buildHatchAdder(MTESpacetimeCalibration.class).adder(MTESpacetimeCalibration::addUtilityHatch)
+                        .casingIndex(6)
+                        .hint(1)
+                        .buildAndChain(GregTechAPI.sBlockCasings1, 6))
                 .addElement('Q', ofBlock(GregTechAPI.sBlockCasings1, 15))
                 .addElement(
                     'R',
@@ -96,19 +114,7 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
                 .addElement('G', ofBlock(requiredBlock("bartworks", "BW_TieredGlass"), 3))
                 .addElement('F', ofBlock(GregTechAPI.sBlockCasings2, 0))
                 .addElement('-', isAir())
-                // Dedicated functional bays have no casing fallback. Exactly one normal energy and maintenance hatch.
-                .addElement(
-                    'E',
-                    buildHatchAdder(MTESpacetimeCalibration.class).atLeast(HatchElement.Energy)
-                        .casingIndex(6)
-                        .hint(1)
-                        .build())
-                .addElement(
-                    'M',
-                    buildHatchAdder(MTESpacetimeCalibration.class).atLeast(HatchElement.Maintenance)
-                        .casingIndex(6)
-                        .hint(2)
-                        .build())
+                .addElement('S', coreElement())
                 .build();
         }
         return definition;
@@ -129,10 +135,10 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
     public void checkMachine(IGregTechTileEntity tile, ItemStack stack, List<StructureError> errors) {
         if (!legalFacing() || !chunksLoaded()
             || !checkPiece("main", OFFSET_X, OFFSET_Y, OFFSET_Z, errors)
-            || mEnergyHatches.size() != 1
-            || mMaintenanceHatches.size() != 1
-            || mEnergyHatches.get(0)
-                .maxEUInput() < 32768) {
+            || mEnergyHatches.isEmpty()
+            || mMaintenanceHatches.isEmpty()
+            || mEnergyHatches.stream()
+                .anyMatch(hatch -> hatch.maxEUInput() < 32768)) {
             if (errors.isEmpty()) errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
         }
     }
@@ -162,28 +168,47 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
     public void onPostTick(IGregTechTileEntity tile, long tick) {
         super.onPostTick(tile, tick);
         if (!tile.isServerSide()) return;
-        // Honor GT's dirty flag immediately; periodically recheck remote cells which may not notify the controller.
         checkStructure(tick % 20 == 0, tile);
         checkMaintenance();
-        if (!chunksLoaded() || !legalFacing()
-            || !mMachine
-            || !tile.isAllowedToWork()
-            || getRepairStatus() != getIdealStatus()
-            || !drainEnergyInput(preheatTicks < 600 ? 30720 : 15360)) {
-            deactivate();
+        if (!chunksLoaded() || !legalFacing() || !mMachine) {
+            stopWithState(3);
             return;
         }
+        if (!tile.isAllowedToWork()) {
+            stopWithState(6);
+            return;
+        }
+        if (getRepairStatus() != getIdealStatus()) {
+            stopWithState(4);
+            return;
+        }
+        if (!ensureCore()) {
+            stopWithState(7);
+            return;
+        }
+        if (!drainEnergyInput(preheatTicks < 600 ? 30720 : 15360)) {
+            stopWithState(5);
+            return;
+        }
+        boolean wasActive = portalActive;
         if (preheatTicks < 600) preheatTicks++;
         portalActive = preheatTicks >= 600;
+        guiState = portalActive ? 2 : 1;
         tile.setActive(true);
-        if (portalActive) {
-            Vec3 centre = localToWorld(23.5, 24.5, 4.5);
-            if (tick % 20 == 0 || preheatTicks == 600 && !lastPublishedActive) publish(true, centre);
-            attraction.tick(this, centre);
+        TileSpacetimeSingularity core = ownedCore(coreX, coreY, coreZ);
+        if (core == null) {
+            stopWithState(7);
+            return;
         }
+        core.updateCalibration(tile, getExtendedFacing().getDirection(), preheatTicks, portalActive);
+        if (tick % 20 == 0 || !lastPublishedVisible || portalActive != wasActive)
+            publish(portalActive, localToWorld(23.5, 24.5, 4.5));
     }
 
-    private boolean lastPublishedActive;
+    private void stopWithState(int state) {
+        deactivate();
+        guiState = state;
+    }
 
     /** Contact is an authorization boundary: validate the complete structure before any dimension transfer. */
     public boolean validatePortalForTravel() {
@@ -196,7 +221,9 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
             || !legalFacing()
             || !chunksLoaded()
             || !tile.isAllowedToWork()
-            || getRepairStatus() != getIdealStatus()) {
+            || getRepairStatus() != getIdealStatus()
+            || !ownsSingularityAtCurrentCentre()
+            || getStoredEnergyForGui() < 15360) {
             deactivate();
             return false;
         }
@@ -210,19 +237,27 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
             centre.xCoord,
             centre.yCoord,
             centre.zCoord,
-            getExtendedFacing().getDirection());
-        lastPublishedActive = active;
+            getExtendedFacing().getDirection(),
+            preheatTicks);
+        lastPublishedVisible = active || preheatTicks > 0;
+        lastPublishedCentre = centre;
     }
 
     private void deactivate() {
-        attraction.releaseAll();
+        retireCore();
         preheatTicks = 0;
         portalActive = false;
         IGregTechTileEntity tile = getBaseMetaTileEntity();
         if (tile != null && tile.isServerSide()) {
             tile.setActive(false);
-            if (lastPublishedActive) publish(false, localToWorld(23.5, 24.5, 4.5));
+            if (lastPublishedVisible) publish(false, lastPublishedCentre);
         }
+    }
+
+    @Override
+    public void stopMachine(ShutDownReason reason) {
+        deactivate();
+        super.stopMachine(reason);
     }
 
     @Override
@@ -241,6 +276,173 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
     public void onTickFail(IGregTechTileEntity tile, long tick) {
         deactivate();
         super.onTickFail(tile, tick);
+    }
+
+    private boolean addUtilityHatch(IGregTechTileEntity tile, int casingIndex) {
+        return addEnergyInputToMachineList(tile, casingIndex) || addMaintenanceToMachineList(tile, casingIndex)
+            || addInputBusToMachineList(tile, casingIndex)
+            || addOutputBusToMachineList(tile, casingIndex)
+            || addInputHatchToMachineList(tile, casingIndex)
+            || addOutputHatchToMachineList(tile, casingIndex);
+    }
+
+    private static IStructureElement<MTESpacetimeCalibration> coreElement() {
+        final IStructureElement<MTESpacetimeCalibration> air = isAir();
+        return new IStructureElement<MTESpacetimeCalibration>() {
+
+            @Override
+            public boolean check(MTESpacetimeCalibration machine, World world, int x, int y, int z) {
+                return world.isAirBlock(x, y, z) || machine.ownedCore(x, y, z) != null;
+            }
+
+            @Override
+            public boolean spawnHint(MTESpacetimeCalibration machine, World world, int x, int y, int z,
+                ItemStack trigger) {
+                return air.spawnHint(machine, world, x, y, z, trigger);
+            }
+
+            @Override
+            public boolean placeBlock(MTESpacetimeCalibration machine, World world, int x, int y, int z,
+                ItemStack trigger) {
+                // A construct request must never erase an existing singularity or foreign block.
+                return check(machine, world, x, y, z);
+            }
+        };
+    }
+
+    private TileSpacetimeSingularity ownedCore(int x, int y, int z) {
+        IGregTechTileEntity owner = getBaseMetaTileEntity();
+        if (owner == null || !owner.getWorld()
+            .blockExists(x, y, z)) return null;
+        if (owner.getWorld()
+            .getBlock(x, y, z) != BlocksGTSR.spacetimeSingularity) return null;
+        TileEntity tile = owner.getWorld()
+            .getTileEntity(x, y, z);
+        return tile instanceof TileSpacetimeSingularity && ((TileSpacetimeSingularity) tile).ownedBy(owner)
+            ? (TileSpacetimeSingularity) tile
+            : null;
+    }
+
+    private boolean ensureCore() {
+        Vec3 centre = localToWorld(23.5, 24.5, 4.5);
+        int x = (int) Math.floor(centre.xCoord), y = (int) Math.floor(centre.yCoord),
+            z = (int) Math.floor(centre.zCoord);
+        if (corePositionKnown && (coreX != x || coreY != y || coreZ != z)) {
+            deactivate();
+            if (corePositionKnown) return false;
+        }
+        World world = getBaseMetaTileEntity().getWorld();
+        if (ownedCore(x, y, z) == null) {
+            if (!world.isAirBlock(x, y, z) || !world.setBlock(x, y, z, BlocksGTSR.spacetimeSingularity, 0, 3))
+                return false;
+            TileEntity placed = world.getTileEntity(x, y, z);
+            if (!(placed instanceof TileSpacetimeSingularity)) return false;
+            ((TileSpacetimeSingularity) placed)
+                .updateCalibration(getBaseMetaTileEntity(), getExtendedFacing().getDirection(), 0, false);
+            if (ownedCore(x, y, z) == null) return false;
+        }
+        boolean newlyTracked = !corePositionKnown;
+        coreX = x;
+        coreY = y;
+        coreZ = z;
+        corePositionKnown = true;
+        if (newlyTracked) getBaseMetaTileEntity().markDirty();
+        return true;
+    }
+
+    private void retireCore() {
+        if (!corePositionKnown) return;
+        IGregTechTileEntity owner = getBaseMetaTileEntity();
+        TileSpacetimeSingularity core = ownedCore(coreX, coreY, coreZ);
+        if (core != null && owner.isServerSide()) {
+            core.shutdown();
+            owner.getWorld()
+                .setBlockToAir(coreX, coreY, coreZ);
+        }
+        // Retain an unloaded coordinate so a later tick can safely retire it before moving the core.
+        if (owner != null && owner.getWorld()
+            .blockExists(coreX, coreY, coreZ)) {
+            corePositionKnown = false;
+            owner.markDirty();
+        }
+    }
+
+    public boolean ownsSingularity(int x, int y, int z) {
+        return corePositionKnown && coreX == x && coreY == y && coreZ == z && ownedCore(x, y, z) != null;
+    }
+
+    private boolean ownsSingularityAtCurrentCentre() {
+        Vec3 centre = localToWorld(23.5, 24.5, 4.5);
+        return ownsSingularity(
+            (int) Math.floor(centre.xCoord),
+            (int) Math.floor(centre.yCoord),
+            (int) Math.floor(centre.zCoord));
+    }
+
+    public boolean isPortalActive() {
+        return portalActive;
+    }
+
+    @Override
+    public void saveNBTData(NBTTagCompound nbt) {
+        super.saveNBTData(nbt);
+        nbt.setBoolean("SpacetimeCoreKnown", corePositionKnown);
+        nbt.setInteger("SpacetimeCoreX", coreX);
+        nbt.setInteger("SpacetimeCoreY", coreY);
+        nbt.setInteger("SpacetimeCoreZ", coreZ);
+    }
+
+    @Override
+    public void loadNBTData(NBTTagCompound nbt) {
+        super.loadNBTData(nbt);
+        corePositionKnown = nbt.getBoolean("SpacetimeCoreKnown");
+        coreX = nbt.getInteger("SpacetimeCoreX");
+        coreY = nbt.getInteger("SpacetimeCoreY");
+        coreZ = nbt.getInteger("SpacetimeCoreZ");
+        preheatTicks = 0;
+        portalActive = false;
+    }
+
+    public int getStateForGui() {
+        return guiState;
+    }
+
+    public int getPreheatTicksForGui() {
+        return preheatTicks;
+    }
+
+    public int getCoreCountForGui() {
+        return corePositionKnown && ownedCore(coreX, coreY, coreZ) != null ? 1 : 0;
+    }
+
+    public long getEnergyCostForGui() {
+        return preheatTicks == 0 ? 0 : portalActive ? 15360 : 30720;
+    }
+
+    public long getInputVoltageForGui() {
+        long voltage = 0;
+        for (MTEHatchEnergy hatch : mEnergyHatches)
+            if (hatch.isValid()) voltage = Math.max(voltage, hatch.maxEUInput());
+        return voltage;
+    }
+
+    public long getStoredEnergyForGui() {
+        long stored = 0;
+        for (MTEHatchEnergy hatch : mEnergyHatches) if (hatch.isValid()) stored += hatch.getBaseMetaTileEntity()
+            .getStoredEU();
+        return stored;
+    }
+
+    public long getEnergyCapacityForGui() {
+        long capacity = 0;
+        for (MTEHatchEnergy hatch : mEnergyHatches) if (hatch.isValid()) capacity += hatch.getBaseMetaTileEntity()
+            .getEUCapacity();
+        return capacity;
+    }
+
+    @Override
+    protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
+        return new MTESpacetimeCalibrationGui(this);
     }
 
     /** Approved model points map from tile centre through the same ExtendedFacing as checkPiece. */
@@ -263,14 +465,18 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         return new MultiblockTooltipBuilder().addMachineType(StatCollector.translateToLocal("gtsr.spacetime.type"))
-            .addInfo(StatCollector.translateToLocal("gtsr.spacetime.preheat"))
-            .addInfo(StatCollector.translateToLocal("gtsr.spacetime.maintain"))
+            .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.spacetime.preheat"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.spacetime.maintain"))
             .addInfo(StatCollector.translateToLocal("gtsr.spacetime.safety"))
+            .addSeparator()
             .beginStructureBlock(43, 46, 9, false)
             .addController(StatCollector.translateToLocal("gtsr.spacetime.controller"))
             .addEnergyHatch(StatCollector.translateToLocal("gtsr.spacetime.energy"), 1)
-            .addMaintenanceHatch(StatCollector.translateToLocal("gtsr.spacetime.maintenance"), 2)
-            .toolTipFinisher("GT Steam Reborn");
+            .addMaintenanceHatch(StatCollector.translateToLocal("gtsr.spacetime.maintenance"), 1)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.spacetime.materials"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.spacetime.optional_io"))
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
     }
 
     @Override

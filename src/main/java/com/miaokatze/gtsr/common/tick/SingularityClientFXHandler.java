@@ -11,6 +11,7 @@ import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.blocks.GTSRSingularityFX;
 import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
+import com.miaokatze.gtsr.common.blocks.TileSpacetimeSingularity;
 import com.miaokatze.gtsr.common.fx.GTSRBeamFX;
 import com.miaokatze.gtsr.common.fx.GTSRFXEngine;
 import com.miaokatze.gtsr.common.fx.GTSRGlowFX;
@@ -70,6 +71,8 @@ public class SingularityClientFXHandler {
             if (t.isInvalid()) {
                 continue;
             }
+            boolean spacetime = t instanceof TileSpacetimeSingularity;
+            if (spacetime && t.getActiveFactor() <= 0) continue;
             current.add(t);
             float[] rgb = t.getColorRGB();
             this.lastSeen.put(t, (t.xCoord & 0xFFFF) << 16 | (t.zCoord & 0xFFFF));
@@ -99,7 +102,17 @@ public class SingularityClientFXHandler {
             // 粒子大小随辉光半径放大：fxRadius=30 时达上限 3 倍（线性，30 以上封顶）
             float particleScale = (float) (1.0D + Math.min(t.getFxRadius(), 30.0D) / 30.0D * 2.0D);
             if (world.rand.nextFloat() < diskP) {
-                GTSRSingularityFX.spawnDisk(
+                if (spacetime) {
+                    GTSRSingularityFX.spawnVerticalDisk(
+                        world,
+                        cx,
+                        cy,
+                        cz,
+                        diskR,
+                        darkScale,
+                        particleScale,
+                        ((TileSpacetimeSingularity) t).getFront());
+                } else GTSRSingularityFX.spawnDisk(
                     world,
                     cx,
                     cy,
@@ -112,7 +125,7 @@ public class SingularityClientFXHandler {
             }
             // 电弧：外向（中心→边缘），频率中位数 + 大幅波动；一次可多条（1~3 条、方向均匀间隔）。
             // onlypull（-2）与 nullplus（-3）：无吸收行为，跳过电弧；光片/辉光保留（onlypull 仍表现牵引动画，nullplus 为纯静置）
-            if (t.getAttributeId() != TileRunawaySingularity.ATTRIBUTE_ONLY_PULL
+            if (!spacetime && t.getAttributeId() != TileRunawaySingularity.ATTRIBUTE_ONLY_PULL
                 && t.getAttributeId() != TileRunawaySingularity.ATTRIBUTE_NULL_PLUS) {
                 Integer cached = this.arcCooldowns.get(t);
                 int cooldown = cached == null ? 3 + world.rand.nextInt(12) : cached.intValue();
@@ -173,7 +186,7 @@ public class SingularityClientFXHandler {
                 b.updateColor(rgb[0], rgb[1], rgb[2]);
             }
             // 辉光：TC4 节点式多层光晕常驻，半径 = 光效半径 × 20%（默认 10 → 2 格），随活性系数收缩变暗
-            float glowR = glowRadius * (float) af;
+            float glowR = glowRadius * (float) af * (spacetime ? 1.3F : 1.0F);
             GTSRGlowFX glow = this.glows.get(t);
             if (glow == null || glow.isDead()) {
                 glow = GTSRGlowFX.spawn(world, cx, cy, cz, glowR, 0.85F * rgb[0], 0.9F * rgb[1], 1.0F * rgb[2], 10000);

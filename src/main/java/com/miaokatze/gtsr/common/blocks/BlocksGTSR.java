@@ -12,6 +12,9 @@ public final class BlocksGTSR {
     /** 失控奇点方块（BlockLoader.initBlocks 注册期写入）。 */
     public static Block runawaySingularity;
 
+    /** 由时空奇点校准工程托管的稳定传送奇点。 */
+    public static Block spacetimeSingularity;
+
     // ==== dim1 S2：繁荣维度 meta 族方块（BlockLoader.initBlocks 注册期写入）====
 
     /** 锈变地表 6 meta（0 锈草/1 锈土/2 黄铜沙/3 锈泥炭/4 锈黏/5 锈石；群系 top/filler 挂接）。 */

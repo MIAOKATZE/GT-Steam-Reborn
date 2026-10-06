@@ -14,7 +14,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChatComponentTranslation;
-import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.Teleporter;
 import net.minecraft.world.WorldServer;
@@ -154,30 +153,7 @@ public final class SpacetimeTravel {
         if (!eligible(p) || Config.prosperityDimId < 0) return false;
         WorldServer w = destination(Config.prosperityDimId);
         if (w == null) return false;
-        ChunkCoordinates spawn = w.getSpawnPoint();
-        // At most four generated chunks, 81 columns and 256 heights. No bed/spawn fallback on failed scan.
-        double[] point = null;
-        long deadline = System.nanoTime() + 250000000L;
-        for (int r = 0; r <= 4 && point == null; r++)
-            for (int dx = -r; dx <= r && point == null; dx++) for (int dz = -r; dz <= r && point == null; dz++) {
-                if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue;
-                int x = spawn.posX + dx, z = spawn.posZ + dz;
-                w.getChunkFromChunkCoords(x >> 4, z >> 4);
-                if (System.nanoTime() > deadline) {
-                    message(p, "unsafe");
-                    return false;
-                }
-                for (int y = Math.min(254, w.getActualHeight() - 2); y > 0; y--) {
-                    if (System.nanoTime() > deadline) {
-                        message(p, "unsafe");
-                        return false;
-                    }
-                    if (safe(w, p, x + .5, y, z + .5)) {
-                        point = new double[] { x + .5, y, z + .5 };
-                        break;
-                    }
-                }
-            }
+        double[] point = findProsperityLanding(w, p);
         if (point == null) {
             message(p, "unsafe");
             return false;
@@ -203,6 +179,65 @@ public final class SpacetimeTravel {
         return true;
     }
 
+    /** Server-thread diagnostic entry; initializes only the already registered configured dimension. */
+    public static double[] findProsperityLanding() {
+        if (Config.prosperityDimId < 0) return null;
+        WorldServer world = destination(Config.prosperityDimId);
+        return world == null ? null : findProsperityLanding(world, null);
+    }
+
+    private static double[] findProsperityLanding(WorldServer world, EntityPlayerMP player) {
+        java.util.List<int[]> columns = new java.util.ArrayList<>();
+        for (int x = -32; x <= 32; x++) for (int z = -32; z <= 32; z++) {
+            if (x * x + z * z <= 32 * 32) columns.add(new int[] { x, z });
+        }
+        // Squared distance of block centers to (0,0); the origin column wins equal-distance ties.
+        columns.sort(
+            java.util.Comparator
+                .<int[]>comparingInt(c -> (2 * c[0] + 1) * (2 * c[0] + 1) + (2 * c[1] + 1) * (2 * c[1] + 1))
+                .thenComparingInt(c -> c[0] * c[0] + c[1] * c[1]));
+        java.util.Set<Long> loaded = new java.util.HashSet<>();
+        for (int[] column : columns) {
+            int x = column[0], z = column[1];
+            // Load before reading height/collision. Cold generation cannot consume a scan-time deadline.
+            // The entity collision query expands its footprint, so include two blocks at chunk edges.
+            for (int cx = (x - 2) >> 4; cx <= (x + 2) >> 4; cx++)
+                for (int cz = (z - 2) >> 4; cz <= (z + 2) >> 4; cz++) {
+                    long key = ((long) cx << 32) ^ (cz & 0xffffffffL);
+                    if (loaded.add(key)) world.theChunkProviderServer.loadChunk(cx, cz);
+                }
+            int height = world.getHeightValue(x, z);
+            // A fixed five-height surface window bounds CPU work without descending into caves.
+            for (int y = height; y <= height + 2; y++)
+                if (surfaceSafe(world, player, x + .5, y, z + .5)) return new double[] { x + .5, y, z + .5 };
+            for (int y = height - 1; y >= height - 2; y--)
+                if (surfaceSafe(world, player, x + .5, y, z + .5)) return new double[] { x + .5, y, z + .5 };
+        }
+        return null;
+    }
+
+    /** Checks the same exposed surface and safety predicate used by portal discovery; writes no terrain. */
+    public static boolean verifyProsperityLanding(WorldServer world, double[] point) {
+        return world != null && world.provider.dimensionId == Config.prosperityDimId
+            && point != null
+            && point.length == 3
+            && Double.isFinite(point[0])
+            && Double.isFinite(point[1])
+            && Double.isFinite(point[2])
+            && (point[0] - .5) * (point[0] - .5) + (point[2] - .5) * (point[2] - .5) <= 32 * 32
+            && surfaceSafe(world, null, point[0], point[1], point[2]);
+    }
+
+    private static boolean surfaceSafe(WorldServer world, EntityPlayerMP player, double x, double y, double z) {
+        if (y < 1 || y + 1.8 >= world.getActualHeight()) return false;
+        int bx = MathHelper.floor_double(x), by = MathHelper.floor_double(y), bz = MathHelper.floor_double(z);
+        Material floor = world.getBlock(bx, by - 1, bz)
+            .getMaterial();
+        return floor != Material.leaves && floor != Material.wood
+            && world.canBlockSeeTheSky(bx, by, bz)
+            && safe(world, player, x, y, z);
+    }
+
     private static WorldServer destination(int dim) {
         if (!DimensionManager.isDimensionRegistered(dim)) return null;
         try {
@@ -214,14 +249,13 @@ public final class SpacetimeTravel {
     }
 
     static double[] safeLanding(WorldServer w, EntityPlayerMP player, double x, double y, double z) {
-        long deadline = System.nanoTime() + 250000000L;
         int bx = MathHelper.floor_double(x), by = MathHelper.floor_double(y), bz = MathHelper.floor_double(z);
         // Include one-block hazard margin; no more than four chunks for this eleven-block footprint.
         for (int cx = (bx - 5) >> 4; cx <= (bx + 5) >> 4; cx++)
             for (int cz = (bz - 5) >> 4; cz <= (bz + 5) >> 4; cz++) {
-                w.getChunkFromChunkCoords(cx, cz);
-                if (System.nanoTime() > deadline) return null;
+                w.theChunkProviderServer.loadChunk(cx, cz);
             }
+        long deadline = System.nanoTime() + 250000000L;
         java.util.List<int[]> offsets = new java.util.ArrayList<>();
         for (int dx = -4; dx <= 4; dx++)
             for (int dy = -4; dy <= 4; dy++) for (int dz = -4; dz <= 4; dz++) offsets.add(new int[] { dx, dy, dz });
@@ -237,8 +271,7 @@ public final class SpacetimeTravel {
     private static boolean safe(WorldServer w, EntityPlayerMP player, double x, double y, double z) {
         if (y < 1 || y + 1.8 >= w.getActualHeight()) return false;
         AxisAlignedBB box = AxisAlignedBB.getBoundingBox(x - .3, y, z - .3, x + .3, y + 1.8, z + .3);
-        if (!w.getCollidingBoundingBoxes(player, box)
-            .isEmpty() || w.isAnyLiquid(box)) return false;
+        if (hasLandingCollision(w, player, box) || w.isAnyLiquid(box)) return false;
         int bx = MathHelper.floor_double(x), by = MathHelper.floor_double(y), bz = MathHelper.floor_double(z);
         for (int fx = MathHelper.floor_double(x - .3); fx <= MathHelper.floor_double(x + .3); fx++)
             for (int fz = MathHelper.floor_double(z - .3); fz <= MathHelper.floor_double(z + .3); fz++)
@@ -257,6 +290,25 @@ public final class SpacetimeTravel {
             if (n.contains("hazard") || n.contains("toxic") || n.contains("spike")) return false;
         }
         return true;
+    }
+
+    private static boolean hasLandingCollision(WorldServer world, EntityPlayerMP player, AxisAlignedBB box) {
+        if (player != null) return !world.getCollidingBoundingBoxes(player, box)
+            .isEmpty();
+        // Vanilla's entity collision loop dereferences the querying entity. Diagnostics have no player.
+        java.util.List<AxisAlignedBB> collisions = new java.util.ArrayList<>();
+        for (int x = MathHelper.floor_double(box.minX); x <= MathHelper.floor_double(box.maxX); x++)
+            for (int z = MathHelper.floor_double(box.minZ); z <= MathHelper.floor_double(box.maxZ); z++)
+                for (int y = MathHelper.floor_double(box.minY) - 1; y <= MathHelper.floor_double(box.maxY); y++) {
+                    world.getBlock(x, y, z)
+                        .addCollisionBoxesToList(world, x, y, z, box, collisions, null);
+                    if (!collisions.isEmpty()) return true;
+                }
+        for (Object candidate : world.getEntitiesWithinAABBExcludingEntity(null, box.expand(.25, .25, .25))) {
+            AxisAlignedBB entityBox = ((Entity) candidate).getBoundingBox();
+            if (entityBox != null && entityBox.intersectsWith(box)) return true;
+        }
+        return false;
     }
 
     private static void move(EntityPlayerMP p, WorldServer w, double[] point, float yaw, float pitch) {

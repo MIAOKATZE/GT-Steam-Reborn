@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.blocks;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.ForgeDirection;
 
 import com.miaokatze.gtsr.common.fx.GTSRFXParticle;
 
@@ -20,6 +21,7 @@ public class GTSRSingularityFX extends GTSRFXParticle {
     private static int activeCount;
 
     private int mode;
+    private ForgeDirection diskFront;
     private final double centerX;
     private final double centerY;
     private final double centerZ;
@@ -137,6 +139,27 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         }
     }
 
+    public static void spawnVerticalDisk(World world, double cx, double cy, double cz, double spawnR, float darkScale,
+        float scaleFactor, ForgeDirection front) {
+        GTSRSingularityFX fx = new GTSRSingularityFX(world, cx, cy, cz, spawnR, 0);
+        fx.diskFront = front;
+        fx.durationTicks = -1;
+        fx.particleScale *= scaleFactor;
+        fx.setDarkScale(darkScale);
+        fx.positionVerticalDisk();
+        fx.prevPosX = fx.posX;
+        fx.prevPosY = fx.posY;
+        fx.prevPosZ = fx.posZ;
+        Minecraft.getMinecraft().effectRenderer.addEffect(fx);
+    }
+
+    private void positionVerticalDisk() {
+        double horizontal = Math.cos(angle) * radius;
+        posX = centerX + horizontal * diskFront.offsetZ;
+        posY = centerY + Math.sin(angle) * radius;
+        posZ = centerZ - horizontal * diskFront.offsetX;
+    }
+
     /**
      * 向心粒子 S2C 调度入口：网络 handler（Netty 线程）调用，调度回客户端主线程后在吸收点生成粒子。
      * 本类为类级 @SideOnly(Side.CLIENT)，服务端永不加载；handler 只保留 common 调用，
@@ -191,6 +214,7 @@ public class GTSRSingularityFX extends GTSRFXParticle {
             this.posX = this.centerX + Math.cos(this.angle) * this.radius;
             this.posZ = this.centerZ + Math.sin(this.angle) * this.radius;
             this.posY = this.centerY + Math.sin((double) this.particleAge * 0.1D) * 0.15D;
+            if (diskFront != null) positionVerticalDisk();
             // 内圈快速湮灭（radius<1.2 开始）+ 寿命后期渐隐（消散加速叠加，af=0 时每 tick 衰减 0.27 快速收尾）
             if (this.radius < 1.2D || (double) this.particleAge > (double) this.particleMaxAge * 0.9D) {
                 this.alpha -= 0.15F + (float) ((1.0D - af) * 0.12D);

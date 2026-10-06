@@ -64,12 +64,12 @@ public final class SpacetimeGeometry {
                         air++;
                         break;
                     case "energy":
-                        symbol = 'E';
+                        symbol = 'C';
                         energy++;
                         requirePosition(x, y, z, 23, 2, 6);
                         break;
                     case "maintenance":
-                        symbol = 'M';
+                        symbol = 'C';
                         maintenance++;
                         requirePosition(x, y, z, 23, 2, 3);
                         break;
@@ -85,6 +85,10 @@ public final class SpacetimeGeometry {
                 // StructureLib ABC: left->right, top->bottom, front->back. The approved front is +Z.
                 cells[45 - y][8 - z][x - 2] = symbol;
             }
+            // The existing art and air totals are unchanged; only runtime semantics differ.
+            if (cells[45 - 24][8 - 4][23 - 2] != ' ')
+                throw new IllegalStateException("Portal core must remain outside the approved solid art");
+            cells[45 - 24][8 - 4][23 - 2] = 'S';
             if (solids != 2703 || air != 1220 || controller != 1 || energy != 1 || maintenance != 1)
                 throw new IllegalStateException("Portal voxel contract mismatch");
         } catch (java.io.IOException e) {
