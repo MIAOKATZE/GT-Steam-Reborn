@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.loader;
 
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.log;
 
+import com.miaokatze.gtsr.common.dimension.prosperity.industrial.ProsperityIndustrialRecipes;
 import com.miaokatze.gtsr.loader.recipes.ClusterRecipes;
 import com.miaokatze.gtsr.loader.recipes.DisplayRecipes;
 import com.miaokatze.gtsr.loader.recipes.HatchRecipes;
@@ -9,6 +10,7 @@ import com.miaokatze.gtsr.loader.recipes.MiscRecipes;
 import com.miaokatze.gtsr.loader.recipes.MultiblockMachineRecipes;
 import com.miaokatze.gtsr.loader.recipes.NodeAndHubRecipes;
 import com.miaokatze.gtsr.loader.recipes.ProcessingMachineRecipes;
+import com.miaokatze.gtsr.loader.recipes.SpacetimeMachineRecipes;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 /**
@@ -67,5 +69,7 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("ReinforcedBrickBlastFurnace", MiscRecipes::registerReinforcedBrickBlastFurnaceRecipe);
         safeRegister("Cluster", ClusterRecipes::addRecipes); // 矿物处理集群 14 组件：14 条全组装机配方
                                                              // （GTUDK 用户规格）：eut 30/32=LV、128=MV，磁选与筛选为 MV
+        safeRegister("ProsperityIndustrial", ProsperityIndustrialRecipes::registerAll);
+        safeRegister("SpacetimeEngineering", SpacetimeMachineRecipes::register);
     }
 }

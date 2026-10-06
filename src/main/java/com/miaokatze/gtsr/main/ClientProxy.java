@@ -7,6 +7,7 @@ import net.minecraftforge.common.MinecraftForge;
 
 import com.miaokatze.gtsr.client.HubBindClientHandler;
 import com.miaokatze.gtsr.client.gui.terminal.GuiAggregatorConfigScreen;
+import com.miaokatze.gtsr.client.travel.SpacetimeClient;
 import com.miaokatze.gtsr.common.fx.GTSRFXEngine;
 import com.miaokatze.gtsr.common.gui.terminal.ContainerAggregatorConfig;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
@@ -32,6 +33,7 @@ public class ClientProxy extends CommonProxy {
     public void init(FMLInitializationEvent event) {
         // 调用父类的 init 方法，确保通用逻辑正常执行
         super.init(event);
+        SpacetimeClient.register();
         com.miaokatze.gtsr.client.architecture.RuinsArchitectureRenderer.registerRenderer();
         com.miaokatze.gtsr.client.architecture.RemasterBlockRenderer.registerRenderer();
         com.miaokatze.gtsr.client.architecture.RemasterSpawnerRenderer.registerRenderer();

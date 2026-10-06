@@ -1,0 +1,2807 @@
+{
+  "schema": "gtsr.industrial-r6/v1",
+  "materials": [
+    {
+      "id": "planned:acid_mineral_cake",
+      "name": "gtsr_industrial_acid_mineral_cake",
+      "en": "Acid-gas Mineral Cake",
+      "zh": "酸气伴生矿物滤饼",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:acid_mineral_liquor",
+      "name": "gtsr_industrial_acid_mineral_liquor",
+      "en": "Acid-gas Mineral Liquor",
+      "zh": "酸气矿物母液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:aromatic_conversion_feed",
+      "name": "gtsr_industrial_aromatic_conversion_feed",
+      "en": "Aromatic Conversion Feed",
+      "zh": "芳烃转化原液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:carbon_heavy_liquor",
+      "name": "gtsr_industrial_carbon_heavy_liquor",
+      "en": "Carbon-heavy Liquor",
+      "zh": "碳重馏分",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:cleaned_withered_feed",
+      "name": "gtsr_industrial_cleaned_withered_feed",
+      "en": "Cleaned Withered Feed",
+      "zh": "净化枯竭气息原液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:crude_krypton",
+      "name": "gtsr_industrial_crude_krypton",
+      "en": "Crude Krypton Fraction",
+      "zh": "粗氪馏分",
+      "phase": "gas"
+    },
+    {
+      "id": "planned:crude_native_fluorine",
+      "name": "gtsr_industrial_crude_native_fluorine",
+      "en": "Crude Native Fluorine",
+      "zh": "原生粗氟馏分",
+      "phase": "gas"
+    },
+    {
+      "id": "planned:crude_neon",
+      "name": "gtsr_industrial_crude_neon",
+      "en": "Crude Neon Fraction",
+      "zh": "粗氖馏分",
+      "phase": "gas"
+    },
+    {
+      "id": "planned:crude_xenon",
+      "name": "gtsr_industrial_crude_xenon",
+      "en": "Crude Xenon Fraction",
+      "zh": "粗氙馏分",
+      "phase": "gas"
+    },
+    {
+      "id": "planned:desulfurized_grease",
+      "name": "gtsr_industrial_desulfurized_grease",
+      "en": "Desulfurized Grease Feed",
+      "zh": "脱硫油污原液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:electrothermal_heavy_crack",
+      "name": "gtsr_industrial_electrothermal_heavy_crack",
+      "en": "Electrothermal Heavy Crack Feed",
+      "zh": "电热重裂化原液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:electrothermal_light_crack",
+      "name": "gtsr_industrial_electrothermal_light_crack",
+      "en": "Electrothermal Light Crack Feed",
+      "zh": "电热轻裂化原液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:grease_aromatic_cut",
+      "name": "gtsr_industrial_grease_aromatic_cut",
+      "en": "Grease Aromatic Cut",
+      "zh": "油污芳烃馏分",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:grease_bioorganic_fraction",
+      "name": "gtsr_industrial_grease_bioorganic_fraction",
+      "en": "Grease Bioorganic Fraction",
+      "zh": "油污生物有机馏分",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:grease_heavy_cut",
+      "name": "gtsr_industrial_grease_heavy_cut",
+      "en": "Grease Heavy Cut",
+      "zh": "油污重烃馏分",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:grease_light_cut",
+      "name": "gtsr_industrial_grease_light_cut",
+      "en": "Grease Light Cut",
+      "zh": "油污轻烃馏分",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:grease_oxygenate_cut",
+      "name": "gtsr_industrial_grease_oxygenate_cut",
+      "en": "Grease Oxygenate Cut",
+      "zh": "油污含氧馏分",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:heated_grease_r3",
+      "name": "gtsr_industrial_heated_grease_r3",
+      "en": "Heated Thick Grease",
+      "zh": "热化浓稠油污",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:homogenized_mire_r3",
+      "name": "gtsr_industrial_homogenized_mire_r3",
+      "en": "Homogenized Umbral Slurry",
+      "zh": "均质至暗泥浆",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:mire_alcohol_fraction",
+      "name": "gtsr_industrial_mire_alcohol_fraction",
+      "en": "Mire Alcohol Fraction",
+      "zh": "泥泞醇馏分",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:mire_ammonium_fraction",
+      "name": "gtsr_industrial_mire_ammonium_fraction",
+      "en": "Mire Ammonium Fraction",
+      "zh": "泥泞含铵馏分",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:native_acid_condensate",
+      "name": "gtsr_industrial_native_acid_condensate",
+      "en": "Native Acid Condensate",
+      "zh": "原生酸气凝液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:native_acid_cut",
+      "name": "gtsr_industrial_native_acid_cut",
+      "en": "Native Acid Cut",
+      "zh": "原生酸液馏分",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:native_chlorine_fraction",
+      "name": "gtsr_industrial_native_chlorine_fraction",
+      "en": "Native Chlorine-rich Condensate",
+      "zh": "原生富氯凝液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:native_coolant_polyol",
+      "name": "gtsr_industrial_native_coolant_polyol",
+      "en": "Native Coolant Polyol-mineral Feed",
+      "zh": "原生冷却多元醇矿物复合液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:native_fluorine_fraction",
+      "name": "gtsr_industrial_native_fluorine_fraction",
+      "en": "Native Fluorine Fraction",
+      "zh": "原生含氟馏分",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:native_hcl_fraction",
+      "name": "gtsr_industrial_native_hcl_fraction",
+      "en": "Native Hydrochloric Fraction",
+      "zh": "原生盐酸富集液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:native_hf_fraction",
+      "name": "gtsr_industrial_native_hf_fraction",
+      "en": "Native Hydrofluoric Fraction",
+      "zh": "原生氢氟酸馏分",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:native_mixed_acids",
+      "name": "gtsr_industrial_native_mixed_acids",
+      "en": "Native Mixed Acids",
+      "zh": "原生混合副酸",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:native_sanzu_hydrogen",
+      "name": "gtsr_industrial_native_sanzu_hydrogen",
+      "en": "Native Sanzu Hydrogen",
+      "zh": "三途原生氢馏分",
+      "phase": "gas"
+    },
+    {
+      "id": "planned:petro_mineral_cake",
+      "name": "gtsr_industrial_petro_mineral_cake",
+      "en": "Petrochemical Mineral Cake",
+      "zh": "石化非金属滤饼",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:reformed_aromatic_feed",
+      "name": "gtsr_industrial_reformed_aromatic_feed",
+      "en": "Reformed Aromatic Feed",
+      "zh": "重整芳烃原液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:sanzu_condensate_r3",
+      "name": "gtsr_industrial_sanzu_condensate_r3",
+      "en": "Sanzu Steam Condensate",
+      "zh": "三途余汽凝液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:sanzu_mineral_liquor",
+      "name": "gtsr_industrial_sanzu_mineral_liquor",
+      "en": "Sanzu Mineral Liquor",
+      "zh": "三途矿物母液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:vegetal_aqueous_fraction",
+      "name": "gtsr_industrial_vegetal_aqueous_fraction",
+      "en": "Vegetal Aqueous Fraction",
+      "zh": "植物水相馏分",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:vegetal_carbon_silica_cake",
+      "name": "gtsr_industrial_vegetal_carbon_silica_cake",
+      "en": "Vegetal Carbon-silica Cake",
+      "zh": "植物碳硅滤饼",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:vegetal_filtercake_r3",
+      "name": "gtsr_industrial_vegetal_filtercake_r3",
+      "en": "Vegetal Organic Cake",
+      "zh": "植物有机滤饼",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:vegetal_mineral_cake",
+      "name": "gtsr_industrial_vegetal_mineral_cake",
+      "en": "Vegetal Mineral Cake",
+      "zh": "植物矿物滤饼",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:washed_mire_r3",
+      "name": "gtsr_industrial_washed_mire_r3",
+      "en": "Acid-hydrolyzed Umbral Slurry",
+      "zh": "酸解至暗泥浆",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:washed_sanzu",
+      "name": "gtsr_industrial_washed_sanzu",
+      "en": "Washed Sanzu Feed",
+      "zh": "水洗三途凝液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:withered_bulk_air",
+      "name": "gtsr_industrial_withered_bulk_air",
+      "en": "Withered Bulk-air Fraction",
+      "zh": "枯竭主空气馏分",
+      "phase": "gas"
+    },
+    {
+      "id": "planned:withered_carbon_fraction",
+      "name": "gtsr_industrial_withered_carbon_fraction",
+      "en": "Withered Carbon-gas Fraction",
+      "zh": "枯竭碳气馏分",
+      "phase": "gas"
+    },
+    {
+      "id": "planned:withered_condensate_r3",
+      "name": "gtsr_industrial_withered_condensate_r3",
+      "en": "Withered Breath Condensate",
+      "zh": "枯竭气息凝液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:withered_hydrogen_cut",
+      "name": "gtsr_industrial_withered_hydrogen_cut",
+      "en": "Withered Hydrogen Cut",
+      "zh": "枯竭氢馏分",
+      "phase": "gas"
+    },
+    {
+      "id": "planned:withered_noble_fraction",
+      "name": "gtsr_industrial_withered_noble_fraction",
+      "en": "Withered Noble-gas Concentrate",
+      "zh": "枯竭稀有气体富集液",
+      "phase": "gas"
+    },
+    {
+      "id": "planned:withered_trace_nobles",
+      "name": "gtsr_industrial_withered_trace_nobles",
+      "en": "Withered Trace-noble Fraction",
+      "zh": "枯竭微量稀有馏分",
+      "phase": "gas"
+    },
+    {
+      "id": "planned:wet_captured_metalgrit",
+      "name": "gtsr_industrial_wet_captured_metalgrit",
+      "en": "Wet-captured Metal Grit Slurry",
+      "zh": "湿捕集金属风沙浆",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:magnetic_metal_cake",
+      "name": "gtsr_industrial_magnetic_metal_cake",
+      "en": "Ferrous Magnetic Cake",
+      "zh": "铁镍锰磁性滤饼",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:base_metal_cake_r3",
+      "name": "gtsr_industrial_base_metal_cake_r3",
+      "en": "Base-metal Cake",
+      "zh": "常用有色金属滤饼",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:refractory_metal_cake",
+      "name": "gtsr_industrial_refractory_metal_cake",
+      "en": "Aluminium-chromium-titanium Cake",
+      "zh": "铝铬钛矿物滤饼",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:grit_nonmetal_cake",
+      "name": "gtsr_industrial_grit_nonmetal_cake",
+      "en": "Grit Nonmetal Cake",
+      "zh": "风沙非金属滤饼",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:rare_resource_liquor",
+      "name": "gtsr_industrial_rare_resource_liquor",
+      "en": "Grit Rare-resource Feed",
+      "zh": "风沙稀资源原液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:washed_base_metal_cake_r3",
+      "name": "gtsr_industrial_washed_base_metal_cake_r3",
+      "en": "Washed Base-metal Cake",
+      "zh": "洗净常用金属滤饼",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:pgm_native_concentrate",
+      "name": "gtsr_industrial_pgm_native_concentrate",
+      "en": "Native PGM Concentrate",
+      "zh": "原生铂族浓缩液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:rareearth_native_concentrate",
+      "name": "gtsr_industrial_rareearth_native_concentrate",
+      "en": "Native Rare-earth Concentrate",
+      "zh": "原生稀土浓缩液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:radioactive_native_concentrate",
+      "name": "gtsr_industrial_radioactive_native_concentrate",
+      "en": "Native Radioactive Concentrate",
+      "zh": "原生放射性混合浓缩液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:tantalite_native_concentrate",
+      "name": "gtsr_industrial_tantalite_native_concentrate",
+      "en": "Native Tantalite Concentrate",
+      "zh": "原生钽铁矿浓缩液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:rare_nonmetal_native_concentrate",
+      "name": "gtsr_industrial_rare_nonmetal_native_concentrate",
+      "en": "Rare-stream Native Nonmetal Concentrate",
+      "zh": "稀支流原生非金属浓缩液",
+      "phase": "fluid"
+    },
+    {
+      "id": "planned:pgm_mixed_cake_r3",
+      "name": "gtsr_industrial_pgm_mixed_cake_r3",
+      "en": "Native PGM Mixed Cake",
+      "zh": "原生铂族混合滤饼",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:radioactive_mixed_cake_r3",
+      "name": "gtsr_industrial_radioactive_mixed_cake_r3",
+      "en": "Radioactive Mixed Mineral Cake",
+      "zh": "放射性混合矿物滤饼",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:uranium_native_cake",
+      "name": "gtsr_industrial_uranium_native_cake",
+      "en": "Natural Uranium-bearing Cake",
+      "zh": "天然铀承载矿粉",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:thorium_native_cake",
+      "name": "gtsr_industrial_thorium_native_cake",
+      "en": "Natural Thorium-bearing Cake",
+      "zh": "天然钍承载矿粉",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:radioactive_nonmetal_cake",
+      "name": "gtsr_industrial_radioactive_nonmetal_cake",
+      "en": "Radioactive Companion Mineral Cake",
+      "zh": "放射性伴生非金属滤饼",
+      "phase": "dust"
+    },
+    {
+      "id": "planned:native_rare_liquor",
+      "name": "gtsr_industrial_native_rare_liquor",
+      "en": "Native rare-metal mother liquor",
+      "zh": "原生稀金属母液",
+      "phase": "fluid"
+    }
+  ],
+  "recipes": [
+    {
+      "id": "WS-1",
+      "lineId": "wastesigh",
+      "machineMap": "vacuumFreezerRecipes",
+      "EUt": 480,
+      "ticks": 400,
+      "inputs": [
+        {
+          "id": "wastesigh",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:native_acid_condensate",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WS-2",
+      "lineId": "wastesigh",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "planned:native_acid_condensate",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Water",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:native_acid_cut",
+          "amount": 8500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:acid_mineral_liquor",
+          "amount": 1500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WS-3",
+      "lineId": "wastesigh",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 1920,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "planned:native_acid_cut",
+          "amount": 8500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:native_hcl_fraction",
+          "amount": 7500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:native_mixed_acids",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WS-4",
+      "lineId": "wastesigh",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 800,
+      "inputs": [
+        {
+          "id": "planned:native_hcl_fraction",
+          "amount": 7500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.HydrochloricAcid",
+          "amount": 7500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WS-5",
+      "lineId": "wastesigh",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 1920,
+      "ticks": 800,
+      "inputs": [
+        {
+          "id": "planned:native_mixed_acids",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.SulfuricAcid",
+          "amount": 500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.NitricAcid",
+          "amount": 400,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.AceticAcid",
+          "amount": 100,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WS-6",
+      "lineId": "wastesigh",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "planned:acid_mineral_liquor",
+          "amount": 1500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Air",
+          "amount": 2500,
+          "kind": "fluid",
+          "unit": "L"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:acid_mineral_cake",
+          "amount": 6,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 1500,
+          "unit": "L",
+          "kind": "fluid",
+          "source": "native"
+        },
+        {
+          "id": "standard:Materials.CarbonDioxide",
+          "amount": 500,
+          "kind": "fluid",
+          "unit": "L"
+        }
+      ]
+    },
+    {
+      "id": "WS-7",
+      "lineId": "wastesigh",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 1920,
+      "ticks": 800,
+      "inputs": [
+        {
+          "id": "planned:acid_mineral_cake",
+          "amount": 6,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Salt",
+          "amount": 3,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.SiliconDioxide",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Carbon",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "SZ-1",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "vacuumFreezerRecipes",
+      "EUt": 480,
+      "ticks": 400,
+      "inputs": [
+        {
+          "id": "sanzu_residual_steam",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:sanzu_condensate_r3",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-2",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "planned:sanzu_condensate_r3",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Water",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.SaltWater",
+          "amount": 1000,
+          "kind": "fluid",
+          "unit": "L"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:washed_sanzu",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-3",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 1920,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "planned:washed_sanzu",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:native_fluorine_fraction",
+          "amount": 6500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:native_chlorine_fraction",
+          "amount": 1200,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:native_sanzu_hydrogen",
+          "amount": 1800,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:sanzu_mineral_liquor",
+          "amount": 500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-4",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 1920,
+      "ticks": 800,
+      "inputs": [
+        {
+          "id": "planned:native_fluorine_fraction",
+          "amount": 6500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:crude_native_fluorine",
+          "amount": 6000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:native_hf_fraction",
+          "amount": 500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-5",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 800,
+      "inputs": [
+        {
+          "id": "planned:crude_native_fluorine",
+          "amount": 6000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Fluorine",
+          "amount": 6000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-6",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "planned:native_hf_fraction",
+          "amount": 500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.HydrofluoricAcid",
+          "amount": 500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-7",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "planned:native_chlorine_fraction",
+          "amount": 1200,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Chlorine",
+          "amount": 9000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-8",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "planned:native_sanzu_hydrogen",
+          "amount": 1800,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Hydrogen",
+          "amount": 1800,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-9",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "planned:sanzu_mineral_liquor",
+          "amount": 500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Phosphorus",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Salt",
+          "amount": 4,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 500,
+          "unit": "L",
+          "kind": "fluid",
+          "source": "native"
+        }
+      ]
+    },
+    {
+      "id": "WB-1",
+      "lineId": "withered_breath",
+      "machineMap": "vacuumFreezerRecipes",
+      "EUt": 480,
+      "ticks": 400,
+      "inputs": [
+        {
+          "id": "withered_breath",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:withered_condensate_r3",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WB-2",
+      "lineId": "withered_breath",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "planned:withered_condensate_r3",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Water",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.SodiumHydroxide",
+          "amount": 1,
+          "kind": "item",
+          "unit": "dust"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:cleaned_withered_feed",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WB-3",
+      "lineId": "withered_breath",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 1920,
+      "ticks": 1200,
+      "inputs": [
+        {
+          "id": "planned:cleaned_withered_feed",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:withered_bulk_air",
+          "amount": 9000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:withered_noble_fraction",
+          "amount": 750,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:withered_hydrogen_cut",
+          "amount": 100,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:withered_carbon_fraction",
+          "amount": 150,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WB-4",
+      "lineId": "withered_breath",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 1920,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "planned:withered_bulk_air",
+          "amount": 9000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Nitrogen",
+          "amount": 7000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Oxygen",
+          "amount": 2000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WB-5",
+      "lineId": "withered_breath",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 7680,
+      "ticks": 1200,
+      "inputs": [
+        {
+          "id": "planned:withered_noble_fraction",
+          "amount": 750,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Argon",
+          "amount": 500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Helium",
+          "amount": 200,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:withered_trace_nobles",
+          "amount": 50,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WB-6",
+      "lineId": "withered_breath",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 7680,
+      "ticks": 1200,
+      "inputs": [
+        {
+          "id": "planned:withered_trace_nobles",
+          "amount": 50,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:crude_neon",
+          "amount": 20,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:crude_krypton",
+          "amount": 5,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:crude_xenon",
+          "amount": 1,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Argon",
+          "amount": 24,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WB-7",
+      "lineId": "withered_breath",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 7680,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "planned:crude_neon",
+          "amount": 20,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Werkstoff.Neon",
+          "amount": 20,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WB-8",
+      "lineId": "withered_breath",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 7680,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "planned:crude_krypton",
+          "amount": 5,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Werkstoff.Krypton",
+          "amount": 5,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WB-9",
+      "lineId": "withered_breath",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 7680,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "planned:crude_xenon",
+          "amount": 1,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Werkstoff.Xenon",
+          "amount": 1,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WB-11",
+      "lineId": "withered_breath",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "planned:withered_hydrogen_cut",
+          "amount": 100,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Hydrogen",
+          "amount": 100,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "WB-12",
+      "lineId": "withered_breath",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "planned:withered_carbon_fraction",
+          "amount": 150,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.CarbonDioxide",
+          "amount": 150,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "UM-1",
+      "lineId": "umbralmire",
+      "machineMap": "mixerRecipes",
+      "EUt": 480,
+      "ticks": 400,
+      "inputs": [
+        {
+          "id": "standard:ItemList.Circuit_Integrated",
+          "amount": 1,
+          "unit": "item",
+          "kind": "item",
+          "meta": 1,
+          "consumed": false
+        },
+        {
+          "id": "umbralmire",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:homogenized_mire_r3",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "UM-2",
+      "lineId": "umbralmire",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 800,
+      "inputs": [
+        {
+          "id": "planned:homogenized_mire_r3",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.SulfuricAcid",
+          "amount": 500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Water",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.SaltWater",
+          "amount": 1000,
+          "kind": "fluid",
+          "unit": "L"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:washed_mire_r3",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Salt",
+          "amount": 2,
+          "kind": "item",
+          "unit": "dust"
+        }
+      ]
+    },
+    {
+      "id": "UM-3",
+      "lineId": "umbralmire",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 1920,
+      "ticks": 1200,
+      "inputs": [
+        {
+          "id": "planned:washed_mire_r3",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:vegetal_filtercake_r3",
+          "amount": 24,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "planned:vegetal_aqueous_fraction",
+          "amount": 6000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "UM-4",
+      "lineId": "umbralmire",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "planned:vegetal_filtercake_r3",
+          "amount": 24,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:native_coolant_polyol",
+          "amount": 2500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Biomass",
+          "amount": 1500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:vegetal_mineral_cake",
+          "amount": 8,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Carbon",
+          "amount": 4,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "UM-5",
+      "lineId": "umbralmire",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 1920,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "planned:vegetal_aqueous_fraction",
+          "amount": 6000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:mire_alcohol_fraction",
+          "amount": 2000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:mire_ammonium_fraction",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 3000,
+          "unit": "L",
+          "kind": "fluid",
+          "source": "native"
+        }
+      ]
+    },
+    {
+      "id": "UM-6",
+      "lineId": "umbralmire",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 1920,
+      "ticks": 800,
+      "inputs": [
+        {
+          "id": "planned:mire_alcohol_fraction",
+          "amount": 2000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Methanol",
+          "amount": 1500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.AceticAcid",
+          "amount": 500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "UM-7",
+      "lineId": "umbralmire",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 800,
+      "inputs": [
+        {
+          "id": "planned:mire_ammonium_fraction",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Ammonia",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "UM-8",
+      "lineId": "umbralmire",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 1200,
+      "inputs": [
+        {
+          "id": "planned:native_coolant_polyol",
+          "amount": 2500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:IC2.coolant",
+          "amount": 3000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "UM-9",
+      "lineId": "umbralmire",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 1920,
+      "ticks": 800,
+      "inputs": [
+        {
+          "id": "planned:vegetal_mineral_cake",
+          "amount": 8,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Phosphorus",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Potassium",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Apatite",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "planned:vegetal_carbon_silica_cake",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "UM-10",
+      "lineId": "umbralmire",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "planned:vegetal_carbon_silica_cake",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Carbon",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.SiliconDioxide",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "TG-1",
+      "lineId": "thickgrease",
+      "machineMap": "fluidHeaterRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "thickgrease",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:heated_grease_r3",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "TG-2",
+      "lineId": "thickgrease",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 7680,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "planned:heated_grease_r3",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Water",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:desulfurized_grease",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Sulfur",
+          "amount": 4,
+          "kind": "item",
+          "unit": "dust"
+        }
+      ]
+    },
+    {
+      "id": "TG-3",
+      "lineId": "thickgrease",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 7680,
+      "ticks": 1200,
+      "inputs": [
+        {
+          "id": "planned:desulfurized_grease",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:grease_light_cut",
+          "amount": 3000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:grease_aromatic_cut",
+          "amount": 2500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:grease_heavy_cut",
+          "amount": 3000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:grease_oxygenate_cut",
+          "amount": 1500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "TG-4",
+      "lineId": "thickgrease",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 7680,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "standard:ItemList.Circuit_Integrated",
+          "amount": 1,
+          "unit": "item",
+          "kind": "item",
+          "meta": 2,
+          "consumed": false
+        },
+        {
+          "id": "planned:grease_light_cut",
+          "amount": 3000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Hydrogen",
+          "amount": 4800,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:electrothermal_light_crack",
+          "amount": 3000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "TG-5",
+      "lineId": "thickgrease",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 7680,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "planned:electrothermal_light_crack",
+          "amount": 3000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.LPG",
+          "amount": 700,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Ethylene",
+          "amount": 900,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Propene",
+          "amount": 800,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Butadiene",
+          "amount": 600,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "TG-6",
+      "lineId": "thickgrease",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 7680,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "standard:ItemList.Circuit_Integrated",
+          "amount": 1,
+          "unit": "item",
+          "kind": "item",
+          "meta": 3,
+          "consumed": false
+        },
+        {
+          "id": "planned:grease_aromatic_cut",
+          "amount": 2500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:reformed_aromatic_feed",
+          "amount": 2500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "TG-7",
+      "lineId": "thickgrease",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 7680,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "planned:reformed_aromatic_feed",
+          "amount": 2500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Benzene",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Toluene",
+          "amount": 700,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Phenol",
+          "amount": 400,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:aromatic_conversion_feed",
+          "amount": 400,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "TG-8",
+      "lineId": "thickgrease",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 7680,
+      "ticks": 800,
+      "inputs": [
+        {
+          "id": "planned:aromatic_conversion_feed",
+          "amount": 400,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Oxygen",
+          "amount": 1000,
+          "kind": "fluid",
+          "unit": "L"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Acetone",
+          "amount": 300,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Methanol",
+          "amount": 100,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Carbon",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "TG-9",
+      "lineId": "thickgrease",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 7680,
+      "ticks": 1200,
+      "inputs": [
+        {
+          "id": "standard:ItemList.Circuit_Integrated",
+          "amount": 1,
+          "unit": "item",
+          "kind": "item",
+          "meta": 4,
+          "consumed": false
+        },
+        {
+          "id": "planned:grease_heavy_cut",
+          "amount": 3000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:electrothermal_heavy_crack",
+          "amount": 3000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "TG-10",
+      "lineId": "thickgrease",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 7680,
+      "ticks": 1200,
+      "inputs": [
+        {
+          "id": "planned:electrothermal_heavy_crack",
+          "amount": 3000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Naphtha",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.LightFuel",
+          "amount": 1200,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.HeavyFuel",
+          "amount": 600,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:carbon_heavy_liquor",
+          "amount": 200,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "TG-11",
+      "lineId": "thickgrease",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 1920,
+      "ticks": 800,
+      "inputs": [
+        {
+          "id": "planned:carbon_heavy_liquor",
+          "amount": 200,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Carbon",
+          "amount": 6,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "planned:petro_mineral_cake",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.CarbonDioxide",
+          "amount": 200,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "TG-12",
+      "lineId": "thickgrease",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 1920,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "planned:grease_oxygenate_cut",
+          "amount": 1500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Methanol",
+          "amount": 700,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Acetone",
+          "amount": 300,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.AceticAcid",
+          "amount": 300,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:grease_bioorganic_fraction",
+          "amount": 200,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "TG-13",
+      "lineId": "thickgrease",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 800,
+      "inputs": [
+        {
+          "id": "planned:grease_bioorganic_fraction",
+          "amount": 200,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Biomass",
+          "amount": 200,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "TG-14",
+      "lineId": "thickgrease",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "planned:petro_mineral_cake",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Carbon",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.SiliconDioxide",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "MG-1",
+      "lineId": "metalgrit",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 1920,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "metalgrit",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Water",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.SaltWater",
+          "amount": 1000,
+          "kind": "fluid",
+          "unit": "L"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:wet_captured_metalgrit",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "MG-2",
+      "lineId": "metalgrit",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 1920,
+      "ticks": 1200,
+      "inputs": [
+        {
+          "id": "planned:wet_captured_metalgrit",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:magnetic_metal_cake",
+          "amount": 36,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "planned:base_metal_cake_r3",
+          "amount": 30,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "planned:refractory_metal_cake",
+          "amount": 18,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "planned:grit_nonmetal_cake",
+          "amount": 10,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "planned:native_rare_liquor",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "MG-3",
+      "lineId": "metalgrit",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 1920,
+      "ticks": 800,
+      "inputs": [
+        {
+          "id": "planned:native_rare_liquor",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:rare_resource_liquor",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "MG-4",
+      "lineId": "metalgrit",
+      "machineMap": "chemicalBathRecipes",
+      "EUt": 1920,
+      "ticks": 1800,
+      "inputs": [
+        {
+          "id": "planned:base_metal_cake_r3",
+          "amount": 30,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.SulfuricAcid",
+          "amount": 750,
+          "kind": "fluid",
+          "unit": "L"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:washed_base_metal_cake_r3",
+          "amount": 30,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "MG-5",
+      "lineId": "metalgrit",
+      "machineMap": "electroMagneticSeparatorRecipes",
+      "EUt": 1920,
+      "ticks": 1200,
+      "inputs": [
+        {
+          "id": "planned:magnetic_metal_cake",
+          "amount": 36,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Iron",
+          "amount": 20,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Nickel",
+          "amount": 8,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Manganese",
+          "amount": 8,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "MG-6",
+      "lineId": "metalgrit",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 1920,
+      "ticks": 1200,
+      "inputs": [
+        {
+          "id": "planned:washed_base_metal_cake_r3",
+          "amount": 30,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Copper",
+          "amount": 10,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Tin",
+          "amount": 6,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Lead",
+          "amount": 6,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Zinc",
+          "amount": 8,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "MG-7",
+      "lineId": "metalgrit",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 1920,
+      "ticks": 1600,
+      "inputs": [
+        {
+          "id": "planned:refractory_metal_cake",
+          "amount": 18,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Aluminium",
+          "amount": 8,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Chrome",
+          "amount": 4,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Titanium",
+          "amount": 4,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.SiliconDioxide",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "MG-8",
+      "lineId": "metalgrit",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 1920,
+      "ticks": 1000,
+      "inputs": [
+        {
+          "id": "planned:grit_nonmetal_cake",
+          "amount": 10,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.SiliconDioxide",
+          "amount": 6,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Carbon",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Salt",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "MG-R1",
+      "lineId": "metalgrit",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 7680,
+      "ticks": 20000,
+      "inputs": [
+        {
+          "id": "planned:rare_resource_liquor",
+          "amount": 100000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:pgm_native_concentrate",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:rareearth_native_concentrate",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:radioactive_native_concentrate",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:tantalite_native_concentrate",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:rare_nonmetal_native_concentrate",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "MG-R2",
+      "lineId": "metalgrit",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 7680,
+      "ticks": 12000,
+      "inputs": [
+        {
+          "id": "planned:pgm_native_concentrate",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.HydrochloricAcid",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:pgm_mixed_cake_r3",
+          "amount": 20,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid",
+          "source": "native"
+        }
+      ]
+    },
+    {
+      "id": "MG-R3",
+      "lineId": "metalgrit",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 7680,
+      "ticks": 20000,
+      "inputs": [
+        {
+          "id": "planned:pgm_mixed_cake_r3",
+          "amount": 20,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:WerkstoffLoader.PTMetallicPowder",
+          "amount": 6,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:WerkstoffLoader.PDMetallicPowder",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:WerkstoffLoader.IrLeachResidue",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:WerkstoffLoader.IrOsLeachResidue",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Gold",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.SiliconDioxide",
+          "amount": 7,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "MG-R4",
+      "lineId": "metalgrit",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 7680,
+      "ticks": 16000,
+      "inputs": [
+        {
+          "id": "planned:rareearth_native_concentrate",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Water",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:WerkstoffMaterialPool.SamariumOreConcentrate",
+          "amount": 10,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.SiliconDioxide",
+          "amount": 8,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Carbon",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid",
+          "source": "native"
+        }
+      ]
+    },
+    {
+      "id": "MG-R6",
+      "lineId": "metalgrit",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 7680,
+      "ticks": 16000,
+      "inputs": [
+        {
+          "id": "planned:tantalite_native_concentrate",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Tantalite",
+          "amount": 4,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.SiliconDioxide",
+          "amount": 6,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid",
+          "source": "native"
+        }
+      ]
+    },
+    {
+      "id": "MG-R7",
+      "lineId": "metalgrit",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 30720,
+      "ticks": 20000,
+      "inputs": [
+        {
+          "id": "planned:radioactive_native_concentrate",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:radioactive_mixed_cake_r3",
+          "amount": 20,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid",
+          "source": "native"
+        }
+      ]
+    },
+    {
+      "id": "MG-R8",
+      "lineId": "metalgrit",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 30720,
+      "ticks": 20000,
+      "inputs": [
+        {
+          "id": "planned:radioactive_mixed_cake_r3",
+          "amount": 20,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:uranium_native_cake",
+          "amount": 8,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "planned:thorium_native_cake",
+          "amount": 8,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "planned:radioactive_nonmetal_cake",
+          "amount": 4,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Radon",
+          "amount": 1,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "MG-R9",
+      "lineId": "metalgrit",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 30720,
+      "ticks": 40000,
+      "inputs": [
+        {
+          "id": "planned:uranium_native_cake",
+          "amount": 8,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.NitricAcid",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Uranium",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Lead",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.SiliconDioxide",
+          "amount": 5,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "MG-R10",
+      "lineId": "metalgrit",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 30720,
+      "ticks": 40000,
+      "inputs": [
+        {
+          "id": "planned:thorium_native_cake",
+          "amount": 8,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.NitricAcid",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Thorium",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Lead",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.SiliconDioxide",
+          "amount": 5,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "MG-R11",
+      "lineId": "metalgrit",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 7680,
+      "ticks": 12000,
+      "inputs": [
+        {
+          "id": "planned:radioactive_nonmetal_cake",
+          "amount": 4,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.SiliconDioxide",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Carbon",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Salt",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "MG-R13",
+      "lineId": "metalgrit",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 7680,
+      "ticks": 12000,
+      "inputs": [
+        {
+          "id": "planned:rare_nonmetal_native_concentrate",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Chlorine",
+          "amount": 5000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.SulfuricAcid",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 5000,
+          "unit": "L",
+          "kind": "fluid",
+          "source": "native"
+        }
+      ]
+    }
+  ]
+}

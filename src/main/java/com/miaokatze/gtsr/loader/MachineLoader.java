@@ -26,6 +26,7 @@ import com.miaokatze.gtsr.common.machine.MTESingularityFluidOutputCompartment;
 import com.miaokatze.gtsr.common.machine.MTESingularityMinerNode;
 import com.miaokatze.gtsr.common.machine.MTESingularitySteamCompartment;
 import com.miaokatze.gtsr.common.machine.MTESingularitySteamOutputCompartment;
+import com.miaokatze.gtsr.common.machine.MTESpacetimeCalibration;
 import com.miaokatze.gtsr.common.machine.MTESteamFluidDrill;
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
 import com.miaokatze.gtsr.common.machine.MTESteamSingularityEntangler;
@@ -157,6 +158,11 @@ public class MachineLoader {
                 MetaTileEntityID.CRITICAL_SINGULARITY_COMPRESSOR.ID,
                 "gtsr.critical.singularity.compressor",
                 "Critical Singularity Compressor"));
+        GTSRItemList.SpacetimeCalibration.set(
+            new MTESpacetimeCalibration(
+                MetaTileEntityID.SPACETIME_CALIBRATION.ID,
+                "gtsr.spacetime.calibration",
+                "Spacetime Singularity Calibration Engineering"));
         GTSRItemList.DenseStateManipulator.set(
             new MTEDenseStateManipulator(
                 MetaTileEntityID.DENSE_STATE_MANIPULATOR.ID,
@@ -493,6 +499,7 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.RedstoneHatch.get(1));
         // --- 新增奇点机器 (43-44) ---
         CreativeTabManager.addItemToTab(GTSRItemList.CriticalSingularityCompressor.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SpacetimeCalibration.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.DenseStateManipulator.get(1));
         // --- 集群家族：总控、七工作单元、五增幅器与物流单元（顺序与注册一致） ---
         CreativeTabManager.addItemToTab(GTSRItemList.ClusterController.get(1));

@@ -121,6 +121,9 @@ public enum GTSRItemList implements IItemContainer {
     // ——桶 isFull 依赖 BlockAbyssalFluid，后者须待 GT 材料流体注册后构造，故早于 init 不可行）
     AbyssalObsessionBucket,
 
+    SpacetimeCalibration,
+    SpacetimeAnchorBeacon,
+
     ;
 
     // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）

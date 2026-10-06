@@ -11,6 +11,7 @@ import com.miaokatze.gtsr.common.items.ItemAbyssalBucket;
 import com.miaokatze.gtsr.common.items.RareGasSeparationChip;
 import com.miaokatze.gtsr.common.items.ReinforcedHubSingularityChip;
 import com.miaokatze.gtsr.common.items.SingularityTuningWand;
+import com.miaokatze.gtsr.common.items.SpacetimeAnchorBeacon;
 import com.miaokatze.gtsr.common.items.SteamEntangledSingularity;
 import com.miaokatze.gtsr.common.items.SteamTurbineCycleOverlimitChip;
 import com.miaokatze.gtsr.common.items.TCDSDenseSteamChip;
@@ -33,6 +34,7 @@ public class ItemLoader {
         registerCriticalSteamEntangledSingularity();
         registerHubTerminal();
         registerSingularityTuningWand();
+        GTSRItemList.SpacetimeAnchorBeacon.setAndRegister(new SpacetimeAnchorBeacon(), "SpacetimeAnchorBeacon", true);
     }
 
     private static void registerPyrolyzerChips() {
