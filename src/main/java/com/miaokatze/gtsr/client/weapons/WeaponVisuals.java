@@ -27,7 +27,7 @@ import com.miaokatze.gtsr.common.weapons.WeaponKind;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /** Disposable client entities and depth-tested previews; never applies damage. */
-final class WeaponVisuals {
+public final class WeaponVisuals {
 
     private final List<Casing> casings = new ArrayList<>();
     private final List<Burst> bursts = new ArrayList<>();
