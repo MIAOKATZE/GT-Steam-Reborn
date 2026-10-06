@@ -76,7 +76,7 @@ public final class SpacetimeGeometry {
                     case "controller":
                         symbol = '~';
                         controller++;
-                        requirePosition(x, y, z, 23, 2, 8);
+                        requirePosition(x, y, z, 23, 2, 7);
                         break;
                     default:
                         throw new IllegalStateException("Unknown portal cell " + kind);
@@ -85,11 +85,11 @@ public final class SpacetimeGeometry {
                 // StructureLib ABC: left->right, top->bottom, front->back. The approved front is +Z.
                 cells[45 - y][8 - z][x - 2] = symbol;
             }
-            // The existing art and air totals are unchanged; only runtime semantics differ.
+            // The recessed controller leaves its previous protruding position explicitly air.
             if (cells[45 - 24][8 - 4][23 - 2] != ' ')
                 throw new IllegalStateException("Portal core must remain outside the approved solid art");
             cells[45 - 24][8 - 4][23 - 2] = 'S';
-            if (solids != 2703 || air != 1220 || controller != 1 || energy != 1 || maintenance != 1)
+            if (solids != 2702 || air != 1221 || controller != 1 || energy != 1 || maintenance != 1)
                 throw new IllegalStateException("Portal voxel contract mismatch");
         } catch (java.io.IOException e) {
             throw new IllegalStateException("Cannot read portal structure", e);

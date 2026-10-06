@@ -2,11 +2,16 @@ package com.miaokatze.gtsr.common.dimension.prosperity.remaster;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.IIcon;
 import net.minecraft.world.Explosion;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
-/** One-block classical witness plinth, drawn by the shared node TESR without new textures. */
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+import gregtech.api.GregTechAPI;
+
+/** One-block classical witness plinth, drawn by the shared node TESR using GT marble. */
 public final class FictionPedestalBlock extends RemasterBlock {
 
     public FictionPedestalBlock(boolean starter) {
@@ -60,6 +65,12 @@ public final class FictionPedestalBlock extends RemasterBlock {
     @Override
     public boolean isInteractive() {
         return true;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public IIcon getIcon(int side, int metadata) {
+        return GregTechAPI.sBlockStones.getIcon(side, 0);
     }
 
     @Override

@@ -150,12 +150,25 @@ public final class SpacetimeTravel {
     }
 
     public static boolean enterProsperity(EntityPlayerMP p) {
+        return enterProsperity(p, true);
+    }
+
+    public static boolean enterProsperity(EntityPlayerMP p, boolean reportFailure) {
         if (!eligible(p) || Config.prosperityDimId < 0) return false;
         WorldServer w = destination(Config.prosperityDimId);
-        if (w == null) return false;
-        double[] point = findProsperityLanding(w, p);
+        if (w == null) {
+            if (reportFailure) message(p, "failed");
+            return false;
+        }
+        double[] point;
+        try {
+            point = findProsperityLanding(w, p);
+        } catch (RuntimeException failure) {
+            if (reportFailure) message(p, "failed");
+            return false;
+        }
         if (point == null) {
-            message(p, "unsafe");
+            if (reportFailure) message(p, "unsafe");
             return false;
         }
         WorldServer source = (WorldServer) p.worldObj;
@@ -171,7 +184,7 @@ public final class SpacetimeTravel {
             } catch (RuntimeException rollbackFailure) {
                 failure.addSuppressed(rollbackFailure);
             }
-            message(p, "failed");
+            if (reportFailure) message(p, "failed");
             return false;
         }
         SpacetimeEffects.burst(source, x, y, z);

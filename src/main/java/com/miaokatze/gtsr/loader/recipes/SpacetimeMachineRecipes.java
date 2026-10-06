@@ -26,15 +26,16 @@ public final class SpacetimeMachineRecipes {
     private SpacetimeMachineRecipes() {}
 
     public static void register() {
-        registerCraft(machineInputs(), GTSRItemList.SpacetimeCalibration.get(1), 9216, 12000);
+        registerCraft(machineInputs(), GTSRItemList.SpacetimeCalibration.get(1), 73728, 48000);
         registerCraft(beaconInputs(), GTSRItemList.SpacetimeAnchorBeacon.get(1), 1152, 1200);
         verifyRegistration();
     }
 
     private static ItemStack[] machineInputs() {
-        return new ItemStack[] { ItemList.Casing_LuV.get(16), ItemList.Field_Generator_LuV.get(4),
-            ItemList.Sensor_LuV.get(4), ItemList.QuantumStar.get(4), get(OrePrefixes.circuit, Materials.LuV, 16),
-            get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 16) };
+        return new ItemStack[] { ItemList.Casing_LuV.get(64), ItemList.Field_Generator_LuV.get(32),
+            ItemList.Sensor_LuV.get(32), ItemList.QuantumStar.get(32), get(OrePrefixes.circuit, Materials.LuV, 64),
+            get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 64),
+            GTUtility.getIntegratedCircuit(24), GTSRItemList.CriticalSteamEntangledSingularity.get(16) };
     }
 
     private static ItemStack[] beaconInputs() {
@@ -62,7 +63,7 @@ public final class SpacetimeMachineRecipes {
 
     /** Audit the live recipe map, including ingredient identity/counts, rather than a cached registration receipt. */
     public static void verifyRegistration() {
-        verifyCraft(machineInputs(), GTSRItemList.SpacetimeCalibration.get(1), 9216, 12000);
+        verifyCraft(machineInputs(), GTSRItemList.SpacetimeCalibration.get(1), 73728, 48000);
         verifyCraft(beaconInputs(), GTSRItemList.SpacetimeAnchorBeacon.get(1), 1152, 1200);
     }
 
@@ -102,6 +103,7 @@ public final class SpacetimeMachineRecipes {
                 ItemStack actual = found.mInputs[i];
                 if (!used[i] && actual != null
                     && actual.stackSize == input.stackSize
+                    && actual.getItemDamage() == expected.getItemDamage()
                     && GTUtility.areStacksEqual(actual, expected)) {
                     used[i] = true;
                     matched = true;
@@ -114,8 +116,14 @@ public final class SpacetimeMachineRecipes {
 
     private static void requireStacks(ItemStack[] stacks) {
         for (ItemStack stack : stacks) {
-            if (stack == null || stack.getItem() == null || stack.stackSize <= 0)
+            if (stack == null || stack.getItem() == null || (stack.stackSize <= 0 && !isConfigurationCircuit(stack)))
                 throw new IllegalStateException("Missing spacetime craft item");
         }
+    }
+
+    private static boolean isConfigurationCircuit(ItemStack stack) {
+        // GT uses a zero-sized integrated circuit as a non-consumed recipe selector.
+        return stack.stackSize == 0 && stack.getItem() == ItemList.Circuit_Integrated.getItem()
+            && stack.getItemDamage() == 24;
     }
 }

@@ -26,9 +26,11 @@ public class GTSRRecipeMaps {
             for (FluidStack output : recipeInfo.recipe.mFluidOutputs) {
                 String source = ProsperityAirCompressorRecipes.sourceKey(output);
                 if (source != null) {
-                    result.add(
-                        EnumChatFormatting.AQUA
-                            + StatCollector.translateToLocalFormatted(source, Config.prosperityDimId));
+                    int width = recipeInfo.recipeMap.getFrontend()
+                        .getNEIProperties().recipeBackgroundSize.width - 10;
+                    result.addAll(
+                        com.miaokatze.gtsr.client.nei.AirCompressorSourceInfo
+                            .wrap(StatCollector.translateToLocalFormatted(source, Config.prosperityDimId), width));
                 }
                 if (output != null && output.getFluid() != null
                     && "netherair".equals(

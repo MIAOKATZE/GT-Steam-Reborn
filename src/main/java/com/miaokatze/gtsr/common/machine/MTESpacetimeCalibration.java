@@ -52,7 +52,7 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
     implements ISurvivalConstructable {
 
     private static IStructureDefinition<MTESpacetimeCalibration> definition;
-    private static final int OFFSET_X = 21, OFFSET_Y = 43, OFFSET_Z = 0;
+    private static final int OFFSET_X = 21, OFFSET_Y = 43, OFFSET_Z = 1;
     private boolean corePositionKnown;
     private int coreX, coreY, coreZ;
     private int guiState;
@@ -112,7 +112,7 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
                     'R',
                     ofBlock(requiredBlock("gregtech", "bw.frames"), WerkstoffLoader.RhodiumPlatedPalladium.getmID()))
                 .addElement('G', ofBlock(requiredBlock("bartworks", "BW_TieredGlass"), 3))
-                .addElement('F', ofBlock(GregTechAPI.sBlockCasings2, 0))
+                .addElement('F', ofBlock(GregTechAPI.sBlockReinforced, 10))
                 .addElement('-', isAir())
                 .addElement('S', coreElement())
                 .build();
@@ -447,7 +447,7 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
 
     /** Approved model points map from tile centre through the same ExtendedFacing as checkPiece. */
     public Vec3 localToWorld(double x, double y, double z) {
-        Vec3 delta = getExtendedFacing().getWorldOffset(Vec3.createVectorHelper(x - 23.5, 2.5 - y, 8.5 - z));
+        Vec3 delta = getExtendedFacing().getWorldOffset(Vec3.createVectorHelper(x - 23.5, 2.5 - y, 7.5 - z));
         IGregTechTileEntity tile = getBaseMetaTileEntity();
         return Vec3.createVectorHelper(
             tile.getXCoord() + .5 + delta.xCoord,
@@ -459,7 +459,7 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
         IGregTechTileEntity tile = getBaseMetaTileEntity();
         Vec3 abc = getExtendedFacing().getOffsetABC(
             Vec3.createVectorHelper(x - tile.getXCoord() - .5, y - tile.getYCoord() - .5, z - tile.getZCoord() - .5));
-        return Vec3.createVectorHelper(23.5 + abc.xCoord, 2.5 - abc.yCoord, 8.5 - abc.zCoord);
+        return Vec3.createVectorHelper(23.5 + abc.xCoord, 2.5 - abc.yCoord, 7.5 - abc.zCoord);
     }
 
     @Override

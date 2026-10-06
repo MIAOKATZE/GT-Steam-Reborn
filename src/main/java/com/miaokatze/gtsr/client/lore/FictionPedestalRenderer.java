@@ -16,7 +16,11 @@ import com.miaokatze.gtsr.client.encounter.GlScope;
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry;
 import com.miaokatze.gtsr.common.dimension.prosperity.remaster.TileRemasterNode;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+
 /** Classical white plinth and an actual relic icon; the empty projection is 70 percent transparent. */
+@SideOnly(Side.CLIENT)
 public final class FictionPedestalRenderer {
 
     private FictionPedestalRenderer() {}
@@ -41,19 +45,24 @@ public final class FictionPedestalRenderer {
                 .getTotalWorldTime() + partial;
         try (GlScope scope = new GlScope()) {
             GL11.glTranslated(x + .5, y, z + .5);
-            GL11.glDisable(GL11.GL_TEXTURE_2D);
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            Minecraft.getMinecraft()
+                .getTextureManager()
+                .bindTexture(TextureMap.locationBlocksTexture);
+            IIcon marble = node.getBlockType()
+                .getIcon(1, 0);
             GL11.glDisable(GL11.GL_LIGHTING);
             GL11.glDisable(GL11.GL_CULL_FACE);
             GL11.glEnable(GL11.GL_DEPTH_TEST);
             GL11.glDepthMask(true);
-            box(-.375, 0, -.375, .375, .125, .375, .91F, .91F, .89F);
-            box(-.32, .125, -.32, .32, .20, .32, .98F, .98F, .96F);
-            box(-.21, .20, -.21, .21, .80, .21, .92F, .92F, .90F);
-            box(-.30, .80, -.30, .30, .90, .30, .98F, .98F, .96F);
-            box(-.375, .90, -.375, .375, 1, .375, .91F, .91F, .89F);
+            box(marble, -.375, 0, -.375, .375, .125, .375, .91F, .91F, .91F);
+            box(marble, -.32, .125, -.32, .32, .20, .32, .98F, .98F, .98F);
+            box(marble, -.21, .20, -.21, .21, .80, .21, .92F, .92F, .92F);
+            box(marble, -.30, .80, -.30, .30, .90, .30, .98F, .98F, .98F);
+            box(marble, -.375, .90, -.375, .375, 1, .375, .91F, .91F, .91F);
             if (starter) {
-                box(-.28, 1, -.28, .28, 1.06, .28, .18F, .13F, .22F);
-                box(-.15, 1.06, -.15, .15, 1.12, .15, .65F, .30F, .88F);
+                box(marble, -.28, 1, -.28, .28, 1.06, .28, .84F, .84F, .84F);
+                box(marble, -.15, 1.06, -.15, .15, 1.12, .15, .98F, .98F, .98F);
                 return true;
             }
             if (!view.has("relicId")) return true;
@@ -100,22 +109,32 @@ public final class FictionPedestalRenderer {
         return true;
     }
 
-    private static void box(double x0, double y0, double z0, double x1, double y1, double z1, float r, float g,
-        float b) {
+    private static void box(IIcon icon, double x0, double y0, double z0, double x1, double y1, double z1, float r,
+        float g, float b) {
         GL11.glColor4f(r, g, b, 1);
         GL11.glBegin(GL11.GL_QUADS);
-        face(x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1);
-        face(x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0);
+        face(icon, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1);
+        face(icon, x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0);
         GL11.glColor4f(r * .85F, g * .85F, b * .85F, 1);
-        face(x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0);
-        face(x1, y0, z1, x1, y1, z1, x0, y1, z1, x0, y0, z1);
+        face(icon, x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0);
+        face(icon, x1, y0, z1, x1, y1, z1, x0, y1, z1, x0, y0, z1);
         GL11.glColor4f(r * .75F, g * .75F, b * .75F, 1);
-        face(x0, y0, z1, x0, y1, z1, x0, y1, z0, x0, y0, z0);
-        face(x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1);
+        face(icon, x0, y0, z1, x0, y1, z1, x0, y1, z0, x0, y0, z0);
+        face(icon, x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1);
         GL11.glEnd();
     }
 
-    private static void face(double... v) {
-        for (int i = 0; i < v.length; i += 3) GL11.glVertex3d(v[i], v[i + 1], v[i + 2]);
+    private static void face(IIcon icon, double... v) {
+        // Map physical face lengths into the atlas icon, rather than stretching a whole
+        // square marble tile over the thin ledges. Every face stays inside this icon.
+        double width = Math.sqrt(Math.pow(v[3] - v[0], 2) + Math.pow(v[4] - v[1], 2) + Math.pow(v[5] - v[2], 2));
+        double height = Math.sqrt(Math.pow(v[9] - v[0], 2) + Math.pow(v[10] - v[1], 2) + Math.pow(v[11] - v[2], 2));
+        double u0 = icon.getMinU(), v0 = icon.getMinV();
+        double u1 = icon.getInterpolatedU(Math.min(1, width) * 16);
+        double v1 = icon.getInterpolatedV(Math.min(1, height) * 16);
+        for (int i = 0; i < 4; i++) {
+            GL11.glTexCoord2d(i == 1 || i == 2 ? u1 : u0, i >= 2 ? v1 : v0);
+            GL11.glVertex3d(v[i * 3], v[i * 3 + 1], v[i * 3 + 2]);
+        }
     }
 }

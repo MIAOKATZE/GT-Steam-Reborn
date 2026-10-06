@@ -20,8 +20,8 @@ public final class MTESpacetimeCalibrationGui extends MTEMultiBlockBaseGui<MTESp
     private static final String PREFIX = "gtsr.spacetime.gui.";
     private static final String[] STATES = { "idle", "preheating", "calibrated", "structure", "maintenance", "power",
         "disabled", "blocked" };
-    private IntSyncValue state, progress, cores;
-    private LongSyncValue cost, voltage, stored, capacity;
+    private IntSyncValue state, progress;
+    private LongSyncValue cost;
 
     public MTESpacetimeCalibrationGui(MTESpacetimeCalibration multiblock) {
         super(multiblock);
@@ -32,37 +32,19 @@ public final class MTESpacetimeCalibrationGui extends MTEMultiBlockBaseGui<MTESp
         super.registerSyncValues(syncManager);
         state = new IntSyncValue(multiblock::getStateForGui);
         progress = new IntSyncValue(multiblock::getPreheatTicksForGui);
-        cores = new IntSyncValue(multiblock::getCoreCountForGui);
         cost = new LongSyncValue(multiblock::getEnergyCostForGui);
-        voltage = new LongSyncValue(multiblock::getInputVoltageForGui);
-        stored = new LongSyncValue(multiblock::getStoredEnergyForGui);
-        capacity = new LongSyncValue(multiblock::getEnergyCapacityForGui);
         syncManager.syncValue("spacetime.state", state);
         syncManager.syncValue("spacetime.progress", progress);
-        syncManager.syncValue("spacetime.cores", cores);
         syncManager.syncValue("spacetime.cost", cost);
-        syncManager.syncValue("spacetime.voltage", voltage);
-        syncManager.syncValue("spacetime.stored", stored);
-        syncManager.syncValue("spacetime.capacity", capacity);
-    }
-
-    @Override
-    protected int getBasePanelWidth() {
-        return 258;
-    }
-
-    @Override
-    protected int getTerminalRowWidth() {
-        return 250;
     }
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        ListWidget<IWidget, ?> list = new ListWidget<>().fullWidth();
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
         list.child(
             IKey.dynamic(() -> line("status", statusText()))
                 .asWidget()
-                .marginBottom(4)
+                .marginBottom(2)
                 .fullWidth());
         list.child(
             IKey.dynamic(
@@ -70,32 +52,12 @@ public final class MTESpacetimeCalibrationGui extends MTEMultiBlockBaseGui<MTESp
                     "preheat",
                     String.format("%.1f / 30 s (%d%%)", progress.getValue() / 20.0, progress.getValue() / 6)))
                 .asWidget()
-                .marginBottom(4)
+                .marginBottom(2)
                 .fullWidth());
         list.child(
             IKey.dynamic(() -> line("cost", cost.getValue() + " EU/t"))
                 .asWidget()
-                .marginBottom(4)
-                .fullWidth());
-        list.child(
-            IKey.dynamic(() -> line("core", cores.getValue() + " / 1"))
-                .asWidget()
-                .marginBottom(4)
-                .fullWidth());
-        list.child(
-            IKey.dynamic(() -> line("voltage", voltage.getValue() + " EU"))
-                .asWidget()
-                .marginBottom(4)
-                .fullWidth());
-        list.child(
-            IKey.dynamic(() -> line("energy", stored.getValue() + " / " + capacity.getValue() + " EU"))
-                .asWidget()
-                .marginBottom(4)
-                .fullWidth());
-        list.child(
-            IKey.lang(PREFIX + "rates")
-                .asWidget()
-                .marginBottom(4)
+                .marginBottom(2)
                 .fullWidth());
         return list;
     }

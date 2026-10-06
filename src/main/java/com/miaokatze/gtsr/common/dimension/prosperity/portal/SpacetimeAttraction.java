@@ -13,6 +13,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
+import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.travel.SpacetimeTravel;
 import com.miaokatze.gtsr.common.machine.MTESpacetimeCalibration;
@@ -21,12 +22,28 @@ import com.miaokatze.gtsr.common.machine.MTESpacetimeCalibration;
 public final class SpacetimeAttraction {
 
     private final Map<Entity, Integer> stages = new HashMap<>();
+    private final Map<EntityPlayerMP, Contact> contacts = new HashMap<>();
+    private World attractionWorld;
+
+    private static final class Contact {
+
+        final CoreTransferGate gate = new CoreTransferGate();
+        final double x, y, z;
+
+        Contact(EntityPlayerMP player) {
+            x = player.posX;
+            y = player.posY;
+            z = player.posZ;
+        }
+    }
 
     public void tick(MTESpacetimeCalibration machine, Vec3 centre) {
         if (!machine.isPortalActive()) {
             releaseAll();
             return;
         }
+        attractionWorld = machine.getBaseMetaTileEntity()
+            .getWorld();
         @SuppressWarnings("unchecked")
         List<Entity> nearby = machine.getBaseMetaTileEntity()
             .getWorld()
@@ -55,6 +72,7 @@ public final class SpacetimeAttraction {
                 || entity.ridingEntity != null
                 || entity.riddenByEntity != null
                 || entity.isSneaking()
+                || (entity instanceof EntityPlayerMP && !SpacetimeTravel.eligible((EntityPlayerMP) entity))
                 || !intersectsSphere(entity.boundingBox, centre)) continue;
             if (entity instanceof EntityPlayer && ((EntityPlayer) entity).capabilities.isCreativeMode
                 && ((EntityPlayer) entity).capabilities.isFlying) continue;
@@ -68,6 +86,17 @@ public final class SpacetimeAttraction {
                 || local.yCoord + entity.height < 1
                 || local.yCoord > 26) continue;
             processed++;
+            if (entity instanceof EntityPlayerMP && contacts.containsKey(entity)) {
+                Contact contact = contacts.get(entity);
+                AxisAlignedBB heldBox = entity.boundingBox.copy()
+                    .offset(contact.x - entity.posX, contact.y - entity.posY, contact.z - entity.posZ);
+                if (!entity.worldObj.getCollidingBoundingBoxes(entity, heldBox)
+                    .isEmpty()) continue;
+                retained.add(entity);
+                if (!machine.validatePortalForTravel()) return;
+                transferAtCore((EntityPlayerMP) entity, now, retained);
+                continue;
+            }
             int stage = stages.getOrDefault(entity, local.yCoord >= 12 ? 2 : 0);
             double tx = 23.5, ty, tz;
             if (stage == 0) {
@@ -135,25 +164,42 @@ public final class SpacetimeAttraction {
             if (entity instanceof EntityPlayerMP && entity.boundingBox.intersectsWith(core)) {
                 // This may release and clear all tracked entities; stop this tick instead of continuing on stale state.
                 if (!machine.validatePortalForTravel()) return;
-                entity.getEntityData()
-                    .setLong("gtsrSpacetimeCooldownUntil", now + 60);
-                release(entity);
-                stages.remove(entity);
-                retained.remove(entity);
-                SpacetimeTravel.enterProsperity((EntityPlayerMP) entity);
+                EntityPlayerMP player = (EntityPlayerMP) entity;
+                contacts.put(player, new Contact(player));
+                transferAtCore(player, now, retained);
             }
         }
         stages.keySet()
             .removeIf(entity -> {
                 if (retained.contains(entity)) return false;
                 release(entity);
+                contacts.remove(entity);
                 return true;
+            });
+    }
+
+    private void transferAtCore(EntityPlayerMP player, long now, Set<Entity> retained) {
+        Contact contact = contacts.get(player);
+        // Pin to the collision-checked contact position while synchronous discovery/transfer retries.
+        player.playerNetServerHandler
+            .setPlayerLocation(contact.x, contact.y, contact.z, player.rotationYaw, player.rotationPitch);
+        player.motionX = player.motionY = player.motionZ = 0;
+        player.fallDistance = 0;
+        player.velocityChanged = true;
+        contact.gate
+            .attempt(now, () -> SpacetimeTravel.enterProsperity(player, contact.gate.reportFailure(now)), () -> {
+                player.getEntityData()
+                    .setLong("gtsrSpacetimeCooldownUntil", player.worldObj.getTotalWorldTime() + 60);
+                contacts.remove(player);
+                stages.remove(player);
+                retained.remove(player);
             });
     }
 
     public void releaseAll() {
         for (Entity entity : stages.keySet()) release(entity);
         stages.clear();
+        contacts.clear();
     }
 
     private static boolean intersectsSphere(AxisAlignedBB box, Vec3 centre) {
@@ -163,7 +209,9 @@ public final class SpacetimeAttraction {
         return dx * dx + dy * dy + dz * dz <= 1024;
     }
 
-    private static void release(Entity entity) {
+    private void release(Entity entity) {
+        // A completed trip belongs to its destination; retiring a source lease must not alter it.
+        if (entity.worldObj != attractionWorld) return;
         entity.motionX = 0;
         entity.motionY = 0;
         entity.motionZ = 0;

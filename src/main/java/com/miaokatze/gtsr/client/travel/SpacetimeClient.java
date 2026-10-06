@@ -40,10 +40,12 @@ public final class SpacetimeClient {
         final SpacetimeEffects.Signal signal;
         final long born;
         final ChamberParticle particle;
+        final SpacetimeOrbitClock orbit;
 
-        Visual(SpacetimeEffects.Signal s) {
+        Visual(SpacetimeEffects.Signal s, Visual previous) {
             signal = s;
             born = clock;
+            orbit = new SpacetimeOrbitClock(clock, s.preheatTicks, previous == null ? null : previous.orbit);
             particle = new ChamberParticle(this);
             Minecraft.getMinecraft().effectRenderer.addEffect(particle);
         }
@@ -87,7 +89,7 @@ public final class SpacetimeClient {
                 || s.dimension != mc.thePlayer.dimension
                 || mc.thePlayer.getDistanceSq(s.x, s.y, s.z) > 128 * 128) continue;
             if (s.kind == 2) {
-                if (BURSTS.size() < 16) BURSTS.add(new Visual(s));
+                if (BURSTS.size() < 16) BURSTS.add(new Visual(s, null));
                 continue;
             }
             String key = s.keyX + ":" + s.keyY + ":" + s.keyZ;
@@ -97,7 +99,7 @@ public final class SpacetimeClient {
                 if (previous != null) previous.particle.setDead();
             } else if (previous != null || PORTALS.size() < 32) {
                 if (previous != null) previous.particle.setDead();
-                PORTALS.put(key, new Visual(s));
+                PORTALS.put(key, new Visual(s, previous));
             }
         }
         PORTALS.entrySet()
@@ -143,7 +145,7 @@ public final class SpacetimeClient {
                     float warmup = s.preheatTicks > 0 ? .2F + .8F * s.preheatTicks / 600F : 1F;
                     GL11.glColor4f(.25F, .65F, 1F, .48F * warmup);
                     for (int i = 0; i < 24; i++) {
-                        double a = i * Math.PI / 12 + age * .012;
+                        double a = i * Math.PI / 12 + v.orbit.phase(age);
                         CubeRuneParticle
                             .box(Math.cos(a) * 17.5, Math.sin(a) * 17.5, Math.sin(age * .035 + i) * .22, .18);
                     }
