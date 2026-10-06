@@ -116,6 +116,9 @@ public final class WeaponNetwork {
             b.writeInt(s.reloadTicks);
             b.writeInt(s.reloadDuration);
             b.writeInt(s.shotSerial);
+            b.writeInt(s.shotInterval);
+            b.writeInt(s.shotCooldown);
+            b.writeInt(s.shotAge);
             b.writeFloat(s.heat);
             b.writeFloat(s.spin);
             b.writeBoolean(s.focusing);
@@ -131,6 +134,9 @@ public final class WeaponNetwork {
             s.reloadTicks = b.readInt();
             s.reloadDuration = b.readInt();
             s.shotSerial = b.readInt();
+            s.shotInterval = b.readInt();
+            s.shotCooldown = b.readInt();
+            s.shotAge = b.readInt();
             s.heat = b.readFloat();
             s.spin = b.readFloat();
             s.focusing = b.readBoolean();
@@ -158,6 +164,9 @@ public final class WeaponNetwork {
             b.writeDouble(e.x);
             b.writeDouble(e.y);
             b.writeDouble(e.z);
+            b.writeDouble(e.ejectX);
+            b.writeDouble(e.ejectY);
+            b.writeDouble(e.ejectZ);
             b.writeFloat(e.yaw);
             b.writeFloat(e.pitch);
             b.writeInt(e.shotSerial);
@@ -171,6 +180,9 @@ public final class WeaponNetwork {
             e.x = b.readDouble();
             e.y = b.readDouble();
             e.z = b.readDouble();
+            e.ejectX = b.readDouble();
+            e.ejectY = b.readDouble();
+            e.ejectZ = b.readDouble();
             e.yaw = b.readFloat();
             e.pitch = b.readFloat();
             e.shotSerial = b.readInt();

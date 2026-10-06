@@ -20,6 +20,8 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import com.miaokatze.gtsr.client.encounter.GlScope;
+import com.miaokatze.gtsr.client.weapons.outpost.GatlingFxProfile;
+import com.miaokatze.gtsr.client.weapons.outpost.OutpostHudRings;
 import com.miaokatze.gtsr.common.weapons.Effect;
 import com.miaokatze.gtsr.common.weapons.PortableWeapons;
 import com.miaokatze.gtsr.common.weapons.Snapshot;
@@ -45,6 +47,7 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
     private static Object world;
     private static long clock;
     private static float focus;
+    private static float previousFocus;
     private static float renderPartialTicks;
     private static int lastSlot = -1;
     private static boolean lastFire, lastFocus;
@@ -55,6 +58,7 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         Snapshot snapshot;
         long received, shot = -1000;
         int serial = -1;
+        float previousSpinAngle, spinAngle;
     }
 
     public static void register() {
@@ -62,6 +66,7 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         registered = true;
         PortableWeaponClient client = new PortableWeaponClient();
         ClientRegistry.registerKeyBinding(RELOAD);
+        VISUALS.register();
         MinecraftForge.EVENT_BUS.register(client);
         MinecraftForge.EVENT_BUS.register(VISUALS);
         FMLCommonHandler.instance()
@@ -96,11 +101,13 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
 
     public static float shotAge(EntityPlayer player, float partial) {
         State state = player == null ? null : STATES.get(player.getEntityId());
-        return state == null ? 1000 : clock - state.shot + partial;
+        Snapshot s = snapshot(player);
+        return state == null ? 1000
+            : Math.min(clock - state.shot + partial, s == null ? 1000 : s.shotAge + clock - state.received + partial);
     }
 
     public static float focusProgress() {
-        return focus;
+        return previousFocus + (focus - previousFocus) * renderPartialTicks;
     }
 
     public static float renderPartialTicks() {
@@ -117,14 +124,36 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         return s == null ? 0 : clamp(s.spin);
     }
 
+    public static float spinAngle(EntityPlayer player, float partial) {
+        State state = player == null ? null : STATES.get(player.getEntityId());
+        return state == null ? 0 : state.previousSpinAngle + (state.spinAngle - state.previousSpinAngle) * partial;
+    }
+
     private static float clamp(float value) {
         return Math.max(0, Math.min(1, value));
     }
 
     @SubscribeEvent
     public void tick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getMinecraft();
+        if (event.phase == TickEvent.Phase.START) {
+            // Vanilla checks heldStack == itemInUse. Inventory NBT sync replaces that stack object.
+            // Rebind before the entity tick, retaining remaining time; focus is independent of Use/acks.
+            if (mc.thePlayer != null) {
+                EntityPlayer p = mc.thePlayer;
+                boolean using = mc.theWorld == world && mc.currentScreen == null
+                    && mc.inGameHasFocus
+                    && p.isEntityAlive()
+                    && PortableWeapons.kind(p.getHeldItem()) != null
+                    && Mouse.isButtonDown(1);
+                if (using && p.getItemInUse() != p.getHeldItem()) {
+                    int remaining = p.isUsingItem() ? Math.max(1, p.getItemInUseCount()) : 72000;
+                    p.setItemInUse(p.getHeldItem(), remaining);
+                } else if (!using && PortableWeapons.kind(p.getItemInUse()) != null) p.stopUsingItem();
+            }
+            return;
+        }
+        if (event.phase != TickEvent.Phase.END) return;
         clock++;
         if (world != mc.theWorld) {
             world = mc.theWorld;
@@ -134,9 +163,13 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
             lastSlot = -1;
             lastKind = null;
             lastFire = lastFocus = false;
-            focus = 0;
+            focus = previousFocus = 0;
+            OutpostHudRings.reset();
         }
-        if (mc.theWorld == null || mc.thePlayer == null) return;
+        if (mc.theWorld == null || mc.thePlayer == null) {
+            VISUALS.clear();
+            return;
+        }
         int budget = 64;
         Object message;
         while (budget-- > 0 && (message = QUEUE.poll()) != null) {
@@ -146,6 +179,7 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
                 State state = getState(s.entityId);
                 state.snapshot = s;
                 state.received = clock;
+                VISUALS.state(s);
             } else {
                 Effect e = (Effect) message;
                 WeaponKind kind = WeaponKind.fromId(e.kind);
@@ -169,7 +203,17 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
             .iterator();
         while (states.hasNext()) {
             State state = states.next();
-            if (clock - Math.max(state.received, state.shot) > 100) states.remove();
+            if (clock - Math.max(state.received, state.shot) > 100) {
+                states.remove();
+                continue;
+            }
+            state.previousSpinAngle = state.spinAngle;
+            if (state.snapshot != null && state.snapshot.kind == WeaponKind.LM12.id)
+                state.spinAngle += clamp(state.snapshot.spin) * GatlingFxProfile.MOTOR_OMEGA_MAX;
+            if (state.spinAngle >= 360) {
+                state.spinAngle -= 360;
+                state.previousSpinAngle -= 360;
+            }
         }
         EntityPlayer player = mc.thePlayer;
         WeaponKind kind = PortableWeapons.kind(player.getHeldItem());
@@ -182,6 +226,8 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         if (lastSlot >= 0 && (slot != lastSlot || kind != lastKind || !active)) {
             if (lastFire || lastFocus) WeaponNetwork.sendControls(lastSlot, false, false, false);
             lastFire = lastFocus = false;
+            State local = STATES.get(player.getEntityId());
+            if (local != null && (slot != lastSlot || kind != lastKind)) local.snapshot = null;
         }
         if (active && (reload || slot != lastSlot || firing != lastFire || focusing != lastFocus || clock % 5 == 0))
             WeaponNetwork.sendControls(slot, firing, focusing, reload);
@@ -189,11 +235,13 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         lastKind = kind;
         lastFire = firing;
         lastFocus = focusing;
+        previousFocus = focus;
         focus += ((focusing ? 1 : 0) - focus) * .25F;
         if (!active) {
-            focus = 0;
+            focus = previousFocus = 0;
             if (kind != null && player.isUsingItem()) player.stopUsingItem();
         }
+        VISUALS.controls(player, active, firing, kind);
         VISUALS.tick();
     }
 
@@ -223,21 +271,24 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
 
     @SubscribeEvent
     public void fov(FOVUpdateEvent event) {
-        if (event.entity == Minecraft.getMinecraft().thePlayer) event.newfov *= 1 - focus * .22F;
+        if (event.entity == Minecraft.getMinecraft().thePlayer) event.newfov *= 1 - focusProgress() * .22F;
     }
 
     @SubscribeEvent
     public void hud(RenderGameOverlayEvent.Pre event) {
         Minecraft mc = Minecraft.getMinecraft();
-        if (event.type != RenderGameOverlayEvent.ElementType.CROSSHAIRS || mc.thePlayer == null
-            || mc.currentScreen != null
-            || PortableWeapons.kind(mc.thePlayer.getHeldItem()) == null) return;
+        if (event.type != RenderGameOverlayEvent.ElementType.CROSSHAIRS) return;
+        if (mc.thePlayer == null || mc.currentScreen != null
+            || PortableWeapons.kind(mc.thePlayer.getHeldItem()) == null) {
+            OutpostHudRings.reset();
+            return;
+        }
         event.setCanceled(true);
         int x = event.resolution.getScaledWidth() / 2, y = event.resolution.getScaledHeight() / 2;
         Snapshot s = snapshot(mc.thePlayer);
         try (GlScope scope = new GlScope()) {
             GL11.glDisable(GL11.GL_DEPTH_TEST);
-            float gap = 5 + 8 * (1 - focus);
+            float gap = 5 + 8 * (1 - focusProgress());
             for (int i = 0; i < 4; i++) {
                 double a = i * Math.PI / 2;
                 for (int p = 0; p < 7; p++) {
@@ -246,16 +297,16 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
                     Gui.drawRect(px, py, px + 2, py + 2, 0xEF59F2CC);
                 }
             }
-            ring(
-                x,
-                y,
-                23,
-                s == null ? 0
-                    : s.magazine / (float) (s.kind == WeaponKind.QLZ04.id ? 8 : WeaponKind.fromId(s.kind).capacity),
-                0x59F2CC);
-            ring(x, y, 28, s == null ? 0 : s.heat, 0xFF5926);
-            ring(x, y, 33, s == null ? 0 : s.spin, 0x4CCCFF);
-            ring(x, y, 38, reloadProgress(mc.thePlayer, event.partialTicks), 0xF2D966);
+            State state = STATES.get(mc.thePlayer.getEntityId());
+            float cooldown = s == null || state == null ? 0
+                : Math.max(0, s.shotCooldown - (clock - state.received) - event.partialTicks);
+            float rate = s == null ? 1 : 1 - cooldown / Math.max(1, s.shotInterval);
+            OutpostHudRings.draw(
+                s == null ? "unknown" : WeaponKind.fromId(s.kind).modelKey,
+                x + 28,
+                y - 28,
+                rate,
+                s == null ? 0 : s.heat);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             String ammo = s == null ? "-- / --" : s.magazine + " / " + s.reserve;
             mc.fontRenderer.drawStringWithShadow(ammo, x - mc.fontRenderer.getStringWidth(ammo) / 2, y + 42, 0xD6FFEE);
@@ -271,16 +322,4 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         }
     }
 
-    private static void ring(int x, int y, float radius, float progress, int color) {
-        arc(x, y, radius, 1, 0x33000000 | color);
-        arc(x, y, radius, clamp(progress), 0xE6000000 | color);
-    }
-
-    private static void arc(int x, int y, float radius, float progress, int color) {
-        for (int i = 0; i < (int) (160 * progress); i++) {
-            double a = i * Math.PI * 2 / 160 - Math.PI / 2;
-            int px = x + (int) Math.round(Math.cos(a) * radius), py = y + (int) Math.round(Math.sin(a) * radius);
-            Gui.drawRect(px, py, px + 2, py + 2, color);
-        }
-    }
 }

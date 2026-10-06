@@ -1,10 +1,13 @@
 package com.miaokatze.gtsr.common.commands;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
+import net.minecraft.block.Block;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.enchantment.Enchantment;
@@ -13,6 +16,7 @@ import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.monster.EntityZombie;
 import net.minecraft.entity.passive.EntityCow;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -21,17 +25,30 @@ import net.minecraft.network.NetworkManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.management.ItemInWorldManager;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
 
+import com.miaokatze.gtsr.common.weapons.Effect;
 import com.miaokatze.gtsr.common.weapons.EntityWeaponProjectile;
 import com.miaokatze.gtsr.common.weapons.PortableWeapons;
+import com.miaokatze.gtsr.common.weapons.Snapshot;
 import com.miaokatze.gtsr.common.weapons.WeaponController;
 import com.miaokatze.gtsr.common.weapons.WeaponEnchantments;
 import com.miaokatze.gtsr.common.weapons.WeaponKind;
 import com.miaokatze.gtsr.common.weapons.WeaponNetwork;
+import com.miaokatze.gtsr.common.weapons.WeaponPose;
 import com.mojang.authlib.GameProfile;
 
+import cpw.mods.fml.common.eventhandler.EventBus;
+import cpw.mods.fml.common.gameevent.TickEvent;
+import cpw.mods.fml.relauncher.Side;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelOutboundHandlerAdapter;
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.embedded.EmbeddedChannel;
 
 /** Opt-in isolated-server fixture; never operates on a connected player's inventory or terrain. */
@@ -46,6 +63,10 @@ public final class WeaponAuditCommand extends CommandBase {
     private long originalTime;
     private boolean advancedTime;
     private double x, z;
+    private Channel auditNetwork;
+    private Snapshot capturedState;
+    private Effect capturedShot;
+    private EventBus auditTickBus;
 
     @Override
     public String getCommandName() {
@@ -95,8 +116,13 @@ public final class WeaponAuditCommand extends CommandBase {
             player.rotationYaw = 0;
             player.rotationPitch = 0;
             controller = new WeaponController();
+            auditTickBus = new EventBus();
+            auditTickBus.register(controller);
+            captureNetwork();
             registrationAndEnchantments();
             for (WeaponKind kind : WeaponKind.values()) inventory(kind);
+            cooling();
+            muzzleAndWall();
             damage();
             collision(WeaponKind.T20);
             collision(WeaponKind.QLZ04);
@@ -116,6 +142,12 @@ public final class WeaponAuditCommand extends CommandBase {
             owned.clear();
             if (player != null) player.setDead();
             if (channel != null) channel.close();
+            if (auditNetwork != null && auditNetwork.pipeline()
+                .get("gtsrWeaponAuditObserver") != null) auditNetwork.pipeline()
+                    .remove("gtsrWeaponAuditObserver");
+            auditNetwork = null;
+            if (auditTickBus != null && controller != null) auditTickBus.unregister(controller);
+            auditTickBus = null;
             if (advancedTime) world.getWorldInfo()
                 .incrementTotalWorldTime(originalTime);
             advancedTime = false;
@@ -203,21 +235,209 @@ public final class WeaponAuditCommand extends CommandBase {
         world.getWorldInfo()
             .incrementTotalWorldTime(world.getTotalWorldTime() + 1);
         WeaponNetwork.enqueueControls(player, 0, fire, false, reload);
-        controller.serverTick();
+        capturedState = null;
+        capturedShot = null;
+        auditTickBus.post(new TickEvent.ServerTickEvent(TickEvent.Phase.END));
+        require(capturedState != null, "actual server Snapshot observed");
+        require(capturedState.entityId == player.getEntityId(), "Snapshot belongs to local fixture");
+        WeaponKind held = PortableWeapons.kind(player.getHeldItem());
+        if (held != null) {
+            int interval = capturedState.shotInterval;
+            require(
+                held == WeaponKind.LM12 ? interval >= 1 && interval <= 8
+                    : interval == (held == WeaponKind.T20 ? 8 : 12),
+                "actual Snapshot interval");
+            require(
+                capturedState.shotCooldown >= 0 && capturedState.shotCooldown <= interval,
+                "actual Snapshot cooldown bounds");
+            if (capturedShot != null) {
+                require(
+                    capturedState.shotAge == 0 && capturedState.shotCooldown == interval,
+                    "successful shot Snapshot age and cooldown");
+                packetRoundtrip(capturedState, capturedShot);
+            }
+        }
         int shots = 0;
         for (Object object : new ArrayList<Object>(world.loadedEntityList))
             if (object instanceof EntityWeaponProjectile) {
                 Entity entity = (Entity) object;
                 // Only this command's projectile origin; normal saves are rejected before setup.
                 if (!entity.isDead
-                    && entity.getDistanceSq(player.posX, player.posY + player.getEyeHeight(), player.posZ) < 4) {
+                    && entity.getDistanceSq(player.posX, player.posY + player.getEyeHeight(), player.posZ) < 9) {
                     shots++;
+                    Vec3 expected = WeaponPose.muzzle(player, held);
+                    require(
+                        entity.getDistanceSq(expected.xCoord, expected.yCoord, expected.zCoord) < 1.0E-12,
+                        "server projectile starts at physical muzzle");
                     owned.add(entity);
                     entity.setDead();
                     world.removeEntity(entity);
                 }
             }
         return shots;
+    }
+
+    private static Object field(Object object, String name) throws Exception {
+        Field f = object.getClass()
+            .getDeclaredField(name);
+        f.setAccessible(true);
+        return f.get(object);
+    }
+
+    private void captureNetwork() throws Exception {
+        Field net = WeaponNetwork.class.getDeclaredField("NET");
+        net.setAccessible(true);
+        Object wrapper = net.get(null);
+        auditNetwork = (Channel) ((Map<?, ?>) field(wrapper, "channels")).get(Side.SERVER);
+        auditNetwork.pipeline()
+            .addLast("gtsrWeaponAuditObserver", new ChannelOutboundHandlerAdapter() {
+
+                @Override
+                public void write(ChannelHandlerContext context, Object message, ChannelPromise promise)
+                    throws Exception {
+                    if (message instanceof WeaponNetwork.StatePacket) capturedState = (Snapshot) field(message, "s");
+                    if (message instanceof WeaponNetwork.EffectPacket) {
+                        Effect effect = (Effect) field(message, "e");
+                        if (effect.type == 0) capturedShot = effect;
+                    }
+                    context.write(message, promise);
+                }
+            });
+    }
+
+    private void packetRoundtrip(Snapshot state, Effect effect) {
+        try {
+            WeaponNetwork.StatePacket packet = new WeaponNetwork.StatePacket();
+            Field s = packet.getClass()
+                .getDeclaredField("s");
+            s.setAccessible(true);
+            s.set(packet, state);
+            ByteBuf bytes = Unpooled.buffer();
+            packet.toBytes(bytes);
+            WeaponNetwork.StatePacket read = new WeaponNetwork.StatePacket();
+            read.fromBytes(bytes);
+            Snapshot result = (Snapshot) s.get(read);
+            require(
+                bytes.readableBytes() == 0 && result.shotInterval == state.shotInterval
+                    && result.shotCooldown == state.shotCooldown
+                    && result.shotAge == state.shotAge
+                    && result.shotSerial == state.shotSerial,
+                "actual Snapshot added fields roundtrip");
+            bytes.release();
+            WeaponNetwork.EffectPacket p = new WeaponNetwork.EffectPacket();
+            Field e = p.getClass()
+                .getDeclaredField("e");
+            e.setAccessible(true);
+            e.set(p, effect);
+            bytes = Unpooled.buffer();
+            p.toBytes(bytes);
+            WeaponNetwork.EffectPacket r = new WeaponNetwork.EffectPacket();
+            r.fromBytes(bytes);
+            Effect out = (Effect) e.get(r);
+            require(
+                bytes.readableBytes() == 0 && out.x == effect.x
+                    && out.y == effect.y
+                    && out.z == effect.z
+                    && out.ejectX == effect.ejectX
+                    && out.ejectY == effect.ejectY
+                    && out.ejectZ == effect.ejectZ
+                    && out.shotSerial == effect.shotSerial,
+                "actual Effect muzzle/eject roundtrip");
+            bytes.release();
+            WeaponKind kind = WeaponKind.fromId(effect.kind);
+            Vec3 muzzle = WeaponPose.muzzle(player, kind), eject = WeaponPose.eject(player, kind);
+            require(
+                muzzle.squareDistanceTo(Vec3.createVectorHelper(effect.x, effect.y, effect.z)) < 1.0E-12,
+                "actual Effect uses physical muzzle");
+            require(
+                eject.squareDistanceTo(Vec3.createVectorHelper(effect.ejectX, effect.ejectY, effect.ejectZ)) < 1.0E-12,
+                "actual Effect uses physical eject port");
+        } catch (Exception error) {
+            throw new IllegalStateException("packet reflection fixture", error);
+        }
+    }
+
+    private void cooling() {
+        for (WeaponKind kind : new WeaponKind[] { WeaponKind.LM12, WeaponKind.T20 }) {
+            setup(kind);
+            reload(kind);
+            NBTTagCompound n = WeaponController.data(player.getHeldItem());
+            float gain = kind == WeaponKind.LM12 ? .0125f : .04f, rate = kind == WeaponKind.LM12 ? .009f : .012f;
+            int successful = 0;
+            for (int i = 0; i < 500 && successful < 10; i++) {
+                int fired = tick(true, false);
+                successful += fired;
+                if (fired > 0)
+                    close(n.getFloat("heat"), successful * gain, "continuous successful shots never cool " + kind);
+            }
+            require(successful == 10, "generate actual firing heat for quiet window " + kind);
+            float heat = n.getFloat("heat");
+            long lastShot = n.getLong("lastShot");
+            for (int i = 0; i < 19; i++) tick(false, false);
+            require(world.getTotalWorldTime() == lastShot + 19, "fixture reaches real nineteen tick boundary");
+            close(n.getFloat("heat"), heat, "nineteen quiet ticks do not cool " + kind);
+            tick(false, false);
+            close(n.getFloat("heat"), heat - rate, "twentieth quiet tick cools once " + kind);
+            for (int i = 0; i < 10; i++) tick(false, false);
+            close(n.getFloat("heat"), Math.max(0, heat - 11 * rate), "subsequent ten ticks triple cooling " + kind);
+            setup(kind);
+            reload(kind);
+            n = WeaponController.data(player.getHeldItem());
+            for (int i = 0; i < 1000 && !n.getBoolean("hot"); i++) tick(true, false);
+            require(n.getBoolean("hot"), "actual successful shots reach overheat " + kind);
+            heat = n.getFloat("heat");
+            lastShot = n.getLong("lastShot");
+            for (int i = 0; i < 19; i++)
+                require(tick(true, false) == 0, "overheat stops shots without trigger release " + kind);
+            require(world.getTotalWorldTime() == lastShot + 19, "overheat quiet window starts at last successful shot");
+            close(n.getFloat("heat"), heat, "overheated nineteen ticks no cooling " + kind);
+            require(tick(true, false) == 0, "twentieth tick still locked " + kind);
+            close(n.getFloat("heat"), heat - rate, "overheated twentieth tick begins cooling " + kind);
+            int resumed = 0;
+            for (int i = 0; i < 200 && resumed == 0; i++) resumed += tick(true, false);
+            require(resumed == 1 && !n.getBoolean("hot"), "actual cooling unlocks and resumes held trigger " + kind);
+        }
+    }
+
+    private void muzzleAndWall() {
+        double originalZ = player.posZ;
+        player.setPosition(x, 230, world.getSpawnPoint().posZ + .9);
+        int bx = (int) Math.floor(x), by = 231, bz = world.getSpawnPoint().posZ + 1;
+        require(
+            world.getChunkProvider()
+                .chunkExists(bx >> 4, bz >> 4),
+            "wall fixture chunk already loaded");
+        Block prior = world.getBlock(bx, by, bz);
+        int metadata = world.getBlockMetadata(bx, by, bz);
+        require(prior == Blocks.air, "owned wall fixture is empty air");
+        try {
+            require(world.setBlock(bx, by, bz, Blocks.stone, 0, 2), "install bounded fixture wall");
+            for (WeaponKind kind : WeaponKind.values()) {
+                EntityWeaponProjectile p = new EntityWeaponProjectile(
+                    world,
+                    player,
+                    kind,
+                    kind.damage,
+                    kind.armorPenetration,
+                    0);
+                owned.add(p);
+                Vec3 muzzle = WeaponPose.muzzle(player, kind);
+                require(
+                    p.getDistanceSq(muzzle.xCoord, muzzle.yCoord, muzzle.zCoord) < 1.0E-12,
+                    "constructor begins at real muzzle " + kind);
+                require(muzzle.zCoord > bz + 1, "muzzle extends beyond obstruction " + kind);
+                require(world.spawnEntityInWorld(p), "spawn original trajectory wall projectile");
+                p.onUpdate();
+                require(p.isDead, "first tick eye-to-muzzle wall blocks beyond-wall spawn " + kind);
+                require(world.getBlock(bx, by, bz) == Blocks.stone, "wall impact does not destroy obstruction " + kind);
+            }
+        } finally {
+            world.setBlock(bx, by, bz, prior, metadata, 2);
+            player.setPosition(x, 230, originalZ);
+        }
+        require(
+            world.getBlock(bx, by, bz) == prior && world.getBlockMetadata(bx, by, bz) == metadata,
+            "fixture wall restored");
     }
 
     private void reload(WeaponKind k) {
@@ -233,7 +453,7 @@ public final class WeaponAuditCommand extends CommandBase {
         for (int i = 0; i < k.reloadTicks + 1; i++) tick(false, false);
         require(pack.getItemDamage() == 0, "cancel reload charges nothing " + k);
         reload(k);
-        require(pack.getItemDamage() == (k == WeaponKind.QLZ04 ? 8 : 1), "first reload actual debit " + k);
+        require(pack.getItemDamage() == (k == WeaponKind.QLZ04 ? 8 : 0), "reload charges only QLZ magazine " + k);
         int before = pack.getItemDamage();
         reload(k);
         require(pack.getItemDamage() == before, "same pack reload no duplicate fee " + k);
@@ -247,12 +467,12 @@ public final class WeaponAuditCommand extends CommandBase {
         reload(k);
         require(restored.getItemDamage() == before, "saved pack reload no duplicate fee " + k);
         List<Integer> firingTicks = new ArrayList<Integer>();
-        int duration = k == WeaponKind.LM12 ? 70 : 18;
+        int duration = k == WeaponKind.LM12 ? 70 : 30;
         for (int i = 1; i <= duration; i++) if (tick(true, false) > 0) firingTicks.add(i);
         require(!firingTicks.isEmpty(), "real firing produces entity " + k);
         if (k == WeaponKind.LM12) require(firingTicks.get(0) == 40, "LM12 40 tick spin gate");
         else for (int i = 1; i < firingTicks.size(); i++) require(
-            firingTicks.get(i) - firingTicks.get(i - 1) == (k == WeaponKind.T20 ? 4 : 5),
+            firingTicks.get(i) - firingTicks.get(i - 1) == (k == WeaponKind.T20 ? 8 : 12),
             "real shot interval " + k);
         require(
             restored.getItemDamage() == before + (k == WeaponKind.QLZ04 ? 0 : firingTicks.size()),
@@ -276,8 +496,8 @@ public final class WeaponAuditCommand extends CommandBase {
                 reload(k);
                 int rounds = WeaponController.data(player.getHeldItem())
                     .getInteger("magazine");
-                for (int i = 0; i < 5; i++) tick(false, false);
-                for (int i = 0; i < 1 + (rounds - 1) * 5; i++) total += tick(true, false);
+                for (int i = 0; i < 12; i++) tick(false, false);
+                for (int i = 0; i < 1 + (rounds - 1) * 12; i++) total += tick(true, false);
                 tick(false, false);
             }
             require(
@@ -293,15 +513,28 @@ public final class WeaponAuditCommand extends CommandBase {
             ItemStack fresh = new ItemStack(PortableWeapons.ammo[k.id]);
             player.inventory.mainInventory[1] = fresh;
             reload(k);
-            require(fresh.getItemDamage() == 1, "new pack pays one initialization fee");
+            require(
+                fresh.getItemDamage() == 0 && WeaponController.data(fresh)
+                    .getBoolean("chain"),
+                "new pack links without debit");
             ItemStack nearlyEmpty = new ItemStack(PortableWeapons.ammo[k.id]);
             nearlyEmpty.setItemDamage(k.capacity - 1);
             player.inventory.mainInventory[1] = nearlyEmpty;
             reload(k);
             require(
-                nearlyEmpty.getItemDamage() == k.capacity - 1 && !WeaponController.data(nearlyEmpty)
+                nearlyEmpty.getItemDamage() == k.capacity - 1 && WeaponController.data(nearlyEmpty)
                     .getBoolean("chain"),
-                "one unchained unit cannot initialize");
+                "one unchained unit links free");
+            int single = 0;
+            for (int i = 0; i < 50; i++) single += tick(true, false);
+            require(single == 1 && nearlyEmpty.getItemDamage() == k.capacity, "single new round is usable");
+            ItemStack full = setup(k);
+            reload(k);
+            int total = 0;
+            for (int i = 0; i < 4000 && WeaponController.remaining(full) > 0; i++) total += tick(true, false);
+            require(
+                total == (k == WeaponKind.LM12 ? 200 : 100) && full.getItemDamage() == k.capacity,
+                "complete belt supplies every round " + k);
         }
     }
 
@@ -421,16 +654,16 @@ public final class WeaponAuditCommand extends CommandBase {
         reload(WeaponKind.T20);
         WeaponNetwork.enqueueControls(player, 9, true, false, true);
         controller.serverTick();
-        require(ammo.getItemDamage() == 1, "forged out of range slot rejected");
+        require(ammo.getItemDamage() == 0, "forged out of range slot rejected");
         player.inventory.currentItem = 1;
         WeaponNetwork.enqueueControls(player, 0, true, false, true);
         controller.serverTick();
-        require(ammo.getItemDamage() == 1, "forged held slot rejected");
+        require(ammo.getItemDamage() == 0, "forged held slot rejected");
         player.inventory.currentItem = 0;
         channel.close();
         WeaponNetwork.enqueueControls(player, 0, true, false, true);
         controller.serverTick();
-        require(ammo.getItemDamage() == 1, "disconnected queued input rejected");
+        require(ammo.getItemDamage() == 0, "disconnected queued input rejected");
     }
 
     private void require(boolean pass, String label) {

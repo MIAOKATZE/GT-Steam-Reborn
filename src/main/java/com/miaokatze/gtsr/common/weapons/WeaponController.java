@@ -9,6 +9,7 @@ import java.util.UUID;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.Vec3;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent;
@@ -68,8 +69,8 @@ public final class WeaponController {
     }
 
     private static ItemStack pack(EntityPlayerMP p, WeaponKind k) {
-        for (ItemStack s : p.inventory.mainInventory) if (PortableWeapons.ammoKind(s) == k && remaining(s) > 0
-            && (k == WeaponKind.QLZ04 || data(s).getBoolean("chain") || remaining(s) >= 2)) return s;
+        for (ItemStack s : p.inventory.mainInventory)
+            if (PortableWeapons.ammoKind(s) == k && remaining(s) > 0) return s;
         return null;
     }
 
@@ -152,14 +153,21 @@ public final class WeaponController {
         }
     }
 
+    public static float coolingRate(WeaponKind kind) {
+        return kind == WeaponKind.LM12 ? .009f : kind == WeaponKind.T20 ? .012f : 0;
+    }
+
     private static void cool(ItemStack gun, long now) {
         WeaponKind k = PortableWeapons.kind(gun);
         if (k == null || k == WeaponKind.QLZ04) return;
         NBTTagCompound n = data(gun);
-        long elapsed = n.hasKey("heatTick") ? Math.max(0, now - n.getLong("heatTick")) : 1;
+        long previous = n.hasKey("heatTick") ? n.getLong("heatTick") : now - 1;
+        // Count only tick endpoints in (previous, now] that have reached the 20-tick quiet window.
+        // The first eligible endpoint is lastShot+20, including that boundary exactly once.
+        long eligibleStart = n.hasKey("lastShot") ? Math.max(previous, n.getLong("lastShot") + 19) : previous;
+        long elapsed = Math.max(0, now - eligibleStart);
         n.setLong("heatTick", now);
-        float heat = Math
-            .max(0, Math.min(1, n.getFloat("heat")) - Math.min(1000, elapsed) * (k == WeaponKind.LM12 ? .003f : .004f));
+        float heat = Math.max(0, Math.min(1, n.getFloat("heat")) - Math.min(1000, elapsed) * coolingRate(k));
         n.setFloat("heat", heat);
         if (heat <= .25f) n.setBoolean("hot", false);
     }
@@ -171,7 +179,6 @@ public final class WeaponController {
         if (k == WeaponKind.QLZ04 && data(s.gun).getInteger("magazine") >= 8) return;
         ItemStack a = pack(s.player, k);
         if (a == null) return;
-        if (k != WeaponKind.QLZ04 && !data(a).getBoolean("chain") && remaining(a) < 2) return;
         s.reloadPack = a;
         s.reload = k.reloadTicks;
     }
@@ -191,10 +198,8 @@ public final class WeaponController {
             if (!debit(a, cost)) return;
             n.setInteger("magazine", Math.min(8, n.getInteger("magazine") + units));
         } else {
-            if (!data(a).getBoolean("chain")) {
-                if (remaining(a) < 2 || !debit(a, 1)) return;
-                data(a).setBoolean("chain", true);
-            }
+            // Linking a new belt is a reload state change, never a round debit.
+            data(a).setBoolean("chain", true);
             n.setString("loadedPack", packId(a));
         }
         effect(s, 2);
@@ -255,6 +260,8 @@ public final class WeaponController {
             ? Math.max(1, Math.min(8, Math.round(1f / (.125f + .875f * Math.min(1, (s.spin - 40) / 120f)))))
             : k.interval;
         n.setLong("nextShot", s.player.worldObj.getTotalWorldTime() + s.cooldown);
+        n.setLong("lastShot", s.player.worldObj.getTotalWorldTime());
+        n.setInteger("shotInterval", s.cooldown);
         if (k != WeaponKind.QLZ04) {
             float heat = Math.min(1, n.getFloat("heat") + (k == WeaponKind.LM12 ? .0125f : .04f));
             n.setFloat("heat", heat);
@@ -268,9 +275,14 @@ public final class WeaponController {
         e.entityId = s.player.getEntityId();
         e.kind = PortableWeapons.kind(s.gun).id;
         e.type = type;
-        e.x = s.player.posX;
-        e.y = s.player.posY + s.player.getEyeHeight();
-        e.z = s.player.posZ;
+        Vec3 muzzle = WeaponPose.muzzle(s.player, PortableWeapons.kind(s.gun));
+        Vec3 eject = WeaponPose.eject(s.player, PortableWeapons.kind(s.gun));
+        e.x = muzzle.xCoord;
+        e.y = muzzle.yCoord;
+        e.z = muzzle.zCoord;
+        e.ejectX = eject.xCoord;
+        e.ejectY = eject.yCoord;
+        e.ejectZ = eject.zCoord;
         e.yaw = s.player.rotationYaw;
         e.pitch = s.player.rotationPitch;
         e.shotSerial = s.serial;
@@ -287,6 +299,13 @@ public final class WeaponController {
         snap.reloadTicks = s.reload;
         snap.reloadDuration = k.reloadTicks;
         snap.shotSerial = s.serial;
+        long now = s.player.worldObj.getTotalWorldTime();
+        snap.shotInterval = k == WeaponKind.LM12 && n.hasKey("shotInterval")
+            ? Math.max(1, Math.min(8, n.getInteger("shotInterval")))
+            : k == WeaponKind.LM12 ? 8 : k.interval;
+        snap.shotCooldown = (int) Math.max(0, Math.min(snap.shotInterval, n.getLong("nextShot") - now));
+        snap.shotAge = n.hasKey("lastShot") ? (int) Math.max(0, Math.min(1000000, now - n.getLong("lastShot")))
+            : 1000000;
         snap.heat = n.getFloat("heat");
         snap.overheated = n.getBoolean("hot");
         snap.spin = s.spin / 160f;

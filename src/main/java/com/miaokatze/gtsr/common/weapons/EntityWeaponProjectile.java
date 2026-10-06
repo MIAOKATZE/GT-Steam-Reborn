@@ -26,6 +26,8 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
     private UUID shooterId;
     private float damage, penetration;
     private int fire;
+    private Vec3 initialOrigin, initialMuzzle;
+    private boolean initialObstructionPending;
 
     public EntityWeaponProjectile(World world) {
         super(world);
@@ -42,10 +44,16 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
         this.penetration = penetration;
         this.fire = fire;
         Vec3 look = owner.getLookVec();
-        setPosition(
-            owner.posX + look.xCoord * .5,
-            owner.posY + owner.getEyeHeight() + look.yCoord * .5,
-            owner.posZ + look.zCoord * .5);
+        Vec3 muzzle = owner instanceof EntityPlayer ? WeaponPose.muzzle((EntityPlayer) owner, kind)
+            : Vec3.createVectorHelper(
+                owner.posX + look.xCoord * .5,
+                owner.posY + owner.getEyeHeight() + look.yCoord * .5,
+                owner.posZ + look.zCoord * .5);
+        setPosition(muzzle.xCoord, muzzle.yCoord, muzzle.zCoord);
+        initialOrigin = Vec3
+            .createVectorHelper(owner.posX, owner.posY - owner.yOffset + owner.getEyeHeight(), owner.posZ);
+        initialMuzzle = Vec3.createVectorHelper(muzzle.xCoord, muzzle.yCoord, muzzle.zCoord);
+        initialObstructionPending = true;
         motionX = look.xCoord * kind.projectileSpeed;
         motionY = look.yCoord * kind.projectileSpeed;
         motionZ = look.zCoord * kind.projectileSpeed;
@@ -69,6 +77,24 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
         }
         Vec3 start = Vec3.createVectorHelper(posX, posY, posZ), end = start.addVector(motionX, motionY, motionZ);
         if (!worldObj.isRemote) {
+            if (initialObstructionPending) {
+                initialObstructionPending = false;
+                // A fixture may deliberately replace the complete projectile trajectory. Only its original
+                // constructor trajectory has an eye-to-muzzle obstruction segment.
+                if (initialMuzzle != null && initialMuzzle.squareDistanceTo(start) < 1.0E-12) {
+                    MovingObjectPosition obstruction = worldObj.func_147447_a(
+                        Vec3.createVectorHelper(initialOrigin.xCoord, initialOrigin.yCoord, initialOrigin.zCoord),
+                        Vec3.createVectorHelper(initialMuzzle.xCoord, initialMuzzle.yCoord, initialMuzzle.zCoord),
+                        false,
+                        true,
+                        false);
+                    if (obstruction != null) {
+                        impact(obstruction);
+                        setDead();
+                        return;
+                    }
+                }
+            }
             if (shooter == null && shooterId != null) for (Object object : worldObj.loadedEntityList)
                 if (object instanceof EntityLivingBase && ((Entity) object).getUniqueID()
                     .equals(shooterId)) {
@@ -175,6 +201,15 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
         n.setFloat("damage", damage);
         n.setFloat("penetration", penetration);
         n.setInteger("fire", fire);
+        n.setBoolean("initialObstructionPending", initialObstructionPending);
+        if (initialObstructionPending && initialOrigin != null && initialMuzzle != null) {
+            n.setDouble("originX", initialOrigin.xCoord);
+            n.setDouble("originY", initialOrigin.yCoord);
+            n.setDouble("originZ", initialOrigin.zCoord);
+            n.setDouble("muzzleX", initialMuzzle.xCoord);
+            n.setDouble("muzzleY", initialMuzzle.yCoord);
+            n.setDouble("muzzleZ", initialMuzzle.zCoord);
+        }
         if (shooterId != null) n.setString("shooter", shooterId.toString());
     }
 
@@ -185,6 +220,13 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
         damage = n.getFloat("damage");
         penetration = n.getFloat("penetration");
         fire = n.getInteger("fire");
+        initialObstructionPending = n.getBoolean("initialObstructionPending");
+        if (initialObstructionPending) {
+            initialOrigin = Vec3
+                .createVectorHelper(n.getDouble("originX"), n.getDouble("originY"), n.getDouble("originZ"));
+            initialMuzzle = Vec3
+                .createVectorHelper(n.getDouble("muzzleX"), n.getDouble("muzzleY"), n.getDouble("muzzleZ"));
+        }
         try {
             if (n.hasKey("shooter")) shooterId = UUID.fromString(n.getString("shooter"));
         } catch (IllegalArgumentException ignored) {

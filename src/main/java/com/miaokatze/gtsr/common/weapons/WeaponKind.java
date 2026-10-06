@@ -3,8 +3,8 @@ package com.miaokatze.gtsr.common.weapons;
 public enum WeaponKind {
 
     LM12(0, "lm12", 2, 5, 1, 200, 5, 0, 50),
-    T20(1, "t20", 10, 8, 4, 100, 4, .005, 50),
-    QLZ04(2, "qlz04", 12, 10, 5, 30, 1.5, .035, 40);
+    T20(1, "t20", 10, 8, 8, 100, 4, .005, 50),
+    QLZ04(2, "qlz04", 12, 10, 12, 30, 1.5, .035, 40);
 
     public final int id, interval, capacity, reloadTicks;
     public final String modelKey;

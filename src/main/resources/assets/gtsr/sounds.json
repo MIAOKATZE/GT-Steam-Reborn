@@ -1798,5 +1798,47 @@
     "sounds": [
       "weapons/qlz04_fire"
     ]
+  },
+  "weapons.gatling_motor": {
+    "category": "player",
+    "sounds": [
+      "weapons/gatling_motor"
+    ]
+  },
+  "weapons.magazine_reload": {
+    "category": "player",
+    "sounds": [
+      "weapons/magazine_reload"
+    ]
+  },
+  "weapons.reload_done": {
+    "category": "player",
+    "sounds": [
+      "weapons/reload_done"
+    ]
+  },
+  "weapons.barrel_overheat": {
+    "category": "player",
+    "sounds": [
+      "weapons/barrel_overheat"
+    ]
+  },
+  "weapons.bullet_whizz": {
+    "category": "player",
+    "sounds": [
+      "weapons/bullet_whizz"
+    ]
+  },
+  "weapons.casing_drop": {
+    "category": "player",
+    "sounds": [
+      "weapons/casing_drop"
+    ]
+  },
+  "weapons.fx.casing_drop_gx2": {
+    "category": "player",
+    "sounds": [
+      "weapons/fx/casing_drop_gx2"
+    ]
   }
 }
