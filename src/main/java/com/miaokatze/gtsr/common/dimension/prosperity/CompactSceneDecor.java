@@ -13,6 +13,7 @@ public final class CompactSceneDecor {
 
     private static final long SALT = 0x4150524F4E3730L;
     private static volatile boolean[] factorySurface, foundrySurface;
+    private static volatile int[] fictionClearance;
 
     private CompactSceneDecor() {}
 
@@ -28,18 +29,22 @@ public final class CompactSceneDecor {
                 if (!apron && !core) continue;
                 long h = GTSRWorldgenHash.cellSeed(seed, x, z, SALT);
                 int y = ProsperityTerrainProfile.heightAt(seed, x, z);
-                Block top = b.roster == 0 ? BlocksGTSR.prosperitySteppeTop : BlocksGTSR.prosperityForestTop;
+                Block top = b.roster == 0 ? BlocksGTSR.prosperitySteppeTop
+                    : b.roster == 2 ? BlocksGTSR.prosperityWastesTop : BlocksGTSR.prosperityForestTop;
                 // No height scan: geology and decorations share the same pure column supplier.
                 if (world.getBlock(x, y, z) != top || !world.isAirBlock(x, y + 1, z)) continue;
                 int pick = (int) Math.floorMod(h, 100);
                 // Patchy meadow grows over the buried roof; only short flora may enter its core.
                 long patch = GTSRWorldgenHash
                     .cellSeed(seed, Math.floorDiv(x, 9), Math.floorDiv(z, 9), SALT ^ 0x464C4F5241L);
-                int floraChance = apron ? b.roster == 1 ? 33 : 27 : Math.floorMod(patch, 5) == 0 ? 38 : 10;
+                int floraChance = b.roster == 2 ? Math.floorMod(patch, 5) == 0 ? 24 : 6
+                    : apron ? b.roster == 1 ? 33 : 27 : Math.floorMod(patch, 5) == 0 ? 38 : 10;
                 if (pick < floraChance) {
-                    Block flora = pick < 5
-                        ? (b.roster == 0 ? BlocksGTSR.prosperityFlowerRust : BlocksGTSR.prosperityFlowerPatina)
-                        : (b.roster == 0 ? BlocksGTSR.prosperityTuftRust : BlocksGTSR.prosperityTuftCopper);
+                    Block flora = b.roster == 2
+                        ? pick < 2 ? BlocksGTSR.prosperityFlowerBrass : BlocksGTSR.prosperityTuftBristle
+                        : pick < 5
+                            ? (b.roster == 0 ? BlocksGTSR.prosperityFlowerRust : BlocksGTSR.prosperityFlowerPatina)
+                            : (b.roster == 0 ? BlocksGTSR.prosperityTuftRust : BlocksGTSR.prosperityTuftCopper);
                     air(world, x, y + 1, z, flora);
                 } else if (pick == 39
                     && (CompactSceneTerrain.decorColumn(b, x, z, 2)
@@ -56,7 +61,7 @@ public final class CompactSceneDecor {
                                 air(world, x + ox, gy + 1, z + oz, BlocksGTSR.prosperityStone);
                         }
                         air(world, x, y + 2, z, BlocksGTSR.prosperityStone);
-                    } else if (pick == 54
+                    } else if (b.roster != 2 && pick == 54
                         && (CompactSceneTerrain.decorColumn(b, x, z, 3)
                             || landscapeColumn(b.roster, x - b.originX(), z - b.originZ(), 3))
                         && (x & 15) >= 3
@@ -75,6 +80,10 @@ public final class CompactSceneDecor {
     }
 
     public static boolean landscapeColumn(int roster, int lx, int lz, int radius) {
+        if (roster == 2) {
+            if (lx - radius < 0 || lx + radius >= 156 || lz - radius < 0 || lz + radius >= 156) return false;
+            return fictionDistances()[lz * 156 + lx] > radius + 3;
+        }
         if (lx - radius < 0 || lx + radius >= 120 || lz - radius < 0 || lz + radius >= 120) return false;
         if (roster == 0 && lx + radius >= 5 && lx - radius <= 34 && lz + radius >= 72 && lz - radius <= 110)
             return false;
@@ -82,6 +91,53 @@ public final class CompactSceneDecor {
         for (int z = lz - radius; z <= lz + radius; z++)
             for (int x = lx - radius; x <= lx + radius; x++) if (mask[z * 120 + x]) return false;
         return true;
+    }
+
+    /** Distance includes every authored solid/AIR column, reading approach and the south entry corridor. */
+    private static int[] fictionDistances() {
+        int[] distances = fictionClearance;
+        if (distances != null) return distances;
+        synchronized (CompactSceneDecor.class) {
+            if (fictionClearance != null) return fictionClearance;
+            distances = new int[156 * 156];
+            java.util.Arrays.fill(distances, 12);
+            RemasterPrefab plan = RemasterCatalog.get("fiction_expansion_project", 0);
+            for (int cz = 0; cz < 10; cz++) for (int cx = 0; cx < 10; cx++)
+                for (RemasterPrefab.Run r : plan.slice(cx, cz)) for (int i = 0; i < r.length; i++) {
+                    int lx = r.x + i;
+                    if (lx >= 0 && lx < 156 && r.z >= 0 && r.z < 156) distances[r.z * 156 + lx] = 0;
+                }
+            for (com.google.gson.JsonElement raw : plan.metadata.getAsJsonArray("nodes")) {
+                com.google.gson.JsonObject node = raw.getAsJsonObject();
+                if (!node.has("approach")) continue;
+                com.google.gson.JsonArray approach = node.getAsJsonArray("approach");
+                int lx = approach.get(0)
+                    .getAsInt(),
+                    lz = approach.get(2)
+                        .getAsInt();
+                if (lx >= 0 && lx < 156 && lz >= 0 && lz < 156) distances[lz * 156 + lx] = 0;
+            }
+            for (int z = 78; z < 156; z++) for (int x = 66; x <= 90; x++) distances[z * 156 + x] = 0;
+            for (int z = 0; z < 156; z++) for (int x = 0; x < 156; x++) {
+                int at = z * 156 + x;
+                if (x > 0) distances[at] = Math.min(distances[at], distances[at - 1] + 1);
+                if (z > 0) distances[at] = Math.min(distances[at], distances[at - 156] + 1);
+            }
+            for (int z = 155; z >= 0; z--) for (int x = 155; x >= 0; x--) {
+                int at = z * 156 + x;
+                if (x < 155) distances[at] = Math.min(distances[at], distances[at + 1] + 1);
+                if (z < 155) distances[at] = Math.min(distances[at], distances[at + 156] + 1);
+            }
+            fictionClearance = distances;
+            return distances;
+        }
+    }
+
+    public static double fictionReliefWeight(int lx, int lz) {
+        int x = Math.max(0, Math.min(155, lx)), z = Math.max(0, Math.min(155, lz));
+        int distance = fictionDistances()[z * 156 + x] + Math.abs(lx - x) + Math.abs(lz - z);
+        double t = Math.max(0D, Math.min(1D, (distance - 3D) / 9D));
+        return t * t * (3D - 2D * t);
     }
 
     private static boolean[] surfaceMask(int roster) {

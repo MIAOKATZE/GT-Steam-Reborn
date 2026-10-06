@@ -8,6 +8,8 @@ import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularui.common.widget.ProgressBar;
+import com.miaokatze.gtsr.config.Config;
+import com.miaokatze.gtsr.loader.recipes.ProsperityAirCompressorRecipes;
 
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.recipe.RecipeMap;
@@ -22,6 +24,12 @@ public class GTSRRecipeMaps {
         List<String> result = new ArrayList<>(DefaultSpecialValueFormatter.INSTANCE.format(recipeInfo));
         if (recipeInfo.recipe.mFluidOutputs != null) {
             for (FluidStack output : recipeInfo.recipe.mFluidOutputs) {
+                String source = ProsperityAirCompressorRecipes.sourceKey(output);
+                if (source != null) {
+                    result.add(
+                        EnumChatFormatting.AQUA
+                            + StatCollector.translateToLocalFormatted(source, Config.prosperityDimId));
+                }
                 if (output != null && output.getFluid() != null
                     && "netherair".equals(
                         output.getFluid()

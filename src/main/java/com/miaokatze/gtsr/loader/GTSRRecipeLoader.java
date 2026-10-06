@@ -10,6 +10,7 @@ import com.miaokatze.gtsr.loader.recipes.MiscRecipes;
 import com.miaokatze.gtsr.loader.recipes.MultiblockMachineRecipes;
 import com.miaokatze.gtsr.loader.recipes.NodeAndHubRecipes;
 import com.miaokatze.gtsr.loader.recipes.ProcessingMachineRecipes;
+import com.miaokatze.gtsr.loader.recipes.ProsperityAirCompressorRecipes;
 import com.miaokatze.gtsr.loader.recipes.SpacetimeMachineRecipes;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
@@ -39,6 +40,7 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("SiemensMartin", ProcessingMachineRecipes::registerSiemensMartinRecipes);
         safeRegister("Ammonia", ProcessingMachineRecipes::registerAmmoniaRecipes);
         safeRegister("AirCompressor", ProcessingMachineRecipes::registerAirCompressorRecipes);
+        safeRegister("ProsperityAirCompressor", ProsperityAirCompressorRecipes::register);
         safeRegister("AtmosphericCentrifuge", ProcessingMachineRecipes::registerAtmosphericCentrifugeRecipes);
         safeRegister("Chip", ProcessingMachineRecipes::registerChipRecipes);
         safeRegister("Catalyst", ProcessingMachineRecipes::registerCatalystRecipes);

@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.industrial;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -14,6 +15,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMater
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import bartworks.system.material.WerkstoffLoader;
+import goodgenerator.items.GGMaterial;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
@@ -28,7 +30,7 @@ import gregtech.api.util.GTRecipeBuilder;
 import gregtech.api.util.GTUtility;
 import gtnhlanth.common.register.WerkstoffMaterialPool;
 
-/** Six industrial lines, using only real registered forms and the frozen R6 integer batches. */
+/** Six industrial lines, using registered material forms and the current integer ledger. */
 public final class ProsperityIndustrialRecipes {
 
     public static final RecipeMetadataKey<String> INDUSTRIAL_STAGE = SimpleRecipeMetadataKey
@@ -45,7 +47,9 @@ public final class ProsperityIndustrialRecipes {
         // Resolve the entire ledger before mutating any map. Missing ingredients fail with the stage and ID.
         for (IndustrialRecipeLedger.Stage stage : IndustrialRecipeLedger.get().recipes) {
             if (!stageIds.add(stage.id)) throw new IllegalStateException("Duplicate industrial stage: " + stage.id);
-            resolved.add(resolve(stage));
+            ResolvedStage tower = resolve(stage);
+            resolved.add(tower);
+            if (hasDistilleryAlternative(tower)) resolved.add(distilleryAlternative(tower));
         }
         for (ResolvedStage stage : resolved) {
             GTRecipeBuilder builder = GTValues.RA.stdBuilder()
@@ -78,8 +82,14 @@ public final class ProsperityIndustrialRecipes {
     public static void verifyRegistration() {
         ProsperityIndustrialMaterials.verifyRegistration();
         int total = 0;
+        List<ResolvedStage> expectedStages = new ArrayList<>();
         for (IndustrialRecipeLedger.Stage definition : IndustrialRecipeLedger.get().recipes) {
-            ResolvedStage expected = resolve(definition);
+            ResolvedStage stage = resolve(definition);
+            expectedStages.add(stage);
+            if (hasDistilleryAlternative(stage)) expectedStages.add(distilleryAlternative(stage));
+        }
+        for (ResolvedStage expected : expectedStages) {
+            IndustrialRecipeLedger.Stage definition = expected.definition;
             int matches = 0;
             for (GTRecipe recipe : expected.map.getAllRecipes()) {
                 if (!definition.id.equals(recipe.getMetadataOrDefault(INDUSTRIAL_STAGE, ""))) continue;
@@ -106,11 +116,53 @@ public final class ProsperityIndustrialRecipes {
                     + definition.ticks
                     + " ok");
         }
-        if (total != 70 || registeredRecipeCount != 70) {
+        if (total != expectedStages.size() || registeredRecipeCount != total) {
             throw new IllegalStateException(
                 "Prosperity industrial recipe count mismatch: live=" + total + " registered=" + registeredRecipeCount);
         }
         GTSteamReborn.LOG.info("[GTSR] prosperity industrial recipe live audit: lines=6 stages=" + total);
+    }
+
+    private static boolean hasDistilleryAlternative(ResolvedStage stage) {
+        return stage.map == RecipeMaps.distillationTowerRecipes && stage.fluidsOut.length == 1;
+    }
+
+    /** GT5U205 DistilleryRecipes uses circuit 1, 2x duration, 1/4 EU/t and exact integer batch divisors. */
+    private static ResolvedStage distilleryAlternative(ResolvedStage tower) {
+        if (tower.fluidsIn.length != 1 || tower.itemsIn.length != 0 || tower.itemsOut.length != 0)
+            throw new IllegalStateException("Unsupported single-output tower batch: " + tower.definition.id);
+        int ratio = 1;
+        for (int divisor : new int[] { 2, 5, 10, 25, 50 }) {
+            if (tower.fluidsIn[0].amount % divisor == 0 && tower.fluidsIn[0].amount / divisor >= 25
+                && tower.fluidsOut[0].amount % divisor == 0
+                && tower.fluidsOut[0].amount / divisor >= 25) {
+                ratio = divisor;
+            }
+        }
+        IndustrialRecipeLedger.Stage alternative = new IndustrialRecipeLedger.Stage();
+        alternative.id = tower.definition.id + "-DISTILLERY";
+        alternative.lineId = tower.definition.lineId;
+        alternative.machineMap = "distilleryRecipes";
+        alternative.EUt = tower.definition.EUt / 4;
+        alternative.ticks = Math.max(1, 2 * tower.definition.ticks / ratio);
+        IndustrialRecipeLedger.Amount circuit = new IndustrialRecipeLedger.Amount();
+        circuit.id = "standard:ItemList.Circuit_Integrated";
+        circuit.kind = "item";
+        circuit.amount = 1;
+        circuit.meta = 1;
+        circuit.consumed = false;
+        alternative.inputs = Arrays.asList(circuit, dividedFluid(tower.definition.inputs.get(0), ratio));
+        alternative.outputs = Arrays.asList(dividedFluid(tower.definition.outputs.get(0), ratio));
+        return resolve(alternative);
+    }
+
+    private static IndustrialRecipeLedger.Amount dividedFluid(IndustrialRecipeLedger.Amount amount, int ratio) {
+        IndustrialRecipeLedger.Amount divided = new IndustrialRecipeLedger.Amount();
+        divided.id = amount.id;
+        divided.kind = amount.kind;
+        divided.unit = amount.unit;
+        divided.amount = amount.amount / ratio;
+        return divided;
     }
 
     private static ResolvedStage resolve(IndustrialRecipeLedger.Stage definition) {
@@ -216,6 +268,12 @@ public final class ProsperityIndustrialRecipes {
                     case "standard:Werkstoff.Xenon":
                         stack = WerkstoffLoader.Xenon.getFluidOrGas(amount.amount);
                         break;
+                    case "standard:WerkstoffLoader.FormicAcid":
+                        stack = WerkstoffLoader.FormicAcid.getFluidOrGas(amount.amount);
+                        break;
+                    case "standard:GGMaterial.oxalate":
+                        stack = GGMaterial.oxalate.getFluidOrGas(amount.amount);
+                        break;
                     default:
                         throw new IllegalStateException("Unknown real fluid getter: " + amount.id);
                 }
@@ -259,6 +317,8 @@ public final class ProsperityIndustrialRecipes {
                 return RecipeMaps.multiblockChemicalReactorRecipes;
             case "distillationTowerRecipes":
                 return RecipeMaps.distillationTowerRecipes;
+            case "distilleryRecipes":
+                return RecipeMaps.distilleryRecipes;
             case "centrifugeRecipes":
                 return RecipeMaps.centrifugeRecipes;
             case "mixerRecipes":

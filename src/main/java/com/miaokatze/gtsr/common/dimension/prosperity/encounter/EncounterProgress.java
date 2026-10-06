@@ -90,6 +90,7 @@ public final class EncounterProgress {
             int state = king.getEncounterState();
             signal.state = d.kingDead(id) ? 3 : state == 0 ? 0 : state == 1 ? 1 : 2;
             signal.entity = king.getEntityId();
+            signal.maxHealth = king.getMaxHealth();
             signal.health = signal.state == 0 || signal.state == 3 ? 0 : king.getHealth();
             signal.revivalTicks = signal.state == 1 ? Math.min(208, king.getVisualPhaseTicks()) : 0;
             break;

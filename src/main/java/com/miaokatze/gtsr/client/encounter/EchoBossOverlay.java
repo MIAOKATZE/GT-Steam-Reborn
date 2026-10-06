@@ -9,6 +9,8 @@ import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import org.lwjgl.opengl.GL11;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho;
+import com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing;
+import com.miaokatze.gtsr.common.dimension.prosperity.encounter.SceneBossSignal;
 
 /** One local bar owner, stable identity frames, with 100-HP layers and no vanilla BossStatus mutation. */
 public final class EchoBossOverlay extends Gui {
@@ -50,6 +52,7 @@ public final class EchoBossOverlay extends Gui {
                         "textures/gui/" + (scene.kind == 1 ? "silent_king_frame" : scene.code + "_boss_frame")
                             + ".png"));
             func_152125_a(x, y, 0, 0, 256, 40, 256, 40, 256, 40);
+            drawHealth(mc, x, y, scene.visibleHealth(), scene.maxHealth);
             String name = scene.kind == 1 ? "巨树王庭 · 缄王" : scene.kind == 2 ? "巢识沉降工厂 · 巢识" : "崩垣铸造战场 · 崩垣";
             name = "§l" + name + "§r";
             mc.fontRenderer.drawStringWithShadow(
@@ -85,6 +88,26 @@ public final class EchoBossOverlay extends Gui {
         }
     }
 
+    /** A loaded native king still owns a bar while the scene snapshot is absent or in transit. */
+    public void drawKing(RenderGameOverlayEvent.Post event, EntitySilentKing king) {
+        SceneBossSignal scene = new SceneBossSignal();
+        scene.kind = 1;
+        scene.code = "dc-10";
+        scene.site = king.getEncounterId();
+        scene.entity = king.getEntityId();
+        scene.state = king.getEncounterState() == EntitySilentKing.AWAKENING ? 1 : 2;
+        scene.health = king.getHealth();
+        scene.maxHealth = king.getMaxHealth();
+        scene.revivalTicks = Math.min(EntitySilentKing.AWAKENING_TICKS, king.getVisualPhaseTicks());
+        drawScene(event, scene);
+    }
+
+    private void drawHealth(Minecraft mc, int x, int y, float health, float maxHealth) {
+        String text = BossHealthReadout.format(health, maxHealth);
+        mc.fontRenderer
+            .drawStringWithShadow(text, x + 128 - mc.fontRenderer.getStringWidth(text) / 2, y + 14, 0xFFFFFF);
+    }
+
     public static EntityOldEcho nearest(Minecraft mc) {
         EntityOldEcho nearest = null;
         double distance = 64 * 64;
@@ -107,7 +130,8 @@ public final class EchoBossOverlay extends Gui {
 
     public void draw(RenderGameOverlayEvent.Post event, EntityOldEcho echo) {
         Minecraft mc = Minecraft.getMinecraft();
-        float health = Math.max(0, Math.min(echo.getKind().maxHealth, echo.getHealth()));
+        float maxHealth = echo.getMaxHealth();
+        float health = Math.max(0, Math.min(maxHealth, echo.getHealth()));
         int layers = (int) Math.ceil(health / 100F);
         float segment = layers == 0 ? 0 : (health - (layers - 1) * 100) / 100F;
         int x = (event.resolution.getScaledWidth() - 256) / 2;
@@ -124,6 +148,7 @@ public final class EchoBossOverlay extends Gui {
             mc.getTextureManager()
                 .bindTexture(EchoBossStyle.frame(echo.getKind().code));
             func_152125_a(x, y, 0, 0, 256, 40, 256, 40, 256, 40);
+            drawHealth(mc, x, y, health, maxHealth);
             String name = "(" + net.minecraft.util.StatCollector.translateToLocal("echo.name.prefix")
                 + ")"
                 + net.minecraft.util.StatCollector.translateToLocal("echo.name." + echo.getKind().code);

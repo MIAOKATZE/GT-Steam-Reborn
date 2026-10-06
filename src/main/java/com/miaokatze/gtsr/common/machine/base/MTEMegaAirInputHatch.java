@@ -56,6 +56,10 @@ public class MTEMegaAirInputHatch extends MTEHatchInput {
         String fluidName = aFluid.getFluid()
             .getName();
         return "air".equals(fluidName) || "netherair".equals(fluidName)
+            || "wastesigh".equals(fluidName)
+            || "thickgrease".equals(fluidName)
+            || "metalgrit".equals(fluidName)
+            || "umbralmire".equals(fluidName)
             || "sanzu_residual_steam".equals(fluidName)
             || "withered_breath".equals(fluidName);
     }

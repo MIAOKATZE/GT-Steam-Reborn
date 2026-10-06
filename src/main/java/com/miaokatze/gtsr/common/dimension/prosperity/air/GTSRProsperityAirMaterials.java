@@ -83,7 +83,7 @@ public class GTSRProsperityAirMaterials implements IMaterialHandler {
         registered += register("wastesigh", "Waste Sigh", 0x00b08a4a, material -> WastesSigh = material);
         registered += register("thickgrease", "Thick Grease", 0x004a3f28, material -> ThickGrease = material);
         registered += register("metalgrit", "Metal Grit", 0x0096613d, material -> MetalGrit = material);
-        registered += register("umbralmire", "Umbral Mire", 0x002b2333, material -> UmbralMire = material);
+        registered += register("umbralmire", "Umbral Mire", 0x002c251d, material -> UmbralMire = material);
         // 三途余汽：苍白幽灵青（三途川雾气观感；与既有四气的土暗色系区分）。注册失败时 holder 为 null，
         // Lookup（T5 接线后）与压缩机按既有降级口径回落 Air，不影响其余材料。
         registered += register(

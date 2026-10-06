@@ -488,7 +488,7 @@
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.Water",
+          "id": "standard:GTModHandler.getDistilledWater",
           "amount": 1000,
           "unit": "L",
           "kind": "fluid"
@@ -525,14 +525,14 @@
       ],
       "outputs": [
         {
-          "id": "planned:native_hcl_fraction",
-          "amount": 7500,
+          "id": "planned:native_mixed_acids",
+          "amount": 1000,
           "unit": "L",
           "kind": "fluid"
         },
         {
-          "id": "planned:native_mixed_acids",
-          "amount": 1000,
+          "id": "planned:native_hcl_fraction",
+          "amount": 7500,
           "unit": "L",
           "kind": "fluid"
         }
@@ -577,20 +577,20 @@
       ],
       "outputs": [
         {
-          "id": "standard:Materials.SulfuricAcid",
+          "id": "standard:GGMaterial.oxalate",
           "amount": 500,
           "unit": "L",
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.NitricAcid",
-          "amount": 400,
+          "id": "standard:Materials.AceticAcid",
+          "amount": 300,
           "unit": "L",
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.AceticAcid",
-          "amount": 100,
+          "id": "standard:WerkstoffLoader.FormicAcid",
+          "amount": 200,
           "unit": "L",
           "kind": "fluid"
         }
@@ -710,7 +710,7 @@
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.Water",
+          "id": "standard:GTModHandler.getDistilledWater",
           "amount": 1000,
           "unit": "L",
           "kind": "fluid"
@@ -747,8 +747,8 @@
       ],
       "outputs": [
         {
-          "id": "planned:native_fluorine_fraction",
-          "amount": 6500,
+          "id": "planned:sanzu_mineral_liquor",
+          "amount": 500,
           "unit": "L",
           "kind": "fluid"
         },
@@ -759,14 +759,14 @@
           "kind": "fluid"
         },
         {
-          "id": "planned:native_sanzu_hydrogen",
-          "amount": 1800,
+          "id": "planned:native_fluorine_fraction",
+          "amount": 6500,
           "unit": "L",
           "kind": "fluid"
         },
         {
-          "id": "planned:sanzu_mineral_liquor",
-          "amount": 500,
+          "id": "planned:native_sanzu_hydrogen",
+          "amount": 1800,
           "unit": "L",
           "kind": "fluid"
         }
@@ -788,14 +788,14 @@
       ],
       "outputs": [
         {
-          "id": "planned:crude_native_fluorine",
-          "amount": 6000,
+          "id": "planned:native_hf_fraction",
+          "amount": 500,
           "unit": "L",
           "kind": "fluid"
         },
         {
-          "id": "planned:native_hf_fraction",
-          "amount": 500,
+          "id": "planned:crude_native_fluorine",
+          "amount": 6000,
           "unit": "L",
           "kind": "fluid"
         }
@@ -966,7 +966,7 @@
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.Water",
+          "id": "standard:GTModHandler.getDistilledWater",
           "amount": 1000,
           "unit": "L",
           "kind": "fluid"
@@ -1003,26 +1003,26 @@
       ],
       "outputs": [
         {
-          "id": "planned:withered_bulk_air",
-          "amount": 9000,
+          "id": "planned:withered_carbon_fraction",
+          "amount": 1000,
           "unit": "L",
           "kind": "fluid"
         },
         {
           "id": "planned:withered_noble_fraction",
-          "amount": 750,
+          "amount": 2500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:withered_bulk_air",
+          "amount": 6000,
           "unit": "L",
           "kind": "fluid"
         },
         {
           "id": "planned:withered_hydrogen_cut",
-          "amount": 100,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
-          "id": "planned:withered_carbon_fraction",
-          "amount": 150,
+          "amount": 500,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1037,21 +1037,21 @@
       "inputs": [
         {
           "id": "planned:withered_bulk_air",
-          "amount": 9000,
+          "amount": 6000,
           "unit": "L",
           "kind": "fluid"
         }
       ],
       "outputs": [
         {
-          "id": "standard:Materials.Nitrogen",
-          "amount": 7000,
+          "id": "standard:Materials.Oxygen",
+          "amount": 1400,
           "unit": "L",
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.Oxygen",
-          "amount": 2000,
+          "id": "standard:Materials.Nitrogen",
+          "amount": 4600,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1066,27 +1066,27 @@
       "inputs": [
         {
           "id": "planned:withered_noble_fraction",
-          "amount": 750,
+          "amount": 2500,
           "unit": "L",
           "kind": "fluid"
         }
       ],
       "outputs": [
         {
-          "id": "standard:Materials.Argon",
-          "amount": 500,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
-          "id": "standard:Materials.Helium",
+          "id": "planned:withered_trace_nobles",
           "amount": 200,
           "unit": "L",
           "kind": "fluid"
         },
         {
-          "id": "planned:withered_trace_nobles",
-          "amount": 50,
+          "id": "standard:Materials.Argon",
+          "amount": 1600,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Helium",
+          "amount": 700,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1101,94 +1101,7 @@
       "inputs": [
         {
           "id": "planned:withered_trace_nobles",
-          "amount": 50,
-          "unit": "L",
-          "kind": "fluid"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "planned:crude_neon",
-          "amount": 20,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
-          "id": "planned:crude_krypton",
-          "amount": 5,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
-          "id": "planned:crude_xenon",
-          "amount": 1,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
-          "id": "standard:Materials.Argon",
-          "amount": 24,
-          "unit": "L",
-          "kind": "fluid"
-        }
-      ]
-    },
-    {
-      "id": "WB-7",
-      "lineId": "withered_breath",
-      "machineMap": "multiblockChemicalReactorRecipes",
-      "EUt": 7680,
-      "ticks": 1000,
-      "inputs": [
-        {
-          "id": "planned:crude_neon",
-          "amount": 20,
-          "unit": "L",
-          "kind": "fluid"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "standard:Werkstoff.Neon",
-          "amount": 20,
-          "unit": "L",
-          "kind": "fluid"
-        }
-      ]
-    },
-    {
-      "id": "WB-8",
-      "lineId": "withered_breath",
-      "machineMap": "multiblockChemicalReactorRecipes",
-      "EUt": 7680,
-      "ticks": 1000,
-      "inputs": [
-        {
-          "id": "planned:crude_krypton",
-          "amount": 5,
-          "unit": "L",
-          "kind": "fluid"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "standard:Werkstoff.Krypton",
-          "amount": 5,
-          "unit": "L",
-          "kind": "fluid"
-        }
-      ]
-    },
-    {
-      "id": "WB-9",
-      "lineId": "withered_breath",
-      "machineMap": "multiblockChemicalReactorRecipes",
-      "EUt": 7680,
-      "ticks": 1000,
-      "inputs": [
-        {
-          "id": "planned:crude_xenon",
-          "amount": 1,
+          "amount": 200,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1196,7 +1109,25 @@
       "outputs": [
         {
           "id": "standard:Werkstoff.Xenon",
-          "amount": 1,
+          "amount": 4,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Werkstoff.Krypton",
+          "amount": 20,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Argon",
+          "amount": 96,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Werkstoff.Neon",
+          "amount": 80,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1211,7 +1142,7 @@
       "inputs": [
         {
           "id": "planned:withered_hydrogen_cut",
-          "amount": 100,
+          "amount": 500,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1219,7 +1150,7 @@
       "outputs": [
         {
           "id": "standard:Materials.Hydrogen",
-          "amount": 100,
+          "amount": 500,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1234,7 +1165,7 @@
       "inputs": [
         {
           "id": "planned:withered_carbon_fraction",
-          "amount": 150,
+          "amount": 1000,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1242,7 +1173,7 @@
       "outputs": [
         {
           "id": "standard:Materials.CarbonDioxide",
-          "amount": 150,
+          "amount": 1000,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1299,7 +1230,7 @@
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.Water",
+          "id": "standard:GTModHandler.getDistilledWater",
           "amount": 1000,
           "unit": "L",
           "kind": "fluid"
@@ -1412,6 +1343,18 @@
       ],
       "outputs": [
         {
+          "id": "standard:Materials.Glycerol",
+          "amount": 1500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 1500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
           "id": "planned:mire_alcohol_fraction",
           "amount": 2000,
           "unit": "L",
@@ -1422,13 +1365,6 @@
           "amount": 1000,
           "unit": "L",
           "kind": "fluid"
-        },
-        {
-          "id": "standard:GTModHandler.getDistilledWater",
-          "amount": 3000,
-          "unit": "L",
-          "kind": "fluid",
-          "source": "native"
         }
       ]
     },
@@ -1448,14 +1384,14 @@
       ],
       "outputs": [
         {
-          "id": "standard:Materials.Methanol",
-          "amount": 1500,
+          "id": "standard:Materials.AceticAcid",
+          "amount": 500,
           "unit": "L",
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.AceticAcid",
-          "amount": 500,
+          "id": "standard:Materials.Methanol",
+          "amount": 1500,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1620,7 +1556,7 @@
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.Water",
+          "id": "standard:GTModHandler.getDistilledWater",
           "amount": 1000,
           "unit": "L",
           "kind": "fluid"
@@ -1657,7 +1593,7 @@
       ],
       "outputs": [
         {
-          "id": "planned:grease_light_cut",
+          "id": "planned:grease_heavy_cut",
           "amount": 3000,
           "unit": "L",
           "kind": "fluid"
@@ -1669,14 +1605,14 @@
           "kind": "fluid"
         },
         {
-          "id": "planned:grease_heavy_cut",
-          "amount": 3000,
+          "id": "planned:grease_oxygenate_cut",
+          "amount": 1500,
           "unit": "L",
           "kind": "fluid"
         },
         {
-          "id": "planned:grease_oxygenate_cut",
-          "amount": 1500,
+          "id": "planned:grease_light_cut",
+          "amount": 3000,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1735,14 +1671,14 @@
       ],
       "outputs": [
         {
-          "id": "standard:Materials.LPG",
-          "amount": 700,
+          "id": "standard:Materials.Butadiene",
+          "amount": 600,
           "unit": "L",
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.Ethylene",
-          "amount": 900,
+          "id": "standard:Materials.LPG",
+          "amount": 700,
           "unit": "L",
           "kind": "fluid"
         },
@@ -1753,8 +1689,8 @@
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.Butadiene",
-          "amount": 600,
+          "id": "standard:Materials.Ethylene",
+          "amount": 900,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1807,8 +1743,14 @@
       ],
       "outputs": [
         {
-          "id": "standard:Materials.Benzene",
-          "amount": 1000,
+          "id": "standard:Materials.Phenol",
+          "amount": 400,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:aromatic_conversion_feed",
+          "amount": 400,
           "unit": "L",
           "kind": "fluid"
         },
@@ -1819,14 +1761,8 @@
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.Phenol",
-          "amount": 400,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
-          "id": "planned:aromatic_conversion_feed",
-          "amount": 400,
+          "id": "standard:Materials.Benzene",
+          "amount": 1000,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1920,14 +1856,8 @@
       ],
       "outputs": [
         {
-          "id": "standard:Materials.Naphtha",
-          "amount": 1000,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
-          "id": "standard:Materials.LightFuel",
-          "amount": 1200,
+          "id": "planned:carbon_heavy_liquor",
+          "amount": 200,
           "unit": "L",
           "kind": "fluid"
         },
@@ -1938,8 +1868,14 @@
           "kind": "fluid"
         },
         {
-          "id": "planned:carbon_heavy_liquor",
-          "amount": 200,
+          "id": "standard:Materials.LightFuel",
+          "amount": 1200,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Naphtha",
+          "amount": 1000,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1996,26 +1932,26 @@
       ],
       "outputs": [
         {
-          "id": "standard:Materials.Methanol",
-          "amount": 700,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
-          "id": "standard:Materials.Acetone",
-          "amount": 300,
+          "id": "planned:grease_bioorganic_fraction",
+          "amount": 200,
           "unit": "L",
           "kind": "fluid"
         },
         {
           "id": "standard:Materials.AceticAcid",
-          "amount": 300,
+          "amount": 100,
           "unit": "L",
           "kind": "fluid"
         },
         {
-          "id": "planned:grease_bioorganic_fraction",
+          "id": "standard:Materials.Methanol",
           "amount": 200,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Acetone",
+          "amount": 1000,
           "unit": "L",
           "kind": "fluid"
         }
@@ -2087,7 +2023,7 @@
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.Water",
+          "id": "standard:GTModHandler.getDistilledWater",
           "amount": 1000,
           "unit": "L",
           "kind": "fluid"
@@ -2375,18 +2311,6 @@
       ],
       "outputs": [
         {
-          "id": "planned:pgm_native_concentrate",
-          "amount": 20000,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
-          "id": "planned:rareearth_native_concentrate",
-          "amount": 20000,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
           "id": "planned:radioactive_native_concentrate",
           "amount": 20000,
           "unit": "L",
@@ -2394,6 +2318,18 @@
         },
         {
           "id": "planned:tantalite_native_concentrate",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:pgm_native_concentrate",
+          "amount": 20000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:rareearth_native_concentrate",
           "amount": 20000,
           "unit": "L",
           "kind": "fluid"
@@ -2509,7 +2445,7 @@
           "kind": "fluid"
         },
         {
-          "id": "standard:Materials.Water",
+          "id": "standard:GTModHandler.getDistilledWater",
           "amount": 1000,
           "unit": "L",
           "kind": "fluid"
@@ -2783,12 +2719,6 @@
       ],
       "outputs": [
         {
-          "id": "standard:Materials.Chlorine",
-          "amount": 5000,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
           "id": "standard:Materials.SulfuricAcid",
           "amount": 10000,
           "unit": "L",
@@ -2800,8 +2730,15 @@
           "unit": "L",
           "kind": "fluid",
           "source": "native"
+        },
+        {
+          "id": "standard:Materials.Chlorine",
+          "amount": 5000,
+          "unit": "L",
+          "kind": "fluid"
         }
       ]
     }
-  ]
+  ],
+  "revision": "v85-user-industrial-revision"
 }

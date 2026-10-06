@@ -13,6 +13,7 @@
     "MTERockBreakerRecipeBuilderMixin",
     "MTEHatchInputMixin",
     "MTEHatchAirIntakeMixin",
+    "MTEHatchFluidGeneratorMixin",
     "MTEHatchInputBusMixin",
     "CommonMetaTileEntityMixin",
     "SteamHatchElementOutputBusMixin",

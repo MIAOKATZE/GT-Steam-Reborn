@@ -339,7 +339,8 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
         if (Config.prosperityDimId >= 0 && dimensionId == Config.prosperityDimId) {
             final Materials prosperityAir = ProsperityAirLookup
                 .of(world, getBaseMetaTileEntity().getXCoord(), getBaseMetaTileEntity().getZCoord());
-            outputFluid = prosperityAir != null ? prosperityAir.getGas(amount) : Materials.Air.getGas(amount);
+            outputFluid = prosperityAir != null && prosperityAir.mGas != null ? prosperityAir.getGas(amount)
+                : Materials.Air.getGas(amount);
         } else if (dimensionId == -1) {
             outputFluid = Materials.NetherAir.getFluid(amount);
         } else {

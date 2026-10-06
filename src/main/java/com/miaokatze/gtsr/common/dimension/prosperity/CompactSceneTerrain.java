@@ -206,7 +206,7 @@ public final class CompactSceneTerrain {
                         reject();
                         return;
                     }
-                    int height = blendedHeight(dx, dz, y, raw, roster);
+                    int height = blendedHeight(seed, x + dx, z + dz, dx, dz, y, raw, roster);
                     if (ix > 0 && Math.abs(height - left) > 2 || row > 0 && Math.abs(height - previous[ix]) > 2) {
                         reject();
                         return;
@@ -223,7 +223,8 @@ public final class CompactSceneTerrain {
         return (roster == 2 ? 78 : HALF_X) + TRANSITION;
     }
 
-    private static int blendedHeight(int dx, int dz, int surfaceY, int originalHeight, int roster) {
+    private static int blendedHeight(long seed, int x, int z, int dx, int dz, int surfaceY, int originalHeight,
+        int roster) {
         int half = roster == 2 ? 78 : HALF_X;
         double edge = Math.max(Math.max(0, Math.abs(dx) - half), Math.max(0, Math.abs(dz) - half));
         double t = Math.min(1.0D, edge / TRANSITION);
@@ -238,6 +239,21 @@ public final class CompactSceneTerrain {
         int routeX = roster == 0 ? -42 : 0;
         double entry = dz > half && Math.abs(dx - routeX) < 18 ? Math.abs(dx - routeX) / 18.0D : 1.0D;
         double height = surfaceY + (originalHeight - surfaceY) * blend + relief * entry;
+        if (roster == 2) {
+            // The ring, foundations, explicit AIR and approaches keep their exact authored level.
+            // Between them, low dunes and dry swales taper over a twelve-block clearance band.
+            double clearance = CompactSceneDecor.fictionReliefWeight(dx + 78, dz + 78);
+            double rim = Math.max(0D, Math.min(1D, (outer(roster) - Math.max(Math.abs(dx), Math.abs(dz))) / 16D));
+            long phase = GTSRWorldgenHash
+                .splitmix64(GTSRWorldgenHash.cellSeed(seed, x - dx, z - dz, SALT ^ 0x46494354494F4EL));
+            double angle = (phase >>> 11) * 0x1.0p-53 * Math.PI * 2D;
+            double dunes = 2.8D * Math.sin(dx / 21D + dz / 34D + angle) + 1.6D * Math.cos(dz / 18D - dx / 29D + angle);
+            double route = Math.min(1D, Math.abs(dx) / 24D);
+            route = route * route * (3D - 2D * route);
+            double approach = Math.max(0D, Math.min(1D, (dz - 60D) / 18D));
+            approach = approach * approach * (3D - 2D * approach);
+            height += dunes * clearance * rim * (1D - approach * (1D - route));
+        }
         if (roster < 2 && Math.abs(dx) < HALF_X
             && Math.abs(dz) < HALF_Z
             && CompactSceneDecor.landscapeColumn(roster, dx + 60, dz + 60, 0)) {
@@ -254,7 +270,7 @@ public final class CompactSceneTerrain {
     public static int heightAt(long seed, int x, int z, int originalHeight) {
         for (Branch b : cell(seed, Math.floorDiv(x, CELL_SIZE), Math.floorDiv(z, CELL_SIZE))) {
             if (!b.contains(x, z)) continue;
-            return blendedHeight(x - b.centerX, z - b.centerZ, b.surfaceY, originalHeight, b.roster);
+            return blendedHeight(seed, x, z, x - b.centerX, z - b.centerZ, b.surfaceY, originalHeight, b.roster);
         }
         return originalHeight;
     }

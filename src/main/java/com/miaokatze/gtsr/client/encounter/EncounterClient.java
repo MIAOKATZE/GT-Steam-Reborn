@@ -118,6 +118,10 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.theWorld == null || mc.thePlayer == null
             || !(mc.theWorld.provider instanceof WorldProviderProsperityRuins)) return;
+        if (target != null && !target.isDead && target.worldObj == mc.theWorld) {
+            echoOverlay.drawKing(event, target);
+            return;
+        }
         com.miaokatze.gtsr.common.dimension.prosperity.echo.EntityOldEcho legacy = EchoBossOverlay.nearest(mc);
         if (legacy != null) echoOverlay.draw(event, legacy);
     }

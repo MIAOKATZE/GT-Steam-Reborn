@@ -112,7 +112,7 @@ public final class FictionCinematic {
 
     /** Prefab maxY is a local coordinate, not an extent; site.y is its persisted world anchor. */
     public static int demonstrationY(RemasterSite site) {
-        return site.y + site.plan().max[1] + 20;
+        return site.y + site.plan().max[1] + 5;
     }
 
     /** Runtime must first prove the real generated reading tile and persist its story-read flag. */

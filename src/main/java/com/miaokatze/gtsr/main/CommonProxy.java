@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.common.MinecraftForge;
 
 import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.miaokatze.gtsr.Tags;
@@ -23,6 +24,7 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry
 import com.miaokatze.gtsr.common.dimension.prosperity.ChunkProviderProsperityRuins;
 import com.miaokatze.gtsr.common.dimension.prosperity.WorldProviderProsperityRuins;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
+import com.miaokatze.gtsr.common.dimension.prosperity.air.ProsperityAirIntake;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.ProsperityBiomes;
 import com.miaokatze.gtsr.common.dimension.prosperity.entity.GTSRCreatureRegistry;
 import com.miaokatze.gtsr.common.dimension.prosperity.entity.GTSRCreatureRenderers;
@@ -99,6 +101,7 @@ public class CommonProxy {
         }
         GTSRFXNet.init();
         SpacetimeTravel.init();
+        MinecraftForge.EVENT_BUS.register(new ProsperityAirIntake());
         // BetterQuesting 可选集成探测（BQ 缺席时静默降级；反射探测不加载 BQ 类）
         com.miaokatze.gtsr.crossmod.bq.BqCompat.detect();
 
