@@ -1,0 +1,205 @@
+package com.miaokatze.gtsr.common.weapons;
+
+import java.util.List;
+import java.util.UUID;
+
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.DamageSource;
+import net.minecraft.util.EntityDamageSourceIndirect;
+import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.Vec3;
+import net.minecraft.world.World;
+
+import cpw.mods.fml.common.registry.IEntityAdditionalSpawnData;
+import io.netty.buffer.ByteBuf;
+
+/** Server authoritative continuous segment collision; visual client integration uses the same no-drag step. */
+public final class EntityWeaponProjectile extends Entity implements IEntityAdditionalSpawnData {
+
+    private WeaponKind weapon = WeaponKind.LM12;
+    private EntityLivingBase shooter;
+    private UUID shooterId;
+    private float damage, penetration;
+    private int fire;
+
+    public EntityWeaponProjectile(World world) {
+        super(world);
+        setSize(.12f, .12f);
+    }
+
+    public EntityWeaponProjectile(World world, EntityLivingBase owner, WeaponKind kind, float damage, float penetration,
+        int fire) {
+        this(world);
+        this.shooter = owner;
+        shooterId = owner.getUniqueID();
+        weapon = kind;
+        this.damage = damage;
+        this.penetration = penetration;
+        this.fire = fire;
+        Vec3 look = owner.getLookVec();
+        setPosition(
+            owner.posX + look.xCoord * .5,
+            owner.posY + owner.getEyeHeight() + look.yCoord * .5,
+            owner.posZ + look.zCoord * .5);
+        motionX = look.xCoord * kind.projectileSpeed;
+        motionY = look.yCoord * kind.projectileSpeed;
+        motionZ = look.zCoord * kind.projectileSpeed;
+        rotationYaw = owner.rotationYaw;
+        rotationPitch = owner.rotationPitch;
+    }
+
+    public WeaponKind kind() {
+        return weapon;
+    }
+
+    @Override
+    protected void entityInit() {}
+
+    @Override
+    public void onUpdate() {
+        super.onUpdate();
+        if (ticksExisted > 100) {
+            setDead();
+            return;
+        }
+        Vec3 start = Vec3.createVectorHelper(posX, posY, posZ), end = start.addVector(motionX, motionY, motionZ);
+        if (!worldObj.isRemote) {
+            if (shooter == null && shooterId != null) for (Object object : worldObj.loadedEntityList)
+                if (object instanceof EntityLivingBase && ((Entity) object).getUniqueID()
+                    .equals(shooterId)) {
+                        shooter = (EntityLivingBase) object;
+                        break;
+                    }
+            // Minecraft's block DDA mutates its input Vec3; entity intersections need the original segment.
+            MovingObjectPosition hit = worldObj.func_147447_a(
+                Vec3.createVectorHelper(start.xCoord, start.yCoord, start.zCoord),
+                Vec3.createVectorHelper(end.xCoord, end.yCoord, end.zCoord),
+                false,
+                true,
+                false);
+            double nearest = hit == null ? start.squareDistanceTo(end) : start.squareDistanceTo(hit.hitVec);
+            List<?> candidates = worldObj.getEntitiesWithinAABBExcludingEntity(
+                this,
+                boundingBox.addCoord(motionX, motionY, motionZ)
+                    .expand(.3, .3, .3));
+            for (Object object : candidates) {
+                Entity e = (Entity) object;
+                if (e == shooter || !(e instanceof EntityLivingBase) || !e.canBeCollidedWith()) continue;
+                MovingObjectPosition intercept = e.boundingBox.expand(.1, .1, .1)
+                    .calculateIntercept(start, end);
+                double distance = e.boundingBox.isVecInside(start) ? 0
+                    : intercept == null ? Double.MAX_VALUE : start.squareDistanceTo(intercept.hitVec);
+                if (distance <= nearest) {
+                    nearest = distance;
+                    hit = new MovingObjectPosition(e);
+                    hit.hitVec = distance == 0 ? start : intercept.hitVec;
+                }
+            }
+            if (hit != null) {
+                impact(hit);
+                setDead();
+                return;
+            }
+        }
+        setPosition(end.xCoord, end.yCoord, end.zCoord);
+        motionY -= weapon.gravity;
+    }
+
+    private void impact(MovingObjectPosition hit) {
+        Vec3 at = hit.hitVec == null ? Vec3.createVectorHelper(posX, posY, posZ) : hit.hitVec;
+        if (weapon == WeaponKind.QLZ04) {
+            List<?> nearby = worldObj.getEntitiesWithinAABB(
+                EntityLivingBase.class,
+                AxisAlignedBB.getBoundingBox(
+                    at.xCoord - 2,
+                    at.yCoord - 2,
+                    at.zCoord - 2,
+                    at.xCoord + 2,
+                    at.yCoord + 2,
+                    at.zCoord + 2));
+            for (Object o : nearby) {
+                EntityLivingBase e = (EntityLivingBase) o;
+                double dx = Math.max(e.boundingBox.minX, Math.min(at.xCoord, e.boundingBox.maxX)) - at.xCoord;
+                double dy = Math.max(e.boundingBox.minY, Math.min(at.yCoord, e.boundingBox.maxY)) - at.yCoord;
+                double dz = Math.max(e.boundingBox.minZ, Math.min(at.zCoord, e.boundingBox.maxZ)) - at.zCoord;
+                if (dx * dx + dy * dy + dz * dz <= 4) applyDamage(e, damage, penetration, fire, this, shooter);
+            }
+        } else if (hit.entityHit instanceof EntityLivingBase)
+            applyDamage((EntityLivingBase) hit.entityHit, damage, penetration, fire, this, shooter);
+        if (weapon != WeaponKind.LM12) {
+            Effect effect = new Effect();
+            effect.entityId = shooter == null ? -1 : shooter.getEntityId();
+            effect.kind = weapon.id;
+            effect.type = 1;
+            effect.x = at.xCoord;
+            effect.y = at.yCoord;
+            effect.z = at.zCoord;
+            WeaponNetwork.effect(worldObj, effect);
+        }
+    }
+
+    /**
+     * Public production seam for dedicated-server damage audits. Armor points are partially ignored; potion/protection
+     * and true invulnerability remain native.
+     */
+    public static boolean applyDamage(EntityLivingBase target, float damage, float penetration, int fire,
+        Entity projectile, EntityLivingBase shooter) {
+        if (target == null || target.isDead || target.isEntityInvulnerable()) return false;
+        if (target instanceof EntityPlayer && shooter instanceof EntityPlayer && target != shooter) {
+            if (!((EntityPlayer) shooter).canAttackPlayer((EntityPlayer) target)) return false;
+            if (shooter instanceof EntityPlayerMP && !((EntityPlayerMP) shooter).mcServer.isPVPEnabled()) return false;
+        }
+        int prior = target.hurtResistantTime;
+        target.hurtResistantTime = 0;
+        float armor = Math.max(0, target.getTotalArmorValue() - Math.max(0, penetration));
+        DamageSource source = new EntityDamageSourceIndirect("gtsr.portable", projectile, shooter).setProjectile()
+            .setDamageBypassesArmor();
+        boolean accepted;
+        try {
+            accepted = target.attackEntityFrom(source, Math.max(0, damage) * (25 - Math.min(20, armor)) / 25f);
+        } finally {
+            target.hurtResistantTime = prior;
+        }
+        if (accepted && fire > 0) target.setFire(Math.min(3, fire) * 5);
+        return accepted;
+    }
+
+    @Override
+    protected void writeEntityToNBT(NBTTagCompound n) {
+        n.setInteger("kind", weapon.id);
+        n.setFloat("damage", damage);
+        n.setFloat("penetration", penetration);
+        n.setInteger("fire", fire);
+        if (shooterId != null) n.setString("shooter", shooterId.toString());
+    }
+
+    @Override
+    protected void readEntityFromNBT(NBTTagCompound n) {
+        WeaponKind k = WeaponKind.fromId(n.getInteger("kind"));
+        weapon = k == null ? WeaponKind.LM12 : k;
+        damage = n.getFloat("damage");
+        penetration = n.getFloat("penetration");
+        fire = n.getInteger("fire");
+        try {
+            if (n.hasKey("shooter")) shooterId = UUID.fromString(n.getString("shooter"));
+        } catch (IllegalArgumentException ignored) {
+            shooterId = null;
+        }
+    }
+
+    @Override
+    public void writeSpawnData(ByteBuf b) {
+        b.writeByte(weapon.id);
+    }
+
+    @Override
+    public void readSpawnData(ByteBuf b) {
+        WeaponKind k = WeaponKind.fromId(b.readUnsignedByte());
+        weapon = k == null ? WeaponKind.LM12 : k;
+    }
+}

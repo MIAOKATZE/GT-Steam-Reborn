@@ -299,6 +299,7 @@ public class CommonProxy {
      */
     @SuppressWarnings({ "unused" })
     public void postInit(FMLPostInitializationEvent event) {
+        com.miaokatze.gtsr.common.weapons.PortableWeapons.init();
         GTSteamReborn.LOG.info("[3/3] 开始注册 GTSR 配方...");
         try {
             new GTSRRecipeLoader().run();
@@ -321,6 +322,7 @@ public class CommonProxy {
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new GTSRCommand());
         event.registerServerCommand(new SpacetimeAuditCommand());
+        event.registerServerCommand(new com.miaokatze.gtsr.common.commands.WeaponAuditCommand());
     }
 
     /**

@@ -35,6 +35,8 @@ public class ClientProxy extends CommonProxy {
         super.init(event);
         SpacetimeClient.register();
         com.miaokatze.gtsr.client.travel.SpacetimeBeaconRenderer.register();
+        com.miaokatze.gtsr.client.weapons.PortableWeaponClient.register();
+        com.miaokatze.gtsr.client.weapons.PortableWeaponRenderer.register();
         com.miaokatze.gtsr.client.architecture.RuinsArchitectureRenderer.registerRenderer();
         com.miaokatze.gtsr.client.architecture.RemasterBlockRenderer.registerRenderer();
         com.miaokatze.gtsr.client.architecture.RemasterSpawnerRenderer.registerRenderer();

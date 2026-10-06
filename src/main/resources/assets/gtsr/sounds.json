@@ -1780,5 +1780,23 @@
         "stream": false
       }
     ]
+  },
+  "weapons.gatling_fire": {
+    "category": "player",
+    "sounds": [
+      "weapons/gatling_fire"
+    ]
+  },
+  "weapons.autocannon_fire": {
+    "category": "player",
+    "sounds": [
+      "weapons/autocannon_fire"
+    ]
+  },
+  "weapons.qlz04_fire": {
+    "category": "player",
+    "sounds": [
+      "weapons/qlz04_fire"
+    ]
   }
 }

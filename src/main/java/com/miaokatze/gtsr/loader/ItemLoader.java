@@ -35,6 +35,7 @@ public class ItemLoader {
         registerHubTerminal();
         registerSingularityTuningWand();
         GTSRItemList.SpacetimeAnchorBeacon.setAndRegister(new SpacetimeAnchorBeacon(), "SpacetimeAnchorBeacon", true);
+        com.miaokatze.gtsr.common.weapons.PortableWeapons.registerItems();
     }
 
     private static void registerPyrolyzerChips() {
