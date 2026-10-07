@@ -103,6 +103,14 @@ public final class IndustrialMaterialColors {
         colors.put("planned:washed_withered_indium_cake", 0xff929baa);
         colors.put("planned:grit_indium_solution", 0xff96a4b5);
         colors.put("planned:grit_indium_waste_liquor", 0xff74858f);
+        colors.put("planned:sanzu_mineral_filtercake", 0xff8c8972);
+        colors.put("planned:degassed_sanzu_filtercake", 0xffac9b75);
+        colors.put("planned:washed_sanzu_filtercake", 0xffb8b19c);
+        colors.put("planned:sanzu_phosphate_salt_cake", 0xffc0b7a0);
+        colors.put("planned:sanzu_organic_fraction", 0xff6e6850);
+        colors.put("planned:active_fungal_suspension", 0xff8ba766);
+        colors.put("planned:fungal_conversion_liquor", 0xffadbd87);
+        colors.put("planned:clarified_fungal_liquor", 0xffc7d6a0);
         return Collections.unmodifiableMap(colors);
     }
 

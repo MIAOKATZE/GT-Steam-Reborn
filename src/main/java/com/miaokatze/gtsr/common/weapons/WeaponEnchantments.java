@@ -13,7 +13,8 @@ import cpw.mods.fml.common.Loader;
 /** IDs are persisted on first allocation; a later collision fails instead of reinterpreting saved NBT. */
 public final class WeaponEnchantments extends Enchantment {
 
-    public static WeaponEnchantments piercing, incendiary, hollowPoint, economy;
+    public static WeaponEnchantments piercing, incendiary, hollowPoint, economy, destruction, diffusion, duration,
+        tearing, quenching;
     private final int category;
 
     private WeaponEnchantments(int id, int category, String name) {
@@ -30,9 +31,10 @@ public final class WeaponEnchantments extends Enchantment {
                     .getConfigDir(),
                 "gtsr-portable-enchantments.cfg"));
         cfg.load();
-        int[] ids = new int[4];
-        String[] names = { "piercing", "incendiary", "hollowPoint", "economy" };
-        for (int i = 0; i < 4; i++) {
+        int[] ids = new int[9];
+        String[] names = { "piercing", "incendiary", "hollowPoint", "economy", "destruction", "diffusion", "duration",
+            "tearing", "quenching" };
+        for (int i = 0; i < names.length; i++) {
             int free = -1;
             for (int j = Enchantment.enchantmentsList.length - 1; j >= 0; j--) {
                 boolean used = false;
@@ -55,6 +57,13 @@ public final class WeaponEnchantments extends Enchantment {
         incendiary = new WeaponEnchantments(ids[1], 1, "incendiary");
         hollowPoint = new WeaponEnchantments(ids[2], 2, "hollowPoint");
         economy = new WeaponEnchantments(ids[3], 3, "economy");
+        destruction = new WeaponEnchantments(ids[4], 4, "destruction");
+        diffusion = new WeaponEnchantments(ids[5], 5, "diffusion");
+        duration = new WeaponEnchantments(ids[6], 6, "duration");
+        tearing = new WeaponEnchantments(ids[7], 7, "tearing");
+        quenching = new WeaponEnchantments(ids[8], 8, "quenching");
+        for (WeaponEnchantments e : new WeaponEnchantments[] { destruction, diffusion, duration, tearing, quenching })
+            Enchantment.addToBookList(e);
         Enchantment.addToBookList(piercing);
         Enchantment.addToBookList(incendiary);
         Enchantment.addToBookList(hollowPoint);
@@ -63,7 +72,7 @@ public final class WeaponEnchantments extends Enchantment {
 
     @Override
     public int getMaxLevel() {
-        return category == 3 ? 5 : 3;
+        return category >= 3 ? 5 : 3;
     }
 
     @Override
@@ -78,7 +87,9 @@ public final class WeaponEnchantments extends Enchantment {
 
     @Override
     public boolean canApply(ItemStack s) {
-        return PortableWeapons.kind(s) != null && (PortableWeapons.kind(s) != WeaponKind.SINGULARITY || category == 3);
+        WeaponKind kind = PortableWeapons.kind(s);
+        return kind != null
+            && (category == 3 || (category >= 4 ? kind == WeaponKind.SINGULARITY : kind != WeaponKind.SINGULARITY));
     }
 
     @Override
@@ -89,11 +100,11 @@ public final class WeaponEnchantments extends Enchantment {
     @Override
     public boolean canApplyTogether(Enchantment other) {
         if (other == this) return false;
-        return !(other instanceof WeaponEnchantments) || category == 3 || ((WeaponEnchantments) other).category == 3;
+        return !(other instanceof WeaponEnchantments) || category >= 3 || ((WeaponEnchantments) other).category >= 3;
     }
 
     public static int level(ItemStack s, WeaponEnchantments e) {
-        return e == null || (PortableWeapons.kind(s) == WeaponKind.SINGULARITY && e.category != 3) ? 0
+        return e == null || !e.canApply(s) ? 0
             : Math.max(0, Math.min(e.getMaxLevel(), EnchantmentHelper.getEnchantmentLevel(e.effectId, s)));
     }
 

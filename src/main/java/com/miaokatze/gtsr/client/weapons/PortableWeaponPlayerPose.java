@@ -61,8 +61,12 @@ public final class PortableWeaponPlayerPose {
         if (kind == null) return;
         float partial = PortableWeaponClient.renderPartialTicks();
         Vec3 right = WeaponPose.localGrip(), left = leftHand(p, kind, partial);
-        aimArm(model.bipedRightArm, p, partial, right);
-        if (leftActive(p, kind, partial)) aimArm(model.bipedLeftArm, p, partial, left);
+        if (kind == WeaponKind.SINGULARITY) {
+            Vec3 offset = WeaponPose.singularityReloadBody(PortableWeaponClient.reloadProgress(p, partial));
+            right = right.addVector(offset.xCoord, offset.yCoord, offset.zCoord);
+        }
+        aimArm(model.bipedRightArm, p, kind, partial, right);
+        if (leftActive(p, kind, partial)) aimArm(model.bipedLeftArm, p, kind, partial, left);
         model.aimedBow = false;
     }
 
@@ -82,8 +86,8 @@ public final class PortableWeaponPlayerPose {
         return feed.addVector(offset.xCoord, offset.yCoord, offset.zCoord);
     }
 
-    private static void aimArm(ModelRenderer arm, EntityPlayer p, float partial, Vec3 local) {
-        Vec3 hand = WeaponPose.modelPoint(p, partial, local.xCoord, local.yCoord, local.zCoord);
+    private static void aimArm(ModelRenderer arm, EntityPlayer p, WeaponKind kind, float partial, Vec3 local) {
+        Vec3 hand = WeaponPose.modelPoint(p, kind, partial, local.xCoord, local.yCoord, local.zCoord);
         double yaw = Math.toRadians(WeaponPose.yaw(p, partial));
         double x = hand.xCoord - (p.prevPosX + (p.posX - p.prevPosX) * partial);
         double z = hand.zCoord - (p.prevPosZ + (p.posZ - p.prevPosZ) * partial);
@@ -119,6 +123,10 @@ public final class PortableWeaponPlayerPose {
             GL11.glTranslated(-RenderManager.renderPosX, -RenderManager.renderPosY, -RenderManager.renderPosZ);
             Vec3 eye = WeaponPose.eye(p, partial), r = WeaponPose.right(p, partial);
             Vec3 grip = WeaponPose.localGrip(), support = leftHand(p, kind, partial);
+            if (kind == WeaponKind.SINGULARITY) {
+                Vec3 offset = WeaponPose.singularityReloadBody(PortableWeaponClient.reloadProgress(p, partial));
+                grip = grip.addVector(offset.xCoord, offset.yCoord, offset.zCoord);
+            }
             boolean modern = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH)
                 == GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_HEIGHT);
             boolean loading = leftActive(p, kind, partial);
@@ -126,7 +134,7 @@ public final class PortableWeaponPlayerPose {
                 double sign = side == 0 ? 1 : -1;
                 Vec3 shoulder = eye.addVector(r.xCoord * .31 * sign, -.20, r.zCoord * .31 * sign);
                 Vec3 target = side == 0 ? grip : support;
-                Vec3 hand = WeaponPose.modelPoint(p, partial, target.xCoord, target.yCoord, target.zCoord);
+                Vec3 hand = WeaponPose.modelPoint(p, kind, partial, target.xCoord, target.yCoord, target.zCoord);
                 hand = PortableWeaponRenderer.viewPoint(p, partial, hand);
                 Vec3 elbow = Vec3.createVectorHelper(
                     (shoulder.xCoord + hand.xCoord) / 2 + r.xCoord * .12 * sign,

@@ -257,7 +257,7 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         State state = player == null ? null : STATES.get(player.getEntityId());
         Snapshot s = snapshot(player);
         if (state == null || s == null || s.remoteTicks <= 0) return 0;
-        return clamp(1 - (s.remoteTicks - (clock - state.received) - partial) / 30F);
+        return clamp(1 - (s.remoteTicks - (clock - state.received) - partial) / 50F);
     }
 
     private static boolean hasAlternative(EntityPlayer p, WeaponKind kind) {

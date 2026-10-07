@@ -311,8 +311,8 @@
     {
       "id": "planned:washed_sanzu",
       "name": "gtsr_industrial_washed_sanzu",
-      "en": "Dissolved Sanzu Feed",
-      "zh": "水溶三途凝液",
+      "en": "Sanzu Mineral-bearing Aqueous Fraction",
+      "zh": "三涂含矿水相",
       "phase": "fluid",
       "temperatureK": 285
     },
@@ -677,8 +677,8 @@
     {
       "id": "planned:grit_indium_solution",
       "name": "gtsr_industrial_grit_indium_solution",
-      "en": "Grit Indium Solution",
-      "zh": "风沙含铟溶液",
+      "en": "Indium-bearing Grit Suspension",
+      "zh": "风沙含铟悬液",
       "phase": "fluid",
       "temperatureK": 310,
       "introducedVersion": 94
@@ -686,11 +686,79 @@
     {
       "id": "planned:grit_indium_waste_liquor",
       "name": "gtsr_industrial_grit_indium_waste_liquor",
-      "en": "Grit Indium Waste Liquor",
-      "zh": "风沙含铟废液",
+      "en": "Deindiumized Grit Solution",
+      "zh": "风沙脱铟溶液",
       "phase": "fluid",
       "temperatureK": 305,
       "introducedVersion": 94
+    },
+    {
+      "id": "planned:sanzu_mineral_filtercake",
+      "name": "gtsr_industrial_sanzu_mineral_filtercake",
+      "en": "Sanzu Mineral Filtercake",
+      "zh": "三涂矿物滤饼",
+      "phase": "dust",
+      "introducedVersion": 95
+    },
+    {
+      "id": "planned:degassed_sanzu_filtercake",
+      "name": "gtsr_industrial_degassed_sanzu_filtercake",
+      "en": "Thermally Degassed Sanzu Filtercake",
+      "zh": "热脱气三涂滤饼",
+      "phase": "dust",
+      "introducedVersion": 95
+    },
+    {
+      "id": "planned:washed_sanzu_filtercake",
+      "name": "gtsr_industrial_washed_sanzu_filtercake",
+      "en": "Chemically Washed Sanzu Filtercake",
+      "zh": "化洗三涂滤饼",
+      "phase": "dust",
+      "introducedVersion": 95
+    },
+    {
+      "id": "planned:sanzu_phosphate_salt_cake",
+      "name": "gtsr_industrial_sanzu_phosphate_salt_cake",
+      "en": "Sanzu Phosphate-salt Residue",
+      "zh": "三涂磷盐残渣",
+      "phase": "dust",
+      "introducedVersion": 95
+    },
+    {
+      "id": "planned:sanzu_organic_fraction",
+      "name": "gtsr_industrial_sanzu_organic_fraction",
+      "en": "Sanzu Organic Distillate",
+      "zh": "三涂有机馏分",
+      "phase": "fluid",
+      "temperatureK": 310,
+      "introducedVersion": 95
+    },
+    {
+      "id": "planned:active_fungal_suspension",
+      "name": "gtsr_industrial_active_fungal_suspension",
+      "en": "Active Fungal Suspension",
+      "zh": "真菌活性悬液",
+      "phase": "fluid",
+      "temperatureK": 303,
+      "introducedVersion": 95
+    },
+    {
+      "id": "planned:fungal_conversion_liquor",
+      "name": "gtsr_industrial_fungal_conversion_liquor",
+      "en": "Fungal Aromatic Conversion Liquor",
+      "zh": "真菌芳香转化液",
+      "phase": "fluid",
+      "temperatureK": 315,
+      "introducedVersion": 95
+    },
+    {
+      "id": "planned:clarified_fungal_liquor",
+      "name": "gtsr_industrial_clarified_fungal_liquor",
+      "en": "Clarified Fungal Product Liquor",
+      "zh": "澄清真菌产物液",
+      "phase": "fluid",
+      "temperatureK": 310,
+      "introducedVersion": 95
     }
   ],
   "recipes": [
@@ -913,7 +981,7 @@
       "inputs": [
         {
           "id": "sanzu_residual_steam",
-          "amount": 10000,
+          "amount": 20000,
           "unit": "L",
           "kind": "fluid"
         }
@@ -921,42 +989,7 @@
       "outputs": [
         {
           "id": "planned:sanzu_condensate_r3",
-          "amount": 10000,
-          "unit": "L",
-          "kind": "fluid"
-        }
-      ]
-    },
-    {
-      "id": "SZ-2",
-      "lineId": "sanzu_residual_steam",
-      "machineMap": "multiblockChemicalReactorRecipes",
-      "EUt": 120,
-      "ticks": 150,
-      "inputs": [
-        {
-          "id": "planned:sanzu_condensate_r3",
-          "amount": 10000,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
-          "id": "standard:GTModHandler.getDistilledWater",
-          "amount": 1000,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
-          "id": "standard:Materials.SaltWater",
-          "amount": 1000,
-          "kind": "fluid",
-          "unit": "L"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "planned:washed_sanzu",
-          "amount": 10000,
+          "amount": 20000,
           "unit": "L",
           "kind": "fluid"
         }
@@ -970,16 +1003,22 @@
       "ticks": 250,
       "inputs": [
         {
-          "id": "planned:washed_sanzu",
-          "amount": 10000,
+          "id": "planned:sanzu_condensate_r3",
+          "amount": 20000,
           "unit": "L",
           "kind": "fluid"
         }
       ],
       "outputs": [
         {
+          "id": "standard:Materials.Ash",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
           "id": "planned:sanzu_mineral_liquor",
-          "amount": 500,
+          "amount": 1000,
           "unit": "L",
           "kind": "fluid"
         },
@@ -1004,6 +1043,71 @@
         {
           "id": "standard:Materials.Hydrogen",
           "amount": 1800,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Nitrogen",
+          "amount": 2500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Methane",
+          "amount": 2000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:sanzu_organic_fraction",
+          "amount": 3000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "planned:washed_sanzu",
+          "amount": 2000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-2",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 120,
+      "ticks": 150,
+      "inputs": [
+        {
+          "id": "planned:washed_sanzu",
+          "amount": 2000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.SaltWater",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:sanzu_mineral_liquor",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 3000,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1054,20 +1158,312 @@
       ],
       "outputs": [
         {
-          "id": "standard:Materials.Phosphorus",
-          "amount": 4,
-          "unit": "dust",
-          "kind": "item"
-        },
-        {
-          "id": "standard:Materials.Salt",
-          "amount": 4,
+          "id": "planned:sanzu_mineral_filtercake",
+          "amount": 12,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "standard:Materials.DilutedHydrochloricAcid",
           "amount": 500,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-10",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 120,
+      "ticks": 240,
+      "inputs": [
+        {
+          "id": "planned:sanzu_mineral_filtercake",
+          "amount": 12,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:degassed_sanzu_filtercake",
+          "amount": 12,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Helium",
+          "amount": 200,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-11",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "chemicalBathRecipes",
+      "EUt": 120,
+      "ticks": 160,
+      "inputs": [
+        {
+          "id": "planned:degassed_sanzu_filtercake",
+          "amount": 12,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.HydrochloricAcid",
+          "amount": 250,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:washed_sanzu_filtercake",
+          "amount": 12,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.DilutedHydrochloricAcid",
+          "amount": 250,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-12",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "sifterRecipes",
+      "EUt": 30,
+      "ticks": 240,
+      "inputs": [
+        {
+          "id": "planned:washed_sanzu_filtercake",
+          "amount": 12,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Cinnabar",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Redstone",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:MaterialsFluorides.FLUORITE",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "planned:sanzu_phosphate_salt_cake",
+          "amount": 6,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "SZ-13",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 120,
+      "ticks": 160,
+      "inputs": [
+        {
+          "id": "planned:sanzu_phosphate_salt_cake",
+          "amount": 6,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Phosphorus",
+          "amount": 3,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.Salt",
+          "amount": 3,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "SZ-14",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 30,
+      "ticks": 600,
+      "inputs": [
+        {
+          "id": "planned:sanzu_organic_fraction",
+          "amount": 3000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.FermentedBiomass",
+          "amount": 2000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Air",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:active_fungal_suspension",
+          "amount": 6000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-15",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "multiblockChemicalReactorRecipes",
+      "EUt": 120,
+      "ticks": 400,
+      "inputs": [
+        {
+          "id": "planned:active_fungal_suspension",
+          "amount": 6000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 2000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Oxygen",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.HydrochloricAcid",
+          "amount": 250,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "planned:fungal_conversion_liquor",
+          "amount": 9250,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-16",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "centrifugeRecipes",
+      "EUt": 120,
+      "ticks": 240,
+      "inputs": [
+        {
+          "id": "planned:fungal_conversion_liquor",
+          "amount": 9250,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.AshDark",
+          "amount": 2,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "planned:clarified_fungal_liquor",
+          "amount": 8750,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ]
+    },
+    {
+      "id": "SZ-17",
+      "lineId": "sanzu_residual_steam",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 120,
+      "ticks": 300,
+      "inputs": [
+        {
+          "id": "planned:clarified_fungal_liquor",
+          "amount": 8750,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.PhthalicAcid",
+          "amount": 3000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:GTPPFluids.Butanol",
+          "amount": 1500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.AceticAcid",
+          "amount": 1500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Ethanol",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 1000,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:FluidLoader.fulvicAcid",
+          "amount": 500,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.DilutedHydrochloricAcid",
+          "amount": 250,
           "unit": "L",
           "kind": "fluid"
         }
@@ -2892,13 +3288,13 @@
       "inputs": [
         {
           "id": "planned:withered_trace_cake",
-          "amount": 20,
+          "amount": 10,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "standard:Materials.SulfuricAcid",
-          "amount": 1000,
+          "amount": 500,
           "unit": "L",
           "kind": "fluid"
         }
@@ -2924,7 +3320,7 @@
         },
         {
           "id": "standard:Materials.DilutedSulfuricAcid",
-          "amount": 1000,
+          "amount": 500,
           "unit": "L",
           "kind": "fluid"
         }
@@ -2939,7 +3335,7 @@
       "inputs": [
         {
           "id": "planned:washed_withered_indium_cake",
-          "amount": 20,
+          "amount": 10,
           "unit": "dust",
           "kind": "item"
         }
@@ -2952,8 +3348,8 @@
           "kind": "item"
         },
         {
-          "id": "standard:Materials.SiliconDioxide",
-          "amount": 9,
+          "id": "standard:Materials.Borax",
+          "amount": 6,
           "unit": "dust",
           "kind": "item"
         }
@@ -3221,13 +3617,13 @@
       "outputs": [
         {
           "id": "standard:Materials.Indium",
-          "amount": 3,
+          "amount": 2,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "standard:Materials.SiliconDioxide",
-          "amount": 1,
+          "amount": 2,
           "unit": "dust",
           "kind": "item"
         },
@@ -3527,9 +3923,15 @@
       "outputs": [
         {
           "id": "planned:washed_withered_indium_cake",
-          "kind": "item",
           "amount": 10,
-          "unit": "dust"
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.DilutedHydrochloricAcid",
+          "amount": 250,
+          "unit": "L",
+          "kind": "fluid"
         }
       ]
     },
@@ -3569,5 +3971,5 @@
       ]
     }
   ],
-  "revision": "v94-six-fluid-powder-conservation"
+  "revision": "v95-sanzu-fungal-minerals-indium-suspension"
 }

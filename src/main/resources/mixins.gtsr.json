@@ -6,6 +6,8 @@
   "compatibilityLevel": "JAVA_8",
   "refmap": "mixins.gtsr.refmap.json",
   "mixins": [
+    "WeaponLootingMixin",
+    "WeaponLootingApplicabilityMixin",
     "MTESteamMultiBaseMixin",
     "MTEHatchCustomFluidBaseMixin",
     "MTEHatchSteamBusInputMixin",

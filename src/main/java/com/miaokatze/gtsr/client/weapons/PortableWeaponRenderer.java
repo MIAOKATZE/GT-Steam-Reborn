@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.client.weapons;
 
+import java.nio.DoubleBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,6 +16,7 @@ import net.minecraftforge.client.MinecraftForgeClient;
 import net.minecraftforge.client.model.AdvancedModelLoader;
 import net.minecraftforge.client.model.IModelCustom;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
 import com.miaokatze.gtsr.common.weapons.EntityWeaponProjectile;
@@ -113,14 +115,21 @@ public final class PortableWeaponRenderer implements IItemRenderer {
         GL11.glMatrixMode(GL11.GL_MODELVIEW);
         GL11.glPushMatrix();
         try {
-            Vec3 origin = WeaponPose.origin(player, partial);
+            WeaponPose.Physical pose = WeaponPose.physical(player, kind, partial);
+            Vec3 origin = pose.origin;
             if (firstPerson) origin = viewPoint(player, partial, origin);
             GL11.glTranslated(
                 origin.xCoord - RenderManager.renderPosX,
                 origin.yCoord - RenderManager.renderPosY,
                 origin.zCoord - RenderManager.renderPosZ);
-            GL11.glRotatef(180 - WeaponPose.yaw(player, partial), 0, 1, 0);
-            GL11.glRotatef(-WeaponPose.pitch(player, partial), 1, 0, 0);
+            DoubleBuffer basis = BufferUtils.createDoubleBuffer(16);
+            basis
+                .put(
+                    new double[] { pose.right.xCoord, pose.right.yCoord, pose.right.zCoord, 0, pose.up.xCoord,
+                        pose.up.yCoord, pose.up.zCoord, 0, -pose.forward.xCoord, -pose.forward.yCoord,
+                        -pose.forward.zCoord, 0, 0, 0, 0, 1 })
+                .flip();
+            GL11.glMultMatrix(basis);
             GL11.glScaled(WeaponPose.SCALE, WeaponPose.SCALE, WeaponPose.SCALE);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             GL11.glEnable(GL11.GL_NORMALIZE);
@@ -143,31 +152,23 @@ public final class PortableWeaponRenderer implements IItemRenderer {
         return point;
     }
 
-    static float reloadAngle(EntityPlayer player, float progress) {
-        return (float) Math.sin(progress * Math.PI) * 78;
-    }
-
     static Vec3 reloadMuzzle(EntityPlayer player, float partial) {
-        Vec3 local = WeaponPose.localMuzzle(WeaponKind.SINGULARITY), grip = WeaponPose.localGrip();
-        double a = Math.toRadians(reloadAngle(player, PortableWeaponClient.reloadProgress(player, partial)));
-        double y = local.yCoord - grip.yCoord, z = local.zCoord - grip.zCoord;
-        return viewPoint(
+        float progress = PortableWeaponClient.reloadProgress(player, partial);
+        Vec3 local = WeaponPose.localMuzzle(WeaponKind.SINGULARITY), body = WeaponPose.singularityReloadBody(progress),
+            barrel = WeaponPose.singularityReloadBarrel(progress);
+        return WeaponPose.modelPoint(
             player,
+            WeaponKind.SINGULARITY,
             partial,
-            WeaponPose.modelPoint(
-                player,
-                partial,
-                local.xCoord,
-                grip.yCoord + y * Math.cos(a) - z * Math.sin(a),
-                grip.zCoord + y * Math.sin(a) + z * Math.cos(a)));
+            local.xCoord + body.xCoord + barrel.xCoord,
+            local.yCoord + body.yCoord + barrel.yCoord,
+            local.zCoord + body.zCoord + barrel.zCoord);
     }
 
     private static void drawWeapon(WeaponKind kind, EntityPlayer player, float partial, float reload) {
         if (kind == WeaponKind.SINGULARITY && reload > 0) {
-            Vec3 grip = WeaponPose.localGrip();
-            GL11.glTranslated(grip.xCoord, grip.yCoord, grip.zCoord);
-            GL11.glRotatef(reloadAngle(player, reload), 1, 0, 0);
-            GL11.glTranslated(-grip.xCoord, -grip.yCoord, -grip.zCoord);
+            Vec3 offset = WeaponPose.singularityReloadBody(reload);
+            GL11.glTranslated(offset.xCoord, offset.yCoord, offset.zCoord);
         }
         String meshKey = kind == WeaponKind.SINGULARITY ? "t20" : kind.modelKey;
         for (String part : PARTS) {
@@ -193,6 +194,8 @@ public final class PortableWeaponRenderer implements IItemRenderer {
                 if ("charging_handle".equals(part))
                     GL11.glTranslatef(0, 0, reload > .7F ? (float) Math.sin((reload - .7F) / .3F * Math.PI) * .18F : 0);
                 if (kind == WeaponKind.SINGULARITY && "barrel".equals(part)) {
+                    Vec3 shake = WeaponPose.singularityReloadBarrel(reload);
+                    GL11.glTranslated(shake.xCoord, shake.yCoord, shake.zCoord);
                     GL11.glTranslatef(0, .076875F, 0);
                     GL11.glScalef(1.7F, 1.7F, 1);
                     GL11.glTranslatef(0, -.076875F, 0);

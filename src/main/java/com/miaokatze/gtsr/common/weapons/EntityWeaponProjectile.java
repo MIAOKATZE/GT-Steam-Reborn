@@ -7,10 +7,10 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.DamageSource;
-import net.minecraft.util.EntityDamageSourceIndirect;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
@@ -27,6 +27,15 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
     private float damage, penetration;
     private int fire;
     private boolean critical;
+    private WeaponShotEnchantments shotEnchantments = new WeaponShotEnchantments();
+
+    public void freezeEnchantments(ItemStack stack) {
+        shotEnchantments = new WeaponShotEnchantments(stack);
+    }
+
+    public WeaponShotEnchantments enchantments() {
+        return shotEnchantments;
+    }
 
     public boolean critical() {
         return critical;
@@ -38,7 +47,8 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
 
     public void detonate() {
         if (isDead || worldObj.isRemote || weapon != WeaponKind.SINGULARITY) return;
-        worldObj.spawnEntityInWorld(new EntityWeaponSingularity(worldObj, posX, posY, posZ, shooterId, critical));
+        worldObj.spawnEntityInWorld(
+            new EntityWeaponSingularity(worldObj, posX, posY, posZ, shooterId, critical, shotEnchantments));
         setDead();
     }
 
@@ -60,8 +70,11 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
         this.damage = damage;
         this.penetration = penetration;
         this.fire = fire;
-        Vec3 look = owner instanceof EntityPlayer ? WeaponPose.forward((EntityPlayer) owner, 1) : owner.getLookVec();
-        Vec3 muzzle = owner instanceof EntityPlayer ? WeaponPose.muzzle((EntityPlayer) owner, kind)
+        WeaponPose.Physical pose = owner instanceof EntityPlayer ? WeaponPose.physical((EntityPlayer) owner, kind, 1)
+            : null;
+        Vec3 look = pose == null ? owner.getLookVec() : pose.forward;
+        Vec3 localMuzzle = WeaponPose.localMuzzle(kind);
+        Vec3 muzzle = pose != null ? pose.modelPoint(localMuzzle.xCoord, localMuzzle.yCoord, localMuzzle.zCoord)
             : Vec3.createVectorHelper(
                 owner.posX + look.xCoord * .5,
                 owner.posY + owner.getEyeHeight() + look.yCoord * .5,
@@ -71,7 +84,7 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
             : Vec3.createVectorHelper(owner.posX, owner.posY - owner.yOffset + owner.getEyeHeight(), owner.posZ);
         // Straight weapons leave the real waist muzzle and converge with the crosshair ray.
         // Grenades and singularity sparks retain their pitched ballistic launch.
-        if (kind == WeaponKind.LM12 || kind == WeaponKind.T20)
+        if (pose == null && (kind == WeaponKind.LM12 || kind == WeaponKind.T20))
             look = launchDirection(world, owner, kind, initialOrigin, muzzle, look);
         initialMuzzle = Vec3.createVectorHelper(muzzle.xCoord, muzzle.yCoord, muzzle.zCoord);
         initialObstructionPending = true;
@@ -82,10 +95,19 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
         rotationPitch = (float) -Math.toDegrees(Math.asin(look.yCoord));
     }
 
-    /** Shared by authoritative launch and client trajectory prediction for the same sampled pose. */
+    /** Straight-weapon convergence for non-player owners; players use their rigid physical pose. */
     public static Vec3 launchDirection(World world, EntityLivingBase owner, WeaponKind kind, Vec3 eye, Vec3 muzzle,
         Vec3 look) {
         if (kind != WeaponKind.LM12 && kind != WeaponKind.T20) return look;
+        Vec3 target = aimTarget(world, owner, eye, look);
+        double dx = target.xCoord - muzzle.xCoord, dy = target.yCoord - muzzle.yCoord,
+            dz = target.zCoord - muzzle.zCoord;
+        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return length < 1.0E-8 ? look : Vec3.createVectorHelper(dx / length, dy / length, dz / length);
+    }
+
+    /** Eye ray selection is independent of the gun transform, preventing recursive pose evaluation. */
+    public static Vec3 aimTarget(World world, EntityLivingBase owner, Vec3 eye, Vec3 look) {
         Vec3 end = eye.addVector(look.xCoord * 100, look.yCoord * 100, look.zCoord * 100);
         MovingObjectPosition block = world.func_147447_a(
             Vec3.createVectorHelper(eye.xCoord, eye.yCoord, eye.zCoord),
@@ -108,10 +130,7 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
                 nearest = eye.squareDistanceTo(target);
             }
         }
-        double dx = target.xCoord - muzzle.xCoord, dy = target.yCoord - muzzle.yCoord,
-            dz = target.zCoord - muzzle.zCoord;
-        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        return length < 1.0E-8 ? look : Vec3.createVectorHelper(dx / length, dy / length, dz / length);
+        return target;
     }
 
     public WeaponKind kind() {
@@ -294,8 +313,14 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
         int prior = target.hurtResistantTime;
         target.hurtResistantTime = 0;
         float armor = Math.max(0, target.getTotalArmorValue() - Math.max(0, penetration));
-        DamageSource source = new EntityDamageSourceIndirect("gtsr.portable", projectile, shooter).setProjectile()
-            .setDamageBypassesArmor();
+        DamageSource source = new WeaponDamageSource(
+            "gtsr.portable",
+            projectile,
+            shooter,
+            projectile instanceof EntityWeaponProjectile
+                ? ((EntityWeaponProjectile) projectile).shotEnchantments.looting
+                : 0).setProjectile()
+                    .setDamageBypassesArmor();
         boolean accepted;
         try {
             accepted = target.attackEntityFrom(source, Math.max(0, damage) * (25 - Math.min(20, armor)) / 25f);
@@ -308,6 +333,7 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
 
     @Override
     protected void writeEntityToNBT(NBTTagCompound n) {
+        shotEnchantments.write(n);
         n.setInteger("kind", weapon.id);
         n.setBoolean("critical", critical);
         n.setFloat("damage", damage);
@@ -327,6 +353,7 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
 
     @Override
     protected void readEntityFromNBT(NBTTagCompound n) {
+        shotEnchantments = WeaponShotEnchantments.read(n);
         WeaponKind k = WeaponKind.fromId(n.getInteger("kind"));
         weapon = k == null ? WeaponKind.LM12 : k;
         critical = n.getBoolean("critical");
@@ -349,12 +376,14 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
 
     @Override
     public void writeSpawnData(ByteBuf b) {
+        shotEnchantments.write(b);
         b.writeByte(weapon.id);
         b.writeBoolean(critical);
     }
 
     @Override
     public void readSpawnData(ByteBuf b) {
+        shotEnchantments = WeaponShotEnchantments.read(b);
         WeaponKind k = WeaponKind.fromId(b.readUnsignedByte());
         critical = b.readBoolean();
         weapon = k == null ? WeaponKind.LM12 : k;

@@ -14,6 +14,7 @@ import net.minecraftforge.fluids.FluidStack;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
+import bartworks.common.loaders.FluidLoader;
 import bartworks.system.material.WerkstoffLoader;
 import goodgenerator.items.GGMaterial;
 import gregtech.api.enums.GTValues;
@@ -30,6 +31,7 @@ import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTRecipeBuilder;
 import gregtech.api.util.GTUtility;
 import gtPlusPlus.core.fluids.GTPPFluids;
+import gtPlusPlus.core.material.nuclear.MaterialsFluorides;
 import gtnhlanth.common.register.WerkstoffMaterialPool;
 
 /** Six industrial lines, using registered material forms and the current integer ledger. */
@@ -206,6 +208,7 @@ public final class ProsperityIndustrialRecipes {
         for (IndustrialRecipeLedger.Amount amount : amounts) {
             if (!"item".equals(amount.kind) || Boolean.FALSE.equals(amount.consumed)) continue;
             if (amount.id.startsWith("planned:") || amount.id.startsWith("standard:Materials.")
+                || amount.id.startsWith("standard:MaterialsFluorides.")
                 || amount.id.startsWith("standard:WerkstoffLoader.")
                 || amount.id.startsWith("standard:WerkstoffMaterialPool.")) total += amount.amount;
         }
@@ -227,6 +230,9 @@ public final class ProsperityIndustrialRecipes {
                 stack = GTOreDictUnificator.get(OrePrefixes.dust, standardMaterial(amount.id), amount.amount);
             } else {
                 switch (amount.id) {
+                    case "standard:MaterialsFluorides.FLUORITE":
+                        stack = MaterialsFluorides.FLUORITE.getDust(amount.amount);
+                        break;
                     case "standard:ItemList.FR_Fertilizer":
                         stack = ItemList.FR_Fertilizer.get(amount.amount);
                         break;
@@ -302,6 +308,13 @@ public final class ProsperityIndustrialRecipes {
                     case "standard:GTPPFluids.BoricAcid":
                         stack = GTPPFluids.BoricAcid == null ? null
                             : new FluidStack(GTPPFluids.BoricAcid, amount.amount);
+                        break;
+                    case "standard:GTPPFluids.Butanol":
+                        stack = GTPPFluids.Butanol == null ? null : new FluidStack(GTPPFluids.Butanol, amount.amount);
+                        break;
+                    case "standard:FluidLoader.fulvicAcid":
+                        stack = FluidLoader.fulvicAcid == null ? null
+                            : new FluidStack(FluidLoader.fulvicAcid, amount.amount);
                         break;
                     case "wastesigh":
                         stack = rawGas(GTSRProsperityAirMaterials.WastesSigh, amount.amount);

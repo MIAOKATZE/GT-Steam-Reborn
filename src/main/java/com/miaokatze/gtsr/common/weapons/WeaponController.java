@@ -171,7 +171,7 @@ public final class WeaponController {
                 && s.remoteProjectile != null
                 && !s.remoteProjectile.isDead
                 && s.remoteTicks == 0) {
-                s.remoteTicks = 30;
+                s.remoteTicks = 50;
                 effect(s, 3);
             }
             s.firing = c.firing;
@@ -328,7 +328,7 @@ public final class WeaponController {
     private void update(Session s) {
         WeaponKind k = PortableWeapons.kind(s.gun);
         if (k == null) return;
-        if (s.remoteTicks > 0 && --s.remoteTicks == 20) {
+        if (s.remoteTicks > 0 && --s.remoteTicks == 40) {
             if (s.remoteProjectile != null && !s.remoteProjectile.isDead
                 && s.remoteProjectile.worldObj == s.player.worldObj
                 && s.player.worldObj.loadedEntityList.contains(s.remoteProjectile)) {
@@ -376,6 +376,7 @@ public final class WeaponController {
             WeaponEnchantments.level(s.gun, WeaponEnchantments.piercing) == 0
                 ? WeaponEnchantments.level(s.gun, WeaponEnchantments.incendiary)
                 : 0);
+        projectile.freezeEnchantments(s.gun);
         projectile.setCritical(n.getInteger("loadedType") == 1);
         if (!s.player.worldObj.spawnEntityInWorld(projectile)) {
             if (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY) n.setInteger("magazine", oldMagazine);

@@ -58,8 +58,8 @@ final class SingularityWeaponFx {
         }
         for (Integer id : new ArrayList<>(CORES.keySet())) {
             Entity core = CORES.get(id);
-            if (core.isDead || ((EntityWeaponSingularity) core).life() >= 160 || !world.loadedEntityList.contains(core))
-                stop(id);
+            if (core.isDead || ((EntityWeaponSingularity) core).life() >= ((EntityWeaponSingularity) core).duration()
+                || !world.loadedEntityList.contains(core)) stop(id);
         }
         int budget = 24;
         for (Object object : world.loadedEntityList.toArray()) {
@@ -69,7 +69,7 @@ final class SingularityWeaponFx {
             float r = core.critical() ? .72F : 1F, g = core.critical() ? .3F : 1F;
             if (!CORES.containsKey(core.getEntityId())) {
                 CORES.put(core.getEntityId(), core);
-                int life = Math.max(1, 160 - core.life());
+                int life = Math.max(1, core.duration() - core.life());
                 own(
                     core,
                     GTSRGlowFX.spawn(world, core.posX, core.posY, core.posZ, core.critical() ? 2F : 1.2F, r, g, 1, life)
@@ -98,8 +98,16 @@ final class SingularityWeaponFx {
                     Minecraft.getMinecraft().effectRenderer.addEffect(own(core, new CriticalDisk(world, core)));
                 else own(
                     core,
-                    GTSRSingularityFX
-                        .spawnOwnedDisk(world, core.posX, core.posY, core.posZ, 2.6, 1, 160, core.life(), .8F));
+                    GTSRSingularityFX.spawnOwnedDisk(
+                        world,
+                        core.posX,
+                        core.posY,
+                        core.posZ,
+                        2.6,
+                        1,
+                        core.duration(),
+                        core.life(),
+                        .8F));
             }
             if (core.critical() && world.getTotalWorldTime() % 7 == 0) {
                 double a = world.rand.nextDouble() * Math.PI * 2;
@@ -151,7 +159,7 @@ final class SingularityWeaponFx {
             this.core = core;
             angle = world.rand.nextDouble() * Math.PI * 2;
             radius = 1.9 + world.rand.nextDouble() * 2.5;
-            particleMaxAge = Math.min(90, Math.max(1, 160 - core.life()));
+            particleMaxAge = Math.min(90, Math.max(1, core.duration() - core.life()));
             particleScale = .09F;
             setRBGColorF(.72F, .3F, 1);
             setParticleTextureIndex(0);
@@ -204,7 +212,7 @@ final class SingularityWeaponFx {
                 float reload = PortableWeaponClient.reloadProgress(p, partial);
                 float remote = PortableWeaponClient.remoteProgress(p, partial);
                 double time = world.getTotalWorldTime() + partial;
-                if (reload > 0) stateCubes(PortableWeaponRenderer.reloadMuzzle(p, partial), time, shade, reload);
+                if (reload > .2F && reload < .75F) reloadCubes(p, partial, time, shade, reload);
                 Vec3 hand = PortableWeaponPlayerPose.leftHand(p, WeaponKind.SINGULARITY, partial);
                 if (remote > 0) stateCubes(
                     PortableWeaponRenderer.viewPoint(
@@ -219,25 +227,51 @@ final class SingularityWeaponFx {
     }
 
     private static void stateCubes(Vec3 center, double time, float shade, float progress) {
-        double radius = .12 * (1 - progress) + .025;
+        double radius = .24 * (1 - progress) + .05;
         for (int cell = 0; cell < 4; cell++) {
             double a = time * .25 + cell * Math.PI / 2;
             double x = center.xCoord + Math.cos(a) * radius;
             double y = center.yCoord + Math.sin(a * 1.5) * radius * .5;
             double z = center.zCoord + Math.sin(a) * radius;
-            GL11.glColor4f(shade, shade, shade, .25F);
-            GL11.glBegin(GL11.GL_QUADS);
-            for (int face = 0; face < 6; face++) {
-                int axis = face / 2, sign = face % 2 == 0 ? -1 : 1;
-                for (int corner = 0; corner < 4; corner++) {
-                    double u = corner == 0 || corner == 3 ? -.025 : .025, v = corner < 2 ? -.025 : .025;
-                    GL11.glVertex3d(
-                        x + (axis == 0 ? sign * .025 : u),
-                        y + (axis == 1 ? sign * .025 : axis == 0 ? u : v),
-                        z + (axis == 2 ? sign * .025 : v));
-                }
-            }
-            GL11.glEnd();
+            cube(Vec3.createVectorHelper(x, y, z), shade, .25F, .05);
         }
+    }
+
+    /** Deterministic inward paths: four tiny cubes travel from ahead of the muzzle into its bore. */
+    static Vec3 reloadCubeCenter(EntityPlayer p, float partial, double travel, int cell) {
+        Vec3 muzzle = PortableWeaponRenderer.reloadMuzzle(p, partial);
+        WeaponPose.Physical pose = WeaponPose.physical(p, WeaponKind.SINGULARITY, partial);
+        double radius = .09 * (1 - travel), angle = cell * Math.PI / 2, depth = .24 * (1 - travel) - .025 * travel;
+        return muzzle.addVector(
+            pose.forward.xCoord * depth + pose.right.xCoord * Math.cos(angle) * radius
+                + pose.up.xCoord * Math.sin(angle) * radius,
+            pose.forward.yCoord * depth + pose.right.yCoord * Math.cos(angle) * radius
+                + pose.up.yCoord * Math.sin(angle) * radius,
+            pose.forward.zCoord * depth + pose.right.zCoord * Math.cos(angle) * radius
+                + pose.up.zCoord * Math.sin(angle) * radius);
+    }
+
+    private static void reloadCubes(EntityPlayer p, float partial, double time, float shade, float progress) {
+        float alpha = (float) (.18 * Math.sin((progress - .2) / .55 * Math.PI));
+        for (int cell = 0; cell < 4; cell++) {
+            double travel = (time * .12 + cell * .25) % 1;
+            cube(reloadCubeCenter(p, partial, travel, cell), shade, alpha, .025);
+        }
+    }
+
+    private static void cube(Vec3 center, float shade, float alpha, double halfSize) {
+        GL11.glColor4f(shade, shade, shade, alpha);
+        GL11.glBegin(GL11.GL_QUADS);
+        for (int face = 0; face < 6; face++) {
+            int axis = face / 2, sign = face % 2 == 0 ? -1 : 1;
+            for (int corner = 0; corner < 4; corner++) {
+                double u = corner == 0 || corner == 3 ? -halfSize : halfSize, v = corner < 2 ? -halfSize : halfSize;
+                GL11.glVertex3d(
+                    center.xCoord + (axis == 0 ? sign * halfSize : u),
+                    center.yCoord + (axis == 1 ? sign * halfSize : axis == 0 ? u : v),
+                    center.zCoord + (axis == 2 ? sign * halfSize : v));
+            }
+        }
+        GL11.glEnd();
     }
 }

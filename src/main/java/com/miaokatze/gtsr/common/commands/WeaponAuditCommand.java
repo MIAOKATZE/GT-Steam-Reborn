@@ -13,6 +13,7 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.SharedMonsterAttributes;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.monster.EntityZombie;
 import net.minecraft.entity.passive.EntityCow;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -24,7 +25,9 @@ import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.management.ItemInWorldManager;
+import net.minecraft.tileentity.TileEntityChest;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.DamageSource;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
@@ -36,10 +39,12 @@ import com.miaokatze.gtsr.common.weapons.EntityWeaponSingularity;
 import com.miaokatze.gtsr.common.weapons.PortableWeapons;
 import com.miaokatze.gtsr.common.weapons.Snapshot;
 import com.miaokatze.gtsr.common.weapons.WeaponController;
+import com.miaokatze.gtsr.common.weapons.WeaponDamageSource;
 import com.miaokatze.gtsr.common.weapons.WeaponEnchantments;
 import com.miaokatze.gtsr.common.weapons.WeaponKind;
 import com.miaokatze.gtsr.common.weapons.WeaponNetwork;
 import com.miaokatze.gtsr.common.weapons.WeaponPose;
+import com.miaokatze.gtsr.common.weapons.WeaponShotEnchantments;
 import com.mojang.authlib.GameProfile;
 
 import cpw.mods.fml.common.eventhandler.EventBus;
@@ -123,6 +128,9 @@ public final class WeaponAuditCommand extends CommandBase {
             captureNetwork();
             registrationAndEnchantments();
             newWeaponMechanics();
+            singularityEnchantments();
+            nativeFrozenLooting();
+            destructionDrops();
             for (WeaponKind kind : new WeaponKind[] { WeaponKind.LM12, WeaponKind.T20, WeaponKind.QLZ04 })
                 inventory(kind);
             movingAim();
@@ -256,20 +264,20 @@ public final class WeaponAuditCommand extends CommandBase {
         require(!projectile.isDead, "107 remote gesture waits 9 ticks");
         control(true, false, false);
         require(projectile.isDead, "107 remote detonation at tick 10 during automatic reload");
-        require(capturedState.remoteTicks == 20, "107 remote action continues for twenty ticks after trigger");
+        require(capturedState.remoteTicks == 40, "107 remote action continues for forty ticks after trigger");
         int nodes = 0;
         for (Object object : world.loadedEntityList)
             if (object instanceof EntityWeaponSingularity && !((Entity) object).isDead) nodes++;
-        for (int i = 0; i < 19; i++) control(false, false, false);
-        require(capturedState.remoteTicks == 1, "107 remote action still active at tick 29");
+        for (int i = 0; i < 39; i++) control(false, false, false);
+        require(capturedState.remoteTicks == 1, "107 remote action still active at tick 49");
         control(false, false, false);
-        require(capturedState.remoteTicks == 0, "107 remote action finishes at tick 30");
+        require(capturedState.remoteTicks == 0, "107 remote action finishes at tick 50");
         int after = 0;
         for (Object object : world.loadedEntityList)
             if (object instanceof EntityWeaponSingularity && !((Entity) object).isDead) after++;
         require(after == nodes && nodes == 1, "107 one remote action creates exactly one node");
-        // 12 held ticks + one release + 30 action ticks elapsed since the shot.
-        for (int i = 0; i < 56; i++) control(false, false, false);
+        // 12 held ticks + one release + 50 action ticks elapsed since the shot.
+        for (int i = 0; i < 36; i++) control(false, false, false);
         require(
             WeaponController.data(gun)
                 .getInteger("magazine") == 0,
@@ -342,6 +350,284 @@ public final class WeaponAuditCommand extends CommandBase {
             restored.readSpawnData(bytes);
             bytes.release();
             require(restored.critical() == critical, "107 node spawn type preserved");
+        }
+    }
+
+    private static final class LootingCow extends EntityCow {
+
+        int observedLooting = -1;
+
+        LootingCow(WorldServer world) {
+            super(world);
+        }
+
+        @Override
+        protected void dropFewItems(boolean playerKill, int looting) {
+            observedLooting = looting;
+            super.dropFewItems(playerKill, looting);
+        }
+    }
+
+    private LootingCow lootingCow() {
+        LootingCow cow = new LootingCow(world);
+        cow.setPosition(x + 2, 240, z);
+        cow.setHealth(1);
+        world.spawnEntityInWorld(cow);
+        owned.add(cow);
+        return cow;
+    }
+
+    private void nativeFrozenLooting() {
+        List<Entity> beforeDrops = new ArrayList<Entity>(world.loadedEntityList);
+        ItemStack previous = player.inventory.getCurrentItem();
+        boolean inserted = !world.loadedEntityList.contains(player);
+        if (inserted) world.loadedEntityList.add(player);
+        try {
+            for (WeaponKind kind : WeaponKind.values()) {
+                ItemStack gun = new ItemStack(PortableWeapons.weapons[kind.id]);
+                require(
+                    Enchantment.looting.canApply(gun) && Enchantment.looting.canApplyAtEnchantingTable(gun),
+                    "native woven looting applicability and table " + kind);
+                require(
+                    gun.getItem()
+                        .isBookEnchantable(gun, new ItemStack(Items.enchanted_book)),
+                    "native weapon book boundary " + kind);
+                gun.addEnchantment(Enchantment.looting, 3);
+                EntityWeaponProjectile shot = new EntityWeaponProjectile(world, player, kind, 100, 0, 0);
+                shot.freezeEnchantments(gun);
+                player.inventory.mainInventory[player.inventory.currentItem] = null;
+                LootingCow target = lootingCow();
+                EntityWeaponProjectile.applyDamage(target, 100, 0, 0, shot, player);
+                require(
+                    target.observedLooting == 3,
+                    "native projectile death uses launch looting after weapon switch " + kind);
+            }
+            for (int deathPhase = 0; deathPhase < 3; deathPhase++) {
+                LootingCow target = lootingCow();
+                // DOT, physical burst, then magic burst after physical survives at 1 health.
+                target.setHealth(deathPhase == 1 ? 3 : 1);
+                EntityWeaponSingularity core = new EntityWeaponSingularity(
+                    world,
+                    target.posX,
+                    target.posY + target.height * .5,
+                    target.posZ,
+                    player.getUniqueID(),
+                    false,
+                    new WeaponShotEnchantments(0, 0, 0, 0, 0, 3));
+                NBTTagCompound saved = new NBTTagCompound();
+                core.writeToNBT(saved);
+                saved.setInteger("age", deathPhase == 0 ? 19 : 159);
+                core.readFromNBT(saved);
+                // Final tick also deals DOT; offset its two damage for the magic-only death fixture.
+                if (deathPhase == 2) target.getEntityAttribute(SharedMonsterAttributes.maxHealth)
+                    .setBaseValue(100);
+                if (deathPhase == 2) target.setHealth(23);
+                core.onUpdate();
+                require(
+                    target.observedLooting == 3,
+                    "native singularity DOT/physical/magic death frozen looting phase " + deathPhase);
+                owned.add(core);
+                for (Entity entity : new ArrayList<Entity>(owned))
+                    if (entity instanceof LootingCow) world.removeEntity(entity);
+            }
+            ItemStack sword = new ItemStack(Items.diamond_sword);
+            sword.addEnchantment(Enchantment.looting, 1);
+            player.inventory.mainInventory[player.inventory.currentItem] = sword;
+            LootingCow nativeTarget = lootingCow();
+            nativeTarget.attackEntityFrom(DamageSource.causePlayerDamage(player), 100);
+            require(nativeTarget.observedLooting == 1, "ordinary native damage still reads currently held looting");
+            LootingCow frozenZero = lootingCow();
+            frozenZero.attackEntityFrom(new WeaponDamageSource("gtsr.portable", player, player, 0), 100);
+            require(frozenZero.observedLooting == 0, "unenchanted launch ignores later held looting sword");
+            LootingCow ownerlessProjectile = lootingCow();
+            ownerlessProjectile.attackEntityFrom(
+                new WeaponDamageSource("gtsr.portable", new EntityWeaponProjectile(world), null, 3),
+                100);
+            require(
+                ownerlessProjectile.observedLooting == 3,
+                "ownerless projectile native death retains frozen looting");
+            LootingCow ownerlessNodeTarget = lootingCow();
+            EntityWeaponSingularity ownerlessNode = new EntityWeaponSingularity(
+                world,
+                ownerlessNodeTarget.posX,
+                ownerlessNodeTarget.posY + ownerlessNodeTarget.height * .5,
+                ownerlessNodeTarget.posZ,
+                UUID.randomUUID(),
+                false,
+                new WeaponShotEnchantments(0, 0, 0, 0, 0, 3));
+            NBTTagCompound ownerlessSaved = new NBTTagCompound();
+            ownerlessNode.writeToNBT(ownerlessSaved);
+            ownerlessSaved.setInteger("age", 19);
+            ownerlessNode.readFromNBT(ownerlessSaved);
+            ownerlessNode.onUpdate();
+            owned.add(ownerlessNode);
+            require(
+                ownerlessNodeTarget.observedLooting == 3,
+                "unloaded owner singularity DOT native death retains frozen looting");
+            LootingCow ordinaryOwnerless = lootingCow();
+            ordinaryOwnerless.attackEntityFrom(DamageSource.magic, 100);
+            require(ordinaryOwnerless.observedLooting == 0, "ordinary ownerless native death keeps zero looting");
+            require(!Enchantment.looting.canApply(new ItemStack(Items.stick)), "looting ordinary item rule unchanged");
+        } finally {
+            player.inventory.mainInventory[player.inventory.currentItem] = previous;
+            if (inserted) world.loadedEntityList.remove(player);
+            for (Object object : world.loadedEntityList)
+                if (object instanceof EntityItem && !beforeDrops.contains(object)) owned.add((Entity) object);
+        }
+    }
+
+    private void destructionDrops() {
+        int bx = (int) Math.floor(x), bz = (int) Math.floor(z), by = 250;
+        List<Entity> before = new ArrayList<Entity>(world.loadedEntityList);
+        for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++)
+            require(world.isAirBlock(bx + dx, by, bz + dz), "destruction fixture uses only air");
+        try {
+            for (int level : new int[] { 1, 5 }) {
+                for (int dx = -2; dx <= 2; dx++)
+                    for (int dz = -2; dz <= 2; dz++) world.setBlock(bx + dx, by, bz + dz, Blocks.stone);
+                EntityWeaponSingularity core = new EntityWeaponSingularity(
+                    world,
+                    bx + .5,
+                    by + .5,
+                    bz + .5,
+                    player.getUniqueID(),
+                    false,
+                    new WeaponShotEnchantments(level, 0, 0, 0, 0, 0));
+                core.onUpdate();
+                int removed = 0;
+                for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) {
+                    if (world.isAirBlock(bx + dx, by, bz + dz)) removed++;
+                    world.setBlockToAir(bx + dx, by, bz + dz);
+                }
+                require(removed == 5 * level, "native destruction actual per-tick removal budget level " + level);
+                core.setDead();
+            }
+            world.setBlock(bx, by, bz, Blocks.obsidian);
+            world.setBlock(bx + 1, by, bz, Blocks.bedrock);
+            world.setBlock(bx - 1, by, bz, Blocks.chest);
+            ((TileEntityChest) world.getTileEntity(bx - 1, by, bz))
+                .setInventorySlotContents(0, new ItemStack(Items.diamond, 7));
+            EntityWeaponSingularity core = new EntityWeaponSingularity(
+                world,
+                bx + .5,
+                by + .5,
+                bz + .5,
+                player.getUniqueID(),
+                false,
+                new WeaponShotEnchantments(1, 0, 0, 0, 0, 0));
+            core.onUpdate();
+            require(
+                world.isAirBlock(bx, by, bz) && world.isAirBlock(bx - 1, by, bz)
+                    && world.getBlock(bx + 1, by, bz) == Blocks.bedrock,
+                "native absorption includes obsidian and excludes bedrock");
+            int stones = 0, obsidian = 0, diamonds = 0, chests = 0;
+            for (Object object : world.loadedEntityList) if (object instanceof EntityItem && !before.contains(object)) {
+                EntityItem drop = (EntityItem) object;
+                ItemStack stack = drop.getEntityItem();
+                if (stack.getItem() == net.minecraft.item.Item.getItemFromBlock(Blocks.cobblestone))
+                    stones += stack.stackSize;
+                if (stack.getItem() == net.minecraft.item.Item.getItemFromBlock(Blocks.obsidian))
+                    obsidian += stack.stackSize;
+                if (stack.getItem() == Items.diamond) diamonds += stack.stackSize;
+                if (stack.getItem() == net.minecraft.item.Item.getItemFromBlock(Blocks.chest))
+                    chests += stack.stackSize;
+            }
+            require(
+                stones == 30 && obsidian == 1 && diamonds == 7 && chests == 1,
+                "native 100-percent block drops and full container contents");
+        } finally {
+            for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) world.setBlockToAir(bx + dx, by, bz + dz);
+            for (Object object : new ArrayList<Object>(world.loadedEntityList))
+                if (object instanceof EntityItem && !before.contains(object)) {
+                    ((Entity) object).setDead();
+                    world.removeEntity((Entity) object);
+                }
+        }
+    }
+
+    private void singularityEnchantments() {
+        WeaponEnchantments[] additions = { WeaponEnchantments.destruction, WeaponEnchantments.diffusion,
+            WeaponEnchantments.duration, WeaponEnchantments.tearing, WeaponEnchantments.quenching };
+        for (WeaponEnchantments enchantment : additions) {
+            require(
+                Enchantment.enchantmentsList[enchantment.effectId] == enchantment && enchantment.getMaxLevel() == 5,
+                "107 dedicated enchantment registered at cap V");
+            for (WeaponKind kind : WeaponKind.values()) require(
+                enchantment.canApply(new ItemStack(PortableWeapons.weapons[kind.id]))
+                    == (kind == WeaponKind.SINGULARITY),
+                "107 dedicated enchantment weapon matrix");
+        }
+        require(EntityWeaponSingularity.absorbableHardness(50), "destruction hardness 50 included");
+        require(!EntityWeaponSingularity.absorbableHardness(50.01f), "destruction hardness over 50 excluded");
+        require(!EntityWeaponSingularity.absorbableHardness(-1), "destruction negative hardness excluded");
+        for (int level : new int[] { 1, 5 }) for (boolean critical : new boolean[] { false, true }) {
+            ItemStack gun = new ItemStack(PortableWeapons.weapons[WeaponKind.SINGULARITY.id]);
+            for (WeaponEnchantments enchantment : additions) gun.addEnchantment(enchantment, level);
+            gun.addEnchantment(Enchantment.looting, 3);
+            EntityWeaponProjectile projectile = new EntityWeaponProjectile(
+                world,
+                player,
+                WeaponKind.SINGULARITY,
+                0,
+                0,
+                0);
+            projectile.freezeEnchantments(gun);
+            // Mutating the launch stack after capture must not change either persisted entity.
+            gun.setTagCompound(null);
+            require(
+                projectile.enchantments().duration == level && projectile.enchantments().looting == 3,
+                "shot enchantments frozen before weapon replacement");
+            NBTTagCompound saved = new NBTTagCompound();
+            projectile.writeToNBT(saved);
+            EntityWeaponProjectile restoredProjectile = new EntityWeaponProjectile(world);
+            restoredProjectile.readFromNBT(saved);
+            require(
+                restoredProjectile.enchantments().quenching == level && restoredProjectile.enchantments().looting == 3,
+                "projectile frozen enchantments NBT");
+            ByteBuf bytes = Unpooled.buffer();
+            projectile.writeSpawnData(bytes);
+            restoredProjectile.readSpawnData(bytes);
+            bytes.release();
+            require(restoredProjectile.enchantments().destruction == level, "projectile frozen enchantments spawn");
+            EntityCow center = cow(0, 0);
+            center.getEntityAttribute(SharedMonsterAttributes.maxHealth)
+                .setBaseValue(1000);
+            center.setHealth(1000);
+            EntityWeaponSingularity node = new EntityWeaponSingularity(
+                world,
+                center.posX,
+                center.posY + center.height * .5,
+                center.posZ,
+                player.getUniqueID(),
+                critical,
+                projectile.enchantments());
+            owned.add(node);
+            require(
+                node.duration() == 160 + 30 * level && node.blockBudget() == 5 * level,
+                "107 duration and actual block budget level " + level);
+            close((float) node.absorptionRadius(), (critical ? 10 : 5) + level, "107 diffusion radius");
+            for (int i = 0; i < node.duration(); i++) node.onUpdate();
+            close(
+                center.getHealth(),
+                1000 - (node.duration() / 20) * (critical ? 5 : 2) * (1 + .2f * level)
+                    - ((critical ? 50 : 20) + (critical ? 15 : 5)) * (1 + .2f * level),
+                "107 level I/V native DOT plus scaled physical and magic burst");
+            require(node.isDead, "enchanted core dynamic lifetime ends exactly");
+            node.writeToNBT(saved);
+            EntityWeaponSingularity restored = new EntityWeaponSingularity(world);
+            restored.readFromNBT(saved);
+            require(
+                restored.duration() == node.duration() && restored.enchantments().looting == 3,
+                "node frozen enchants NBT");
+            bytes = Unpooled.buffer();
+            node.writeSpawnData(bytes);
+            restored.readSpawnData(bytes);
+            bytes.release();
+            require(
+                restored.duration() == node.duration() && restored.enchantments().tearing == level,
+                "node frozen enchants spawn");
+            center.setDead();
+            world.removeEntity(center);
         }
     }
 
