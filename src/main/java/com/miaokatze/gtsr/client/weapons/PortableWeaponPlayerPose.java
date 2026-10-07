@@ -77,7 +77,13 @@ public final class PortableWeaponPlayerPose {
 
     private static Vec3 leftHand(EntityPlayer p, WeaponKind kind, float partial) {
         float progress = PortableWeaponClient.reloadProgress(p, partial);
-        if (progress <= 0) return WeaponPose.localSupport();
+        if (kind == WeaponKind.SINGULARITY) {
+            float remote = PortableWeaponClient.remoteProgress(p, partial);
+            if (remote > 0) return Vec3.createVectorHelper(-.75 + Math.sin(remote * Math.PI * 8) * .04, .55, -.65);
+            // The right hand alone raises and charges the controller; left hand stays at the player's side.
+            return Vec3.createVectorHelper(-1.05, .28, .50);
+        }
+        if (progress <= 0) return Vec3.createVectorHelper(-1.05, .28, .50);
         double reach = Math.sin(progress * Math.PI);
         if (progress > .7 && kind != WeaponKind.QLZ04)
             return Vec3.createVectorHelper(.235, .03, .65 + Math.sin((progress - .7) / .3 * Math.PI) * .18);
@@ -122,6 +128,7 @@ public final class PortableWeaponPlayerPose {
                 Vec3 shoulder = eye.addVector(r.xCoord * .31 * sign, -.20, r.zCoord * .31 * sign);
                 Vec3 target = side == 0 ? grip : support;
                 Vec3 hand = WeaponPose.modelPoint(p, partial, target.xCoord, target.yCoord, target.zCoord);
+                hand = PortableWeaponRenderer.viewPoint(p, partial, hand);
                 Vec3 elbow = Vec3.createVectorHelper(
                     (shoulder.xCoord + hand.xCoord) / 2 + r.xCoord * .12 * sign,
                     (shoulder.yCoord + hand.yCoord) / 2 - .16,

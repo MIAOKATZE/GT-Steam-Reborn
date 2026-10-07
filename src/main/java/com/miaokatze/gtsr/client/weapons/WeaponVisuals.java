@@ -18,7 +18,6 @@ import com.miaokatze.gtsr.client.weapons.outpost.CurvedAimTrajectoryRenderer;
 import com.miaokatze.gtsr.client.weapons.outpost.EffectBudgets;
 import com.miaokatze.gtsr.client.weapons.outpost.EntityMuzzleFlash;
 import com.miaokatze.gtsr.client.weapons.outpost.EntityVisualCasing;
-import com.miaokatze.gtsr.client.weapons.outpost.ExplosionEffectFactory;
 import com.miaokatze.gtsr.client.weapons.outpost.FxEntityWorldPass;
 import com.miaokatze.gtsr.client.weapons.outpost.GatlingFxProfile;
 import com.miaokatze.gtsr.client.weapons.outpost.MotorLoopSound;
@@ -179,11 +178,13 @@ public final class WeaponVisuals {
         flashes.removeIf(f -> f.isDead);
         Minecraft mc = Minecraft.getMinecraft();
         tickMotors();
+        SingularityWeaponFx.tick(mc.theWorld);
         int budget = 64;
         for (Object object : mc.theWorld.loadedEntityList.toArray()) {
             if (budget <= 0) break;
             if (object instanceof EntityWeaponProjectile && !((Entity) object).isDead) {
-                ProjectileTrailFx.tick((Entity) object);
+                WeaponKind kind = ((EntityWeaponProjectile) object).kind();
+                if (kind != WeaponKind.T20 && kind != WeaponKind.SINGULARITY) ProjectileTrailFx.tick((Entity) object);
                 budget--;
             }
         }
@@ -191,26 +192,67 @@ public final class WeaponVisuals {
 
     void effect(Effect e, WeaponKind kind) {
         Minecraft mc = Minecraft.getMinecraft();
+        if (e.type == 4) {
+            Entity entity = mc.theWorld.getEntityByID(e.entityId);
+            if (entity instanceof EntityPlayer) {
+                net.minecraft.util.Vec3 hand = com.miaokatze.gtsr.common.weapons.WeaponPose
+                    .modelPoint((EntityPlayer) entity, 1, -.75, .55, -.65);
+                hand = PortableWeaponRenderer.viewPoint((EntityPlayer) entity, 1, hand);
+                for (int i = 0; i < 16; i++) mc.theWorld.spawnParticle(
+                    "portal",
+                    hand.xCoord,
+                    hand.yCoord,
+                    hand.zCoord,
+                    (mc.theWorld.rand.nextDouble() - .5) * .2,
+                    (mc.theWorld.rand.nextDouble() - .5) * .2,
+                    (mc.theWorld.rand.nextDouble() - .5) * .2);
+            }
+            return;
+        }
         if (e.type == 2) {
             sound(e.x, e.y, e.z, "reload_done", .4F, 1);
             return;
         }
         if (e.type == 1) {
             if (kind != WeaponKind.LM12) {
-                if (kind == WeaponKind.QLZ04) QlzImpactFx.impact(mc.theWorld, e.x, e.y, e.z);
-                else ExplosionEffectFactory.spawnExplosion(mc.theWorld, e.x, e.y, e.z, false);
+                QlzImpactFx.impact(
+                    mc.theWorld,
+                    e.x,
+                    e.y,
+                    e.z,
+                    kind == WeaponKind.T20 ? .25F : kind == WeaponKind.SINGULARITY ? 3 : 2);
                 mc.theWorld.playSound(e.x, e.y, e.z, "random.explode", .7F, 1.2F, false);
             }
             return;
         }
         if (e.type != 0 || shotBudget++ >= 64) return;
-        // xyz is the server's shared WeaponPose muzzle, ejectXYZ its measured ejection port.
+        Entity shooter = mc.theWorld.getEntityByID(e.entityId);
+        net.minecraft.util.Vec3 muzzle = net.minecraft.util.Vec3.createVectorHelper(e.x, e.y, e.z);
+        net.minecraft.util.Vec3 eject = net.minecraft.util.Vec3.createVectorHelper(e.ejectX, e.ejectY, e.ejectZ);
+        if (shooter instanceof EntityPlayer) {
+            muzzle = PortableWeaponRenderer.viewPoint((EntityPlayer) shooter, 1, muzzle);
+            eject = PortableWeaponRenderer.viewPoint((EntityPlayer) shooter, 1, eject);
+        }
+        // First-person visual effects follow the camera presentation; the projectile keeps its world muzzle.
         if (flashes.size() < 128) {
-            EntityMuzzleFlash flash = new EntityMuzzleFlash(mc.theWorld, e.x, e.y, e.z, -e.yaw);
+            EntityMuzzleFlash flash = new EntityMuzzleFlash(
+                mc.theWorld,
+                muzzle.xCoord,
+                muzzle.yCoord,
+                muzzle.zCoord,
+                -e.yaw);
+            flash.getEntityData()
+                .setBoolean("gtsr.smallFlash", kind == WeaponKind.T20 || kind == WeaponKind.SINGULARITY);
             if (mc.theWorld.spawnEntityInWorld(flash)) flashes.add(flash);
         }
-        if (casings.size() < 48) {
-            EntityVisualCasing casing = new EntityVisualCasing(mc.theWorld, e.ejectX, e.ejectY, e.ejectZ, -e.yaw, true);
+        if (kind != WeaponKind.SINGULARITY && casings.size() < 48) {
+            EntityVisualCasing casing = new EntityVisualCasing(
+                mc.theWorld,
+                eject.xCoord,
+                eject.yCoord,
+                eject.zCoord,
+                -e.yaw,
+                true);
             casing.getEntityData()
                 .setBoolean("gtsr.heavyCasing", kind == WeaponKind.T20);
             if (mc.theWorld.spawnEntityInWorld(casing)) casings.add(casing);
@@ -220,7 +262,8 @@ public final class WeaponVisuals {
         double[] dir = { -Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch) };
         int life = GatlingFxProfile.MUZZLESMOKE_LIFE_MIN + mc.theWorld.rand
             .nextInt(GatlingFxProfile.MUZZLESMOKE_LIFE_MAX - GatlingFxProfile.MUZZLESMOKE_LIFE_MIN + 1);
-        if (EffectBudgets.BLAST.acquire(mc.theWorld.getTotalWorldTime(), life)) {
+        if (kind != WeaponKind.T20 && kind != WeaponKind.SINGULARITY
+            && EffectBudgets.BLAST.acquire(mc.theWorld.getTotalWorldTime(), life)) {
             double[] jitter = new double[3], motion = new double[3];
             for (int i = 0; i < 3; i++) {
                 jitter[i] = (mc.theWorld.rand.nextDouble() - .5) * 2 * GatlingFxProfile.MUZZLESMOKE_JITTER;
@@ -230,9 +273,9 @@ public final class WeaponVisuals {
             motion[1] += GatlingFxProfile.MUZZLESMOKE_RISE;
             boolean spawned = SmokePuffEntity.spawn(
                 mc.theWorld,
-                e.x + dir[0] * GatlingFxProfile.MUZZLESMOKE_SPAWN_FORWARD + jitter[0],
-                e.y + dir[1] * GatlingFxProfile.MUZZLESMOKE_SPAWN_FORWARD + jitter[1],
-                e.z + dir[2] * GatlingFxProfile.MUZZLESMOKE_SPAWN_FORWARD + jitter[2],
+                muzzle.xCoord + dir[0] * GatlingFxProfile.MUZZLESMOKE_SPAWN_FORWARD + jitter[0],
+                muzzle.yCoord + dir[1] * GatlingFxProfile.MUZZLESMOKE_SPAWN_FORWARD + jitter[1],
+                muzzle.zCoord + dir[2] * GatlingFxProfile.MUZZLESMOKE_SPAWN_FORWARD + jitter[2],
                 motion[0],
                 motion[1],
                 motion[2],

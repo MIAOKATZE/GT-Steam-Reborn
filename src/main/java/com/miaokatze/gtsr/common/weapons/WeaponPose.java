@@ -7,7 +7,7 @@ import net.minecraft.util.Vec3;
 /** Shared physical gun transform: model +Y up, -Z muzzle. FOV never moves this transform. */
 public final class WeaponPose {
 
-    public static final double SCALE = .72, RIGHT = .26, UP = -.34, FORWARD = .50;
+    public static final double SCALE = .72, RIGHT = .46, UP = -1.08, FORWARD = .38;
 
     private WeaponPose() {}
 
@@ -43,10 +43,10 @@ public final class WeaponPose {
 
     public static Vec3 modelPoint(EntityPlayer p, float partial, double x, double y, double z) {
         Vec3 eye = eye(p, partial), r = right(p, partial), u = up(p, partial), f = forward(p, partial);
-        double rx = RIGHT + SCALE * x, uy = UP + SCALE * y, fz = FORWARD - SCALE * z;
+        double rx = RIGHT + SCALE * x, uy = SCALE * y, fz = FORWARD - SCALE * z;
         return eye.addVector(
             r.xCoord * rx + u.xCoord * uy + f.xCoord * fz,
-            r.yCoord * rx + u.yCoord * uy + f.yCoord * fz,
+            UP + r.yCoord * rx + u.yCoord * uy + f.yCoord * fz,
             r.zCoord * rx + u.zCoord * uy + f.zCoord * fz);
     }
 
@@ -56,13 +56,14 @@ public final class WeaponPose {
 
     /** Mean of existing barrel minimum-Z end vertices, measured from actual v87/v88 OBJ. */
     public static Vec3 localMuzzle(WeaponKind kind) {
+        if (kind == WeaponKind.SINGULARITY) return Vec3.createVectorHelper(0, .076875, -1.359375);
         if (kind == WeaponKind.T20) return Vec3.createVectorHelper(-.0003125125, .076875, -1.359375);
         if (kind == WeaponKind.QLZ04) return Vec3.createVectorHelper(0, .0006249125, -1.325);
         return Vec3.createVectorHelper(0, -.0006249854, -1.328125);
     }
 
     public static Vec3 localGrip() {
-        return Vec3.createVectorHelper(0, -.43, .79);
+        return Vec3.createVectorHelper(0, .34, .28);
     }
 
     public static Vec3 localSupport() {

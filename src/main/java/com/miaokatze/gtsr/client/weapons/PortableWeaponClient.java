@@ -42,6 +42,10 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         "key.gtsr.weapon.reload",
         Keyboard.KEY_R,
         "key.categories.gtsr.weapons");
+    private static final KeyBinding SWITCH_AMMO = new KeyBinding(
+        "key.gtsr.weapon.switch",
+        Keyboard.KEY_V,
+        "key.categories.gtsr.weapons");
     private static final WeaponVisuals VISUALS = new WeaponVisuals();
     private static boolean registered;
     private static Object world;
@@ -66,6 +70,7 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         registered = true;
         PortableWeaponClient client = new PortableWeaponClient();
         ClientRegistry.registerKeyBinding(RELOAD);
+        ClientRegistry.registerKeyBinding(SWITCH_AMMO);
         VISUALS.register();
         MinecraftForge.EVENT_BUS.register(client);
         MinecraftForge.EVENT_BUS.register(VISUALS);
@@ -220,7 +225,8 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         boolean active = kind != null && mc.currentScreen == null && mc.inGameHasFocus && player.isEntityAlive();
         boolean firing = active && Mouse.isButtonDown(0);
         boolean focusing = active && Mouse.isButtonDown(1);
-        boolean reload = false;
+        boolean reload = false, switchAmmo = false;
+        while (SWITCH_AMMO.isPressed()) switchAmmo |= active;
         while (RELOAD.isPressed()) reload |= active;
         int slot = player.inventory.currentItem;
         if (lastSlot >= 0 && (slot != lastSlot || kind != lastKind || !active)) {
@@ -229,8 +235,11 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
             State local = STATES.get(player.getEntityId());
             if (local != null && (slot != lastSlot || kind != lastKind)) local.snapshot = null;
         }
-        if (active && (reload || slot != lastSlot || firing != lastFire || focusing != lastFocus || clock % 5 == 0))
-            WeaponNetwork.sendControls(slot, firing, focusing, reload);
+        if (active && (reload || switchAmmo
+            || slot != lastSlot
+            || firing != lastFire
+            || focusing != lastFocus
+            || clock % 5 == 0)) WeaponNetwork.sendControls(slot, firing, focusing, reload, switchAmmo);
         lastSlot = active ? slot : -1;
         lastKind = kind;
         lastFire = firing;
@@ -243,6 +252,28 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         }
         VISUALS.controls(player, active, firing, kind);
         VISUALS.tick();
+    }
+
+    public static float remoteProgress(EntityPlayer player, float partial) {
+        State state = player == null ? null : STATES.get(player.getEntityId());
+        Snapshot s = snapshot(player);
+        if (state == null || s == null || s.remoteTicks <= 0) return 0;
+        return clamp(1 - (s.remoteTicks - (clock - state.received) - partial) / 10F);
+    }
+
+    private static boolean hasAlternative(EntityPlayer p, WeaponKind kind) {
+        boolean first = false, second = false;
+        for (net.minecraft.item.ItemStack stack : p.inventory.mainInventory) {
+            if (stack == null) continue;
+            if (kind == WeaponKind.SINGULARITY) {
+                first |= stack.getItem() instanceof com.miaokatze.gtsr.common.items.SteamEntangledSingularity;
+                second |= stack.getItem() instanceof com.miaokatze.gtsr.common.items.CriticalSteamEntangledSingularity;
+            } else if (PortableWeapons.ammoKind(stack) == kind) {
+                if (stack.getItem() == PortableWeapons.mimicAmmo[kind.id]) second = true;
+                else first = true;
+            }
+        }
+        return first && second;
     }
 
     private static State getState(int id) {
@@ -289,7 +320,26 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         try (GlScope scope = new GlScope()) {
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             float gap = 5 + 8 * (1 - focusProgress());
-            for (int i = 0; i < 4; i++) {
+            WeaponKind held = PortableWeapons.kind(mc.thePlayer.getHeldItem());
+            if (held == WeaponKind.QLZ04 || held == WeaponKind.SINGULARITY) {
+                int spacing = held == WeaponKind.SINGULARITY ? 14 : 9;
+                GL11.glDisable(GL11.GL_TEXTURE_2D);
+                GL11.glColor4f(.35F, .95F, .8F, .95F);
+                GL11.glLineWidth(1.5F);
+                GL11.glBegin(GL11.GL_LINES);
+                GL11.glVertex2f(x - 5, y);
+                GL11.glVertex2f(x + 5, y);
+                for (int i = 1; i <= 4; i++) {
+                    int d = i * spacing, w = 5 + i * 3;
+                    GL11.glVertex2f(x - w, y + d - 4);
+                    GL11.glVertex2f(x - w + 3, y + d);
+                    GL11.glVertex2f(x - w + 3, y + d);
+                    GL11.glVertex2f(x + w - 3, y + d);
+                    GL11.glVertex2f(x + w - 3, y + d);
+                    GL11.glVertex2f(x + w, y + d - 4);
+                }
+                GL11.glEnd();
+            } else for (int i = 0; i < 4; i++) {
                 double a = i * Math.PI / 2;
                 for (int p = 0; p < 7; p++) {
                     int px = x + (int) Math.round(Math.cos(a) * (gap + p));
@@ -309,14 +359,32 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
                 s == null ? 0 : s.heat);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             String ammo = s == null ? "-- / --" : s.magazine + " / " + s.reserve;
-            mc.fontRenderer.drawStringWithShadow(ammo, x - mc.fontRenderer.getStringWidth(ammo) / 2, y + 42, 0xD6FFEE);
+            mc.fontRenderer.drawStringWithShadow(
+                ammo,
+                x - mc.fontRenderer.getStringWidth(ammo) / 2,
+                y + (held == WeaponKind.SINGULARITY ? 70 : 48),
+                0xD6FFEE);
+            if (s != null) {
+                String selected = StatCollector.translateToLocal(
+                    "gtsr.weapon.ammo."
+                        + (held == WeaponKind.SINGULARITY ? (s.ammoType == 1 ? "critical" : "singularity")
+                            : (s.ammoType == 1 ? "mimic" : "portable")));
+                if (hasAlternative(mc.thePlayer, held)) selected += "  " + StatCollector.translateToLocalFormatted(
+                    "gtsr.weapon.switch_hint",
+                    Keyboard.getKeyName(SWITCH_AMMO.getKeyCode()));
+                mc.fontRenderer.drawStringWithShadow(
+                    selected,
+                    x - mc.fontRenderer.getStringWidth(selected) / 2,
+                    y + (held == WeaponKind.SINGULARITY ? 94 : 72),
+                    s.ammoType == 1 ? 0xD7ACFF : 0xD6FFEE);
+            }
             if (s != null && (s.overheated || s.reloadTicks > 0)) {
                 String text = StatCollector
                     .translateToLocal(s.overheated ? "gtsr.weapon.overheated" : "gtsr.weapon.reloading");
                 mc.fontRenderer.drawStringWithShadow(
                     text,
                     x - mc.fontRenderer.getStringWidth(text) / 2,
-                    y + 54,
+                    y + (held == WeaponKind.SINGULARITY ? 82 : 60),
                     s.overheated ? 0xFF7040 : 0xFFECAA);
             }
         }

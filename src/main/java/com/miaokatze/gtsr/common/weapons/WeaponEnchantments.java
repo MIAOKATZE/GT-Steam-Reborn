@@ -78,7 +78,7 @@ public final class WeaponEnchantments extends Enchantment {
 
     @Override
     public boolean canApply(ItemStack s) {
-        return PortableWeapons.kind(s) != null;
+        return PortableWeapons.kind(s) != null && (PortableWeapons.kind(s) != WeaponKind.SINGULARITY || category == 3);
     }
 
     @Override
@@ -93,7 +93,7 @@ public final class WeaponEnchantments extends Enchantment {
     }
 
     public static int level(ItemStack s, WeaponEnchantments e) {
-        return e == null ? 0
+        return e == null || (PortableWeapons.kind(s) == WeaponKind.SINGULARITY && e.category != 3) ? 0
             : Math.max(0, Math.min(e.getMaxLevel(), EnchantmentHelper.getEnchantmentLevel(e.effectId, s)));
     }
 

@@ -2,9 +2,10 @@ package com.miaokatze.gtsr.common.weapons;
 
 public enum WeaponKind {
 
-    LM12(0, "lm12", 2, 5, 1, 200, 5, 0, 50),
-    T20(1, "t20", 10, 8, 8, 100, 4, .005, 50),
-    QLZ04(2, "qlz04", 12, 10, 12, 30, 1.5, .035, 40);
+    LM12(0, "lm12", 2, 5, 1, 500, 15, 0, 50),
+    T20(1, "t20", 10, 8, 8, 160, 12, .005, 50),
+    QLZ04(2, "qlz04", 12, 10, 12, 60, 3, .035, 40),
+    SINGULARITY(3, "singularity", 0, 0, 20, 1, .45, .00315, 100);
 
     public final int id, interval, capacity, reloadTicks;
     public final String modelKey;

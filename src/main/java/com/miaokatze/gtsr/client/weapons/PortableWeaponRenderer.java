@@ -18,6 +18,7 @@ import net.minecraftforge.client.model.IModelCustom;
 import org.lwjgl.opengl.GL11;
 
 import com.miaokatze.gtsr.common.weapons.EntityWeaponProjectile;
+import com.miaokatze.gtsr.common.weapons.EntityWeaponSingularity;
 import com.miaokatze.gtsr.common.weapons.PortableWeapons;
 import com.miaokatze.gtsr.common.weapons.Snapshot;
 import com.miaokatze.gtsr.common.weapons.WeaponKind;
@@ -38,10 +39,15 @@ public final class PortableWeaponRenderer implements IItemRenderer {
         PortableWeaponPlayerPose.register();
         for (WeaponKind kind : WeaponKind.values()) {
             MinecraftForgeClient.registerItemRenderer(PortableWeapons.weapons[kind.id], renderer);
-            MinecraftForgeClient.registerItemRenderer(PortableWeapons.ammo[kind.id], renderer);
+            if (kind.id < PortableWeapons.ammo.length) {
+                MinecraftForgeClient.registerItemRenderer(PortableWeapons.ammo[kind.id], renderer);
+                MinecraftForgeClient.registerItemRenderer(PortableWeapons.mimicAmmo[kind.id], renderer);
+            }
         }
         RenderingRegistry
             .registerEntityRenderingHandler(EntityWeaponProjectile.class, new PortableProjectileRenderer());
+        RenderingRegistry
+            .registerEntityRenderingHandler(EntityWeaponSingularity.class, new PortableSingularityRenderer());
     }
 
     public boolean handleRenderType(ItemStack stack, ItemRenderType type) {
@@ -90,9 +96,7 @@ public final class PortableWeaponRenderer implements IItemRenderer {
             }
             bind(kind.modelKey);
             if (ammo) {
-                GL11.glScalef(2, 2, 2);
-                GL11.glTranslatef(kind == WeaponKind.QLZ04 ? -.27F : -.31F, .23F, -.23F);
-                part(kind.modelKey, "magazine");
+                WeaponMeshes.ammoPack(kind, stack.getItem() == PortableWeapons.mimicAmmo[kind.id]);
             } else {
                 drawWeapon(kind, player, partial, reload);
             }
@@ -110,6 +114,7 @@ public final class PortableWeaponRenderer implements IItemRenderer {
         GL11.glPushMatrix();
         try {
             Vec3 origin = WeaponPose.origin(player, partial);
+            if (firstPerson) origin = viewPoint(player, partial, origin);
             GL11.glTranslated(
                 origin.xCoord - RenderManager.renderPosX,
                 origin.yCoord - RenderManager.renderPosY,
@@ -133,8 +138,56 @@ public final class PortableWeaponRenderer implements IItemRenderer {
             PortableWeaponPlayerPose.renderArms((AbstractClientPlayer) player, kind, partial);
     }
 
+    /** Camera presentation keeps a carried hip weapon visible; authoritative world pose stays at the hip. */
+    static Vec3 viewPoint(EntityPlayer player, float partial, Vec3 point) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (player != mc.thePlayer || mc.gameSettings.thirdPersonView != 0 || mc.renderViewEntity != player)
+            return point;
+        Vec3 r = WeaponPose.right(player, partial), u = WeaponPose.up(player, partial),
+            f = WeaponPose.forward(player, partial);
+        double extraForward = PortableWeapons.kind(player.getHeldItem()) == WeaponKind.SINGULARITY
+            ? .65 * Math.sin(PortableWeaponClient.reloadProgress(player, partial) * Math.PI)
+            : 0;
+        return point.addVector(
+            r.xCoord * (.38 - WeaponPose.RIGHT) - u.xCoord * .30 + f.xCoord * (.95 + extraForward - WeaponPose.FORWARD),
+            -WeaponPose.UP - u.yCoord * .30 + f.yCoord * (.95 + extraForward - WeaponPose.FORWARD),
+            r.zCoord * (.38 - WeaponPose.RIGHT) - u.zCoord * .30
+                + f.zCoord * (.95 + extraForward - WeaponPose.FORWARD));
+    }
+
+    static float reloadAngle(EntityPlayer player, float progress) {
+        Minecraft mc = Minecraft.getMinecraft();
+        boolean firstPerson = player == mc.thePlayer && mc.gameSettings.thirdPersonView == 0
+            && mc.renderViewEntity == player;
+        return (float) Math.sin(progress * Math.PI) * (firstPerson ? 50 : 78);
+    }
+
+    static Vec3 reloadMuzzle(EntityPlayer player, float partial) {
+        Vec3 local = WeaponPose.localMuzzle(WeaponKind.SINGULARITY), grip = WeaponPose.localGrip();
+        double a = Math.toRadians(reloadAngle(player, PortableWeaponClient.reloadProgress(player, partial)));
+        double y = local.yCoord - grip.yCoord, z = local.zCoord - grip.zCoord;
+        return viewPoint(
+            player,
+            partial,
+            WeaponPose.modelPoint(
+                player,
+                partial,
+                local.xCoord,
+                grip.yCoord + y * Math.cos(a) - z * Math.sin(a),
+                grip.zCoord + y * Math.sin(a) + z * Math.cos(a)));
+    }
+
     private static void drawWeapon(WeaponKind kind, EntityPlayer player, float partial, float reload) {
+        if (kind == WeaponKind.SINGULARITY && reload > 0) {
+            Vec3 grip = WeaponPose.localGrip();
+            GL11.glTranslated(grip.xCoord, grip.yCoord, grip.zCoord);
+            GL11.glRotatef(reloadAngle(player, reload), 1, 0, 0);
+            GL11.glTranslated(-grip.xCoord, -grip.yCoord, -grip.zCoord);
+        }
+        String meshKey = kind == WeaponKind.SINGULARITY ? "t20" : kind.modelKey;
         for (String part : PARTS) {
+            if ("grip".equals(part) || "stock".equals(part) || "support_hand".equals(part)) continue;
+            if (kind == WeaponKind.SINGULARITY && ("belt".equals(part) || "magazine".equals(part))) continue;
             GL11.glPushMatrix();
             try {
                 if ("barrel".equals(part) && kind == WeaponKind.LM12) {
@@ -156,18 +209,24 @@ public final class PortableWeaponRenderer implements IItemRenderer {
                 }
                 if ("charging_handle".equals(part))
                     GL11.glTranslatef(0, 0, reload > .7F ? (float) Math.sin((reload - .7F) / .3F * Math.PI) * .18F : 0);
-                part(kind.modelKey, part);
+                if (kind == WeaponKind.SINGULARITY && "barrel".equals(part)) {
+                    GL11.glTranslatef(0, .076875F, 0);
+                    GL11.glScalef(1.7F, 1.7F, 1);
+                    GL11.glTranslatef(0, -.076875F, 0);
+                }
+                part(meshKey, part);
                 if ("barrel".equals(part) && player != null) renderHeat(kind, player);
             } finally {
                 GL11.glPopMatrix();
             }
         }
+        WeaponMeshes.carryHandle(kind);
     }
 
     private static void renderHeat(WeaponKind kind, EntityPlayer player) {
         Snapshot snapshot = PortableWeaponClient.snapshot(player);
         float h = snapshot == null ? 0 : Math.max(0, Math.min(1, snapshot.heat));
-        if (h <= 0) return;
+        if (h <= 0 || kind == WeaponKind.SINGULARITY) return;
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
         try {
             Minecraft.getMinecraft()
@@ -188,6 +247,7 @@ public final class PortableWeaponRenderer implements IItemRenderer {
     }
 
     static void bind(String key) {
+        if ("singularity".equals(key)) key = "t20";
         Minecraft.getMinecraft()
             .getTextureManager()
             .bindTexture(new ResourceLocation("gtsr", "textures/weapons/" + key + ".png"));

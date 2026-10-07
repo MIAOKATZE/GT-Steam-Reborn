@@ -18,20 +18,31 @@ import cpw.mods.fml.common.registry.GameRegistry;
 
 public final class PortableWeapons {
 
-    public static final Item[] weapons = new Item[3], ammo = new Item[3];
+    public static final Item[] weapons = new Item[4], ammo = new Item[3], mimicAmmo = new Item[3];
     private static boolean initialized;
 
     public static void registerItems() {
         if (weapons[0] != null) return;
-        String[] w = { "PortableLM12", "PortableT20", "PortableQLZ04" },
+        String[] w = { "PortableLM12", "PortableT20", "PortableQLZ04", "PortableSingularity" },
             a = { "Ammo762Pack", "Ammo20Pack", "Ammo35Pack" };
         for (WeaponKind k : WeaponKind.values()) {
             weapons[k.id] = new WeaponItem(k).setUnlocalizedName("gtsr." + w[k.id])
                 .setTextureName("gtsr:SteamEntangledSingularity");
-            ammo[k.id] = new AmmoItem(k).setUnlocalizedName("gtsr." + a[k.id])
+            if (k == WeaponKind.SINGULARITY) {
+                GameRegistry.registerItem(weapons[k.id], w[k.id]);
+                com.miaokatze.gtsr.common.api.enums.GTSRItemList.PortableSingularity.set(weapons[k.id]);
+                continue;
+            }
+            ammo[k.id] = new AmmoItem(k, false).setUnlocalizedName("gtsr." + a[k.id])
                 .setTextureName("gtsr:SteamEntangledSingularity");
             GameRegistry.registerItem(weapons[k.id], w[k.id]);
             GameRegistry.registerItem(ammo[k.id], a[k.id]);
+            String mimicName = "Mimic" + a[k.id];
+            mimicAmmo[k.id] = new AmmoItem(k, true).setUnlocalizedName("gtsr." + mimicName)
+                .setTextureName("gtsr:SteamEntangledSingularity");
+            GameRegistry.registerItem(mimicAmmo[k.id], mimicName);
+            com.miaokatze.gtsr.common.api.enums.GTSRItemList.valueOf(mimicName)
+                .set(mimicAmmo[k.id]);
             com.miaokatze.gtsr.common.api.enums.GTSRItemList.valueOf(w[k.id])
                 .set(weapons[k.id]);
             com.miaokatze.gtsr.common.api.enums.GTSRItemList.valueOf(a[k.id])
@@ -55,6 +66,17 @@ public final class PortableWeapons {
             96,
             1,
             true);
+        EntityRegistry.registerModEntity(
+            EntityWeaponSingularity.class,
+            "PortableWeaponSingularity",
+            45,
+            Loader.instance()
+                .getIndexedModList()
+                .get(GTSteamReborn.MODID)
+                .getMod(),
+            96,
+            1,
+            false);
         FMLCommonHandler.instance()
             .bus()
             .register(new WeaponController());
@@ -86,6 +108,11 @@ public final class PortableWeapons {
         @Override
         public void addInformation(ItemStack stack, EntityPlayer player, List lines, boolean advanced) {
             lines.add(StatCollector.translateToLocal("gtsr.weapon.tooltip." + kind.modelKey));
+            if (kind == WeaponKind.SINGULARITY) {
+                lines.add(StatCollector.translateToLocal("gtsr.weapon.tooltip.singularity.stats"));
+                lines.add(StatCollector.translateToLocal("gtsr.weapon.tooltip.singularity.controls"));
+                return;
+            }
             lines.add(
                 StatCollector.translateToLocalFormatted(
                     "gtsr.weapon.tooltip.damage",
@@ -131,10 +158,64 @@ public final class PortableWeapons {
                     "gtsr.weapon.tooltip.ammo",
                     WeaponController.remaining(stack),
                     kind.capacity));
+            if (mimic) lines.add(StatCollector.translateToLocal("gtsr.weapon.tooltip.mimic"));
         }
 
-        AmmoItem(WeaponKind k) {
+        public final boolean mimic;
+
+        @Override
+        public boolean hasEffect(ItemStack stack, int pass) {
+            return mimic;
+        }
+
+        @Override
+        public void onUpdate(ItemStack stack, World world, net.minecraft.entity.Entity entity, int slot, boolean held) {
+            if (world.isRemote || !(entity instanceof EntityPlayer)) return;
+            EntityPlayer player = (EntityPlayer) entity;
+            long now = world.getTotalWorldTime();
+            if (!mimic) {
+                if (WeaponController.remaining(stack) == 0 && slot >= 0
+                    && slot < player.inventory.mainInventory.length
+                    && player.inventory.mainInventory[slot] == stack) player.inventory.mainInventory[slot] = null;
+                return;
+            }
+            net.minecraft.nbt.NBTTagCompound n = WeaponController.data(stack);
+            String owner = player.getUniqueID()
+                .toString();
+            if (!owner.equals(n.getString("regenOwner")) || n.getLong("regenTick") > now) {
+                n.setString("regenOwner", owner);
+                n.setLong("regenTick", now);
+            }
+            if (player.getEntityData()
+                .getLong("gtsr.lastFiring") > now)
+                player.getEntityData()
+                    .setLong("gtsr.lastFiring", now);
+            if (player.getEntityData()
+                .getLong("gtsr.lastWeaponShot") > now)
+                player.getEntityData()
+                    .setLong("gtsr.lastWeaponShot", now);
+            long quiet = Math.max(
+                player.getEntityData()
+                    .getLong("gtsr.lastFiring"),
+                player.getEntityData()
+                    .getLong("gtsr.lastWeaponShot"));
+            if (now - quiet < 100 || stack.getItemDamage() <= 0) {
+                n.setLong("regenTick", now);
+                return;
+            }
+            long previous = n.hasKey("regenTick") ? n.getLong("regenTick") : now;
+            if (!n.hasKey("regenTick")) n.setLong("regenTick", now);
+            if (now - previous >= 40) {
+                int rounds = kind == WeaponKind.LM12 ? 10 : kind == WeaponKind.T20 ? 3 : 1;
+                stack.setItemDamage(Math.max(0, stack.getItemDamage() - rounds));
+                n.setLong("regenTick", now);
+                player.inventory.markDirty();
+            }
+        }
+
+        AmmoItem(WeaponKind k, boolean mimic) {
             kind = k;
+            this.mimic = mimic;
             setCreativeTab(gregtech.api.GregTechAPI.TAB_GREGTECH);
             setMaxStackSize(1);
             setMaxDamage(k.capacity);

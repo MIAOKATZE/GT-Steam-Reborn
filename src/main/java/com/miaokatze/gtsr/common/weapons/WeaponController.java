@@ -26,9 +26,11 @@ public final class WeaponController {
 
         EntityPlayerMP player;
         ItemStack gun, reloadPack;
-        int slot, reload, serial, spin, cooldown;
+        int slot, reload, serial, spin, cooldown, dimension;
         long refreshed;
-        boolean firing, focusing, reloadDown;
+        boolean firing, focusing, reloadDown, switchDown;
+        int remoteTicks;
+        EntityWeaponProjectile remoteProjectile;
     }
 
     public static NBTTagCompound data(ItemStack s) {
@@ -68,9 +70,40 @@ public final class WeaponController {
         return n.getString("id");
     }
 
+    private static int selected(ItemStack gun, EntityPlayerMP p, WeaponKind k) {
+        NBTTagCompound n = data(gun);
+        if (!n.hasKey("ammoType")) {
+            int type = 0;
+            for (ItemStack item : p.inventory.mainInventory) if (matches(item, k, 1) && units(item, k) > 0) type = 1;
+            n.setInteger("ammoType", type);
+        }
+        boolean ordinary = false, special = false;
+        for (ItemStack item : p.inventory.mainInventory) {
+            if (matches(item, k, 0) && units(item, k) > 0) ordinary = true;
+            if (matches(item, k, 1) && units(item, k) > 0) special = true;
+        }
+        if (ordinary && special && !n.getBoolean("switchHint")) {
+            p.addChatMessage(new net.minecraft.util.ChatComponentTranslation("gtsr.weapon.ammo.switch_hint"));
+            n.setBoolean("switchHint", true);
+        } else if (!ordinary || !special) n.setBoolean("switchHint", false);
+        return n.getInteger("ammoType") == 1 ? 1 : 0;
+    }
+
+    private static boolean matches(ItemStack item, WeaponKind k, int type) {
+        if (item == null) return false;
+        if (k == WeaponKind.SINGULARITY) return item.isItemEqual(
+            (type == 1 ? com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSteamEntangledSingularity
+                : com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamEntangledSingularity).get(1));
+        return PortableWeapons.ammoKind(item) == k && ((PortableWeapons.AmmoItem) item.getItem()).mimic == (type == 1);
+    }
+
+    private static int units(ItemStack item, WeaponKind k) {
+        return item == null ? 0 : k == WeaponKind.SINGULARITY ? item.stackSize : remaining(item);
+    }
+
     private static ItemStack pack(EntityPlayerMP p, WeaponKind k) {
-        for (ItemStack s : p.inventory.mainInventory)
-            if (PortableWeapons.ammoKind(s) == k && remaining(s) > 0) return s;
+        int type = PortableWeapons.kind(p.getHeldItem()) == k ? selected(p.getHeldItem(), p, k) : 0;
+        for (ItemStack s : p.inventory.mainInventory) if (matches(s, k, type) && units(s, k) > 0) return s;
         return null;
     }
 
@@ -109,16 +142,33 @@ public final class WeaponController {
                 sessions.put(p.getUniqueID(), s);
             }
             ItemStack held = p.getHeldItem();
-            if (s.gun != held || s.slot != c.slot) {
+            if (s.gun != held || s.slot != c.slot || s.dimension != p.dimension) {
                 s.gun = held;
                 s.slot = c.slot;
+                s.dimension = p.dimension;
+                s.remoteTicks = 0;
+                s.remoteProjectile = null;
                 s.reload = 0;
                 s.reloadPack = null;
                 s.spin = 0;
                 s.cooldown = 0;
                 s.reloadDown = false;
             }
+            WeaponKind heldKind = PortableWeapons.kind(held);
+            selected(held, p, heldKind);
+            if (c.switchAmmo && !s.switchDown) switchAmmo(s, heldKind);
+            s.switchDown = c.switchAmmo;
+            if (heldKind == WeaponKind.SINGULARITY && c.firing
+                && !s.firing
+                && s.remoteProjectile != null
+                && !s.remoteProjectile.isDead
+                && s.remoteTicks == 0) {
+                s.remoteTicks = 10;
+                effect(s, 3);
+            }
             s.firing = c.firing;
+            if (c.firing) p.getEntityData()
+                .setLong("gtsr.lastFiring", p.worldObj.getTotalWorldTime());
             s.focusing = c.focusing;
             s.refreshed = tick;
             if (c.reload && !s.reloadDown) startReload(s);
@@ -135,7 +185,8 @@ public final class WeaponController {
             }
             // Cool all carried weapons, so slot changes cannot erase heat or freeze cooling.
             for (ItemStack carried : p.inventory.mainInventory) cool(carried, p.worldObj.getTotalWorldTime());
-            if (p.getHeldItem() != s.gun || p.inventory.currentItem != s.slot
+            if (p.getHeldItem() != s.gun || p.dimension != s.dimension
+                || p.inventory.currentItem != s.slot
                 || p.openContainer != p.inventoryContainer
                 || tick - s.refreshed > 10) {
                 s.firing = false;
@@ -143,7 +194,8 @@ public final class WeaponController {
                 s.reload = 0;
                 s.reloadPack = null;
                 s.spin = 0;
-                if (p.getHeldItem() != s.gun) {
+                s.remoteTicks = 0;
+                if (p.getHeldItem() != s.gun || p.dimension != s.dimension) {
                     it.remove();
                     continue;
                 }
@@ -159,7 +211,7 @@ public final class WeaponController {
 
     private static void cool(ItemStack gun, long now) {
         WeaponKind k = PortableWeapons.kind(gun);
-        if (k == null || k == WeaponKind.QLZ04) return;
+        if (k == null || k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY) return;
         NBTTagCompound n = data(gun);
         long previous = n.hasKey("heatTick") ? n.getLong("heatTick") : now - 1;
         // Count only tick endpoints in (previous, now] that have reached the 20-tick quiet window.
@@ -172,31 +224,90 @@ public final class WeaponController {
         if (heat <= .25f) n.setBoolean("hot", false);
     }
 
+    private static void removeEmpty(EntityPlayerMP player, ItemStack item, WeaponKind k) {
+        if (item == null || units(item, k) > 0
+            || (item.getItem() instanceof PortableWeapons.AmmoItem
+                && ((PortableWeapons.AmmoItem) item.getItem()).mimic))
+            return;
+        for (int i = 0; i < player.inventory.mainInventory.length; i++)
+            if (player.inventory.mainInventory[i] == item) player.inventory.mainInventory[i] = null;
+    }
+
+    private void switchAmmo(Session s, WeaponKind k) {
+        NBTTagCompound n = data(s.gun);
+        int old = selected(s.gun, s.player, k), next = 1 - old;
+        boolean available = false;
+        for (ItemStack item : s.player.inventory.mainInventory)
+            if (matches(item, k, next) && units(item, k) > 0) available = true;
+        if (!available) return;
+        int paid = Math.min(n.getInteger("magazine"), n.getInteger("paidMagazine"));
+        if (paid > 0 && (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY)) {
+            if (k == WeaponKind.SINGULARITY) {
+                ItemStack returned = (old == 1
+                    ? com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSteamEntangledSingularity
+                    : com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamEntangledSingularity).get(paid);
+                s.player.inventory.addItemStackToInventory(returned);
+            } else {
+                ItemStack target = null;
+                for (ItemStack item : s.player.inventory.mainInventory)
+                    if (matches(item, k, old) && packId(item).equals(n.getString("returnPack"))) {
+                        target = item;
+                        break;
+                    }
+                if (target == null) {
+                    target = new ItemStack(old == 1 ? PortableWeapons.mimicAmmo[k.id] : PortableWeapons.ammo[k.id]);
+                    target.setItemDamage(k.capacity);
+                    data(target).setString("id", n.getString("returnPack"));
+                    target.setItemDamage(Math.max(0, target.getItemDamage() - paid));
+                    s.player.inventory.addItemStackToInventory(target);
+                } else target.setItemDamage(Math.max(0, target.getItemDamage() - paid));
+            }
+        }
+        n.setInteger("magazine", 0);
+        n.setInteger("paidMagazine", 0);
+        n.setString("loadedPack", "");
+        n.setInteger("ammoType", next);
+        s.reload = 0;
+        s.reloadPack = null;
+        startReload(s);
+        s.player.inventoryContainer.detectAndSendChanges();
+    }
+
     private void startReload(Session s) {
         if (s.reload > 0) return;
         WeaponKind k = PortableWeapons.kind(s.gun);
         if (k == null) return;
-        if (k == WeaponKind.QLZ04 && data(s.gun).getInteger("magazine") >= 8) return;
+        if ((k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY)
+            && data(s.gun).getInteger("magazine") >= (k == WeaponKind.QLZ04 ? 12 : 1)) return;
         ItemStack a = pack(s.player, k);
         if (a == null) return;
         s.reloadPack = a;
         s.reload = k.reloadTicks;
+        if (k == WeaponKind.SINGULARITY) effect(s, 5);
     }
 
     private void finishReload(Session s, WeaponKind k) {
         ItemStack a = s.reloadPack;
         s.reloadPack = null;
-        if (a == null || remaining(a) <= 0) return;
+        if (a == null || units(a, k) <= 0) return;
         boolean present = false;
         for (ItemStack inventory : s.player.inventory.mainInventory) if (inventory == a) present = true;
-        if (!present || PortableWeapons.ammoKind(a) != k) return;
+        if (!present || !matches(a, k, selected(s.gun, s.player, k))) return;
         NBTTagCompound n = data(s.gun);
-        if (k == WeaponKind.QLZ04) {
-            int needed = 8 - Math.max(0, Math.min(8, n.getInteger("magazine")));
-            int units = Math.min(needed, remaining(a));
+        if (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY) {
+            int capacity = k == WeaponKind.QLZ04 ? 12 : 1;
+            int needed = capacity - Math.max(0, Math.min(capacity, n.getInteger("magazine")));
+            int units = Math.min(needed, units(a, k));
             int cost = paidUnits(units, WeaponEnchantments.level(s.gun, WeaponEnchantments.economy), s.player.getRNG());
-            if (!debit(a, cost)) return;
-            n.setInteger("magazine", Math.min(8, n.getInteger("magazine") + units));
+            if (k == WeaponKind.SINGULARITY) {
+                if (a.stackSize < cost) return;
+                a.stackSize -= cost;
+            } else if (!debit(a, cost)) return;
+            n.setInteger("paidMagazine", n.getInteger("paidMagazine") + cost);
+            n.setInteger("magazine", Math.min(capacity, n.getInteger("magazine") + units));
+            n.setInteger("loadedType", selected(s.gun, s.player, k));
+            n.setString("returnPack", k == WeaponKind.SINGULARITY ? "" : packId(a));
+            removeEmpty(s.player, a, k);
         } else {
             // Linking a new belt is a reload state change, never a round debit.
             data(a).setBoolean("chain", true);
@@ -209,6 +320,16 @@ public final class WeaponController {
     private void update(Session s) {
         WeaponKind k = PortableWeapons.kind(s.gun);
         if (k == null) return;
+        if (s.remoteTicks > 0 && --s.remoteTicks == 0) {
+            if (s.remoteProjectile != null && !s.remoteProjectile.isDead
+                && s.remoteProjectile.worldObj == s.player.worldObj
+                && s.player.worldObj.loadedEntityList.contains(s.remoteProjectile)) {
+                s.remoteProjectile.detonate();
+                effect(s, 4);
+            }
+            s.remoteProjectile = null;
+        }
+        if (k == WeaponKind.SINGULARITY && s.remoteProjectile != null && !s.remoteProjectile.isDead) return;
         if (s.reload > 0) {
             if (--s.reload == 0) finishReload(s, k);
             s.spin = Math.max(0, s.spin - 8);
@@ -221,7 +342,7 @@ public final class WeaponController {
             return;
         }
         ItemStack a = pack(s.player, k);
-        if (k == WeaponKind.QLZ04 ? n.getInteger("magazine") <= 0
+        if (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY ? n.getInteger("magazine") <= 0
             : a == null || !packId(a).equals(n.getString("loadedPack"))) {
             startReload(s);
             return;
@@ -232,7 +353,8 @@ public final class WeaponController {
         }
         if (s.player.worldObj.getTotalWorldTime() < n.getLong("nextShot")) return;
         int oldMagazine = n.getInteger("magazine"), oldDamage = a == null ? 0 : a.getItemDamage();
-        if (k == WeaponKind.QLZ04) n.setInteger("magazine", n.getInteger("magazine") - 1);
+        if (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY)
+            n.setInteger("magazine", n.getInteger("magazine") - 1);
         else if (!debit(
             a,
             paidUnits(1, WeaponEnchantments.level(s.gun, WeaponEnchantments.economy), s.player.getRNG()))) return;
@@ -245,12 +367,19 @@ public final class WeaponController {
             WeaponEnchantments.level(s.gun, WeaponEnchantments.piercing) == 0
                 ? WeaponEnchantments.level(s.gun, WeaponEnchantments.incendiary)
                 : 0);
+        projectile.setCritical(n.getInteger("loadedType") == 1);
         if (!s.player.worldObj.spawnEntityInWorld(projectile)) {
-            if (k == WeaponKind.QLZ04) n.setInteger("magazine", oldMagazine);
+            if (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY) n.setInteger("magazine", oldMagazine);
             else a.setItemDamage(oldDamage);
             projectile.setDead();
             return;
         }
+        if (k == WeaponKind.SINGULARITY) s.remoteProjectile = projectile;
+        if (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY)
+            n.setInteger("paidMagazine", Math.max(0, n.getInteger("paidMagazine") - 1));
+        else removeEmpty(s.player, a, k);
+        s.player.getEntityData()
+            .setLong("gtsr.lastWeaponShot", s.player.worldObj.getTotalWorldTime());
         s.serial = s.player.getEntityData()
             .getInteger("gtsr.weaponShotSerial") + 1;
         s.player.getEntityData()
@@ -262,7 +391,7 @@ public final class WeaponController {
         n.setLong("nextShot", s.player.worldObj.getTotalWorldTime() + s.cooldown);
         n.setLong("lastShot", s.player.worldObj.getTotalWorldTime());
         n.setInteger("shotInterval", s.cooldown);
-        if (k != WeaponKind.QLZ04) {
+        if (k == WeaponKind.LM12 || k == WeaponKind.T20) {
             float heat = Math.min(1, n.getFloat("heat") + (k == WeaponKind.LM12 ? .0125f : .04f));
             n.setFloat("heat", heat);
             if (heat >= 1) n.setBoolean("hot", true);
@@ -311,10 +440,12 @@ public final class WeaponController {
         snap.spin = s.spin / 160f;
         snap.focusing = s.focusing;
         ItemStack a = pack(s.player, k);
-        snap.magazine = k == WeaponKind.QLZ04 ? n.getInteger("magazine")
+        snap.ammoType = selected(s.gun, s.player, k);
+        snap.remoteTicks = s.remoteTicks;
+        snap.magazine = k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY ? n.getInteger("magazine")
             : a != null && packId(a).equals(n.getString("loadedPack")) ? remaining(a) : 0;
         for (ItemStack ammo : s.player.inventory.mainInventory)
-            if (PortableWeapons.ammoKind(ammo) == k) snap.reserve += remaining(ammo);
+            if (matches(ammo, k, snap.ammoType)) snap.reserve += units(ammo, k);
         WeaponNetwork.state(s.player, snap);
     }
 }

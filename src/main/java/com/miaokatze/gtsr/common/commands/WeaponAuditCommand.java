@@ -29,8 +29,10 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
 
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.weapons.Effect;
 import com.miaokatze.gtsr.common.weapons.EntityWeaponProjectile;
+import com.miaokatze.gtsr.common.weapons.EntityWeaponSingularity;
 import com.miaokatze.gtsr.common.weapons.PortableWeapons;
 import com.miaokatze.gtsr.common.weapons.Snapshot;
 import com.miaokatze.gtsr.common.weapons.WeaponController;
@@ -120,7 +122,9 @@ public final class WeaponAuditCommand extends CommandBase {
             auditTickBus.register(controller);
             captureNetwork();
             registrationAndEnchantments();
-            for (WeaponKind kind : WeaponKind.values()) inventory(kind);
+            newWeaponMechanics();
+            for (WeaponKind kind : new WeaponKind[] { WeaponKind.LM12, WeaponKind.T20, WeaponKind.QLZ04 })
+                inventory(kind);
             cooling();
             muzzleAndWall();
             damage();
@@ -156,8 +160,202 @@ public final class WeaponAuditCommand extends CommandBase {
         }
     }
 
+    private void control(boolean fire, boolean reload, boolean switchAmmo) {
+        world.getWorldInfo()
+            .incrementTotalWorldTime(world.getTotalWorldTime() + 1);
+        WeaponNetwork.enqueueControls(player, 0, fire, false, reload, switchAmmo);
+        controller.serverTick();
+    }
+
+    private void switchingMechanics() {
+        ItemStack ordinary = setup(WeaponKind.QLZ04);
+        ItemStack mimic = new ItemStack(PortableWeapons.mimicAmmo[2]);
+        // Initialize the ordinary selection before adding another type, then prove selection stays sticky.
+        control(false, false, false);
+        player.inventory.mainInventory[2] = mimic;
+        reload(WeaponKind.QLZ04);
+        ItemStack gun = player.getHeldItem();
+        require(
+            ordinary.getItemDamage() == 12 && WeaponController.data(gun)
+                .getInteger("ammoType") == 0,
+            "QLZ sticky ordinary reload");
+        ordinary.setItemDamage(0);
+        control(false, false, true);
+        require(
+            ordinary.getItemDamage() == 0 && WeaponController.data(gun)
+                .getInteger("magazine") == 0,
+            "QLZ full-pack refund overflow discarded");
+        for (int i = 0; i < 39; i++) control(false, false, false);
+        require(
+            mimic.getItemDamage() == 12 && WeaponController.data(gun)
+                .getInteger("magazine") == 12,
+            "QLZ V switches to mimic and reloads twelve");
+        control(false, false, true);
+        require(mimic.getItemDamage() == 0, "QLZ paid magazine returned to mimic");
+        ordinary = setup(WeaponKind.QLZ04);
+        gun = player.getHeldItem();
+        control(false, false, false);
+        player.inventory.mainInventory[2] = new ItemStack(PortableWeapons.mimicAmmo[2]);
+        WeaponController.data(gun)
+            .setInteger("magazine", 12);
+        WeaponController.data(gun)
+            .setInteger("paidMagazine", 0);
+        ordinary.setItemDamage(20);
+        control(false, false, true);
+        require(ordinary.getItemDamage() == 20, "QLZ economy free rounds cannot be refunded as new ammunition");
+    }
+
+    private void singularityMechanics() {
+        for (int i = 0; i < player.inventory.mainInventory.length; i++) player.inventory.mainInventory[i] = null;
+        player.inventory.currentItem = 0;
+        ItemStack gun = new ItemStack(PortableWeapons.weapons[3]);
+        player.inventory.mainInventory[0] = gun;
+        player.inventory.mainInventory[1] = GTSRItemList.SteamEntangledSingularity.get(4);
+        control(false, true, false);
+        for (int i = 0; i < 98; i++) control(false, false, false);
+        require(
+            WeaponController.data(gun)
+                .getInteger("magazine") == 0,
+            "107 no load at tick 99");
+        control(false, false, false);
+        require(
+            WeaponController.data(gun)
+                .getInteger("magazine") == 1 && player.inventory.mainInventory[1].stackSize == 3,
+            "107 load at tick 100");
+        player.inventory.mainInventory[2] = GTSRItemList.CriticalSteamEntangledSingularity.get(4);
+        control(false, false, false);
+        require(
+            WeaponController.data(gun)
+                .getInteger("ammoType") == 0,
+            "107 type sticks when higher ammo arrives");
+        control(false, false, true);
+        require(
+            player.inventory.mainInventory[1].stackSize == 4 && WeaponController.data(gun)
+                .getInteger("magazine") == 0,
+            "107 switch refunds paid round and starts reload");
+        for (int i = 0; i < 99; i++) control(false, false, false);
+        require(
+            WeaponController.data(gun)
+                .getInteger("loadedType") == 1,
+            "107 switched critical reload");
+        control(true, false, false);
+        EntityWeaponProjectile projectile = null;
+        for (Object object : world.loadedEntityList)
+            if (object instanceof EntityWeaponProjectile && !((Entity) object).isDead)
+                projectile = (EntityWeaponProjectile) object;
+        require(projectile != null && projectile.critical(), "107 critical projectile spawned");
+        owned.add(projectile);
+        for (int i = 0; i < 12; i++) control(true, false, false);
+        require(!projectile.isDead, "107 held trigger does not remotely detonate");
+        control(false, false, false);
+        control(true, false, false);
+        for (int i = 0; i < 8; i++) control(true, false, false);
+        require(!projectile.isDead, "107 remote gesture waits 9 ticks");
+        control(true, false, false);
+        require(projectile.isDead, "107 remote detonation at tick 10");
+        for (Object object : new ArrayList<Object>(world.loadedEntityList))
+            if (object instanceof EntityWeaponSingularity) {
+                owned.add((Entity) object);
+                ((Entity) object).setDead();
+                world.removeEntity((Entity) object);
+            }
+        for (boolean critical : new boolean[] { false, true }) {
+            EntityCow center = cow(0, 0), outside = cow(critical ? 11 : 6, 0);
+            center.getEntityAttribute(SharedMonsterAttributes.maxHealth)
+                .setBaseValue(300);
+            center.setHealth(300);
+            EntityWeaponSingularity node = new EntityWeaponSingularity(
+                world,
+                center.posX,
+                center.posY + center.height * .5,
+                center.posZ,
+                player.getUniqueID(),
+                critical);
+            owned.add(node);
+            world.spawnEntityInWorld(node);
+            for (int i = 0; i < 159; i++) node.onUpdate();
+            close(center.getHealth(), 300 - 7 * (critical ? 5 : 2), "107 seven DOT ticks before end");
+            close(outside.getHealth(), 100, "107 outside gravity radius");
+            require(!node.isDead, "107 node lasts through tick 159");
+            node.onUpdate();
+            require(node.isDead, "107 node ends at tick 160");
+            close(
+                center.getHealth(),
+                300 - 8 * (critical ? 5 : 2) - (critical ? 50 : 20) - (critical ? 15 : 5),
+                "107 DOT plus physical and magic burst");
+            center.setDead();
+            outside.setDead();
+            world.removeEntity(center);
+            world.removeEntity(outside);
+            NBTTagCompound saved = new NBTTagCompound();
+            node.writeToNBT(saved);
+            EntityWeaponSingularity restored = new EntityWeaponSingularity(world);
+            restored.readFromNBT(saved);
+            require(
+                restored.critical() == critical && restored.life() == 160,
+                "107 node NBT preserves type and lifetime");
+            ByteBuf bytes = Unpooled.buffer();
+            node.writeSpawnData(bytes);
+            restored.readSpawnData(bytes);
+            bytes.release();
+            require(restored.critical() == critical, "107 node spawn type preserved");
+        }
+    }
+
+    private void newWeaponMechanics() {
+        ItemStack gun = new ItemStack(PortableWeapons.weapons[WeaponKind.SINGULARITY.id]);
+        require(PortableWeapons.kind(gun) == WeaponKind.SINGULARITY, "107 registered");
+        require(WeaponKind.SINGULARITY.reloadTicks == 100, "107 five-second reload");
+        close((float) WeaponKind.SINGULARITY.projectileSpeed, .45f, "107 old grenade speed at 30 percent");
+        close((float) WeaponKind.SINGULARITY.gravity, .00315f, "107 preserves old grenade spatial arc");
+        for (WeaponEnchantments ench : new WeaponEnchantments[] { WeaponEnchantments.piercing,
+            WeaponEnchantments.incendiary, WeaponEnchantments.hollowPoint }) {
+            require(!ench.canApply(gun), "107 rejects combat enchantment");
+            gun.addEnchantment(ench, 3);
+            require(WeaponEnchantments.level(gun, ench) == 0, "107 ignores injected combat enchantment");
+        }
+        require(WeaponEnchantments.economy.canApply(gun), "107 accepts economy");
+        for (WeaponKind kind : new WeaponKind[] { WeaponKind.LM12, WeaponKind.T20, WeaponKind.QLZ04 }) {
+            ItemStack mimic = new ItemStack(PortableWeapons.mimicAmmo[kind.id]);
+            require(((PortableWeapons.AmmoItem) mimic.getItem()).mimic, "mimic glint policy " + kind);
+            mimic.setItemDamage(kind.capacity);
+            require(WeaponController.remaining(mimic) == 0, "empty mimic retained " + kind);
+            player.inventory.mainInventory[4] = mimic;
+            player.getEntityData()
+                .setLong("gtsr.lastFiring", world.getTotalWorldTime() - 100);
+            player.getEntityData()
+                .setLong("gtsr.lastWeaponShot", world.getTotalWorldTime() - 100);
+            PortableWeapons.AmmoItem item = (PortableWeapons.AmmoItem) mimic.getItem();
+            item.onUpdate(mimic, world, player, 4, false);
+            world.getWorldInfo()
+                .incrementTotalWorldTime(world.getTotalWorldTime() + 40);
+            item.onUpdate(mimic, world, player, 4, false);
+            require(
+                WeaponController.remaining(mimic) == (kind == WeaponKind.LM12 ? 10 : kind == WeaponKind.T20 ? 3 : 1),
+                "mimic two-second regeneration " + kind);
+            require(player.inventory.mainInventory[4] == mimic, "empty mimic is retained " + kind);
+            mimic.setItemDamage(kind.capacity);
+            player.getEntityData()
+                .setLong("gtsr.lastFiring", world.getTotalWorldTime());
+            world.getWorldInfo()
+                .incrementTotalWorldTime(world.getTotalWorldTime() + 99);
+            item.onUpdate(mimic, world, player, 4, false);
+            require(WeaponController.remaining(mimic) == 0, "mimic cannot regenerate before quiet tick 100 " + kind);
+            player.inventory.mainInventory[4] = null;
+        }
+        require(
+            !com.miaokatze.gtsr.common.weapons.EntityWeaponSingularity.eligible(player, player.getUniqueID()),
+            "107 excludes shooter by UUID");
+        require(
+            !com.miaokatze.gtsr.common.weapons.EntityWeaponSingularity
+                .eligible(new com.miaokatze.gtsr.common.weapons.EntityWeaponSingularity(world), null),
+            "107 excludes gravity nodes");
+        switchingMechanics();
+        singularityMechanics();
+    }
+
     private void registrationAndEnchantments() {
-        int[] capacities = { 200, 100, 30 };
+        int[] capacities = { 500, 160, 60 };
         float[] baseDamage = { 2, 10, 12 }, basePenetration = { 5, 8, 10 };
         WeaponEnchantments[] ench = { WeaponEnchantments.piercing, WeaponEnchantments.incendiary,
             WeaponEnchantments.hollowPoint, WeaponEnchantments.economy };
@@ -174,7 +372,7 @@ public final class WeaponAuditCommand extends CommandBase {
                 ench[i].canApplyTogether(ench[j]) == (i != j && (i == 3 || j == 3)),
                 "mutual exclusion " + i + "/" + j);
         }
-        for (WeaponKind k : WeaponKind.values()) {
+        for (WeaponKind k : new WeaponKind[] { WeaponKind.LM12, WeaponKind.T20, WeaponKind.QLZ04 }) {
             ItemStack gun = new ItemStack(PortableWeapons.weapons[k.id]);
             ItemStack ammo = new ItemStack(PortableWeapons.ammo[k.id]);
             require(PortableWeapons.kind(gun) == k && PortableWeapons.ammoKind(ammo) == k, "real item registry " + k);
@@ -412,7 +610,7 @@ public final class WeaponAuditCommand extends CommandBase {
         require(prior == Blocks.air, "owned wall fixture is empty air");
         try {
             require(world.setBlock(bx, by, bz, Blocks.stone, 0, 2), "install bounded fixture wall");
-            for (WeaponKind kind : WeaponKind.values()) {
+            for (WeaponKind kind : new WeaponKind[] { WeaponKind.LM12, WeaponKind.T20, WeaponKind.QLZ04 }) {
                 EntityWeaponProjectile p = new EntityWeaponProjectile(
                     world,
                     player,
@@ -453,7 +651,7 @@ public final class WeaponAuditCommand extends CommandBase {
         for (int i = 0; i < k.reloadTicks + 1; i++) tick(false, false);
         require(pack.getItemDamage() == 0, "cancel reload charges nothing " + k);
         reload(k);
-        require(pack.getItemDamage() == (k == WeaponKind.QLZ04 ? 8 : 0), "reload charges only QLZ magazine " + k);
+        require(pack.getItemDamage() == (k == WeaponKind.QLZ04 ? 12 : 0), "reload charges only QLZ magazine " + k);
         int before = pack.getItemDamage();
         reload(k);
         require(pack.getItemDamage() == before, "same pack reload no duplicate fee " + k);
@@ -480,19 +678,19 @@ public final class WeaponAuditCommand extends CommandBase {
         if (k == WeaponKind.QLZ04) {
             int magazine = WeaponController.data(gun)
                 .getInteger("magazine");
-            require(magazine == 8 - firingTicks.size(), "magazine firing debit");
+            require(magazine == 12 - firingTicks.size(), "magazine firing debit");
             reload(k);
-            require(restored.getItemDamage() == 8 + firingTicks.size(), "manual reload charges only missing rounds");
+            require(restored.getItemDamage() == 12 + firingTicks.size(), "manual reload charges only missing rounds");
             ItemStack partial = setup(k);
-            partial.setItemDamage(27);
+            partial.setItemDamage(57);
             reload(k);
             require(
-                partial.getItemDamage() == 30 && WeaponController.data(player.getHeldItem())
+                partial.getItemDamage() == 60 && WeaponController.data(player.getHeldItem())
                     .getInteger("magazine") == 3,
                 "partial three rounds no first fee");
             ItemStack all = setup(k);
             int total = 0;
-            for (int cycle = 0; cycle < 4; cycle++) {
+            for (int cycle = 0; cycle < 5; cycle++) {
                 reload(k);
                 int rounds = WeaponController.data(player.getHeldItem())
                     .getInteger("magazine");
@@ -501,8 +699,8 @@ public final class WeaponAuditCommand extends CommandBase {
                 tick(false, false);
             }
             require(
-                total == 30 && all.getItemDamage() == 30,
-                "full 30-round pack fires exactly 30 without double debit");
+                total == 60 && all.getItemDamage() == 60,
+                "full 60-round pack fires exactly 60 without double debit");
         } else {
             ItemStack anotherGun = new ItemStack(PortableWeapons.weapons[k.id]);
             player.inventory.mainInventory[0] = anotherGun;
@@ -528,12 +726,13 @@ public final class WeaponAuditCommand extends CommandBase {
             int single = 0;
             for (int i = 0; i < 50; i++) single += tick(true, false);
             require(single == 1 && nearlyEmpty.getItemDamage() == k.capacity, "single new round is usable");
+            require(player.inventory.mainInventory[1] == null, "ordinary empty pack destroyed immediately " + k);
             ItemStack full = setup(k);
             reload(k);
             int total = 0;
             for (int i = 0; i < 4000 && WeaponController.remaining(full) > 0; i++) total += tick(true, false);
             require(
-                total == (k == WeaponKind.LM12 ? 200 : 100) && full.getItemDamage() == k.capacity,
+                total == (k.capacity) && full.getItemDamage() == k.capacity,
                 "complete belt supplies every round " + k);
         }
     }
@@ -577,7 +776,7 @@ public final class WeaponAuditCommand extends CommandBase {
         armored.setCurrentItemOrArmor(3, new ItemStack(Items.diamond_chestplate));
         armored.setCurrentItemOrArmor(4, new ItemStack(Items.diamond_helmet));
         require(armored.getTotalArmorValue() >= 20, "real armor equipment");
-        for (WeaponKind k : WeaponKind.values()) {
+        for (WeaponKind k : new WeaponKind[] { WeaponKind.LM12, WeaponKind.T20, WeaponKind.QLZ04 }) {
             armored.setHealth(100);
             require(
                 EntityWeaponProjectile.applyDamage(armored, k.damage, k.armorPenetration, 0, projectile, player),

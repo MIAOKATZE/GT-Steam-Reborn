@@ -36,7 +36,12 @@ public final class WeaponNetwork {
     }
 
     public static void sendControls(int slot, boolean firing, boolean focusing, boolean reload) {
+        sendControls(slot, firing, focusing, reload, false);
+    }
+
+    public static void sendControls(int slot, boolean firing, boolean focusing, boolean reload, boolean switchAmmo) {
         Controls c = new Controls();
+        c.switchAmmo = switchAmmo;
         c.slot = slot;
         c.firing = firing;
         c.focusing = focusing;
@@ -45,11 +50,17 @@ public final class WeaponNetwork {
     }
 
     public static void enqueueControls(EntityPlayerMP p, int slot, boolean firing, boolean focusing, boolean reload) {
+        enqueueControls(p, slot, firing, focusing, reload, false);
+    }
+
+    public static void enqueueControls(EntityPlayerMP p, int slot, boolean firing, boolean focusing, boolean reload,
+        boolean switchAmmo) {
         Controls c = new Controls();
         c.slot = slot;
         c.firing = firing;
         c.focusing = focusing;
         c.reload = reload;
+        c.switchAmmo = switchAmmo;
         INPUT.offer(new Pending(p, c));
     }
 
@@ -80,7 +91,7 @@ public final class WeaponNetwork {
     public static class Controls implements IMessage {
 
         int slot;
-        boolean firing, focusing, reload;
+        boolean firing, focusing, reload, switchAmmo;
 
         public void fromBytes(ByteBuf b) {
             slot = b.readUnsignedByte();
@@ -88,11 +99,12 @@ public final class WeaponNetwork {
             firing = (flags & 1) != 0;
             focusing = (flags & 2) != 0;
             reload = (flags & 4) != 0;
+            switchAmmo = (flags & 8) != 0;
         }
 
         public void toBytes(ByteBuf b) {
             b.writeByte(slot);
-            b.writeByte((firing ? 1 : 0) | (focusing ? 2 : 0) | (reload ? 4 : 0));
+            b.writeByte((firing ? 1 : 0) | (focusing ? 2 : 0) | (reload ? 4 : 0) | (switchAmmo ? 8 : 0));
         }
     }
 
@@ -119,6 +131,8 @@ public final class WeaponNetwork {
             b.writeInt(s.shotInterval);
             b.writeInt(s.shotCooldown);
             b.writeInt(s.shotAge);
+            b.writeInt(s.ammoType);
+            b.writeInt(s.remoteTicks);
             b.writeFloat(s.heat);
             b.writeFloat(s.spin);
             b.writeBoolean(s.focusing);
@@ -137,6 +151,8 @@ public final class WeaponNetwork {
             s.shotInterval = b.readInt();
             s.shotCooldown = b.readInt();
             s.shotAge = b.readInt();
+            s.ammoType = b.readInt();
+            s.remoteTicks = b.readInt();
             s.heat = b.readFloat();
             s.spin = b.readFloat();
             s.focusing = b.readBoolean();

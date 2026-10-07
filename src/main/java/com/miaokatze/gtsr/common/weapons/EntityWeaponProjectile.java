@@ -26,6 +26,22 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
     private UUID shooterId;
     private float damage, penetration;
     private int fire;
+    private boolean critical;
+
+    public boolean critical() {
+        return critical;
+    }
+
+    public void setCritical(boolean value) {
+        critical = value;
+    }
+
+    public void detonate() {
+        if (isDead || worldObj.isRemote || weapon != WeaponKind.SINGULARITY) return;
+        worldObj.spawnEntityInWorld(new EntityWeaponSingularity(worldObj, posX, posY, posZ, shooterId, critical));
+        setDead();
+    }
+
     private Vec3 initialOrigin, initialMuzzle;
     private boolean initialObstructionPending;
 
@@ -71,7 +87,7 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
     @Override
     public void onUpdate() {
         super.onUpdate();
-        if (ticksExisted > 100) {
+        if (ticksExisted > (weapon == WeaponKind.SINGULARITY ? 400 : 100)) {
             setDead();
             return;
         }
@@ -115,7 +131,8 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
                     .expand(.3, .3, .3));
             for (Object object : candidates) {
                 Entity e = (Entity) object;
-                if (e == shooter || !(e instanceof EntityLivingBase) || !e.canBeCollidedWith()) continue;
+                if (e == shooter || (weapon != WeaponKind.SINGULARITY && !(e instanceof EntityLivingBase))
+                    || !e.canBeCollidedWith()) continue;
                 MovingObjectPosition intercept = e.boundingBox.expand(.1, .1, .1)
                     .calculateIntercept(start, end);
                 double distance = e.boundingBox.isVecInside(start) ? 0
@@ -138,22 +155,29 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
 
     private void impact(MovingObjectPosition hit) {
         Vec3 at = hit.hitVec == null ? Vec3.createVectorHelper(posX, posY, posZ) : hit.hitVec;
-        if (weapon == WeaponKind.QLZ04) {
+        if (weapon == WeaponKind.SINGULARITY) {
+            setPosition(at.xCoord, at.yCoord, at.zCoord);
+            detonate();
+            return;
+        }
+        if (weapon == WeaponKind.QLZ04 || weapon == WeaponKind.T20) {
+            double radius = weapon == WeaponKind.T20 ? .25 : 2;
             List<?> nearby = worldObj.getEntitiesWithinAABB(
                 EntityLivingBase.class,
                 AxisAlignedBB.getBoundingBox(
-                    at.xCoord - 2,
-                    at.yCoord - 2,
-                    at.zCoord - 2,
-                    at.xCoord + 2,
-                    at.yCoord + 2,
-                    at.zCoord + 2));
+                    at.xCoord - radius,
+                    at.yCoord - radius,
+                    at.zCoord - radius,
+                    at.xCoord + radius,
+                    at.yCoord + radius,
+                    at.zCoord + radius));
             for (Object o : nearby) {
                 EntityLivingBase e = (EntityLivingBase) o;
                 double dx = Math.max(e.boundingBox.minX, Math.min(at.xCoord, e.boundingBox.maxX)) - at.xCoord;
                 double dy = Math.max(e.boundingBox.minY, Math.min(at.yCoord, e.boundingBox.maxY)) - at.yCoord;
                 double dz = Math.max(e.boundingBox.minZ, Math.min(at.zCoord, e.boundingBox.maxZ)) - at.zCoord;
-                if (dx * dx + dy * dy + dz * dz <= 4) applyDamage(e, damage, penetration, fire, this, shooter);
+                if (dx * dx + dy * dy + dz * dz <= radius * radius || e == hit.entityHit)
+                    applyDamage(e, damage, penetration, fire, this, shooter);
             }
         } else if (hit.entityHit instanceof EntityLivingBase)
             applyDamage((EntityLivingBase) hit.entityHit, damage, penetration, fire, this, shooter);
@@ -198,6 +222,7 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
     @Override
     protected void writeEntityToNBT(NBTTagCompound n) {
         n.setInteger("kind", weapon.id);
+        n.setBoolean("critical", critical);
         n.setFloat("damage", damage);
         n.setFloat("penetration", penetration);
         n.setInteger("fire", fire);
@@ -217,6 +242,7 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
     protected void readEntityFromNBT(NBTTagCompound n) {
         WeaponKind k = WeaponKind.fromId(n.getInteger("kind"));
         weapon = k == null ? WeaponKind.LM12 : k;
+        critical = n.getBoolean("critical");
         damage = n.getFloat("damage");
         penetration = n.getFloat("penetration");
         fire = n.getInteger("fire");
@@ -237,11 +263,13 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
     @Override
     public void writeSpawnData(ByteBuf b) {
         b.writeByte(weapon.id);
+        b.writeBoolean(critical);
     }
 
     @Override
     public void readSpawnData(ByteBuf b) {
         WeaponKind k = WeaponKind.fromId(b.readUnsignedByte());
+        critical = b.readBoolean();
         weapon = k == null ? WeaponKind.LM12 : k;
     }
 }

@@ -119,7 +119,12 @@ public final class FxEntityWorldPass {
                 tess.startDrawingQuads();
                 open = true;
             }
-            double size = (glow ? f.haloScale : GatlingFxProfile.FLASH_CORE_SCALE) * f.scaleJitter * .045;
+            boolean small = f.getEntityData()
+                .getBoolean("gtsr.smallFlash");
+            if (small) alpha *= .55F;
+            double size = (small ? .45 : 1) * (glow ? f.haloScale : GatlingFxProfile.FLASH_CORE_SCALE)
+                * f.scaleJitter
+                * .045;
             for (int cell = 0; cell < 3; cell++) {
                 double q = cell - 1;
                 addCube(
@@ -130,7 +135,7 @@ public final class FxEntityWorldPass {
                     size,
                     1F,
                     glow ? .62F : .94F,
-                    glow ? .18F : .75F,
+                    small ? .12F : glow ? .18F : .75F,
                     alpha * (glow ? .20F : .65F));
             }
         }

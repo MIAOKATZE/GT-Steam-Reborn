@@ -15,6 +15,28 @@ final class PortableProjectileRenderer extends Render {
 
     public void doRender(Entity entity, double x, double y, double z, float yaw, float partial) {
         WeaponKind kind = ((EntityWeaponProjectile) entity).kind();
+        if (kind == WeaponKind.SINGULARITY) {
+            try (GlScope scope = new GlScope()) {
+                GL11.glTranslated(x, y, z);
+                boolean critical = ((EntityWeaponProjectile) entity).critical();
+                GL11.glDisable(GL11.GL_TEXTURE_2D);
+                GL11.glDisable(GL11.GL_LIGHTING);
+                GL11.glEnable(GL11.GL_BLEND);
+                GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+                GL11.glColor4f(critical ? .7F : 1, critical ? .2F : 1, 1, .9F);
+                GL11.glRotatef(entity.ticksExisted * 11, 0, 1, 0);
+                for (int ring = 0; ring < 3; ring++) {
+                    GL11.glRotatef(60, 1, 0, 0);
+                    GL11.glBegin(GL11.GL_LINE_LOOP);
+                    for (int i = 0; i < 24; i++) {
+                        double a = i * Math.PI * 2 / 24;
+                        GL11.glVertex3d(Math.cos(a) * .14, 0, Math.sin(a) * .14);
+                    }
+                    GL11.glEnd();
+                }
+            }
+            return;
+        }
         String key = kind == WeaponKind.LM12 ? "bullet" : "bullet_he";
         try (GlScope scope = new GlScope()) {
             GL11.glTranslated(x, y, z);

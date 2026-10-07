@@ -130,6 +130,10 @@ public enum GTSRItemList implements IItemContainer {
     Ammo762Pack,
     Ammo20Pack,
     Ammo35Pack,
+    PortableSingularity,
+    MimicAmmo762Pack,
+    MimicAmmo20Pack,
+    MimicAmmo35Pack,
 
     ;
 

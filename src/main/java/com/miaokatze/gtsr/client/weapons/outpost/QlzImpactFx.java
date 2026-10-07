@@ -23,8 +23,10 @@ public final class QlzImpactFx {
         final double x, y, z;
         final long tick;
         final boolean ground;
+        final float radius;
 
-        Impact(World w, double x, double y, double z) {
+        Impact(World w, double x, double y, double z, float radius) {
+            this.radius = radius;
             this.x = x;
             this.y = y;
             this.z = z;
@@ -34,12 +36,16 @@ public final class QlzImpactFx {
     }
 
     public static void impact(World w, double x, double y, double z) {
+        impact(w, x, y, z, 2);
+    }
+
+    public static void impact(World w, double x, double y, double z, float radius) {
         if (w == null || !w.isRemote) return;
         long now = w.getTotalWorldTime();
         for (Impact i : IMPACTS)
-            if (now - i.tick < 16 && VisualOverlapPolicy.blastCovers(i.x, i.y, i.z, 2, x, y, z, 2)) return;
+            if (now - i.tick < 16 && VisualOverlapPolicy.blastCovers(i.x, i.y, i.z, i.radius, x, y, z, radius)) return;
         if (IMPACTS.size() >= 32) IMPACTS.remove(0);
-        IMPACTS.add(new Impact(w, x, y, z));
+        IMPACTS.add(new Impact(w, x, y, z, radius));
     }
 
     public static void reset() {
@@ -62,8 +68,8 @@ public final class QlzImpactFx {
             GL11.glDepthMask(false);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glDisable(GL11.GL_ALPHA_TEST);
-            for (Impact i : IMPACTS)
-                SupportBlastMesh.renderImpact(false, i.x, i.y, i.z, (float) (now - i.tick), 2, 2, false, i.ground);
+            for (Impact i : IMPACTS) SupportBlastMesh
+                .renderImpact(false, i.x, i.y, i.z, (float) (now - i.tick), 2, i.radius, false, i.ground);
         }
     }
 
