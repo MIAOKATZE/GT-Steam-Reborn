@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "Where does spent steam go? Plain steam condenses into §6distilled water§r and lands in the Steam Cooling Hatch; superheated steam first degrades back into plain steam and lands in the Pressure Steam Cooling Hatch.\n\nA machine without a cooling hatch runs no tab — whatever is not caught §cis simply gone§r, not a drop left.\n\nSo this ledger has exactly one key move: fit the hatch, then pipe the distilled water back to the boiler, and scale never calls again.\n\n§2Distilled water back to the boiler, no more scale headaches.§r",
+      "desc:8": "§3Cooling hatches collect steam byproducts from supported machines. Regular steam yields 1 L of distilled water per 160 L consumed; superheated steam is returned as regular steam at a 1:1 ratio through the pressure cooling hatch. These conversions do not return all consumed steam as water, so size storage and output capacity accordingly.§r",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -20,7 +20,7 @@
       "isMain:1": 0,
       "isSilent:1": 0,
       "lockedProgress:1": 0,
-      "name:8": "§6§lThe Cooling Ledger",
+      "name:8": "§6§lThe Cooling Ledger§r",
       "questLogic:8": "AND",
       "repeatTime:3": -1,
       "simultaneous:1": 0,

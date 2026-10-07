@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "The Crust Matter Aggregator's bill looks dense but is only three layers of multiplication — mode, dimension slots and filters, each multiplying its own share. The formula lives in the tooltip; here you learn to see the layers.\n\nBilling splits into a §3plain tier and a dense tier§r, worlds apart; targeted mode filters out exactly what you lack, refreshing the ore pool when switched.\n\nThe fortune ceiling follows the currency: §1bare, singularity, critical singularity§r — one ceiling per tier.\n\n§8§oThe last step of digging through the crust is making the crust walk up to you.§r",
+      "desc:8": "§3The Crust Matter Aggregator produces mineral output according to selected dimensions, ore mode, and filters; steam use depends on operating mode, slots, and fortune settings. Check configuration, steam, and output conditions, and consult the controller information. This task does not verify operation.§r",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -20,7 +20,7 @@
       "isMain:1": 0,
       "isSilent:1": 0,
       "lockedProgress:1": 0,
-      "name:8": "§3§lCrust Matter, Aggregated",
+      "name:8": "§3§lCrust Matter Aggregator§r",
       "questLogic:8": "AND",
       "repeatTime:3": -1,
       "simultaneous:1": 0,

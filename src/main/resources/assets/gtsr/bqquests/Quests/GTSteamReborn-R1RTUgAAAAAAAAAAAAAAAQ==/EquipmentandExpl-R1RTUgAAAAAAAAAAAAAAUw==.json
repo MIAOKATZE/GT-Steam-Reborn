@@ -1,0 +1,42 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 40
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "As your processing and power systems develop, you can prepare portable equipment and plan a journey to Prosperity. Two branches begin here:\n\n§5Portable Equipment§r\nProgress from the LM12 through the T20, QLZ04, and Project 107, learning about LV, MV, HV, and EV weapons and their ammunition. Preparing all three regular ammo packs unlocks a one-time choice of one mimic ammo pack.\n\n§dExploring Prosperity§r\nPrepare the Spacetime Singularity Calibration Engineering and a charged Anchor Beacon, then mark a safe return point before departure. The six feedstock quests introduce their industrial uses and only require matching filled fluid cells; building production lines is not required.\n\n§3Read this introduction and check it off to continue either branch.§r",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 0,
+        "OreDict:8": "",
+        "id:8": "gtsr:SpacetimeAnchorBeacon"
+      },
+      "isMain:1": 0,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "§d§lEquipment and Exploration§r",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 83,
+  "rewards:9": {},
+  "tasks:9": {
+    "0:10": {
+      "index:3": 0,
+      "taskID:8": "bq_standard:checkbox"
+    }
+  }
+}
