@@ -94,6 +94,13 @@ public final class IndustrialMaterialColors {
         colors.put("planned:leached_uranium_cake", 0xff949a43);
         colors.put("planned:grit_antimony_cake", 0xffb0a695);
         colors.put("planned:grit_molybdenum_cake", 0xff989cac);
+        colors.put("planned:pgm_leached_cake", 0xffb5b9b5);
+        colors.put("planned:pgm_separated_cake", 0xff969bb0);
+        colors.put("planned:rareearth_separated_cake", 0xffb3a082);
+        colors.put("planned:tantalite_separated_cake", 0xff666972);
+        colors.put("planned:washed_grit_indium_cake", 0xff87959e);
+        colors.put("planned:mixed_grit_indium_cake", 0xff98a0ab);
+        colors.put("planned:washed_withered_indium_cake", 0xff929baa);
         return Collections.unmodifiableMap(colors);
     }
 

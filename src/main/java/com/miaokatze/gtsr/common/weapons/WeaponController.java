@@ -163,7 +163,7 @@ public final class WeaponController {
                 && s.remoteProjectile != null
                 && !s.remoteProjectile.isDead
                 && s.remoteTicks == 0) {
-                s.remoteTicks = 10;
+                s.remoteTicks = 30;
                 effect(s, 3);
             }
             s.firing = c.firing;
@@ -320,7 +320,7 @@ public final class WeaponController {
     private void update(Session s) {
         WeaponKind k = PortableWeapons.kind(s.gun);
         if (k == null) return;
-        if (s.remoteTicks > 0 && --s.remoteTicks == 0) {
+        if (s.remoteTicks > 0 && --s.remoteTicks == 20) {
             if (s.remoteProjectile != null && !s.remoteProjectile.isDead
                 && s.remoteProjectile.worldObj == s.player.worldObj
                 && s.player.worldObj.loadedEntityList.contains(s.remoteProjectile)) {
@@ -329,12 +329,13 @@ public final class WeaponController {
             }
             s.remoteProjectile = null;
         }
-        if (k == WeaponKind.SINGULARITY && s.remoteProjectile != null && !s.remoteProjectile.isDead) return;
         if (s.reload > 0) {
             if (--s.reload == 0) finishReload(s, k);
             s.spin = Math.max(0, s.spin - 8);
             return;
         }
+        if (k == WeaponKind.SINGULARITY
+            && (s.remoteTicks > 0 || (s.remoteProjectile != null && !s.remoteProjectile.isDead))) return;
         if (s.cooldown > 0) s.cooldown--;
         NBTTagCompound n = data(s.gun);
         if (!s.firing || n.getBoolean("hot")) {
@@ -348,7 +349,7 @@ public final class WeaponController {
             return;
         }
         if (k == WeaponKind.LM12) {
-            s.spin = Math.min(160, s.spin + 1);
+            s.spin = Math.min(160, s.spin + 2);
             if (s.spin < 40) return;
         }
         if (s.player.worldObj.getTotalWorldTime() < n.getLong("nextShot")) return;
@@ -374,7 +375,10 @@ public final class WeaponController {
             projectile.setDead();
             return;
         }
-        if (k == WeaponKind.SINGULARITY) s.remoteProjectile = projectile;
+        if (k == WeaponKind.SINGULARITY) {
+            s.remoteProjectile = projectile;
+            startReload(s);
+        }
         if (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY)
             n.setInteger("paidMagazine", Math.max(0, n.getInteger("paidMagazine") - 1));
         else removeEmpty(s.player, a, k);

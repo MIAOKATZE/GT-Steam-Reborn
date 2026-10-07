@@ -245,6 +245,7 @@ public final class WeaponAuditCommand extends CommandBase {
                 projectile = (EntityWeaponProjectile) object;
         require(projectile != null && projectile.critical(), "107 critical projectile spawned");
         owned.add(projectile);
+        require(capturedState.reloadTicks == 100, "107 shot automatically starts full 100 tick reload");
         for (int i = 0; i < 12; i++) control(true, false, false);
         require(!projectile.isDead, "107 held trigger does not remotely detonate");
         control(false, false, false);
@@ -252,7 +253,47 @@ public final class WeaponAuditCommand extends CommandBase {
         for (int i = 0; i < 8; i++) control(true, false, false);
         require(!projectile.isDead, "107 remote gesture waits 9 ticks");
         control(true, false, false);
-        require(projectile.isDead, "107 remote detonation at tick 10");
+        require(projectile.isDead, "107 remote detonation at tick 10 during automatic reload");
+        require(capturedState.remoteTicks == 20, "107 remote action continues for twenty ticks after trigger");
+        int nodes = 0;
+        for (Object object : world.loadedEntityList)
+            if (object instanceof EntityWeaponSingularity && !((Entity) object).isDead) nodes++;
+        for (int i = 0; i < 19; i++) control(false, false, false);
+        require(capturedState.remoteTicks == 1, "107 remote action still active at tick 29");
+        control(false, false, false);
+        require(capturedState.remoteTicks == 0, "107 remote action finishes at tick 30");
+        int after = 0;
+        for (Object object : world.loadedEntityList)
+            if (object instanceof EntityWeaponSingularity && !((Entity) object).isDead) after++;
+        require(after == nodes && nodes == 1, "107 one remote action creates exactly one node");
+        // 12 held ticks + one release + 30 action ticks elapsed since the shot.
+        for (int i = 0; i < 56; i++) control(false, false, false);
+        require(
+            WeaponController.data(gun)
+                .getInteger("magazine") == 0,
+            "107 automatic reload incomplete at shot plus 99");
+        control(false, false, false);
+        require(
+            WeaponController.data(gun)
+                .getInteger("magazine") == 1,
+            "107 automatic reload finishes without firing at shot plus 100");
+        player.inventory.mainInventory[1] = null;
+        player.inventory.mainInventory[2] = null;
+        control(true, false, false);
+        require(
+            capturedState.magazine == 0 && capturedState.reloadTicks == 0,
+            "107 empty inventory cannot begin automatic reload");
+        for (int i = 0; i < 105; i++) control(false, false, false);
+        require(capturedState.magazine == 0, "107 empty inventory cannot fabricate ammunition");
+        // control() advances only the controller: the empty-inventory shot has not ticked away.
+        // Remove this sub-fixture's projectile before later audits change the player pose/weapon.
+        for (Object object : new ArrayList<Object>(world.loadedEntityList))
+            if (object instanceof EntityWeaponProjectile) {
+                Entity projectileEntity = (Entity) object;
+                owned.add(projectileEntity);
+                projectileEntity.setDead();
+                world.removeEntity(projectileEntity);
+            }
         for (Object object : new ArrayList<Object>(world.loadedEntityList))
             if (object instanceof EntityWeaponSingularity) {
                 owned.add((Entity) object);
@@ -668,7 +709,8 @@ public final class WeaponAuditCommand extends CommandBase {
         int duration = k == WeaponKind.LM12 ? 70 : 30;
         for (int i = 1; i <= duration; i++) if (tick(true, false) > 0) firingTicks.add(i);
         require(!firingTicks.isEmpty(), "real firing produces entity " + k);
-        if (k == WeaponKind.LM12) require(firingTicks.get(0) == 40, "LM12 40 tick spin gate");
+        if (k == WeaponKind.LM12)
+            require(firingTicks.get(0) == 20, "LM12 doubled acceleration reaches spin gate at tick 20");
         else for (int i = 1; i < firingTicks.size(); i++) require(
             firingTicks.get(i) - firingTicks.get(i - 1) == (k == WeaponKind.T20 ? 8 : 12),
             "real shot interval " + k);

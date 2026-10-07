@@ -17,6 +17,7 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
 import bartworks.system.material.WerkstoffLoader;
 import goodgenerator.items.GGMaterial;
 import gregtech.api.enums.GTValues;
+import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.recipe.RecipeMap;
@@ -28,6 +29,8 @@ import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTRecipeBuilder;
 import gregtech.api.util.GTUtility;
+import gtPlusPlus.core.fluids.GTPPFluids;
+import gtPlusPlus.xmod.gregtech.api.enums.GregtechItemList;
 import gtnhlanth.common.register.WerkstoffMaterialPool;
 
 /** Six industrial lines, using registered material forms and the current integer ledger. */
@@ -203,6 +206,15 @@ public final class ProsperityIndustrialRecipes {
                 stack = GTOreDictUnificator.get(OrePrefixes.dust, standardMaterial(amount.id), amount.amount);
             } else {
                 switch (amount.id) {
+                    case "standard:ItemList.FR_Fertilizer":
+                        stack = ItemList.FR_Fertilizer.get(amount.amount);
+                        break;
+                    case "standard:ItemList.IC2_Plantball":
+                        stack = ItemList.IC2_Plantball.get(amount.amount);
+                        break;
+                    case "standard:GregtechItemList.CelluloseFiber":
+                        stack = GregtechItemList.CelluloseFiber.get(amount.amount);
+                        break;
                     case "standard:WerkstoffLoader.IrLeachResidue":
                         stack = WerkstoffLoader.IrLeachResidue.get(OrePrefixes.dust, amount.amount);
                         break;
@@ -263,6 +275,13 @@ public final class ProsperityIndustrialRecipes {
                 stack = materialFluid(standardMaterial(amount.id), amount.amount);
             } else {
                 switch (amount.id) {
+                    case "standard:WerkstoffLoader.AcidicOsmiumSolution":
+                        stack = WerkstoffLoader.AcidicOsmiumSolution.getFluidOrGas(amount.amount);
+                        break;
+                    case "standard:GTPPFluids.BoricAcid":
+                        stack = GTPPFluids.BoricAcid == null ? null
+                            : new FluidStack(GTPPFluids.BoricAcid, amount.amount);
+                        break;
                     case "wastesigh":
                         stack = rawGas(GTSRProsperityAirMaterials.WastesSigh, amount.amount);
                         break;

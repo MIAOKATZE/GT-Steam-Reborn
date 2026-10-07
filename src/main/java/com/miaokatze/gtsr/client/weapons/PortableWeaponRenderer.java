@@ -138,28 +138,13 @@ public final class PortableWeaponRenderer implements IItemRenderer {
             PortableWeaponPlayerPose.renderArms((AbstractClientPlayer) player, kind, partial);
     }
 
-    /** Camera presentation keeps a carried hip weapon visible; authoritative world pose stays at the hip. */
+    /** All cameras render the authoritative world point without a presentation translation. */
     static Vec3 viewPoint(EntityPlayer player, float partial, Vec3 point) {
-        Minecraft mc = Minecraft.getMinecraft();
-        if (player != mc.thePlayer || mc.gameSettings.thirdPersonView != 0 || mc.renderViewEntity != player)
-            return point;
-        Vec3 r = WeaponPose.right(player, partial), u = WeaponPose.up(player, partial),
-            f = WeaponPose.forward(player, partial);
-        double extraForward = PortableWeapons.kind(player.getHeldItem()) == WeaponKind.SINGULARITY
-            ? .65 * Math.sin(PortableWeaponClient.reloadProgress(player, partial) * Math.PI)
-            : 0;
-        return point.addVector(
-            r.xCoord * (.38 - WeaponPose.RIGHT) - u.xCoord * .18 + f.xCoord * (.95 + extraForward - WeaponPose.FORWARD),
-            -WeaponPose.UP - u.yCoord * .18 + f.yCoord * (.95 + extraForward - WeaponPose.FORWARD),
-            r.zCoord * (.38 - WeaponPose.RIGHT) - u.zCoord * .18
-                + f.zCoord * (.95 + extraForward - WeaponPose.FORWARD));
+        return point;
     }
 
     static float reloadAngle(EntityPlayer player, float progress) {
-        Minecraft mc = Minecraft.getMinecraft();
-        boolean firstPerson = player == mc.thePlayer && mc.gameSettings.thirdPersonView == 0
-            && mc.renderViewEntity == player;
-        return (float) Math.sin(progress * Math.PI) * (firstPerson ? 50 : 78);
+        return (float) Math.sin(progress * Math.PI) * 78;
     }
 
     static Vec3 reloadMuzzle(EntityPlayer player, float partial) {
@@ -201,11 +186,9 @@ public final class PortableWeaponRenderer implements IItemRenderer {
                     GL11.glRotatef((float) Math.sin(reload * Math.PI) * -75, 1, 0, 0);
                     GL11.glTranslatef(0, -.125F, -.68F);
                 }
-                if ("belt".equals(part)) GL11.glTranslatef((float) Math.sin(reload * Math.PI) * .35F, 0, 0);
-                if ("magazine".equals(part) && kind == WeaponKind.QLZ04) {
-                    float reach = (float) Math.sin(reload * Math.PI);
-                    // Bring the extracted clip into the first-person view instead of below its frustum.
-                    GL11.glTranslatef(-.6F * reach, .35F * reach, -.7F * reach);
+                if ("belt".equals(part) || "magazine".equals(part)) {
+                    Vec3 offset = WeaponPose.attachmentOffset(kind, part, reload);
+                    GL11.glTranslated(offset.xCoord, offset.yCoord, offset.zCoord);
                 }
                 if ("charging_handle".equals(part))
                     GL11.glTranslatef(0, 0, reload > .7F ? (float) Math.sin((reload - .7F) / .3F * Math.PI) * .18F : 0);
@@ -214,6 +197,9 @@ public final class PortableWeaponRenderer implements IItemRenderer {
                     GL11.glScalef(1.7F, 1.7F, 1);
                     GL11.glTranslatef(0, -.076875F, 0);
                 }
+                // Imported clips/belts occupy +X (right). Their feed is on the left for this carried weapon.
+                // Translate first, then mirror only this attachment so its travel never crosses the receiver.
+                if ("belt".equals(part) || "magazine".equals(part)) GL11.glScalef(-1, 1, 1);
                 part(meshKey, part);
                 if ("barrel".equals(part) && player != null) renderHeat(kind, player);
             } finally {

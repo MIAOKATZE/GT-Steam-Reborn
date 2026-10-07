@@ -75,6 +75,23 @@ public final class WeaponPose {
         return Vec3.createVectorHelper(0, -.28, -.30);
     }
 
+    /** Fetch ammunition outside the left torso, then approach the feed only from its left side. */
+    public static Vec3 reloadOffset(WeaponKind kind, float progress) {
+        if (progress <= 0 || progress >= 1) return Vec3.createVectorHelper(0, 0, 0);
+        double reach = progress < .25 ? progress / .25 : progress < .65 ? 1 : (1 - progress) / .35;
+        double fetch = progress < .25 ? progress / .25 : progress < .65 ? (.65 - progress) / .4 : 0;
+        return Vec3.createVectorHelper(-1.35 * reach, -.45 * fetch, -.35 * fetch);
+    }
+
+    /** Left feed attachments sit ahead of the torso, including while ammunition is fetched. */
+    public static Vec3 attachmentOffset(WeaponKind kind, String part, float progress) {
+        if (!"magazine".equals(part) && !"belt".equals(part)) return Vec3.createVectorHelper(0, 0, 0);
+        Vec3 movement = "belt".equals(part) || kind == WeaponKind.QLZ04 ? reloadOffset(kind, progress)
+            : Vec3.createVectorHelper(0, 0, 0);
+        // The imported attachment's rear edge is local Z=.42; -.1 places it at world forward=.1496.
+        return movement.addVector(0, 0, -.1);
+    }
+
     public static Vec3 muzzle(EntityPlayer p, WeaponKind kind) {
         return muzzle(p, kind, 1);
     }

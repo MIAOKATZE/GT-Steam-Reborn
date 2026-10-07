@@ -73,5 +73,6 @@ public class GTSRRecipeLoader implements Runnable {
                                                              // （GTUDK 用户规格）：eut 30/32=LV、128=MV，磁选与筛选为 MV
         safeRegister("ProsperityIndustrial", ProsperityIndustrialRecipes::registerAll);
         safeRegister("SpacetimeEngineering", SpacetimeMachineRecipes::register);
+        com.miaokatze.gtsr.loader.recipes.PortableWeaponRecipes.register();
     }
 }

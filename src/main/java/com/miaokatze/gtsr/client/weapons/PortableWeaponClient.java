@@ -258,7 +258,7 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         State state = player == null ? null : STATES.get(player.getEntityId());
         Snapshot s = snapshot(player);
         if (state == null || s == null || s.remoteTicks <= 0) return 0;
-        return clamp(1 - (s.remoteTicks - (clock - state.received) - partial) / 10F);
+        return clamp(1 - (s.remoteTicks - (clock - state.received) - partial) / 30F);
     }
 
     private static boolean hasAlternative(EntityPlayer p, WeaponKind kind) {
@@ -325,7 +325,7 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
                 int spacing = held == WeaponKind.SINGULARITY ? 14 : 9;
                 GL11.glDisable(GL11.GL_TEXTURE_2D);
                 GL11.glColor4f(.35F, .95F, .8F, .95F);
-                GL11.glLineWidth(1.5F);
+                GL11.glLineWidth(2F * event.resolution.getScaleFactor());
                 GL11.glBegin(GL11.GL_LINES);
                 GL11.glVertex2f(x - 5, y);
                 GL11.glVertex2f(x + 5, y);

@@ -23,6 +23,6 @@
     "EncounterReachMixin",
     "gtnl/SteamMultiMachineBaseGTNLMixin"
   ],
-  "client": ["EncounterMouseOverMixin", "ModelBipedWeaponPoseMixin"],
+  "client": ["EncounterMouseOverMixin", "ModelBipedWeaponPoseMixin", "RendererLivingWeaponYawMixin"],
   "server": []
 }

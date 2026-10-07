@@ -206,7 +206,7 @@ final class SingularityWeaponFx {
                 double time = world.getTotalWorldTime() + partial;
                 if (reload > 0) stateCubes(PortableWeaponRenderer.reloadMuzzle(p, partial), time, shade, reload);
                 if (remote > 0) stateCubes(
-                    PortableWeaponRenderer.viewPoint(p, partial, WeaponPose.modelPoint(p, partial, -.75, .55, -.65)),
+                    PortableWeaponRenderer.viewPoint(p, partial, WeaponPose.modelPoint(p, partial, 0, .34, .28)),
                     time,
                     shade,
                     remote);
