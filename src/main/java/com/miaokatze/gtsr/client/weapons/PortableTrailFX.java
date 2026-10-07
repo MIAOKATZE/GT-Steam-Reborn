@@ -8,6 +8,7 @@ import java.util.Deque;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 
 import org.lwjgl.BufferUtils;
@@ -16,6 +17,7 @@ import org.lwjgl.util.glu.GLU;
 
 import com.miaokatze.gtsr.client.encounter.GlScope;
 import com.miaokatze.gtsr.client.weapons.outpost.GatlingFxProfile;
+import com.miaokatze.gtsr.common.weapons.EntityWeaponProjectile;
 
 /** Full flight segments form a continuous, feathered gray ribbon, independent of projectile speed. */
 final class PortableTrailFX {
@@ -33,12 +35,15 @@ final class PortableTrailFX {
         int age;
 
         Segment(Entity projectile) {
-            x = projectile.prevPosX;
-            y = projectile.prevPosY;
-            z = projectile.prevPosZ;
-            dx = projectile.posX - x;
-            dy = projectile.posY - y;
-            dz = projectile.posZ - z;
+            EntityWeaponProjectile entity = (EntityWeaponProjectile) projectile;
+            Vec3 start = PortableProjectileRenderer.visualPoint(entity, 0);
+            Vec3 end = PortableProjectileRenderer.visualPoint(entity, 1);
+            x = start.xCoord;
+            y = start.yCoord;
+            z = start.zCoord;
+            dx = end.xCoord - x;
+            dy = end.yCoord - y;
+            dz = end.zCoord - z;
         }
     }
 

@@ -72,7 +72,7 @@ public final class WeaponAuditCommand extends CommandBase {
     private double x, z;
     private Channel auditNetwork;
     private Snapshot capturedState;
-    private Effect capturedShot;
+    private Effect capturedShot, capturedImpact;
     private EventBus auditTickBus;
 
     @Override
@@ -140,6 +140,7 @@ public final class WeaponAuditCommand extends CommandBase {
             damage();
             collision(WeaponKind.T20);
             collision(WeaponKind.QLZ04);
+            modeBehavior();
             disconnect();
             report(
                 sender,
@@ -752,7 +753,8 @@ public final class WeaponAuditCommand extends CommandBase {
         for (int i = 0; i < player.inventory.mainInventory.length; i++) player.inventory.mainInventory[i] = null;
         player.inventory.currentItem = 0;
         player.inventory.mainInventory[0] = new ItemStack(PortableWeapons.weapons[k.id]);
-        ItemStack pack = new ItemStack(PortableWeapons.ammo[k.id]);
+        ItemStack pack = k == WeaponKind.SINGULARITY ? GTSRItemList.SteamEntangledSingularity.get(4)
+            : new ItemStack(PortableWeapons.ammo[k.id]);
         player.inventory.mainInventory[1] = pack;
         return pack;
     }
@@ -971,6 +973,7 @@ public final class WeaponAuditCommand extends CommandBase {
                     if (message instanceof WeaponNetwork.EffectPacket) {
                         Effect effect = (Effect) field(message, "e");
                         if (effect.type == 0) capturedShot = effect;
+                        if (effect.type == 1) capturedImpact = effect;
                     }
                     context.write(message, promise);
                 }
@@ -1320,6 +1323,358 @@ public final class WeaponAuditCommand extends CommandBase {
         for (Entity e : new Entity[] { center, near, far, p }) {
             e.setDead();
             world.removeEntity(e);
+        }
+    }
+
+    private int modeStep(boolean fire, boolean reload, boolean switchMode) {
+        int serial = player.getEntityData()
+            .getInteger("gtsr.weaponShotSerial");
+        world.getWorldInfo()
+            .incrementTotalWorldTime(world.getTotalWorldTime() + 1);
+        capturedState = null;
+        capturedShot = null;
+        WeaponNetwork.enqueueControls(player, 0, fire, false, reload, false, switchMode);
+        controller.serverTick();
+        require(capturedState != null, "mode fixture actual server Snapshot");
+        return player.getEntityData()
+            .getInteger("gtsr.weaponShotSerial") - serial;
+    }
+
+    private void clearModeEntities() {
+        for (Entity entity : owned) {
+            entity.setDead();
+            world.removeEntity(entity);
+        }
+        for (Object object : new ArrayList<Object>(world.loadedEntityList)) {
+            if (object instanceof EntityWeaponProjectile || object instanceof EntityWeaponSingularity) {
+                Entity entity = (Entity) object;
+                owned.add(entity);
+                entity.setDead();
+                world.removeEntity(entity);
+            }
+        }
+    }
+
+    private EntityWeaponProjectile liveModeProjectile() {
+        for (Object object : world.loadedEntityList) {
+            if (object instanceof EntityWeaponProjectile && !((Entity) object).isDead) {
+                EntityWeaponProjectile shot = (EntityWeaponProjectile) object;
+                owned.add(shot);
+                return shot;
+            }
+        }
+        throw new IllegalStateException("mode fixture has no live projectile");
+    }
+
+    private EntityWeaponProjectile modeTrajectory(WeaponKind kind, int mode, float damage, double px, double py,
+        double pz, double vx, double vy, double vz) {
+        EntityWeaponProjectile shot = new EntityWeaponProjectile(world, player, kind, damage, 0, 0);
+        shot.setMode(mode);
+        shot.freezeEnchantments(player.getHeldItem());
+        shot.setPosition(px, py, pz);
+        shot.motionX = vx;
+        shot.motionY = vy;
+        shot.motionZ = vz;
+        owned.add(shot);
+        require(world.spawnEntityInWorld(shot), "mode fixture real projectile spawn");
+        return shot;
+    }
+
+    private void modeBehavior() {
+        int beforeChecks = checks;
+        clearModeEntities();
+        ItemStack belt = setup(WeaponKind.LM12);
+        reload(WeaponKind.LM12);
+        NBTTagCompound gunData = WeaponController.data(player.getHeldItem());
+        modeStep(false, false, true);
+        require(capturedState.mode == 1, "LM C selects suppression on actual server");
+        gunData.setBoolean("hot", true);
+        gunData.setFloat("heat", 1);
+        for (int i = 0; i < 9; i++) require(modeStep(true, false, false) == 0, "suppression waits below spin20");
+        require(modeStep(true, false, false) == 1, "suppression shoots at spin20 despite hot NBT");
+        for (int i = 0; i < 85; i++) modeStep(true, false, false);
+        require(
+            capturedState.shotInterval == 2 && !capturedState.overheated && belt.getItemDamage() > 1,
+            "suppression reaches interval2 and keeps firing while visually heated");
+        modeStep(false, false, true);
+        gunData.setBoolean("hot", true);
+        gunData.setFloat("heat", 1);
+        require(modeStep(true, false, false) == 0 && capturedState.overheated, "standard LM hot stops firing");
+        clearModeEntities();
+        ItemStack pack = setup(WeaponKind.QLZ04);
+        reload(WeaponKind.QLZ04);
+        gunData = WeaponController.data(player.getHeldItem());
+        for (int mode : new int[] { 1, 2, 0 }) {
+            int paid = gunData.getInteger("paidMagazine");
+            int prior = pack.getItemDamage();
+            modeStep(false, false, true);
+            require(
+                capturedState.mode == mode && capturedState.magazine == 0 && capturedState.reloadTicks == 39,
+                "QLZ C clears magazine and begins reload mode=" + mode);
+            require(pack.getItemDamage() == prior - paid, "QLZ mode switch refunds only paid rounds mode=" + mode);
+            for (int i = 0; i < 39; i++) modeStep(false, false, false);
+            int capacity = mode == 2 ? 8 : 12;
+            require(
+                capturedState.magazine == capacity && pack.getItemDamage() == capacity,
+                "QLZ actual reload capacity mode=" + mode);
+            int first = -1, second = -1;
+            gunData.setBoolean("hot", true);
+            for (int i = 0; i < 20; i++) {
+                if (modeStep(true, false, false) > 0) {
+                    if (first < 0) first = i;
+                    else if (second < 0) second = i;
+                }
+            }
+            require(
+                second - first == (mode == 2 ? 4 : 12) && !capturedState.overheated,
+                "QLZ actual mode cadence and heat immunity mode=" + mode);
+            clearModeEntities();
+            // Restore a fully paid magazine so each next iteration has an exact independent refund expectation.
+            gunData.setInteger("magazine", capacity);
+            gunData.setInteger("paidMagazine", capacity);
+            pack.setItemDamage(capacity);
+            modeStep(false, false, false);
+        }
+        pack.setItemDamage(0);
+        modeStep(false, false, true);
+        require(pack.getItemDamage() == 0, "QLZ full ordinary pack discards refund overflow");
+        for (int i = 0; i < 39; i++) modeStep(false, false, false);
+        gunData.setInteger("paidMagazine", 0);
+        int before = pack.getItemDamage();
+        modeStep(false, false, true);
+        require(
+            pack.getItemDamage() == before && capturedState.magazine == 0,
+            "QLZ unpaid economy magazine cannot generate refunded resources");
+        clearModeEntities();
+        modeProjectileBehavior();
+        unstableBehavior();
+        clearModeEntities();
+        report(
+            null,
+            "MODES checks=" + (checks - beforeChecks)
+                + " controls-serverTick heat cadence paid-refund segment-proximity fragments charge instant-blast");
+    }
+
+    private void modeProjectileBehavior() {
+        setup(WeaponKind.T20);
+        // A diagonal miss lies inside an expanded cube but outside the exact 1.5-radius rounded target bounds.
+        EntityCow corner = cow(0, 3);
+        EntityWeaponProjectile miss = modeTrajectory(
+            WeaponKind.T20,
+            1,
+            8,
+            x - 3,
+            corner.boundingBox.maxY + 1.2,
+            corner.boundingBox.maxZ + 1.2,
+            6,
+            0,
+            0);
+        miss.onUpdate();
+        require(!miss.isDead && corner.getHealth() == 100, "T20 diagonal proximity outside sphere does not trigger");
+        clearModeEntities();
+        EntityCow center = cow(0, 3), splash = cow(2, 3);
+        EntityWeaponProjectile airburst = modeTrajectory(WeaponKind.T20, 1, 8, x, 230.6, z - 2, 0, 0, 10);
+        airburst.onUpdate();
+        require(airburst.isDead, "T20 fast segment crossing entire proximity sphere detonates");
+        close(center.getHealth(), 92, "T20 airburst physical damage8");
+        close(splash.getHealth(), 92, "T20 airburst radius2.5 actual off-axis splash");
+        clearModeEntities();
+        center = cow(0, 3);
+        EntityCow near = cow(.8, 3), far = cow(1.8, 3);
+        EntityWeaponProjectile standard = modeTrajectory(WeaponKind.T20, 0, 10, x, 230.6, z, 0, 0, 5);
+        standard.onUpdate();
+        close(center.getHealth(), 90, "T20 standard physical damage10");
+        close(near.getHealth(), 90, "T20 standard radius1 actual splash");
+        close(far.getHealth(), 100, "T20 standard radius1 excludes distant entity");
+        clearModeEntities();
+        setup(WeaponKind.QLZ04);
+        player.getHeldItem()
+            .addEnchantment(Enchantment.looting, 3);
+        EntityCow ahead = cow(0, 3.8);
+        EntityWeaponProjectile grenade = modeTrajectory(WeaponKind.QLZ04, 1, 12, x, 230.6, z, 0, 0, .2);
+        grenade.onUpdate();
+        require(grenade.isDead, "QLZ shotgun detects entity in next forward4 before direct collision");
+        int fragments = 0;
+        for (Object object : new ArrayList<Object>(world.loadedEntityList)) {
+            if (!(object instanceof EntityWeaponProjectile) || ((Entity) object).isDead) continue;
+            EntityWeaponProjectile fragment = (EntityWeaponProjectile) object;
+            require(fragment.fragment(), "QLZ split children carry fragment marker");
+            require(fragment.enchantments().looting == 3, "QLZ fragments retain frozen looting");
+            Vec3 direction = fragment.visualDirection();
+            require(
+                direction.zCoord >= Math.cos(Math.PI / 6) - 1e-9,
+                "QLZ all fragments inside full60degree forward cone");
+            NBTTagCompound saved = new NBTTagCompound();
+            fragment.writeToNBT(saved);
+            close(saved.getFloat("damage"), 2, "QLZ each physical fragment damage2");
+            EntityWeaponProjectile restored = new EntityWeaponProjectile(world);
+            restored.readFromNBT(saved);
+            require(
+                restored.fragment() && restored.enchantments().looting == 3,
+                "QLZ fragment save cannot split again and preserves looting");
+            if (fragments == 0) {
+                // Short-lived physical fragments use the same ten-tick window as the burst visual.
+                restored.setPosition(x, 240, z);
+                restored.motionX = 0;
+                restored.motionY = 0;
+                restored.motionZ = 3;
+                owned.add(restored);
+                require(world.spawnEntityInWorld(restored), "spawn fragment lifetime fixture");
+                for (int age = 0; age < 10; age++) world.updateEntityWithOptionalForce(restored, true);
+                require(
+                    !restored.isDead && Math.abs(restored.posZ - z - 30) < 1e-9,
+                    "QLZ physical fragment flies ten ticks with maximum thirty-block reach");
+                require(restored.ticksExisted == 10, "fragment age advances through real World entity tick path");
+                world.updateEntityWithOptionalForce(restored, true);
+                require(
+                    restored.isDead && restored.ticksExisted == 11 && Math.abs(restored.posZ - z - 30) < 1e-9,
+                    "QLZ physical fragment expires before eleventh movement tick");
+                world.removeEntity(restored);
+            }
+            owned.add(fragment);
+            fragments++;
+        }
+        require(
+            fragments == 30 && ahead.getHealth() == 100,
+            "QLZ emits exactly30 projectiles without parent AoE damage");
+        clearModeEntities();
+        int bx = (int) Math.floor(x), by = 230, bz = (int) Math.floor(z) + 2;
+        Block prior = world.getBlock(bx, by, bz);
+        int metadata = world.getBlockMetadata(bx, by, bz);
+        require(prior == Blocks.air, "mode wall fixture starts in air");
+        try {
+            require(world.setBlock(bx, by, bz, Blocks.stone, 0, 2), "mode wall fixture install");
+            cow(0, 3.8);
+            EntityWeaponProjectile blocked = modeTrajectory(WeaponKind.QLZ04, 1, 12, x, 230.6, z, 0, 0, .2);
+            blocked.onUpdate();
+            require(!blocked.isDead, "QLZ lookahead cannot airburst through nearer wall");
+            clearModeEntities();
+            EntityCow behind = cow(0, 3.8);
+            EntityWeaponProjectile shell = modeTrajectory(WeaponKind.T20, 1, 8, x, 230.6, z - 1, 0, 0, 10);
+            shell.onUpdate();
+            require(
+                shell.isDead && shell.posZ < bz,
+                "T20 nearest wall/proximity impact is resolved within flown segment");
+            require(
+                world.getBlock(bx, by, bz) == Blocks.stone && behind.getHealth() <= 100,
+                "mode projectile leaves terrain intact");
+        } finally {
+            world.setBlock(bx, by, bz, prior, metadata, 2);
+            clearModeEntities();
+        }
+    }
+
+    private void unstableBehavior() {
+        for (boolean critical : new boolean[] { false, true }) {
+            setup(WeaponKind.SINGULARITY);
+            ItemStack gun = player.getHeldItem();
+            gun.addEnchantment(WeaponEnchantments.quenching, 2);
+            gun.addEnchantment(Enchantment.looting, 3);
+            player.inventory.mainInventory[1] = (critical ? GTSRItemList.CriticalSteamEntangledSingularity
+                : GTSRItemList.SteamEntangledSingularity).get(4);
+            modeStep(false, false, true);
+            modeStep(false, true, false);
+            for (int i = 0; i < 99; i++) modeStep(false, false, false);
+            require(
+                capturedState.magazine == 1 && capturedState.mode == 1,
+                "107 unstable loaded via production reload");
+            for (int i = 0; i < 99; i++) require(modeStep(true, false, false) == 0, "107 partial hold cannot shoot");
+            require(
+                modeStep(false, false, false) == 0 && capturedState.magazine == 1,
+                "107 early release cancels without consuming loaded ammunition");
+            for (int i = 0; i < 110; i++)
+                require(modeStep(true, false, false) == 0, "107 full hold never automatically fires");
+            require(capturedState.chargeTicks == 100, "107 server charge saturates at100ticks");
+            int cancelledSerial = player.getEntityData()
+                .getInteger("gtsr.weaponShotSerial");
+            WeaponNetwork.Controls cancel = new WeaponNetwork.Controls();
+            cancel.slot = 0;
+            cancel.yaw = player.rotationYaw;
+            cancel.pitch = player.rotationPitch;
+            cancel.cancelCharge = true;
+            ByteBuf cancelBytes = Unpooled.buffer();
+            try {
+                cancel.toBytes(cancelBytes);
+                WeaponNetwork.Controls decoded = new WeaponNetwork.Controls();
+                decoded.fromBytes(cancelBytes);
+                require(
+                    decoded.cancelCharge && cancelBytes.readableBytes() == 0,
+                    "107 GUI cancel flag survives actual Controls wire decoder");
+                WeaponNetwork.enqueueControls(player, decoded);
+                controller.serverTick();
+            } finally {
+                cancelBytes.release();
+            }
+            require(
+                capturedState.chargeTicks == 0 && capturedState.magazine == 1
+                    && player.getEntityData()
+                        .getInteger("gtsr.weaponShotSerial") == cancelledSerial,
+                "107 inventory GUI full-charge lost focus cancels instead of treating it as release-to-fire");
+            for (int i = 0; i < 50; i++) modeStep(true, false, false);
+            WeaponNetwork.enqueueControls(player, 0, true, false, false, false, false, true);
+            controller.serverTick();
+            for (int i = 0; i < 5; i++) require(
+                modeStep(true, false, false) == 0 && capturedState.chargeTicks == 0,
+                "107 explicit cancel while trigger held blocks recharge until actual release");
+            modeStep(false, false, false);
+            for (int i = 0; i < 100; i++) require(
+                modeStep(true, false, false) == 0,
+                "107 charge can restart after GUI cancel and actual trigger release");
+            require(
+                modeStep(false, false, false) == 1 && capturedState.reloadTicks == 100,
+                "107 full release creates one projectile and auto reloads");
+            EntityWeaponProjectile shot = liveModeProjectile();
+            require(
+                shot.mode() == 1 && shot.critical() == critical && shot.enchantments().looting == 3,
+                "107 shot freezes mode critical and looting");
+            EntityCow inner = cow(critical ? 11 : 5, 0), outside = cow(critical ? 13 : 7, 0);
+            inner.getEntityAttribute(SharedMonsterAttributes.maxHealth)
+                .setBaseValue(300);
+            inner.setHealth(300);
+            shot.setPosition(x, 230.6, z);
+            require(
+                modeStep(true, false, false) == 0 && shot.isDead && capturedState.remoteTicks == 0,
+                "107 inflight left click instantly explodes during reload without remote delay");
+            close(
+                inner.getHealth(),
+                300 - (critical ? 130 : 50) * 1.4f,
+                "107 actual physical+magic blast doubled then quenching scales");
+            close(outside.getHealth(), 100, "107 doubled final blast radius excludes outside target");
+            for (Object object : world.loadedEntityList) require(
+                !(object instanceof EntityWeaponSingularity) || ((Entity) object).isDead,
+                "107 unstable final explosion spawns no persistent pull node");
+            clearModeEntities();
+            EntityCow collisionTarget = cow(0, 3);
+            collisionTarget.getEntityAttribute(SharedMonsterAttributes.maxHealth)
+                .setBaseValue(300);
+            collisionTarget.setHealth(300);
+            EntityWeaponProjectile collisionShot = modeTrajectory(WeaponKind.SINGULARITY, 1, 0, x, 230.6, z, 0, 0, 5);
+            collisionShot.setCritical(critical);
+            collisionShot.onUpdate();
+            require(collisionShot.isDead, "107 unstable entity impact instantly consumes projectile");
+            close(
+                collisionTarget.getHealth(),
+                300 - (critical ? 130 : 50) * 1.4f,
+                "107 unstable entity impact immediately applies final blast without eight-second pull");
+            for (Object object : world.loadedEntityList) require(
+                !(object instanceof EntityWeaponSingularity) || ((Entity) object).isDead,
+                "107 unstable collision also leaves no sustained node");
+            clearModeEntities();
+            for (int i = 0; i < 99; i++) modeStep(false, false, false);
+            for (int i = 0; i < 50; i++) modeStep(true, false, false);
+            require(capturedState.chargeTicks == 50, "107 second charge progresses independently");
+            player.inventory.currentItem = 2;
+            controller.serverTick();
+            player.inventory.currentItem = 0;
+            require(
+                modeStep(false, false, false) == 0 && capturedState.chargeTicks == 0 && capturedState.magazine == 1,
+                "107 equipment change cancels charge without spending round");
+            for (int i = 0; i < 30; i++) modeStep(true, false, false);
+            modeStep(true, false, true);
+            require(
+                capturedState.mode == 0 && capturedState.chargeTicks == 0,
+                "107 C cancels unfinished charge on server");
+            clearModeEntities();
         }
     }
 

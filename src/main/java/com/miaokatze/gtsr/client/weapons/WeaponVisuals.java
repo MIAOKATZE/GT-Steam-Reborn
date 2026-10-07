@@ -54,6 +54,8 @@ public final class WeaponVisuals {
     }
 
     private final Map<Integer, Motor> motors = new LinkedHashMap<>();
+    private final Map<Integer, MotorLoopSound> charges = new LinkedHashMap<>();
+    private boolean localChargeAllowed;
     private boolean localMotorAllowed;
     private int localSlot = -1, reloadTicks;
     private boolean overheated;
@@ -67,6 +69,9 @@ public final class WeaponVisuals {
     void clear() {
         for (Motor motor : motors.values()) stopMotor(motor);
         motors.clear();
+        for (MotorLoopSound sound : charges.values()) stopCharge(sound);
+        charges.clear();
+        localChargeAllowed = false;
         localMotorAllowed = false;
         localSlot = -1;
         for (EntityVisualCasing c : casings) c.setDead();
@@ -92,6 +97,11 @@ public final class WeaponVisuals {
     void controls(EntityPlayer p, boolean active, boolean firing, WeaponKind kind) {
         boolean slotChanged = localSlot >= 0 && localSlot != p.inventory.currentItem;
         localMotorAllowed = active && kind == WeaponKind.LM12;
+        localChargeAllowed = active && firing && kind == WeaponKind.SINGULARITY && !slotChanged;
+        if (!localChargeAllowed) {
+            MotorLoopSound charge = charges.remove(p.getEntityId());
+            if (charge != null) stopCharge(charge);
+        }
         if (!localMotorAllowed || slotChanged) {
             Motor old = motors.remove(p.getEntityId());
             if (old != null) stopMotor(old);
@@ -163,6 +173,49 @@ public final class WeaponVisuals {
         }
     }
 
+    private static void stopCharge(MotorLoopSound sound) {
+        sound.requestStop();
+        Minecraft.getMinecraft()
+            .getSoundHandler()
+            .stopSound(sound);
+    }
+
+    private void tickCharges() {
+        Minecraft mc = Minecraft.getMinecraft();
+        Set<Integer> eligible = new HashSet<>();
+        for (Object object : mc.theWorld.playerEntities) {
+            EntityPlayer player = (EntityPlayer) object;
+            Snapshot snapshot = PortableWeaponClient.snapshot(player);
+            float progress = PortableWeaponClient.chargeProgress(player, 1);
+            double distance = Math.sqrt(mc.thePlayer.getDistanceSqToEntity(player));
+            if (snapshot == null || snapshot.kind != WeaponKind.SINGULARITY.id
+                || snapshot.mode != 1
+                || progress < .02F
+                || distance >= 32
+                || player == mc.thePlayer && !localChargeAllowed) continue;
+            int id = player.getEntityId();
+            eligible.add(id);
+            MotorLoopSound sound = charges.get(id);
+            boolean start = sound == null;
+            if (start) {
+                sound = new MotorLoopSound("gtsr:weapons.coilgun_charge");
+                charges.put(id, sound);
+            }
+            sound.tick(player, .70F + .75F * progress, (.10F + .75F * progress) * (float) (1 - distance / 32));
+            if (start) mc.getSoundHandler()
+                .playSound(sound);
+        }
+        Iterator<Map.Entry<Integer, MotorLoopSound>> iterator = charges.entrySet()
+            .iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Integer, MotorLoopSound> entry = iterator.next();
+            if (!eligible.contains(entry.getKey())) {
+                stopCharge(entry.getValue());
+                iterator.remove();
+            }
+        }
+    }
+
     void state(Snapshot s) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || s.entityId != mc.thePlayer.getEntityId()) return;
@@ -181,6 +234,7 @@ public final class WeaponVisuals {
         flashes.removeIf(f -> f.isDead);
         Minecraft mc = Minecraft.getMinecraft();
         tickMotors();
+        tickCharges();
         PortableTrailFX.tick(mc.theWorld);
         SingularityWeaponFx.tick(mc.theWorld);
         int budget = 64;
@@ -211,7 +265,7 @@ public final class WeaponVisuals {
                 return;
             }
             if (kind != WeaponKind.LM12) {
-                QlzImpactFx.impact(mc.theWorld, e.x, e.y, e.z, kind == WeaponKind.T20 ? .25F : 2);
+                QlzImpactFx.impact(mc.theWorld, e.x, e.y, e.z, kind == WeaponKind.T20 ? (e.mode == 1 ? 2.5F : 1F) : 2);
                 mc.theWorld.playSound(e.x, e.y, e.z, "random.explode", .7F, 1.2F, false);
             }
             return;

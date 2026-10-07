@@ -46,6 +46,10 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         "key.gtsr.weapon.switch",
         Keyboard.KEY_V,
         "key.categories.gtsr.weapons");
+    private static final KeyBinding SWITCH_MODE = new KeyBinding(
+        "key.gtsr.weapon.mode",
+        Keyboard.KEY_C,
+        "key.categories.gtsr.weapons");
     private static final WeaponVisuals VISUALS = new WeaponVisuals();
     private static boolean registered;
     private static Object world;
@@ -71,6 +75,7 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         PortableWeaponClient client = new PortableWeaponClient();
         ClientRegistry.registerKeyBinding(RELOAD);
         ClientRegistry.registerKeyBinding(SWITCH_AMMO);
+        ClientRegistry.registerKeyBinding(SWITCH_MODE);
         VISUALS.register();
         MinecraftForge.EVENT_BUS.register(client);
         MinecraftForge.EVENT_BUS.register(VISUALS);
@@ -225,20 +230,36 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         boolean active = kind != null && mc.currentScreen == null && mc.inGameHasFocus && player.isEntityAlive();
         boolean firing = active && Mouse.isButtonDown(0);
         boolean focusing = active && Mouse.isButtonDown(1);
-        boolean reload = false, switchAmmo = false;
+        boolean reload = false, switchAmmo = false, switchMode = false;
+        while (SWITCH_MODE.isPressed()) switchMode |= active;
         while (SWITCH_AMMO.isPressed()) switchAmmo |= active;
         while (RELOAD.isPressed()) reload |= active;
         int slot = player.inventory.currentItem;
         if (lastSlot >= 0 && (slot != lastSlot || kind != lastKind || !active)) {
-            if (lastFire || lastFocus) WeaponNetwork
-                .sendControls(lastSlot, false, false, false, false, player.rotationYaw, player.rotationPitch);
+            if (lastFire || lastFocus) WeaponNetwork.sendControls(
+                lastSlot,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                player.rotationYaw,
+                player.rotationPitch);
             lastFire = lastFocus = false;
             State local = STATES.get(player.getEntityId());
             if (local != null && (slot != lastSlot || kind != lastKind)) local.snapshot = null;
         }
         // Each active tick carries the current aim, including continuous fire and recoil.
-        if (active) WeaponNetwork
-            .sendControls(slot, firing, focusing, reload, switchAmmo, player.rotationYaw, player.rotationPitch);
+        if (active) WeaponNetwork.sendControls(
+            slot,
+            firing,
+            focusing,
+            reload,
+            switchAmmo,
+            switchMode,
+            player.rotationYaw,
+            player.rotationPitch);
         lastSlot = active ? slot : -1;
         lastKind = kind;
         lastFire = firing;
@@ -251,6 +272,16 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         }
         VISUALS.controls(player, active, firing, kind);
         VISUALS.tick();
+    }
+
+    public static float chargeProgress(EntityPlayer player, float partial) {
+        State state = player == null ? null : STATES.get(player.getEntityId());
+        Snapshot s = snapshot(player);
+        if (state == null || s == null
+            || s.chargeTicks <= 0
+            || s.chargeDuration <= 0
+            || player == Minecraft.getMinecraft().thePlayer && !lastFire) return 0;
+        return clamp((s.chargeTicks + clock - state.received + partial) / s.chargeDuration);
     }
 
     public static float remoteProgress(EntityPlayer player, float partial) {
@@ -355,7 +386,9 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
                 x + 28,
                 y - 28,
                 rate,
-                s == null ? 0 : s.heat);
+                s == null ? 0 : s.heat,
+                reloadProgress(mc.thePlayer, event.partialTicks),
+                chargeProgress(mc.thePlayer, event.partialTicks));
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             String ammo = s == null ? "-- / --" : s.magazine + " / " + s.reserve;
             mc.fontRenderer.drawStringWithShadow(
@@ -376,6 +409,21 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
                     x - mc.fontRenderer.getStringWidth(selected) / 2,
                     y + (held == WeaponKind.SINGULARITY ? 94 : 72),
                     s.ammoType == 1 ? 0xD7ACFF : 0xD6FFEE);
+            }
+            if (s != null) {
+                String modeKey = s.mode == 0 ? "standard"
+                    : held == WeaponKind.LM12 ? "suppression"
+                        : held == WeaponKind.T20 ? "airburst"
+                            : held == WeaponKind.QLZ04 ? (s.mode == 2 ? "drum" : "shotgun") : "unstable";
+                String mode = StatCollector.translateToLocal("gtsr.weapon.mode." + modeKey) + "  "
+                    + StatCollector.translateToLocalFormatted(
+                        "gtsr.weapon.mode_hint",
+                        Keyboard.getKeyName(SWITCH_MODE.getKeyCode()));
+                mc.fontRenderer.drawStringWithShadow(
+                    mode,
+                    x - mc.fontRenderer.getStringWidth(mode) / 2,
+                    y + (held == WeaponKind.SINGULARITY ? 106 : 84),
+                    0xBDE7FF);
             }
             if (s != null && (s.overheated || s.reloadTicks > 0)) {
                 String text = StatCollector

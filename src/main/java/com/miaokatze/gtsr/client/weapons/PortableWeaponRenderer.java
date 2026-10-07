@@ -170,6 +170,8 @@ public final class PortableWeaponRenderer implements IItemRenderer {
             Vec3 offset = WeaponPose.singularityReloadBody(reload);
             GL11.glTranslated(offset.xCoord, offset.yCoord, offset.zCoord);
         }
+        Snapshot state = player == null ? null : PortableWeaponClient.snapshot(player);
+        boolean drum = kind == WeaponKind.QLZ04 && state != null && state.mode == 2;
         String meshKey = kind == WeaponKind.SINGULARITY ? "t20" : kind.modelKey;
         for (String part : PARTS) {
             if ("grip".equals(part) || "stock".equals(part) || "support_hand".equals(part)) continue;
@@ -194,6 +196,14 @@ public final class PortableWeaponRenderer implements IItemRenderer {
                 if ("charging_handle".equals(part))
                     GL11.glTranslatef(0, 0, reload > .7F ? (float) Math.sin((reload - .7F) / .3F * Math.PI) * .18F : 0);
                 if (kind == WeaponKind.SINGULARITY && "barrel".equals(part)) {
+                    float charge = player == null ? 0 : PortableWeaponClient.chargeProgress(player, partial);
+                    if (charge > 0) {
+                        double time = player.worldObj.getTotalWorldTime() + partial;
+                        GL11.glTranslated(
+                            Math.sin(time * 2.7) * .012 * charge,
+                            Math.sin(time * 3.9) * .01 * charge,
+                            Math.cos(time * 2.1) * .006 * charge);
+                    }
                     Vec3 shake = WeaponPose.singularityReloadBarrel(reload);
                     GL11.glTranslated(shake.xCoord, shake.yCoord, shake.zCoord);
                     GL11.glTranslatef(0, .076875F, 0);
@@ -203,7 +213,8 @@ public final class PortableWeaponRenderer implements IItemRenderer {
                 // Imported clips/belts occupy +X (right). Their feed is on the left for this carried weapon.
                 // Translate first, then mirror only this attachment so its travel never crosses the receiver.
                 if ("belt".equals(part) || "magazine".equals(part)) GL11.glScalef(-1, 1, 1);
-                part(meshKey, part);
+                if (drum && "magazine".equals(part)) WeaponMeshes.drumMagazine();
+                else part(meshKey, part);
                 if ("barrel".equals(part) && player != null) renderHeat(kind, player);
             } finally {
                 GL11.glPopMatrix();
@@ -215,7 +226,7 @@ public final class PortableWeaponRenderer implements IItemRenderer {
     private static void renderHeat(WeaponKind kind, EntityPlayer player) {
         Snapshot snapshot = PortableWeaponClient.snapshot(player);
         float h = snapshot == null ? 0 : Math.max(0, Math.min(1, snapshot.heat));
-        if (h <= 0 || kind == WeaponKind.SINGULARITY) return;
+        if (h <= 0 || kind == WeaponKind.SINGULARITY || kind == WeaponKind.QLZ04) return;
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
         try {
             Minecraft.getMinecraft()

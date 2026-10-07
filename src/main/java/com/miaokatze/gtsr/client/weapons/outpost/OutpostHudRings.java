@@ -96,6 +96,10 @@ public final class OutpostHudRings {
     }
 
     public static void draw(String codeName, float cx, float cy, float rate, float heat) {
+        draw(codeName, cx, cy, rate, heat, 0, 0);
+    }
+
+    public static void draw(String codeName, float cx, float cy, float rate, float heat, float reload, float charge) {
         if (!codeName.equals(ringSmoothCodeName)) {
             ringSmoothCodeName = codeName;
             displayedRateFraction = rate;
@@ -104,8 +108,20 @@ public final class OutpostHudRings {
             displayedRateFraction += (rate - displayedRateFraction) * RING_SMOOTH_FACTOR;
             displayedOverheat += (heat - displayedOverheat) * RING_SMOOTH_FACTOR;
         }
-        band(cx, cy, 6, 10, displayedRateFraction, 0xFF40FF40);
-        band(cx, cy, 10, 14, displayedOverheat, 0xFFFF7000);
+        boolean singularity = "singularity".equals(codeName);
+        if (singularity || reload > 0) band(cx, cy, 6, 10, reload, 0xFFD080FF);
+        else band(cx, cy, 6, 10, displayedRateFraction, 0xFF40FF40);
+        if (!singularity && !"qlz04".equals(codeName)) band(cx, cy, 10, 14, displayedOverheat, 0xFFFF7000);
+        if (singularity && charge > 0) {
+            float radius = 6 * Math.max(0, Math.min(1, charge));
+            for (int dy = -6; dy <= 6; dy++)
+                for (int dx = -6; dx <= 6; dx++) if (dx * dx + dy * dy <= radius * radius) drawRect(
+                    Math.round(cx) + dx,
+                    Math.round(cy) + dy,
+                    Math.round(cx) + dx + 1,
+                    Math.round(cy) + dy + 1,
+                    0xFF40E8FF);
+        }
     }
 
     private static void band(float x, float y, float in, float out, float progress, int color) {

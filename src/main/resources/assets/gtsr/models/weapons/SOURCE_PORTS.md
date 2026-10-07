@@ -28,3 +28,8 @@ TurretObjRenderer.renderRedHotPass and GatlingFxProfile heat colors.
 Weapon sound assets, including gatling_motor.ogg, originate from GT-Outpost.
 Detailed source paths, adaptation boundaries and checksums are recorded in
 the project's plan/implementation/weapons-v1.20.89 evidence.
+
+107 unstable charging uses GT-Outpost assets/gto/sounds/coilgun_charge.ogg, copied unchanged
+to assets/gtsr/sounds/weapons/coilgun_charge.ogg. Its single managed loop follows
+CoilgunChargeSound progress pitch .70..1.45 and volume 0.10..0.85, with range 32.
+Portable input release, held-slot changes and world changes stop the loop immediately.

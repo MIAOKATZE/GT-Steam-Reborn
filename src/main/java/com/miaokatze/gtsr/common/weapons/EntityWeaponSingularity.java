@@ -15,7 +15,7 @@ import io.netty.buffer.ByteBuf;
 /** Stationary, server-owned gravity node. It deliberately affects teammates and other players. */
 public final class EntityWeaponSingularity extends Entity implements IEntityAdditionalSpawnData {
 
-    private boolean critical;
+    private boolean critical, unstable;
     private UUID owner;
     private int age, blockCursor, blockSweepRemaining, blockSweepCooldown;
     private WeaponShotEnchantments shotEnchantments = new WeaponShotEnchantments();
@@ -32,7 +32,13 @@ public final class EntityWeaponSingularity extends Entity implements IEntityAddi
 
     public EntityWeaponSingularity(World world, double x, double y, double z, UUID owner, boolean critical,
         WeaponShotEnchantments enchantments) {
+        this(world, x, y, z, owner, critical, enchantments, false);
+    }
+
+    public EntityWeaponSingularity(World world, double x, double y, double z, UUID owner, boolean critical,
+        WeaponShotEnchantments enchantments, boolean unstable) {
         this(world);
+        this.unstable = unstable;
         shotEnchantments = enchantments;
         setPosition(x, y, z);
         this.owner = owner;
@@ -56,7 +62,16 @@ public final class EntityWeaponSingularity extends Entity implements IEntityAddi
     }
 
     public float explosionDamage(boolean magic) {
-        return (magic ? (critical ? 15 : 5) : (critical ? 50 : 20)) * (1 + .2f * shotEnchantments.quenching);
+        return (magic ? (critical ? 15 : 5) : (critical ? 50 : 20)) * (1 + .2f * shotEnchantments.quenching)
+            * (unstable ? 2 : 1);
+    }
+
+    public boolean unstable() {
+        return unstable;
+    }
+
+    public double explosionRadius() {
+        return (critical ? 6 : 3) * (unstable ? 2 : 1);
     }
 
     public static boolean absorbableHardness(float hardness) {
@@ -181,8 +196,14 @@ public final class EntityWeaponSingularity extends Entity implements IEntityAddi
         }
     }
 
+    public void explodeInstantly() {
+        if (worldObj.isRemote || isDead) return;
+        explode();
+        setDead();
+    }
+
     private void explode() {
-        double radius = critical ? 6 : 3;
+        double radius = explosionRadius();
         for (Object object : worldObj
             .getEntitiesWithinAABB(EntityLivingBase.class, boundingBox.expand(radius, radius, radius))) {
             EntityLivingBase target = (EntityLivingBase) object;
@@ -193,6 +214,7 @@ public final class EntityWeaponSingularity extends Entity implements IEntityAddi
         Effect effect = new Effect();
         effect.kind = WeaponKind.SINGULARITY.id;
         effect.type = 1;
+        effect.mode = unstable ? WeaponMode.ALTERNATE : WeaponMode.STANDARD;
         effect.entityId = getEntityId();
         effect.x = posX;
         effect.y = posY;
@@ -206,6 +228,7 @@ public final class EntityWeaponSingularity extends Entity implements IEntityAddi
         shotEnchantments.write(n);
         n.setInteger("blockCursor", blockCursor);
         n.setBoolean("critical", critical);
+        n.setBoolean("unstable", unstable);
         n.setInteger("age", age);
         if (owner != null) n.setString("owner", owner.toString());
     }
@@ -215,6 +238,7 @@ public final class EntityWeaponSingularity extends Entity implements IEntityAddi
         shotEnchantments = WeaponShotEnchantments.read(n);
         blockCursor = Math.max(0, n.getInteger("blockCursor"));
         critical = n.getBoolean("critical");
+        unstable = n.getBoolean("unstable");
         age = n.getInteger("age");
         try {
             owner = n.hasKey("owner") ? UUID.fromString(n.getString("owner")) : null;
@@ -227,6 +251,7 @@ public final class EntityWeaponSingularity extends Entity implements IEntityAddi
     public void writeSpawnData(ByteBuf b) {
         shotEnchantments.write(b);
         b.writeBoolean(critical);
+        b.writeBoolean(unstable);
         b.writeInt(age);
     }
 
@@ -234,6 +259,7 @@ public final class EntityWeaponSingularity extends Entity implements IEntityAddi
     public void readSpawnData(ByteBuf b) {
         shotEnchantments = WeaponShotEnchantments.read(b);
         critical = b.readBoolean();
+        unstable = b.readBoolean();
         age = b.readInt();
     }
 }

@@ -1840,5 +1840,11 @@
     "sounds": [
       "weapons/fx/casing_drop_gx2"
     ]
+  },
+  "weapons.coilgun_charge": {
+    "category": "player",
+    "sounds": [
+      "weapons/coilgun_charge"
+    ]
   }
 }

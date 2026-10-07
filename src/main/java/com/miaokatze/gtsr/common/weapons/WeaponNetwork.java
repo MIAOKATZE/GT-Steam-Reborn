@@ -37,10 +37,22 @@ public final class WeaponNetwork {
 
     public static void sendControls(int slot, boolean firing, boolean focusing, boolean reload, boolean switchAmmo,
         float yaw, float pitch) {
+        sendControls(slot, firing, focusing, reload, switchAmmo, false, yaw, pitch);
+    }
+
+    public static void sendControls(int slot, boolean firing, boolean focusing, boolean reload, boolean switchAmmo,
+        boolean switchMode, float yaw, float pitch) {
+        sendControls(slot, firing, focusing, reload, switchAmmo, switchMode, false, yaw, pitch);
+    }
+
+    public static void sendControls(int slot, boolean firing, boolean focusing, boolean reload, boolean switchAmmo,
+        boolean switchMode, boolean cancelCharge, float yaw, float pitch) {
         Controls c = new Controls();
         c.yaw = yaw;
         c.pitch = pitch;
         c.switchAmmo = switchAmmo;
+        c.switchMode = switchMode;
+        c.cancelCharge = cancelCharge;
         c.slot = slot;
         c.firing = firing;
         c.focusing = focusing;
@@ -58,7 +70,37 @@ public final class WeaponNetwork {
     }
 
     public static void enqueueControls(EntityPlayerMP p, int slot, boolean firing, boolean focusing, boolean reload,
+        boolean switchAmmo, boolean switchMode) {
+        enqueueControls(p, slot, firing, focusing, reload, switchAmmo, switchMode, p.rotationYaw, p.rotationPitch);
+    }
+
+    public static void enqueueControls(EntityPlayerMP p, int slot, boolean firing, boolean focusing, boolean reload,
         boolean switchAmmo, float yaw, float pitch) {
+        enqueueControls(p, slot, firing, focusing, reload, switchAmmo, false, yaw, pitch);
+    }
+
+    public static void enqueueControls(EntityPlayerMP p, int slot, boolean firing, boolean focusing, boolean reload,
+        boolean switchAmmo, boolean switchMode, float yaw, float pitch) {
+        enqueueControls(p, slot, firing, focusing, reload, switchAmmo, switchMode, false, yaw, pitch);
+    }
+
+    public static void enqueueControls(EntityPlayerMP p, int slot, boolean firing, boolean focusing, boolean reload,
+        boolean switchAmmo, boolean switchMode, boolean cancelCharge) {
+        enqueueControls(
+            p,
+            slot,
+            firing,
+            focusing,
+            reload,
+            switchAmmo,
+            switchMode,
+            cancelCharge,
+            p.rotationYaw,
+            p.rotationPitch);
+    }
+
+    public static void enqueueControls(EntityPlayerMP p, int slot, boolean firing, boolean focusing, boolean reload,
+        boolean switchAmmo, boolean switchMode, boolean cancelCharge, float yaw, float pitch) {
         Controls c = new Controls();
         c.yaw = yaw;
         c.pitch = pitch;
@@ -67,6 +109,8 @@ public final class WeaponNetwork {
         c.focusing = focusing;
         c.reload = reload;
         c.switchAmmo = switchAmmo;
+        c.switchMode = switchMode;
+        c.cancelCharge = cancelCharge;
         enqueueControls(p, c);
     }
 
@@ -103,7 +147,7 @@ public final class WeaponNetwork {
 
         public int slot;
         public float yaw, pitch;
-        public boolean firing, focusing, reload, switchAmmo;
+        public boolean firing, focusing, reload, switchAmmo, switchMode, cancelCharge;
 
         public void fromBytes(ByteBuf b) {
             slot = b.readUnsignedByte();
@@ -112,13 +156,20 @@ public final class WeaponNetwork {
             focusing = (flags & 2) != 0;
             reload = (flags & 4) != 0;
             switchAmmo = (flags & 8) != 0;
+            switchMode = (flags & 16) != 0;
+            cancelCharge = (flags & 32) != 0;
             yaw = b.readFloat();
             pitch = b.readFloat();
         }
 
         public void toBytes(ByteBuf b) {
             b.writeByte(slot);
-            b.writeByte((firing ? 1 : 0) | (focusing ? 2 : 0) | (reload ? 4 : 0) | (switchAmmo ? 8 : 0));
+            b.writeByte(
+                (firing ? 1 : 0) | (focusing ? 2 : 0)
+                    | (reload ? 4 : 0)
+                    | (switchAmmo ? 8 : 0)
+                    | (switchMode ? 16 : 0)
+                    | (cancelCharge ? 32 : 0));
             b.writeFloat(yaw);
             b.writeFloat(pitch);
         }
@@ -149,6 +200,9 @@ public final class WeaponNetwork {
             b.writeInt(s.shotAge);
             b.writeInt(s.ammoType);
             b.writeInt(s.remoteTicks);
+            b.writeInt(s.mode);
+            b.writeInt(s.chargeTicks);
+            b.writeInt(s.chargeDuration);
             b.writeFloat(s.heat);
             b.writeFloat(s.spin);
             b.writeBoolean(s.focusing);
@@ -169,6 +223,9 @@ public final class WeaponNetwork {
             s.shotAge = b.readInt();
             s.ammoType = b.readInt();
             s.remoteTicks = b.readInt();
+            s.mode = b.readInt();
+            s.chargeTicks = b.readInt();
+            s.chargeDuration = b.readInt();
             s.heat = b.readFloat();
             s.spin = b.readFloat();
             s.focusing = b.readBoolean();
@@ -202,6 +259,7 @@ public final class WeaponNetwork {
             b.writeFloat(e.yaw);
             b.writeFloat(e.pitch);
             b.writeInt(e.shotSerial);
+            b.writeByte(e.mode);
         }
 
         public void fromBytes(ByteBuf b) {
@@ -218,6 +276,7 @@ public final class WeaponNetwork {
             e.yaw = b.readFloat();
             e.pitch = b.readFloat();
             e.shotSerial = b.readInt();
+            e.mode = b.readUnsignedByte();
         }
     }
 

@@ -140,6 +140,11 @@ public final class PortableWeapons {
         }
 
         @Override
+        public boolean isItemTool(ItemStack stack) {
+            return true;
+        }
+
+        @Override
         public ItemStack onItemRightClick(ItemStack s, World w, EntityPlayer p) {
             p.setItemInUse(s, 72000);
             return s;

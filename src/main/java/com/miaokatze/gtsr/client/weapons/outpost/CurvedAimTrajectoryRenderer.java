@@ -25,12 +25,23 @@ public final class CurvedAimTrajectoryRenderer {
         return WeaponPose.physical(player, kind, partial).forward;
     }
 
+    /** Shared discrete ballistic samples for preview, entity mesh and its trail. */
+    public static Vec3 point(Vec3 origin, Vec3 direction, WeaponKind kind, double age, boolean fragment) {
+        age = Math.max(0, age);
+        int ticks = (int) Math.floor(age);
+        double fraction = age - ticks;
+        double fall = fragment ? 0 : kind.gravity * (ticks * (ticks - 1) * .5 + ticks * fraction);
+        double speed = fragment ? 3 : kind.projectileSpeed;
+        return origin.addVector(
+            direction.xCoord * speed * age,
+            direction.yCoord * speed * age - fall,
+            direction.zCoord * speed * age);
+    }
+
     public static void draw(EntityPlayer player, WeaponKind kind, float partial) {
         Vec3 muzzle = WeaponPose.muzzle(player, kind, partial), aim = launchDirection(player, kind, partial);
         List<Vec3> points = new ArrayList<>();
         points.add(muzzle);
-        double x = muzzle.xCoord, y = muzzle.yCoord, z = muzzle.zCoord, vx = aim.xCoord * kind.projectileSpeed,
-            vy = aim.yCoord * kind.projectileSpeed, vz = aim.zCoord * kind.projectileSpeed;
         boolean blocked = false;
         Vec3 eye = WeaponPose.eye(player, partial);
         MovingObjectPosition muzzleBlock = player.worldObj.func_147447_a(
@@ -46,7 +57,7 @@ public final class CurvedAimTrajectoryRenderer {
             blocked = true;
         }
         for (int i = 0; i < 48 && muzzleBlock == null; i++) {
-            Vec3 start = Vec3.createVectorHelper(x, y, z), end = start.addVector(vx, vy, vz);
+            Vec3 start = point(muzzle, aim, kind, i, false), end = point(muzzle, aim, kind, i + 1, false);
             MovingObjectPosition hit = player.worldObj.func_147447_a(
                 Vec3.createVectorHelper(start.xCoord, start.yCoord, start.zCoord),
                 Vec3.createVectorHelper(end.xCoord, end.yCoord, end.zCoord),
@@ -59,10 +70,6 @@ public final class CurvedAimTrajectoryRenderer {
                 break;
             }
             points.add(end);
-            x = end.xCoord;
-            y = end.yCoord;
-            z = end.zCoord;
-            vy -= kind.gravity;
         }
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glDisable(GL11.GL_LIGHTING);

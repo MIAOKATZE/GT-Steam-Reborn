@@ -21,7 +21,16 @@ public final class MotorLoopSound implements ITickableSound {
     /** 淡出剩余 tick 数（-1=未在淡出；0..N-1=淡出进行中） */
     private int fadeRemaining = -1;
 
-    private final ResourceLocation sound = new ResourceLocation(GatlingFxProfile.SND_MOTOR);
+    private final ResourceLocation sound;
+
+    public MotorLoopSound() {
+        this(GatlingFxProfile.SND_MOTOR);
+    }
+
+    public MotorLoopSound(String key) {
+        sound = new ResourceLocation(key);
+    }
+
     private double x, y, z;
     private float volume, pitch;
     private boolean done;

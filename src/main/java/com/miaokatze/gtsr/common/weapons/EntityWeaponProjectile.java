@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.weapons;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,7 +28,35 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
     private UUID shooterId;
     private float damage, penetration;
     private int fire;
-    private boolean critical;
+    private boolean critical, fragment;
+    private int mode;
+    private Vec3 visualOrigin, visualDirection;
+
+    public int mode() {
+        return mode;
+    }
+
+    public boolean fragment() {
+        return fragment;
+    }
+
+    public int flightAge() {
+        return ticksExisted;
+    }
+
+    public Vec3 visualOrigin() {
+        return visualOrigin == null ? Vec3.createVectorHelper(posX, posY, posZ) : visualOrigin;
+    }
+
+    public Vec3 visualDirection() {
+        return visualDirection == null ? Vec3.createVectorHelper(motionX, motionY, motionZ)
+            .normalize() : visualDirection;
+    }
+
+    public void setMode(int value) {
+        mode = WeaponMode.mode(weapon, value);
+    }
+
     private WeaponShotEnchantments shotEnchantments = new WeaponShotEnchantments();
 
     public void freezeEnchantments(ItemStack stack) {
@@ -47,8 +77,17 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
 
     public void detonate() {
         if (isDead || worldObj.isRemote || weapon != WeaponKind.SINGULARITY) return;
-        worldObj.spawnEntityInWorld(
-            new EntityWeaponSingularity(worldObj, posX, posY, posZ, shooterId, critical, shotEnchantments));
+        EntityWeaponSingularity node = new EntityWeaponSingularity(
+            worldObj,
+            posX,
+            posY,
+            posZ,
+            shooterId,
+            critical,
+            shotEnchantments,
+            mode == WeaponMode.ALTERNATE);
+        if (mode == WeaponMode.ALTERNATE) node.explodeInstantly();
+        else worldObj.spawnEntityInWorld(node);
         setDead();
     }
 
@@ -88,6 +127,8 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
             look = launchDirection(world, owner, kind, initialOrigin, muzzle, look);
         initialMuzzle = Vec3.createVectorHelper(muzzle.xCoord, muzzle.yCoord, muzzle.zCoord);
         initialObstructionPending = true;
+        visualOrigin = Vec3.createVectorHelper(posX, posY, posZ);
+        visualDirection = look;
         motionX = look.xCoord * kind.projectileSpeed;
         motionY = look.yCoord * kind.projectileSpeed;
         motionZ = look.zCoord * kind.projectileSpeed;
@@ -148,7 +189,7 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
     @Override
     public void onUpdate() {
         super.onUpdate();
-        if (ticksExisted > (weapon == WeaponKind.SINGULARITY ? 400 : 100)) {
+        if (ticksExisted > (fragment ? 10 : weapon == WeaponKind.SINGULARITY ? 400 : 100)) {
             setDead();
             return;
         }
@@ -185,33 +226,59 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
                 false,
                 true,
                 false);
-            double nearest = hit == null ? start.squareDistanceTo(end) : start.squareDistanceTo(hit.hitVec);
+            boolean airburst = !fragment && weapon == WeaponKind.T20 && mode == WeaponMode.ALTERNATE;
+            boolean shotgun = !fragment && weapon == WeaponKind.QLZ04 && mode == WeaponMode.ALTERNATE;
+            Vec3 forward = Vec3.createVectorHelper(motionX, motionY, motionZ)
+                .normalize();
+            Vec3 probeEnd = shotgun ? start.addVector(forward.xCoord * 4, forward.yCoord * 4, forward.zCoord * 4) : end;
+            double reach = airburst ? 1.5 : .1;
+            double nearest = hit == null ? start.squareDistanceTo(probeEnd) : start.squareDistanceTo(hit.hitVec);
+            if (shotgun) {
+                MovingObjectPosition obstruction = worldObj.func_147447_a(
+                    Vec3.createVectorHelper(start.xCoord, start.yCoord, start.zCoord),
+                    Vec3.createVectorHelper(probeEnd.xCoord, probeEnd.yCoord, probeEnd.zCoord),
+                    false,
+                    true,
+                    false);
+                if (obstruction != null) nearest = Math.min(nearest, start.squareDistanceTo(obstruction.hitVec));
+            }
             List<?> candidates = worldObj.getEntitiesWithinAABBExcludingEntity(
                 this,
-                boundingBox.addCoord(motionX, motionY, motionZ)
-                    .expand(.3, .3, .3));
+                boundingBox
+                    .addCoord(
+                        probeEnd.xCoord - start.xCoord,
+                        probeEnd.yCoord - start.yCoord,
+                        probeEnd.zCoord - start.zCoord)
+                    .expand(reach + .2, reach + .2, reach + .2));
             for (Object object : candidates) {
                 Entity e = (Entity) object;
-                if (e == shooter || (weapon != WeaponKind.SINGULARITY && !(e instanceof EntityLivingBase))
+                if (e.isDead || e == shooter
+                    || (weapon != WeaponKind.SINGULARITY && !(e instanceof EntityLivingBase))
                     || !e.canBeCollidedWith()) continue;
-                MovingObjectPosition intercept = e.boundingBox.expand(.1, .1, .1)
-                    .calculateIntercept(start, end);
-                double distance = e.boundingBox.isVecInside(start) ? 0
-                    : intercept == null ? Double.MAX_VALUE : start.squareDistanceTo(intercept.hitVec);
+                Vec3 contact;
+                if (airburst) contact = proximityIntercept(e.boundingBox, start, probeEnd, 1.5);
+                else {
+                    MovingObjectPosition intercept = e.boundingBox.expand(reach, reach, reach)
+                        .calculateIntercept(start, probeEnd);
+                    contact = e.boundingBox.expand(reach, reach, reach)
+                        .isVecInside(start) ? start : intercept == null ? null : intercept.hitVec;
+                }
+                double distance = contact == null ? Double.MAX_VALUE : start.squareDistanceTo(contact);
                 if (distance <= nearest) {
                     nearest = distance;
                     hit = new MovingObjectPosition(e);
-                    hit.hitVec = distance == 0 ? start : intercept.hitVec;
+                    hit.hitVec = contact;
                 }
             }
             if (hit != null) {
+                if (shotgun && hit.entityHit != null) hit.hitVec = start;
                 impact(hit);
                 setDead();
                 return;
             }
         }
         setPosition(end.xCoord, end.yCoord, end.zCoord);
-        motionY -= weapon.gravity;
+        motionY -= fragment ? 0 : weapon.gravity;
     }
 
     private void impact(MovingObjectPosition hit) {
@@ -222,8 +289,10 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
             detonate();
             return;
         }
-        if (weapon == WeaponKind.QLZ04 || weapon == WeaponKind.T20) {
-            double radius = weapon == WeaponKind.T20 ? .25 : 2;
+        if (!fragment && weapon == WeaponKind.QLZ04 && mode == WeaponMode.ALTERNATE) {
+            splitFragments(at);
+        } else if (!fragment && (weapon == WeaponKind.QLZ04 || weapon == WeaponKind.T20)) {
+            double radius = weapon == WeaponKind.T20 ? (mode == WeaponMode.ALTERNATE ? 2.5 : 1) : 2;
             List<?> nearby = worldObj.getEntitiesWithinAABB(
                 EntityLivingBase.class,
                 AxisAlignedBB.getBoundingBox(
@@ -243,15 +312,95 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
             }
         } else if (hit.entityHit instanceof EntityLivingBase)
             applyDamage((EntityLivingBase) hit.entityHit, damage, penetration, fire, this, shooter);
-        if (weapon != WeaponKind.LM12) {
+        if (weapon != WeaponKind.LM12 && !fragment) {
             Effect effect = new Effect();
             effect.entityId = shooter == null ? -1 : shooter.getEntityId();
             effect.kind = weapon.id;
             effect.type = 1;
+            effect.mode = mode;
             effect.x = at.xCoord;
             effect.y = at.yCoord;
             effect.z = at.zCoord;
             WeaponNetwork.effect(worldObj, effect);
+        }
+    }
+
+    /** First contact with the exact rounded AABB, including fast segments that enter and leave in one tick. */
+    public static Vec3 proximityIntercept(AxisAlignedBB box, Vec3 start, Vec3 end, double radius) {
+        double[] origin = { start.xCoord, start.yCoord, start.zCoord };
+        double[] delta = { end.xCoord - start.xCoord, end.yCoord - start.yCoord, end.zCoord - start.zCoord };
+        double[] low = { box.minX, box.minY, box.minZ }, high = { box.maxX, box.maxY, box.maxZ };
+        List<Double> boundaries = new ArrayList<Double>();
+        boundaries.add(0d);
+        boundaries.add(1d);
+        for (int axis = 0; axis < 3; axis++) {
+            if (Math.abs(delta[axis]) < 1e-12) continue;
+            double enter = (low[axis] - origin[axis]) / delta[axis];
+            double leave = (high[axis] - origin[axis]) / delta[axis];
+            if (enter > 0 && enter < 1) boundaries.add(enter);
+            if (leave > 0 && leave < 1) boundaries.add(leave);
+        }
+        Collections.sort(boundaries);
+        for (int i = 0; i + 1 < boundaries.size(); i++) {
+            double from = boundaries.get(i), to = boundaries.get(i + 1), middle = (from + to) * .5;
+            double a = 0, b = 0, c = -radius * radius;
+            for (int axis = 0; axis < 3; axis++) {
+                double point = origin[axis] + delta[axis] * middle;
+                double bound = point < low[axis] ? low[axis] : point > high[axis] ? high[axis] : point;
+                if (point == bound) continue;
+                double offset = origin[axis] - bound;
+                a += delta[axis] * delta[axis];
+                b += 2 * offset * delta[axis];
+                c += offset * offset;
+            }
+            double contact = from;
+            if (a * from * from + b * from + c > 1e-10) {
+                if (a < 1e-12) continue;
+                double discriminant = b * b - 4 * a * c;
+                if (discriminant < 0) continue;
+                contact = (-b - Math.sqrt(discriminant)) / (2 * a);
+                if (contact < from - 1e-10 || contact > to + 1e-10) continue;
+                contact = Math.max(from, Math.min(to, contact));
+            }
+            return start.addVector(delta[0] * contact, delta[1] * contact, delta[2] * contact);
+        }
+        return null;
+    }
+
+    private void splitFragments(Vec3 at) {
+        Vec3 forward = Vec3.createVectorHelper(motionX, motionY, motionZ)
+            .normalize();
+        Vec3 side = Math.abs(forward.yCoord) > .99 ? Vec3.createVectorHelper(1, 0, 0)
+            : Vec3.createVectorHelper(-forward.zCoord, 0, forward.xCoord)
+                .normalize();
+        Vec3 up = forward.crossProduct(side)
+            .normalize();
+        for (int i = 0; i < 30; i++) {
+            // Uniform solid-angle sampling inside the 30-degree half-angle cone.
+            double cos = 1 - rand.nextDouble() * (1 - Math.cos(Math.PI / 6));
+            double sin = Math.sqrt(1 - cos * cos), angle = rand.nextDouble() * Math.PI * 2;
+            Vec3 direction = Vec3.createVectorHelper(
+                forward.xCoord * cos + sin * (side.xCoord * Math.cos(angle) + up.xCoord * Math.sin(angle)),
+                forward.yCoord * cos + sin * (side.yCoord * Math.cos(angle) + up.yCoord * Math.sin(angle)),
+                forward.zCoord * cos + sin * (side.zCoord * Math.cos(angle) + up.zCoord * Math.sin(angle)));
+            EntityWeaponProjectile child = new EntityWeaponProjectile(worldObj);
+            child.weapon = weapon;
+            child.mode = mode;
+            child.fragment = true;
+            child.shooter = shooter;
+            child.shooterId = shooterId;
+            child.shotEnchantments = shotEnchantments;
+            child.critical = critical;
+            child.damage = 2;
+            child.penetration = penetration;
+            child.fire = fire;
+            child.visualOrigin = Vec3.createVectorHelper(at.xCoord, at.yCoord, at.zCoord);
+            child.visualDirection = direction;
+            child.setPosition(at.xCoord, at.yCoord, at.zCoord);
+            child.motionX = direction.xCoord * 3;
+            child.motionY = direction.yCoord * 3;
+            child.motionZ = direction.zCoord * 3;
+            worldObj.spawnEntityInWorld(child);
         }
     }
 
@@ -336,6 +485,16 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
         shotEnchantments.write(n);
         n.setInteger("kind", weapon.id);
         n.setBoolean("critical", critical);
+        n.setInteger("mode", mode);
+        n.setBoolean("fragment", fragment);
+        Vec3 origin = visualOrigin(), direction = visualDirection();
+        n.setDouble("visualX", origin.xCoord);
+        n.setDouble("visualY", origin.yCoord);
+        n.setDouble("visualZ", origin.zCoord);
+        n.setDouble("directionX", direction.xCoord);
+        n.setDouble("directionY", direction.yCoord);
+        n.setDouble("directionZ", direction.zCoord);
+        n.setInteger("flightAge", ticksExisted);
         n.setFloat("damage", damage);
         n.setFloat("penetration", penetration);
         n.setInteger("fire", fire);
@@ -357,6 +516,15 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
         WeaponKind k = WeaponKind.fromId(n.getInteger("kind"));
         weapon = k == null ? WeaponKind.LM12 : k;
         critical = n.getBoolean("critical");
+        mode = WeaponMode.mode(weapon, n.getInteger("mode"));
+        fragment = n.getBoolean("fragment");
+        visualOrigin = n.hasKey("visualX")
+            ? Vec3.createVectorHelper(n.getDouble("visualX"), n.getDouble("visualY"), n.getDouble("visualZ"))
+            : null;
+        visualDirection = n.hasKey("directionX")
+            ? Vec3.createVectorHelper(n.getDouble("directionX"), n.getDouble("directionY"), n.getDouble("directionZ"))
+            : null;
+        ticksExisted = Math.max(0, n.getInteger("flightAge"));
         damage = n.getFloat("damage");
         penetration = n.getFloat("penetration");
         fire = n.getInteger("fire");
@@ -379,6 +547,16 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
         shotEnchantments.write(b);
         b.writeByte(weapon.id);
         b.writeBoolean(critical);
+        b.writeByte(mode);
+        b.writeBoolean(fragment);
+        Vec3 origin = visualOrigin(), direction = visualDirection();
+        b.writeDouble(origin.xCoord);
+        b.writeDouble(origin.yCoord);
+        b.writeDouble(origin.zCoord);
+        b.writeDouble(direction.xCoord);
+        b.writeDouble(direction.yCoord);
+        b.writeDouble(direction.zCoord);
+        b.writeInt(ticksExisted);
     }
 
     @Override
@@ -387,5 +565,10 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
         WeaponKind k = WeaponKind.fromId(b.readUnsignedByte());
         critical = b.readBoolean();
         weapon = k == null ? WeaponKind.LM12 : k;
+        mode = WeaponMode.mode(weapon, b.readUnsignedByte());
+        fragment = b.readBoolean();
+        visualOrigin = Vec3.createVectorHelper(b.readDouble(), b.readDouble(), b.readDouble());
+        visualDirection = Vec3.createVectorHelper(b.readDouble(), b.readDouble(), b.readDouble());
+        ticksExisted = b.readInt();
     }
 }

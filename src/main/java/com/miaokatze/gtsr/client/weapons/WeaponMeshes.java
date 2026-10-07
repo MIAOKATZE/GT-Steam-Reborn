@@ -24,6 +24,21 @@ final class WeaponMeshes {
         GL11.glPopAttrib();
     }
 
+    /** Eight radial chambers and a central hub replace the QLZ box magazine in drum mode. */
+    static void drumMagazine() {
+        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        box(.08, -.13, .10, .42, .13, .36, .18F, .21F, .22F);
+        box(.10, -.07, .16, .46, .07, .30, .38F, .41F, .42F);
+        for (int i = 0; i < 8; i++) {
+            double angle = i * Math.PI / 4;
+            double y = Math.cos(angle) * .21, z = .23 + Math.sin(angle) * .21;
+            box(.12, y - .07, z - .07, .42, y + .07, z + .07, .24F, .28F, .29F);
+            box(.42, y - .035, z - .035, .45, y + .035, z + .035, .7F, .59F, .28F);
+        }
+        GL11.glPopAttrib();
+    }
+
     static void ammoPack(WeaponKind kind, boolean mimic) {
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glTranslatef(0, -.05F, 0);

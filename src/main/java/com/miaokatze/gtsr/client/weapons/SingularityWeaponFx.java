@@ -136,15 +136,18 @@ final class SingularityWeaponFx {
         for (Object object : world.loadedEntityList.toArray()) {
             if (!(object instanceof EntityWeaponProjectile) || trails-- <= 0) continue;
             EntityWeaponProjectile p = (EntityWeaponProjectile) object;
-            if (p.kind() == WeaponKind.SINGULARITY && !p.isDead) Minecraft.getMinecraft().effectRenderer.addEffect(
-                new net.minecraft.client.particle.EntityReddustFX(
-                    world,
-                    p.posX,
-                    p.posY,
-                    p.posZ,
-                    p.critical() ? .7F : 1,
-                    p.critical() ? .2F : 1,
-                    1));
+            if (p.kind() == WeaponKind.SINGULARITY && !p.isDead) {
+                Vec3 visual = PortableProjectileRenderer.visualPoint(p, 1);
+                Minecraft.getMinecraft().effectRenderer.addEffect(
+                    new net.minecraft.client.particle.EntityReddustFX(
+                        world,
+                        visual.xCoord,
+                        visual.yCoord,
+                        visual.zCoord,
+                        p.critical() ? .7F : 1,
+                        p.critical() ? .2F : 1,
+                        1));
+            }
         }
     }
 
@@ -211,7 +214,9 @@ final class SingularityWeaponFx {
                 float shade = snapshot != null && snapshot.ammoType == 1 ? .55F : 1F;
                 float reload = PortableWeaponClient.reloadProgress(p, partial);
                 float remote = PortableWeaponClient.remoteProgress(p, partial);
+                float charge = PortableWeaponClient.chargeProgress(p, partial);
                 double time = world.getTotalWorldTime() + partial;
+                if (charge > 0) chargeCubes(p, partial, time, shade, charge);
                 if (reload > .2F && reload < .75F) reloadCubes(p, partial, time, shade, reload);
                 Vec3 hand = PortableWeaponPlayerPose.leftHand(p, WeaponKind.SINGULARITY, partial);
                 if (remote > 0) stateCubes(
@@ -224,6 +229,40 @@ final class SingularityWeaponFx {
                     remote);
             }
         }
+    }
+
+    private static void chargeCubes(EntityPlayer player, float partial, double time, float shade, float progress) {
+        Vec3 center = WeaponPose.muzzle(player, WeaponKind.SINGULARITY, partial);
+        WeaponPose.Physical pose = WeaponPose.physical(player, WeaponKind.SINGULARITY, partial);
+        for (int cell = 0; cell < 8; cell++) {
+            double a = time * (.12 + progress * .16) + cell * Math.PI / 4;
+            double radius = .12 + .10 * progress, depth = Math.sin(a * 1.7) * .1;
+            cube(
+                center.addVector(
+                    pose.right.xCoord * Math.cos(a) * radius + pose.up.xCoord * Math.sin(a) * radius
+                        + pose.forward.xCoord * depth,
+                    pose.right.yCoord * Math.cos(a) * radius + pose.up.yCoord * Math.sin(a) * radius
+                        + pose.forward.yCoord * depth,
+                    pose.right.zCoord * Math.cos(a) * radius + pose.up.zCoord * Math.sin(a) * radius
+                        + pose.forward.zCoord * depth),
+                shade,
+                .10F + .08F * progress,
+                .025);
+        }
+        GL11.glColor4f(.3F, .85F, 1, .2F + .4F * progress);
+        GL11.glBegin(GL11.GL_LINES);
+        for (int arc = 0; arc < 3; arc++) {
+            double a = time * .7 + arc * Math.PI * 2 / 3;
+            Vec3 previous = center;
+            for (int segment = 1; segment <= 5; segment++) {
+                double radius = segment * .035, jitter = Math.sin(time * 2.3 + segment * 7 + arc) * .035 * progress;
+                Vec3 next = center.addVector(Math.cos(a) * radius, jitter + segment * .012, Math.sin(a) * radius);
+                GL11.glVertex3d(previous.xCoord, previous.yCoord, previous.zCoord);
+                GL11.glVertex3d(next.xCoord, next.yCoord, next.zCoord);
+                previous = next;
+            }
+        }
+        GL11.glEnd();
     }
 
     private static void stateCubes(Vec3 center, double time, float shade, float progress) {
