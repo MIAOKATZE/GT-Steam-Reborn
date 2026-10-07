@@ -560,7 +560,7 @@ public final class WeaponAuditCommand extends CommandBase {
             setup(kind);
             reload(kind);
             NBTTagCompound n = WeaponController.data(player.getHeldItem());
-            float gain = kind == WeaponKind.LM12 ? .0125f : .04f, rate = kind == WeaponKind.LM12 ? .009f : .012f;
+            float gain = kind == WeaponKind.LM12 ? .00625f : .04f, rate = kind == WeaponKind.LM12 ? .009f : .012f;
             int successful = 0;
             for (int i = 0; i < 500 && successful < 10; i++) {
                 int fired = tick(true, false);

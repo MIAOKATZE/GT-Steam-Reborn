@@ -149,9 +149,9 @@ public final class PortableWeaponRenderer implements IItemRenderer {
             ? .65 * Math.sin(PortableWeaponClient.reloadProgress(player, partial) * Math.PI)
             : 0;
         return point.addVector(
-            r.xCoord * (.38 - WeaponPose.RIGHT) - u.xCoord * .30 + f.xCoord * (.95 + extraForward - WeaponPose.FORWARD),
-            -WeaponPose.UP - u.yCoord * .30 + f.yCoord * (.95 + extraForward - WeaponPose.FORWARD),
-            r.zCoord * (.38 - WeaponPose.RIGHT) - u.zCoord * .30
+            r.xCoord * (.38 - WeaponPose.RIGHT) - u.xCoord * .18 + f.xCoord * (.95 + extraForward - WeaponPose.FORWARD),
+            -WeaponPose.UP - u.yCoord * .18 + f.yCoord * (.95 + extraForward - WeaponPose.FORWARD),
+            r.zCoord * (.38 - WeaponPose.RIGHT) - u.zCoord * .18
                 + f.zCoord * (.95 + extraForward - WeaponPose.FORWARD));
     }
 

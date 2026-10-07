@@ -392,7 +392,7 @@ public final class WeaponController {
         n.setLong("lastShot", s.player.worldObj.getTotalWorldTime());
         n.setInteger("shotInterval", s.cooldown);
         if (k == WeaponKind.LM12 || k == WeaponKind.T20) {
-            float heat = Math.min(1, n.getFloat("heat") + (k == WeaponKind.LM12 ? .0125f : .04f));
+            float heat = Math.min(1, n.getFloat("heat") + (k == WeaponKind.LM12 ? .00625f : .04f));
             n.setFloat("heat", heat);
             if (heat >= 1) n.setBoolean("hot", true);
         }

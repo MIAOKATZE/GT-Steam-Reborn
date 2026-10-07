@@ -23,6 +23,7 @@ import com.miaokatze.gtsr.client.weapons.outpost.GatlingFxProfile;
 import com.miaokatze.gtsr.client.weapons.outpost.MotorLoopSound;
 import com.miaokatze.gtsr.client.weapons.outpost.ProjectileTrailFx;
 import com.miaokatze.gtsr.client.weapons.outpost.QlzImpactFx;
+import com.miaokatze.gtsr.client.weapons.outpost.RenderMuzzleFlash;
 import com.miaokatze.gtsr.client.weapons.outpost.RenderVisualCasing;
 import com.miaokatze.gtsr.client.weapons.outpost.SmokePuffEntity;
 import com.miaokatze.gtsr.client.weapons.outpost.SoundDistancePolicy;
@@ -60,6 +61,7 @@ public final class WeaponVisuals {
 
     public void register() {
         RenderingRegistry.registerEntityRenderingHandler(EntityVisualCasing.class, new RenderVisualCasing());
+        RenderingRegistry.registerEntityRenderingHandler(EntityMuzzleFlash.class, new RenderMuzzleFlash());
     }
 
     void clear() {
@@ -74,6 +76,7 @@ public final class WeaponVisuals {
         SmokePuffEntity.resetCounter();
         EffectBudgets.resetAll();
         ProjectileTrailFx.reset();
+        PortableTrailFX.reset();
         QlzImpactFx.reset();
         reloadTicks = 0;
         overheated = false;
@@ -178,13 +181,15 @@ public final class WeaponVisuals {
         flashes.removeIf(f -> f.isDead);
         Minecraft mc = Minecraft.getMinecraft();
         tickMotors();
+        PortableTrailFX.tick(mc.theWorld);
         SingularityWeaponFx.tick(mc.theWorld);
         int budget = 64;
         for (Object object : mc.theWorld.loadedEntityList.toArray()) {
             if (budget <= 0) break;
             if (object instanceof EntityWeaponProjectile && !((Entity) object).isDead) {
                 WeaponKind kind = ((EntityWeaponProjectile) object).kind();
-                if (kind == WeaponKind.LM12 || kind == WeaponKind.T20) PortableTrailFX.emit((Entity) object);
+                if (kind == WeaponKind.LM12 || kind == WeaponKind.T20 || kind == WeaponKind.QLZ04)
+                    PortableTrailFX.emit((Entity) object);
                 budget--;
             }
         }
@@ -262,6 +267,7 @@ public final class WeaponVisuals {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.theWorld == null || mc.thePlayer == null) return;
         FxEntityWorldPass.render(mc.theWorld, e.partialTicks);
+        PortableTrailFX.render(mc.theWorld, e.partialTicks);
         QlzImpactFx.render(mc.theWorld, e.partialTicks);
         SingularityWeaponFx.renderState(mc.theWorld, e.partialTicks);
         if (mc.currentScreen == null && mc.inGameHasFocus && PortableWeaponClient.focusProgress() > .1F) {

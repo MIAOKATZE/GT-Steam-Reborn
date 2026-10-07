@@ -15,7 +15,11 @@ public final class WeaponPose {
     public static Vec3 eye(EntityPlayer p, float partial) {
         return Vec3.createVectorHelper(
             p.prevPosX + (p.posX - p.prevPosX) * partial,
-            p.prevPosY + (p.posY - p.prevPosY) * partial - p.yOffset + p.getEyeHeight(),
+            p.prevPosY + (p.posY - p.prevPosY) * partial
+                - p.yOffset
+                + 1.62
+                + p.getEyeHeight()
+                - p.getDefaultEyeHeight(),
             p.prevPosZ + (p.posZ - p.prevPosZ) * partial);
     }
 
