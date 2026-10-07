@@ -47,6 +47,7 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
 
     public EntityWeaponProjectile(World world) {
         super(world);
+        ignoreFrustumCheck = true;
         setSize(.12f, .12f);
     }
 
@@ -79,6 +80,11 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
 
     public WeaponKind kind() {
         return weapon;
+    }
+
+    @Override
+    public boolean isInRangeToRenderDist(double distance) {
+        return true;
     }
 
     @Override
@@ -156,6 +162,7 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
     private void impact(MovingObjectPosition hit) {
         Vec3 at = hit.hitVec == null ? Vec3.createVectorHelper(posX, posY, posZ) : hit.hitVec;
         if (weapon == WeaponKind.SINGULARITY) {
+            at = singularityImpactPoint(hit, at);
             setPosition(at.xCoord, at.yCoord, at.zCoord);
             detonate();
             return;
@@ -191,6 +198,50 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
             effect.z = at.zCoord;
             WeaponNetwork.effect(worldObj, effect);
         }
+    }
+
+    /** Keep the node outside the struck surface. Airborne remote detonation does not use this path. */
+    public static Vec3 singularityImpactPoint(MovingObjectPosition hit, Vec3 at) {
+        double x = 0, y = 0, z = 0;
+        if (hit.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
+            switch (hit.sideHit) {
+                case 0:
+                    y = -1;
+                    break;
+                case 1:
+                    y = 1;
+                    break;
+                case 2:
+                    z = -1;
+                    break;
+                case 3:
+                    z = 1;
+                    break;
+                case 4:
+                    x = -1;
+                    break;
+                case 5:
+                    x = 1;
+                    break;
+                default:
+                    y = 1;
+            }
+        } else if (hit.entityHit != null) {
+            x = at.xCoord - hit.entityHit.posX;
+            y = at.yCoord - (hit.entityHit.posY + hit.entityHit.height * .5);
+            z = at.zCoord - hit.entityHit.posZ;
+            double length = Math.sqrt(x * x + y * y + z * z);
+            if (length > 1e-6) {
+                x /= length;
+                y /= length;
+                z /= length;
+            } else {
+                x = 0;
+                y = 1;
+                z = 0;
+            }
+        }
+        return at.addVector(x * .4, y * .4, z * .4);
     }
 
     /**

@@ -7,7 +7,8 @@ import net.minecraft.util.Vec3;
 /** Shared physical gun transform: model +Y up, -Z muzzle. FOV never moves this transform. */
 public final class WeaponPose {
 
-    public static final double SCALE = .72, RIGHT = .46, UP = -1.08, FORWARD = .38;
+    // Positive world Y raises the gun; place its body at the waist, below the carry handle.
+    public static final double SCALE = .72, RIGHT = .46, UP = -.68, FORWARD = .38;
 
     private WeaponPose() {}
 

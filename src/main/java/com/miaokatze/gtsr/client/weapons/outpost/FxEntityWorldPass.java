@@ -99,48 +99,34 @@ public final class FxEntityWorldPass {
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE); // 叠加发光（亮色相加、alpha 控强度）
+        // A cube contributed several additive faces at once, washing its yellow core out to white.
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glDepthMask(false);
-        Tessellator tess = Tessellator.instance;
-        drawFlashBatch(tess, mc, false, pt); // 批 1：核心小亮心（星芒）
-        drawFlashBatch(tess, mc, true, pt); // 批 2：光环大面片柔光
-    }
-
-    private static void drawFlashBatch(Tessellator tess, Minecraft mc, boolean glow, float pt) {
-        boolean open = false;
-        for (int i = 0, n = FLASHES.size(); i < n; i++) {
-            EntityMuzzleFlash f = FLASHES.get(i);
-            float ageF = f.ageTicks + pt;
-            float alpha = GatlingFxProfile.clamp01(1.0F - ageF / Math.max(1, f.lifeTicks));
-            double ex = interpPos(f.prevPosX, f.posX, pt);
-            double ey = interpPos(f.prevPosY, f.posY, pt);
-            double ez = interpPos(f.prevPosZ, f.posZ, pt);
-            if (!open) {
-                tess.startDrawingQuads();
-                open = true;
-            }
-            boolean small = f.getEntityData()
-                .getBoolean("gtsr.smallFlash");
-            if (small) alpha *= .55F;
-            double size = (small ? .45 : 1) * (glow ? f.haloScale : GatlingFxProfile.FLASH_CORE_SCALE)
-                * f.scaleJitter
-                * .045;
+        for (EntityMuzzleFlash f : FLASHES) {
+            float phase = GatlingFxProfile.clamp01((f.ageTicks + pt) / Math.max(1, f.lifeTicks));
+            float alpha = .36F * (1 - phase);
+            if (alpha <= 0) continue;
+            GL11.glPushMatrix();
+            GL11.glTranslated(
+                interpPos(f.prevPosX, f.posX, pt),
+                interpPos(f.prevPosY, f.posY, pt),
+                interpPos(f.prevPosZ, f.posZ, pt));
+            GL11.glRotatef(-net.minecraft.client.renderer.entity.RenderManager.instance.playerViewY, 0, 1, 0);
+            GL11.glRotatef(net.minecraft.client.renderer.entity.RenderManager.instance.playerViewX, 1, 0, 0);
+            double radius = .055 * f.scaleJitter;
             for (int cell = 0; cell < 3; cell++) {
-                double q = cell - 1;
-                addCube(
-                    tess,
-                    ex + q * size * 2.2,
-                    ey + (cell % 2) * size * 1.8,
-                    ez + q * size * 1.2,
-                    size,
-                    1F,
-                    glow ? .62F : .94F,
-                    small ? .12F : glow ? .18F : .75F,
-                    alpha * (glow ? .20F : .65F));
+                double x = (cell - 1) * radius * .9, y = (cell % 2) * radius * .5;
+                GL11.glBegin(GL11.GL_TRIANGLE_FAN);
+                GL11.glColor4f(1, .74F, .06F, alpha);
+                GL11.glVertex3d(x, y, 0);
+                GL11.glColor4f(1, .74F, .06F, 0);
+                for (int edge = 0; edge <= 16; edge++) {
+                    double a = edge * Math.PI / 8;
+                    GL11.glVertex3d(x + Math.cos(a) * radius, y + Math.sin(a) * radius, 0);
+                }
+                GL11.glEnd();
             }
-        }
-        if (open) {
-            tess.draw();
+            GL11.glPopMatrix();
         }
     }
 

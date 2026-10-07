@@ -122,6 +122,12 @@ public class GTSRSingularityFX extends GTSRFXParticle {
 
     public static void spawnDisk(World world, double cx, double cy, double cz, double spawnR, float darkScale,
         int durationTicks, int spawnElapsed, float scaleFactor) {
+        spawnOwnedDisk(world, cx, cy, cz, spawnR, darkScale, durationTicks, spawnElapsed, scaleFactor);
+    }
+
+    /** Owned consumers can retire this one particle without clearing unrelated singularity effects. */
+    public static GTSRSingularityFX spawnOwnedDisk(World world, double cx, double cy, double cz, double spawnR,
+        float darkScale, int durationTicks, int spawnElapsed, float scaleFactor) {
         GTSRSingularityFX fx = new GTSRSingularityFX(world, cx, cy, cz, spawnR, 0);
         // 粒子大小随辉光半径放大（fxRadius=30 时达上限 3 倍；scaleFactor 由 handler 计算）
         fx.particleScale *= scaleFactor;
@@ -129,6 +135,7 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         fx.durationTicks = durationTicks;
         fx.spawnElapsed = spawnElapsed;
         Minecraft.getMinecraft().effectRenderer.addEffect(fx);
+        return fx;
     }
 
     public static void spawnAbsorb(World world, double fx, double fy, double fz, double tx, double ty, double tz) {

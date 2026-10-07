@@ -28,6 +28,14 @@ public class GTSRArcFX extends GTSRFXParticle {
     public static final float speed = 3.0F;
     public static final int fadetime = 20;
 
+    private boolean renderDistanceUnlimited;
+
+    /** Opt-in for portable nodes; shared machine effects retain their original distance culling. */
+    public GTSRArcFX setRenderDistanceUnlimited(boolean unlimited) {
+        renderDistanceUnlimited = unlimited;
+        return this;
+    }
+
     private ArrayList<Segment> segments = new ArrayList<Segment>();
     private final GTSRFXVec start;
     private final GTSRFXVec end;
@@ -418,8 +426,8 @@ public class GTSRArcFX extends GTSRFXParticle {
         if (!Minecraft.getMinecraft().gameSettings.fancyGraphics) {
             visibleDistance = 2500; // 2500 = 50 格
         }
-        if (renderentity != null
-            && renderentity.getDistanceSq(this.posX, this.posY, this.posZ) <= (double) visibleDistance) {
+        if (renderentity != null && (renderDistanceUnlimited
+            || renderentity.getDistanceSq(this.posX, this.posY, this.posZ) <= (double) visibleDistance)) {
             tess.draw(); // 刷新外层批次，本粒子自管批次（TC4 FXLightningBolt 兼容模式）
             GL11.glPushMatrix();
             GL11.glDepthMask(false);

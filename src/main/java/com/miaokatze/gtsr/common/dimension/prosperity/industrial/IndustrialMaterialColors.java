@@ -79,6 +79,21 @@ public final class IndustrialMaterialColors {
         colors.put("planned:thorium_native_cake", 0xff7c858a);
         colors.put("planned:radioactive_nonmetal_cake", 0xffa18d70);
         colors.put("planned:native_rare_liquor", 0xff6c786f);
+        colors.put("planned:acid_trace_cake", 0xff9d846a);
+        colors.put("planned:acid_boron_barium_cake", 0xffbab394);
+        colors.put("planned:withered_mineral_cake", 0xffa1ab95);
+        colors.put("planned:withered_trace_cake", 0xff8c9d89);
+        colors.put("planned:withered_indium_cake", 0xff828f9e);
+        colors.put("planned:magnetic_manganese_cake", 0xff837687);
+        colors.put("planned:magnetic_neodymium_cake", 0xff858998);
+        colors.put("planned:magnetic_nickel_cake", 0xff87946f);
+        colors.put("planned:magnetic_samarium_cake", 0xffb9b385);
+        colors.put("planned:grit_tungsten_antimony_cake", 0xff9c9877);
+        colors.put("planned:grit_gallium_molybdenum_cake", 0xff8498a7);
+        colors.put("planned:grit_indium_cake", 0xff777e99);
+        colors.put("planned:leached_uranium_cake", 0xff949a43);
+        colors.put("planned:grit_antimony_cake", 0xffb0a695);
+        colors.put("planned:grit_molybdenum_cake", 0xff989cac);
         return Collections.unmodifiableMap(colors);
     }
 

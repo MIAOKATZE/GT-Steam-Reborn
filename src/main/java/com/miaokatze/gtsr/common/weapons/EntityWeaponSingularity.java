@@ -20,6 +20,7 @@ public final class EntityWeaponSingularity extends Entity implements IEntityAddi
 
     public EntityWeaponSingularity(World world) {
         super(world);
+        ignoreFrustumCheck = true;
         setSize(.7f, .7f);
     }
 
@@ -39,6 +40,11 @@ public final class EntityWeaponSingularity extends Entity implements IEntityAddi
     }
 
     @Override
+    public boolean isInRangeToRenderDist(double distance) {
+        return true;
+    }
+
+    @Override
     protected void entityInit() {}
 
     public static boolean eligible(Entity target, UUID owner) {
@@ -51,7 +57,10 @@ public final class EntityWeaponSingularity extends Entity implements IEntityAddi
     public void onUpdate() {
         super.onUpdate();
         age++;
-        if (worldObj.isRemote) return;
+        if (worldObj.isRemote) {
+            if (age >= 160) setDead();
+            return;
+        }
         double radius = critical ? 10 : 5;
         for (Object object : worldObj
             .getEntitiesWithinAABBExcludingEntity(this, boundingBox.expand(radius, radius, radius))) {
@@ -105,7 +114,7 @@ public final class EntityWeaponSingularity extends Entity implements IEntityAddi
         Effect effect = new Effect();
         effect.kind = WeaponKind.SINGULARITY.id;
         effect.type = 1;
-        effect.entityId = -1;
+        effect.entityId = getEntityId();
         effect.x = posX;
         effect.y = posY;
         effect.z = posZ;

@@ -63,7 +63,7 @@ public final class PortableWeapons {
                 .getIndexedModList()
                 .get(GTSteamReborn.MODID)
                 .getMod(),
-            96,
+            1024,
             1,
             true);
         EntityRegistry.registerModEntity(
@@ -74,7 +74,7 @@ public final class PortableWeapons {
                 .getIndexedModList()
                 .get(GTSteamReborn.MODID)
                 .getMod(),
-            96,
+            1024,
             1,
             false);
         FMLCommonHandler.instance()

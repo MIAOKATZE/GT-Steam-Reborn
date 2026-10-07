@@ -67,14 +67,14 @@ public final class WeaponNetwork {
     static void state(EntityPlayerMP p, Snapshot s) {
         StatePacket packet = new StatePacket();
         packet.s = s;
-        NET.sendToAllAround(packet, new NetworkRegistry.TargetPoint(p.dimension, p.posX, p.posY, p.posZ, 96));
+        NET.sendToDimension(packet, p.dimension);
     }
 
     public static void effect(net.minecraft.world.World world, Effect e) {
         if (world.isRemote) return;
         EffectPacket packet = new EffectPacket();
         packet.e = e;
-        NET.sendToAllAround(packet, new NetworkRegistry.TargetPoint(world.provider.dimensionId, e.x, e.y, e.z, 96));
+        NET.sendToDimension(packet, world.provider.dimensionId);
     }
 
     static final class Pending {

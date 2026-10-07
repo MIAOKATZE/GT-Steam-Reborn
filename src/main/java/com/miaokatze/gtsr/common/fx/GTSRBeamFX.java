@@ -26,6 +26,14 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class GTSRBeamFX extends GTSRFXParticle {
 
     /** 沿长度方向的逐段 alpha（中心亮 → 末端淡） */
+    private boolean renderDistanceUnlimited;
+
+    /** Opt-in for portable nodes; shared machine effects retain their original distance culling. */
+    public GTSRBeamFX setRenderDistanceUnlimited(boolean unlimited) {
+        renderDistanceUnlimited = unlimited;
+        return this;
+    }
+
     private static final float[] SEG_ALPHA = { 0.45F, 0.32F, 0.2F, 0.1F };
     private static final int SEG_COUNT = 4;
 
@@ -178,8 +186,8 @@ public class GTSRBeamFX extends GTSRFXParticle {
         if (!Minecraft.getMinecraft().gameSettings.fancyGraphics) {
             visibleDistance = 2500; // 2500 = 50 格
         }
-        if (renderentity == null
-            || renderentity.getDistanceSq(this.posX, this.posY, this.posZ) > (double) visibleDistance) {
+        if (renderentity == null || !renderDistanceUnlimited
+            && renderentity.getDistanceSq(this.posX, this.posY, this.posZ) > (double) visibleDistance) {
             return;
         }
         tess.draw(); // 刷新外层批次，本粒子自管批次（TC4 FXBeamWand 兼容模式）

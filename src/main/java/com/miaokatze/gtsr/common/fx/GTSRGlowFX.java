@@ -22,6 +22,14 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class GTSRGlowFX extends EntityFX {
 
     /** layer 0 层纹理（vanilla EffectRenderer 层首绑定）：自管批次结束后恢复用 */
+    private boolean renderDistanceUnlimited;
+
+    /** Opt-in for portable nodes; shared machine effects retain their original distance culling. */
+    public GTSRGlowFX setRenderDistanceUnlimited(boolean unlimited) {
+        renderDistanceUnlimited = unlimited;
+        return this;
+    }
+
     private static final ResourceLocation PARTICLES_TEXTURE = new ResourceLocation("textures/particle/particles.png");
 
     private final World world;
@@ -127,7 +135,7 @@ public class GTSRGlowFX extends EntityFX {
     @Override
     public void renderParticle(Tessellator tess, float p, float rx, float rz, float ry, float rxz, float ryz) {
         // 距离裁剪：超过 64 格（4096 平方）不渲染（对齐电弧/光束可见性；粒子管道无渲染侧裁剪）
-        if (Minecraft.getMinecraft().thePlayer != null
+        if (!renderDistanceUnlimited && Minecraft.getMinecraft().thePlayer != null
             && Minecraft.getMinecraft().thePlayer.getDistanceSq(this.x, this.y, this.z) > 4096.0D) {
             return;
         }

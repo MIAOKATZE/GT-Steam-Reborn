@@ -3,6 +3,8 @@ package com.miaokatze.gtsr.common.dimension.prosperity.industrial;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -49,22 +51,32 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
         }
         Properties ids = loadIds();
         boolean firstAllocation = !idFile.exists();
+        boolean updated = firstAllocation;
+        // Reserve every saved slot before allocating additions; a new material cannot steal an old ID.
+        Map<Integer, String> savedSlots = new HashMap<>();
+        for (String key : ids.stringPropertyNames()) {
+            int saved = Integer.parseInt(ids.getProperty(key));
+            if (saved < 0 || saved >= 1000 || savedSlots.put(saved, key) != null)
+                throw new IllegalStateException("Invalid or duplicate saved industrial material ID: " + key);
+        }
         for (IndustrialRecipeLedger.MaterialDefinition definition : IndustrialRecipeLedger.get().materials) {
             if (Materials.getMaterialsMap()
                 .containsKey(definition.name)) {
                 throw new IllegalStateException("Industrial material name already occupied: " + definition.name);
             }
             int id;
-            if (firstAllocation) {
+            String saved = ids.getProperty(definition.id);
+            if (saved == null && !firstAllocation && definition.introducedVersion == 0)
+                throw new IllegalStateException("Missing persistent industrial material ID: " + definition.id);
+            if (saved == null) {
                 id = 999;
-                while (id >= 0 && occupied.containsKey(id)) id--;
+                while (id >= 0 && (occupied.containsKey(id) || savedSlots.containsKey(id))) id--;
                 if (id < 0)
                     throw new IllegalStateException("Not enough GT material IDs for prosperity industrial materials");
                 ids.setProperty(definition.id, Integer.toString(id));
+                savedSlots.put(id, definition.id);
+                updated = true;
             } else {
-                String saved = ids.getProperty(definition.id);
-                if (saved == null)
-                    throw new IllegalStateException("Missing persistent industrial material ID: " + definition.id);
                 id = Integer.parseInt(saved);
             }
             if (id < 0 || id >= 1000 || occupied.containsKey(id)) {
@@ -79,7 +91,7 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
             occupied.put(id, definition.name);
         }
         // Save the complete mapping before creating any materials; failure cannot partially remap saved stacks.
-        if (firstAllocation) saveIds(ids);
+        if (updated) saveIds(ids);
         for (IndustrialRecipeLedger.MaterialDefinition definition : IndustrialRecipeLedger.get().materials) {
             MaterialBuilder builder = new MaterialBuilder().setName(definition.name)
                 .setDefaultLocalName(definition.en)
@@ -104,7 +116,7 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
             material.mMetaItemSubID = Integer.parseInt(ids.getProperty(definition.id));
             MATERIALS.put(definition.id, material);
         }
-        GTSteamReborn.LOG.info("[GTSR] prosperity industrial materials registered: 64 (dust=15 gas=10 fluid=39)");
+        GTSteamReborn.LOG.info("[GTSR] prosperity industrial materials registered: " + MATERIALS.size());
     }
 
     private static Properties loadIds() {
@@ -131,8 +143,15 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
         } catch (Exception e) {
             throw new IllegalStateException("Cannot save industrial material IDs", e);
         }
-        if (!temporary.renameTo(idFile))
-            throw new IllegalStateException("Cannot install industrial material ID file: " + idFile);
+        try {
+            Files.move(
+                temporary.toPath(),
+                idFile.toPath(),
+                StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            throw new IllegalStateException("Cannot atomically install industrial material ID file: " + idFile, e);
+        }
     }
 
     public static Materials get(String id) {
@@ -142,6 +161,7 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
     }
 
     public static void logRegistrationProbe() {
+        applyFluidTemperatures();
         auditRegistration();
     }
 
@@ -149,11 +169,26 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
         auditRegistration();
     }
 
+    /** Apply ledger temperatures only to our generated fluids after GT has created their native forms. */
+    public static void applyFluidTemperatures() {
+        for (IndustrialRecipeLedger.MaterialDefinition definition : IndustrialRecipeLedger.get().materials) {
+            if ("dust".equals(definition.phase)) continue;
+            if (definition.temperatureK <= 0)
+                throw new IllegalStateException("Invalid industrial fluid temperature: " + definition.id);
+            Materials material = get(definition.id);
+            FluidStack stack = "gas".equals(definition.phase) ? material.getGas(1) : material.getFluid(1);
+            if (stack == null) throw new IllegalStateException("Missing fluid temperature target: " + definition.id);
+            stack.getFluid()
+                .setTemperature(definition.temperatureK);
+        }
+    }
+
     /** Post-init live probe: actual generated dust, registered fluid and filled cell; throws on any missing form. */
     public static void auditRegistration() {
         int dust = 0, gas = 0, fluid = 0;
         for (IndustrialRecipeLedger.MaterialDefinition definition : IndustrialRecipeLedger.get().materials) {
             Materials material = get(definition.id);
+            String liveTemperature = "n/a";
             int expectedColor = IndustrialMaterialColors.getARGB(definition.id) & 0xffffff;
             int materialColor = (material.mRGBa[0] << 16) | (material.mRGBa[1] << 8) | material.mRGBa[2];
             if (materialColor != expectedColor)
@@ -178,6 +213,12 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
                     || contents.getFluid()
                         .getColor() != expectedColor)
                     throw new IllegalStateException("Unexpected fluid or filled-cell color: " + definition.id);
+                if (stack.getFluid()
+                    .getTemperature() != definition.temperatureK)
+                    throw new IllegalStateException("Unexpected industrial fluid temperature: " + definition.id);
+                liveTemperature = Integer.toString(
+                    stack.getFluid()
+                        .getTemperature());
                 if ("gas".equals(definition.phase)) gas++;
                 else fluid++;
             }
@@ -187,6 +228,8 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
                     + definition.phase
                     + " meta="
                     + material.mMetaItemSubID
+                    + " temperatureK="
+                    + liveTemperature
                     + " ok");
         }
         GTSteamReborn.LOG

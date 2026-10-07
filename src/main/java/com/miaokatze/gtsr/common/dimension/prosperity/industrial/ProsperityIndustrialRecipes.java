@@ -41,6 +41,7 @@ public final class ProsperityIndustrialRecipes {
 
     public static void registerAll() {
         if (registeredRecipeCount != 0) throw new IllegalStateException("Prosperity R6 recipes already registered");
+        ProsperityIndustrialMaterials.applyFluidTemperatures();
         ProsperityIndustrialMaterials.verifyRegistration();
         List<ResolvedStage> resolved = new ArrayList<>();
         Set<String> stageIds = new HashSet<>();
@@ -55,6 +56,7 @@ public final class ProsperityIndustrialRecipes {
             GTRecipeBuilder builder = GTValues.RA.stdBuilder()
                 .itemInputs(stage.itemsIn)
                 .itemOutputs(stage.itemsOut)
+                .outputChances(stage.outputChances)
                 .fluidInputs(stage.fluidsIn)
                 .fluidOutputs(stage.fluidsOut)
                 .duration(stage.definition.ticks)
@@ -91,12 +93,15 @@ public final class ProsperityIndustrialRecipes {
         for (ResolvedStage expected : expectedStages) {
             IndustrialRecipeLedger.Stage definition = expected.definition;
             int matches = 0;
+            int[] liveChances = new int[expected.itemsOut.length];
             for (GTRecipe recipe : expected.map.getAllRecipes()) {
                 if (!definition.id.equals(recipe.getMetadataOrDefault(INDUSTRIAL_STAGE, ""))) continue;
                 matches++;
+                for (int i = 0; i < liveChances.length; i++) liveChances[i] = recipe.getOutputChance(i);
                 if (recipe.mEUt != definition.EUt || recipe.mDuration != definition.ticks
                     || !sameItems(recipe.mInputs, expected.itemsIn)
                     || !sameItems(recipe.mOutputs, expected.itemsOut)
+                    || !sameChances(recipe, expected.outputChances)
                     || !sameFluids(recipe.mFluidInputs, expected.fluidsIn)
                     || !sameFluids(recipe.mFluidOutputs, expected.fluidsOut)) {
                     throw new IllegalStateException(
@@ -114,6 +119,8 @@ public final class ProsperityIndustrialRecipes {
                     + definition.EUt
                     + " ticks="
                     + definition.ticks
+                    + " outputChances="
+                    + Arrays.toString(liveChances)
                     + " ok");
         }
         if (total != expectedStages.size() || registeredRecipeCount != total) {
@@ -172,6 +179,7 @@ public final class ProsperityIndustrialRecipes {
             result.map = map(definition.machineMap);
             result.itemsIn = items(definition.inputs);
             result.itemsOut = items(definition.outputs);
+            result.outputChances = chances(definition.outputs);
             result.fluidsIn = fluids(definition.inputs);
             result.fluidsOut = fluids(definition.outputs);
             return result;
@@ -221,6 +229,26 @@ public final class ProsperityIndustrialRecipes {
             result.add(stack);
         }
         return result.toArray(new ItemStack[0]);
+    }
+
+    private static int[] chances(List<IndustrialRecipeLedger.Amount> amounts) {
+        List<Integer> result = new ArrayList<>();
+        for (IndustrialRecipeLedger.Amount amount : amounts) {
+            if (!"item".equals(amount.kind)) continue;
+            if (amount.chance <= 0 || amount.chance > 10000)
+                throw new IllegalStateException("Invalid item output chance: " + amount.id);
+            result.add(amount.chance);
+        }
+        return result.stream()
+            .mapToInt(Integer::intValue)
+            .toArray();
+    }
+
+    private static boolean sameChances(GTRecipe actual, int[] expected) {
+        for (int i = 0; i < expected.length; i++) {
+            if (actual.getOutputChance(i) != expected[i]) return false;
+        }
+        return true;
     }
 
     private static FluidStack[] fluids(List<IndustrialRecipeLedger.Amount> amounts) {
@@ -327,6 +355,8 @@ public final class ProsperityIndustrialRecipes {
                 return RecipeMaps.fluidHeaterRecipes;
             case "chemicalBathRecipes":
                 return RecipeMaps.chemicalBathRecipes;
+            case "crackingRecipes":
+                return RecipeMaps.crackingRecipes;
             case "electroMagneticSeparatorRecipes":
                 return RecipeMaps.electroMagneticSeparatorRecipes;
             default:
@@ -356,6 +386,7 @@ public final class ProsperityIndustrialRecipes {
         private IndustrialRecipeLedger.Stage definition;
         private RecipeMap<?> map;
         private ItemStack[] itemsIn, itemsOut;
+        private int[] outputChances;
         private FluidStack[] fluidsIn, fluidsOut;
     }
 }

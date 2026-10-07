@@ -25,8 +25,8 @@ public final class IndustrialRecipeLedger {
         if (stream == null) throw new IllegalStateException("Missing packaged prosperity R6 recipe ledger");
         try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
             IndustrialRecipeLedger ledger = new Gson().fromJson(reader, IndustrialRecipeLedger.class);
-            if (ledger.materials.size() != 64 || ledger.recipes.isEmpty()) {
-                throw new IllegalStateException("Prosperity industrial ledger must contain 64 materials and stages");
+            if (ledger.materials.isEmpty() || ledger.recipes.isEmpty()) {
+                throw new IllegalStateException("Prosperity industrial ledger must contain materials and stages");
             }
             return ledger;
         } catch (Exception e) {
@@ -37,6 +37,9 @@ public final class IndustrialRecipeLedger {
     public static final class MaterialDefinition {
 
         public String id, name, en, zh, phase;
+        public int temperatureK = 295;
+        /** Zero identifies legacy definitions whose saved IDs must already exist during an upgrade. */
+        public int introducedVersion;
     }
 
     public static final class Stage {
@@ -50,6 +53,7 @@ public final class IndustrialRecipeLedger {
 
         public String id, kind, unit;
         public int amount, meta;
+        public int chance = 10000;
         public Boolean consumed;
     }
 }

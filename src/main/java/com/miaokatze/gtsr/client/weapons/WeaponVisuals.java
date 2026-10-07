@@ -184,7 +184,7 @@ public final class WeaponVisuals {
             if (budget <= 0) break;
             if (object instanceof EntityWeaponProjectile && !((Entity) object).isDead) {
                 WeaponKind kind = ((EntityWeaponProjectile) object).kind();
-                if (kind != WeaponKind.T20 && kind != WeaponKind.SINGULARITY) ProjectileTrailFx.tick((Entity) object);
+                if (kind == WeaponKind.LM12 || kind == WeaponKind.T20) PortableTrailFX.emit((Entity) object);
                 budget--;
             }
         }
@@ -192,35 +192,21 @@ public final class WeaponVisuals {
 
     void effect(Effect e, WeaponKind kind) {
         Minecraft mc = Minecraft.getMinecraft();
-        if (e.type == 4) {
-            Entity entity = mc.theWorld.getEntityByID(e.entityId);
-            if (entity instanceof EntityPlayer) {
-                net.minecraft.util.Vec3 hand = com.miaokatze.gtsr.common.weapons.WeaponPose
-                    .modelPoint((EntityPlayer) entity, 1, -.75, .55, -.65);
-                hand = PortableWeaponRenderer.viewPoint((EntityPlayer) entity, 1, hand);
-                for (int i = 0; i < 16; i++) mc.theWorld.spawnParticle(
-                    "portal",
-                    hand.xCoord,
-                    hand.yCoord,
-                    hand.zCoord,
-                    (mc.theWorld.rand.nextDouble() - .5) * .2,
-                    (mc.theWorld.rand.nextDouble() - .5) * .2,
-                    (mc.theWorld.rand.nextDouble() - .5) * .2);
-            }
-            return;
-        }
+        if (e.type == 4) return; // The snapshot-driven hand cubes show the remote crush.
         if (e.type == 2) {
             sound(e.x, e.y, e.z, "reload_done", .4F, 1);
             return;
         }
         if (e.type == 1) {
+            if (kind == WeaponKind.SINGULARITY) {
+                SingularityWeaponFx.stop(e.entityId);
+                // Vanilla TNT's eight-tick burst; this is visual only, with no second damage/explosion call.
+                mc.effectRenderer.addEffect(new PortableExplosionFX(mc.theWorld, e.x, e.y, e.z));
+                mc.theWorld.playSound(e.x, e.y, e.z, "random.explode", 1, 1, false);
+                return;
+            }
             if (kind != WeaponKind.LM12) {
-                QlzImpactFx.impact(
-                    mc.theWorld,
-                    e.x,
-                    e.y,
-                    e.z,
-                    kind == WeaponKind.T20 ? .25F : kind == WeaponKind.SINGULARITY ? 3 : 2);
+                QlzImpactFx.impact(mc.theWorld, e.x, e.y, e.z, kind == WeaponKind.T20 ? .25F : 2);
                 mc.theWorld.playSound(e.x, e.y, e.z, "random.explode", .7F, 1.2F, false);
             }
             return;
@@ -242,7 +228,7 @@ public final class WeaponVisuals {
                 muzzle.zCoord,
                 -e.yaw);
             flash.getEntityData()
-                .setBoolean("gtsr.smallFlash", kind == WeaponKind.T20 || kind == WeaponKind.SINGULARITY);
+                .setBoolean("gtsr.smallFlash", true);
             if (mc.theWorld.spawnEntityInWorld(flash)) flashes.add(flash);
         }
         if (kind != WeaponKind.SINGULARITY && casings.size() < 48) {
@@ -257,39 +243,7 @@ public final class WeaponVisuals {
                 .setBoolean("gtsr.heavyCasing", kind == WeaponKind.T20);
             if (mc.theWorld.spawnEntityInWorld(casing)) casings.add(casing);
         }
-        // MachineGunFireFx/MultiMuzzleFireFx: one puff, forward jitter, backsuck, rise and end swell.
-        double yaw = Math.toRadians(e.yaw), pitch = Math.toRadians(e.pitch);
-        double[] dir = { -Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch) };
-        int life = GatlingFxProfile.MUZZLESMOKE_LIFE_MIN + mc.theWorld.rand
-            .nextInt(GatlingFxProfile.MUZZLESMOKE_LIFE_MAX - GatlingFxProfile.MUZZLESMOKE_LIFE_MIN + 1);
-        if (kind != WeaponKind.T20 && kind != WeaponKind.SINGULARITY
-            && EffectBudgets.BLAST.acquire(mc.theWorld.getTotalWorldTime(), life)) {
-            double[] jitter = new double[3], motion = new double[3];
-            for (int i = 0; i < 3; i++) {
-                jitter[i] = (mc.theWorld.rand.nextDouble() - .5) * 2 * GatlingFxProfile.MUZZLESMOKE_JITTER;
-                motion[i] = (mc.theWorld.rand.nextDouble() - .5) * 2 * GatlingFxProfile.MUZZLESMOKE_DRIFT
-                    - dir[i] * GatlingFxProfile.MUZZLESMOKE_BACKSUCK;
-            }
-            motion[1] += GatlingFxProfile.MUZZLESMOKE_RISE;
-            boolean spawned = SmokePuffEntity.spawn(
-                mc.theWorld,
-                muzzle.xCoord + dir[0] * GatlingFxProfile.MUZZLESMOKE_SPAWN_FORWARD + jitter[0],
-                muzzle.yCoord + dir[1] * GatlingFxProfile.MUZZLESMOKE_SPAWN_FORWARD + jitter[1],
-                muzzle.zCoord + dir[2] * GatlingFxProfile.MUZZLESMOKE_SPAWN_FORWARD + jitter[2],
-                motion[0],
-                motion[1],
-                motion[2],
-                GatlingFxProfile.MUZZLESMOKE_SCALE0,
-                GatlingFxProfile.MUZZLESMOKE_SCALE1,
-                GatlingFxProfile.MUZZLESMOKE_ALPHA0,
-                life,
-                GatlingFxProfile.MUZZLESMOKE_R,
-                GatlingFxProfile.MUZZLESMOKE_G,
-                GatlingFxProfile.MUZZLESMOKE_B,
-                GatlingFxProfile.MUZZLESMOKE_SWELL_FACTOR,
-                false);
-            if (!spawned) EffectBudgets.BLAST.refund(mc.theWorld.getTotalWorldTime(), life);
-        }
+        // Portable muzzles emit only the short translucent yellow flash; no opaque smoke cubes.
         sound(
             e.x,
             e.y,
@@ -309,6 +263,7 @@ public final class WeaponVisuals {
         if (mc.theWorld == null || mc.thePlayer == null) return;
         FxEntityWorldPass.render(mc.theWorld, e.partialTicks);
         QlzImpactFx.render(mc.theWorld, e.partialTicks);
+        SingularityWeaponFx.renderState(mc.theWorld, e.partialTicks);
         if (mc.currentScreen == null && mc.inGameHasFocus && PortableWeaponClient.focusProgress() > .1F) {
             WeaponKind kind = PortableWeapons.kind(mc.thePlayer.getHeldItem());
             if (kind == null) return;
