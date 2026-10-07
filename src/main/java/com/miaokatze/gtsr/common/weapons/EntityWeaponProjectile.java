@@ -60,22 +60,58 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
         this.damage = damage;
         this.penetration = penetration;
         this.fire = fire;
-        Vec3 look = owner.getLookVec();
+        Vec3 look = owner instanceof EntityPlayer ? WeaponPose.forward((EntityPlayer) owner, 1) : owner.getLookVec();
         Vec3 muzzle = owner instanceof EntityPlayer ? WeaponPose.muzzle((EntityPlayer) owner, kind)
             : Vec3.createVectorHelper(
                 owner.posX + look.xCoord * .5,
                 owner.posY + owner.getEyeHeight() + look.yCoord * .5,
                 owner.posZ + look.zCoord * .5);
         setPosition(muzzle.xCoord, muzzle.yCoord, muzzle.zCoord);
-        initialOrigin = Vec3
-            .createVectorHelper(owner.posX, owner.posY - owner.yOffset + owner.getEyeHeight(), owner.posZ);
+        initialOrigin = owner instanceof EntityPlayer ? WeaponPose.eye((EntityPlayer) owner, 1)
+            : Vec3.createVectorHelper(owner.posX, owner.posY - owner.yOffset + owner.getEyeHeight(), owner.posZ);
+        // Straight weapons leave the real waist muzzle and converge with the crosshair ray.
+        // Grenades and singularity sparks retain their pitched ballistic launch.
+        if (kind == WeaponKind.LM12 || kind == WeaponKind.T20)
+            look = launchDirection(world, owner, kind, initialOrigin, muzzle, look);
         initialMuzzle = Vec3.createVectorHelper(muzzle.xCoord, muzzle.yCoord, muzzle.zCoord);
         initialObstructionPending = true;
         motionX = look.xCoord * kind.projectileSpeed;
         motionY = look.yCoord * kind.projectileSpeed;
         motionZ = look.zCoord * kind.projectileSpeed;
-        rotationYaw = owner.rotationYaw;
-        rotationPitch = owner.rotationPitch;
+        rotationYaw = (float) Math.toDegrees(Math.atan2(-look.xCoord, look.zCoord));
+        rotationPitch = (float) -Math.toDegrees(Math.asin(look.yCoord));
+    }
+
+    /** Shared by authoritative launch and client trajectory prediction for the same sampled pose. */
+    public static Vec3 launchDirection(World world, EntityLivingBase owner, WeaponKind kind, Vec3 eye, Vec3 muzzle,
+        Vec3 look) {
+        if (kind != WeaponKind.LM12 && kind != WeaponKind.T20) return look;
+        Vec3 end = eye.addVector(look.xCoord * 100, look.yCoord * 100, look.zCoord * 100);
+        MovingObjectPosition block = world.func_147447_a(
+            Vec3.createVectorHelper(eye.xCoord, eye.yCoord, eye.zCoord),
+            Vec3.createVectorHelper(end.xCoord, end.yCoord, end.zCoord),
+            false,
+            true,
+            false);
+        Vec3 target = block == null ? end : block.hitVec;
+        double nearest = eye.squareDistanceTo(target);
+        for (Object object : world.getEntitiesWithinAABBExcludingEntity(
+            owner,
+            owner.boundingBox.addCoord(look.xCoord * 100, look.yCoord * 100, look.zCoord * 100)
+                .expand(1, 1, 1))) {
+            Entity entity = (Entity) object;
+            if (entity.isDead || !(entity instanceof EntityLivingBase) || !entity.canBeCollidedWith()) continue;
+            MovingObjectPosition hit = entity.boundingBox.expand(.1, .1, .1)
+                .calculateIntercept(eye, end);
+            if (hit != null && eye.squareDistanceTo(hit.hitVec) < nearest) {
+                target = hit.hitVec;
+                nearest = eye.squareDistanceTo(target);
+            }
+        }
+        double dx = target.xCoord - muzzle.xCoord, dy = target.yCoord - muzzle.yCoord,
+            dz = target.zCoord - muzzle.zCoord;
+        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return length < 1.0E-8 ? look : Vec3.createVectorHelper(dx / length, dy / length, dz / length);
     }
 
     public WeaponKind kind() {

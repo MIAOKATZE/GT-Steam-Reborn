@@ -128,11 +128,19 @@ public final class WeaponController {
             if (p == null || p.isDead
                 || p.playerNetServerHandler == null
                 || !p.playerNetServerHandler.netManager.isChannelOpen()
+                || !Float.isFinite(c.yaw)
+                || !Float.isFinite(c.pitch)
+                || c.pitch < -90
+                || c.pitch > 90
                 || c.slot < 0
                 || c.slot > 8
                 || p.inventory.currentItem != c.slot
                 || p.openContainer != p.inventoryContainer
                 || PortableWeapons.kind(p.getHeldItem()) == null) continue;
+            // Apply on the server thread before muzzle, ray and effects are sampled.
+            p.rotationYaw = net.minecraft.util.MathHelper.wrapAngleTo180_float(c.yaw);
+            p.rotationPitch = c.pitch;
+            p.rotationYawHead = p.rotationYaw;
             Session s = sessions.get(p.getUniqueID());
             if (s == null) {
                 s = new Session();

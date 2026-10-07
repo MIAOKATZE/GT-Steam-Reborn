@@ -230,16 +230,15 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         while (RELOAD.isPressed()) reload |= active;
         int slot = player.inventory.currentItem;
         if (lastSlot >= 0 && (slot != lastSlot || kind != lastKind || !active)) {
-            if (lastFire || lastFocus) WeaponNetwork.sendControls(lastSlot, false, false, false);
+            if (lastFire || lastFocus) WeaponNetwork
+                .sendControls(lastSlot, false, false, false, false, player.rotationYaw, player.rotationPitch);
             lastFire = lastFocus = false;
             State local = STATES.get(player.getEntityId());
             if (local != null && (slot != lastSlot || kind != lastKind)) local.snapshot = null;
         }
-        if (active && (reload || switchAmmo
-            || slot != lastSlot
-            || firing != lastFire
-            || focusing != lastFocus
-            || clock % 5 == 0)) WeaponNetwork.sendControls(slot, firing, focusing, reload, switchAmmo);
+        // Each active tick carries the current aim, including continuous fire and recoil.
+        if (active) WeaponNetwork
+            .sendControls(slot, firing, focusing, reload, switchAmmo, player.rotationYaw, player.rotationPitch);
         lastSlot = active ? slot : -1;
         lastKind = kind;
         lastFire = firing;

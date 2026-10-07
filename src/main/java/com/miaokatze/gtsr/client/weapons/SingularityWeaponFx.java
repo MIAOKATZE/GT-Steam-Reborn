@@ -205,8 +205,12 @@ final class SingularityWeaponFx {
                 float remote = PortableWeaponClient.remoteProgress(p, partial);
                 double time = world.getTotalWorldTime() + partial;
                 if (reload > 0) stateCubes(PortableWeaponRenderer.reloadMuzzle(p, partial), time, shade, reload);
+                Vec3 hand = PortableWeaponPlayerPose.leftHand(p, WeaponKind.SINGULARITY, partial);
                 if (remote > 0) stateCubes(
-                    PortableWeaponRenderer.viewPoint(p, partial, WeaponPose.modelPoint(p, partial, 0, .34, .28)),
+                    PortableWeaponRenderer.viewPoint(
+                        p,
+                        partial,
+                        WeaponPose.modelPoint(p, partial, hand.xCoord, hand.yCoord, hand.zCoord)),
                     time,
                     shade,
                     remote);

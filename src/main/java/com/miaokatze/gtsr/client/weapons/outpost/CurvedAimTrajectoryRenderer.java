@@ -14,6 +14,7 @@ import net.minecraft.util.Vec3;
 
 import org.lwjgl.opengl.GL11;
 
+import com.miaokatze.gtsr.common.weapons.EntityWeaponProjectile;
 import com.miaokatze.gtsr.common.weapons.WeaponKind;
 import com.miaokatze.gtsr.common.weapons.WeaponPose;
 
@@ -21,8 +22,18 @@ public final class CurvedAimTrajectoryRenderer {
 
     private static final double DASH_SEG = .8, DASH_GAP = .4;
 
+    public static Vec3 launchDirection(EntityPlayer player, WeaponKind kind, float partial) {
+        return EntityWeaponProjectile.launchDirection(
+            player.worldObj,
+            player,
+            kind,
+            WeaponPose.eye(player, partial),
+            WeaponPose.muzzle(player, kind, partial),
+            WeaponPose.forward(player, partial));
+    }
+
     public static void draw(EntityPlayer player, WeaponKind kind, float partial) {
-        Vec3 muzzle = WeaponPose.muzzle(player, kind, partial), aim = WeaponPose.forward(player, partial);
+        Vec3 muzzle = WeaponPose.muzzle(player, kind, partial), aim = launchDirection(player, kind, partial);
         List<Vec3> points = new ArrayList<>();
         points.add(muzzle);
         double x = muzzle.xCoord, y = muzzle.yCoord, z = muzzle.zCoord, vx = aim.xCoord * kind.projectileSpeed,

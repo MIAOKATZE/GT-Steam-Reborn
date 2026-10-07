@@ -597,8 +597,8 @@
     {
       "id": "planned:grit_molybdenum_cake",
       "name": "gtsr_industrial_grit_molybdenum_cake",
-      "en": "Metalgrit Molybdenum-indium Cake",
-      "zh": "风沙钼铟滤饼",
+      "en": "Gallium-molybdenum Indium Residue",
+      "zh": "镓钼含铟残渣",
       "phase": "dust",
       "introducedVersion": 91
     },
@@ -673,6 +673,24 @@
       "zh": "酸洗枯竭铟滤饼",
       "phase": "dust",
       "introducedVersion": 93
+    },
+    {
+      "id": "planned:grit_indium_solution",
+      "name": "gtsr_industrial_grit_indium_solution",
+      "en": "Grit Indium Solution",
+      "zh": "风沙含铟溶液",
+      "phase": "fluid",
+      "temperatureK": 310,
+      "introducedVersion": 94
+    },
+    {
+      "id": "planned:grit_indium_waste_liquor",
+      "name": "gtsr_industrial_grit_indium_waste_liquor",
+      "en": "Grit Indium Waste Liquor",
+      "zh": "风沙含铟废液",
+      "phase": "fluid",
+      "temperatureK": 305,
+      "introducedVersion": 94
     }
   ],
   "recipes": [
@@ -856,7 +874,7 @@
       "outputs": [
         {
           "id": "standard:Materials.Salt",
-          "amount": 3,
+          "amount": 2,
           "unit": "dust",
           "kind": "item"
         },
@@ -868,13 +886,13 @@
         },
         {
           "id": "standard:Materials.Phosphorus",
-          "amount": 6,
+          "amount": 4,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "standard:Materials.Calcium",
-          "amount": 4,
+          "amount": 3,
           "unit": "dust",
           "kind": "item"
         },
@@ -1401,16 +1419,16 @@
           "kind": "item"
         },
         {
-          "id": "standard:GregtechItemList.CelluloseFiber",
+          "id": "standard:GTNH.RawBioFiber",
           "kind": "item",
           "amount": 2,
-          "unit": "item"
+          "unit": "dust"
         },
         {
           "id": "standard:ItemList.IC2_Plantball",
           "kind": "item",
           "amount": 1,
-          "unit": "item",
+          "unit": "dust",
           "chance": 3000
         }
       ]
@@ -1458,7 +1476,7 @@
           "id": "standard:ItemList.FR_Fertilizer",
           "kind": "item",
           "amount": 2,
-          "unit": "item"
+          "unit": "dust"
         }
       ]
     },
@@ -1537,19 +1555,19 @@
       "outputs": [
         {
           "id": "standard:Materials.Phosphorus",
-          "amount": 4,
+          "amount": 3,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "standard:Materials.Potassium",
-          "amount": 4,
+          "amount": 1,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "standard:Materials.Apatite",
-          "amount": 4,
+          "amount": 2,
           "unit": "dust",
           "kind": "item"
         },
@@ -1578,7 +1596,7 @@
       "outputs": [
         {
           "id": "standard:Materials.Carbon",
-          "amount": 2,
+          "amount": 1,
           "unit": "dust",
           "kind": "item"
         },
@@ -2064,7 +2082,7 @@
       "outputs": [
         {
           "id": "standard:Materials.Carbon",
-          "amount": 2,
+          "amount": 1,
           "unit": "dust",
           "kind": "item"
         },
@@ -2077,13 +2095,13 @@
         {
           "id": "standard:Materials.Silicon",
           "kind": "item",
-          "amount": 2,
+          "amount": 1,
           "unit": "dust"
         },
         {
           "id": "standard:Materials.Phosphorus",
           "kind": "item",
-          "amount": 2,
+          "amount": 1,
           "unit": "dust"
         }
       ]
@@ -2097,19 +2115,19 @@
       "inputs": [
         {
           "id": "metalgrit",
-          "amount": 10000,
+          "amount": 18000,
           "unit": "L",
           "kind": "fluid"
         },
         {
           "id": "standard:GTModHandler.getDistilledWater",
-          "amount": 1000,
+          "amount": 6000,
           "unit": "L",
           "kind": "fluid"
         },
         {
           "id": "standard:Materials.SaltWater",
-          "amount": 1000,
+          "amount": 6000,
           "kind": "fluid",
           "unit": "L"
         }
@@ -2117,7 +2135,7 @@
       "outputs": [
         {
           "id": "planned:wet_captured_metalgrit",
-          "amount": 24000,
+          "amount": 30000,
           "unit": "L",
           "kind": "fluid"
         }
@@ -2132,7 +2150,7 @@
       "inputs": [
         {
           "id": "planned:wet_captured_metalgrit",
-          "amount": 24000,
+          "amount": 30000,
           "unit": "L",
           "kind": "fluid"
         }
@@ -2171,7 +2189,7 @@
         {
           "id": "planned:grit_gallium_molybdenum_cake",
           "kind": "item",
-          "amount": 1,
+          "amount": 2,
           "unit": "dust"
         }
       ]
@@ -2251,25 +2269,25 @@
       "outputs": [
         {
           "id": "standard:Materials.Copper",
-          "amount": 20,
+          "amount": 10,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "standard:Materials.Tin",
-          "amount": 12,
+          "amount": 6,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "standard:Materials.Lead",
-          "amount": 12,
+          "amount": 6,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "standard:Materials.Zinc",
-          "amount": 16,
+          "amount": 8,
           "unit": "dust",
           "kind": "item"
         }
@@ -2292,25 +2310,25 @@
       "outputs": [
         {
           "id": "standard:Materials.Aluminiumoxide",
-          "amount": 24,
+          "amount": 8,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "standard:Materials.Rutile",
-          "amount": 16,
+          "amount": 6,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "standard:Materials.Chrome",
-          "amount": 4,
+          "amount": 2,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "planned:grit_tungsten_antimony_cake",
-          "amount": 4,
+          "amount": 2,
           "unit": "dust",
           "kind": "item"
         }
@@ -2345,7 +2363,7 @@
         },
         {
           "id": "standard:Materials.Salt",
-          "amount": 2,
+          "amount": 1,
           "unit": "dust",
           "kind": "item"
         },
@@ -2386,19 +2404,19 @@
         },
         {
           "id": "planned:tantalite_native_concentrate",
-          "amount": 4000,
+          "amount": 12000,
           "unit": "L",
           "kind": "fluid"
         },
         {
           "id": "planned:pgm_native_concentrate",
-          "amount": 8000,
+          "amount": 6000,
           "unit": "L",
           "kind": "fluid"
         },
         {
           "id": "planned:rareearth_native_concentrate",
-          "amount": 10000,
+          "amount": 8000,
           "unit": "L",
           "kind": "fluid"
         },
@@ -2407,12 +2425,6 @@
           "amount": 12000,
           "unit": "L",
           "kind": "fluid"
-        },
-        {
-          "id": "standard:GTModHandler.getDistilledWater",
-          "kind": "fluid",
-          "amount": 4000,
-          "unit": "L"
         }
       ]
     },
@@ -2596,19 +2608,19 @@
       "outputs": [
         {
           "id": "planned:uranium_native_cake",
-          "amount": 8,
+          "amount": 6,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "planned:thorium_native_cake",
-          "amount": 8,
+          "amount": 6,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "planned:radioactive_nonmetal_cake",
-          "amount": 4,
+          "amount": 3,
           "unit": "dust",
           "kind": "item"
         },
@@ -2783,7 +2795,7 @@
       "outputs": [
         {
           "id": "standard:Materials.Arsenic",
-          "amount": 2,
+          "amount": 1,
           "unit": "dust",
           "kind": "item"
         },
@@ -2853,19 +2865,19 @@
       "outputs": [
         {
           "id": "standard:Materials.Cadmium",
-          "amount": 4,
+          "amount": 2,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "standard:Materials.Aluminiumoxide",
-          "amount": 8,
+          "amount": 5,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "planned:withered_trace_cake",
-          "amount": 2,
+          "amount": 1,
           "unit": "dust",
           "kind": "item"
         }
@@ -2944,12 +2956,6 @@
           "amount": 9,
           "unit": "dust",
           "kind": "item"
-        },
-        {
-          "id": "standard:GTPPFluids.BoricAcid",
-          "kind": "fluid",
-          "amount": 200,
-          "unit": "L"
         }
       ]
     },
@@ -2970,7 +2976,7 @@
       "outputs": [
         {
           "id": "standard:Materials.Nickel",
-          "amount": 16,
+          "amount": 8,
           "unit": "dust",
           "kind": "item"
         },
@@ -2999,7 +3005,7 @@
       "outputs": [
         {
           "id": "standard:Materials.Manganese",
-          "amount": 10,
+          "amount": 5,
           "unit": "dust",
           "kind": "item"
         },
@@ -3034,7 +3040,7 @@
       "outputs": [
         {
           "id": "standard:Materials.Neodymium",
-          "amount": 4,
+          "amount": 2,
           "unit": "dust",
           "kind": "item"
         },
@@ -3075,7 +3081,7 @@
       "outputs": [
         {
           "id": "standard:WerkstoffMaterialPool.SamariumOreConcentrate",
-          "amount": 4,
+          "amount": 10,
           "unit": "dust",
           "kind": "item"
         },
@@ -3111,13 +3117,13 @@
         {
           "id": "standard:Materials.Scheelite",
           "kind": "item",
-          "amount": 4,
+          "amount": 3,
           "unit": "dust"
         },
         {
           "id": "standard:Materials.Antimony",
           "kind": "item",
-          "amount": 2,
+          "amount": 1,
           "unit": "dust"
         }
       ]
@@ -3145,13 +3151,13 @@
       "outputs": [
         {
           "id": "standard:Materials.Gallium",
-          "amount": 6,
+          "amount": 2,
           "unit": "dust",
           "kind": "item"
         },
         {
           "id": "planned:grit_molybdenum_cake",
-          "amount": 7,
+          "amount": 8,
           "unit": "dust",
           "kind": "item"
         },
@@ -3172,7 +3178,7 @@
       "inputs": [
         {
           "id": "planned:grit_molybdenum_cake",
-          "amount": 10,
+          "amount": 8,
           "unit": "dust",
           "kind": "item"
         }
@@ -3180,36 +3186,7 @@
       "outputs": [
         {
           "id": "standard:Materials.Molybdenum",
-          "amount": 6,
-          "unit": "dust",
-          "kind": "item"
-        },
-        {
-          "id": "planned:grit_indium_cake",
-          "amount": 28,
-          "unit": "dust",
-          "kind": "item"
-        }
-      ]
-    },
-    {
-      "id": "MG-7D",
-      "lineId": "metalgrit",
-      "machineMap": "centrifugeRecipes",
-      "EUt": 480,
-      "ticks": 400,
-      "inputs": [
-        {
-          "id": "planned:mixed_grit_indium_cake",
-          "amount": 10,
-          "unit": "dust",
-          "kind": "item"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "standard:Materials.Indium",
-          "amount": 1,
+          "amount": 2,
           "unit": "dust",
           "kind": "item"
         },
@@ -3218,6 +3195,47 @@
           "amount": 1,
           "unit": "dust",
           "kind": "item"
+        },
+        {
+          "id": "planned:grit_indium_cake",
+          "amount": 5,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
+    },
+    {
+      "id": "MG-7D",
+      "lineId": "metalgrit",
+      "machineMap": "sifterRecipes",
+      "EUt": 480,
+      "ticks": 400,
+      "inputs": [
+        {
+          "id": "planned:grit_indium_solution",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:Materials.Indium",
+          "amount": 3,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.SiliconDioxide",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "planned:grit_indium_waste_liquor",
+          "amount": 6000,
+          "unit": "L",
+          "kind": "fluid"
         }
       ]
     },
@@ -3426,7 +3444,7 @@
         {
           "id": "planned:grit_indium_cake",
           "kind": "item",
-          "amount": 10,
+          "amount": 5,
           "unit": "dust"
         },
         {
@@ -3438,10 +3456,22 @@
       ],
       "outputs": [
         {
+          "id": "standard:Materials.Boron",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
           "id": "planned:washed_grit_indium_cake",
-          "kind": "item",
-          "amount": 10,
-          "unit": "dust"
+          "amount": 4,
+          "unit": "dust",
+          "kind": "item"
+        },
+        {
+          "id": "standard:Materials.DilutedHydrochloricAcid",
+          "amount": 250,
+          "unit": "L",
+          "kind": "fluid"
         }
       ]
     },
@@ -3455,22 +3485,22 @@
         {
           "id": "planned:washed_grit_indium_cake",
           "kind": "item",
-          "amount": 10,
+          "amount": 4,
           "unit": "dust"
         },
         {
           "id": "standard:GTModHandler.getDistilledWater",
           "kind": "fluid",
-          "amount": 250,
+          "amount": 6000,
           "unit": "L"
         }
       ],
       "outputs": [
         {
-          "id": "planned:mixed_grit_indium_cake",
-          "kind": "item",
-          "amount": 10,
-          "unit": "dust"
+          "id": "planned:grit_indium_solution",
+          "amount": 10000,
+          "unit": "L",
+          "kind": "fluid"
         }
       ]
     },
@@ -3502,7 +3532,42 @@
           "unit": "dust"
         }
       ]
+    },
+    {
+      "id": "MG-7D3",
+      "lineId": "metalgrit",
+      "machineMap": "distillationTowerRecipes",
+      "EUt": 120,
+      "ticks": 200,
+      "inputs": [
+        {
+          "id": "planned:grit_indium_waste_liquor",
+          "amount": 6000,
+          "unit": "L",
+          "kind": "fluid"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "standard:GTPPFluids.BoricAcid",
+          "amount": 200,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:GTModHandler.getDistilledWater",
+          "amount": 5800,
+          "unit": "L",
+          "kind": "fluid"
+        },
+        {
+          "id": "standard:Materials.Graphite",
+          "amount": 1,
+          "unit": "dust",
+          "kind": "item"
+        }
+      ]
     }
   ],
-  "revision": "v93-six-fluid-industrial-revision"
+  "revision": "v94-six-fluid-powder-conservation"
 }

@@ -35,12 +35,11 @@ public final class WeaponNetwork {
         NET.registerMessage(EffectHandler.class, EffectPacket.class, 2, Side.CLIENT);
     }
 
-    public static void sendControls(int slot, boolean firing, boolean focusing, boolean reload) {
-        sendControls(slot, firing, focusing, reload, false);
-    }
-
-    public static void sendControls(int slot, boolean firing, boolean focusing, boolean reload, boolean switchAmmo) {
+    public static void sendControls(int slot, boolean firing, boolean focusing, boolean reload, boolean switchAmmo,
+        float yaw, float pitch) {
         Controls c = new Controls();
+        c.yaw = yaw;
+        c.pitch = pitch;
         c.switchAmmo = switchAmmo;
         c.slot = slot;
         c.firing = firing;
@@ -55,13 +54,25 @@ public final class WeaponNetwork {
 
     public static void enqueueControls(EntityPlayerMP p, int slot, boolean firing, boolean focusing, boolean reload,
         boolean switchAmmo) {
+        enqueueControls(p, slot, firing, focusing, reload, switchAmmo, p.rotationYaw, p.rotationPitch);
+    }
+
+    public static void enqueueControls(EntityPlayerMP p, int slot, boolean firing, boolean focusing, boolean reload,
+        boolean switchAmmo, float yaw, float pitch) {
         Controls c = new Controls();
+        c.yaw = yaw;
+        c.pitch = pitch;
         c.slot = slot;
         c.firing = firing;
         c.focusing = focusing;
         c.reload = reload;
         c.switchAmmo = switchAmmo;
-        INPUT.offer(new Pending(p, c));
+        enqueueControls(p, c);
+    }
+
+    /** Also used by isolated audits after the actual wire decoder. */
+    public static void enqueueControls(EntityPlayerMP p, Controls controls) {
+        INPUT.offer(new Pending(p, controls));
     }
 
     static void state(EntityPlayerMP p, Snapshot s) {
@@ -90,8 +101,9 @@ public final class WeaponNetwork {
 
     public static class Controls implements IMessage {
 
-        int slot;
-        boolean firing, focusing, reload, switchAmmo;
+        public int slot;
+        public float yaw, pitch;
+        public boolean firing, focusing, reload, switchAmmo;
 
         public void fromBytes(ByteBuf b) {
             slot = b.readUnsignedByte();
@@ -100,18 +112,22 @@ public final class WeaponNetwork {
             focusing = (flags & 2) != 0;
             reload = (flags & 4) != 0;
             switchAmmo = (flags & 8) != 0;
+            yaw = b.readFloat();
+            pitch = b.readFloat();
         }
 
         public void toBytes(ByteBuf b) {
             b.writeByte(slot);
             b.writeByte((firing ? 1 : 0) | (focusing ? 2 : 0) | (reload ? 4 : 0) | (switchAmmo ? 8 : 0));
+            b.writeFloat(yaw);
+            b.writeFloat(pitch);
         }
     }
 
     public static class ControlHandler implements IMessageHandler<Controls, IMessage> {
 
         public IMessage onMessage(Controls m, MessageContext c) {
-            if (c.getServerHandler() != null) INPUT.offer(new Pending(c.getServerHandler().playerEntity, m));
+            if (c.getServerHandler() != null) enqueueControls(c.getServerHandler().playerEntity, m);
             return null;
         }
     }

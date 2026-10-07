@@ -125,6 +125,8 @@ public final class WeaponAuditCommand extends CommandBase {
             newWeaponMechanics();
             for (WeaponKind kind : new WeaponKind[] { WeaponKind.LM12, WeaponKind.T20, WeaponKind.QLZ04 })
                 inventory(kind);
+            movingAim();
+            nearAim();
             cooling();
             muzzleAndWall();
             damage();
@@ -473,7 +475,27 @@ public final class WeaponAuditCommand extends CommandBase {
         // Bounded fixture clock advances production cadence/heat logic, then finally restores the save clock.
         world.getWorldInfo()
             .incrementTotalWorldTime(world.getTotalWorldTime() + 1);
-        WeaponNetwork.enqueueControls(player, 0, fire, false, reload);
+        WeaponNetwork.Controls sent = new WeaponNetwork.Controls();
+        sent.slot = 0;
+        sent.firing = fire;
+        sent.reload = reload;
+        sent.yaw = player.rotationYaw;
+        sent.pitch = player.rotationPitch;
+        ByteBuf controlsBytes = Unpooled.buffer();
+        try {
+            sent.toBytes(controlsBytes);
+            WeaponNetwork.Controls received = new WeaponNetwork.Controls();
+            received.fromBytes(controlsBytes);
+            require(
+                controlsBytes.readableBytes() == 0 && received.yaw == sent.yaw && received.pitch == sent.pitch,
+                "actual Controls aim roundtrip");
+            // Deliberately stale server aim: only the decoded production input restores the shot direction.
+            player.rotationYaw = sent.yaw + 90;
+            player.rotationPitch = 0;
+            WeaponNetwork.enqueueControls(player, received);
+        } finally {
+            controlsBytes.release();
+        }
         capturedState = null;
         capturedShot = null;
         auditTickBus.post(new TickEvent.ServerTickEvent(TickEvent.Phase.END));
@@ -508,12 +530,137 @@ public final class WeaponAuditCommand extends CommandBase {
                     require(
                         entity.getDistanceSq(expected.xCoord, expected.yCoord, expected.zCoord) < 1.0E-12,
                         "server projectile starts at physical muzzle");
+                    if (held == WeaponKind.LM12 || held == WeaponKind.T20) {
+                        double yaw = Math.toRadians(player.rotationYaw), pitch = Math.toRadians(player.rotationPitch);
+                        Vec3 eye = WeaponPose.eye(player, 1);
+                        Vec3 target = eye.addVector(
+                            -Math.sin(yaw) * Math.cos(pitch) * 100,
+                            -Math.sin(pitch) * 100,
+                            Math.cos(yaw) * Math.cos(pitch) * 100);
+                        // The fixture world can retain legitimate targets from other production scenarios.
+                        net.minecraft.util.MovingObjectPosition block = world.func_147447_a(
+                            Vec3.createVectorHelper(eye.xCoord, eye.yCoord, eye.zCoord),
+                            Vec3.createVectorHelper(target.xCoord, target.yCoord, target.zCoord),
+                            false,
+                            true,
+                            false);
+                        Vec3 end = target;
+                        if (block != null) target = block.hitVec;
+                        double closest = eye.squareDistanceTo(target);
+                        for (Object candidate : world.loadedEntityList) {
+                            if (!(candidate instanceof net.minecraft.entity.EntityLivingBase)) continue;
+                            Entity living = (Entity) candidate;
+                            if (living == player || living.isDead || !living.canBeCollidedWith()) continue;
+                            net.minecraft.util.MovingObjectPosition intercept = living.boundingBox.expand(.1, .1, .1)
+                                .calculateIntercept(eye, end);
+                            if (intercept != null && eye.squareDistanceTo(intercept.hitVec) < closest) {
+                                target = intercept.hitVec;
+                                closest = eye.squareDistanceTo(target);
+                            }
+                        }
+                        Vec3 actual = Vec3.createVectorHelper(entity.motionX, entity.motionY, entity.motionZ)
+                            .normalize();
+                        Vec3 direction = Vec3
+                            .createVectorHelper(
+                                target.xCoord - expected.xCoord,
+                                target.yCoord - expected.yCoord,
+                                target.zCoord - expected.zCoord)
+                            .normalize();
+                        require(
+                            actual.dotProduct(direction)
+                                / Math.sqrt(actual.dotProduct(actual) * direction.dotProduct(direction)) > 1 - 1.0E-10,
+                            "decoded moving aim converges from physical muzzle to eye ray; target=" + target
+                                + " muzzle="
+                                + expected
+                                + " actual="
+                                + actual
+                                + " expected="
+                                + direction);
+                    }
                     owned.add(entity);
                     entity.setDead();
                     world.removeEntity(entity);
                 }
             }
         return shots;
+    }
+
+    private void movingAim() {
+        double px = player.posX, py = player.posY, pz = player.posZ;
+        for (WeaponKind kind : new WeaponKind[] { WeaponKind.LM12, WeaponKind.T20 }) {
+            setup(kind);
+            tick(false, true);
+            for (int i = 0; i < kind.reloadTicks; i++) tick(false, false);
+            int shots = 0;
+            for (int i = 0; i < 96; i++) {
+                player.setPosition(px + Math.sin(i * .15) * 2, py + Math.cos(i * .13), pz + i * .02);
+                player.rotationYaw = -170 + (i * 19 % 340);
+                player.rotationPitch = -70 + (i * 11 % 140);
+                shots += tick(true, false);
+                require(
+                    Math.abs(player.rotationYaw - (-170 + (i * 19 % 340))) < 1.0E-5,
+                    "wire aim replaces stale server yaw during continuous fire");
+                require(
+                    Math.abs(player.rotationPitch - (-70 + (i * 11 % 140))) < 1.0E-5,
+                    "wire aim replaces stale server pitch during continuous fire");
+            }
+            require(shots >= 8, "moving continuous fire produces multiple new directions " + kind);
+            tick(false, false);
+        }
+        player.setPosition(px, py, pz);
+        player.rotationYaw = player.rotationPitch = 0;
+    }
+
+    private void nearAim() {
+        player.rotationYaw = player.rotationPitch = 0;
+        Vec3 eye = WeaponPose.eye(player, 1);
+        int bx = (int) Math.floor(eye.xCoord), by = (int) Math.floor(eye.yCoord), bz = (int) Math.floor(eye.zCoord) + 8;
+        require(world.getBlock(bx, by, bz) == Blocks.air, "near aim fixture empty air");
+        try {
+            require(world.setBlock(bx, by, bz, Blocks.stone, 0, 2), "near aim target installed");
+            for (WeaponKind kind : new WeaponKind[] { WeaponKind.LM12, WeaponKind.T20 }) {
+                EntityWeaponProjectile projectile = new EntityWeaponProjectile(
+                    world,
+                    player,
+                    kind,
+                    kind.damage,
+                    kind.armorPenetration,
+                    0);
+                owned.add(projectile);
+                double travel = (bz - projectile.posZ) / projectile.motionZ;
+                require(
+                    Math.abs(projectile.posX + projectile.motionX * travel - eye.xCoord) < 1.0E-8
+                        && Math.abs(projectile.posY + projectile.motionY * travel - eye.yCoord) < 1.0E-8,
+                    "near block crosshair intersects actual waist-muzzle ray " + kind);
+            }
+        } finally {
+            world.setBlock(bx, by, bz, Blocks.air, 0, 2);
+        }
+        EntityCow target = new EntityCow(world);
+        target.setPosition(eye.xCoord, eye.yCoord - .7, eye.zCoord + 6);
+        owned.add(target);
+        require(world.spawnEntityInWorld(target), "near entity target installed");
+        try {
+            double front = target.boundingBox.minZ - .1;
+            for (WeaponKind kind : new WeaponKind[] { WeaponKind.LM12, WeaponKind.T20 }) {
+                EntityWeaponProjectile projectile = new EntityWeaponProjectile(
+                    world,
+                    player,
+                    kind,
+                    kind.damage,
+                    kind.armorPenetration,
+                    0);
+                owned.add(projectile);
+                double travel = (front - projectile.posZ) / projectile.motionZ;
+                require(
+                    Math.abs(projectile.posX + projectile.motionX * travel - eye.xCoord) < 1.0E-8
+                        && Math.abs(projectile.posY + projectile.motionY * travel - eye.yCoord) < 1.0E-8,
+                    "near entity crosshair intersects actual waist-muzzle ray " + kind);
+            }
+        } finally {
+            target.setDead();
+            world.removeEntity(target);
+        }
     }
 
     private static Object field(Object object, String name) throws Exception {

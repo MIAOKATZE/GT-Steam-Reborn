@@ -30,7 +30,6 @@ import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTRecipeBuilder;
 import gregtech.api.util.GTUtility;
 import gtPlusPlus.core.fluids.GTPPFluids;
-import gtPlusPlus.xmod.gregtech.api.enums.GregtechItemList;
 import gtnhlanth.common.register.WerkstoffMaterialPool;
 
 /** Six industrial lines, using registered material forms and the current integer ledger. */
@@ -177,6 +176,7 @@ public final class ProsperityIndustrialRecipes {
 
     private static ResolvedStage resolve(IndustrialRecipeLedger.Stage definition) {
         try {
+            verifyPowderConservation(definition);
             ResolvedStage result = new ResolvedStage();
             result.definition = definition;
             result.map = map(definition.machineMap);
@@ -189,6 +189,27 @@ public final class ProsperityIndustrialRecipes {
         } catch (RuntimeException e) {
             throw new IllegalStateException("Cannot resolve industrial stage " + definition.id, e);
         }
+    }
+
+    /** Every possible dust output counts in full, including independent probabilistic products. */
+    private static void verifyPowderConservation(IndustrialRecipeLedger.Stage definition) {
+        int input = powderAmount(definition.inputs);
+        int output = powderAmount(definition.outputs);
+        if (input > 0 && output > input) {
+            throw new IllegalStateException(
+                "Industrial powder batch expands: " + definition.id + " input=" + input + " maximumOutput=" + output);
+        }
+    }
+
+    private static int powderAmount(List<IndustrialRecipeLedger.Amount> amounts) {
+        int total = 0;
+        for (IndustrialRecipeLedger.Amount amount : amounts) {
+            if (!"item".equals(amount.kind) || Boolean.FALSE.equals(amount.consumed)) continue;
+            if (amount.id.startsWith("planned:") || amount.id.startsWith("standard:Materials.")
+                || amount.id.startsWith("standard:WerkstoffLoader.")
+                || amount.id.startsWith("standard:WerkstoffMaterialPool.")) total += amount.amount;
+        }
+        return total;
     }
 
     private static ItemStack[] items(List<IndustrialRecipeLedger.Amount> amounts) {
@@ -212,8 +233,8 @@ public final class ProsperityIndustrialRecipes {
                     case "standard:ItemList.IC2_Plantball":
                         stack = ItemList.IC2_Plantball.get(amount.amount);
                         break;
-                    case "standard:GregtechItemList.CelluloseFiber":
-                        stack = GregtechItemList.CelluloseFiber.get(amount.amount);
+                    case "standard:GTNH.RawBioFiber":
+                        stack = GTModHandler.getModItem("dreamcraft", "RawBioFiber", amount.amount, 0);
                         break;
                     case "standard:WerkstoffLoader.IrLeachResidue":
                         stack = WerkstoffLoader.IrLeachResidue.get(OrePrefixes.dust, amount.amount);
@@ -368,6 +389,8 @@ public final class ProsperityIndustrialRecipes {
                 return RecipeMaps.distilleryRecipes;
             case "centrifugeRecipes":
                 return RecipeMaps.centrifugeRecipes;
+            case "sifterRecipes":
+                return RecipeMaps.sifterRecipes;
             case "mixerRecipes":
                 return RecipeMaps.mixerRecipes;
             case "fluidHeaterRecipes":

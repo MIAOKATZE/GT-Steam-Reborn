@@ -71,6 +71,13 @@ public final class WeaponPose {
         return Vec3.createVectorHelper(0, .34, .28);
     }
 
+    /** Remote crush reaches at tick ten, holds, then returns during the final ten ticks. */
+    public static Vec3 remoteHand(float progress) {
+        double reach = progress < 1F / 3 ? progress * 3 : progress < 2F / 3 ? 1 : (1 - progress) * 3;
+        reach = Math.max(0, Math.min(1, reach));
+        return Vec3.createVectorHelper(-1.05 + .15 * reach, .28 + .5 * reach, .50 - .6 * reach);
+    }
+
     public static Vec3 localSupport() {
         return Vec3.createVectorHelper(0, -.28, -.30);
     }

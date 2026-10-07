@@ -101,6 +101,8 @@ public final class IndustrialMaterialColors {
         colors.put("planned:washed_grit_indium_cake", 0xff87959e);
         colors.put("planned:mixed_grit_indium_cake", 0xff98a0ab);
         colors.put("planned:washed_withered_indium_cake", 0xff929baa);
+        colors.put("planned:grit_indium_solution", 0xff96a4b5);
+        colors.put("planned:grit_indium_waste_liquor", 0xff74858f);
         return Collections.unmodifiableMap(colors);
     }
 

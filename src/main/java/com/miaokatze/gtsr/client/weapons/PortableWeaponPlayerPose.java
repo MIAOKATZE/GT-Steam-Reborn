@@ -62,14 +62,20 @@ public final class PortableWeaponPlayerPose {
         float partial = PortableWeaponClient.renderPartialTicks();
         Vec3 right = WeaponPose.localGrip(), left = leftHand(p, kind, partial);
         aimArm(model.bipedRightArm, p, partial, right);
-        if (kind != WeaponKind.SINGULARITY && PortableWeaponClient.reloadProgress(p, partial) > 0)
-            aimArm(model.bipedLeftArm, p, partial, left);
+        if (leftActive(p, kind, partial)) aimArm(model.bipedLeftArm, p, partial, left);
         model.aimedBow = false;
     }
 
-    private static Vec3 leftHand(EntityPlayer p, WeaponKind kind, float partial) {
+    private static boolean leftActive(EntityPlayer p, WeaponKind kind, float partial) {
+        return kind == WeaponKind.SINGULARITY ? PortableWeaponClient.remoteProgress(p, partial) > 0
+            : PortableWeaponClient.reloadProgress(p, partial) > 0;
+    }
+
+    static Vec3 leftHand(EntityPlayer p, WeaponKind kind, float partial) {
         float progress = PortableWeaponClient.reloadProgress(p, partial);
-        if (kind == WeaponKind.SINGULARITY || progress <= 0) return Vec3.createVectorHelper(-1.05, .28, .50);
+        if (kind == WeaponKind.SINGULARITY)
+            return WeaponPose.remoteHand(PortableWeaponClient.remoteProgress(p, partial));
+        if (progress <= 0) return Vec3.createVectorHelper(-1.05, .28, .50);
         Vec3 feed = kind == WeaponKind.QLZ04 ? Vec3.createVectorHelper(-.27, -.23, .23)
             : Vec3.createVectorHelper(-.19, -.05, .26);
         Vec3 offset = WeaponPose.attachmentOffset(kind, kind == WeaponKind.QLZ04 ? "magazine" : "belt", progress);
@@ -115,7 +121,7 @@ public final class PortableWeaponPlayerPose {
             Vec3 grip = WeaponPose.localGrip(), support = leftHand(p, kind, partial);
             boolean modern = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH)
                 == GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_HEIGHT);
-            boolean loading = kind != WeaponKind.SINGULARITY && PortableWeaponClient.reloadProgress(p, partial) > 0;
+            boolean loading = leftActive(p, kind, partial);
             for (int side = 0; side < (loading ? 2 : 1); side++) {
                 double sign = side == 0 ? 1 : -1;
                 Vec3 shoulder = eye.addVector(r.xCoord * .31 * sign, -.20, r.zCoord * .31 * sign);
