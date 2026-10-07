@@ -9,12 +9,32 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0 beta1-3 & RC1-2" src="https://img.shields.io/badge/GTNH-2.9.0%20beta1--3%20%26%20RC1--2-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.20.26" src="https://img.shields.io/badge/Release-1.20.26-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.20.98" src="https://img.shields.io/badge/Release-1.20.98-green.svg"></a>
 </p>
 
-A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 23 multiblock steam machines, 8 single-block nodes, 15 types of hatches plus 4 singularity compartments and 3 hub storage units, a Hub-Node binding system, and a Mineral Logistics Cluster for chain-based ore processing. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase. Singularity blocks carry an explicit three-way type — **Natural** (worldgen) / **Stable** (machine-managed) / **Runaway** (command-spawned or overlimit detonation) — and the singularity producers gain an **overlimit mode**: the Steam Singularity Entangler pushes overlimit up to 500% (heat up to 6×) with structural instability accumulating above 200% overlimit, while the Critical Entangled Singularity Stabilizer manages three values (overlimit up to 1000%, instability, dimension tear) — breaching a cap spawns a Runaway singularity and destroys the machine.
+GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
 
-一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供23台多方块蒸汽机器、8个单方块节点、15类仓室与4个奇点仓、3种存储单元、枢纽-节点绑定系统以及一套矿物处理物流工程集群。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。奇点方块显式三分类——**自然**（世界生成）/ **稳定**（机器托管）/ **失控**（命令生成或超限爆炸链脱管）；奇点生产设备实装**超限模式**：蒸汽奇点纠缠装置超限上限 500%（热量最高 6 倍），超限超 200% 后结构失稳持续积累；临界纠缠奇点稳定装置实装超限（上限 1000%）、失稳、维度撕裂三值——数值爆表即生成失控奇点并摧毁装置。
+在繁荣维度探索遗址、解开机关并挑战首领，将六种原液带回基地加工。四种便携武器与停火后补弹的拟态弹药包，为远征提供从 LV 到 EV 的装备路线。
+
+GTSR expands GTNH's steam progression with industrial machines, cross-dimensional logistics, singularity technology, the Prosperity dimension, six fluid-processing routes and portable weapons. Build a reliable steam base, link distant workshops through hubs and nodes, then bring resources and discoveries home from the ruins of Prosperity.
+
+## 从基地到远征 / From Base to Expedition
+
+| 你想做什么 | 可以从哪里开始 |
+|---|---|
+| 扩建青铜基地 | 大型焦炉与加固砖高炉建立材料基础，大型蒸汽熔炉承接批量熔炼。空气压缩机、大气离心机补足气体供应。 |
+| 让加工持续运转 | 蒸汽流体钻井解决水源，地热锅炉和太阳能阵列提供蒸汽；机械压缩机将普通蒸汽转为过热蒸汽。先留足水和输出空间，再提高负荷。 |
+| 把远方工坊接回主基地 | 建设蒸汽枢纽与蓄水枢纽，携带节点到矿场、加工间或其他维度；用枢纽终端检查方向、容量与传输速率。 |
+| 整合矿物加工 | 奇点钻井枢纽收集远方资源，矿物处理集群编排加工链；物流单元接好输入与输出后，再添加增幅模块。 |
+| 把蒸汽推进到更高阶段 | 热化学致密蒸汽发生系统拓展燃料供应，致密态操控与奇点设备支撑储运、发电和高级加工。 |
+| 前往繁荣探索 | 准备回程锚点、武器和弹药，用时空校准工程进入维度；先阅读遗址线索，再完成机关与遭遇。 |
+
+这些路线可以并行建设。锅炉、枢纽和加工机的总吞吐需要一起规划：只扩建机器并行而不补足供汽、冷却或输出空间，产线仍会受最弱的一环限制。熟悉当前机器的界面状态，再逐项提高负荷，比一次把所有档位拉满更容易找到瓶颈。
+
+English quick start: use NEI for recipes and structure tooltips for building requirements. Hubs connect remote storage and workers; the Hub Terminal manages their flow and status. Prosperity adds ruins, encounters and processing resources. Portable weapons progress from LV to EV, with rechargeable mimic ammunition available at LuV. The detailed player guide below covers network controls, ore-chain supply, travel and weapon handling.
+
+
+
 
 > [!NOTE]
 > This is an unofficial mod. Please avoid discussing this mod in official GTNH forums.
@@ -22,7 +42,10 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 
 > 📖 **完整文档请查阅 [Wiki](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki) / For full documentation, see the [Wiki](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki)**
 
-## Downloads & Requirements / 下载与版本需求
+## 下载与版本需求 / Downloads & Requirements
+
+从 [最新发布页](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/latest) 下载普通 `gtsr-*.jar`，放入客户端和服务器的 `mods` 文件夹；`dev` 与 `sources` 文件不是游玩版本。支持 **GTNH 2.9.0 beta1–3 与 RC1–2**，当前版本以 **RC-2** 为基准。升级时请保留现有配置与存档备份。
+
 
 | GTNH         | GTSR           | Maintenance / 维护 |
 | ------------ | -------------- | :--------------: |
@@ -34,9 +57,9 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 
 ***
 
-## Multiblock Machines / 多方块机器 (23)
+## Multiblock Machines / 多方块机器
 
-### Storage Hub Machines / 存储枢纽机器 (2)
+### Storage Hub Machines / 存储枢纽机器
 
 > [!NOTE]
 > 🎨 下方宣传材料均使用了 [Modernity-GTNH](https://github.com/ModernityGTNH/Modernity-GTNH) 材质包，特别感谢其作者带来的出色视觉体验！下载地址见仓库 [Releases](https://github.com/ModernityGTNH/Modernity-GTNH/releases)。
@@ -87,14 +110,13 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 
 ***
 
-### Singularity Drilling Hub / 奇点钻井枢纽 (1)
+### Singularity Drilling Hub / 奇点钻井枢纽
 
 <p align="center"><img src="README/MTESingularityDrillingHub.png" width="400" alt="奇点钻井枢纽 / Singularity Drilling Hub"><br><em>奇点钻井枢纽 / Singularity Drilling Hub</em></p>
 
 **奇点钻井枢纽 / Singularity Drilling Hub (SDH)**
 
 仅钢级，必须使用过热蒸汽（无加速效果），驱动钻井与采矿节点；蒸汽消耗随活跃节点数增长。蒸汽时代的奇迹造物：基于蒸汽纠缠奇点，遍及世界每一个角落，攫取一切所需的资源。
-Steel only, requires superheated steam (no speed bonus). Drives drilling and miner nodes; steam consumption scales with active node count. A marvel of the steam age: based on steam-entangled singularities, it reaches every corner of the world to extract all needed resources.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
@@ -120,22 +142,17 @@ The Hub-Node system is GTSR's core innovation, enabling cross-chunk and cross-di
 
 #### Binding Mechanism / 绑定机制
 
-Hold a node item and right-click a hub controller to bind; Alt-right-click binds the entire held stack (singularity cost = per-node cost × stack size). Singularity cost varies by node type (steam nodes: 0/1/8 by tier; universal fluid nodes: all 0; singularity steam (output) compartments: 1 each; miner/driller: 1). Steam/Water hubs support 3-state cycle: output mode → input mode → unbind. Singularity compartments are mode-locked: when already bound, right-click only unbinds (no mode flip), and the terminal/GUI cannot switch their direction either. Bound nodes re-register with their hub idempotently every 600 ticks (30 s; retried 20 ticks after failure), so if a hub is demolished and rebuilt in place, bindings recover automatically within 30 seconds; hubs without a chip still prune dangling binding records (only fluid transfer requires a chip). Breaking a bound node drops it with the binding retained.
 
-手持节点物品右键枢纽控制器绑定，Alt+右击绑定手持整组（奇点消耗=单节点成本×堆叠数量）。奇点消耗因节点类型而异（蒸汽节点按等级 0/1/8；通用流体节点全家 0；奇点蒸汽仓/输出仓各 1；采矿/钻井 1）。蒸汽枢纽阵列/蓄水枢纽阵列支持3状态循环：输出模式→输入模式→解绑。奇点仓模式锁定：已绑定时右键仅解绑（无模式翻转），终端/界面也无法切换其方向。绑定成功后节点每 600 tick（30 秒）幂等重登记（失败 20 tick 重试），拆除枢纽后原位重建最迟 30 秒自动恢复绑定；未装芯片的枢纽也会清理悬空绑定记录（仅流体传输需要芯片）。破坏已绑定节点，掉落物保留绑定。
+手持节点物品右键枢纽控制器绑定，Alt+右击绑定手持整组（奇点消耗=单节点成本×堆叠数量）。奇点消耗因节点类型而异（蒸汽节点按等级 0/1/8；通用流体节点全家 0；奇点蒸汽仓/输出仓各 1；采矿/钻井 1）。蒸汽枢纽阵列/蓄水枢纽阵列支持3状态循环：输出模式→输入模式→解绑。奇点仓模式锁定：已绑定时右键仅解绑（无模式翻转），终端/界面也无法切换其方向。原位重建枢纽后，节点最迟约 30 秒恢复绑定；破坏已绑定节点，掉落物保留绑定。
 
-> 📷 图片待配：节点绑定枢纽的操作示意图或流程截图
 
 #### Transfer Mechanism / 传输机制
 
-- **Steam/Water Hub**: Every 20 ticks, transfers fluid between hub and bound nodes at each node's effective rate. Screwdriver on hub toggles overflow output mode. Rate tiers (all six cache nodes + all four singularity compartments; compartment effective rate = fixed base × tier — steam compartments base 8,000,000 L/s, fluid compartments 256,000 L/s): right-click (non-sneaking) with the Hub Terminal cycles 100%→80%→60%→40%→20%→10%→5%→2%→1%→0%. Capacity limit tiers (six cache nodes + the two receiving compartments): sneak+right-click with the Hub Terminal or the GUI button cycles 100%→80%→60%→40%→20%→10%→5%→2%→1%.
-- **Drilling Hub**: Consumes steam to drive active nodes. Miner node outputs → hub Output Bus. Drilling node outputs → hub Output Hatch.
 - **蒸汽枢纽阵列/蓄水枢纽阵列**：每20tick在枢纽与绑定节点间按有效速率传输流体。螺丝刀切换溢流输出模式。速率档适用于六缓存节点+四个奇点仓（奇点仓有效速率=固定基准×档位：蒸汽两仓基准 8,000,000 L/s、流体两仓 256,000 L/s；枢纽终端右击循环 100%→80%→60%→40%→20%→10%→5%→2%→1%→0%）；容量上限档（六缓存节点+两个接收类奇点仓）由终端潜行右击或 GUI 按钮循环 100%→80%→60%→40%→20%→10%→5%→2%→1%（见下方缓存节点一节）。
 - **钻井枢纽**：消耗蒸汽驱动活跃节点。采矿节点产出→枢纽输出总线。钻井节点产出→枢纽输出仓。
 
 #### Hub Terminal / 枢纽终端
 
-The Hub Terminal is a handheld remote management device (crafted with 1 Steam Entangled Singularity surrounded by 8 steel plates). Right-click any hub controller with it to open that hub's status terminal — no more running back and forth between nodes.
 
 枢纽终端是手持远程管理设备（1 蒸汽纠缠奇点 + 8 钢板环绕合成）。手持右击任意枢纽控制器即可打开对应的状态终端，告别在节点之间来回奔波。
 
@@ -144,23 +161,20 @@ The Hub Terminal is a handheld remote management device (crafted with 1 Steam En
 <p align="center"><img src="README/HubTerminalCacheStatus.png" width="400" alt="缓存枢纽状态终端 / Cache Hub Status Terminal"><br><em>缓存枢纽状态终端 / Cache Hub Status Terminal</em></p>
 使用枢纽终端右击控制器，打开状态GUI。 / Right-click the controller on the hub terminal and open the status GUI.
 
-- Per-node display (icon, custom name, coords + dimension, fluid type, storage/capacity) with 16×16 hover-tooltip buttons: rate cycle (six cache nodes + four singularity compartments) / capacity cycle / mode toggle (node↔hub) / auto-output / teleport above the node (consumes 1 Steam Entangled Singularity from your main inventory only after a safe landing spot is confirmed); in-place renaming; handheld shortcuts: right-click (non-sneaking) a node/compartment with the terminal to cycle its rate tier, sneak+right-click to cycle the capacity limit tier (send-type compartments show a locked hint) — direction modes can only be switched via this UI's mode button or by right-clicking the hub while holding the node (singularity compartments are mode-locked and reject both; send-type compartments have no capacity tier) / 每节点显示（图标、自定义名、坐标+维度、流体类型、储量/容量），16×16 悬浮说明按钮：速率循环（六缓存节点+四奇点仓）/ 容量循环 / 模式切换（节点↔枢纽）/ 自动输出 / 传送至节点正上方（确认安全落点后才从主物品栏消耗 1 个蒸汽纠缠奇点）；内嵌重命名；手持快捷操作：终端右击（非潜行）节点/仓循环传输速率档、终端潜行右击循环容量上限档（发送类仓提示容量锁定）——方向模式仅能经本界面模式按钮或持节点右击枢纽切换（奇点仓方向锁定，两者均被拒绝；发送类仓无容量档）
+- 每节点显示名字、坐标与维度、流体和储量。可调整速率、容量、方向、自动输出，重命名节点并传送到安全落点；奇点仓方向固定。操作细节见 [枢纽指南](README/FEATURES.md#枢纽与节点)。
 
 **Drilling Hub Status Terminal / 钻井枢纽状态终端**:
 
 <p align="center"><img src="README/HubTerminalDrillingStatus.png" width="400" alt="钻井枢纽状态终端 / Drilling Hub Status Terminal"><br><em>钻井枢纽状态终端 / Drilling Hub Status Terminal</em></p>
 使用枢纽终端右击控制器，打开状态GUI。 / Right-click the controller on the hub terminal and open the status GUI.
 
-- Per-node display (icon, name, tier Mk1-4, status, coords); remote start/stop, quick recycle (needs node stopped/idle, returns mining pipes), in-GUI upgrades, in-place renaming (syncs to WAILA and node GUI) / 每节点显示（图标、名字、等级 Mk1-4、状态、坐标）；远程启停、快捷回收（需节点停止/待机，返还钻管）、UI 内升级、内嵌重命名（同步至 WAILA 与节点 GUI）
+- 查看节点等级、状态与坐标，远程启停、升级、重命名；停止或待机后可快捷回收并返还钻管。
 - **Phase teleport / 阶段传送**: teleport directly above a bound node (y+1), cross-dimensional; consumes 1 Steam Entangled Singularity from your main inventory only after a safe landing spot is found / 传送到绑定节点正上方（y+1），支持跨维度；仅在找到安全落点后消耗主物品栏 1 个蒸汽纠缠奇点
 
 ***
 
-### Steam Processing Machines / 蒸汽加工机器 (7)
+### Steam Processing Machines / 蒸汽加工机器
 
-All inherit from `MTESteamMultiBase` , supporting normal steam and superheated steam 4x speed.
-
-均继承自 `MTESteamMultiBase`，支持普通蒸汽和过热蒸汽4倍速。
 
 <p align="center"><img src="README/MTELargeSteamFurnace-T1.png" width="260" alt="大型蒸汽熔炉 / Large Steam Furnace"> <img src="README/MTELargeSteamFurnace-T2.png" width="260" alt="大型蒸汽熔炉 / Large Steam Furnace"><br><em>大型蒸汽熔炉 / Large Steam Furnace（青铜/钢）</em></p>
 
@@ -267,15 +281,14 @@ Reverse-injects steam energy underground to increase fluid reserves, solving lon
 
 ***
 
-### Mineral Logistics Cluster / 蒸汽动力矿物处理物流工程集群 (1)
+### Mineral Logistics Cluster / 蒸汽动力矿物处理物流工程集群
 
 <p align="center"><img src="README/CRUSH-T1.png" width="500" alt="矿物处理集群主结构全景 / MLC Main Structure Overview"> <img src="README/CRUSH-UI1.png" width="800" alt="集群终端拓扑页 / Cluster Terminal Topology Page"><br><em>矿物处理集群主结构（主段 15×20×29 + 延伸段串接）与集群终端拓扑页；模块合影、链路/增幅页等更多配图见项目 wiki / Mineral Logistics Cluster main structure (main segment 15×20×29 + daisy-chained extension segments) and cluster terminal topology page; more shots (module group, chain/amplifier pages) in the project wiki</em></p>
 
-**蒸汽动力矿物处理物流工程集群（开发中，逐步实装）/ Mineral Logistics Cluster (MLC) — in development, rolling out incrementally**
+**蒸汽动力矿物处理物流工程集群/ Mineral Logistics Cluster (MLC) — in development, rolling out incrementally**
 
 蒸汽驱动的矿石链式加工多方块工程集群：以物流模块为单元编排「粉碎→锻造→简易洗矿→洗矿→化洗→离心→热离→筛选→磁选→熔炼」加工链并自动吞吐矿石，以蒸汽与润滑剂为主驱动（热离与磁选链步需能源仓持续供电），是蒸汽时代的大型矿石处理中枢。
 
-A steam-driven multiblock ore-processing cluster: logistics modules orchestrate a crush→hammer→simple-wash→ore-wash→chem-bath→centrifuge→thermal-centrifuge→sift→magnetize→smelt chain with automatic throughput — driven by steam and lubricant (the thermal-centrifuge and magnetic-separation links need continuous energy-hatch power).
 
 **模块清单 / Module List**：十种链步——粉碎/锻造/简易洗矿/洗矿/化学浸浴/离心/热离心/筛分/磁选/熔炼——由七类工作单元执行：粉碎机兼锻造、洗矿机兼简易洗矿/化学浸浴；另配物流单元（链编排与并行取料），可选装并行/速度/主产物/副产物/节汽五类增幅模块。集群共 14 个多方块机器：总控 1 + 工作单元 7 + 增幅 5 + 物流 1。锻造与简易洗矿是链步骤而非独立机器（各基础耗时 4 tick；简易洗矿需水，不依赖 GT++——GT++ 缺席时配方透传，该链步仍可用）。
 
@@ -285,32 +298,18 @@ A steam-driven multiblock ore-processing cluster: logistics modules orchestrate 
 
 **Structure**: a 15×20×29 main segment with up to 19 15×8×29 extension segments chained behind it (≤20 segments in total, base plus 19 extensions); four structure block families tier 0-3 = bronze / steel / titanium / tungsten steel; each segment can mount one processing (left) + one amplifier (middle) + one logistics (right) module, where processing and amplifier modules have no facing restriction, while the logistics module must face the right side of the main structure.
 
-**核心机制 / Core Mechanics**
+**运行要点 / Operating Tips**
 
-| 机制 Mechanic | 说明 Description |
+| 要点 | 玩家需要知道的内容 |
 |---|---|
-| 加权蒸汽消耗 Weighted Steam | 总需求 = 固定项 8,000 L/s × 结构档位乘率 {1, 4, 16, 48} × (1+0.1×延伸层数) + 各可执行链加权蒸汽 Σ(C_i·T_i)/Σ(T_i)，只统计处于工作进度的物流单元（进度未清零即计费，断电冻结不豁免）（增幅惩罚与节汽封顶 48% 仅作用于加权段）Fixed term by tier plus per-chain time-weighted steam — only logistics units with work in progress count (uncleared progress stays billed; a power-cut freeze is no exemption); penalties & saver cap apply to the weighted part only |
-| 润滑两段 Two-Stage Lubricant | 集群恒定段 {20, 80, 500, 1000} L/s（按总控档位）+ 物流工作段 {20, 60, 300, 500} L/s（按工作中物流单元最高结构档位）Cluster constant stage + logistics working stage, both tier-scaled |
-| 蒸汽种类折算 Steam Grades | 六种蒸汽按能量密度折算（普通×1/过热÷2/超临界÷4/致密÷1000/致密过热÷2000/致密超临界÷4000），按集群档位门控（青铜全收；钢/钛拒收普通/致密蒸汽，过热起步；钨钢仅收超临界/致密超临界），自动择优扣一种 Six grades converted by energy density, gated by cluster tier (bronze takes all; steel/titanium reject steam/dense steam — superheated and up; tungstensteel only supercritical/dense supercritical), best-grade auto-selection |
-| 结构档位升级 Unit Tier Up | 链步时间除数 {1,8,32,64}、蒸汽倍率 {1,16,128,512}；同类模块 N 使时间 ÷N、蒸汽 ×N Link time divisors {1,8,32,64} and steam multipliers {1,16,128,512}; same-kind module count N divides time and multiplies steam |
-| 关机态 SHUT_DOWN State | 集群可经总控开关机：用户关机后单元显示红色 SHUT_DOWN 关机态，区别于待机与离线（无功率/无效单元）The cluster can be toggled on/off from the controller; after a user shutdown units show a red SHUT_DOWN state, distinct from standby and offline (no power / invalid) |
-| 运行前置 Run-Phase Gate | 加工单元进入供电运行相位需同时满足：集群开机、自身物理电源开、满热、链处理窗口激活且本环节参与当批——空闲保温期不消耗电力A processing unit's powered run phase requires all of: cluster on, own physical power on, preheat ready, an active chain window, and participation in the current batch — idle keep-warm draws no power |
-| 批冷却零空转衔接 Zero-Gap Batch Chaining | 成功批提交后单元冷却写入本批配方时间（tick，含物流段时间），由物流单元逐刻递减——配方完成刻即冷却归零刻；总控每刻做批启动资格检查，批周期=配方时间整、批间无固定空转（v1.20.17）After each successful batch a unit's cooldown is set to that batch's recipe time in ticks (logistics leg included) and decremented per tick by the logistics unit itself — cooldown hits zero exactly when the recipe completes; the controller checks batch-start eligibility every tick, so the batch period equals the recipe time with zero inter-batch idle (v1.20.17) |
-| 链编辑暂存 Staged Chain Editing | 链编辑（追加/删除/位移/清空）仅修改 GUI 本地暂存、不即时发包；保存按钮预校验通过后才经 SAVE_CHAIN 整链提交，服务端终态复核后写入Chain edits (append / remove / move / clear) only modify a local staging buffer with no per-edit packets; the save button pre-validates, then commits the whole chain via SAVE_CHAIN with a final server-side recheck |
-| 物流封漏 Sealed Logistics I/O | 批处理的一切取料/产出/批流体均经物流单元自身的总线与仓室，执行器不触碰总控库存（总控输入仓仅用于蒸汽/润滑结算）All batch fetching, outputs and batch fluids pass through the logistics unit's own buses and hatches; the executor never touches the controller inventory (controller hatches serve the steam/lubricant economy only) |
-| 增幅液按矿计价 Per-Ore Booster Pricing | 增幅模块无内部流体槽，锁定流体直连其 H 输入仓按体积/单位计价：单价=基础表值÷10（×联动加成×同种协同），开批时按实际处理矿数一次扣除 batch×单价；液量不足整批用量→本批该模块失效（无增益、不计蒸汽乘子、批照常执行、不吞料）并聊天播报一次（成功运行前不重复）Amplifiers carry no internal tank; their locked fluid is drawn straight from their H input hatches and priced per volume/unit: unit price = base table ÷ 10 (× surcharge × same-type synergy), debited once per batch at batch start as batch × price. If the tank can't cover a full batch, the module fails for that batch only (no boost, no steam penalty, batch proceeds, nothing swallowed) with a one-shot chat alert (not repeated until the next successful run) |
-| 真实状态词条 Real GUI Entries | 总控与模块 GUI 使用真实状态词条，不显示恒定 NO_RECIPE 结果词条与配方信息区Controller and module GUIs show real status entries — no constant NO_RECIPE result entry and no recipe info area |
-| CRUSH 副产物削弱 Byproduct Nerf | 粉碎链副产物按集群结构档位三档削弱：tier0 ×0.1、tier1（钢级）×0.5、tier≥2 ×1.0 无削弱；终端链路页橙字常显当前削弱比例，tier≥2 以灰字显示「无削弱」Crusher byproducts are nerfed in three tiers by cluster structure tier: tier 0 ×0.1, tier 1 (steel) ×0.5, tier ≥2 ×1.0 with no nerf; the terminal chain page always shows the current multiplier in orange, with a gray "no nerf" label at tier ≥2 |
-| 链步耗时重校 Chain-Step Retiming | 链步基础耗时全表 ÷4（v1.20.12）：锻造/简易洗矿 0.8s→0.2s、筛分 128s→32s 等，其余链步按表内数值同步 ÷4（完整表见项目 wiki）The whole chain-step base-time table is divided by 4 (v1.20.12): hammer/simple wash 0.8s→0.2s, sifting 128s→32s, and every other step ÷4 per the table (full table in the project wiki) |
-| 物流模块参数 Logistics Unit Params | 执行段耗时按物流单元结构档位 {5, 2, 1, 0} 秒、基础并行四档 {24, 48, 64, 128}；队列模式：螺丝刀右击切换，开启后单种物品攒满并行数才开批 Logistics leg takes {5, 2, 1, 0} s by logistics unit structure tier; base parallel four tiers {24, 48, 64, 128}; queue mode: screwdriver toggles — when enabled a batch starts only after a single item type reaches the parallel count |
-| 增幅口径 Amplifier Rules | 主产物增幅单峰生效：仅配置峰位（默认链首，中继自动后移至首个实际加工步）全额生效，其余加工步按 10% 计；协同率仅作用于增幅液单价，蒸汽惩罚只随结构档位连乘 Primary-output boost is single-peak: full effect only at the configured peak step (default chain head; relays auto-advance to the first actual processing step), all other processing steps count 10%; synergy applies to the booster fluid unit price only — the steam penalty scales solely with structure tier multipliers |
-| 终端页 Terminal Pages | 终端五页（拓扑/链路/增幅/统计/性能）：性能页三列等高面板、超行宽自动折行，悬浮任意参数 0.5 秒弹出中文机制 Tooltip，▶ 展开为物理公式式数值推导（通式→代入→分步→结果）；增幅实耗按 L/批、单价按 L/矿；统计页三栏物品计数（累计进入/输出/增幅产出）与两步确认清除 Five terminal pages (topology / links / boosters / statistics / performance): the performance page has three equal-height panels with automatic line wrapping, hovering any parameter for 0.5 s shows a Chinese mechanics tooltip, and ▶ expands into physics-style step-by-step derivations (formula → substitute → steps → result); booster cost reads L/batch with unit prices in L/ore; the statistics page has three item-count columns (cumulative input / output / boost output) with a two-step confirm clear |
+| 蒸汽与润滑剂 | 总控承担持续供给；高档结构与更多模块需要更强的供汽能力。热离心与磁选链步还需要持续供电。 |
+| 物流接口 | 原料、配方流体与产出走物流单元自身的总线和仓室；总控输入仓用于蒸汽与润滑剂。 |
+| 链路保存 | 编辑后点击保存才应用整条链。队列模式会等待单种物品攒满并行数再开批。 |
+| 增幅模块 | 并行、速度、主产物、副产物与节汽模块可选；增幅液不足一整批时该模块本批失效，加工仍继续。 |
+| 终端 | 拓扑、链路、增幅、统计、性能五页集中查看布局与成本。详细供给规则见 [集群指南](README/FEATURES.md#矿物处理集群)。 |
 
-### Enhanced Processing Machines / 强化加工机器 (10)
+### Enhanced Processing Machines / 强化加工机器
 
-All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanics.
-
-均继承自 `MTEEnhancedMultiBlockBase`（GT5U），具有更高级的机制。
 
 <p align="center"><img src="README/MTELargeCokeOven-T1.png" width="240" alt="大型焦炉 / Large Coke Oven"> <img src="README/MTELargeCokeOven-T2.png" width="240" alt="大型焦炉 / Large Coke Oven"><br><em>大型焦炉 / Large Coke Oven（青铜/钢）</em></p>
 
@@ -479,10 +478,11 @@ Single-tier, no steam required; runs GT5U primitive blast furnace recipes. Highe
 |---|---|
 | 结构 Structure | 钢加固砖结构，无需维护/空气/耐压蒸汽 Steel-reinforced brick; no maintenance/air/pressure steam required |
 
+<p align="center"><img src="README/MTEThermochemicalDenseSteamGenerator.png" width="500" alt="热化学致密蒸汽发生系统"><br><em>热化学致密蒸汽发生系统 / Thermochemical Dense Steam Generator</em></p>
+
 **热化学致密蒸汽发生系统 / Thermochemical Dense Steam Generator (TCDS)**
 
 吞下一切可燃流体的蒸汽巨兽：燃气与燃油皆可为食，终端可调**设定流量**驱动燃烧——产出与最大热量随流量伸缩，部分供给自动降流量不停机。
-A steam powerhouse that devours any combustible fluid — fuel gases and fuel oils alike, with a terminal-adjustable **flow setting** driving combustion: output and heat cap scale with flow, and partial supply automatically derates flow without stopping.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
@@ -502,20 +502,15 @@ A steam powerhouse that devours any combustible fluid — fuel gases and fuel oi
 | 双燃料叠加 Dual-Fuel Stacking | 燃气与燃油同时供给时两种同烧，产出为两族流量×热值项直加（各自独立降流量）；双过热档需燃气热值 ≥350 且燃油 ≥450 With gas and liquid fuel supplied together both burn at once — output is the direct sum of both families' flow x heat-value terms (each derates its flow independently); dual superheat needs gas ≥350 and oil ≥450 |
 | 致密档 Dense Tier | 致密蒸汽芯片（组装机配方）切换致密输出；过热致密档需燃气热值 ≥350 且燃油 ≥450 Dense Steam Chip (assembler recipe) for dense output; superheated dense tier needs gas heat value ≥350 and oil ≥450 |
 
-> 📷 图片待配：TCDS 多方块结构、GUI（热量/流量/燃料显示）与档位切换截图 / TCDS multiblock structure, GUI (heat / flow / fuel display) and tier switching screenshots
 
 ***
 
-### Singularity Machines / 奇点机器 (3)
+### Singularity Machines / 奇点机器
 
-All inherit from `MTESingularityMachineBase` (Enhanced system). Without any EU cost, they devour high-grade steam to produce entangled singularities.
-
-三者均继承自 `MTESingularityMachineBase`（Enhanced 体系）。无电力消耗，吞噬高等级蒸汽以产出纠缠奇点。
 
 **蒸汽奇点纠缠装置 / Steam Singularity Entangler (SSE)**
 
 吞噬输入仓中最高等级蒸汽（普通/过热/超临界，不含致密），按饱和函数累积热量；热量达 100% 时产出 1 个蒸汽纠缠奇点。
-Devours the highest-grade steam in the input hatches (normal/superheated/supercritical, dense excluded), accumulating heat via a saturation function; at 100% heat it produces 1 Steam Entangled Singularity.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
@@ -528,7 +523,6 @@ Devours the highest-grade steam in the input hatches (normal/superheated/supercr
 **临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer (CSC)**
 
 仅接收致密态变体（致密蒸汽 / 致密过热 / 致密超临界），按饱和函数累积热量；热量达 100% 时产出 1 个临界蒸汽纠缠奇点；会吞噬输入仓全部蒸汽并禁用蒸汽冷却。
-Accepts only dense variants (dense steam / dense superheated / dense supercritical), accumulating heat via a saturation function; at 100% heat it produces 1 Critical Steam Entangled Singularity. Devours all steam from the input hatches and disables steam cooling.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
@@ -559,13 +553,54 @@ Dual mode cycled by screwdriver: Steam Compression / Steam Decompression; each s
 
 ***
 
-## Single-Block Nodes / 单方块节点 (8)
+## 繁荣时代：探索与资源 / Prosperity
 
-### Cache Nodes & Singularity Compartments / 缓存节点与奇点仓室 (6+4)
+<p align="center"><img src="README/Prosperity-Landscape.png" width="440" alt="繁荣维度地貌"> <img src="README/Prosperity-Ruins.png" width="440" alt="繁荣维度遗址"><br><em>繁荣时代的荒野与遗址 / Landscapes and ruins of Prosperity</em></p>
+
+这里曾有一套把城市与工坊连在一起的蒸汽文明。如今从草原、森林到荒漠与沼泽，散落着历史书页、史料信物、机械遗址和各自独立的遭遇。探索不只是开箱：阅读现场线索，操作机关，完成遭遇后再领取奖励；历史书会随着你的经历补充纪年，测绘罗盘帮助寻找入口。
+
+**时空奇点校准工程 / Spacetime Singularity Calibration Engineering**
+
+<p align="center"><img src="README/MTESpacetimeSingularityCalibration.png" width="500" alt="时空奇点校准工程"><br><em>时空奇点校准工程 / Spacetime Singularity Calibration Engineering</em></p>
+
+建立通向繁荣的稳定通道：需要普通 LuV 及以上能源仓，输入电压至少 32,768 EU。预热 30 秒消耗 30,720 EU/t，校准后维持消耗 15,360 EU/t。核心只牵引实体、不破坏方块；潜行可退出牵引。保持结构、维护与供电，等待界面显示已校准后进入核心。出发前可用时空锚定信标 Alt+右击标记回程点，之后 Shift+持续右击 3 秒召回，每次成功消耗 20,480,000 EU。
+
+**六条流体工业线 / Six Resource Fluids**
+
+把探索所得原液送回基地，按照 NEI 中的配方分离、回收与深加工。它们不是同一种资源换皮：每条路线都有自己的中间液、粉体与副产物，需要蒸馏、化学反应、离心、筛分等设备衔接。
+
+| 原液 | 产线定位 |
+|---|---|
+| 荒原叹息 | 酸气冷凝与酸类、伴生矿物回收。 |
+| 浓稠油污 | 油污热处理与有机化工，衔接燃料和化工馏分。 |
+| 金属风沙 | 湿捕金属与矿物，继续回收难熔金属、铂族、稀土及微量元素。 |
+| 枯竭气息 | 气体处理与微量金属回收，保留各中间物流继续加工。 |
+| 三途余汽 | 凝液蒸馏、含矿水相与真菌有机化工，产出含氟气体、氢氟酸、萤石、矿物及有机酸等。 |
+| 至暗泥泞 | 泥泞均质、植物净液分离与有机物回收，衔接肥料、纤维和生物质相关产物。 |
+
+植物净液是至暗泥泞加工所得中间液；含氟主线从三途余汽的凝液蒸馏开始。各支线的流体体积与粉体用途以当前配方为准；请在 [详细指南](README/FEATURES.md#六流体产线) 中查看选线与接续要点。
+
+## 便携武器 / Portable Weapons
+
+<p align="center"><img src="README/Weapon-LM12.png" width="230" alt="LM12"> <img src="README/Weapon-T20.png" width="230" alt="T20"><br><img src="README/Weapon-QLZ04.png" width="230" alt="QLZ04"> <img src="README/Weapon-107.png" width="230" alt="107 工程奇点控制器"><br><em>从 LV 火力到 EV 奇点控制 / LV to EV portable firepower</em></p>
+
+| 武器 | 制造阶段 | 用途与模式 |
+|---|---|---|
+| LM12 | LV | 转管持续火力；标准与压制模式在射速、预转和过热管理之间取舍。 |
+| T20 | MV | 20 mm 火力；切换空爆模式，适合接近目标时提前爆发。 |
+| QLZ04 | HV | 35 mm 榴弹；普通、霰榴弹和 8 发轮毂弹夹模式，适合不同距离与射击节奏。 |
+| 107 工程奇点控制器 | EV | 单发普通/临界奇点；普通模式牵引后爆发，失稳模式蓄力后直接爆发，两种模式支持手动遥爆。 |
+
+默认 **左键开火，右键聚焦，C 切模式，V 切弹药，R 装填**；按键可在控制设置中调整。107 失稳模式按住左键蓄满 5 秒，松手发射；提前松手取消。弹体飞行中再次左键触发遥爆。
+
+LM12、T20、QLZ04 的普通弹药包分别为 **500 / 160 / 60 发**，耗尽后移除。LuV 阶段可制造拟态弹药包：停火 **5 秒**后，每 **2 秒**分别恢复 **10 / 3 / 1 发**，耗尽仍保留。107 使用纠缠奇点物品装填。四种武器支持附魔；弹道、换弹退款和奇点范围详见 [武器指南](README/FEATURES.md#便携武器操作)。
+
+## Single-Block Nodes / 单方块节点
+
+### Cache Nodes & Singularity Compartments / 缓存节点与奇点仓室
 
 <p align="center"><img src="README/MTECacheNodesAndSingularityCompartments.png" width="360" alt="缓存节点与奇点仓室 / Cache Nodes & Singularity Compartments"><br><em>缓存节点与奇点仓室 / Cache Nodes & Singularity Compartments</em></p>
 
-Digital tank-based nodes that bind to hubs for cross-chunk/dimensional fluid transfer. Support fluid lock, auto-output, void excess, terminal-adjustable hub transfer rate (six cache nodes + four singularity compartments) and a 9-step capacity limit tier (see below).
 
 基于数字储罐的节点，绑定枢纽实现跨区块/维度流体传输。支持流体锁定、自动输出、溢出虚空、枢纽终端调整交互速率（六缓存节点+四奇点仓）与容量上限档（见下）。
 
@@ -580,81 +615,20 @@ Digital tank-based nodes that bind to hubs for cross-chunk/dimensional fluid tra
 
 **容量上限档 / Capacity Limit Tier**
 
-缓存节点与两个接收类奇点仓（奇点通用蒸汽仓、奇点输入仓）支持容量上限档 {100, 80, 60, 40, 20, 10, 5, 2, 1}%：终端潜行右击本地循环，或在枢纽终端状态界面点击容量按钮远程循环；档位随 NBT 持久化，降档后超出部分温和保留在罐内（拒绝新入、不销毁）。发送类仓罐只出不进，无容量档。
+缓存节点与两个接收类奇点仓（奇点通用蒸汽仓、奇点输入仓）支持容量上限档 {100, 80, 60, 40, 20, 10, 5, 2, 1}%：终端潜行右击本地循环，或在枢纽终端状态界面点击容量按钮远程循环；档位会保存，降档后超出部分温和保留在罐内（拒绝新入、不销毁）。发送类仓罐只出不进，无容量档。
 
-Cache nodes and the two receiving compartments (Singularity Steam Compartment, Singularity Fluid Input Compartment) support a capacity limit tier of {100, 80, 60, 40, 20, 10, 5, 2, 1}%: cycle locally with a terminal sneak+right-click, or remotely via the capacity button in the terminal status UI; the tier persists in NBT, and fluid above a lowered limit is kept softly in the tank (new input rejected, nothing destroyed). Send-type compartments have no capacity tier (output-only tank).
 
 **节点外观 / Node Appearance**
 
-缓存节点顶面为三层渲染：基材 + 流体窗 + 状态框，未绑定时也显示家族默认流体窗（状态框为灰色框架）。基材随结构成型档位（青铜顶/钢顶/超压机壳），状态框颜色语义：红橙=从枢纽接受、紫蓝=向枢纽输送、灰=未绑定/控制器，边框为 11 帧中心透明动画材质。缓存节点 GUI 内的流体槽由 MUI2 FluidSlot 框架渲染（图标/量/tooltip），非自绘。四个奇点仓右击打开标准流体槽 GUI（持枢纽终端右击优先为速率档循环；v1.20.24 起），当前流体另经双通道显示：其一是世界侧正面流体窗——三层 [基材, 流体窗, 框架] 中的 GTSRFluidWindowTexture 层（语义固定框架：接收恒红橙/发送恒紫蓝），绘制流体 still 贴图（与 NEI 同源解析），客户端经 description packet 同步罐内流体名；其二是枢纽终端状态页文本行。奇点仓顶面仅底材单层，底材跟随所在枢纽结构机壳（未成型时回退 LV 机壳）。两枢纽控制器正面为 [等级基材 + 内缩流体窗 + 专用框架] 三层（罐空保持最后流体——流体窗记忆，v1.20.24 起；仅破坏重置或旧档缺记忆键时回退族默认：蒸汽阵列→蒸汽、蓄水阵列→水）。流体窗实时显示罐内流体（与 NEI 图标同源外观）；世界内外观在状态变化时由服务端发包即时切换；物品形态为 GT 原生 3D 渲染。
+节点以流体窗显示当前流体，红橙边框表示从枢纽接收，紫蓝表示向枢纽输送，灰色表示未绑定。奇点仓直接右击可查看流体，手持终端时优先调整传输速率。
 
-Cache nodes render a 3-layer top face: base texture + fluid window + status frame, and the family-default fluid window is shown even when unbound (status frame gray). The base texture follows the formed structure tier (bronze/steel top, overpressure casing); status frame colors: red-orange = receiving from hub, purple-blue = sending to hub, gray = unbound/controller — the frame is an 11-frame animated texture with a transparent center. The fluid slot inside a cache node's GUI is rendered by the MUI2 FluidSlot framework (icon/amount/tooltip), not custom-drawn. The four singularity compartments open a standard fluid-slot GUI on right-click (a held hub terminal right-click takes priority as the rate-tier cycle; since v1.20.24), and their current fluid is also shown through two channels: first, the world-side front fluid window — the GTSRFluidWindowTexture layer within the 3-layer [base, fluid window, frame] stack (semantically fixed frame: receive always red-orange / send always purple-blue) draws the fluid's still texture (parsed the same way as NEI), with the stored fluid name synced to the client via a description packet; second, a text line on the hub terminal status page. Compartment top faces are a single base layer only, and the base texture follows the casing of the hub structure (falling back to the LV casing when unformed). Both hub controllers render a 3-layer front face [tier base + inset fluid window + dedicated frame] (an empty tank keeps the last fluid — fluid-window memory, since v1.20.24; only block breaking or legacy saves without the memory key fall back to the family default: Steam Hub → steam, Water Hub → water). The fluid window shows the stored fluid in real time (same appearance source as the NEI icon); the in-world look switches immediately via a server packet on state change; item form uses GT's native 3D rendering.
 
-**蒸汽缓存节点 / Steam Cache Node**
-
-仅接受普通蒸汽，绑定蒸汽枢纽。
-Accepts normal steam only. Binds to the Steam Hub.
-
-| 参数 Parameter | 数值 Value |
-|----------|-------|
-| 接受流体 Accepted Fluid | 仅普通蒸汽 Normal steam only |
-| 绑定枢纽 Binds To | 蒸汽枢纽 Steam Hub |
-
-**强化蒸汽缓存节点 / Reinforced Steam Cache Node**
-
-接受普通 + 过热蒸汽，绑定蒸汽枢纽。
-Accepts normal + superheated steam. Binds to the Steam Hub.
-
-| 参数 Parameter | 数值 Value |
-|----------|-------|
-| 接受流体 Accepted Fluid | 普通 + 过热蒸汽 Normal + superheated steam |
-| 绑定枢纽 Binds To | 蒸汽枢纽 Steam Hub |
-
-**超压蒸汽缓存节点 / Overpressure Steam Cache Node**
-
-接受全部蒸汽类型，容量与输出速率最高；绑定蒸汽枢纽（需枢纽 3 级强化芯片）。
-Accepts ALL steam types. Highest capacity and output rate. Binds to the Steam Hub (requires Reinforced Chip on tier 3 hub).
-
-| 参数 Parameter | 数值 Value |
-|----------|-------|
-| 接受流体 Accepted Fluid | 全部蒸汽类型 All steam types |
-| 绑定枢纽 Binds To | 蒸汽枢纽（需 3 级强化芯片）Steam Hub (requires Reinforced Chip on tier 3 hub) |
-
-**通用流体缓存节点 / Universal Fluid Cache Node**
-
-接受任意流体，绑定蓄水枢纽阵列，绑定不消耗奇点（该家族早期为水限定形态，随枢纽通用流体化更名）。
-Accepts any fluid (the family was water-only in early versions and was renamed when the hub became fluid-agnostic). Binds to the Water Hub Array; binding costs no singularity.
-
-| 参数 Parameter | 数值 Value |
-|----------|-------|
-| 接受流体 Accepted Fluid | 任意流体 Any fluid |
-| 绑定枢纽 Binds To | 蓄水枢纽阵列 Water Hub Array |
-
-**耐压通用流体缓存节点 / Reinforced Universal Fluid Cache Node**
-
-接受任意流体，容量与速率提升，绑定蓄水枢纽阵列（不消耗奇点）。
-Accepts any fluid with higher capacity and rate. Binds to the Water Hub Array (no singularity cost).
-
-| 参数 Parameter | 数值 Value |
-|----------|-------|
-| 接受流体 Accepted Fluid | 任意流体 Any fluid |
-| 绑定枢纽 Binds To | 蓄水枢纽阵列 Water Hub Array |
-
-**超压通用流体缓存节点 / Overpressure Universal Fluid Cache Node**
-
-接受任意流体，容量 32M L、速率 2,000,000 L/s；绑定蓄水枢纽阵列需枢纽 3 级 + 强化奇点枢纽升级芯片（不消耗奇点）。
-Accepts any fluid, 32M L capacity at 2,000,000 L/s; binding requires a tier 3 Water Hub Array with the Reinforced Hub Singularity Chip (no singularity cost).
-
-| 参数 Parameter | 数值 Value |
-|----------|-------|
-| 接受流体 Accepted Fluid | 任意流体 Any fluid |
-| 绑定枢纽 Binds To | 蓄水枢纽阵列（需 3 级 + 强化芯片）Water Hub Array (tier 3 + Reinforced Chip) |
+六种缓存节点的用途、容量与绑定成本见上表。蒸汽节点接入蒸汽枢纽，通用流体节点接入蓄水枢纽；超压型号需要钨钢枢纽与强化芯片。
 
 **奇点仓四件套 / Singularity Compartments (4)**
 
-模式锁定的枢纽缓存仓（仓室基类：分别继承耐压蒸汽仓/耐压蒸汽输出仓/枢纽输入仓/枢纽输出仓近亲，可加入对应枢纽多方块结构）：奇点通用蒸汽仓与奇点通用蒸汽输出仓绑蒸汽枢纽阵列（每仓消耗 1 蒸汽纠缠奇点、蒸汽全家族兼容）；奇点输入仓与奇点输出仓绑蓄水枢纽阵列（0 消耗、任意流体）。仓=从枢纽接受（接收），输出仓=向枢纽输送（发送），方向恒定锁定：终端/界面/右键均无法切换，已绑定时右键仅解绑。仓右击打开标准流体槽 GUI（持枢纽终端右击优先为速率档循环，v1.20.24 起）；管道无法向仓注入流体（canTankBeFilled/acceptsFluid 阻断，仅枢纽链路交互）；枢纽交互有效速率=固定基准×传输速率档（终端右击循环，见传输机制一节）；两个接收仓支持容量上限档（终端潜行右击或终端 GUI 按钮，见缓存节点一节）。破坏掉落保留绑定。
+奇点仓可装入对应多方块，直接对接枢纽网络。奇点通用蒸汽仓与蒸汽输出仓绑蒸汽枢纽，每仓消耗 1 个奇点；奇点输入仓与输出仓绑蓄水枢纽，无绑定消耗。接收仓从枢纽取流体，发送仓向枢纽回送，方向固定；已绑定时再次右击只会解绑。管道不能向奇点仓注入流体。
 
-Mode-locked hub cache compartments (hatch-based: each extends its pressure-steam/hub hatch counterpart and can join the corresponding hub multiblock structure): the Singularity Steam Compartment and Singularity Steam Output Compartment bind to the Steam Hub Array (1 Steam Entangled Singularity each; full steam family); the Singularity Fluid Input/Output Compartments bind to the Water Hub Array (0 cost, any fluid). Compartment = receive from hub, Output Compartment = send to hub — the direction is permanently locked: terminal/GUI/right-click cannot switch it, and right-clicking a bound compartment only unbinds. Compartments open a standard fluid-slot GUI on right-click (a held hub terminal right-click cycles the rate tier first; since v1.20.24); pipes cannot inject into them (canTankBeFilled/acceptsFluid blocked — hub link only); their effective hub interaction rate = fixed base × transfer rate tier (cycled by a terminal right-click, see Transfer Mechanism); the two receiving compartments support the capacity limit tier (terminal sneak+right-click or the terminal GUI button, see Cache Nodes). Breaking drops retain the binding.
 
 | 仓 Compartment | 绑定枢纽 Bound Hub | 容量 Capacity | 基准交互速率 Base Hub Rate | 流体范围 Fluid Range | 方向（锁定）Direction (locked) | 消耗 Cost |
 |---|---|---|---|---|---|---|
@@ -663,11 +637,10 @@ Mode-locked hub cache compartments (hatch-based: each extends its pressure-steam
 | 奇点输入仓 Singularity Fluid Input Compartment | 蓄水枢纽阵列 Water Hub Array | 256K L | 256,000 L/s | 任意流体 Any fluid | 从枢纽接受 Receive | 0 |
 | 奇点输出仓 Singularity Fluid Output Compartment | 蓄水枢纽阵列 Water Hub Array | 256K L | 256,000 L/s | 任意流体 Any fluid | 向枢纽输送 Send | 0 |
 
-正面为 [底材, 流体窗, 语义固定框架（接收/发送）] 三层，顶面仅底材单层；底材跟随所在枢纽结构机壳，未成型时回退 LV 机壳。正面流体窗实时显示罐内流体，罐空保持最后流体（流体窗记忆，v1.20.24 起；仅破坏重置或旧档缺记忆键时回退族默认：蒸汽仓→蒸汽、流体仓→水）。
+流体窗保留上次储存的流体外观，空罐时仍能识别用途；当前储量以界面为准。
 
-The front face renders [base, fluid window, semantically fixed frame (receive/send)] in 3 layers, and the top face is a single base layer only; the base texture follows the casing of the hub structure (LV casing fallback when unformed). The front fluid window shows the stored fluid in real time; when empty it keeps the last fluid (fluid-window memory, since v1.20.24; only block breaking or legacy saves without the memory key fall back to the family default: steam pair → steam, fluid pair → water).
 
-### Remote Worker Nodes / 远程工作节点 (2)
+### Remote Worker Nodes / 远程工作节点
 
 <p align="center"><img src="README/MTERemoteWorkerNodes.png" width="320" alt="远程工作节点 / Remote Worker Nodes"><br><em>远程工作节点 / Remote Worker Nodes</em></p>
 
@@ -713,7 +686,7 @@ Nodes that perform remote operations driven by the Singularity Drilling Hub. The
 
 ***
 
-## Hatches / 仓室 (15 类仓室 + 3 种存储单元)
+## Hatches / 仓室
 
 <p align="center"><img src="README/MTEAllHatches.png" width="380" alt="全部仓室 / All Hatches"><br><em>全部仓室 / All Hatches</em></p>
 
@@ -792,7 +765,6 @@ Dynamic capacity (determined by hub controller); delegates fill/drain to the Wat
 **巨型超压蒸汽输入仓 / Mega Overpressure Steam Input Hatch**
 
 专用于巨型蒸汽轮机机组，蒸汽奇点纠缠装置等（SSE/CSC/DSM 亦可安装）；接受全部蒸汽类型。
-For Mega Steam Turbine Array; also installable on SSE/CSC/DSM (Steam Singularity Entangler / Critical Entangled Singularity Stabilizer / Dense State Manipulator); accepts all steam types.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
@@ -829,7 +801,6 @@ Harnessing steam-entangled singularities, it condenses the purest water from the
 **红石仓 / Redstone Hatch**
 
 可安装在任意多方块机器上，按所选机器词条值（效率/输出/消耗/工作状态等）输出红石信号；右键打开 GUI 设置阈值、反向与更新频率。
-Installable on any multiblock machine; outputs a redstone signal based on a selected machine data entry (efficiency/output/consumption/working etc.). Right-click to open the GUI for threshold, invert and update interval.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
@@ -863,91 +834,29 @@ Hub/Reinforced/Overpressure Hub Storage Units for stacking layers in hub arrays.
 - **矿脉裂解器芯片（T1/T2/T3）/ Vein Pyrolyzer Chip (T1/T2/T3)**: For Vein Steam Pyrolyzer — expands underground fluid scan range. / 用于地脉蒸汽热解机——扩大地下流体扫描范围。
 - **制氨催化剂（7种变体）/ Ammonia Catalyst (7 variants)**: For Ammonia Plant — determines parallel count and reaction time. 7-tier progression from Nickel to Quantum. / 用于制氨工厂——决定并行数与反应时间，镍至量子共 7 级进阶。
 
-> 📷 图片待配：物品栏合成图（10 类物品）
 
 ***
 
-## Recipes / 配方系统
+## 配方与进阶 / Recipes & Progression
 
-GTSR adds 11 custom RecipeMaps and extensive crafting recipes:
-
-GTSR 添加了11个自定义 RecipeMap 和大量合成配方：
-
-- **Workbench recipes**: Basic machines (Air Compressor, Atmospheric Centrifuge, etc.), cache nodes, hatches
-- **Assembler recipes**: Advanced machines (Ammonia Plant, Singularity Entangler, etc.), chips, catalysts, nodes, overpressure components
-- **Custom RecipeMaps**: Large Coke Oven, Siemens-Martin Furnace, Ammonia Plant, Air Compressor, Atmospheric Centrifuge, Steam Singularity Entangler (NEI display), Geothermal Boiler (NEI display), Steam Fluid Drill (NEI display), Critical Singularity Compressor (NEI display), Dense State Manipulator (NEI display), Gear Steam Compressor (NEI display)
-- **工作台配方**：基础机器（空气压缩机、大气离心机等）、缓存节点、仓室
-- **组装机配方**：高级机器（制氨工厂、蒸汽奇点纠缠装置等）、芯片、催化剂、节点、超压组件
-- **自定义 RecipeMap**：大型焦炉、平炉、制氨工厂、空气压缩机、大气离心机、蒸汽奇点纠缠装置（NEI显示）、地热锅炉（NEI显示）、蒸汽流体钻井（NEI显示）、临界纠缠奇点稳定装置（NEI显示）、致密态蒸汽操控装置（NEI显示）、自驱式机械蒸汽压缩机（NEI显示）
-
-***
-
-## Core Mechanic: Mixin Enhancements / 核心机制：Mixin 增强
-
-GTSR injects 12 Mixin classes into GT5U and GT++ to fundamentally enhance the steam machine experience. These are critical to the mod's functionality:
-
-GTSR 向 GT5U 和 GT++ 注入了 12 个 Mixin 类，从根本上增强了蒸汽机器体验。这些是模组功能的关键：
-
-### MTESteamMultiBaseMixin — Steam Multiblock Core Enhancement / 蒸汽多方块核心增强
-
-- **Superheated Steam 4x Speed / 过热蒸汽4倍速**: When any input hatch contains superheated steam, consumption ×4 and processing time ÷4 / 任意输入仓含过热蒸汽时，消耗×4、处理时间÷4
-- **Cooling Hatch Support / 冷却仓支持**: Superheated steam → pressure cooling hatch (1:1), normal steam → cooling water (160:1) / 过热蒸汽→耐压冷却仓(1:1)，普通蒸汽→冷却水(160:1)
-- **Standard Output Bus Compatibility / 标准输出总线兼容**: Fixes GT5U's `addOutputPartial()` ignoring standard output buses / 修复GT5U的`addOutputPartial()`忽略标准输出总线的问题
-- **Dual Steam Type Consumption / 双蒸汽类型消耗**: `depleteInput()` can consume from both normal and superheated steam hatches / 可同时从普通蒸汽和过热蒸汽仓消耗
-
-### Fluid Hatch Compatibility / 流体仓兼容
-
-- **MTEHatchCustomFluidBaseMixin**: Steam-locked fluid hatch matches 3 steam types only (normal/superheated/IC2 superheated — dense and supercritical are NOT included); screwdriver auto-input toggle (1000 mB per 100 ticks ≈ 200 L/s). / 蒸汽锁定仓仅匹配 3 种蒸汽（普通/过热/IC2过热，不含致密与超临界）；螺丝刀自动输入开关（1000 mB/100 tick ≈ 200 L/s）。
-- **MTEHatchInputMixin / MTEHatchInputBusMixin**: 4-state orthogonal toggle (input filter × auto-input) for ALL input hatches/buses via screwdriver right-click. Hatch: 1000 mB/100 ticks (≈200 L/s); Bus: 1 stack/100 ticks (≈1 stack/5 seconds). Shift+click preserves original mode. / 螺丝刀4状态正交切换（输入过滤×自动输入）。仓：1000 mB/100 tick（≈200 L/s）；总线：1组/100 tick（≈1组/5秒）。Shift+右键保留原模式。
-
-### Steam Bus Behavior / 蒸汽总线行为
-
-- **MTEHatchSteamBusInputMixin / MTEHatchSteamBusOutputMixin**: Steam input buses allow pipe pull from the front container (allowPullStack); steam output buses auto-push to the front container (pushOutputInventory) — both previously blocked by GT++. / 蒸汽输入总线允许正面管道**抽取**（allowPullStack），蒸汽输出总线自动向正面容器**推出**（pushOutputInventory）——两者此前均被GT++阻止。
-
-### Recipe Fix / 配方修正
-
-- **MTERockBreakerRecipeBuilderMixin**: All glowstone dust inputs in Rock Breaker recipes are non-consumable (consumed = false) — no circuit-6 gate. / 岩石破碎机配方中所有荧石粉输入一律不可消耗（consumed=false），无电路6判断。
-
-### Other Mixins / 其他 Mixin
-
-- **SteamHatchElementOutputBusMixin / CommonMetaTileEntityMixin**: HatchElement extension and unified auto-input scheduling. / HatchElement 扩展与统一自动输入调度。
-- **BaseMetaTileEntityMixin**: Empty-hand sneak right-click on GTSR steam machines triggers descaling (IShiftRightClickDecalcifiable), canceling the default behavior. / 对 GTSR 蒸汽机器空手潜行右击执行除垢（IShiftRightClickDecalcifiable）并取消默认行为。
-- **gtnl/SteamMultiMachineBaseGTNLMixin**: Soft GTNL compatibility — `@Pseudo` + runtime class detection; applies GTSR's full enhancement to GTNL steam machines only when `Config.gtnlEnhancement` is enabled (silent by default). / GTNL 软兼容——`@Pseudo` + 运行时类探测；仅在 `Config.gtnlEnhancement` 开启时对 GTNL 蒸汽机应用 GTSR 完整增强（默认静默）。
+用 NEI 查询当前整合包中的配方与材料需求，按机器说明选择蒸汽、仓室与芯片。工作台负责部分基础设备，组装机承接高级控制器、奇点组件、催化剂与武器。需要操作细节时，请阅读 [玩家详细指南](README/FEATURES.md) 或 [Wiki](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki)。
 
 ***
 
 ## BetterQuesting Questline Integration / BetterQuesting 任务线整合
 
-<p align="center"><img src="README/BQ.png" width="450" alt="任务线「GT 蒸汽重生」总览：66 个任务 / Quest line GT Steam Reborn overview: 66 quests"><br><em>任务线「GT 蒸汽重生」共 66 个任务，连线为任务依赖 / Quest line "GT Steam Reborn" with 66 quests; lines are quest dependencies</em></p>
+<p align="center"><img src="README/BQ.png" width="450" alt="任务线「GT 蒸汽重生」任务总览 / Quest line GT Steam Reborn overview: guided quests"><br><em>任务线「GT 蒸汽重生」，连线为任务依赖 / Quest line "GT Steam Reborn"; lines are quest dependencies</em></p>
 
-- **内置引导任务线**：66 个任务覆盖青铜基地验收、蒸汽经济学、枢纽网络到奇点账户的完整进度线，任务标题与描述随游戏语言自动切换（中/英）。/ **Built-in guided questline**: 66 quests covering the full progression from bronze-base acceptance and steam economics to hub networks and the singularity account; quest titles and descriptions follow the game language (CN/EN).
-- **自动注入，免手动迁移**：进入世界后按 jar 内清单幂等注入；mod 升级自动刷新任务定义（完成/领取进度保留），被移除的任务自动剪枝，所有存档自动生效。/ **Auto-injected, migration-free**: idempotently injected from the in-jar manifest on world entry; upgrading the mod refreshes quest definitions automatically (completion and claim progress kept), removed quests are pruned, and every save picks this up automatically.
+- **内置引导任务线**：任务覆盖青铜基地建设、蒸汽经济学、枢纽网络到奇点账户的完整进度线，任务标题与描述随游戏语言自动切换（中/英）。/ **Built-in guided questline**: guided quests covering the full progression from bronze-base acceptance and steam economics to hub networks and the singularity account; quest titles and descriptions follow the game language (CN/EN).
+- **自动更新**：进入世界自动加载引导任务，模组升级会刷新任务内容并保留完成与领取进度。/ **Automatic updates**: quest definitions refresh on world entry while keeping completion and claim progress.
 - **可选依赖**：BetterQuesting 未安装时本整合静默停用，其余功能不受影响。/ **Optional dependency**: with BetterQuesting absent, this integration silently disables and nothing else is affected.
 
 ***
-
-## Admin Commands / 管理员命令
-
-- **`/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull|nullplus|nature> [color] [fxRadius]`**
-  - 在命令发送者（玩家）位置生成一个失控奇点，用于调试与演示。权限 OP 4，仅限玩家执行（命令方块/控制台不可用）。
-  - Spawns a runaway singularity at the sender's (player's) position for debugging and demos. Requires OP level 4; player senders only (command blocks / console not supported).
-  - 参数 / Params:
-    - range：吸引范围 [0.5, 128] / attraction radius [0.5, 128]
-    - speed：每 20tick 吸收方块数 [0, 100] / blocks absorbed per 20 ticks [0, 100]
-    - damage：每 20tick 伤害值 [0, 1000] / damage per 20 ticks [0, 1000]
-    - durationTicks：持续 tick 数，NA = 无限 / duration in ticks, NA = infinite
-    - special：特殊状态（0-999 数值，或 null = 纯动画不吸引/不破坏/不吸收、onlypull = 只牵引不吸收（力度减半、伤害照常）、nullplus = null 且无电弧无粒子、nature = 自然生成专用——不吸引/不伤害实体，只牵引破坏掉落物并吸收方块，结束后爆炸）/ special state (numeric 0-999, or null = pure animation, onlypull = pull-only with halved force but normal damage, nullplus = null without arcs/particles, nature = natural-spawn variant — no attracting or harming entities, only pulls and destroys dropped items and absorbs blocks, explodes when done)
-    - color：16 种原版染料色之一，缺省 white / one of 16 vanilla dye colors, default white
-    - fxRadius：光效半径 [0.5, 128]，缺省 10 / visual-effect radius [0.5, 128], default 10
-
-## Tech Stack / 技术栈
-
-- Java 8 (Jabel) / Minecraft 1.7.10 / Forge 10.13.4.1614
-- SpongePowered Mixin (12 mixin classes)
-- ModularUI / StructureLib
-- Dependencies: GT5U (explicit API dependency), GT++ (visible at compile time via the GT5U fat dev jar, no explicit declaration), Bartworks, TecTech (same fat dev jar), AE2, ModularUI/ModularUI2, GTNHLib, StructureLib, NEI, IC2, GTNEIOrePlugin, Botania, Waila, BetterQuesting (compileOnly — quest-line runtime injection, silently disabled when absent / 任务线运行时注入，缺席时静默停用); EFR (etfuturum) and BuildCraft are soft references (recipes only)
 
 ## License / 许可证
 
 AGPL-3.0 — see the LICENSE file.
 采用 AGPL-3.0 许可证，详见 LICENSE 文件。
+
+
+文档更新：2026-10-07 · 当前版本：1.20.98
