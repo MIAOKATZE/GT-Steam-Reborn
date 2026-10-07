@@ -211,13 +211,13 @@ final class SingularityWeaponFx {
                 if (p == mc.thePlayer && mc.gameSettings.thirdPersonView == 0) GL11.glDisable(GL11.GL_DEPTH_TEST);
                 else GL11.glEnable(GL11.GL_DEPTH_TEST);
                 Snapshot snapshot = PortableWeaponClient.snapshot(p);
-                float shade = snapshot != null && snapshot.ammoType == 1 ? .55F : 1F;
+                boolean critical = snapshot != null && snapshot.ammoType == 1;
                 float reload = PortableWeaponClient.reloadProgress(p, partial);
                 float remote = PortableWeaponClient.remoteProgress(p, partial);
                 float charge = PortableWeaponClient.chargeProgress(p, partial);
                 double time = world.getTotalWorldTime() + partial;
-                if (charge > 0) chargeCubes(p, partial, time, shade, charge);
-                if (reload > .2F && reload < .75F) reloadCubes(p, partial, time, shade, reload);
+                if (charge > 0) chargeCubes(p, partial, time, critical, charge);
+                if (reload > .2F && reload < .75F) reloadCubes(p, partial, time, critical, reload);
                 Vec3 hand = PortableWeaponPlayerPose.leftHand(p, WeaponKind.SINGULARITY, partial);
                 if (remote > 0) stateCubes(
                     PortableWeaponRenderer.viewPoint(
@@ -225,13 +225,13 @@ final class SingularityWeaponFx {
                         partial,
                         WeaponPose.modelPoint(p, partial, hand.xCoord, hand.yCoord, hand.zCoord)),
                     time,
-                    shade,
+                    snapshot != null && snapshot.remoteAmmoType == 1,
                     remote);
             }
         }
     }
 
-    private static void chargeCubes(EntityPlayer player, float partial, double time, float shade, float progress) {
+    private static void chargeCubes(EntityPlayer player, float partial, double time, boolean critical, float progress) {
         Vec3 center = WeaponPose.muzzle(player, WeaponKind.SINGULARITY, partial);
         WeaponPose.Physical pose = WeaponPose.physical(player, WeaponKind.SINGULARITY, partial);
         for (int cell = 0; cell < 8; cell++) {
@@ -245,11 +245,10 @@ final class SingularityWeaponFx {
                         + pose.forward.yCoord * depth,
                     pose.right.zCoord * Math.cos(a) * radius + pose.up.zCoord * Math.sin(a) * radius
                         + pose.forward.zCoord * depth),
-                shade,
-                .10F + .08F * progress,
+                critical,
                 .025);
         }
-        GL11.glColor4f(.3F, .85F, 1, .2F + .4F * progress);
+        color(critical);
         GL11.glBegin(GL11.GL_LINES);
         for (int arc = 0; arc < 3; arc++) {
             double a = time * .7 + arc * Math.PI * 2 / 3;
@@ -265,14 +264,14 @@ final class SingularityWeaponFx {
         GL11.glEnd();
     }
 
-    private static void stateCubes(Vec3 center, double time, float shade, float progress) {
+    private static void stateCubes(Vec3 center, double time, boolean critical, float progress) {
         double radius = .24 * (1 - progress) + .05;
         for (int cell = 0; cell < 4; cell++) {
             double a = time * .25 + cell * Math.PI / 2;
             double x = center.xCoord + Math.cos(a) * radius;
             double y = center.yCoord + Math.sin(a * 1.5) * radius * .5;
             double z = center.zCoord + Math.sin(a) * radius;
-            cube(Vec3.createVectorHelper(x, y, z), shade, .25F, .05);
+            cube(Vec3.createVectorHelper(x, y, z), critical, .05);
         }
     }
 
@@ -290,16 +289,19 @@ final class SingularityWeaponFx {
                 + pose.up.zCoord * Math.sin(angle) * radius);
     }
 
-    private static void reloadCubes(EntityPlayer p, float partial, double time, float shade, float progress) {
-        float alpha = (float) (.18 * Math.sin((progress - .2) / .55 * Math.PI));
+    private static void reloadCubes(EntityPlayer p, float partial, double time, boolean critical, float progress) {
         for (int cell = 0; cell < 4; cell++) {
             double travel = (time * .12 + cell * .25) % 1;
-            cube(reloadCubeCenter(p, partial, travel, cell), shade, alpha, .025);
+            cube(reloadCubeCenter(p, partial, travel, cell), critical, .025);
         }
     }
 
-    private static void cube(Vec3 center, float shade, float alpha, double halfSize) {
-        GL11.glColor4f(shade, shade, shade, alpha);
+    private static void color(boolean critical) {
+        GL11.glColor4f(critical ? .72F : 1, critical ? .3F : 1, 1, .4F);
+    }
+
+    private static void cube(Vec3 center, boolean critical, double halfSize) {
+        color(critical);
         GL11.glBegin(GL11.GL_QUADS);
         for (int face = 0; face < 6; face++) {
             int axis = face / 2, sign = face % 2 == 0 ? -1 : 1;

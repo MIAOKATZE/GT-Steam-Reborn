@@ -104,7 +104,13 @@ public final class FxEntityWorldPass {
         GL11.glDepthMask(false);
         for (EntityMuzzleFlash f : FLASHES) {
             float phase = GatlingFxProfile.clamp01((f.ageTicks + pt) / Math.max(1, f.lifeTicks));
-            float alpha = .36F * (1 - phase);
+            boolean singularity = f.getEntityData()
+                .getBoolean("gtsr.singularityFlash");
+            boolean critical = singularity && f.getEntityData()
+                .getBoolean("gtsr.criticalFlash");
+            float red = critical ? .72F : 1, green = critical ? .3F : singularity ? 1 : .74F;
+            float blue = singularity ? 1 : .06F;
+            float alpha = singularity ? .4F : .36F * (1 - phase);
             if (alpha <= 0) continue;
             GL11.glPushMatrix();
             GL11.glTranslated(
@@ -117,9 +123,9 @@ public final class FxEntityWorldPass {
             for (int cell = 0; cell < 3; cell++) {
                 double x = (cell - 1) * radius * .9, y = (cell % 2) * radius * .5;
                 GL11.glBegin(GL11.GL_TRIANGLE_FAN);
-                GL11.glColor4f(1, .74F, .06F, alpha);
+                GL11.glColor4f(red, green, blue, alpha);
                 GL11.glVertex3d(x, y, 0);
-                GL11.glColor4f(1, .74F, .06F, 0);
+                GL11.glColor4f(red, green, blue, singularity ? .4F : 0);
                 for (int edge = 0; edge <= 16; edge++) {
                     double a = edge * Math.PI / 8;
                     GL11.glVertex3d(x + Math.cos(a) * radius, y + Math.sin(a) * radius, 0);

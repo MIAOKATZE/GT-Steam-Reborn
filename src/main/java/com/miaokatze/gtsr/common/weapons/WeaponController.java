@@ -29,7 +29,7 @@ public final class WeaponController {
         int slot, reload, serial, spin, cooldown, dimension;
         long refreshed;
         boolean firing, focusing, reloadDown, switchDown;
-        int remoteTicks, chargeTicks;
+        int remoteTicks, remoteAmmoType, chargeTicks;
         boolean modeDown, releaseShot, charging, chargeBlocked;
         EntityWeaponProjectile remoteProjectile;
     }
@@ -183,15 +183,9 @@ public final class WeaponController {
                 && s.remoteProjectile != null
                 && !s.remoteProjectile.isDead
                 && s.remoteTicks == 0) {
-                if (s.remoteProjectile.mode() == WeaponMode.ALTERNATE) {
-                    s.chargeBlocked = true;
-                    s.remoteProjectile.detonate();
-                    s.remoteProjectile = null;
-                    effect(s, 4);
-                } else {
-                    s.remoteTicks = 50;
-                    effect(s, 3);
-                }
+                s.remoteAmmoType = s.remoteProjectile.critical() ? 1 : 0;
+                s.remoteTicks = 50;
+                effect(s, 3);
             }
             if (!c.cancelCharge && heldKind == WeaponKind.SINGULARITY
                 && mode(s.gun, heldKind) == WeaponMode.ALTERNATE
@@ -490,6 +484,7 @@ public final class WeaponController {
         e.kind = PortableWeapons.kind(s.gun).id;
         e.type = type;
         e.mode = mode(s.gun, PortableWeapons.kind(s.gun));
+        e.ammoType = type == 3 || type == 4 ? s.remoteAmmoType : data(s.gun).getInteger("loadedType");
         Vec3 muzzle = WeaponPose.muzzle(s.player, PortableWeapons.kind(s.gun));
         Vec3 eject = WeaponPose.eject(s.player, PortableWeapons.kind(s.gun));
         e.x = muzzle.xCoord;
@@ -516,8 +511,9 @@ public final class WeaponController {
         snap.shotSerial = s.serial;
         long now = s.player.worldObj.getTotalWorldTime();
         snap.mode = mode(s.gun, k);
-        snap.chargeTicks = s.chargeTicks;
-        snap.chargeDuration = k == WeaponKind.SINGULARITY && snap.mode == WeaponMode.ALTERNATE ? 100 : 0;
+        snap.chargeTicks = k == WeaponKind.LM12 ? s.spin : s.chargeTicks;
+        snap.chargeDuration = k == WeaponKind.LM12 ? (snap.mode == WeaponMode.ALTERNATE ? 80 : 160)
+            : k == WeaponKind.SINGULARITY && snap.mode == WeaponMode.ALTERNATE ? 100 : 0;
         snap.shotInterval = k == WeaponKind.LM12 ? (n.hasKey("shotInterval")
             ? Math.max(
                 snap.mode == WeaponMode.ALTERNATE ? 2 : 1,
@@ -529,10 +525,12 @@ public final class WeaponController {
         snap.heat = n.getFloat("heat");
         snap.overheated = (k == WeaponKind.T20 || k == WeaponKind.LM12 && snap.mode == WeaponMode.STANDARD)
             && n.getBoolean("hot");
-        snap.spin = s.spin / 160f;
+        snap.spin = Math.min(1, s.spin / (k == WeaponKind.LM12 && snap.mode == WeaponMode.ALTERNATE ? 80f : 160f));
         snap.focusing = s.focusing;
         ItemStack a = pack(s.player, k);
         snap.ammoType = selected(s.gun, s.player, k);
+        snap.remoteAmmoType = s.remoteProjectile != null ? (s.remoteProjectile.critical() ? 1 : 0)
+            : s.remoteTicks > 0 ? s.remoteAmmoType : snap.ammoType;
         snap.remoteTicks = s.remoteTicks;
         snap.magazine = k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY ? n.getInteger("magazine")
             : a != null && packId(a).equals(n.getString("loadedPack")) ? remaining(a) : 0;

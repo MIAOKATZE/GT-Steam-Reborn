@@ -42,6 +42,7 @@ import com.miaokatze.gtsr.common.weapons.WeaponController;
 import com.miaokatze.gtsr.common.weapons.WeaponDamageSource;
 import com.miaokatze.gtsr.common.weapons.WeaponEnchantments;
 import com.miaokatze.gtsr.common.weapons.WeaponKind;
+import com.miaokatze.gtsr.common.weapons.WeaponMode;
 import com.miaokatze.gtsr.common.weapons.WeaponNetwork;
 import com.miaokatze.gtsr.common.weapons.WeaponPose;
 import com.miaokatze.gtsr.common.weapons.WeaponShotEnchantments;
@@ -72,7 +73,7 @@ public final class WeaponAuditCommand extends CommandBase {
     private double x, z;
     private Channel auditNetwork;
     private Snapshot capturedState;
-    private Effect capturedShot, capturedImpact;
+    private Effect capturedShot, capturedImpact, capturedGesture;
     private EventBus auditTickBus;
 
     @Override
@@ -974,6 +975,7 @@ public final class WeaponAuditCommand extends CommandBase {
                         Effect effect = (Effect) field(message, "e");
                         if (effect.type == 0) capturedShot = effect;
                         if (effect.type == 1) capturedImpact = effect;
+                        if (effect.type == 3) capturedGesture = effect;
                     }
                     context.write(message, promise);
                 }
@@ -996,7 +998,10 @@ public final class WeaponAuditCommand extends CommandBase {
                 bytes.readableBytes() == 0 && result.shotInterval == state.shotInterval
                     && result.shotCooldown == state.shotCooldown
                     && result.shotAge == state.shotAge
-                    && result.shotSerial == state.shotSerial,
+                    && result.shotSerial == state.shotSerial
+                    && result.remoteAmmoType == state.remoteAmmoType
+                    && result.chargeTicks == state.chargeTicks
+                    && result.chargeDuration == state.chargeDuration,
                 "actual Snapshot added fields roundtrip");
             bytes.release();
             WeaponNetwork.EffectPacket p = new WeaponNetwork.EffectPacket();
@@ -1016,7 +1021,8 @@ public final class WeaponAuditCommand extends CommandBase {
                     && out.ejectX == effect.ejectX
                     && out.ejectY == effect.ejectY
                     && out.ejectZ == effect.ejectZ
-                    && out.shotSerial == effect.shotSerial,
+                    && out.shotSerial == effect.shotSerial
+                    && out.ammoType == effect.ammoType,
                 "actual Effect muzzle/eject roundtrip");
             bytes.release();
             WeaponKind kind = WeaponKind.fromId(effect.kind);
@@ -1392,10 +1398,14 @@ public final class WeaponAuditCommand extends CommandBase {
         gunData.setFloat("heat", 1);
         for (int i = 0; i < 9; i++) require(modeStep(true, false, false) == 0, "suppression waits below spin20");
         require(modeStep(true, false, false) == 1, "suppression shoots at spin20 despite hot NBT");
+        require(
+            capturedState.chargeTicks == 20 && capturedState.chargeDuration == 80,
+            "LM suppression pre-spin supplies cyan charge progress against full-spin80");
         for (int i = 0; i < 85; i++) modeStep(true, false, false);
         require(
             capturedState.shotInterval == 2 && !capturedState.overheated && belt.getItemDamage() > 1,
             "suppression reaches interval2 and keeps firing while visually heated");
+        close(capturedState.spin, 1, "LM suppression visual spin saturates at full-speed80");
         modeStep(false, false, true);
         gunData.setBoolean("hot", true);
         gunData.setFloat("heat", 1);
@@ -1564,7 +1574,85 @@ public final class WeaponAuditCommand extends CommandBase {
         }
     }
 
+    private void unstableTrajectory() {
+        setup(WeaponKind.SINGULARITY);
+        float pitch = player.rotationPitch;
+        player.rotationPitch = -45;
+        EntityWeaponProjectile normal = new EntityWeaponProjectile(world, player, WeaponKind.SINGULARITY, 0, 0, 0);
+        EntityWeaponProjectile unstable = new EntityWeaponProjectile(world, player, WeaponKind.SINGULARITY, 0, 0, 0);
+        player.rotationPitch = pitch;
+        Vec3 origin = unstable.visualOrigin(), direction = unstable.visualDirection();
+        unstable.setMode(WeaponMode.ALTERNATE);
+        require(
+            unstable.visualOrigin()
+                .squareDistanceTo(origin) < 1e-12
+                && unstable.visualDirection()
+                    .squareDistanceTo(direction) < 1e-12,
+            "107 setting unstable mode preserves frozen launch origin and direction");
+        double speed = Math.sqrt(
+            unstable.motionX * unstable.motionX + unstable.motionY * unstable.motionY
+                + unstable.motionZ * unstable.motionZ);
+        require(Math.abs(speed - .9) < 1e-6, "107 unstable actual constructor launch speed doubles to .9");
+        require(
+            Math.abs(WeaponMode.gravity(WeaponKind.SINGULARITY, 1) - .0063) < 1e-12,
+            "107 unstable gravity doubles to preserve equal-angle flight duration");
+        // An isolated horizontal landing plane at the launch height removes eye-height range offsets.
+        normal.setPosition(x, 240, z);
+        unstable.setPosition(x, 240, z);
+        owned.add(normal);
+        owned.add(unstable);
+        require(
+            world.spawnEntityInWorld(normal) && world.spawnEntityInWorld(unstable),
+            "spawn paired actual ballistic entities");
+        double initialVertical = unstable.motionY;
+        world.updateEntityWithOptionalForce(normal, true);
+        world.updateEntityWithOptionalForce(unstable, true);
+        require(
+            Math.abs(initialVertical - unstable.motionY - .0063) < 1e-12,
+            "107 actual unstable update applies mode gravity");
+        NBTTagCompound saved = new NBTTagCompound();
+        unstable.writeToNBT(saved);
+        EntityWeaponProjectile restored = new EntityWeaponProjectile(world);
+        restored.readFromNBT(saved);
+        require(
+            restored.mode() == 1 && restored.ticksExisted == 1
+                && Math.abs(restored.motionY - unstable.motionY) < 1e-12
+                && restored.visualOrigin()
+                    .squareDistanceTo(origin) < 1e-12,
+            "107 NBT restores frozen unstable mode trajectory without resetting evolved motion");
+        ByteBuf bytes = Unpooled.buffer();
+        try {
+            unstable.writeSpawnData(bytes);
+            restored.readSpawnData(bytes);
+            require(
+                restored.mode() == 1 && restored.ticksExisted == 1
+                    && bytes.readableBytes() == 0
+                    && restored.visualDirection()
+                        .squareDistanceTo(direction) < 1e-12,
+                "107 spawn decoder preserves frozen unstable mode age and direction");
+        } finally {
+            bytes.release();
+        }
+        int flight = 1;
+        while (normal.posY >= 240 && flight < 350) {
+            world.updateEntityWithOptionalForce(normal, true);
+            world.updateEntityWithOptionalForce(unstable, true);
+            flight++;
+            require(!normal.isDead && !unstable.isDead, "107 paired ballistic test stays collision-free");
+        }
+        double normalRange = Math.hypot(normal.posX - x, normal.posZ - z);
+        double unstableRange = Math.hypot(unstable.posX - x, unstable.posZ - z);
+        require(
+            flight < 350 && unstable.posY < 240 && normal.ticksExisted == unstable.ticksExisted,
+            "107 both modes return to horizontal launch plane on same tick");
+        require(
+            Math.abs(unstableRange / normalRange - 2) < 1e-6,
+            "107 actual unstable horizontal landing range is twice standard");
+        clearModeEntities();
+    }
+
     private void unstableBehavior() {
+        unstableTrajectory();
         for (boolean critical : new boolean[] { false, true }) {
             setup(WeaponKind.SINGULARITY);
             ItemStack gun = player.getHeldItem();
@@ -1632,9 +1720,28 @@ public final class WeaponAuditCommand extends CommandBase {
                 .setBaseValue(300);
             inner.setHealth(300);
             shot.setPosition(x, 230.6, z);
+            WeaponController.data(gun)
+                .setInteger("ammoType", critical ? 0 : 1);
+            capturedGesture = null;
             require(
-                modeStep(true, false, false) == 0 && shot.isDead && capturedState.remoteTicks == 0,
-                "107 inflight left click instantly explodes during reload without remote delay");
+                modeStep(true, false, false) == 0 && !shot.isDead && capturedState.remoteTicks == 49,
+                "107 unstable click begins same fifty-tick gesture and waits before blast");
+            require(capturedState.remoteAmmoType == (critical ? 1 : 0), "107 remote color freezes launched ammo");
+            require(
+                capturedState.ammoType != capturedState.remoteAmmoType && capturedGesture != null
+                    && capturedGesture.ammoType == capturedState.remoteAmmoType,
+                "107 selected ammo change cannot recolor old projectile remote gesture");
+            packetRoundtrip(capturedState, capturedGesture);
+            for (int i = 0; i < 8; i++) modeStep(true, false, false);
+            require(!shot.isDead && capturedState.remoteTicks == 41, "107 unstable remote waits nine ticks");
+            close(inner.getHealth(), 300, "107 unstable remote applies no early blast damage");
+            modeStep(true, false, false);
+            require(shot.isDead && capturedState.remoteTicks == 40, "107 unstable remote blasts on tenth tick");
+            require(
+                capturedState.remoteAmmoType == (critical ? 1 : 0),
+                "107 post-blast gesture retains frozen ammo color");
+            WeaponController.data(gun)
+                .setInteger("ammoType", critical ? 1 : 0);
             close(
                 inner.getHealth(),
                 300 - (critical ? 130 : 50) * 1.4f,

@@ -14,7 +14,11 @@ import net.minecraft.util.Vec3;
 
 import org.lwjgl.opengl.GL11;
 
+import com.miaokatze.gtsr.client.weapons.PortableWeaponClient;
+import com.miaokatze.gtsr.common.weapons.Snapshot;
+import com.miaokatze.gtsr.common.weapons.WeaponController;
 import com.miaokatze.gtsr.common.weapons.WeaponKind;
+import com.miaokatze.gtsr.common.weapons.WeaponMode;
 import com.miaokatze.gtsr.common.weapons.WeaponPose;
 
 public final class CurvedAimTrajectoryRenderer {
@@ -27,11 +31,15 @@ public final class CurvedAimTrajectoryRenderer {
 
     /** Shared discrete ballistic samples for preview, entity mesh and its trail. */
     public static Vec3 point(Vec3 origin, Vec3 direction, WeaponKind kind, double age, boolean fragment) {
+        return point(origin, direction, kind, age, fragment, WeaponMode.STANDARD);
+    }
+
+    public static Vec3 point(Vec3 origin, Vec3 direction, WeaponKind kind, double age, boolean fragment, int mode) {
         age = Math.max(0, age);
         int ticks = (int) Math.floor(age);
         double fraction = age - ticks;
-        double fall = fragment ? 0 : kind.gravity * (ticks * (ticks - 1) * .5 + ticks * fraction);
-        double speed = fragment ? 3 : kind.projectileSpeed;
+        double fall = fragment ? 0 : WeaponMode.gravity(kind, mode) * (ticks * (ticks - 1) * .5 + ticks * fraction);
+        double speed = fragment ? 3 : WeaponMode.projectileSpeed(kind, mode);
         return origin.addVector(
             direction.xCoord * speed * age,
             direction.yCoord * speed * age - fall,
@@ -39,6 +47,8 @@ public final class CurvedAimTrajectoryRenderer {
     }
 
     public static void draw(EntityPlayer player, WeaponKind kind, float partial) {
+        Snapshot snapshot = PortableWeaponClient.snapshot(player);
+        int mode = snapshot == null ? WeaponController.mode(player.getHeldItem(), kind) : snapshot.mode;
         Vec3 muzzle = WeaponPose.muzzle(player, kind, partial), aim = launchDirection(player, kind, partial);
         List<Vec3> points = new ArrayList<>();
         points.add(muzzle);
@@ -57,7 +67,7 @@ public final class CurvedAimTrajectoryRenderer {
             blocked = true;
         }
         for (int i = 0; i < 48 && muzzleBlock == null; i++) {
-            Vec3 start = point(muzzle, aim, kind, i, false), end = point(muzzle, aim, kind, i + 1, false);
+            Vec3 start = point(muzzle, aim, kind, i, false, mode), end = point(muzzle, aim, kind, i + 1, false, mode);
             MovingObjectPosition hit = player.worldObj.func_147447_a(
                 Vec3.createVectorHelper(start.xCoord, start.yCoord, start.zCoord),
                 Vec3.createVectorHelper(end.xCoord, end.yCoord, end.zCoord),

@@ -288,6 +288,10 @@ public final class WeaponVisuals {
                 -e.yaw);
             flash.getEntityData()
                 .setBoolean("gtsr.smallFlash", true);
+            flash.getEntityData()
+                .setBoolean("gtsr.singularityFlash", kind == WeaponKind.SINGULARITY);
+            flash.getEntityData()
+                .setBoolean("gtsr.criticalFlash", e.ammoType == 1);
             if (mc.theWorld.spawnEntityInWorld(flash)) flashes.add(flash);
         }
         if (kind != WeaponKind.SINGULARITY && casings.size() < 48) {
@@ -302,12 +306,13 @@ public final class WeaponVisuals {
                 .setBoolean("gtsr.heavyCasing", kind == WeaponKind.T20);
             if (mc.theWorld.spawnEntityInWorld(casing)) casings.add(casing);
         }
-        // Portable muzzles emit only the short translucent yellow flash; no opaque smoke cubes.
+        // The singularity cannon uses its ammunition palette; conventional muzzles retain yellow flashes.
         sound(
             e.x,
             e.y,
             e.z,
-            kind == WeaponKind.LM12 ? "gatling_fire" : kind == WeaponKind.T20 ? "autocannon_fire" : "qlz04_fire",
+            kind == WeaponKind.SINGULARITY ? "heavy_cannon_fire"
+                : kind == WeaponKind.LM12 ? "gatling_fire" : kind == WeaponKind.T20 ? "autocannon_fire" : "qlz04_fire",
             1.4F,
             1);
     }

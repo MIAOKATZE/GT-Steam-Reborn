@@ -352,7 +352,7 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
             float gap = 5 + 8 * (1 - focusProgress());
             WeaponKind held = PortableWeapons.kind(mc.thePlayer.getHeldItem());
             if (held == WeaponKind.QLZ04 || held == WeaponKind.SINGULARITY) {
-                int spacing = held == WeaponKind.SINGULARITY ? 14 : 9;
+                int spacing = held == WeaponKind.SINGULARITY ? (s != null && s.mode == 1 ? 7 : 14) : 9;
                 GL11.glDisable(GL11.GL_TEXTURE_2D);
                 GL11.glColor4f(.35F, .95F, .8F, .95F);
                 GL11.glLineWidth(2F * event.resolution.getScaleFactor());
@@ -388,7 +388,8 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
                 rate,
                 s == null ? 0 : s.heat,
                 reloadProgress(mc.thePlayer, event.partialTicks),
-                chargeProgress(mc.thePlayer, event.partialTicks));
+                chargeProgress(mc.thePlayer, event.partialTicks),
+                held != WeaponKind.LM12 || s == null || s.mode == 0);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             String ammo = s == null ? "-- / --" : s.magazine + " / " + s.reserve;
             mc.fontRenderer.drawStringWithShadow(

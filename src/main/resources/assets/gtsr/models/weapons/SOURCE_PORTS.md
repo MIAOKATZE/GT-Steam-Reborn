@@ -33,3 +33,11 @@ the project's plan/implementation/weapons-v1.20.89 evidence.
 to assets/gtsr/sounds/weapons/coilgun_charge.ogg. Its single managed loop follows
 CoilgunChargeSound progress pitch .70..1.45 and volume 0.10..0.85, with range 32.
 Portable input release, held-slot changes and world changes stop the loop immediately.
+
+107 standard and unstable firing use GT-Outpost's 2A3 heavy cannon event
+`gto:gun_2a3_fire`, from `assets/gto/sounds/gun_2a3_fire.ogg`, copied unchanged
+to `assets/gtsr/sounds/weapons/heavy_cannon_fire.ogg` and registered as
+`gtsr:weapons.heavy_cannon_fire`. The original event belongs to the 2A3 cannon;
+the portable cannon uses the asset in both modes without a GT-Outpost runtime dependency.
+The original mapping is `com/miaokatze/gto/terminal/CombatSoundEvents.java`
+and its registration is `assets/gto/sounds.json` (`gun_2a3_fire`).

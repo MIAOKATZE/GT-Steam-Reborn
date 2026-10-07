@@ -1841,6 +1841,12 @@
       "weapons/fx/casing_drop_gx2"
     ]
   },
+  "weapons.heavy_cannon_fire": {
+    "category": "player",
+    "sounds": [
+      "weapons/heavy_cannon_fire"
+    ]
+  },
   "weapons.coilgun_charge": {
     "category": "player",
     "sounds": [

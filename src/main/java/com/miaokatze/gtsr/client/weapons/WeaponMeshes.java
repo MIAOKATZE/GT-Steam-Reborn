@@ -32,9 +32,9 @@ final class WeaponMeshes {
         box(.10, -.07, .16, .46, .07, .30, .38F, .41F, .42F);
         for (int i = 0; i < 8; i++) {
             double angle = i * Math.PI / 4;
-            double y = Math.cos(angle) * .21, z = .23 + Math.sin(angle) * .21;
-            box(.12, y - .07, z - .07, .42, y + .07, z + .07, .24F, .28F, .29F);
-            box(.42, y - .035, z - .035, .45, y + .035, z + .035, .7F, .59F, .28F);
+            double x = .27 + Math.cos(angle) * .21, y = Math.sin(angle) * .21;
+            box(x - .07, y - .07, .08, x + .07, y + .07, .38, .24F, .28F, .29F);
+            box(x - .035, y - .035, .05, x + .035, y + .035, .08, .7F, .59F, .28F);
         }
         GL11.glPopAttrib();
     }

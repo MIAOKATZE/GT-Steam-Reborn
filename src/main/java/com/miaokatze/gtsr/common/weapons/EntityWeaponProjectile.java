@@ -55,6 +55,12 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
 
     public void setMode(int value) {
         mode = WeaponMode.mode(weapon, value);
+        if (!fragment && visualDirection != null && ticksExisted == 0) {
+            double speed = WeaponMode.projectileSpeed(weapon, mode);
+            motionX = visualDirection.xCoord * speed;
+            motionY = visualDirection.yCoord * speed;
+            motionZ = visualDirection.zCoord * speed;
+        }
     }
 
     private WeaponShotEnchantments shotEnchantments = new WeaponShotEnchantments();
@@ -129,9 +135,10 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
         initialObstructionPending = true;
         visualOrigin = Vec3.createVectorHelper(posX, posY, posZ);
         visualDirection = look;
-        motionX = look.xCoord * kind.projectileSpeed;
-        motionY = look.yCoord * kind.projectileSpeed;
-        motionZ = look.zCoord * kind.projectileSpeed;
+        double speed = WeaponMode.projectileSpeed(kind, mode);
+        motionX = look.xCoord * speed;
+        motionY = look.yCoord * speed;
+        motionZ = look.zCoord * speed;
         rotationYaw = (float) Math.toDegrees(Math.atan2(-look.xCoord, look.zCoord));
         rotationPitch = (float) -Math.toDegrees(Math.asin(look.yCoord));
     }
@@ -278,7 +285,7 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
             }
         }
         setPosition(end.xCoord, end.yCoord, end.zCoord);
-        motionY -= fragment ? 0 : weapon.gravity;
+        motionY -= fragment ? 0 : WeaponMode.gravity(weapon, mode);
     }
 
     private void impact(MovingObjectPosition hit) {
@@ -318,6 +325,7 @@ public final class EntityWeaponProjectile extends Entity implements IEntityAddit
             effect.kind = weapon.id;
             effect.type = 1;
             effect.mode = mode;
+            effect.ammoType = critical ? 1 : 0;
             effect.x = at.xCoord;
             effect.y = at.yCoord;
             effect.z = at.zCoord;

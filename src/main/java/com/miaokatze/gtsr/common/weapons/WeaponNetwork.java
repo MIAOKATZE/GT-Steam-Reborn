@@ -199,6 +199,7 @@ public final class WeaponNetwork {
             b.writeInt(s.shotCooldown);
             b.writeInt(s.shotAge);
             b.writeInt(s.ammoType);
+            b.writeInt(s.remoteAmmoType);
             b.writeInt(s.remoteTicks);
             b.writeInt(s.mode);
             b.writeInt(s.chargeTicks);
@@ -222,6 +223,7 @@ public final class WeaponNetwork {
             s.shotCooldown = b.readInt();
             s.shotAge = b.readInt();
             s.ammoType = b.readInt();
+            s.remoteAmmoType = b.readInt();
             s.remoteTicks = b.readInt();
             s.mode = b.readInt();
             s.chargeTicks = b.readInt();
@@ -260,6 +262,7 @@ public final class WeaponNetwork {
             b.writeFloat(e.pitch);
             b.writeInt(e.shotSerial);
             b.writeByte(e.mode);
+            b.writeByte(e.ammoType);
         }
 
         public void fromBytes(ByteBuf b) {
@@ -277,6 +280,7 @@ public final class WeaponNetwork {
             e.pitch = b.readFloat();
             e.shotSerial = b.readInt();
             e.mode = b.readUnsignedByte();
+            e.ammoType = b.readUnsignedByte();
         }
     }
 

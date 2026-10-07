@@ -79,7 +79,8 @@ final class PortableProjectileRenderer extends Render {
             direction,
             projectile.kind(),
             Math.max(0, projectile.flightAge() - 1 + partial),
-            projectile.fragment());
+            projectile.fragment(),
+            projectile.mode());
     }
 
     protected ResourceLocation getEntityTexture(Entity entity) {

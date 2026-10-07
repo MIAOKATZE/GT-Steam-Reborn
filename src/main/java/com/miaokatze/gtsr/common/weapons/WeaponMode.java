@@ -23,6 +23,15 @@ public final class WeaponMode {
         return kind == WeaponKind.QLZ04 && mode == DRUM ? 4 : kind.interval;
     }
 
+    public static double projectileSpeed(WeaponKind kind, int mode) {
+        return kind.projectileSpeed * (kind == WeaponKind.SINGULARITY && mode == ALTERNATE ? 2 : 1);
+    }
+
+    public static double gravity(WeaponKind kind, int mode) {
+        // Scaling speed and gravity together doubles range while preserving flight duration.
+        return kind.gravity * (kind == WeaponKind.SINGULARITY && mode == ALTERNATE ? 2 : 1);
+    }
+
     public static int lm12Interval(int spin, int mode) {
         return mode == ALTERNATE
             ? Math.max(2, Math.min(16, Math.round(2f / (.125f + .875f * Math.min(1, (spin - 20) / 60f)))))
