@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Keep a Steam Fluid Drill controller in your inventory to complete this check without consuming them. Completion awards the listed additional items. The structure can use either the pressure-steam input path or the regular input-hatch path, but they cannot be mixed. See machine information for output-hatch and other requirements.§r",
+      "desc:8": "§3Purpose and mechanism§r\nKeep a Steam Fluid Drill controller in your inventory to complete this non-consuming check. The structure can use either the pressure-steam input path or the regular input-hatch path, but they cannot be mixed. See machine information for output-hatch and other requirements.\n\n§3Preparation and operation§r\nAfter the inventory check, choose a structurally valid input route and production mode. The two steam-input paths cannot be mixed, and the outlet hatch must meet machine requirements; the quest does not inspect these conditions. Choose water, distilled water, §2salt water§r, or lava before arranging storage and consumers, updating the outlet when changing modes.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 1,
-          "Damage:2": 14800,
+          "Count:3": 2,
+          "Damage:2": 17305,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.blockmachines"
+          "id:8": "gregtech:gt.metaitem.01"
         }
       }
     }

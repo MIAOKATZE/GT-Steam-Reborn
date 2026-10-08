@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3The Crust Matter Aggregator produces mineral output according to selected dimensions, ore mode, and filters; steam use depends on operating mode, slots, and fortune settings. Check configuration, steam, and output conditions, and consult the controller information. This task does not verify operation.§r",
+      "desc:8": "§3Purpose and mechanism§r\nThe Crust Matter Aggregator produces mineral output according to selected dimensions, ore mode, and filters; steam use depends on operating mode, slots, and fortune settings. Check configuration, steam, and output conditions, and consult the controller information. This task does not verify operation.\n\n§3Preparation and operation§r\nIdentify the §2minerals§r you need before setting dimension, mineral mode, filters, and output destinations. Slots, mode, and fortune affect steam demand, so a single fixed consumption estimate does not cover all configurations. Inspect the current settings and provide mineral output space before expanding collection. This manual reading goal does not verify production quantities.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 50,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 17305,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "index:3": 0,

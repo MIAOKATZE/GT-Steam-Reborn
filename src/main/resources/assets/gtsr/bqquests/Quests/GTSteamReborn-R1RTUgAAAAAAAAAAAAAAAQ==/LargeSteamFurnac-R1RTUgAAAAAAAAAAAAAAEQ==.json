@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3The Large Steam Furnace processes smelting recipes using steam. Recipe, tier and parallel count affect its steam demand and throughput; check the controller tooltip before sizing the supply. It is a processing multiblock, not a guarantee that one furnace will cover an entire base.§r",
+      "desc:8": "§3Purpose and mechanism§r\nThe Large Steam Furnace processes smelting recipes using steam. Recipe, tier and parallel count affect its steam demand and throughput; check the controller tooltip before sizing the supply. It is a processing multiblock, not a guarantee that one furnace will cover an entire base.\n\n§3Preparation and operation§r\nChoose the ingredients and §2products§r you want to smelt in bulk, then inspect recipe and tier requirements. Higher parallelism changes supply and output demand; plan the item bus, steam inlet, and product outlet together. If smaller smelting equipment already exists, size this machine around the real production gap rather than assuming every smelting recipe transfers unchanged.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 17,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "minecraft:coal"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "index:3": 0,

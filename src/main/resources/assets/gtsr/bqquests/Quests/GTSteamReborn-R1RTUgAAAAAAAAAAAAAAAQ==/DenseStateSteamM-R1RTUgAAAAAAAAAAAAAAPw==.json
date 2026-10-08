@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Keep a Dense State Steam Manipulator controller in your inventory to complete this check without consuming them. Completion awards the listed additional items. The machine converts steam fluid grades, with a 1000:1 ratio for dense steam. Configure inputs, modes, and outputs according to its information.§r",
+      "desc:8": "§dPurpose and mechanism§r\nKeep a Dense State Steam Manipulator controller in your inventory to complete this non-consuming check. The machine converts steam fluid grades, with a §11000:1§r ratio for dense steam. Configure inputs, modes, and outputs according to its information.\n\n§3Preparation and operation§r\nThis goal checks a fluid-conversion controller rather than singularity possession or a completed compression recipe. Decide between compression and decompression when building, then check fluid grades and storage capacity on both sides. Volume conversion does not create a new steam source. Align input, mode, and downstream consumers before planning the complete supply route.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 1,
-          "Damage:2": 14901,
+          "Count:3": 2,
+          "Damage:2": 17305,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.blockmachines"
+          "id:8": "gregtech:gt.metaitem.01"
         }
       }
     }

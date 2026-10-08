@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3On GT++ steam multiblocks covered by this behavior, superheated steam is consumed at four times the per-tick rate while recipe time is reduced to one quarter. This changes throughput; it is not a universal rule for every steam machine. Check each machine's tooltip for its own steam requirements.§r",
+      "desc:8": "§6Purpose and mechanism§r\nOn GT++ steam multiblocks covered by this behavior, superheated steam is consumed at four times the per-tick rate while recipe time is reduced to one quarter. This changes throughput; it is not a universal rule for every steam machine. Check each machine's tooltip for its own steam requirements.\n\n§3Preparation and operation§r\nThe first cost of acceleration is higher instantaneous flow. Pipes and tanks that sustain ordinary-steam processing may fail to sustain the same machine on superheated steam. Check compatible input hatches, pipe throughput, and recovery outlets together. During a trial run, watch for supply interruptions rather than judging adequacy from total recipe consumption alone.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 4,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 17305,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "index:3": 0,

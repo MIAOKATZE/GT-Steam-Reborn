@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3The Dense State Steam Manipulator compresses or decompresses steam fluid grades; dense steam uses a 1000:1 conversion ratio. It processes fluid, not singularity items. Check the controller information for inputs, modes, and costs. This task does not verify operation.§r",
+      "desc:8": "§dPurpose and mechanism§r\nThe Dense State Steam Manipulator compresses or decompresses steam fluid grades; dense steam uses a §11000:1§r conversion ratio. It processes fluid, not singularity items. Check the controller information for inputs, modes, and costs. This task does not verify operation.\n\n§3Preparation and operation§r\nFor compression and decompression, check input fluid, output grade, and tank connections separately. The conversion ratio is not a singularity-item yield. Lower-volume dense steam still needs compatible downstream equipment and modes. When reversing conversion, inspect fluids remaining in old pipes and outlet destinations, then align input, mode, and output before sustained supply.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 55,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 17305,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "index:3": 0,

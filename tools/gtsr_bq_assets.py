@@ -63,16 +63,21 @@ def owned_json(plan, shared):
 def install_adapter(shared, codec):
     original_parse = shared.parse_stack
     original_stack = shared.stack_nbt
+    original_tasks = shared.build_tasks
 
     def parse_stack(item):
         result = original_parse(item)
         nbt = item.get("nbt") if isinstance(item, dict) else None
         if nbt is not None:
             codec.bq_json_to_tree(nbt)
-        return (*result, copy.deepcopy(nbt))
+        oredict = item.get("oredict", "") if isinstance(item, dict) else ""
+        if not isinstance(oredict, str):
+            raise ValueError("oredict must be a string")
+        return (*result, copy.deepcopy(nbt), oredict)
 
-    def stack_nbt(ident, meta, count, nbt=None):
+    def stack_nbt(ident, meta, count, nbt=None, oredict=""):
         result = original_stack(ident, meta, count)
+        result["OreDict:8"] = oredict
         if nbt is not None:
             codec.bq_json_to_tree(nbt)
             result["tag:10"] = copy.deepcopy(nbt)
@@ -81,6 +86,31 @@ def install_adapter(shared, codec):
     shared.parse_stack = parse_stack
     shared.stack_nbt = stack_nbt
     shared.icon_nbt = lambda icon: stack_nbt(*parse_stack(icon))
+
+    def build_tasks(tasks):
+        result = {}
+        for index, task in enumerate(tasks or []):
+            if task["type"] == "location":
+                if task.get("dimension_key") != "prosperity":
+                    raise ValueError("GTSR location must use dimension_key=prosperity")
+                entry = {
+                    "index:3": index, "taskID:8": "bq_standard:location",
+                    "name:8": task.get("name", "Prosperity"),
+                    "posX:3": 0, "posY:3": 0, "posZ:3": 0,
+                    "dimension:3": int(task.get("dimension", 78)),
+                    "biome:3": -1, "structure:8": "", "range:3": int(task.get("range", -1)),
+                    "visible:1": 0, "hideInfo:1": 0, "invert:1": 0, "taxiCabDist:1": 0,
+                    "gtsrDimension:8": "prosperity",
+                }
+                if entry["range:3"] != -1:
+                    raise ValueError("GTSR prosperity location must cover the whole dimension")
+            else:
+                entry = original_tasks([task])["0:10"]
+                entry["index:3"] = index
+            result["%d:10" % index] = entry
+        return result
+
+    shared.build_tasks = build_tasks
     original_audit = shared.mode_audit
     original_rewrite_lang = shared.rewrite_lang_file
 

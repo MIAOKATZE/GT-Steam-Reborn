@@ -16,14 +16,20 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.fluids.FluidContainerRegistry;
+import net.minecraftforge.fluids.FluidStack;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.miaokatze.gtsr.Tags;
+import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import betterquesting.api.questing.IQuest;
@@ -41,6 +47,9 @@ import betterquesting.questing.QuestLine;
 import betterquesting.questing.QuestLineDatabase;
 import betterquesting.questing.QuestLineEntry;
 import cpw.mods.fml.common.Loader;
+import gregtech.api.enums.Materials;
+import gregtech.api.enums.OrePrefixes;
+import gregtech.api.util.GTOreDictUnificator;
 
 /**
  * BetterQuesting 运行时任务注入器。
@@ -419,7 +428,66 @@ public final class BqQuestInjector {
         if (json == null) {
             return null;
         }
+        resolveRuntimeTargets(json);
         return NBTConverter.JSONtoNBT_Object(json, new NBTTagCompound(), true);
+    }
+
+    /** Resolve only GTSR's explicitly marked targets after GT has registered its material cells. */
+    private static void resolveRuntimeTargets(JsonElement element) {
+        if (element.isJsonArray()) {
+            for (JsonElement child : element.getAsJsonArray()) resolveRuntimeTargets(child);
+        } else if (element.isJsonObject()) {
+            JsonObject object = element.getAsJsonObject();
+            if (object.has("gtsrDimension:8") && "prosperity".equals(
+                object.get("gtsrDimension:8")
+                    .getAsString())) {
+                if (!object.has("taskID:8") || !"bq_standard:location".equals(
+                    object.get("taskID:8")
+                        .getAsString())) {
+                    throw new IllegalStateException("GTSR prosperity dimension marker requires a location task");
+                }
+                // A disabled/conflicting Prosperity dimension must not turn this into a Nether (-1) task.
+                object.addProperty(
+                    "dimension:3",
+                    Config.prosperityDimId < 0 ? Integer.MAX_VALUE : Config.prosperityDimId);
+            }
+            if (object.has("OreDict:8")) {
+                String ore = object.get("OreDict:8")
+                    .getAsString();
+                String materialName = switch (ore) {
+                    case "cellwastesigh" -> "wastesigh";
+                    case "cellthickgrease" -> "thickgrease";
+                    case "cellmetalgrit" -> "metalgrit";
+                    case "cellumbralmire" -> "umbralmire";
+                    case "cellsanzu_residual_steam" -> "sanzu_residual_steam";
+                    case "cellwithered_breath" -> "withered_breath";
+                    default -> null;
+                };
+                if (materialName != null) {
+                    int count = object.get("Count:3")
+                        .getAsInt();
+                    Materials material = Materials.get(materialName);
+                    ItemStack cell = GTOreDictUnificator.get(OrePrefixes.cell, material, count);
+                    FluidStack fluid = cell == null ? null : FluidContainerRegistry.getFluidForFilledItem(cell);
+                    if (count <= 0 || fluid == null
+                        || fluid.amount != 1000
+                        || !materialName.equals(
+                            fluid.getFluid()
+                                .getName())) {
+                        throw new IllegalStateException("GTSR quest cell unavailable or invalid: " + ore);
+                    }
+                    JsonObject stack = NBTConverter
+                        .NBTtoJSON_Compound(cell.writeToNBT(new NBTTagCompound()), new JsonObject(), true);
+                    object.addProperty("id:8", Item.itemRegistry.getNameForObject(cell.getItem()));
+                    object.add("Damage:2", stack.get("Damage:2"));
+                    object.remove("tag:10");
+                    if (stack.has("tag:10")) object.add("tag:10", stack.get("tag:10"));
+                }
+            }
+            for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
+                resolveRuntimeTargets(entry.getValue());
+            }
+        }
     }
 
     /**

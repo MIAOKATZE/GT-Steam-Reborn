@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Keep a Large Solar Overpressure Array controller in your inventory to complete this item check; the items are not consumed. The array's tier and sunlight affect steam output, and the nickel tier produces superheated steam. Match the structure materials to the chosen tier when you build it.§r",
+      "desc:8": "§6Purpose and mechanism§r\nKeep a Large Solar Overpressure Array controller in your inventory to complete this item check; the items are not consumed. The array's tier and sunlight affect steam output, and the nickel tier produces superheated steam. Match the structure materials to the chosen tier when you build it.\n\n§3Preparation and operation§r\nDecide whether the array will supply ordinary or superheated-steam equipment, then check tier materials and network connections. This inventory goal does not inspect sunlight, water, or structure; these still need checking when building. Reserve steam buffering for weather changes and keep the water supply accessible so water shortages can be distinguished from insufficient sunlight.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 1,
-          "Damage:2": 14808,
+          "Count:3": 2,
+          "Damage:2": 17300,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.blockmachines"
+          "id:8": "gregtech:gt.metaitem.01"
         }
       }
     }

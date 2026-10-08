@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Keep one Spacetime Anchor Beacon in your inventory to complete this check without consuming it.§r\n\nBefore departure, hold the beacon and Alt-right-click at a safe place to record its dimension, coordinates, and facing. It stores one return point; marking again overwrites it. In Prosperity, sneak and hold right-click for 3 seconds to return. Each successful recall costs 20,480,000 EU and starts a 30-second cooldown; a full 102,400,000 EU charge allows five returns. An unmarked, undercharged beacon or unsafe destination cannot return you. Mark it before touching the calibration core.§r",
+      "desc:8": "§dPurpose and mechanism§r\nKeep one Spacetime Anchor Beacon in your inventory to complete this check without consuming it. Before departure, hold the beacon and Alt-right-click at a safe place to record its dimension, coordinates, and facing. It stores one return point; marking again overwrites it. In Prosperity, sneak and hold right-click for §13§r seconds to return. Each successful recall costs §120,480,000§r EU and starts a §130§r-second cooldown; a full §1102,400,000§r EU charge allows five returns. An unmarked, undercharged beacon or unsafe destination cannot return you. Mark it before touching the calibration core.\n\n§cImportant precautions§r\nUse marking, charging, and departure as a consistent preparation order, checking the return destination at a safe location. Quest rewards neither charge the beacon nor preserve an overwritten mark. In Prosperity, navigating to ruins with the compass and returning with the beacon are separate actions. Monitor remaining charge and the return cooldown throughout the journey.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 69,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 17019,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "autoConsume:1": 0,

@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Keep one 107 Singularity Controller in your inventory for this non-consuming check.§r\n\nThe 107 is an EV assembler single-shot weapon, directly consuming Steam Entangled Singularities or Critical Steam Entangled Singularities as ammunition. It automatically reloads after a successful shot. Default controls: C changes normal/unstable mode, V changes ammunition, and R reloads; bindings can be changed in settings.\n\nIn normal mode, left-click fires. In unstable mode, hold left-click for 5 seconds and release after full charge; collision triggers the final blast immediately. Left-click again while a projectile is flying to begin a gesture that remotely detonates it after 0.5 seconds. Attraction and explosions affect other players and allies, so keep teammates clear.§r",
+      "desc:8": "§8Purpose and mechanism§r\nKeep one §1107§r Singularity Controller in your inventory for this non-consuming check. The §1107§r is an EV assembler single-shot weapon, directly consuming Steam Entangled Singularities or Critical Steam Entangled Singularities as ammunition. It automatically reloads after a successful shot. Default controls: C changes normal/unstable mode, V changes ammunition, and R reloads; bindings can be changed in settings. In normal mode, left-click fires. In unstable mode, hold left-click for §15§r seconds and release after full charge; collision triggers the final blast immediately. Left-click again while a projectile is flying to begin a gesture that remotely detonates it after §10.5§r seconds. Attraction and explosions affect other players and allies, so keep teammates clear.\n\n§cImportant precautions§r\nThe recipe uses titanium plates and long rods, an EV field generator, EV circuits, a steam entangled singularity, and an integrated circuit set to §14.§r Singularities serve both crafting and firing, so reserve them separately. Possession requires no firing. Before unstable shots or remote detonation, check players, allies, and equipment near the target. Automatic reload does not provide free ammunition.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -20,7 +20,7 @@
       "isMain:1": 0,
       "isSilent:1": 0,
       "lockedProgress:1": 0,
-      "name:8": "§5§l107 Singularity Controller§r",
+      "name:8": "§8§l107 Singularity Controller§r",
       "questLogic:8": "AND",
       "repeatTime:3": -1,
       "simultaneous:1": 0,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 82,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 17028,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "autoConsume:1": 0,

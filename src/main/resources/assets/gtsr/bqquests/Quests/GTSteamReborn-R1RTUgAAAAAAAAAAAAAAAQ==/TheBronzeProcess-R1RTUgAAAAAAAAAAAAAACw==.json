@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3The processing matrix introduces nine machines: the Large Steam Furnace, Air Compressor, Atmospheric Centrifuge, Steam Fluid Drill, Vein Steam Pyrolyzer, Reinforced Brick Blast Furnace, Large Coke Oven, Crust Steam Borer and Siemens-Martin Furnace. Their steam use and operating rules differ; use each machine's tooltip and lesson when planning a shared supply.§r",
+      "desc:8": "§3Purpose and mechanism§r\nThe processing matrix introduces nine machines: the Large Steam Furnace, Air Compressor, Atmospheric Centrifuge, Steam Fluid Drill, Vein Steam Pyrolyzer, Reinforced Brick Blast Furnace, Large Coke Oven, Crust Steam Borer and Siemens-Martin Furnace. Their steam use and operating rules differ; use each machine's tooltip and lesson when planning a shared supply.\n\n§3Preparation and operation§r\nThese machines cover smelting, gases, fluids, coking, drilling, and steelmaking. One machine's steam consumption cannot represent the whole line. Begin with the §2processing step§r you currently lack and plan its ingredients, steam, and products separately. Equipment needing air or preheating should be planned together with its supporting supplies, rather than as a controller alone.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 11,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 17300,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "index:3": 0,

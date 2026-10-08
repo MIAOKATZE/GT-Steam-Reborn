@@ -17,7 +17,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Keep one regular 7.62 mm, 20 mm, and 35 mm ammo pack in your inventory. The packs are not consumed.§r\n\nFull capacities are 500, 160, and 60 rounds, with LV, MV, and HV recipes respectively. Partly used regular packs are accepted; mimic packs do not replace these goals.§r",
+      "desc:8": "§8Purpose and mechanism§r\nKeep one regular §17.62§r mm, §120§r mm, and §135§r mm ammo pack in your inventory. The packs are not consumed. Full capacities are §1500,§r §1160,§r and §160§r rounds, with LV, MV, and HV recipes respectively. Partly used regular packs are accepted; mimic packs do not replace these goals.\n\n§3Preparation and operation§r\nOrdinary packs use tier-appropriate plates, lead dust, gunpowder, copper foil, and circuits, with integrated-circuit settings §111,§r §112,§r and §113.§r Organize them by caliber. The check requires ordinary packs without consuming ammunition. The later mimic branch is a one-time reward choice; mimic packs do not replace these targets, and loading all three calibers into weapons is unnecessary.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -28,7 +28,7 @@
       "isMain:1": 0,
       "isSilent:1": 0,
       "lockedProgress:1": 0,
-      "name:8": "§5§lThree Calibers, Three Packs§r",
+      "name:8": "§8§lThree Calibers, Three Packs§r",
       "questLogic:8": "AND",
       "repeatTime:3": -1,
       "simultaneous:1": 0,
@@ -40,7 +40,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 78,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "minecraft:gunpowder"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "autoConsume:1": 0,

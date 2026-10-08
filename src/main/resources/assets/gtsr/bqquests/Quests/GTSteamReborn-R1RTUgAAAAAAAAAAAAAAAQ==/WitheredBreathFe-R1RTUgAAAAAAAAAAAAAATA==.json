@@ -9,13 +9,13 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Withered Breath can be collected in Prosperity's Withered Riverbed. Condensing, dissolution, and extraction recover cadmium, alumina, gallium, niobium, indium, and other metals, alongside a borax branch.§r\n\nCheck one IC2 universal fluid cell filled with 1000 mB of Withered Breath. The cell is not consumed; building the industrial line is not required.§r",
+      "desc:8": "§2Purpose and mechanism§r\nWithered Breath can be collected in Prosperity's Withered Riverbed. Condensing, dissolution, and extraction recover cadmium, alumina, gallium, niobium, indium, and other metals, alongside a borax branch. Check one named raw-fluid cell filled with §11000§r mB of Withered Breath. The cell is not consumed; building the industrial line is not required.\n\n§3Preparation and operation§r\nMetal recovery passes through condensation, dissolution, and extraction rather than directly producing ingots from collection. Keep a full cell for the target, then select metal or borax processing according to demand. Intermediate solutions do not replace the raw-fluid inventory goal. For expansion, check reagents, recipes, and destinations without mixing in another raw-fluid workflow.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
         "Damage:2": 0,
-        "OreDict:8": "",
-        "id:8": "IC2:itemFluidCell"
+        "OreDict:8": "cellwithered_breath",
+        "id:8": "gregtech:gt.metaitem.01"
       },
       "isMain:1": 0,
       "isSilent:1": 0,
@@ -32,13 +32,26 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 76,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "IC2:itemCellEmpty"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "autoConsume:1": 0,
       "consume:1": 0,
       "groupDetect:1": 0,
-      "ignoreNBT:1": 0,
+      "ignoreNBT:1": 1,
       "index:3": 0,
       "partialMatch:1": 1,
       "requireOnlyOneItem:1": 0,
@@ -46,14 +59,8 @@
         "0:10": {
           "Count:3": 1,
           "Damage:2": 0,
-          "OreDict:8": "",
-          "id:8": "IC2:itemFluidCell",
-          "tag:10": {
-            "Fluid:10": {
-              "Amount:3": 1000,
-              "FluidName:8": "withered_breath"
-            }
-          }
+          "OreDict:8": "cellwithered_breath",
+          "id:8": "gregtech:gt.metaitem.01"
         }
       },
       "taskID:8": "bq_standard:retrieval"

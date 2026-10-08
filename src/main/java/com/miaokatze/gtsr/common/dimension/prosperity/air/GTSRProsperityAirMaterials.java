@@ -1,5 +1,10 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.air;
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 
@@ -103,6 +108,49 @@ public class GTSRProsperityAirMaterials implements IMaterialHandler {
         // 不影响其余材料。
         registered += register("withered_breath", "Withered Breath", 0x008a7a52, material -> WitheredBreath = material);
         GTSteamReborn.LOG.info("[GTSR] prosperity air materials registered: " + registered);
+    }
+
+    /**
+     * 在工业材料完成原有 ID 分配后，为六种原气补充持久 ID；复用工业配置的读写与预留机制。
+     * Materials.init 尚未填充 sGeneratedMaterials，因此 GT 随后会生成标准 cell 和流体容器。
+     * 客户端与服务器须同步同一 industrial-material-ids.cfg，与既有工业材料遵循同一契约。
+     */
+    public static boolean reserveCellIds(Properties ids, Map<Integer, String> occupied) {
+        Materials[] gases = { WastesSigh, ThickGrease, MetalGrit, UmbralMire, SanzuResidualSteam, WitheredBreath };
+        Set<Integer> reserved = new HashSet<>();
+        for (String key : ids.stringPropertyNames()) {
+            reserved.add(Integer.parseInt(ids.getProperty(key)));
+        }
+        boolean updated = false;
+        for (Materials material : gases) {
+            if (material == null) throw new IllegalStateException("Prosperity raw gas material registration failed");
+            String key = "air." + material.mName;
+            String saved = ids.getProperty(key);
+            int id;
+            if (saved == null) {
+                id = 0;
+                while (id < 1000 && (occupied.containsKey(id) || reserved.contains(id))) id++;
+                if (id == 1000)
+                    throw new IllegalStateException("Not enough GT material IDs for prosperity raw gas cells");
+                ids.setProperty(key, Integer.toString(id));
+                reserved.add(id);
+                updated = true;
+            } else {
+                id = Integer.parseInt(saved);
+            }
+            if (id < 0 || id >= 1000 || occupied.containsKey(id)) {
+                throw new IllegalStateException(
+                    "Prosperity raw gas material ID conflict: " + key
+                        + "="
+                        + id
+                        + " occupied by "
+                        + occupied.get(id)
+                        + "; keep the saved ID file and resolve the mod conflict");
+            }
+            occupied.put(id, material.mName);
+            material.mMetaItemSubID = id;
+        }
+        return updated;
     }
 
     /**

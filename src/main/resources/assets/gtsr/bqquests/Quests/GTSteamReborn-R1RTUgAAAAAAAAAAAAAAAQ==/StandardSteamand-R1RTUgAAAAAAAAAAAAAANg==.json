@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Keep a standard Steam Cache Node and Universal Fluid Cache Node in your inventory to complete this check without consuming them. Completion awards the listed additional items. Standard nodes can be bound without a singularity cost. Review settings in the hub interface after deployment.§r",
+      "desc:8": "§5Purpose and mechanism§r\nKeep a standard Steam Cache Node and Universal Fluid Cache Node in your inventory to complete this non-consuming check. Standard nodes can be bound without a singularity cost. Review settings in the hub interface after deployment.\n\n§3Preparation and operation§r\nOrdinary nodes provide initial distribution points. Binding without singularity cost does not remove hub or direction settings. Possessing both nodes completes the goal; operation is not required. After installation, identify the steam and general-fluid uses separately and inspect binding and transfer state in the interface, keeping clear settings for later enhanced or overpressure versions.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,16 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 1,
-          "Damage:2": 14706,
+          "Count:3": 2,
+          "Damage:2": 17305,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.blockmachines"
-        },
-        "1:10": {
-          "Count:3": 1,
-          "Damage:2": 14709,
-          "OreDict:8": "",
-          "id:8": "gregtech:gt.blockmachines"
+          "id:8": "gregtech:gt.metaitem.01"
         }
       }
     }

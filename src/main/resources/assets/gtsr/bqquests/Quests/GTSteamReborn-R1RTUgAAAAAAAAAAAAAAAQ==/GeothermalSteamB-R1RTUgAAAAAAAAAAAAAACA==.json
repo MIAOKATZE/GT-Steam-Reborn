@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3The Large Geothermal Steam Boiler consumes lava and water to produce steam. A Geothermal Overheat Chip in the controller enables superheated output on the steel tier; the boiler also produces occasional bonus materials. Keep both fluid supplies available while it runs.§r",
+      "desc:8": "§6Purpose and mechanism§r\nThe Large Geothermal Steam Boiler consumes lava and water to produce steam. A Geothermal Overheat Chip in the controller enables superheated output on the steel tier; the boiler also produces occasional bonus materials. Keep both fluid supplies available while it runs.\n\n§3Preparation and operation§r\nArrange separate logistics paths for lava, water, and the steam outlet. After upgrading to steel and installing the chip, confirm that downstream equipment accepts superheated steam. Ordinary and distilled water differ in scaling behavior. Establish the water source before extended operation and leave access for maintenance and output handling.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

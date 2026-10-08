@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Steam can come from the Large Geothermal Steam Boiler or the Large Solar Overpressure Array. The Gear Steam Compressor converts regular steam into a smaller amount of superheated steam and distilled water. Geothermal production requires lava and water; daylight and clear weather drive solar heat gain, while stored heat can sustain production temporarily at night or during rain.§r",
+      "desc:8": "§6Purpose and mechanism§r\nSteam can come from the Large Geothermal Steam Boiler or the Large Solar Overpressure Array. The Gear Steam Compressor converts regular steam into a smaller amount of superheated steam and distilled water. Geothermal production requires lava and water; daylight and clear weather drive solar heat gain, while stored heat can sustain production temporarily at night or during rain.\n\n§3Preparation and operation§r\nChoose the required steam grade before deciding between direct production and conversion. Lava production needs continuing fuel deliveries, solar production must accommodate changing sunlight, and compression depends on an existing ordinary-steam supply. Reserve storage on both sides. Changing steam grade should not be mistaken for increasing the total fluid flow.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 3,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 1,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "minecraft:bucket"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "index:3": 0,

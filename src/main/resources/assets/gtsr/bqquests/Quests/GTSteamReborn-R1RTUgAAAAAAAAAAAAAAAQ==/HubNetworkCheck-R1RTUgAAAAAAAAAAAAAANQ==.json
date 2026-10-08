@@ -21,7 +21,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3After completing tasks for the hubs, terminal, singularity compartments, and standard cache nodes, review chips, bindings, direction, and node status. Prerequisites only record task completion; they do not mean items remain in inventory or that the network is operating. Verify the hub interface, then mark this task complete.§r",
+      "desc:8": "§5Purpose and mechanism§r\nAfter completing tasks for the hubs, terminal, singularity compartments, and standard cache nodes, review chips, bindings, direction, and node status. Prerequisites only record task completion; they do not mean items remain in inventory or that the network is operating. Verify the hub interface, then mark this task complete.\n\n§3Preparation and operation§r\nCheck the resource path in stages: the required hub chip, compatible hatch directions, correctly bound and online cache nodes, and visible terminal status. Previously collected items may now be installed or moved out of inventory without changing completed goals. Tick after reading and checking your deployment. This quest is not an automatic network diagnostic.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -44,7 +44,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 53,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 27305,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "index:3": 0,

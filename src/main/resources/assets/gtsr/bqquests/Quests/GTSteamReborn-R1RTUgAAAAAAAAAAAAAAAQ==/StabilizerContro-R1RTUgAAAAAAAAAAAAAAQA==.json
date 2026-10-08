@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Keep a critical stabilizer controller and one Critical Steam Entangled Singularity in your inventory to complete this check without consuming them. Completion awards the listed additional items. A dropped critical singularity detonates after a delay, can damage blocks, and may scatter normal singularities. Store it safely and avoid dropping it.§r",
+      "desc:8": "§dPurpose and mechanism§r\nKeep a critical stabilizer controller and one Critical Steam Entangled Singularity in your inventory to complete this non-consuming check. A dropped critical singularity detonates after a delay, can damage blocks, and may scatter normal singularities. Store it safely and avoid dropping it.\n\n§cImportant precautions§r\nPossessing both controller and critical singularity completes the goal without operating the stabilizer. Critical singularities are hazardous dropped items, so store them carefully after checking inventory and avoid accidental discards. Construction separately requires dense-steam input and product logistics. Owning one singularity does not establish a structure or supply capable of sustained production.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 1,
-          "Damage:2": 14900,
+          "Count:3": 2,
+          "Damage:2": 17305,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.blockmachines"
+          "id:8": "gregtech:gt.metaitem.01"
         }
       }
     }

@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3This task checks for the Cycle Overlimit Chip without consuming it; completion rewards one Critical Steam Entangled Singularity. The chip is used for the Mega Steam Turbine Array's cycle-overlimit feature. Read the chip and array information for conditions and risks. This task does not check installation or operation.§r",
+      "desc:8": "§2Purpose and mechanism§r\nThis task checks for the Cycle Overlimit Chip without consuming it; completion rewards one Critical Steam Entangled Singularity. The chip is used for the Mega Steam Turbine Array's cycle-overlimit feature. Read the chip and array information for conditions and risks. This task does not check installation or operation.\n\n§3Preparation and operation§r\nPossessing the chip completes the goal without entering cycle-overlimit operation. Store the rewarded critical singularity securely; it does not establish safe operation after chip installation. Before use, consult both turbine and chip documentation, then check combined dynamo capacity and electrical destinations against the conditions allowed by the current configuration.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -20,7 +20,7 @@
       "isMain:1": 0,
       "isSilent:1": 0,
       "lockedProgress:1": 0,
-      "name:8": "§3§lCycle Overlimit Chip§r",
+      "name:8": "§2§lCycle Overlimit Chip§r",
       "questLogic:8": "AND",
       "repeatTime:3": -1,
       "simultaneous:1": 0,

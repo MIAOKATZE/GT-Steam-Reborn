@@ -3,6 +3,7 @@ import contextlib
 import copy
 import io
 import json
+import shutil
 from pathlib import Path
 import sys
 import tempfile
@@ -17,6 +18,9 @@ class ReviewedPackTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.repo = Path(self.temp.name)
+        self.ws_root = self.repo / "source"
+        self.ws_dir = self.ws_root / "workspace/bq/gtsr"
+        shutil.copytree(adapter.EDITOR_ROOT / "workspace/bq/gtsr", self.ws_dir)
         self.quests = json.loads((adapter.EDITOR_ROOT / "workspace/bq/gtsr/quests.json").read_text(encoding="utf-8"))
         self.by_seq = {q["seq"]: q for q in self.quests}
         self.lang_dir = self.repo / "src/main/resources/assets/gtsr/lang"
@@ -35,7 +39,7 @@ class ReviewedPackTests(unittest.TestCase):
 
     def run_mode(self, mode):
         with contextlib.redirect_stdout(io.StringIO()):
-            return adapter.main(["--repo-root", str(self.repo), "--mode", mode])
+            return adapter.main(["--repo-root", str(self.repo), "--ws-root", str(self.ws_root), "--mode", mode])
 
     def quest(self, seq):
         return json.loads(self.paths[seq].read_text(encoding="utf-8"))
@@ -46,19 +50,23 @@ class ReviewedPackTests(unittest.TestCase):
         self.assertEqual(1, self.line["idLow"])
         self.assertEqual(900, self.line["orderIndex"])
         self.assertEqual(0, self.run_mode("audit"))
-        codec = adapter.load_module("test_codec", adapter.EDITOR_ROOT / "app/nbt.py")
-        fluid_names = []
+        cell_ores = []
         for seq in range(71, 77):
             task = self.quest(seq)["tasks:9"]["0:10"]
             stack = task["requiredItems:9"]["0:10"]
             ws_stack = self.by_seq[seq]["tasks"][0]["items"][0]
-            self.assertEqual((0, 0), (task["consume:1"], task["ignoreNBT:1"]))
-            self.assertEqual(("IC2:itemFluidCell", 0, 1), (stack["id:8"], stack["Damage:2"], stack["Count:3"]))
-            self.assertEqual(ws_stack["nbt"], stack["tag:10"])
-            self.assertEqual(stack["tag:10"], codec.tree_to_bq_json(codec.bq_json_to_tree(stack["tag:10"])))
-            self.assertEqual(1000, stack["tag:10"]["Fluid:10"]["Amount:3"])
-            fluid_names.append(stack["tag:10"]["Fluid:10"]["FluidName:8"])
-        self.assertEqual(6, len(set(fluid_names)))
+            self.assertEqual(0, task["consume:1"])
+            self.assertEqual(("gregtech:gt.metaitem.01", 0, 1),
+                             (stack["id:8"], stack["Damage:2"], stack["Count:3"]))
+            self.assertEqual(ws_stack["oredict"], stack["OreDict:8"])
+            self.assertNotIn("tag:10", stack)
+            cell_ores.append(stack["OreDict:8"])
+        self.assertEqual({"cellwastesigh", "cellthickgrease", "cellmetalgrit", "cellumbralmire",
+                          "cellsanzu_residual_steam", "cellwithered_breath"}, set(cell_ores))
+        location = self.quest(70)["tasks:9"]["0:10"]
+        self.assertEqual("bq_standard:location", location["taskID:8"])
+        self.assertEqual(("prosperity", 78, -1),
+                         (location["gtsrDimension:8"], location["dimension:3"], location["range:3"]))
         reward = self.quest(79)["rewards:9"]
         self.assertEqual(1, len(reward))
         self.assertEqual("bq_standard:choice", reward["0:10"]["rewardID:8"])
@@ -78,6 +86,11 @@ class ReviewedPackTests(unittest.TestCase):
             self.assertTrue((self.lang_dir / (lang + ".lang")).read_text(encoding="utf-8").startswith("outside.block=preserve\n"))
 
     def test_audit_detects_missing_and_wrong_fluid_nbt(self):
+        # Preserve typed-NBT tamper coverage with a dedicated temporary source fixture.
+        self.by_seq[71]["tasks"][0]["items"][0]["nbt"] = {
+            "Fluid:10": {"FluidName:8": "wastesigh", "Amount:3": 1000}}
+        (self.ws_dir / "quests.json").write_text(json.dumps(self.quests), encoding="utf-8")
+        self.assertEqual(0, self.run_mode("generate"))
         path = self.paths[71]
         original = self.quest(71)
         changed = copy.deepcopy(original)
@@ -88,6 +101,25 @@ class ReviewedPackTests(unittest.TestCase):
         changed["tasks:9"]["0:10"]["requiredItems:9"]["0:10"]["tag:10"]["Fluid:10"]["FluidName:8"] = "wrongfluid"
         path.write_text(json.dumps(changed), encoding="utf-8")
         self.assertEqual(1, self.run_mode("audit"))
+
+    def test_location_schema_and_oredict_compatibility(self):
+        shared = adapter.load_module("test_location_shared", adapter.EDITOR_ROOT / "tools/generate_bq_assets.py")
+        codec = adapter.load_module("test_location_codec", adapter.EDITOR_ROOT / "app/nbt.py")
+        adapter.install_adapter(shared, codec)
+        stack = shared.stack_nbt(*shared.parse_stack({"item": "gregtech:gt.metaitem.01", "count": 24,
+                                                     "oredict": "cellwastesigh"}))
+        self.assertEqual("cellwastesigh", stack["OreDict:8"])
+        self.assertEqual(24, stack["Count:3"])
+        entry = shared.build_tasks([{"type": "checkbox"}, {"type": "location", "dimension_key": "prosperity"}])["1:10"]
+        self.assertEqual({"index:3": 1, "taskID:8": "bq_standard:location", "name:8": "Prosperity",
+                          "posX:3": 0, "posY:3": 0, "posZ:3": 0, "dimension:3": 78,
+                          "biome:3": -1, "structure:8": "", "range:3": -1, "visible:1": 0,
+                          "hideInfo:1": 0, "invert:1": 0, "taxiCabDist:1": 0,
+                          "gtsrDimension:8": "prosperity"}, entry)
+        with self.assertRaises(ValueError):
+            shared.build_tasks([{"type": "location", "dimension_key": "other"}])
+        with self.assertRaises(ValueError):
+            shared.build_tasks([{"type": "location", "dimension_key": "prosperity", "range": 16}])
 
     def test_real_existing_lang_preserves_prefix_suffix_bytes(self):
         begin = b"# BQ quests BEGIN"

@@ -1,0 +1,72 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 68
+    },
+    "1:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 69
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "§2Purpose and mechanism§r\nProsperity is the exploration destination for this chapter. Touch the core of an operating Spacetime Singularity Calibration Engineering structure to enter. The default dimension ID is §178§r and may be changed by server configuration. Before departure, mark a safe return location and charge the beacon. This goal detects actual entry into Prosperity, without a required coordinate or manual checkbox. First arrival grants the Prosperity history book and navigation compass automatically.\n\n§3Preparation and operation§r\nAfter arrival, inspect your landing site and surroundings before consulting the automatically granted history book and navigation compass. Navigation finds registered ruins and does not replace a return beacon. The six raw-fluid goals introduce biome collection and industrial uses; choose routes according to your equipment. This arrival does not require collecting every fluid or building processing lines.",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 0,
+        "OreDict:8": "",
+        "id:8": "gtsr:ProsperityStone"
+      },
+      "isMain:1": 0,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "§2§lEnter the Prosperity Dimension§r",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 70,
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "minecraft:bread"
+        }
+      }
+    }
+  },
+  "tasks:9": {
+    "0:10": {
+      "biome:3": -1,
+      "dimension:3": 78,
+      "gtsrDimension:8": "prosperity",
+      "hideInfo:1": 0,
+      "index:3": 0,
+      "invert:1": 0,
+      "name:8": "Prosperity",
+      "posX:3": 0,
+      "posY:3": 0,
+      "posZ:3": 0,
+      "range:3": -1,
+      "structure:8": "",
+      "taskID:8": "bq_standard:location",
+      "taxiCabDist:1": 0,
+      "visible:1": 0
+    }
+  }
+}

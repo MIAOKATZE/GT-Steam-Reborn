@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Keep a Gear Steam Compressor controller in your inventory to complete this item check; the items are not consumed. The compressor converts regular steam into a smaller amount of superheated steam and distilled water, so it requires a steady steam supply.§r",
+      "desc:8": "§6Purpose and mechanism§r\nKeep a Gear Steam Compressor controller in your inventory to complete this item check; the items are not consumed. The compressor converts regular steam into a smaller amount of superheated steam and distilled water, so it requires a steady steam supply.\n\n§3Preparation and operation§r\nOnce you have the controller, plan where conversion belongs in the supply network: ordinary steam at the inlet, with separate superheated-steam and distilled-water outlets. This inventory check does not require a structure or an operating conversion line. For production, use the tier documentation to check throughput and byproduct handling; collecting the controller is not an operational acceptance test.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 1,
-          "Damage:2": 14855,
+          "Count:3": 2,
+          "Damage:2": 17305,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.blockmachines"
+          "id:8": "gregtech:gt.metaitem.01"
         }
       }
     }

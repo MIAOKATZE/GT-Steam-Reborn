@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Keep one QLZ04 Portable Grenade Launcher in your inventory for this non-consuming check.§r\n\nThe QLZ04 is an HV assembler weapon using 35 mm ammo packs. It offers standard grenades, shotgun spread, and an 8-round hub magazine mode. The regular magazine holds 12 rounds; the hub magazine fires every 4 ticks.\n\nDefault controls: C changes mode, V changes ammunition, and R reloads. Left-click fires and right-click aims. Key bindings can be changed in settings.§r",
+      "desc:8": "§8Purpose and mechanism§r\nKeep one QLZ04 Portable Grenade Launcher in your inventory for this non-consuming check. The QLZ04 is an HV assembler weapon using §135§r mm ammo packs. It offers standard grenades, shotgun spread, and an §18§r-round hub magazine mode. The regular magazine holds §112§r rounds; the hub magazine fires every §14§r ticks. Default controls: C changes mode, V changes ammunition, and R reloads. Left-click fires and right-click aims. Key bindings can be changed in settings.\n\n§3Preparation and operation§r\nThe recipe uses stainless-steel plates and long rods, HV motors and a piston, HV circuits, and an integrated circuit set to §13.§r Magazine size and firing cadence vary by mode, so check the current state after switching. This inventory goal requires no firing. Prepare §135§r mm ammunition and verify key bindings before practicing the modes in a suitable space.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -20,7 +20,7 @@
       "isMain:1": 0,
       "isSilent:1": 0,
       "lockedProgress:1": 0,
-      "name:8": "§5§lQLZ04 Portable Grenade Launcher§r",
+      "name:8": "§8§lQLZ04 Portable Grenade Launcher§r",
       "questLogic:8": "AND",
       "repeatTime:3": -1,
       "simultaneous:1": 0,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 81,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 17306,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "autoConsume:1": 0,

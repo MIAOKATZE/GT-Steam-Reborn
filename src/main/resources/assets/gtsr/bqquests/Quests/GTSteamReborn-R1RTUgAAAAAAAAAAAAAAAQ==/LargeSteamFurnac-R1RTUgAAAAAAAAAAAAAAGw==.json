@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Keep a Large Steam Furnace controller in your inventory to complete this item check; the items are not consumed. The furnace processes smelting recipes with steam; tier and recipe affect its throughput and supply needs. Check the controller tooltip before planning upgrades.§r",
+      "desc:8": "§3Purpose and mechanism§r\nKeep a Large Steam Furnace controller in your inventory to complete this item check; the items are not consumed. The furnace processes smelting recipes with steam; tier and recipe affect its throughput and supply needs. Check the controller tooltip before planning upgrades.\n\n§3Preparation and operation§r\nThis check establishes controller possession, not structure validity, recipe execution, or current steam supply. List the §2product§rion jobs to move from existing smelting equipment, then choose buses and output handling for the tier. Before starting, verify the recipe and steam inlet, especially after increasing parallelism, so blocked output is not mistaken for a supply problem.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 1,
-          "Damage:2": 14804,
+          "Count:3": 2,
+          "Damage:2": 17300,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.blockmachines"
+          "id:8": "gregtech:gt.metaitem.01"
         }
       }
     }

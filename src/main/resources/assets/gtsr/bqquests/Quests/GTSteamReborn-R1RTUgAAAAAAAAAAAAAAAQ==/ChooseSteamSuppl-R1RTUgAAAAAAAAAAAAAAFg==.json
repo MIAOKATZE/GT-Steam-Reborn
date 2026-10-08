@@ -17,7 +17,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Compare the two steam producers with the steam converter: geothermal output requires lava and water; solar output varies with sunlight, heat and water; the Gear Steam Compressor consumes regular steam to make less superheated steam plus distilled water. Choose a mix that fits your supply and demand rather than treating all three as sources.§r",
+      "desc:8": "§6Purpose and mechanism§r\nCompare the two steam producers with the steam converter: geothermal output requires lava and water; solar output varies with sunlight, heat and water; the Gear Steam Compressor consumes regular steam to make less superheated steam plus distilled water. Choose a mix that fits your supply and demand rather than treating all three as sources.\n\n§3Preparation and operation§r\nYou may plan continuous and supplementary supply separately, but each route needs its own inputs and suitable outlets. Compare available lava, water, sunlight, and ordinary-steam surplus before combining equipment. Tick after reading. This goal does not require all three devices to operate together, and completion does not replace checking their actual supply capacity.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -40,7 +40,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 22,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 1,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "minecraft:bucket"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "index:3": 0,

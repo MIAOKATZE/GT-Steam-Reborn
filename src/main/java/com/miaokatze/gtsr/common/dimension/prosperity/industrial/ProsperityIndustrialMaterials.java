@@ -14,6 +14,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import gregtech.api.enums.MaterialBuilder;
@@ -90,6 +91,8 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
             }
             occupied.put(id, definition.name);
         }
+        // Preserve every existing industrial ID and its first-allocation order before allocating raw gas cells.
+        updated |= GTSRProsperityAirMaterials.reserveCellIds(ids, occupied);
         // Save the complete mapping before creating any materials; failure cannot partially remap saved stacks.
         if (updated) saveIds(ids);
         for (IndustrialRecipeLedger.MaterialDefinition definition : IndustrialRecipeLedger.get().materials) {

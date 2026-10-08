@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3The Steam Mineral Processing Cluster supports configurable multi-stage chains. Steam demand depends on enabled links, processing units, and settings rather than a fixed step count or multiplier. Preheat as indicated and meet steam, lubricant, and logistics-module requirements before operation.§r",
+      "desc:8": "§3Purpose and mechanism§r\nThe Steam Mineral Processing Cluster supports configurable multi-stage chains. Steam demand depends on enabled links, processing units, and settings rather than a fixed step count or multiplier. Preheat as indicated and meet steam, lubricant, and logistics-module requirements before operation.\n\n§3Preparation and operation§r\nDefine the processing steps each mineral needs before enabling their links and units. Logistics modules connect the workflow but do not replace steam, lubricant, or preheating. After changing the chain, recheck consumption and output destinations rather than expecting products from disabled steps. Follow interface startup conditions and monitor intermediate and §2final outputs§r during operation.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 51,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 17305,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "index:3": 0,
