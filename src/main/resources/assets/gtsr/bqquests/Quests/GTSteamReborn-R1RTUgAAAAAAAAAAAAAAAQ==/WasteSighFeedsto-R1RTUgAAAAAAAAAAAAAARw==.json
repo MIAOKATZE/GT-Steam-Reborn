@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§2Purpose and mechanism§r\nWaste Sigh can be collected in Prosperity's Rusted Steppe. Condense and acid-treat the feed to recover phosphorus, calcium, arsenic, boron, barium, and other minerals. Check one named raw-fluid cell filled with §11000§r mB of Waste Sigh. The cell is not consumed; building the industrial line is not required.\n\n§3Preparation and operation§r\nLocate the correct biome before collection. Reagents for later acidification are not inputs to this quest. Keep a full cell of the raw fluid for the inventory check and reserve further stock for condensation and separation. Downstream mineral branches have different processing requirements; understanding their destinations is enough without building the entire recovery line for this goal.",
+      "desc:8": "§3§lPurpose and mechanism§r\nWaste Sigh can be collected in Prosperity's Rusted Steppe. Condense and acid-treat the feed to recover phosphorus, calcium, arsenic, boron, barium, and other minerals. Check one named raw-fluid cell filled with §11000§r mB of Waste Sigh. §2The cell is not consumed§r; building the industrial line is not required.\n\n§3§lPreparation and operation§r\nLocate the correct biome before collection. Reagents for later acidification are not inputs to this quest. Keep a full cell of the raw fluid for the inventory check and reserve further stock for condensation and separation. Downstream mineral branches have different processing requirements; understanding their destinations is enough without building the entire recovery line for this goal.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,7 +38,7 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
+          "Count:3": 8,
           "Damage:2": 0,
           "OreDict:8": "",
           "id:8": "IC2:itemCellEmpty"

@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§2Purpose and mechanism§r\nKeep a Mega Steam Turbine Array controller in your inventory to complete this non-consuming check. Before operation, ensure combined dynamo output can meet the EU request; insufficient capacity causes an explosion.\n\n§cImportant precautions§r\nThis quest does not inspect dynamo hatches or electrical output, so completing the inventory check does not establish safe startup. After construction, calculate dynamo capacity and compare it with the request for the steam grade and configuration. When expanding, check input, turbine, and power network together. Rewards or later chips do not replace resolving the explosion risk from insufficient output capacity.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep a Mega Steam Turbine Array controller in your inventory to complete this non-consuming check. Before operation, ensure combined dynamo output can meet the EU request; §cinsufficient capacity causes an explosion.§r\n\n§3§lImportant precautions§r\nThis quest does not inspect dynamo hatches or electrical output, so completing the inventory check does not establish safe startup. After construction, calculate dynamo capacity and compare it with the request for the steam grade and configuration. When expanding, check input, turbine, and power network together. Rewards or later chips do not replace resolving the explosion risk from insufficient output capacity.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 17305,
+          "Count:3": 6,
+          "Damage:2": 305,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gregtech:gt.blockframes"
         }
       }
     }

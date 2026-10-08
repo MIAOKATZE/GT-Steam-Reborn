@@ -111,6 +111,9 @@ public final class IndustrialMaterialColors {
         colors.put("planned:active_fungal_suspension", 0xff8ba766);
         colors.put("planned:fungal_conversion_liquor", 0xffadbd87);
         colors.put("planned:clarified_fungal_liquor", 0xffc7d6a0);
+        colors.put("planned:prosperity_dust", 0xff8d9ba9);
+        colors.put("planned:prosperity_reminiscence", 0xff7da6bd);
+        colors.put("planned:prosperity_obsession", 0xff456785);
         return Collections.unmodifiableMap(colors);
     }
 

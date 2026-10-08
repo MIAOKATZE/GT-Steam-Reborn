@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.loader;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.log;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.industrial.ProsperityIndustrialRecipes;
+import com.miaokatze.gtsr.loader.recipes.AbyssalObsessionRecipes;
 import com.miaokatze.gtsr.loader.recipes.ClusterRecipes;
 import com.miaokatze.gtsr.loader.recipes.DisplayRecipes;
 import com.miaokatze.gtsr.loader.recipes.HatchRecipes;
@@ -72,6 +73,7 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("Cluster", ClusterRecipes::addRecipes); // 矿物处理集群 14 组件：14 条全组装机配方
                                                              // （GTUDK 用户规格）：eut 30/32=LV、128=MV，磁选与筛选为 MV
         safeRegister("ProsperityIndustrial", ProsperityIndustrialRecipes::registerAll);
+        safeRegister("AbyssalObsession", AbyssalObsessionRecipes::register);
         safeRegister("SpacetimeEngineering", SpacetimeMachineRecipes::register);
         com.miaokatze.gtsr.loader.recipes.PortableWeaponRecipes.register();
     }

@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§5Purpose and mechanism§r\nKeep the four steam and fluid singularity-compartment controllers in your inventory to complete this non-consuming check. Follow each controller's input/output direction information and verify node status in the hub interface.\n\n§3Preparation and operation§r\nThese four singularity-hatch controllers differ by medium and direction and are not freely interchangeable. The quest checks inventory only. Deployment still requires the correct hatch for the resource and a configured network. After connecting logistics, verify nodes and directions in the hub interface before observing transfers. For unexpected states, inspect binding and resource type first.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep the four steam and fluid singularity-compartment controllers in your inventory to complete this non-consuming check. Follow each controller's input/output direction information and verify node status in the hub interface.\n\n§3§lPreparation and operation§r\nThese four singularity-hatch controllers differ by medium and direction and are not freely interchangeable. The quest checks inventory only. Deployment still requires the correct hatch for the resource and a configured network. After connecting logistics, verify nodes and directions in the hub interface before observing transfers. For unexpected states, inspect binding and resource type first.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,8 +38,20 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 27305,
+          "Count:3": 48,
+          "Damage:2": 17378,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    },
+    "1:10": {
+      "index:3": 1,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 48,
+          "Damage:2": 17378,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"
         }

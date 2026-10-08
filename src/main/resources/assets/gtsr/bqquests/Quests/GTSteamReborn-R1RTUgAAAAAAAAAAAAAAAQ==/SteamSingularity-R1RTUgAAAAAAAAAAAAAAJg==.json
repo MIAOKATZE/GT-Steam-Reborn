@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§dPurpose and mechanism§r\nThe Steam Singularity Entangler requires the correct structure, steam input, and processing conditions, and sends products to its output bus. Steam grade, heat, and output space affect operation; check its status and machine information. This manual checklist does not verify that it has started or produced anything.\n\n§3Preparation and operation§r\nCheck steam supply, heat conditions, and singularity output as separate parts of the process. Products go to an output bus, so arrange item logistics rather than only fluid outlets. Ticking this goal records that you have read the mechanism. For production, observe controller state, verify structure and inputs, and ensure output space before sustained operation.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThe Steam Singularity Entangler requires the correct structure, steam input, and processing conditions, and sends products to its output bus. Steam grade, heat, and output space affect operation; check its status and machine information. This manual checklist does not verify that it has started or produced anything.\n\n§3§lPreparation and operation§r\nCheck steam supply, heat conditions, and singularity output as separate parts of the process. Products go to an output bus, so arrange item logistics rather than only fluid outlets. For production, observe controller state, verify structure and inputs, and ensure output space before sustained operation.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 17305,
+          "Count:3": 4,
+          "Damage:2": 305,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gregtech:gt.blockframes"
         }
       }
     }

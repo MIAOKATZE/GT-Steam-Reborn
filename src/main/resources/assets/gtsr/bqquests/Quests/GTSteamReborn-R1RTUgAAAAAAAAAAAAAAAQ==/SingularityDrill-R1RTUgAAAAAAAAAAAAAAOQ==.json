@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§dPurpose and mechanism§r\nThe Singularity Drilling Hub requires superheated steam, but it does not receive the usual processing-speed boost from that steam. Bind drilling and mining nodes according to the hub's rules; binding and upgrades may consume singularities. Check node information for requirements. This is a manual checklist.\n\n§3Preparation and operation§r\nChoose the resource roles of the hub and nodes before checking binding and upgrade conditions. Superheated steam is an operating requirement here, not the usual processing speed multiplier. Reserve singularities separately for binding, upgrades, and other uses. Inspect interface state after configuration; possessing nodes does not establish completed network connections.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThe Singularity Drilling Hub requires superheated steam, but it does not receive the usual processing-speed boost from that steam. Bind drilling and mining nodes according to the hub's rules; binding and upgrades may consume singularities. Check node information for requirements. This is a manual checklist.\n\n§3§lPreparation and operation§r\nChoose the resource roles of the hub and nodes before checking binding and upgrade conditions. Superheated steam is an operating requirement here, not the usual processing speed multiplier. Reserve singularities separately for binding, upgrades, and other uses. Inspect interface state after configuration; possessing nodes does not establish completed network connections.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 27305,
+          "Count:3": 5,
+          "Damage:2": 305,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gregtech:gt.blockframes"
         }
       }
     }

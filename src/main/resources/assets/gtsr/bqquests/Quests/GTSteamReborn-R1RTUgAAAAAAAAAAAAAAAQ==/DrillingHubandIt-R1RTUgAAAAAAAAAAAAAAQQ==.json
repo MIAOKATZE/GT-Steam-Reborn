@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§dPurpose and mechanism§r\nKeep a Singularity Drilling Hub, Drilling Node, and Mining Node in your inventory to complete this non-consuming check. Meet the hub's structure and superheated-steam requirements, then bind and upgrade nodes as described. Review costs and effects in the interface.\n\n§3Preparation and operation§r\nThis inventory goal establishes possession of three controllers, not hub structure, superheated-steam supply, or node connections. Deploy the hub first, then configure binding and upgrades for each node's purpose. Check singularity costs for separate operations and inspect interface status. Completed prerequisite quests do not establish that mining and drilling outputs are available.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep a Singularity Drilling Hub, Drilling Node, and Mining Node in your inventory to complete this non-consuming check. Meet the hub's structure and superheated-steam requirements, then bind and upgrade nodes as described. Review costs and effects in the interface.\n\n§3§lPreparation and operation§r\nThis inventory goal establishes possession of three controllers, not hub structure, superheated-steam supply, or node connections. Deploy the hub first, then configure binding and upgrades for each node's purpose. Check singularity costs for separate operations and inspect interface status. Completed prerequisite quests do not establish that mining and drilling outputs are available.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 27305,
+          "Count:3": 5,
+          "Damage:2": 305,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gregtech:gt.blockframes"
         }
       }
     }

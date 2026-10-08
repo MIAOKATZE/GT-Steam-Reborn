@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§dPurpose and mechanism§r\nKeep a Steam Singularity Entangler controller in your inventory to complete this non-consuming check. Operation also requires the correct structure, steam, and processing conditions, with output space available.\n\n§3Preparation and operation§r\nController possession completes this goal without requiring singularity production. When building, plan steam input separately from item output and check heat and processing conditions. Before continuous operation, verify the output bus and storage route. Collect singularities as items rather than leaving them on the ground, where delayed explosions are a hazard.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep a Steam Singularity Entangler controller in your inventory to complete this non-consuming check. Operation also requires the correct structure, steam, and processing conditions, with output space available.\n\n§3§lPreparation and operation§r\nWhen building, plan steam input separately from item output and check heat and processing conditions. Before continuous operation, verify the output bus and storage route. Collect singularities as items rather than leaving them on the ground, where delayed explosions are a hazard.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,8 +38,8 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 17305,
+          "Count:3": 32,
+          "Damage:2": 17804,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"
         }

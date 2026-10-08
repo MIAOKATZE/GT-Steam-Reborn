@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§2Purpose and mechanism§r\nThe Mega Steam Turbine Array consumes steam and produces EU; steam type affects output. Before starting, ensure combined dynamo output can meet the array's demand. If requested output exceeds that capacity, the array explodes. Check machine information for grade and efficiency details.\n\n§cImportant precautions§r\nBefore generation, calculate combined dynamo-hatch capacity and plan steam input and electrical destinations. Capacity checking is required before startup; ticking the quest or having free battery storage does not establish safety. Recheck the output request after changes to steam grade, tier, or configuration. Resolve inadequate capacity explicitly instead of relying on a brief trial run.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThe Mega Steam Turbine Array consumes steam and produces EU; steam type affects output. Before starting, ensure combined dynamo output can meet the array's demand. §cIf requested output exceeds that capacity, the array explodes.§r Check machine information for grade and efficiency details.\n\n§3§lImportant precautions§r\nBefore generation, calculate combined dynamo-hatch capacity and plan steam input and electrical destinations. Capacity checking is required before startup; ticking the quest or having free battery storage does not establish safety. Recheck the output request after changes to steam grade, tier, or configuration. Resolve inadequate capacity explicitly instead of relying on a brief trial run.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,8 +38,8 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 17305,
+          "Count:3": 12,
+          "Damage:2": 19305,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"
         }

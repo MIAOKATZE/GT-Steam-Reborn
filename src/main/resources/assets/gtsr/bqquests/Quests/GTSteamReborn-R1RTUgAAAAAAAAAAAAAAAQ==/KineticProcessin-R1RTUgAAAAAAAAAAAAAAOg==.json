@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Purpose and mechanism§r\nKeep a Kinetic Processing Array controller in your inventory to complete this non-consuming check. Live use requires the correct structure, recipe, inputs, and steam supply. The array uses superheated steam, and its tier settings affect processing.\n\n§3Preparation and operation§r\nAfter collecting the controller, plan tier, gears, pipes, and inputs/§2output§rs around the selected processing. This non-consuming inventory goal does not require assembly or a completed recipe. Superheated steam and recipe ingredients must both meet operating conditions. Recheck consumption, output space, and recipe limits after changing parallelism or equipment configuration.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep a Kinetic Processing Array controller in your inventory to complete this non-consuming check. Live use requires the correct structure, recipe, inputs, and steam supply. The array uses superheated steam, and its tier settings affect processing.\n\n§3§lPreparation and operation§r\nAfter collecting the controller, plan tier, gears, pipes, and inputs/outputs around the selected processing. Superheated steam and recipe ingredients must both meet operating conditions. Recheck consumption, output space, and recipe limits after changing parallelism or equipment configuration.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -39,9 +39,9 @@
       "rewards:9": {
         "0:10": {
           "Count:3": 2,
-          "Damage:2": 17305,
+          "Damage:2": 305,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gregtech:gt.blockframes"
         }
       }
     }

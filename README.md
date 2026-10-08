@@ -9,7 +9,7 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0 beta1-3 & RC1-2" src="https://img.shields.io/badge/GTNH-2.9.0%20beta1--3%20%26%20RC1--2-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.20.98" src="https://img.shields.io/badge/Release-1.20.98-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.21.1" src="https://img.shields.io/badge/Release-1.21.1-green.svg"></a>
 </p>
 
 GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
@@ -434,7 +434,7 @@ GTSR 机器专用蒸汽输出仓。
 
 ## BetterQuesting Questline Integration / BetterQuesting 任务线整合
 
-<p align="center"><img src="README/BQ.png" width="450" alt="任务线「GT 蒸汽重生」任务总览 / Quest line GT Steam Reborn overview: guided quests"><br><em>任务线「GT 蒸汽重生」，连线为任务依赖 / Quest line "GT Steam Reborn"; lines are quest dependencies</em></p>
+<p align="center"><img src="README/BQ.png" width="1000" alt="任务线「GT 蒸汽重生」任务总览 / Quest line GT Steam Reborn overview: guided quests"><br><em>任务线「GT 蒸汽重生」：84 个引导任务，连线为任务依赖 / Quest line "GT Steam Reborn": 84 guided quests; lines are quest dependencies</em></p>
 
 - **内置引导任务线**：任务覆盖青铜基地建设、蒸汽经济学、枢纽网络到奇点账户的完整进度线，任务标题与描述随游戏语言自动切换（中/英）。/ **Built-in guided questline**: guided quests covering the full progression from bronze-base acceptance and steam economics to hub networks and the singularity account; quest titles and descriptions follow the game language (CN/EN).
 - **自动更新**：进入世界自动加载引导任务，模组升级会刷新任务内容并保留完成与领取进度。/ **Automatic updates**: quest definitions refresh on world entry while keeping completion and claim progress.
@@ -446,4 +446,4 @@ GTSR 机器专用蒸汽输出仓。
 
 采用 AGPL-3.0 许可证，详见 LICENSE 文件。
 
-文档更新：2026-10-07 · 当前版本：1.20.98
+文档更新：2026-10-08 · 当前版本：1.21.1

@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§6Purpose and mechanism§r\nThe Large Solar Overpressure Array uses water rather than fuel. Tier, sky visibility, heat and solar-boiler boosters affect output; the nickel tier produces superheated steam. Daylight and clear weather drive heating, but stored heat can continue producing steam after those conditions end. Shade reduces sky visibility, so plan storage and check the machine status.\n\n§3Preparation and operation§r\nChoose the array tier before building with its required materials and checking sunlight above it. Fuel-free operation still requires water and buffering for nighttime and weather changes. Nickel-tier output changes steam grade, so recheck the fluid throughout the supply route. Do not ignore downstream input conditions when redirecting a different steam grade.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThe Large Solar Overpressure Array uses water rather than fuel. Tier, sky visibility, heat and solar-boiler boosters affect output; the nickel tier produces superheated steam. Daylight and clear weather drive heating, but stored heat can continue producing steam after those conditions end. Shade reduces sky visibility, so plan storage and check the machine status.\n\n§3§lPreparation and operation§r\nChoose the array tier before building with its required materials and checking sunlight above it. Fuel-free operation still requires water and buffering for nighttime and weather changes. Nickel-tier output changes steam grade, so recheck the fluid throughout the supply route. Do not ignore downstream input conditions when redirecting a different steam grade.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -39,9 +39,9 @@
       "rewards:9": {
         "0:10": {
           "Count:3": 4,
-          "Damage:2": 105,
+          "Damage:2": 0,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.blockmachines"
+          "id:8": "minecraft:glass"
         }
       }
     }

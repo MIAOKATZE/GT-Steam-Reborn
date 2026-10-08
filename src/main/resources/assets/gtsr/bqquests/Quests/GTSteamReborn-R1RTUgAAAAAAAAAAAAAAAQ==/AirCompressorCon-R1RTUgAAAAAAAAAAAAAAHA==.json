@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Purpose and mechanism§r\nKeep an Air Compressor controller in your inventory to complete this item check; the items are not consumed. The machine consumes steam to produce §2air§r for downstream recipes, including gas processing and the Siemens-Martin Furnace. Match its output and storage capacity to the machines you plan to run.\n\n§3Preparation and operation§r\nSeparate controller collection from air-production preparation: this goal does not inspect tanks, pipes, or downstream machines. Once built, identify the recipes that will receive air and match output capacity to their demand. If the compressor and air consumers share steam supply, account for both rather than verifying only that the compressor can start.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep an Air Compressor controller in your inventory to complete this item check; §2the items are not consumed§r. The machine consumes steam to produce air for downstream recipes, including gas processing and the Siemens-Martin Furnace. Match its output and storage capacity to the machines you plan to run.\n\n§3§lPreparation and operation§r\nSeparate controller collection from air-production preparation: this goal does not inspect tanks, pipes, or downstream machines. Once built, identify the recipes that will receive air and match output capacity to their demand. If the compressor and air consumers share steam supply, account for both rather than verifying only that the compressor can start.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -39,9 +39,9 @@
       "rewards:9": {
         "0:10": {
           "Count:3": 2,
-          "Damage:2": 17300,
+          "Damage:2": 351,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gregtech:gt.blockframes"
         }
       }
     }

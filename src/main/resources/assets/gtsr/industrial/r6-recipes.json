@@ -759,6 +759,32 @@
       "phase": "fluid",
       "temperatureK": 310,
       "introducedVersion": 95
+    },
+    {
+      "id": "planned:prosperity_dust",
+      "name": "gtsr_industrial_prosperity_dust",
+      "en": "Prosperity Dust",
+      "zh": "繁荣尘埃",
+      "phase": "dust",
+      "introducedVersion": 7
+    },
+    {
+      "id": "planned:prosperity_reminiscence",
+      "name": "gtsr_industrial_prosperity_reminiscence",
+      "en": "Prosperity Reminiscence",
+      "zh": "繁荣追忆",
+      "phase": "fluid",
+      "temperatureK": 295,
+      "introducedVersion": 7
+    },
+    {
+      "id": "planned:prosperity_obsession",
+      "name": "gtsr_industrial_prosperity_obsession",
+      "en": "Prosperity Obsession",
+      "zh": "繁荣执念",
+      "phase": "fluid",
+      "temperatureK": 373,
+      "introducedVersion": 7
     }
   ],
   "recipes": [
@@ -1059,14 +1085,14 @@
           "kind": "fluid"
         },
         {
-          "id": "planned:sanzu_organic_fraction",
-          "amount": 3000,
+          "id": "planned:washed_sanzu",
+          "amount": 2000,
           "unit": "L",
           "kind": "fluid"
         },
         {
-          "id": "planned:washed_sanzu",
-          "amount": 2000,
+          "id": "planned:active_fungal_suspension",
+          "amount": 3000,
           "unit": "L",
           "kind": "fluid"
         }
@@ -1302,41 +1328,6 @@
           "amount": 3,
           "unit": "dust",
           "kind": "item"
-        }
-      ]
-    },
-    {
-      "id": "SZ-14",
-      "lineId": "sanzu_residual_steam",
-      "machineMap": "multiblockChemicalReactorRecipes",
-      "EUt": 30,
-      "ticks": 600,
-      "inputs": [
-        {
-          "id": "planned:sanzu_organic_fraction",
-          "amount": 3000,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
-          "id": "standard:Materials.FermentedBiomass",
-          "amount": 2000,
-          "unit": "L",
-          "kind": "fluid"
-        },
-        {
-          "id": "standard:Materials.Air",
-          "amount": 1000,
-          "unit": "L",
-          "kind": "fluid"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "planned:active_fungal_suspension",
-          "amount": 6000,
-          "unit": "L",
-          "kind": "fluid"
         }
       ]
     },

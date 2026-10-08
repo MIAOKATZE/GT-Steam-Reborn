@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Purpose and mechanism§r\nKeep the controllers for the Reinforced Brick Blast Furnace, Large Coke Oven and Crust Steam Borer in your inventory to complete this item check. Each machine has different input and §2output§r requirements; review their individual machine guides before starting production.\n\n§3Preparation and operation§r\nThis is an inventory check for three controllers. It neither consumes them nor inspects their structures. Build in the order of your current processing needs; collecting them together does not require simultaneous construction. Design each machine's ingredients and product routes separately rather than treating coking, smelting, and drilling as one generic steam process.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep the controllers for the Reinforced Brick Blast Furnace, Large Coke Oven and Crust Steam Borer in your inventory to complete this item check. Each machine has different input and output requirements; review their individual machine guides before starting production.\n\n§3§lPreparation and operation§r\nBuild in the order of your current processing needs; collecting them together does not require simultaneous construction. Design each machine's ingredients and product routes separately rather than treating coking, smelting, and drilling as one generic steam process.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 17305,
+          "Count:3": 4,
+          "Damage:2": 0,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "minecraft:brick_block"
         }
       }
     }

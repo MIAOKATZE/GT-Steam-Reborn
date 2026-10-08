@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§6Purpose and mechanism§r\nIf GTNL is installed, enabling GTSR's GTNL steam enhancement in the configuration adds superheated-steam speedup and cooling-hatch support to supported GTNL steam machines. The option is off by default. If GTNL is absent or the option is disabled, those machines keep their usual behavior.\n\n§3Preparation and operation§r\nThis is a compatibility-setting explanation. Completing it neither installs GTNL nor enables a server option. Before using the affected machines, verify the installed mods and server setting, then check hatch support on the chosen device. If the option is inactive, plan around the original machine rules instead of designing supply around enhanced throughput.",
+      "desc:8": "§3§lPurpose and mechanism§r\nIf GTNL is installed, enabling GTSR's GTNL steam enhancement in the configuration adds superheated-steam speedup and cooling-hatch support to supported GTNL steam machines. The option is off by default. If GTNL is absent or the option is disabled, those machines keep their usual behavior.\n\n§3§lPreparation and operation§r\nThis is a compatibility-setting explanation. Completing it neither installs GTNL nor enables a server option. Before using the affected machines, verify the installed mods and server setting, then check hatch support on the chosen device. If the option is inactive, plan around the original machine rules instead of designing supply around enhanced throughput.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,7 +38,7 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
+          "Count:3": 8,
           "Damage:2": 17300,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"

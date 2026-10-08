@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§5Purpose and mechanism§r\nAfter binding a cache node to a hub, the hub periodically resolves and checks its status. If its dimension or chunk is unavailable, the node may not respond immediately and will be retried later. Some actions load the target chunk, but do not keep it loaded permanently. Confirm binding and status in the interface, then mark this checklist complete.\n\n§3Preparation and operation§r\nAfter binding, allow the periodic check to run and inspect online state in the interface. Distinguish an unavailable chunk from a configuration error instead of overwriting settings after a single missed response. For unattended supply, provide suitable chunk availability. Temporary loading performed by an operation does not mean the node keeps its destination loaded permanently.",
+      "desc:8": "§3§lPurpose and mechanism§r\nAfter binding a cache node to a hub, the hub periodically resolves and checks its status. If its dimension or chunk is unavailable, the node may not respond immediately and will be retried later. Some actions load the target chunk, but do not keep it loaded permanently. Confirm binding and status in the interface, then mark this checklist complete.\n\n§3§lPreparation and operation§r\nAfter binding, allow the periodic check to run and inspect online state in the interface. Distinguish an unavailable chunk from a configuration error instead of overwriting settings after a single missed response. For unattended supply, provide suitable chunk availability.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 27305,
+          "Count:3": 4,
+          "Damage:2": 0,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gtsr:SteamEntangledSingularity"
         }
       }
     }

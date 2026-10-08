@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§8Purpose and mechanism§r\nKeep one QLZ04 Portable Grenade Launcher in your inventory for this non-consuming check. The QLZ04 is an HV assembler weapon using §135§r mm ammo packs. It offers standard grenades, shotgun spread, and an §18§r-round hub magazine mode. The regular magazine holds §112§r rounds; the hub magazine fires every §14§r ticks. Default controls: C changes mode, V changes ammunition, and R reloads. Left-click fires and right-click aims. Key bindings can be changed in settings.\n\n§3Preparation and operation§r\nThe recipe uses stainless-steel plates and long rods, HV motors and a piston, HV circuits, and an integrated circuit set to §13.§r Magazine size and firing cadence vary by mode, so check the current state after switching. This inventory goal requires no firing. Prepare §135§r mm ammunition and verify key bindings before practicing the modes in a suitable space.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep one QLZ04 Portable Grenade Launcher in your inventory for this non-consuming check. The QLZ04 is an HV assembler weapon using §135§r mm ammo packs. It offers standard grenades, shotgun spread, and an §18§r-round hub magazine mode. The regular magazine holds §112§r rounds; the hub magazine fires every §14§r ticks. Default controls: C changes mode, V changes ammunition, and R reloads. Left-click fires and right-click aims. Key bindings can be changed in settings.\n\n§3§lPreparation and operation§r\nThe recipe uses stainless-steel plates and long rods, HV motors and a piston, HV circuits, and an integrated circuit set to §13§r. Magazine size and firing cadence vary by mode, so check the current state after switching. This inventory goal requires no firing. Prepare §135§r mm ammunition and verify key bindings before practicing the modes in a suitable space.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,8 +38,20 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
+          "Count:3": 8,
           "Damage:2": 17306,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        },
+        "1:10": {
+          "Count:3": 1,
+          "Damage:2": 32602,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        },
+        "2:10": {
+          "Count:3": 1,
+          "Damage:2": 32642,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"
         }

@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Purpose and mechanism§r\nKeep an Ammonia Plant controller and Nickel Catalyst in your inventory to complete this non-consuming check. The plant must reach preheat before processing recipes, and catalysts determine available routes. Check the controller information for steam input and output requirements.\n\n§3Preparation and operation§r\nCollecting the controller and nickel catalyst does not require preheating or §2ammonia§r production. For construction, identify the recipe route supported by the catalyst and prepare ingredients, steam, and outputs according to the machine documentation. If preheating is incomplete, additional ingredients alone will not resolve the wait. Inspect temperature and state to distinguish warm-up from missing recipe inputs.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep an Ammonia Plant controller and Nickel Catalyst in your inventory to complete this non-consuming check. The plant must reach preheat before processing recipes, and catalysts determine available routes. Check the controller information for steam input and output requirements.\n\n§3§lPreparation and operation§r\nCollecting the controller and nickel catalyst does not require preheating or ammonia production. For construction, identify the recipe route supported by the catalyst and prepare ingredients, steam, and outputs according to the machine documentation. If preheating is incomplete, additional ingredients alone will not resolve the wait. Inspect temperature and state to distinguish warm-up from missing recipe inputs.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,8 +38,8 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 17034,
+          "Count:3": 16,
+          "Damage:2": 17306,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"
         }

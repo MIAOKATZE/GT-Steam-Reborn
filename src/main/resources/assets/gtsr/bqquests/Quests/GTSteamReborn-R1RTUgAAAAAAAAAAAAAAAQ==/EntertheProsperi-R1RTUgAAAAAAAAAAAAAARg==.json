@@ -13,7 +13,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§2Purpose and mechanism§r\nProsperity is the exploration destination for this chapter. Touch the core of an operating Spacetime Singularity Calibration Engineering structure to enter. The default dimension ID is §178§r and may be changed by server configuration. Before departure, mark a safe return location and charge the beacon. This goal detects actual entry into Prosperity, without a required coordinate or manual checkbox. First arrival grants the Prosperity history book and navigation compass automatically.\n\n§3Preparation and operation§r\nAfter arrival, inspect your landing site and surroundings before consulting the automatically granted history book and navigation compass. Navigation finds registered ruins and does not replace a return beacon. The six raw-fluid goals introduce biome collection and industrial uses; choose routes according to your equipment. This arrival does not require collecting every fluid or building processing lines.",
+      "desc:8": "§3§lPurpose and mechanism§r\nProsperity is the exploration destination for this chapter. Touch the core of an operating Spacetime Singularity Calibration Engineering structure to enter. The default dimension ID is §178§r and may be changed by server configuration. Before departure, mark a safe return location and charge the beacon. This goal detects actual entry into Prosperity, without a required coordinate or manual checkbox. First arrival grants the Prosperity history book and navigation compass automatically.\n\n§3§lPreparation and operation§r\nAfter arrival, inspect your landing site and surroundings before consulting the automatically granted history book and navigation compass. Navigation finds registered ruins and does not replace a return beacon. The six raw-fluid goals introduce biome collection and industrial uses; choose routes according to your equipment. This arrival does not require collecting every fluid or building processing lines.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -42,10 +42,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
+          "Count:3": 4,
           "Damage:2": 0,
           "OreDict:8": "",
-          "id:8": "minecraft:bread"
+          "id:8": "gtsr:CriticalSteamEntangledSingularity"
         }
       }
     }

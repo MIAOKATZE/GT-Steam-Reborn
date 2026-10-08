@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Purpose and mechanism§r\nThe Atmospheric Centrifuge processes gas recipes. On the steel tier, installing a Rare Gas Separation Chip enables the §2rare-gas§r recipe set; the chip does not generally increase speed or yield. The chip has no effect on the bronze tier.\n\n§3Preparation and operation§r\nUse the centrifuge for the gas processing you need before deciding on the steel-tier rare-gas branch. The chip changes the available recipe group rather than acting as a general speed upgrade. Check the branch's gas ingredients and output routes. Owning the chip alone does not meet its operating condition if the machine tier is unsuitable.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThe Atmospheric Centrifuge processes gas recipes. On the steel tier, installing a Rare Gas Separation Chip enables the rare-gas recipe set; the chip does not generally increase speed or yield. The chip has no effect on the bronze tier.\n\n§3§lPreparation and operation§r\nUse the centrifuge for the gas processing you need before deciding on the steel-tier rare-gas branch. The chip changes the available recipe group rather than acting as a general speed upgrade. Check the branch's gas ingredients and output routes. Owning the chip alone does not meet its operating condition if the machine tier is unsuitable.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -39,9 +39,9 @@
       "rewards:9": {
         "0:10": {
           "Count:3": 2,
-          "Damage:2": 17305,
+          "Damage:2": 351,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gregtech:gt.blockframes"
         }
       }
     }

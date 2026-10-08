@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§2Purpose and mechanism§r\nWithered Breath can be collected in Prosperity's Withered Riverbed. Condensing, dissolution, and extraction recover cadmium, alumina, gallium, niobium, indium, and other metals, alongside a borax branch. Check one named raw-fluid cell filled with §11000§r mB of Withered Breath. The cell is not consumed; building the industrial line is not required.\n\n§3Preparation and operation§r\nMetal recovery passes through condensation, dissolution, and extraction rather than directly producing ingots from collection. Keep a full cell for the target, then select metal or borax processing according to demand. Intermediate solutions do not replace the raw-fluid inventory goal. For expansion, check reagents, recipes, and destinations without mixing in another raw-fluid workflow.",
+      "desc:8": "§3§lPurpose and mechanism§r\nWithered Breath can be collected in Prosperity's Withered Riverbed. Condensing, dissolution, and extraction recover cadmium, alumina, gallium, niobium, indium, and other metals, alongside a borax branch. Check one named raw-fluid cell filled with §11000§r mB of Withered Breath. §2The cell is not consumed§r; building the industrial line is not required.\n\n§3§lPreparation and operation§r\nMetal recovery passes through condensation, dissolution, and extraction rather than directly producing ingots from collection. Keep a full cell for the target, then select metal or borax processing according to demand. Intermediate solutions do not replace the raw-fluid inventory goal. For expansion, check reagents, recipes, and destinations without mixing in another raw-fluid workflow.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,7 +38,7 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
+          "Count:3": 8,
           "Damage:2": 0,
           "OreDict:8": "",
           "id:8": "IC2:itemCellEmpty"

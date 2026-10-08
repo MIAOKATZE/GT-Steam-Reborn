@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Purpose and mechanism§r\nKeep a Siemens-Martin Furnace controller in your inventory to complete this item check; the items are not consumed. When running the furnace, provide superheated steam for preheat and processing, plus §2air§r while recipes are active. Preheat consumes more steam than normal recipe operation.\n\n§3Preparation and operation§r\nAfter obtaining the controller, plan preheating and steady processing as separate supply situations. Air is consumed during recipes, while superheated steam must cover both preheating and processing. Their delivery schedules therefore differ. This inventory goal does not inspect temperature or production. Prepare ingredients, air, and output routes before operating and observe warm-up before scheduling batches.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep a Siemens-Martin Furnace controller in your inventory to complete this item check; §2the items are not consumed§r. When running the furnace, provide superheated steam for preheat and processing, plus air while recipes are active. Preheat consumes more steam than normal recipe operation.\n\n§3§lPreparation and operation§r\nAfter obtaining the controller, plan preheating and steady processing as separate supply situations. Air is consumed during recipes, while superheated steam must cover both preheating and processing. Their delivery schedules therefore differ. This inventory goal does not inspect temperature or production. Prepare ingredients, air, and output routes before operating and observe warm-up before scheduling batches.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,8 +38,8 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 17305,
+          "Count:3": 6,
+          "Damage:2": 22305,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"
         }

@@ -4,7 +4,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§6Purpose and mechanism§r\nWelcome to Steam Reborn. This quest line introduces steam machinery, processing, hub logistics and singularity technology, then looks toward electricity-related progression. Follow each entry for its own checkbox, crafting, or inventory goal.\n\n§3Preparation and operation§r\nStart with steam supply, distinguish ordinary from superheated steam, and choose controllers and hatches for the intended processing. Logistics and singularity equipment have their own binding or processing conditions; an existing steam pipe network alone does not establish readiness. Tick this introduction after reading. Later inventory goals check items, while crafting goals record actual production.",
+      "desc:8": "§3§lPurpose and mechanism§r\nWelcome to Steam Reborn. This quest line introduces steam machinery, processing, hub logistics and singularity technology, then looks toward electricity-related progression. Follow each entry for its own checkbox, crafting, or inventory goal.\n\n§3§lPreparation and operation§r\nStart with steam supply, distinguish ordinary from superheated steam, and choose controllers and hatches for the intended processing. Logistics and singularity equipment have their own binding or processing conditions; an existing steam pipe network alone does not establish readiness. Tick this introduction after reading. Later inventory goals check items, while crafting goals record actual production.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -33,7 +33,7 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
+          "Count:3": 8,
           "Damage:2": 17300,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"

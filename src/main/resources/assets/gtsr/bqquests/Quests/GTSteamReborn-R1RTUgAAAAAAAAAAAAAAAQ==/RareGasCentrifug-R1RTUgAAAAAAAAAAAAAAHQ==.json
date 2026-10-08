@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Purpose and mechanism§r\nKeep an Atmospheric Centrifuge controller and a Rare Gas Separation Chip in your inventory to complete this item check; the items are not consumed. The chip enables the §2rare-gas§r recipe branch only on the steel tier. Consult the centrifuge tooltip for its inputs and recipe requirements.\n\n§3Preparation and operation§r\nThis goal checks both controller and chip without requiring installation. To use the chip, confirm a steel-tier centrifuge and choose matching rare-gas recipes and inputs. It provides no universal multiplier for gas processing. If ordinary recipes meet current demand, keep the standard route and expand only for the gases you actually lack.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep an Atmospheric Centrifuge controller and a Rare Gas Separation Chip in your inventory to complete this item check; §2the items are not consumed§r. The chip enables the rare-gas recipe branch only on the steel tier. Consult the centrifuge tooltip for its inputs and recipe requirements.\n\n§3§lPreparation and operation§r\nThis goal checks both controller and chip without requiring installation. To use the chip, confirm a steel-tier centrifuge and choose matching rare-gas recipes and inputs. It provides no universal multiplier for gas processing. If ordinary recipes meet current demand, keep the standard route and expand only for the gases you actually lack.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,8 +38,8 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 17305,
+          "Count:3": 16,
+          "Damage:2": 18306,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"
         }

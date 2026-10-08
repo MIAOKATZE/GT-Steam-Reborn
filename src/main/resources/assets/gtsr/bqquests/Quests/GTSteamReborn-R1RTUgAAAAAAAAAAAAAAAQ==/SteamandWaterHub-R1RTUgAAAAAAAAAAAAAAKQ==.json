@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§5Purpose and mechanism§r\nKeep Steam Hub Array and Water Hub Array controllers in your inventory to complete this non-consuming check. The hubs manage steam and fluid storage and transfer respectively; behavior depends on structures, chips, bound nodes, and input/output configuration.\n\n§3Preparation and operation§r\nDecide which hub manages steam and which manages other fluids, then plan storage units and their nodes. Possessing both controllers does not complete a network or verify chips, input/output configuration, or chunk connections. During deployment, inspect capacity, direction, and binding state in the hub interface rather than counting unconnected nodes as available supply.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep Steam Hub Array and Water Hub Array controllers in your inventory to complete this non-consuming check. The hubs manage steam and fluid storage and transfer respectively; behavior depends on structures, chips, bound nodes, and input/output configuration.\n\n§3§lPreparation and operation§r\nDecide which hub manages steam and which manages other fluids, then plan storage units and their nodes. Possessing both controllers does not complete a network or verify chips, input/output configuration, or chunk connections. During deployment, inspect capacity, direction, and binding state in the hub interface rather than counting unconnected nodes as available supply.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -39,9 +39,9 @@
       "rewards:9": {
         "0:10": {
           "Count:3": 2,
-          "Damage:2": 17305,
+          "Damage:2": 300,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gregtech:gt.blockframes"
         }
       }
     }

@@ -17,7 +17,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§8Purpose and mechanism§r\nKeep one regular §17.62§r mm, §120§r mm, and §135§r mm ammo pack in your inventory. The packs are not consumed. Full capacities are §1500,§r §1160,§r and §160§r rounds, with LV, MV, and HV recipes respectively. Partly used regular packs are accepted; mimic packs do not replace these goals.\n\n§3Preparation and operation§r\nOrdinary packs use tier-appropriate plates, lead dust, gunpowder, copper foil, and circuits, with integrated-circuit settings §111,§r §112,§r and §113.§r Organize them by caliber. The check requires ordinary packs without consuming ammunition. The later mimic branch is a one-time reward choice; mimic packs do not replace these targets, and loading all three calibers into weapons is unnecessary.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep one regular §17.62§r mm, §120§r mm, and §135§r mm ammo pack in your inventory. §2The packs are not consumed§r. Full capacities are §1500§r, §1160§r, and §160§r rounds, with LV, MV, and HV recipes respectively. Partly used regular packs are accepted; mimic packs do not replace these goals.\n\n§3§lPreparation and operation§r\nOrdinary packs use tier-appropriate plates, lead dust, gunpowder, copper foil, and circuits, with integrated-circuit settings §111§r, §112§r, and §113§r. Organize them by caliber. The check requires ordinary packs without consuming ammunition. The later mimic branch is a one-time reward choice; mimic packs do not replace these targets, and loading all three calibers into weapons is unnecessary.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -46,10 +46,22 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
+          "Count:3": 1,
           "Damage:2": 0,
           "OreDict:8": "",
-          "id:8": "minecraft:gunpowder"
+          "id:8": "gtsr:Ammo762Pack"
+        },
+        "1:10": {
+          "Count:3": 1,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "gtsr:Ammo20Pack"
+        },
+        "2:10": {
+          "Count:3": 1,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "gtsr:Ammo35Pack"
         }
       }
     }

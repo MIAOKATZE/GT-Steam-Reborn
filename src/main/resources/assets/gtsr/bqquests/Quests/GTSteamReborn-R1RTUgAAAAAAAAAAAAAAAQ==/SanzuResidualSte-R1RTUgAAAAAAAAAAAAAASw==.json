@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§2Purpose and mechanism§r\nSanzu Residual Steam can be collected in Prosperity's Sanzu River. Distillation separates fluorine, hydrogen, nitrogen, methane, and organic fractions while leaving a mineral liquor; downstream products include cinnabar, redstone, and fluorite. Check one named raw-fluid cell filled with §11000§r mB of Sanzu Residual Steam. The cell is not consumed; building the industrial line is not required.\n\n§3Preparation and operation§r\nCollect the raw fluid in its biome before planning condensation, distillation, and mineral-water processing. Gases, organic fractions, and mineral byproducts need separate downstream arrangements; distillation alone does not yield every final product. Preserve one full raw-fluid cell for this inventory goal. During industrial processing, check fraction and aqueous-phase outlets and storage separately.",
+      "desc:8": "§3§lPurpose and mechanism§r\nSanzu Residual Steam can be collected in Prosperity's Sanzu River. Distillation separates fluorine, hydrogen, nitrogen, methane, and Active Fungal Suspension while leaving a mineral liquor; downstream products include cinnabar, redstone, and fluorite. Check one named raw-fluid cell filled with §11000§r mB of Sanzu Residual Steam. §2The cell is not consumed§r; building the industrial line is not required.\n\n§3§lPreparation and operation§r\nCollect the raw fluid in its biome before planning condensation, distillation, and mineral-water processing. Distillation of Sanzu Residual Steam Condensate directly produces §13000§r mB of Active Fungal Suspension at its highest used fluid-output layer, layer §19§r. Collect it there for downstream organic-product processing. Gases, Active Fungal Suspension, and mineral byproducts need separate downstream arrangements; distillation alone does not yield every final product. Preserve one full raw-fluid cell for this inventory goal. During industrial processing, check fraction and aqueous-phase outlets and storage separately.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,7 +38,7 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
+          "Count:3": 8,
           "Damage:2": 0,
           "OreDict:8": "",
           "id:8": "IC2:itemCellEmpty"

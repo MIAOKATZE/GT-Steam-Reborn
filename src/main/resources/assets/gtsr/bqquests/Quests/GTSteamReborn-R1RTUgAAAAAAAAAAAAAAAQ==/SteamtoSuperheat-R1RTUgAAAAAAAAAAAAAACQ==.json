@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§6Purpose and mechanism§r\nThe Gear Steam Compressor converts regular steam into superheated steam and a small amount of distilled water. Its output is only a fraction of the steam it consumes, so use it to cover a limited shortfall rather than as a net steam source. Its rate depends on tier; consult the controller tooltip for details.\n\n§3Preparation and operation§r\nThe compressor supplements steam grade using existing supply infrastructure; it does not replace a boiler. Plan separate ordinary-steam input, superheated-steam output, and distilled-water byproduct paths so a blocked byproduct does not obstruct conversion. Match the selected tier to demand. When supply falls short, check production and the input route before upgrading.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThe Gear Steam Compressor converts regular steam into superheated steam and a small amount of distilled water. Its output is only a fraction of the steam it consumes, so use it to cover a limited shortfall rather than as a net steam source. Its rate depends on tier; consult the controller tooltip for details.\n\n§3§lPreparation and operation§r\nThe compressor supplements steam grade using existing supply infrastructure; it does not replace a boiler. Plan separate ordinary-steam input, superheated-steam output, and distilled-water byproduct paths so a blocked byproduct does not obstruct conversion. Match the selected tier to demand. When supply falls short, check production and the input route before upgrading.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -39,9 +39,9 @@
       "rewards:9": {
         "0:10": {
           "Count:3": 2,
-          "Damage:2": 17305,
+          "Damage:2": 351,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gregtech:gt.blockframes"
         }
       }
     }

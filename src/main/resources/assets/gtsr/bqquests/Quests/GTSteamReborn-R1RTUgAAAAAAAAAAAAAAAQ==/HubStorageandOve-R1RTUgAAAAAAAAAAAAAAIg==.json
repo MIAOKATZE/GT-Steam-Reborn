@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§5Purpose and mechanism§r\nSteam and water hub capacity depends on storage units and controller-chip configuration; check current machine information for exact values. Input overflow and output-hatch overflow are separate settings. Configure them for your input, storage, and downstream needs. Complete this checklist manually.\n\n§3Preparation and operation§r\nDistinguish internal hub storage from output-hatch handling before deciding where overflow is appropriate. More capacity does not replace correct transfer direction, and resource destinations still matter when downstream equipment stops. After changing storage units or chips, recheck the displayed capacity and status so settings serve your storage needs rather than merely increasing a number.",
+      "desc:8": "§3§lPurpose and mechanism§r\nSteam and water hub capacity depends on storage units and controller-chip configuration; check current machine information for exact values. Input overflow and output-hatch overflow are separate settings. Configure them for your input, storage, and downstream needs. Complete this checklist manually.\n\n§3§lPreparation and operation§r\nDistinguish internal hub storage from output-hatch handling before deciding where overflow is appropriate. More capacity does not replace correct transfer direction, and resource destinations still matter when downstream equipment stops. After changing storage units or chips, recheck the displayed capacity and status so settings serve your storage needs rather than merely increasing a number.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -39,7 +39,7 @@
       "rewards:9": {
         "0:10": {
           "Count:3": 2,
-          "Damage:2": 17305,
+          "Damage:2": 19300,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"
         }

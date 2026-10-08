@@ -21,7 +21,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Purpose and mechanism§r\nThis chapter reviews steam production, processing, hub logistics, singularity machinery, and steam power generation. Prerequisites record completion of controller-collection tasks; they do not mean the items remain in inventory or machines are built or operating. Review your equipment and configuration, then mark this task complete. Use current in-game information for counts and costs.\n\n§3Preparation and operation§r\nReview the route as steam supply, processing, logistics, singularities, and power, identifying the steps your production actually lacks. Collected controllers may remain stored; this review does not require operating every machine. Before exploration and equipment branches, assess your resources and power plan. Manual completion records §2reading and planning§r, not machine state or current inventory quantities.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThis chapter reviews steam production, processing, hub logistics, singularity machinery, and steam power generation. Prerequisites record completion of controller-collection tasks; they do not mean the items remain in inventory or machines are built or operating. Review your equipment and configuration, then mark this task complete. Use current in-game information for counts and costs.\n\n§3§lPreparation and operation§r\nReview the route as steam supply, processing, logistics, singularities, and power, identifying the steps your production actually lacks. Collected controllers may remain stored; this review does not require operating every machine. Before exploration and equipment branches, assess your resources and power plan. Manual completion records reading and planning, not machine state or current inventory quantities.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -50,10 +50,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 27305,
+          "Count:3": 4,
+          "Damage:2": 0,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gtsr:CriticalSteamEntangledSingularity"
         }
       }
     }

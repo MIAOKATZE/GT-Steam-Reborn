@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Purpose and mechanism§r\nThis lesson groups the Reinforced Brick Blast Furnace, Large Coke Oven and Crust Steam Borer. They serve different processing roles and have separate operating conditions: check each machine's requirements, temperature behavior and outputs before planning steam supply or item handling.\n\n§3Preparation and operation§r\nThe reinforced brick blast furnace, large coke oven, and crust steam drill serve different processes and cannot be treated as interchangeable steam modules. Check their ingredients, products, and operating conditions separately, including routes for §2coking byproducts§r and drilling output. Tick after reading their documentation. This goal does not require building all three structures at once.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThis lesson groups the Reinforced Brick Blast Furnace, Large Coke Oven and Crust Steam Borer. They serve different processing roles and have separate operating conditions: check each machine's requirements, temperature behavior and outputs before planning steam supply or item handling.\n\n§3§lPreparation and operation§r\nThe reinforced brick blast furnace, large coke oven, and crust steam drill serve different processes and cannot be treated as interchangeable steam modules. Check their ingredients, products, and operating conditions separately, including routes for coking byproducts and drilling output. Tick after reading their documentation. This goal does not require building all three structures at once.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -41,7 +41,7 @@
           "Count:3": 4,
           "Damage:2": 0,
           "OreDict:8": "",
-          "id:8": "minecraft:brick"
+          "id:8": "minecraft:brick_block"
         }
       }
     }

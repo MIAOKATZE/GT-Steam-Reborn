@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Purpose and mechanism§r\nThe Steam Fluid Drill can produce §2water§r, distilled water, brine or lava. Its efficiency rises during operation from a positive minimum output; steel-tier production can reach a higher maximum. Switching output mode is available at steel tier and resets the accumulated efficiency, so choose a mode before building up production.\n\n§3Preparation and operation§r\nThe four modes serve different fluid demands. Check downstream destinations and stored amounts before switching. A steel-tier mode change rebuilds efficiency, so startup output cannot be assumed equal to the previous steady rate. For multiple fluids, plan usage schedules and storage around this variation, keeping mode, outlet, and tank labels consistent.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThe Steam Fluid Drill can produce water, distilled water, brine or lava. Its efficiency rises during operation from a positive minimum output; steel-tier production can reach a higher maximum. Switching output mode is available at steel tier and resets the accumulated efficiency, so choose a mode before building up production.\n\n§3§lPreparation and operation§r\nThe four modes serve different fluid demands. Check downstream destinations and stored amounts before switching. A steel-tier mode change rebuilds efficiency, so startup output cannot be assumed equal to the previous steady rate. For multiple fluids, plan usage schedules and storage around this variation, keeping mode, outlet, and tank labels consistent.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,7 +38,7 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 1,
+          "Count:3": 4,
           "Damage:2": 0,
           "OreDict:8": "",
           "id:8": "minecraft:bucket"

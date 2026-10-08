@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§6Purpose and mechanism§r\nWith automatic input enabled, supported hatches and buses pull compatible fluids or items from the inventory directly in front of them. A screwdriver cycles the filter and auto-input settings; on an input bus, sneak-right-click changes its sorting and stack-limit settings. Transfers are rate-limited: a fluid hatch moves up to §11,000§r mB every §1100§r ticks, and a bus processes up to one inventory slot per §1100§r ticks.\n\n§3Preparation and operation§r\nPlace the source container directly in front of the hatch or bus, then check filtering and automatic input separately. Sorting and stack limits are bus settings and do not replace fluid-transfer rules. Buffer a continuous production line around the extraction interval. For mixed ingredients, verify that filtering still leaves the needed slots eligible for transfer.",
+      "desc:8": "§3§lPurpose and mechanism§r\nWith automatic input enabled, supported hatches and buses pull compatible fluids or items from the inventory directly in front of them. A screwdriver cycles the filter and auto-input settings; on an input bus, sneak-right-click changes its sorting and stack-limit settings. Transfers are rate-limited: a fluid hatch moves up to §11,000§r mB every §1100§r ticks, and a bus processes up to one inventory slot per §1100§r ticks.\n\n§3§lPreparation and operation§r\nPlace the source container directly in front of the hatch or bus, then check filtering and automatic input separately. Sorting and stack limits are bus settings and do not replace fluid-transfer rules. Buffer a continuous production line around the extraction interval. For mixed ingredients, verify that filtering still leaves the needed slots eligible for transfer.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,7 +38,7 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
+          "Count:3": 4,
           "Damage:2": 17057,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"

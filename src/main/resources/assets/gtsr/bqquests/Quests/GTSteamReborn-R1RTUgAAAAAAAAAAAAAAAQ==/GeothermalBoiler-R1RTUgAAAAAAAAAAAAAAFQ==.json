@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§6Purpose and mechanism§r\nKeep a Large Geothermal Steam Boiler controller in your inventory to complete this item check; the items are not consumed. When building the boiler, match the tiered materials, then supply lava and water. The steel tier can use a Geothermal Overheat Chip for superheated output.\n\n§3Preparation and operation§r\nPlan boiler materials, lava delivery, and water supply together when choosing a tier. This controller check does not require connected fluids or an installed superheat chip; those belong to later construction and operation. For a steel-tier superheated route, verify downstream compatibility and plan either descaling or distilled-water supply so maintenance does not interrupt the whole network.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep a Large Geothermal Steam Boiler controller in your inventory to complete this item check; §2the items are not consumed§r. When building the boiler, match the tiered materials, then supply lava and water. The steel tier can use a Geothermal Overheat Chip for superheated output.\n\n§3§lPreparation and operation§r\nPlan boiler materials, lava delivery, and water supply together when choosing a tier. This controller check does not require connected fluids or an installed superheat chip; those belong to later construction and operation. For a steel-tier superheated route, verify downstream compatibility and plan either descaling or distilled-water supply so maintenance does not interrupt the whole network.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,8 +38,8 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 17300,
+          "Count:3": 4,
+          "Damage:2": 17305,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"
         }

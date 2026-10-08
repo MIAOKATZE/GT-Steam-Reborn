@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§6Purpose and mechanism§r\nGTSR adds several useful machine and hatch behaviors, including the Redstone Hatch. On supported boilers, sneak-right-click the controller with an empty hand to clear scale. A screwdriver can toggle automatic input and filters on supported input hatches and buses; steam buses also gain improved pipe transfer, and eligible GT++ steam multiblocks can use cooling hatches. A Redstone Hatch reads a machine progress value and outputs a redstone signal; a structure can use up to four.\n\n§3Preparation and operation§r\nThese changes cover boiler maintenance, input transfer, steam use, and progress monitoring. Do not assume every machine supports every feature. Check the controller and hatch type before changing a setting, then observe its effect. A redstone signal can help monitor production, but maintenance, filtering, and fluid recovery still require separate configuration.",
+      "desc:8": "§3§lPurpose and mechanism§r\nGTSR adds several useful machine and hatch behaviors, including the Redstone Hatch. On supported boilers, sneak-right-click the controller with an empty hand to clear scale. A screwdriver can toggle automatic input and filters on supported input hatches and buses; steam buses also gain improved pipe transfer, and eligible GT++ steam multiblocks can use cooling hatches. A Redstone Hatch reads a machine progress value and outputs a redstone signal; a structure can use up to four.\n\n§3§lPreparation and operation§r\nThese changes cover boiler maintenance, input transfer, steam use, and progress monitoring. Do not assume every machine supports every feature. Check the controller and hatch type before changing a setting, then observe its effect. A redstone signal can help monitor production, but maintenance, filtering, and fluid recovery still require separate configuration.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,8 +38,8 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 27305,
+          "Count:3": 4,
+          "Damage:2": 27300,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"
         }

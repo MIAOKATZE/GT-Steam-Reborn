@@ -333,6 +333,10 @@
         {
           "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/EquipmentandExpl-R1RTUgAAAAAAAAAAAAAAUw==.json",
           "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/EquipmentandExpl-R1RTUgAAAAAAAAAAAAAAUw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ObtainingAbyssal-R1RTUgAAAAAAAAAAAAAAVA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ObtainingAbyssal-R1RTUgAAAAAAAAAAAAAAVA==.json"
         }
       ],
       "idHigh": 5139824686389002240,

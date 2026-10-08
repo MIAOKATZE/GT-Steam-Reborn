@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§5Purpose and mechanism§r\nHub logistics has three parts: hubs move resources, cache nodes buffer and distribute them, and terminals provide access to linked networks. A hub needs the appropriate singularity chip to transfer resources; nodes must be bound and configured for the intended network. Use the machine guides for range, capacity and cross-dimension rules.\n\n§3Preparation and operation§r\nFirst decide which resources each hub will manage, then select cache nodes for their destinations. Terminals, chips, binding, and transfer directions address different requirements and do not replace one another. If a node is offline, inspect its target chunk and binding state. Before extending range, dimensions, or capacity, read the relevant device limits and costs.",
+      "desc:8": "§3§lPurpose and mechanism§r\nHub logistics has three parts: hubs move resources, cache nodes buffer and distribute them, and terminals provide access to linked networks. A hub needs the appropriate singularity chip to transfer resources; nodes must be bound and configured for the intended network. Use the machine guides for range, capacity and cross-dimension rules.\n\n§3§lPreparation and operation§r\nFirst decide which resources each hub will manage, then select cache nodes for their destinations. Terminals, chips, binding, and transfer directions address different requirements and do not replace one another. If a node is offline, inspect its target chunk and binding state. Before extending range, dimensions, or capacity, read the relevant device limits and costs.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 17305,
+          "Count:3": 4,
+          "Damage:2": 0,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gtsr:SteamEntangledSingularity"
         }
       }
     }

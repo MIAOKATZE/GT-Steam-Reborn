@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§5Purpose and mechanism§r\nThis task records crafting a Hub Terminal and rewards a standard Hub Singularity Chip. The terminal provides hub status management; using it on a bound cache node opens its editor. The status interface can travel to a bound node, consuming one Steam Entangled Singularity per use rather than charging by distance.\n\n§3Preparation and operation§r\nAfter crafting the terminal, use it to inspect hub state and manage bound nodes at their locations. The reward chip addresses a transfer requirement; it does not bind the network automatically. Opening a node editor and travelling to a node are distinct actions. Carry a steam entangled singularity for travel and check the destination; the cost is per trip rather than distance-based.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThis task records crafting a Hub Terminal and provides §116§r extra steel plates. The terminal provides hub status management; using it on a bound cache node opens its editor. The status interface can travel to a bound node, consuming one Steam Entangled Singularity per use rather than charging by distance.\n\n§3§lPreparation and operation§r\nAfter crafting the terminal, use it to inspect hub state and manage bound nodes at their locations. Opening a node editor and travelling to a node are distinct actions. Carry a steam entangled singularity for travel and check the destination; the cost is per trip rather than distance-based.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 1,
-          "Damage:2": 0,
+          "Count:3": 16,
+          "Damage:2": 17305,
           "OreDict:8": "",
-          "id:8": "gtsr:HubSingularityChip"
+          "id:8": "gregtech:gt.metaitem.01"
         }
       }
     }

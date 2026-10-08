@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§6Purpose and mechanism§r\nCooling hatches collect steam byproducts from supported machines. Regular steam yields §11§r L of distilled water per §1160§r L consumed; superheated steam is returned as regular steam at a §11:1§r ratio through the pressure cooling hatch. These conversions do not return all consumed steam as water, so size storage and output capacity accordingly.\n\n§3Preparation and operation§r\nChoose recovery paths for the steam grade actually being consumed. Distilled water from ordinary steam and ordinary steam from superheated steam require different outlets. Confirm hatch support before connecting storage and downstream users. The recovery ratio determines logistics capacity; fitting a cooling hatch alone does not establish a closed supply loop.",
+      "desc:8": "§3§lPurpose and mechanism§r\nCooling hatches collect steam byproducts from supported machines. Regular steam yields §11§r L of distilled water per §1160§r L consumed; superheated steam is returned as regular steam at a §11:1§r ratio through the pressure cooling hatch. These conversions do not return all consumed steam as water, so size storage and output capacity accordingly.\n\n§3§lPreparation and operation§r\nChoose recovery paths for the steam grade actually being consumed. Distilled water from ordinary steam and ordinary steam from superheated steam require different outlets. Confirm hatch support before connecting storage and downstream users. The recovery ratio determines logistics capacity; fitting a cooling hatch alone does not establish a closed supply loop.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,7 +38,7 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
+          "Count:3": 8,
           "Damage:2": 17300,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"

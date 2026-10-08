@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§5Purpose and completion§r\nAs processing and power develop, prepare portable equipment and plan a journey to Prosperity. This quest is the shared entrance to two branches. Tick after reading; weapons, the calibrator, and a return beacon need not already be made. Choose an order according to your resources without needing every device or all six raw fluids at once.\n\n§3Portable equipment§r\nProgress from the LM12 through the T20, QLZ04, and Project §1107§r to learn about LV, MV, HV, and EV weapons, crafting components, and caliber-matched supplies. Preparing the three ordinary ammunition packs unlocks a one-time choice of one mimic pack. Consider your current weapon before choosing.\n\n§3Exploring Prosperity§r\nPrepare the Spacetime Singularity Calibration Engineering and a charged Anchor Beacon, marking a safe return location before departure. The arrival goal detects actual dimension entry. The six raw-fluid quests explain industrial uses and only require their corresponding named cells filled with raw fluid, without building processing lines.",
+      "desc:8": "§3§lPurpose and completion§r\nAs processing and power develop, prepare portable equipment and plan a journey to Prosperity. This quest is the shared entrance to two branches. Tick after reading; weapons, the calibrator, and a return beacon need not already be made. Choose an order according to your resources without needing every device or all six raw fluids at once.\n\n§3§lPortable equipment§r\nProgress from the LM12 through the T20, QLZ04, and Project §1107§r to learn about LV, MV, HV, and EV weapons, crafting components, and caliber-matched supplies. Preparing the three ordinary ammunition packs unlocks a one-time choice of one mimic pack. Consider your current weapon before choosing.\n\n§3§lExploring Prosperity§r\nPrepare the Spacetime Singularity Calibration Engineering and a charged Anchor Beacon, marking a safe return location before departure. The arrival goal detects actual dimension entry. The six raw-fluid quests explain industrial uses and only require their corresponding named cells filled with raw fluid, without building processing lines.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,14 +38,14 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 27305,
+          "Count:3": 4,
+          "Damage:2": 17305,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"
         },
         "1:10": {
-          "Count:3": 2,
-          "Damage:2": 17032,
+          "Count:3": 1,
+          "Damage:2": 32600,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"
         }

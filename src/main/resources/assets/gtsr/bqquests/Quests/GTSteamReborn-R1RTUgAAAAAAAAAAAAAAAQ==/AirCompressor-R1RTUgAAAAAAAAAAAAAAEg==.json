@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Purpose and mechanism§r\nThe Air Compressor uses steam to produce §2air§r for machines that need it, including the Atmospheric Centrifuge and Siemens-Martin Furnace. Output depends on tier and operating conditions. Keep steam and output capacity available; downstream machines can stop when their air supply is insufficient.\n\n§3Preparation and operation§r\nAir is a separate downstream recipe input and should be planned independently of steam supply. Identify its consumers and simultaneous demand, then reserve air storage and an output route. Steam availability alone cannot sustain downstream production if the air outlet is blocked. For supply problems, inspect the steam inlet, machine state, and air outlet in turn.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThe Air Compressor uses steam to produce air for machines that need it, including the Atmospheric Centrifuge and Siemens-Martin Furnace. Output depends on tier and operating conditions. Keep steam and output capacity available; downstream machines can stop when their air supply is insufficient.\n\n§3§lPreparation and operation§r\nAir is a separate downstream recipe input and should be planned independently of steam supply. Identify its consumers and simultaneous demand, then reserve air storage and an output route. Steam availability alone cannot sustain downstream production if the air outlet is blocked. For supply problems, inspect the steam inlet, machine state, and air outlet in turn.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -39,9 +39,9 @@
       "rewards:9": {
         "0:10": {
           "Count:3": 2,
-          "Damage:2": 17300,
+          "Damage:2": 351,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gregtech:gt.blockframes"
         }
       }
     }

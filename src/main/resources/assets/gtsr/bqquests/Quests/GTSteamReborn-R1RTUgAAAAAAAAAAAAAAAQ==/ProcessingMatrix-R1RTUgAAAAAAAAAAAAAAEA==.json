@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§6Purpose and mechanism§r\nUse this checkpoint to review the processing machines introduced so far and check that your steam supply can meet their combined demand. The next entries continue the machine lessons and introduce hub logistics; size shared pipes and storage for the machines you actually run.\n\n§3Preparation and operation§r\nList smelting, air supply, fluid drilling, and steelmaking demand separately, counting only equipment expected to operate together. Startup, preheating, and sustained processing can impose different supply demands, so buffer essential equipment. Tick the review after organizing your plan. It does not inspect pipes or establish that every processing controller has been built into a structure.",
+      "desc:8": "§3§lPurpose and mechanism§r\nUse this checkpoint to review the processing machines introduced so far and check that your steam supply can meet their combined demand. The next entries continue the machine lessons and introduce hub logistics; size shared pipes and storage for the machines you actually run.\n\n§3§lPreparation and operation§r\nList smelting, air supply, fluid drilling, and steelmaking demand separately, counting only equipment expected to operate together. Startup, preheating, and sustained processing can impose different supply demands, so buffer essential equipment. Tick the review after organizing your plan. It does not inspect pipes or establish that every processing controller has been built into a structure.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,7 +38,7 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
+          "Count:3": 8,
           "Damage:2": 17300,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"

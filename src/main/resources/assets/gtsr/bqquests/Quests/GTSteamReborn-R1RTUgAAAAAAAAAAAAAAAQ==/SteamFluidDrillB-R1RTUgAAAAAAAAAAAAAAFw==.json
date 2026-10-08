@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3Purpose and mechanism§r\nThe Steam Fluid Drill produces a selected §2fluid§r; it is not an oil well. Output begins at a positive minimum and increases as efficiency builds. Its four modes are water, distilled water, brine and lava, with different output rates and steam costs. The mode switch is steel-tier only and resets efficiency. Use compatible pressure-steam input hatches; the structure does not impose a one-hatch maximum.\n\n§3Preparation and operation§r\nChoose the fluid you need before building for the intended tier and input route. Since efficiency increases during operation, repeated mode changes affect expected production; do not size storage and consumers solely around maximum output. Follow structure documentation for pressure-steam or ordinary input paths and provide a continuous outlet, updating the destination whenever the mode changes.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThe Steam Fluid Drill produces a selected fluid; it is not an oil well. Output begins at a positive minimum and increases as efficiency builds. Its four modes are water, distilled water, brine and lava, with different output rates and steam costs. The mode switch is steel-tier only and resets efficiency. Use compatible pressure-steam input hatches; the structure does not impose a one-hatch maximum.\n\n§3§lPreparation and operation§r\nChoose the fluid you need before building for the intended tier and input route. Since efficiency increases during operation, repeated mode changes affect expected production; do not size storage and consumers solely around maximum output. Follow structure documentation for pressure-steam or ordinary input paths and provide a continuous outlet, updating the destination whenever the mode changes.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 1,
-          "Damage:2": 0,
+          "Count:3": 2,
+          "Damage:2": 300,
           "OreDict:8": "",
-          "id:8": "minecraft:bucket"
+          "id:8": "gregtech:gt.blockframes"
         }
       }
     }

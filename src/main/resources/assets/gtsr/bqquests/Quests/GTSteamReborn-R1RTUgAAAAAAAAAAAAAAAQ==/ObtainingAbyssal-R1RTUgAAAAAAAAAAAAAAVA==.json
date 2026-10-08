@@ -1,0 +1,75 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 70
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "§3§lBucket conversion in Prosperity§r\nIn Prosperity, place water with a vanilla water bucket. The placed water converts to Abyssal Obsession, including when there is air beneath it. Scoop it back up with an empty bucket, then keep §11§r Abyssal Obsession Bucket in your inventory to complete this quest; §2the bucket is not consumed§r. This is a separate collection branch after arrival, alongside the six raw-fluid quests.\n\n§3§lIndustrial production§r\nMacerate §11§r Prosperity Stone (waste rock) into §11§r Prosperity Dust. Mix that dust with §11000§r mB of distilled water to obtain §11000§r mB of Prosperity Reminiscence; heat the reminiscence into §11000§r mB of Prosperity Obsession. Chemically react §11000§r mB of Prosperity Obsession with §11000§r mB of Sanzu Residual Steam to produce §12000§r mB of Abyssal Obsession. Maceration and mixing use LV recipes; heating and reaction use MV. In a single-block Chemical Reactor, supply one filled Prosperity Obsession Cell and recover the empty cell from the output. A Large Chemical Reactor accepts both fluids directly.\n\n§3§lRegenerating the waste rock§r\nSet the programmed circuit to §124§r. For a single-block Rock Breaker, place Abyssal Obsession in one of its four horizontally adjacent spaces and stationary or flowing lava in another; §2these surrounding fluids are not consumed§r. For a multiblock Rock Breaker, retain its usual water/lava structure and put an Abyssal Obsession Bucket in the input bus with circuit §124§r; §2neither the bucket nor the structure fluids are consumed§r. Use the resulting waste rock to sustain the industrial route.",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 0,
+        "OreDict:8": "",
+        "id:8": "gtsr:AbyssalObsessionBucket"
+      },
+      "isMain:1": 0,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "§2§lObtaining Abyssal Obsession§r",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 84,
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 2,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "minecraft:bucket"
+        },
+        "1:10": {
+          "Count:3": 8,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "IC2:itemCellEmpty"
+        }
+      }
+    }
+  },
+  "tasks:9": {
+    "0:10": {
+      "autoConsume:1": 0,
+      "consume:1": 0,
+      "groupDetect:1": 0,
+      "ignoreNBT:1": 1,
+      "index:3": 0,
+      "partialMatch:1": 1,
+      "requireOnlyOneItem:1": 0,
+      "requiredItems:9": {
+        "0:10": {
+          "Count:3": 1,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "gtsr:AbyssalObsessionBucket"
+        }
+      },
+      "taskID:8": "bq_standard:retrieval"
+    }
+  }
+}

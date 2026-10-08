@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§6Purpose and mechanism§r\nThe geothermal boiler builds scale when it uses regular water; distilled water avoids this buildup. With an empty hand, sneak-right-click the controller to clear scale. Once heat reaches §1100§r percent, a screwdriver can enable overpressure: heat and steam output can rise further, but heating slows, cooling and scale buildup increase. Use overpressure only when the water supply and maintenance plan are ready.\n\n§cImportant precautions§r\nDistinguish scale, heat, and overpressure state during maintenance. Descaling does not replace dependable water supply. Before enabling overpressure, confirm that the heat condition is met and allow for the longer warm-up. Extended use of ordinary water requires attention to scale; a distilled-water route still needs reliable storage and recovery supply.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThe geothermal boiler builds scale when it uses regular water; distilled water avoids this buildup. With an empty hand, sneak-right-click the controller to clear scale. Once heat reaches §1100§r percent, a screwdriver can enable overpressure: heat and steam output can rise further, but heating slows, cooling and scale buildup increase. Use overpressure only when the water supply and maintenance plan are ready.\n\n§3§lImportant precautions§r\nDistinguish scale, heat, and overpressure state during maintenance. Descaling does not replace dependable water supply. Before enabling overpressure, confirm that the heat condition is met and allow for the longer warm-up. Extended use of ordinary water requires attention to scale; a distilled-water route still needs reliable storage and recovery supply.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 27305,
+          "Count:3": 4,
+          "Damage:2": 0,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.metaitem.01"
+          "id:8": "gtsr:SteamEntangledSingularity"
         }
       }
     }

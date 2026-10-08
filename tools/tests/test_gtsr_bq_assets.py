@@ -44,8 +44,8 @@ class ReviewedPackTests(unittest.TestCase):
     def quest(self, seq):
         return json.loads(self.paths[seq].read_text(encoding="utf-8"))
 
-    def test_all_83_roundtrip_and_reviewed_edges(self):
-        self.assertEqual(set(range(1, 84)), set(self.paths))
+    def test_all_84_roundtrip_and_reviewed_edges(self):
+        self.assertEqual(set(range(1, 85)), set(self.paths))
         self.assertEqual(adapter.LINE_HIGH, self.line["idHigh"])
         self.assertEqual(1, self.line["idLow"])
         self.assertEqual(900, self.line["orderIndex"])
@@ -75,6 +75,12 @@ class ReviewedPackTests(unittest.TestCase):
                          {s["id:8"] for s in choices.values()})
         self.assertTrue(all(s["Count:3"] == 1 for s in choices.values()))
         self.assertEqual("bq_standard:checkbox", self.quest(83)["tasks:9"]["0:10"]["taskID:8"])
+        abyssal = self.quest(84)["tasks:9"]["0:10"]
+        self.assertEqual("bq_standard:retrieval", abyssal["taskID:8"])
+        self.assertEqual((0, 1), (abyssal["consume:1"], abyssal["ignoreNBT:1"]))
+        bucket = abyssal["requiredItems:9"]["0:10"]
+        self.assertEqual(("gtsr:AbyssalObsessionBucket", 1), (bucket["id:8"], bucket["Count:3"]))
+        self.assertEqual([70], [p["questIDLow:4"] for p in self.quest(84)["preRequisites:9"].values()])
         for seq, prereq in ((83, 40), (68, 83), (77, 83), (67, 33)):
             self.assertIn(prereq, [p["questIDLow:4"] for p in self.quest(seq)["preRequisites:9"].values()])
         for entry in self.line["entries"]:

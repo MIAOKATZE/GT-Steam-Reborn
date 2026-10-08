@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§dPurpose and mechanism§r\nWild singularity dimensions and frequency depend on world-generation settings, so do not assume they appear only in the Overworld and Nether. Dropped normal and critical singularities detonate after a delay; normal ones harm nearby entities, while critical ones can also damage blocks and scatter normal singularities. Pick them up promptly.\n\n§cImportant precautions§r\nThis introduction does not guarantee singularities in any particular dimension; current world-generation settings govern their appearance. Store collected singularities securely and pay attention during inventory handling or recovery of death drops. Critical singularities have wider consequences than ordinary ones. Avoid discarding them near machinery or other players, and never use dropped items as long-term storage.",
+      "desc:8": "§3§lPurpose and mechanism§r\nWild singularity dimensions and frequency depend on world-generation settings, so do not assume they appear only in the Overworld and Nether. §cDropped normal and critical singularities detonate after a delay§r; normal ones harm nearby entities, while critical ones can also damage blocks and scatter normal singularities. Pick them up promptly.\n\n§3§lImportant precautions§r\nThis introduction does not guarantee singularities in any particular dimension; current world-generation settings govern their appearance. Store collected singularities securely and pay attention during inventory handling or recovery of death drops. Critical singularities have wider consequences than ordinary ones. Avoid discarding them near machinery or other players, and never use dropped items as long-term storage.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,8 +38,8 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2,
-          "Damage:2": 17032,
+          "Count:3": 32,
+          "Damage:2": 17804,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"
         }
