@@ -45,15 +45,12 @@ public class MTEAmmoniaPlantGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlo
             () -> ammoniaPlant.mParallelCount,
             val -> ammoniaPlant.mParallelCount = val);
         mCatalystTypeSync = new IntSyncValue(ammoniaPlant::getCatalystType, ammoniaPlant::syncCatalystType);
-        mMaxProgresstimeSync = new IntSyncValue(
-            () -> ammoniaPlant.mMaxProgresstime,
-            val -> ammoniaPlant.mMaxProgresstime = val);
+        mMaxProgresstimeSync = syncManager.findSyncHandler("maxProgressTime", IntSyncValue.class);
         syncManager.syncValue("ammoniaHeatLevel", mHeatLevelSync);
         syncManager.syncValue("ammoniaSteamCost", mRealtimeSteamCostSync);
         syncManager.syncValue("ammoniaSteamOutput", mRealtimeSteamOutputSync);
         syncManager.syncValue("ammoniaParallelCount", mParallelCountSync);
         syncManager.syncValue("ammoniaCatalystType", mCatalystTypeSync);
-        syncManager.syncValue("ammoniaMaxProgresstime", mMaxProgresstimeSync);
     }
 
     @Override

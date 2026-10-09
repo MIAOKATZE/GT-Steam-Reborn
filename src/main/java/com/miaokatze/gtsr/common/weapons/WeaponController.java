@@ -128,7 +128,9 @@ public final class WeaponController {
             WeaponNetwork.Controls c = pending.controls;
             if (p == null || p.isDead
                 || p.playerNetServerHandler == null
+                || p.playerNetServerHandler.playerEntity != p
                 || !p.playerNetServerHandler.netManager.isChannelOpen()
+                || pending.dimension != p.dimension
                 || !Float.isFinite(c.yaw)
                 || !Float.isFinite(c.pitch)
                 || c.pitch < -90
@@ -143,7 +145,9 @@ public final class WeaponController {
             p.rotationPitch = c.pitch;
             p.rotationYawHead = p.rotationYaw;
             Session s = sessions.get(p.getUniqueID());
-            if (s == null) {
+            // Respawn and dimension-transfer handlers may replace the player while retaining its UUID.
+            // Never let fresh input keep driving the old entity, world or network handler.
+            if (s == null || s.player != p) {
                 s = new Session();
                 s.player = p;
                 s.serial = p.getEntityData()
@@ -168,6 +172,7 @@ public final class WeaponController {
                 cancelCharge(s);
             }
             WeaponKind heldKind = PortableWeapons.kind(held);
+            repairClock(held, p.worldObj.getTotalWorldTime());
             selected(held, p, heldKind);
             if (c.switchMode && !s.modeDown) switchMode(s, heldKind);
             s.modeDown = c.switchMode;
@@ -242,7 +247,9 @@ public final class WeaponController {
 
     private static void cool(ItemStack gun, long now) {
         WeaponKind k = PortableWeapons.kind(gun);
-        if (k == null || k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY) return;
+        if (k == null) return;
+        repairClock(gun, now);
+        if (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY) return;
         NBTTagCompound n = data(gun);
         long previous = n.hasKey("heatTick") ? n.getLong("heatTick") : now - 1;
         // Count only tick endpoints in (previous, now] that have reached the 20-tick quiet window.
@@ -253,6 +260,21 @@ public final class WeaponController {
         float heat = Math.max(0, Math.min(1, n.getFloat("heat")) - Math.min(1000, elapsed) * coolingRate(k));
         n.setFloat("heat", heat);
         if (heat <= .25f) n.setBoolean("hot", false);
+    }
+
+    /** Save rollback or transferred legacy NBT must not leave a gun locked behind an unbounded future deadline. */
+    private static void repairClock(ItemStack gun, long now) {
+        WeaponKind kind = PortableWeapons.kind(gun);
+        if (kind == null) return;
+        NBTTagCompound n = data(gun);
+        // A mode change must retain the last shot's legal interval, rather than shorten it to the new mode's rate.
+        int maximum = kind == WeaponKind.LM12 ? 16 : kind.interval;
+        int interval = n.hasKey("shotInterval") ? Math.max(1, Math.min(maximum, n.getInteger("shotInterval")))
+            : maximum;
+        long next = n.getLong("nextShot");
+        if (next > now && next - now > interval) n.setLong("nextShot", now + interval);
+        if (n.hasKey("lastShot") && n.getLong("lastShot") > now) n.setLong("lastShot", now);
+        if (n.hasKey("heatTick") && n.getLong("heatTick") > now) n.setLong("heatTick", now);
     }
 
     private static void removeEmpty(EntityPlayerMP player, ItemStack item, WeaponKind k) {
@@ -514,11 +536,10 @@ public final class WeaponController {
         snap.chargeTicks = k == WeaponKind.LM12 ? s.spin : s.chargeTicks;
         snap.chargeDuration = k == WeaponKind.LM12 ? (snap.mode == WeaponMode.ALTERNATE ? 80 : 160)
             : k == WeaponKind.SINGULARITY && snap.mode == WeaponMode.ALTERNATE ? 100 : 0;
-        snap.shotInterval = k == WeaponKind.LM12 ? (n.hasKey("shotInterval")
-            ? Math.max(
-                snap.mode == WeaponMode.ALTERNATE ? 2 : 1,
-                Math.min(snap.mode == WeaponMode.ALTERNATE ? 16 : 8, n.getInteger("shotInterval")))
-            : snap.mode == WeaponMode.ALTERNATE ? 16 : 8) : WeaponMode.interval(k, snap.mode);
+        int maximumInterval = k == WeaponKind.LM12 ? 16 : k.interval;
+        snap.shotInterval = n.hasKey("shotInterval")
+            ? Math.max(1, Math.min(maximumInterval, n.getInteger("shotInterval")))
+            : k == WeaponKind.LM12 ? (snap.mode == WeaponMode.ALTERNATE ? 16 : 8) : WeaponMode.interval(k, snap.mode);
         snap.shotCooldown = (int) Math.max(0, Math.min(snap.shotInterval, n.getLong("nextShot") - now));
         snap.shotAge = n.hasKey("lastShot") ? (int) Math.max(0, Math.min(1000000, now - n.getLong("lastShot")))
             : 1000000;

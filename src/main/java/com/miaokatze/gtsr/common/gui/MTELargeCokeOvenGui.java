@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.gui;
 
+import java.util.Locale;
+
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
@@ -21,12 +23,7 @@ public class MTELargeCokeOvenGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
 
     private DoubleSyncValue mHeatSync;
     private IntSyncValue mMaxProgresstimeSync;
-    private IntSyncValue mProgresstimeSync;
     private IntSyncValue mTierSync;
-    private IntSyncValue mOriginalRecipeTimeSync;
-
-    private static final int HEAT_SPEEDUP_PER_PERCENT = 1;
-    private static final int MIN_RECIPE_TIME_SECONDS = 10;
 
     public MTELargeCokeOvenGui(MTEEnhancedMultiBlockBase<?> multiblock) {
         super(multiblock);
@@ -37,19 +34,10 @@ public class MTELargeCokeOvenGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
     protected void registerSyncValues(PanelSyncManager syncManager) {
         super.registerSyncValues(syncManager);
         mHeatSync = new DoubleSyncValue(() -> cokeOven.mHeat, val -> cokeOven.mHeat = val);
-        mMaxProgresstimeSync = new IntSyncValue(
-            () -> cokeOven.mMaxProgresstime,
-            val -> cokeOven.mMaxProgresstime = val);
-        mProgresstimeSync = new IntSyncValue(() -> cokeOven.mProgresstime, val -> cokeOven.mProgresstime = val);
+        mMaxProgresstimeSync = syncManager.findSyncHandler("maxProgressTime", IntSyncValue.class);
         mTierSync = new IntSyncValue(() -> cokeOven.mTier, val -> cokeOven.mTier = val);
-        mOriginalRecipeTimeSync = new IntSyncValue(
-            () -> cokeOven.mOriginalRecipeTime,
-            val -> cokeOven.mOriginalRecipeTime = val);
         syncManager.syncValue("cokeHeat", mHeatSync);
-        syncManager.syncValue("cokeMaxProgresstime", mMaxProgresstimeSync);
-        syncManager.syncValue("cokeProgresstime", mProgresstimeSync);
         syncManager.syncValue("cokeTier", mTierSync);
-        syncManager.syncValue("cokeOriginalRecipeTime", mOriginalRecipeTimeSync);
     }
 
     @Override
@@ -80,13 +68,11 @@ public class MTELargeCokeOvenGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
             .marginBottom(2)
             .fullWidth())
             .child(IKey.dynamic(() -> {
-                if (mOriginalRecipeTimeSync.getValue() > 0) {
-                    int originalSeconds = mOriginalRecipeTimeSync.getValue() / 20;
-                    int reducedSeconds = (int) (mHeatSync.getValue() * 100.0d * HEAT_SPEEDUP_PER_PERCENT);
-                    int theoreticalSeconds = Math.max(MIN_RECIPE_TIME_SECONDS, originalSeconds - reducedSeconds);
+                // 父类同步的是本批已经应用全部倍率的最终 tick 数；不随运行中升温再次缩减。
+                if (mMaxProgresstimeSync.getValue() > 0) {
                     return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time")
                         + EnumChatFormatting.GOLD
-                        + theoreticalSeconds
+                        + String.format(Locale.ROOT, "%.2f", mMaxProgresstimeSync.getValue() / 20.0d)
                         + "s"
                         + EnumChatFormatting.RESET;
                 }

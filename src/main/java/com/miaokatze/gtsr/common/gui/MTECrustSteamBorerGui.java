@@ -28,7 +28,6 @@ public class MTECrustSteamBorerGui extends MTESteamMultiBlockBaseGui {
         com.miaokatze.gtsr.common.machine.MTECrustSteamBorer machine = (com.miaokatze.gtsr.common.machine.MTECrustSteamBorer) multiblock;
         syncManager.syncValue("gtsr.tier", new IntSyncValue(() -> machine.mSetTier));
         syncManager.syncValue("gtsr.canMine", new BooleanSyncValue(() -> machine.canMineInCurrentDim));
-        syncManager.syncValue("gtsr.maxProgress", new IntSyncValue(() -> machine.mMaxProgresstime));
         syncManager.syncValue("gtsr.dimId", new IntSyncValue(() -> machine.mCurrentDimId));
         syncManager.syncValue("gtsr.lastOre", new StringSyncValue(() -> machine.mLastOreName));
     }
@@ -37,7 +36,7 @@ public class MTECrustSteamBorerGui extends MTESteamMultiBlockBaseGui {
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
         IntSyncValue tierSyncer = syncManager.findSyncHandler("gtsr.tier", IntSyncValue.class);
         BooleanSyncValue canMineSyncer = syncManager.findSyncHandler("gtsr.canMine", BooleanSyncValue.class);
-        IntSyncValue maxProgressSyncer = syncManager.findSyncHandler("gtsr.maxProgress", IntSyncValue.class);
+        IntSyncValue maxProgressSyncer = syncManager.findSyncHandler("maxProgressTime", IntSyncValue.class);
         IntSyncValue dimIdSyncer = syncManager.findSyncHandler("gtsr.dimId", IntSyncValue.class);
         StringSyncValue lastOreSyncer = syncManager.findSyncHandler("gtsr.lastOre", StringSyncValue.class);
 

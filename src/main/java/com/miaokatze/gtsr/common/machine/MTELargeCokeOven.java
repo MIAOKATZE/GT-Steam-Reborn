@@ -12,6 +12,7 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -78,8 +79,6 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
     // 客户端在收到第一次 onValueUpdate 之前会保持该值，
     // 此时 getCasingTextureID() 返回等级1（青铜）贴图，避免显示错误的等级2底材。
     public int mTier = -1;
-    private int mParallel = 0;
-    public int mOriginalRecipeTime = 0;
 
     // v1.9.39 修复：样板输入仓（MTEHatchCraftingInputME/Slave，implements IDualInputHatch）重定向到
     // mDualInputHatches（仿 GT5U addInputBusToMachineList）。此前裸 instanceof 会把样板仓收进
@@ -415,23 +414,11 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
                 // 炉温加速：每1%炉温叠加1%工作速度
                 // 工作速度 = 基础速度 × (1 + mHeat)
                 // 故 duration 乘数 = 基础速度 / (1 + mHeat)
-                double durationModifier = baseDurationMultiplier / (1.0 + mHeat);
+                double durationModifier = baseDurationMultiplier / (1.0 + normalizedHeat(mHeat));
                 return OverclockCalculator.ofNoOverclock(recipe)
                     .setDurationModifier(durationModifier);
             }
         }.setMaxParallelSupplier(this::getMaxParallelRecipes);
-    }
-
-    @Override
-    @Nonnull
-    public CheckRecipeResult checkProcessing() {
-        CheckRecipeResult result = super.checkProcessing();
-        if (!result.wasSuccessful()) return result;
-        // OverclockCalculator 已在 createOverclockCalculator 中应用了基础倍率与炉温加速，
-        // super.checkProcessing() 返回的 mMaxProgresstime 即为最终配方时长，无需再手动重算
-        mParallel = processingLogic.getCurrentParallels();
-        mOriginalRecipeTime = mMaxProgresstime;
-        return result;
     }
 
     @Override
@@ -474,7 +461,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
                     statusKey = "gtsr.gui.status.running";
                     statusColor = EnumChatFormatting.AQUA;
                 } else if (mHeat > 0) {
-                    statusKey = "gtsr.gui.coke_oven.status.heating";
+                    statusKey = "gtsr.gui.coke_oven.status.cooling";
                     statusColor = EnumChatFormatting.GREEN;
                 } else {
                     statusKey = "gtsr.gui.status.idle";
@@ -489,10 +476,9 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
             .widget(new TextWidget().setStringSupplier(() -> {
                 // 直接显示当前配方总时长（已含基础倍率与炉温加速），避免二次加速
                 if (mMaxProgresstime > 0) {
-                    int totalSeconds = mMaxProgresstime / 20;
                     return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time")
                         + EnumChatFormatting.GOLD
-                        + totalSeconds
+                        + String.format(Locale.ROOT, "%.2f", mMaxProgresstime / 20.0d)
                         + "s"
                         + EnumChatFormatting.RESET;
                 }
@@ -511,8 +497,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
             .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mProgresstime, val -> mProgresstime = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mTier, val -> mTier = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mOriginalRecipeTime, val -> mOriginalRecipeTime = val));
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mTier, val -> mTier = val));
     }
 
     @Override
@@ -536,7 +521,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
             statusKey = "gtsr.gui.status.running";
             statusColor = EnumChatFormatting.AQUA;
         } else if (mHeat > 0) {
-            statusKey = "gtsr.gui.coke_oven.status.heating";
+            statusKey = "gtsr.gui.coke_oven.status.cooling";
             statusColor = EnumChatFormatting.GREEN;
         } else {
             statusKey = "gtsr.gui.status.idle";
@@ -576,8 +561,12 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
-        mHeat = aNBT.getDouble("mHeat");
+        mHeat = normalizedHeat(aNBT.getDouble("mHeat"));
         mTier = aNBT.getInteger("mTier");
+    }
+
+    private static double normalizedHeat(double heat) {
+        return Double.isFinite(heat) ? Math.max(0.0d, Math.min(1.0d, heat)) : 0.0d;
     }
 
     @Override

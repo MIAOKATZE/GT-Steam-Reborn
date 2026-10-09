@@ -120,13 +120,15 @@ public final class WeaponNetwork {
     }
 
     static void state(EntityPlayerMP p, Snapshot s) {
+        s.dimension = p.worldObj.provider.dimensionId;
         StatePacket packet = new StatePacket();
         packet.s = s;
-        NET.sendToDimension(packet, p.dimension);
+        NET.sendToDimension(packet, s.dimension);
     }
 
     public static void effect(net.minecraft.world.World world, Effect e) {
         if (world.isRemote) return;
+        e.dimension = world.provider.dimensionId;
         EffectPacket packet = new EffectPacket();
         packet.e = e;
         NET.sendToDimension(packet, world.provider.dimensionId);
@@ -136,10 +138,12 @@ public final class WeaponNetwork {
 
         final EntityPlayerMP player;
         final Controls controls;
+        final int dimension;
 
         Pending(EntityPlayerMP p, Controls c) {
             player = p;
             controls = c;
+            dimension = p == null ? 0 : p.dimension;
         }
     }
 
@@ -188,6 +192,7 @@ public final class WeaponNetwork {
         Snapshot s;
 
         public void toBytes(ByteBuf b) {
+            b.writeInt(s.dimension);
             b.writeInt(s.entityId);
             b.writeByte(s.kind);
             b.writeInt(s.magazine);
@@ -212,6 +217,7 @@ public final class WeaponNetwork {
 
         public void fromBytes(ByteBuf b) {
             s = new Snapshot();
+            s.dimension = b.readInt();
             s.entityId = b.readInt();
             s.kind = b.readUnsignedByte();
             s.magazine = b.readInt();
@@ -249,6 +255,7 @@ public final class WeaponNetwork {
         Effect e;
 
         public void toBytes(ByteBuf b) {
+            b.writeInt(e.dimension);
             b.writeInt(e.entityId);
             b.writeByte(e.kind);
             b.writeByte(e.type);
@@ -267,6 +274,7 @@ public final class WeaponNetwork {
 
         public void fromBytes(ByteBuf b) {
             e = new Effect();
+            e.dimension = b.readInt();
             e.entityId = b.readInt();
             e.kind = b.readUnsignedByte();
             e.type = b.readUnsignedByte();

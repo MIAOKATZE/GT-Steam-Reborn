@@ -38,9 +38,7 @@ public class MTEWaterHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
     protected void registerSyncValues(PanelSyncManager syncManager) {
         super.registerSyncValues(syncManager);
         mSetTierSync = new IntSyncValue(() -> hubArray.mSetTier, val -> hubArray.mSetTier = val);
-        mMaxProgresstimeSync = new IntSyncValue(
-            () -> hubArray.mMaxProgresstime,
-            val -> hubArray.mMaxProgresstime = val);
+        mMaxProgresstimeSync = syncManager.findSyncHandler("maxProgressTime", IntSyncValue.class);
         mStackCountSync = new IntSyncValue(() -> hubArray.mStackCount, val -> hubArray.mStackCount = val);
         mHubUnitCountSync = new IntSyncValue(() -> hubArray.mHubUnitCount, val -> hubArray.mHubUnitCount = val);
         mReinforcedHubUnitCountSync = new IntSyncValue(
@@ -51,7 +49,6 @@ public class MTEWaterHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
             val -> hubArray.mOverpressureHubUnitCount = val);
         mWaterStoredSync = new LongSyncValue(() -> hubArray.mWaterStored, val -> hubArray.mWaterStored = val);
         syncManager.syncValue("hubSetTier", mSetTierSync);
-        syncManager.syncValue("hubMaxProgresstime", mMaxProgresstimeSync);
         syncManager.syncValue("hubStackCount", mStackCountSync);
         syncManager.syncValue("hubHubUnitCount", mHubUnitCountSync);
         syncManager.syncValue("hubReinforcedHubUnitCount", mReinforcedHubUnitCountSync);

@@ -41,9 +41,8 @@ public class MTEReinforcedBrickBlastFurnaceGui extends MTEMultiBlockBaseGui<MTEE
         mFurnaceTemperatureSync = new DoubleSyncValue(
             () -> furnace.mFurnaceTemperature,
             val -> furnace.mFurnaceTemperature = val);
-        mMaxProgresstimeSync = new IntSyncValue(() -> furnace.mMaxProgresstime, val -> furnace.mMaxProgresstime = val);
+        mMaxProgresstimeSync = syncManager.findSyncHandler("maxProgressTime", IntSyncValue.class);
         syncManager.syncValue("rbbfTemperature", mFurnaceTemperatureSync);
-        syncManager.syncValue("rbbfMaxProgresstime", mMaxProgresstimeSync);
     }
 
     @Override

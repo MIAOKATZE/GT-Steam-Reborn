@@ -49,10 +49,9 @@ public class MTESiemensMartinFurnaceGui extends MTEMultiBlockBaseGui<MTEEnhanced
         mFurnaceTemperatureSync = new DoubleSyncValue(
             () -> furnace.mFurnaceTemperature,
             val -> furnace.mFurnaceTemperature = val);
-        mMaxProgresstimeSync = new IntSyncValue(() -> furnace.mMaxProgresstime, val -> furnace.mMaxProgresstime = val);
+        mMaxProgresstimeSync = syncManager.findSyncHandler("maxProgressTime", IntSyncValue.class);
         mAirSupplyOKSync = new BooleanSyncValue(() -> furnace.mAirSupplyOK, val -> furnace.mAirSupplyOK = val);
         syncManager.syncValue("siemensTemperature", mFurnaceTemperatureSync);
-        syncManager.syncValue("siemensMaxProgresstime", mMaxProgresstimeSync);
         syncManager.syncValue("siemensAirSupplyOK", mAirSupplyOKSync);
     }
 

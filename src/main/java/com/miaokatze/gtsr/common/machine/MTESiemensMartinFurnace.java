@@ -57,9 +57,11 @@ import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.OverclockCalculator;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -630,7 +632,20 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
 
     @Override
     protected ProcessingLogic createProcessingLogic() {
-        return new ProcessingLogic().setMaxParallelSupplier(this::getMaxParallelRecipes);
+        return new ProcessingLogic() {
+
+            @Override
+            protected OverclockCalculator createOverclockCalculator(GTRecipe recipe) {
+                // 无电炉只按温度缩时，不将不足一 tick 的加速转换为额外并行。
+                return super.createOverclockCalculator(recipe).setNoOverclock(true);
+            }
+        }.setMaxParallelSupplier(this::getMaxParallelRecipes)
+            .setSpeedBonusSupplier(() -> {
+                double overheatPercent = Math.max(0.0d, (mFurnaceTemperature - 1.0d) * 100.0d);
+                double reduction = Math
+                    .min(MAX_RECIPE_TIME_REDUCTION, overheatPercent * RECIPE_TIME_REDUCTION_PER_PERCENT);
+                return RECIPE_TIME_BASE_FACTOR * (1.0d - reduction);
+            });
     }
 
     @Override
@@ -655,20 +670,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
             return CheckRecipeResultRegistry.NO_FUEL_FOUND;
         }
 
-        CheckRecipeResult result = super.checkProcessing();
-        if (!result.wasSuccessful()) return result;
-
-        // 应用基础配方时间缩减（缩小到现有的75%，在过热削减之前应用）
-        mMaxProgresstime = (int) (mMaxProgresstime * RECIPE_TIME_BASE_FACTOR);
-
-        // Apply overheat recipe time reduction
-        if (mFurnaceTemperature > 1.0d) {
-            double overheatPercent = (mFurnaceTemperature - 1.0d) * 100.0d; // 0-100%
-            double reduction = Math.min(MAX_RECIPE_TIME_REDUCTION, overheatPercent * RECIPE_TIME_REDUCTION_PER_PERCENT);
-            mMaxProgresstime = (int) (mMaxProgresstime * (1.0d - reduction));
-        }
-
-        return result;
+        return super.checkProcessing();
     }
 
     private boolean hasInputItems() {
