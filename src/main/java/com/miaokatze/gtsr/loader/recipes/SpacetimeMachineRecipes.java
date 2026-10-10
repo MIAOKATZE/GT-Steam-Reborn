@@ -20,14 +20,14 @@ import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 
-/** Both endpoints are available at LuV; structure materials retain their normal upstream recipes. */
+/** The machine remains LuV; the portable beacon is HV; structure materials retain their normal upstream recipes. */
 public final class SpacetimeMachineRecipes {
 
     private SpacetimeMachineRecipes() {}
 
     public static void register() {
-        registerCraft(machineInputs(), GTSRItemList.SpacetimeCalibration.get(1), 73728, 48000);
-        registerCraft(beaconInputs(), GTSRItemList.SpacetimeAnchorBeacon.get(1), 1152, 1200);
+        registerCraft(machineInputs(), GTSRItemList.SpacetimeCalibration.get(1), 73728, 48000, TierEU.RECIPE_LuV);
+        registerCraft(beaconInputs(), GTSRItemList.SpacetimeAnchorBeacon.get(1), 1152, 1200, TierEU.RECIPE_HV);
         verifyRegistration();
     }
 
@@ -39,12 +39,12 @@ public final class SpacetimeMachineRecipes {
     }
 
     private static ItemStack[] beaconInputs() {
-        return new ItemStack[] { ItemList.Casing_LuV.get(1), ItemList.Field_Generator_LuV.get(1),
-            ItemList.Sensor_LuV.get(1), ItemList.QuantumStar.get(1), get(OrePrefixes.circuit, Materials.LuV, 4),
-            get(OrePrefixes.plate, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 8) };
+        return new ItemStack[] { ItemList.Casing_HV.get(1), ItemList.Field_Generator_HV.get(1),
+            ItemList.Sensor_HV.get(1), ItemList.Emitter_HV.get(1), ItemList.Circuit_Nanoprocessor.get(4),
+            get(OrePrefixes.plate, Materials.StainlessSteel, 8) };
     }
 
-    private static void registerCraft(ItemStack[] inputs, ItemStack output, int fluidAmount, int ticks) {
+    private static void registerCraft(ItemStack[] inputs, ItemStack output, int fluidAmount, int ticks, long eut) {
         requireStacks(inputs);
         requireStacks(new ItemStack[] { output });
         FluidStack solder = Materials.SolderingAlloy.getMolten(fluidAmount);
@@ -55,7 +55,7 @@ public final class SpacetimeMachineRecipes {
             .itemOutputs(output)
             .fluidInputs(solder)
             .duration(ticks)
-            .eut(TierEU.RECIPE_LuV)
+            .eut(eut)
             .addTo(assemblerRecipes);
         if (added == null || added.size() != 1)
             throw new IllegalStateException("Spacetime assembler craft registration failed: " + output);
@@ -63,11 +63,11 @@ public final class SpacetimeMachineRecipes {
 
     /** Audit the live recipe map, including ingredient identity/counts, rather than a cached registration receipt. */
     public static void verifyRegistration() {
-        verifyCraft(machineInputs(), GTSRItemList.SpacetimeCalibration.get(1), 73728, 48000);
-        verifyCraft(beaconInputs(), GTSRItemList.SpacetimeAnchorBeacon.get(1), 1152, 1200);
+        verifyCraft(machineInputs(), GTSRItemList.SpacetimeCalibration.get(1), 73728, 48000, TierEU.RECIPE_LuV);
+        verifyCraft(beaconInputs(), GTSRItemList.SpacetimeAnchorBeacon.get(1), 1152, 1200, TierEU.RECIPE_HV);
     }
 
-    private static void verifyCraft(ItemStack[] inputs, ItemStack output, int fluidAmount, int ticks) {
+    private static void verifyCraft(ItemStack[] inputs, ItemStack output, int fluidAmount, int ticks, long eut) {
         requireStacks(inputs);
         requireStacks(new ItemStack[] { output });
         GTRecipe found = null;
@@ -86,7 +86,7 @@ public final class SpacetimeMachineRecipes {
             throw new IllegalStateException("Spacetime craft must have exactly one live recipe: " + output);
         if (found.mOutputs.length != 1 || found.mOutputs[0].stackSize != 1
             || found.mDuration != ticks
-            || found.mEUt != 30720
+            || found.mEUt != eut
             || found.mInputs == null
             || found.mInputs.length != inputs.length
             || found.mFluidInputs == null

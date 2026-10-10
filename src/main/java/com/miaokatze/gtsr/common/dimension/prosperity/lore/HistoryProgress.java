@@ -78,6 +78,8 @@ public final class HistoryProgress {
         add("railCache", 4, -5, "rail_repair_token");
         add("threeCaches", 0, -7, "patina_seal").setSpecial();
         add("sixWitnesses", 4, -2, "broken_edict").setSpecial();
+        add("spacetimeAltarEntered", -6, -7, "brass_chronicle");
+        add("spacetimeAltarActivated", -6, -9, "sky_ritual_foil").setSpecial();
         ProsperityAchievements.register();
     }
 
@@ -133,6 +135,53 @@ public final class HistoryProgress {
 
     public static boolean hasSceneStage(EntityPlayer player, String site, String stage) {
         return strings(data(player), "sceneStages").contains(site + ":" + stage);
+    }
+
+    /** Overworld altar evidence has its own generated-owner and position proof. */
+    public static void spacetimeAltarEntered(EntityPlayerMP player, String instance) {
+        if (!com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory.inRange(player, instance)) return;
+        award(player, "spacetimeAltarEntered");
+        NBTTagCompound n = data(player);
+        Set<String> entries = strings(n, "spacetimeAltarEntries");
+        if (!entries.add(instance)) return;
+        storeStrings(n, "spacetimeAltarEntries", entries);
+        save(player, n);
+        LoreNetwork.title(player, com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory.TITLE);
+    }
+
+    public static boolean hasSpacetimeAltarRead(EntityPlayer player, String instance) {
+        return strings(data(player), "spacetimeAltarReads").contains(instance);
+    }
+
+    /** Called only after the exact board right click has been authenticated. */
+    public static void spacetimeAltarRead(EntityPlayerMP player,
+        com.miaokatze.gtsr.common.dimension.prosperity.altar.TileSpacetimeAltarStory board) {
+        if (!com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory.validBoard(player, board)) return;
+        String instance = board.instanceId();
+        com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarIndex.Entry entry = com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory
+            .owner(player.worldObj, instance);
+        if (entry == null || !entry.storyRead) return;
+        NBTTagCompound n = data(player);
+        Set<String> reads = strings(n, "spacetimeAltarReads");
+        if (reads.add(instance)) {
+            storeStrings(n, "spacetimeAltarReads", reads);
+            save(player, n);
+        }
+    }
+
+    public static void spacetimeAltarActivated(EntityPlayerMP player, String instance) {
+        if (!com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory.inRange(player, instance)) return;
+        com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarIndex.Entry entry = com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory
+            .owner(player.worldObj, instance);
+        if (entry == null || !((com.miaokatze.gtsr.common.dimension.prosperity.altar.TileSpacetimeAltar) player.worldObj
+            .getTileEntity(entry.x, entry.y, entry.z)).isPaid()) return;
+        award(player, "spacetimeAltarActivated");
+        NBTTagCompound n = data(player);
+        Set<String> activations = strings(n, "spacetimeAltarActivations");
+        if (activations.add(instance)) {
+            storeStrings(n, "spacetimeAltarActivations", activations);
+            save(player, n);
+        }
     }
 
     /** Server callers must prove membership in a generated structure before calling this entry point. */

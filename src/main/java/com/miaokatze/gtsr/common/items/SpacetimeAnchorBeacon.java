@@ -21,8 +21,25 @@ import ic2.api.item.IElectricItem;
 
 public final class SpacetimeAnchorBeacon extends Item implements IElectricItem {
 
+    @SideOnly(Side.CLIENT)
+    private net.minecraft.util.IIcon needleIcon;
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void registerIcons(net.minecraft.client.renderer.texture.IIconRegister register) {
+        super.registerIcons(register);
+        needleIcon = register.registerIcon("gtsr:spacetime_anchor_beacon_needle");
+    }
+
+    @SideOnly(Side.CLIENT)
+    public net.minecraft.util.IIcon needleIcon() {
+        return needleIcon;
+    }
+
     public static final int USE_DURATION = 72000;
     public static final int RECALL_TICKS = 60;
+    public static final int TIER = 3;
+    public static final double CAPACITY = 1600000;
 
     /** The mark is written exclusively by SpacetimeTravel.mark on the server. */
     public static boolean isBound(ItemStack stack) {
@@ -67,17 +84,31 @@ public final class SpacetimeAnchorBeacon extends Item implements IElectricItem {
 
     @Override
     public double getMaxCharge(ItemStack s) {
-        return 102400000;
+        return CAPACITY;
     }
 
     @Override
     public int getTier(ItemStack s) {
-        return 6;
+        return TIER;
     }
 
     @Override
     public double getTransferLimit(ItemStack s) {
-        return 32768;
+        return 512;
+    }
+
+    /** Migrate only IC2's charge field; preserve the server-authored anchor compound. */
+    public static void clampCharge(ItemStack stack) {
+        if (stack == null || !stack.hasTagCompound()) return;
+        double charge = stack.getTagCompound()
+            .getDouble("charge");
+        if (!Double.isFinite(charge) || charge < 0 || charge > CAPACITY) stack.getTagCompound()
+            .setDouble("charge", Double.isFinite(charge) && charge > 0 ? CAPACITY : 0);
+    }
+
+    @Override
+    public void onUpdate(ItemStack stack, World world, net.minecraft.entity.Entity entity, int slot, boolean held) {
+        if (!world.isRemote) clampCharge(stack);
     }
 
     @Override
@@ -87,6 +118,7 @@ public final class SpacetimeAnchorBeacon extends Item implements IElectricItem {
 
     @Override
     public ItemStack onItemRightClick(ItemStack s, World w, EntityPlayer p) {
+        if (!w.isRemote) clampCharge(s);
         if (!w.isRemote && p instanceof EntityPlayerMP) {
             AnchorIntent.used((EntityPlayerMP) p, s);
             if (p.isSneaking() && SpacetimeTravel.eligible((EntityPlayerMP) p)) p.setItemInUse(s, USE_DURATION);
@@ -126,13 +158,15 @@ public final class SpacetimeAnchorBeacon extends Item implements IElectricItem {
 
     @Override
     public void addInformation(ItemStack s, EntityPlayer p, List list, boolean advanced) {
+        list.add(StatCollector.translateToLocal("gtsr.anchor.tooltip.tier"));
+        list.add(StatCollector.translateToLocal("gtsr.anchor.tooltip.navigation"));
         list.add(StatCollector.translateToLocal("gtsr.anchor.tooltip.mark"));
         list.add(StatCollector.translateToLocal("gtsr.anchor.tooltip.recall"));
         list.add(
             StatCollector.translateToLocalFormatted(
                 "gtsr.anchor.tooltip.energy",
                 (long) ElectricItem.manager.getCharge(s),
-                102400000L));
+                (long) CAPACITY));
         list.add(StatCollector.translateToLocal("gtsr.anchor.tooltip.cost"));
     }
 }

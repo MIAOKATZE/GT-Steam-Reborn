@@ -1,0 +1,3212 @@
+{
+  "tiers": [
+    {
+      "parts": [
+        {
+          "itemlist": "Field_Generator_MV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Sensor_MV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Emitter_MV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Motor_MV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Pump_MV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Conveyor_Module_MV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Piston_MV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Robot_Arm_MV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        }
+      ],
+      "circuits": [
+        {
+          "itemlist": "Circuit_Processor",
+          "item": "gregtech:gt.metaitem.03",
+          "weight": 1,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Circuit_Integrated_Good",
+          "item": "gregtech:gt.metaitem.03",
+          "weight": 1,
+          "countRange": [
+            1,
+            3
+          ]
+        }
+      ],
+      "treasures": [
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 0,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 1,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 2,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 3,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 4,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 5,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 0,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 1,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 2,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 3,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 6,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 10,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 16,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 22,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 23,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 0,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 1,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 2,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 3,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 14,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.ironwoodIngot",
+          "damage": 0,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.steeleafIngot",
+          "damage": 0,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.torchberries",
+          "damage": 0,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.nagaScale",
+          "damage": 0,
+          "weight": 10,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "IC2:itemIngot",
+          "damage": 4,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartAlloy",
+          "damage": 0,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartCarbonMesh",
+          "damage": 0,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartCarbonPlate",
+          "damage": 0,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 0,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 3,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 4,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11019,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        }
+      ],
+      "rare": [
+        {
+          "item": "gtsr:SteamEntangledSingularity",
+          "damage": 0,
+          "weight": 0,
+          "countRange": [
+            1,
+            1
+          ],
+          "chancePercent": 2
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "itemlist": "Field_Generator_HV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Sensor_HV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Emitter_HV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Motor_HV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Pump_HV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Conveyor_Module_HV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Piston_HV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Robot_Arm_HV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        }
+      ],
+      "circuits": [
+        {
+          "itemlist": "Circuit_Nanoprocessor",
+          "item": "gregtech:gt.metaitem.03",
+          "weight": 1,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Circuit_Integrated_Advanced",
+          "item": "gregtech:gt.metaitem.03",
+          "weight": 1,
+          "countRange": [
+            1,
+            3
+          ]
+        }
+      ],
+      "treasures": [
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 0,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 1,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 2,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 3,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 4,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 5,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 0,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 1,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 2,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 3,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 6,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 10,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 16,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 22,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 23,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 0,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 1,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 2,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 3,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 14,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 0,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 1,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 2,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 3,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 4,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 5,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 6,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 7,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 8,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 9,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 10,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 11,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 12,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 13,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 14,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 15,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.ironwoodIngot",
+          "damage": 0,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.steeleafIngot",
+          "damage": 0,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.torchberries",
+          "damage": 0,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.nagaScale",
+          "damage": 0,
+          "weight": 8,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "IC2:itemIngot",
+          "damage": 4,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartAlloy",
+          "damage": 0,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartCarbonMesh",
+          "damage": 0,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartCarbonPlate",
+          "damage": 0,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 0,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 3,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 4,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 5,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 1,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 2,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 6,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 7,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11019,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11306,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        }
+      ],
+      "rare": [
+        {
+          "item": "gtsr:SteamEntangledSingularity",
+          "damage": 0,
+          "weight": 0,
+          "countRange": [
+            1,
+            1
+          ],
+          "chancePercent": 4
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "itemlist": "Field_Generator_EV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Sensor_EV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Emitter_EV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Motor_EV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Pump_EV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Conveyor_Module_EV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Piston_EV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Robot_Arm_EV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        }
+      ],
+      "circuits": [
+        {
+          "itemlist": "Circuit_Nanocomputer",
+          "item": "gregtech:gt.metaitem.03",
+          "weight": 1,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Circuit_Quantumprocessor",
+          "item": "gregtech:gt.metaitem.03",
+          "weight": 1,
+          "countRange": [
+            1,
+            3
+          ]
+        }
+      ],
+      "treasures": [
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 0,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 1,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 2,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 3,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 4,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 5,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 0,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 1,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 2,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 3,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 6,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 10,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 16,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 22,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 23,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 0,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 1,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 2,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 3,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 14,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 0,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 1,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 2,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 3,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 4,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 5,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 6,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 7,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 8,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 9,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 10,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 11,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 12,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 13,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 14,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 15,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 4,
+          "weight": 10,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "TwilightForest:item.ironwoodIngot",
+          "damage": 0,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.steeleafIngot",
+          "damage": 0,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.torchberries",
+          "damage": 0,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.nagaScale",
+          "damage": 0,
+          "weight": 6,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "IC2:itemIngot",
+          "damage": 4,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartAlloy",
+          "damage": 0,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartCarbonMesh",
+          "damage": 0,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartCarbonPlate",
+          "damage": 0,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 0,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 3,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 4,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 5,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 1,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 2,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 6,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 7,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11019,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11306,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11028,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 22,
+          "weight": 10,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 23,
+          "weight": 10,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 24,
+          "weight": 10,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 35,
+          "weight": 10,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 36,
+          "weight": 10,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 32,
+          "weight": 10,
+          "countRange": [
+            1,
+            2
+          ]
+        }
+      ],
+      "rare": [
+        {
+          "item": "gtsr:SteamEntangledSingularity",
+          "damage": 0,
+          "weight": 0,
+          "countRange": [
+            1,
+            1
+          ],
+          "chancePercent": 7
+        },
+        {
+          "item": "gtsr:CriticalSteamEntangledSingularity",
+          "damage": 0,
+          "weight": 0,
+          "countRange": [
+            1,
+            1
+          ],
+          "chancePercent": 1
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "itemlist": "Field_Generator_IV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Sensor_IV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Emitter_IV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Motor_IV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Pump_IV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Conveyor_Module_IV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Piston_IV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Robot_Arm_IV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        }
+      ],
+      "circuits": [
+        {
+          "itemlist": "Circuit_Elitenanocomputer",
+          "item": "gregtech:gt.metaitem.03",
+          "weight": 1,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Circuit_Quantumcomputer",
+          "item": "gregtech:gt.metaitem.03",
+          "weight": 1,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Circuit_Crystalprocessor",
+          "item": "gregtech:gt.metaitem.03",
+          "weight": 1,
+          "countRange": [
+            1,
+            3
+          ]
+        }
+      ],
+      "treasures": [
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 0,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 1,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 2,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 3,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 4,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 5,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 0,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 1,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 2,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 3,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 6,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 10,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 16,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 22,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 23,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 0,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 1,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 2,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 3,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 14,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 0,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 1,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 2,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 3,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 4,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 5,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 6,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 7,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 8,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 9,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 10,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 11,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 12,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 13,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 14,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 15,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 4,
+          "weight": 8,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 9,
+          "weight": 10,
+          "countRange": [
+            1,
+            1
+          ]
+        },
+        {
+          "item": "TwilightForest:item.ironwoodIngot",
+          "damage": 0,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.steeleafIngot",
+          "damage": 0,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.torchberries",
+          "damage": 0,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.nagaScale",
+          "damage": 0,
+          "weight": 4,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "IC2:itemIngot",
+          "damage": 4,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartAlloy",
+          "damage": 0,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartCarbonMesh",
+          "damage": 0,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartCarbonPlate",
+          "damage": 0,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 0,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 3,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 4,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 5,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 1,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 2,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 6,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 7,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11019,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11306,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11028,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11316,
+          "weight": 10,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 22,
+          "weight": 8,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 23,
+          "weight": 8,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 24,
+          "weight": 8,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 35,
+          "weight": 8,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 36,
+          "weight": 8,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 32,
+          "weight": 8,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 37,
+          "weight": 10,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 38,
+          "weight": 10,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 33,
+          "weight": 10,
+          "countRange": [
+            1,
+            2
+          ]
+        }
+      ],
+      "rare": [
+        {
+          "item": "gtsr:SteamEntangledSingularity",
+          "damage": 0,
+          "weight": 0,
+          "countRange": [
+            1,
+            1
+          ],
+          "chancePercent": 10
+        },
+        {
+          "item": "gtsr:CriticalSteamEntangledSingularity",
+          "damage": 0,
+          "weight": 0,
+          "countRange": [
+            1,
+            1
+          ],
+          "chancePercent": 2
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "itemlist": "Field_Generator_LuV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Sensor_LuV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Emitter_LuV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 20,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Motor_LuV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Pump_LuV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Conveyor_Module_LuV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Electric_Piston_LuV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Robot_Arm_LuV",
+          "item": "gregtech:gt.metaitem.01",
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        }
+      ],
+      "circuits": [
+        {
+          "itemlist": "Circuit_Masterquantumcomputer",
+          "item": "gregtech:gt.metaitem.03",
+          "weight": 1,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Circuit_Neuroprocessor",
+          "item": "gregtech:gt.metaitem.03",
+          "weight": 1,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "itemlist": "Circuit_Crystalcomputer",
+          "item": "gregtech:gt.metaitem.03",
+          "weight": 1,
+          "countRange": [
+            1,
+            3
+          ]
+        }
+      ],
+      "treasures": [
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 0,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 1,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 2,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 3,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 4,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemShard",
+          "damage": 5,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 0,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 1,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 2,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 3,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 6,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 10,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 16,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 22,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 23,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 0,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 1,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 2,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 3,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Thaumcraft:ItemResource",
+          "damage": 14,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 0,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 1,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 2,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 3,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 4,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 5,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 6,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 7,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 8,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 9,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 10,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 11,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 12,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 13,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 14,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:rune",
+          "damage": 15,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 4,
+          "weight": 6,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 9,
+          "weight": 8,
+          "countRange": [
+            1,
+            1
+          ]
+        },
+        {
+          "item": "Botania:manaResource",
+          "damage": 14,
+          "weight": 10,
+          "countRange": [
+            1,
+            1
+          ]
+        },
+        {
+          "item": "TwilightForest:item.ironwoodIngot",
+          "damage": 0,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.steeleafIngot",
+          "damage": 0,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.torchberries",
+          "damage": 0,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "TwilightForest:item.nagaScale",
+          "damage": 0,
+          "weight": 2,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "IC2:itemIngot",
+          "damage": 4,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartAlloy",
+          "damage": 0,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartCarbonMesh",
+          "damage": 0,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "IC2:itemPartCarbonPlate",
+          "damage": 0,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 0,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 3,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 4,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 5,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 1,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 2,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 6,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "EnderIO:itemAlloy",
+          "damage": 7,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11019,
+          "weight": 2,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11306,
+          "weight": 4,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11028,
+          "weight": 6,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "gregtech:gt.metaitem.01",
+          "damage": 11316,
+          "weight": 8,
+          "countRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 22,
+          "weight": 6,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 23,
+          "weight": 6,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 24,
+          "weight": 6,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 35,
+          "weight": 6,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 36,
+          "weight": 6,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 32,
+          "weight": 6,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 37,
+          "weight": 8,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 38,
+          "weight": 8,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 33,
+          "weight": 8,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 57,
+          "weight": 10,
+          "countRange": [
+            1,
+            1
+          ]
+        },
+        {
+          "item": "appliedenergistics2:item.ItemMultiMaterial",
+          "damage": 34,
+          "weight": 10,
+          "countRange": [
+            1,
+            1
+          ]
+        },
+        {
+          "item": "gregtech:gt.bwMetaGeneratedingot",
+          "damage": 88,
+          "weight": 10,
+          "countRange": [
+            1,
+            2
+          ]
+        },
+        {
+          "item": "gregtech:gt.bwMetaGeneratedplate",
+          "damage": 88,
+          "weight": 10,
+          "countRange": [
+            1,
+            2
+          ]
+        }
+      ],
+      "rare": [
+        {
+          "item": "gtsr:SteamEntangledSingularity",
+          "damage": 0,
+          "weight": 0,
+          "countRange": [
+            1,
+            1
+          ],
+          "chancePercent": 14
+        },
+        {
+          "item": "gtsr:CriticalSteamEntangledSingularity",
+          "damage": 0,
+          "weight": 0,
+          "countRange": [
+            1,
+            1
+          ],
+          "chancePercent": 4
+        },
+        {
+          "item": "gtsr:MimicAmmo762Pack",
+          "damage": 0,
+          "weight": 0,
+          "countRange": [
+            1,
+            1
+          ],
+          "chancePercent": 8,
+          "variants": [
+            {
+              "item": "gtsr:MimicAmmo762Pack",
+              "damage": 0,
+              "weight": 1
+            },
+            {
+              "item": "gtsr:MimicAmmo20Pack",
+              "damage": 0,
+              "weight": 1
+            },
+            {
+              "item": "gtsr:MimicAmmo35Pack",
+              "damage": 0,
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

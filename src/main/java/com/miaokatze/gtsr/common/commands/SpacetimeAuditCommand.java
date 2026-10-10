@@ -79,23 +79,21 @@ public final class SpacetimeAuditCommand extends CommandBase {
                 .copy();
             require(beacon.getItem() instanceof SpacetimeAnchorBeacon, "Beacon registry");
             SpacetimeAnchorBeacon item = (SpacetimeAnchorBeacon) beacon.getItem();
-            require(item.getTier(beacon) == 6 && item.getTransferLimit(beacon) == 32768, "LuV charger contract");
-            double charged = ElectricItem.manager.charge(beacon, 102400000, 6, true, false);
-            require(
-                charged == 102400000 && ElectricItem.manager.getCharge(beacon) == 102400000,
-                "Real IC2 full charge");
+            require(item.getTier(beacon) == 3 && item.getTransferLimit(beacon) == 512, "HV charger contract");
+            double charged = ElectricItem.manager.charge(beacon, 1600000, 3, true, false);
+            require(charged == 1600000 && ElectricItem.manager.getCharge(beacon) == 1600000, "Real IC2 full charge");
             for (int i = 0; i < 5; i++) {
-                double simulated = ElectricItem.manager.discharge(beacon, 20480000, 6, true, false, true);
+                double simulated = ElectricItem.manager.discharge(beacon, 320000, 3, true, false, true);
                 require(
-                    simulated == 20480000 && ElectricItem.manager.getCharge(beacon) == 102400000 - i * 20480000,
+                    simulated == 320000 && ElectricItem.manager.getCharge(beacon) == 1600000 - i * 320000,
                     "Reservation must not consume charge");
                 require(
-                    ElectricItem.manager.discharge(beacon, 20480000, 6, true, false, false) == 20480000,
+                    ElectricItem.manager.discharge(beacon, 320000, 3, true, false, false) == 320000,
                     "Successful charge settlement");
             }
             require(ElectricItem.manager.getCharge(beacon) == 0, "Five trips per full charge");
             require(
-                ElectricItem.manager.discharge(beacon, 20480000, 6, true, false, true) == 0,
+                ElectricItem.manager.discharge(beacon, 320000, 3, true, false, true) == 0,
                 "Empty beacon cannot reserve a trip");
             sender.addChatMessage(
                 new ChatComponentText(

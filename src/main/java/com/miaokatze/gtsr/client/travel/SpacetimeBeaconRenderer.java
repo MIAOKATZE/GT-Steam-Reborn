@@ -28,6 +28,7 @@ public final class SpacetimeBeaconRenderer implements IItemRenderer {
                 .getItem(),
             new SpacetimeBeaconRenderer());
         SpacetimeBeaconChargeVisual.register();
+        BeaconNavigationClient.register();
     }
 
     @Override
@@ -56,12 +57,16 @@ public final class SpacetimeBeaconRenderer implements IItemRenderer {
         Minecraft mc = Minecraft.getMinecraft();
         IIcon icon = item.getIconIndex();
         if (icon == null) return;
+        IIcon needle = ((SpacetimeAnchorBeacon) item.getItem()).needleIcon();
         EntityLivingBase holder = null;
         for (Object object : data) if (object instanceof EntityLivingBase) holder = (EntityLivingBase) object;
-        float progress = holder instanceof EntityPlayer && charging((EntityPlayer) holder, item)
+        boolean charging = holder instanceof EntityPlayer && charging((EntityPlayer) holder, item);
+        float progress = charging
             ? Math.min(1F, ((EntityPlayer) holder).getItemInUseDuration() / (float) SpacetimeAnchorBeacon.RECALL_TICKS)
             : 0F;
+        int previousMatrixMode = GL11.glGetInteger(GL11.GL_MATRIX_MODE);
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
         GL11.glPushMatrix();
         try {
             if (type == ItemRenderType.INVENTORY) {
@@ -81,6 +86,29 @@ public final class SpacetimeBeaconRenderer implements IItemRenderer {
                 icon.getMaxV(),
                 icon.getIconWidth(),
                 icon.getIconHeight());
+            if (needle != null) {
+                GL11.glPushMatrix();
+                try {
+                    // Rotate only the transparent pointer about the dial center, never the casing.
+                    GL11.glTranslatef(.5F, .5F, type == ItemRenderType.INVENTORY ? -.002F : .002F);
+                    GL11.glRotatef(
+                        (type == ItemRenderType.INVENTORY ? 1 : -1) * BeaconNavigationClient.angle(charging),
+                        0,
+                        0,
+                        1);
+                    GL11.glTranslatef(-.5F, -.5F, 0);
+                    geometry(
+                        type,
+                        needle.getMaxU(),
+                        needle.getMinV(),
+                        needle.getMinU(),
+                        needle.getMaxV(),
+                        needle.getIconWidth(),
+                        needle.getIconHeight());
+                } finally {
+                    GL11.glPopMatrix();
+                }
+            }
             if (item.hasEffect(0)) {
                 GL11.glDepthMask(false);
                 GL11.glDepthFunc(GL11.GL_EQUAL);
@@ -111,6 +139,7 @@ public final class SpacetimeBeaconRenderer implements IItemRenderer {
         } finally {
             GL11.glPopMatrix();
             GL11.glPopAttrib();
+            GL11.glMatrixMode(previousMatrixMode);
         }
     }
 

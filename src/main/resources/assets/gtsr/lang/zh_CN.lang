@@ -1921,9 +1921,9 @@ betterquesting.quest.R1RTUgAAAAAAAAAAAAAAQg.desc=§3§l用途与机制§r%n本�
 betterquesting.quest.R1RTUgAAAAAAAAAAAAAAQw.name=§6§l热化学致密蒸汽发生系统控制器§r
 betterquesting.quest.R1RTUgAAAAAAAAAAAAAAQw.desc=§3§l用途与机制§r%n准备一个热化学致密蒸汽发生系统控制器，放入背包完成检索，§2物品不会被消耗§r。以燃料流量驱动热量并生成可调品位蒸汽；供给不足时限产，空气或蒸馏水不足会停产。致密蒸汽芯片可把输出压至千分之一，不增加流量。%n%n§3§l准备与操作§r%n规划时把燃料、空气、蒸馏水和蒸汽出口分开安排，观察供给不足时的限产与停产原因。芯片压缩输出体积，不会额外增加供汽量，因此下游仍应按所需品位和实际流量选择设备。控制器持有检查不会验证结构或已产出致密蒸汽，搭建与运行条件需另外确认。
 betterquesting.quest.R1RTUgAAAAAAAAAAAAAARA.name=§d§l时空奇点校准工程控制器§r
-betterquesting.quest.R1RTUgAAAAAAAAAAAAAARA.desc=§3§l用途与机制§r%n准备一个时空奇点校准工程控制器，放入背包完成检索，§2物品不会被消耗§r。这是通往繁荣维度的时空吸引设备，不处理配方。完整结构、维护和覆盖区块加载有效时，预热 §1600§r tick（§130§r 秒）消耗 §130,720§r EU/t，之后持续消耗 §115,360§r EU/t；每个输入能仓的最大输入须至少 §132,768§r EU/t。§c触碰运行中的核心会立即传送玩家。§r%n%n§3§l注意事项§r%n先准备足够输入能力与持续供能，再检查维护和覆盖区块加载。准备真正进入繁荣维度时，应先完成信标标记与充电；核心触碰会直接传送，不能把运行中的核心当作普通可接近的机器内部。
+betterquesting.quest.R1RTUgAAAAAAAAAAAAAARA.desc=§3§l两条入口路线，任选其一§r%n路线一：持有时空奇点校准工程控制器，完成下方不消耗物品的检索。路线二：阅读下述时空奇点祭坛使用说明，并自行勾选确认。§e勾选是玩家自确认，任务不会据此检测你是否实际进入繁荣维度。§r%n%n§3§l用途与机制§r%n准备一个时空奇点校准工程控制器，放入背包完成检索，§2物品不会被消耗§r。这是通往繁荣维度的时空吸引设备，不处理配方。完整结构、维护和覆盖区块加载有效时，预热 §1600§r tick（§130§r 秒）消耗 §130,720§r EU/t，之后持续消耗 §115,360§r EU/t；每个输入能仓的最大输入须至少 §132,768§r EU/t。§c触碰运行中的核心会立即传送玩家。§r%n%n§3§l注意事项§r%n先准备足够输入能力与持续供能，再检查维护和覆盖区块加载。准备真正进入繁荣维度时，应先完成信标标记与充电；核心触碰会直接传送，不能把运行中的核心当作普通可接近的机器内部。%n%n§3§l路线二：时空奇点祭坛§r%n可用时空锚定信标在主世界导航最近的时空奇点祭坛，导航无需电量。未激活的失活核心只有光效，不会吸引或传送。使用神秘法杖激活时，需要六种原始 vis（风、火、水、地、秩序、混沌）各 §150§r 点全部充足，才一次扣除各 §150§r 点；任一种不足则全部不扣。激活后完整效果在 §1200§r tick（§110§r 秒）内逐渐显现；满 §110§r 秒后才开始吸引玩家并传送至繁荣维度。出发前同样需要标记并充好返程信标。
 betterquesting.quest.R1RTUgAAAAAAAAAAAAAARQ.name=§d§l时空锚定信标§r
-betterquesting.quest.R1RTUgAAAAAAAAAAAAAARQ.desc=§3§l用途与机制§r%n准备一个时空锚定信标，放入背包完成检索，§2物品不会被消耗§r。出发前手持信标在安全地点按 Alt+右键记录维度、坐标与朝向；它只保存一个返程地点，再次标记会覆盖旧点。繁荣维度内潜行并按住右键 §13§r 秒返程，每次成功消耗 §120,480,000§r EU，冷却 §130§r 秒；满电 §1102,400,000§r EU 可返程五次。§c未标记、电量不足或目标位置不安全时无法返程。§r务必在碰触校准核心前标记。%n%n§3§l注意事项§r%n将标记、充电和出发作为固定准备顺序，并在安全地点确认返程目标。领取任务奖励不补充信标电量，也不保留被新标记覆盖的旧位置。抵达繁荣维度后，使用导航罗盘寻找遗迹与使用信标返程是两种独立操作；行程中注意剩余电量与返程冷却。
+betterquesting.quest.R1RTUgAAAAAAAAAAAAAARQ.desc=§3§l用途与机制§r%n准备一个时空锚定信标，放入背包完成检索，§2物品不会被消耗§r。出发前手持信标在安全地点按 Alt+右键记录维度、坐标与朝向；它只保存一个返程地点，再次标记会覆盖旧点。信标容量为 §11,600,000§r EU，采用 §1HV§r 充电等级（tier §13§r，§1512§r EU/t）。繁荣维度内潜行（Shift）并按住右键 §160§r tick（§13§r 秒）返程；每次成功返程消耗满容量的 §120%%§r，即 §1320,000§r EU，冷却 §130§r 秒，满电可返程五次。§c未标记、电量不足或目标位置不安全时无法返程。§r务必在碰触校准核心或使用祭坛前标记。%n%n§3§l主世界祭坛导航§r%n在主世界使用信标可导航最近的“时空奇点祭坛”，§2无需电量§r。导航与返程是两种独立操作；找到祭坛不代表信标已标记或充电。%n%n§3§l注意事项§r%n将标记、充电和出发作为固定准备顺序，并在安全地点确认返程目标。领取任务奖励不补充信标电量，也不保留被新标记覆盖的旧位置。抵达繁荣维度后，使用导航罗盘寻找遗迹与使用信标返程是两种独立操作；行程中注意剩余电量与返程冷却。%n%n§3§l信标指针§r%n繁荣维度内，信标指针指向最近的已登记结构；在其他维度，指针慢速无规律旋转。潜行（Shift）并按住右键进行 §13§r 秒返程蓄力时，指针快速旋转。§2导航无需电量§r；返程仍须满足标记、电量与安全条件，并在成功时扣除返程能量。
 betterquesting.quest.R1RTUgAAAAAAAAAAAAAARg.name=§2§l进入繁荣维度§r
 betterquesting.quest.R1RTUgAAAAAAAAAAAAAARg.desc=§3§l用途与机制§r%n繁荣维度是本章的探索目标。时空奇点校准工程正常运行后，接触核心即可进入；默认维度编号为 §178§r，服务器配置可以更改。出发前先在安全地点标记并充好返程信标。本题检测你实际进入繁荣维度，无需寻找指定坐标或手动勾选。首次抵达会自动获得繁荣时代历史书与导航罗盘。%n%n§3§l准备与操作§r%n进入后先确认落点与周围环境，再查看自动获得的历史书和导航罗盘。导航用于寻找已登记遗迹，不能代替返程信标。六类原液任务按各生物群系介绍采集和工业用途，可根据当前装备逐步选择路线；无需在此次抵达时收齐全部原液，也不要求搭建处理产线。
 betterquesting.quest.R1RTUgAAAAAAAAAAAAAARw.name=§2§l荒原叹息原液单元§r
@@ -3485,3 +3485,25 @@ fluid.gtsr_industrial_prosperity_reminiscence=繁荣追忆
 Material.gtsr_industrial_prosperity_obsession=繁荣执念
 fluid.gtsr_industrial_prosperity_obsession=繁荣执念
 gtsr.recipe.rockbreaker.abyssal.side=四个水平邻格中分别放置深渊执念与岩浆；两者均不消耗
+
+# Spacetime Singularity Altar
+lore.entry.structures.spacetime_altar.title=时空奇点祭坛
+gtsr.altar.introduction=沉睡的星环等待六种原初魔力
+gtsr.altar.activate=持杖激活奇点
+gtsr.altar.chest_unlocked=本座祭坛的T1封印箱已解锁。
+gtsr.altar.chest_requires_read=请先阅读这座祭坛的剧情板。
+gtsr.altar.need_wand=请手持神秘时代法杖激活祭坛。
+gtsr.altar.insufficient_vis=法杖需要风、火、水、地、秩序、混沌各50 vis。
+achievement.gtsr.spacetimeAltarEntered=星环下的访客
+achievement.gtsr.spacetimeAltarEntered.desc=进入主世界中真实生成的时空奇点祭坛。
+achievement.gtsr.spacetimeAltarActivated=唤醒时空奇点
+achievement.gtsr.spacetimeAltarActivated.desc=在真实祭坛用法杖支付六种原初魔力各50 vis。
+gtsr.altar.story.1=这座星环曾是通往繁荣纪的门。石台上的刻痕仍保存着最后一位守门人的记录。
+gtsr.altar.story.2=阅读记录只会解除本座祭坛旁的T1封印箱，不会开启其他祭坛的箱子。
+gtsr.altar.story.3=启程前，请用时空信标标记主世界的安全位置。返程召回消耗320,000 EU，信标至少需要储备这份电量；可使用HV充电。
+gtsr.altar.story.4=手持神秘时代法杖，再点击下方激活按钮。祭坛一次消耗风、火、水、地、秩序、混沌各50 vis；阅读本身不会消耗魔力。
+gtsr.altar.story.5=支付后，奇点将在200游戏刻（通常约10秒）内逐渐显现；完成后才开始牵引并将你送往繁荣纪。潜行可暂时退出牵引。
+
+# Spacetime Singularity Altar
+gtsr.anchor.tooltip.tier=HV 级时空信标；可使用HV充电。
+gtsr.anchor.tooltip.navigation=指针：主世界指向最近有效祭坛；繁荣维度指向最近已生成结构。导航不需要电量。

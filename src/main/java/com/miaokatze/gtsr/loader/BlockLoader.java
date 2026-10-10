@@ -38,6 +38,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 public class BlockLoader {
 
     public static void initBlocks() {
+        com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarBlocks.register();
         com.miaokatze.gtsr.common.dimension.prosperity.architecture.RuinsArchitecture.registerBlocks();
         com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterRegistry.registerBlocks();
         // 方块实例统一写入 blocks 包自持持有者（SR-O2-B05），machine/blocks 侧只读，不再反向引用 loader

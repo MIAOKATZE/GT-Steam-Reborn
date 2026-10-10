@@ -120,7 +120,8 @@ public final class LoreNetwork {
             } catch (RuntimeException malformed) {
                 return;
             }
-            boolean known = key.equals("lore.chapter.hanging_great_tree.title");
+            boolean known = key.equals("lore.chapter.hanging_great_tree.title")
+                || key.equals("lore.entry.structures.spacetime_altar.title");
             for (String id : com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite.NAMES)
                 known |= key.equals("lore.entry.structures." + id + ".title");
             valid = !buf.isReadable() && key.length() <= 120 && known;

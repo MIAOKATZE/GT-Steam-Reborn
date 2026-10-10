@@ -79,6 +79,8 @@ public final class RemasterRuntime {
 
             public float hardness(World w, int x, int y, int z, float fallback) {
                 TileEntity t = w.getTileEntity(x, y, z);
+                if (t instanceof com.miaokatze.gtsr.common.dimension.prosperity.altar.TileSpacetimeAltarStory)
+                    return -1;
                 if (!(t instanceof TileRemasterNode)) return fallback;
                 TileRemasterNode tile = (TileRemasterNode) t;
                 if (w.isRemote && "spawner".equals(tile.role)) return spawnerHardness(tile);
@@ -93,6 +95,9 @@ public final class RemasterRuntime {
     public static boolean activateNode(World world, int x, int y, int z, EntityPlayer player) {
         if (world.isRemote) return true;
         TileEntity actual = world.getTileEntity(x, y, z);
+        if (actual instanceof com.miaokatze.gtsr.common.dimension.prosperity.altar.TileSpacetimeAltarStory)
+            return com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory
+                .read(player, (com.miaokatze.gtsr.common.dimension.prosperity.altar.TileSpacetimeAltarStory) actual);
         if (!(actual instanceof TileRemasterNode)) return false;
         TileRemasterNode tile = (TileRemasterNode) actual;
         if (!valid(player, tile) || disabledRole(tile.role)) return false;
@@ -625,6 +630,13 @@ public final class RemasterRuntime {
         JsonObject node = chestNode(tile);
         RemasterData data = RemasterData.get(world);
         RemasterSite site = data.site(tile.getRemasterSite());
+        com.miaokatze.gtsr.common.dimension.prosperity.encounter.SealedChestLoot.Prepared reward;
+        try {
+            reward = RemasterLoot.prepare(tile, node);
+        } catch (RuntimeException failure) {
+            tile.cancelRewardOpening(failure);
+            return false;
+        }
         if (!world.setBlock(
             tile.xCoord,
             tile.yCoord,
@@ -636,7 +648,8 @@ public final class RemasterRuntime {
         if (!(opened instanceof TileEntityUnsealedChest))
             throw new IllegalStateException("Missing remaster reward container");
         TileEntityUnsealedChest chest = (TileEntityUnsealedChest) opened;
-        RemasterLoot.fill(chest, site, node, tile.getTier());
+        if (!com.miaokatze.gtsr.common.dimension.prosperity.encounter.SealedChestLoot.apply(chest, reward))
+            return false;
         data.flag(site.id(), "claimed:" + tile.getRemasterNode(), true);
         chest.markDirty();
         world.markBlockForUpdate(tile.xCoord, tile.yCoord, tile.zCoord);

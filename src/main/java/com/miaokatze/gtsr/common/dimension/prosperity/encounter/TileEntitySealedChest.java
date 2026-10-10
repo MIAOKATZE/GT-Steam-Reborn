@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.encounter;
 
-import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.NetworkManager;
@@ -18,7 +17,19 @@ public class TileEntitySealedChest extends TileEntity {
     private int storyEvent = -1;
     private String storyRelic = "";
     private String remasterSite = "", remasterNode = "";
+    private String altarInstance = "";
     public NBTTagCompound remasterGeometryOrigin = new NBTTagCompound();
+
+    public void initializeAltar(String id) {
+        altarInstance = id;
+        clickUnlock = false;
+        initialize(1, id, -1);
+        tier = 1;
+    }
+
+    public String getAltarInstance() {
+        return altarInstance;
+    }
 
     public void initializeRemaster(int t, String site, String node) {
         remasterSite = site;
@@ -84,7 +95,8 @@ public class TileEntitySealedChest extends TileEntity {
     }
 
     private boolean nativeBossReward(String id, int p) {
-        return remasterSite.isEmpty() && !clickUnlock && !id.isEmpty() && !id.startsWith("cache:") && p < 0;
+        return altarInstance.isEmpty() && remasterSite
+            .isEmpty() && !clickUnlock && !id.isEmpty() && !id.startsWith("cache:") && p < 0;
     }
 
     private void migrateLootContract() {
@@ -101,6 +113,8 @@ public class TileEntitySealedChest extends TileEntity {
     }
 
     private boolean allowed() {
+        if (!altarInstance.isEmpty())
+            return com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory.chestReady(this);
         if (!remasterSite.isEmpty())
             return com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.chestReady(this);
         if (clickUnlock) return openingTicks >= 0;
@@ -113,11 +127,17 @@ public class TileEntitySealedChest extends TileEntity {
     }
 
     public void tryUnlockByClick() {
+        if (!altarInstance.isEmpty()) return;
         if (!remasterSite.isEmpty()) return;
         if ((clickUnlock || allowed()) && openingTicks < 0) startOpening();
     }
 
     public void tryUnlockByClick(net.minecraft.entity.player.EntityPlayer player) {
+        if (!altarInstance.isEmpty()) {
+            if (com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory.chestClick(player, this)
+                && openingTicks < 0) startOpening();
+            return;
+        }
         if (remasterSite.isEmpty()) {
             tryUnlockByClick();
             if (openingTicks < 0 && !allowed()) {
@@ -138,23 +158,6 @@ public class TileEntitySealedChest extends TileEntity {
         worldObj.playSoundEffect(xCoord + .5, yCoord + .5, zCoord + .5, "portal.trigger", .45F, 1.5F);
         markDirty();
         worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
-    }
-
-    public static ItemStack lootForTier(int tier) {
-        switch (tier) {
-            case 1:
-                return new ItemStack(Items.coal);
-            case 2:
-                return new ItemStack(Items.iron_ingot);
-            case 3:
-                return new ItemStack(Items.gold_ingot);
-            case 4:
-                return new ItemStack(Items.diamond);
-            case 5:
-                return new ItemStack(Items.emerald);
-            default:
-                throw new IllegalArgumentException("tier");
-        }
     }
 
     public void updateEntity() {
@@ -184,6 +187,12 @@ public class TileEntitySealedChest extends TileEntity {
             return;
         }
         if (worldObj.getBlock(xCoord, yCoord, zCoord) != ForgottenLakeEncounterRegistry.sealedChest) return;
+        if (!altarInstance.isEmpty() && !allowed()) {
+            openingTicks = -1;
+            markDirty();
+            worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+            return;
+        }
         if (!remasterSite.isEmpty()) {
             if (!allowed()) {
                 openingTicks = -1;
@@ -194,29 +203,46 @@ public class TileEntitySealedChest extends TileEntity {
             com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.completeChest(this);
             return;
         }
+        net.minecraft.item.Item relic = com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry.RELICS
+            .get(storyRelic);
+        ItemStack witness = relic == null ? null : new ItemStack(relic);
+        if (witness != null && storyEvent >= 8 && storyEvent <= 10) {
+            NBTTagCompound proof = new NBTTagCompound();
+            proof.setInteger("gtsr.storyCache", storyEvent);
+            proof.setString("gtsr.storyOrigin", encounter);
+            witness.setTagCompound(proof);
+        }
+        SealedChestLoot.Prepared reward;
+        try {
+            reward = SealedChestLoot.prepare(this, witness);
+        } catch (RuntimeException failure) {
+            cancelRewardOpening(failure);
+            return;
+        }
         worldObj.playSoundEffect(xCoord + .5, yCoord + .5, zCoord + .5, "random.levelup", .65F, .8F);
         if (worldObj
             .setBlock(xCoord, yCoord, zCoord, ForgottenLakeEncounterRegistry.unsealedChest, getBlockMetadata(), 3)) {
             TileEntity t = worldObj.getTileEntity(xCoord, yCoord, zCoord);
             if (t instanceof TileEntityUnsealedChest) {
                 TileEntityUnsealedChest chest = (TileEntityUnsealedChest) t;
-                if (chest.beginReward(tier)) chest.setInventorySlotContents(13, lootForTier(tier));
                 chest.setStoryOrigin(encounter, storyEvent);
-                net.minecraft.item.Item relic = com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry.RELICS
-                    .get(storyRelic);
-                if (relic != null) {
-                    ItemStack witness = new ItemStack(relic);
-                    if (storyEvent >= 8 && storyEvent <= 10) {
-                        NBTTagCompound proof = new NBTTagCompound();
-                        proof.setInteger("gtsr.storyCache", storyEvent);
-                        proof.setString("gtsr.storyOrigin", encounter);
-                        witness.setTagCompound(proof);
-                    }
-                    chest.setInventorySlotContents(12, witness);
-                }
+                SealedChestLoot.apply(chest, reward);
                 chest.markDirty();
             }
         }
+    }
+
+    /** Keep ownership and the sealed block intact; a later player click can retry after supply is restored. */
+    public void cancelRewardOpening(RuntimeException failure) {
+        openingTicks = -1;
+        markDirty();
+        worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+        com.miaokatze.gtsr.main.GTSteamReborn.LOG.warn(
+            "Unable to prepare sealed chest reward at {},{},{}; seal retained: {}",
+            xCoord,
+            yCoord,
+            zCoord,
+            failure.toString());
     }
 
     public void readFromNBT(NBTTagCompound n) {
@@ -228,6 +254,7 @@ public class TileEntitySealedChest extends TileEntity {
         clickUnlock = n.getBoolean("clickUnlock");
         storyEvent = n.hasKey("storyEvent") ? n.getInteger("storyEvent") : -1;
         storyRelic = n.getString("storyRelic");
+        altarInstance = n.getString("altarInstance");
         openingTicks = n.hasKey("opening") ? n.getInteger("opening") : -1;
         remasterSite = n.getString("remasterSite");
         remasterNode = n.getString("remasterNode");
@@ -243,6 +270,7 @@ public class TileEntitySealedChest extends TileEntity {
         n.setBoolean("clickUnlock", clickUnlock);
         n.setInteger("storyEvent", storyEvent);
         n.setString("storyRelic", storyRelic);
+        n.setString("altarInstance", altarInstance);
         n.setInteger("opening", openingTicks);
         n.setString("remasterSite", remasterSite);
         n.setString("remasterNode", remasterNode);
