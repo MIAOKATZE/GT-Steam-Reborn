@@ -9,7 +9,7 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0 beta1-3 & RC1-2" src="https://img.shields.io/badge/GTNH-2.9.0%20beta1--3%20%26%20RC1--2-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.21.1" src="https://img.shields.io/badge/Release-1.21.1-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.21.13" src="https://img.shields.io/badge/Release-1.21.13-green.svg"></a>
 </p>
 
 GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
@@ -27,7 +27,7 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 | 把远方工坊接回主基地 | 建设蒸汽枢纽与蓄水枢纽，携带节点到矿场、加工间或其他维度；用枢纽终端检查方向、容量与传输速率。 |
 | 整合矿物加工 | 奇点钻井枢纽收集远方资源，矿物处理集群编排加工链；物流单元接好输入与输出后，再添加增幅模块。 |
 | 把蒸汽推进到更高阶段 | 热化学致密蒸汽发生系统拓展燃料供应，致密态操控与奇点设备支撑储运、发电和高级加工。 |
-| 前往繁荣探索 | 准备回程锚点、武器和弹药，用时空校准工程进入维度；先阅读遗址线索，再完成机关与遭遇。 |
+| 前往繁荣探索 | 标记返程信标，准备武器和弹药；在主世界找到时空奇点祭坛，阅读剧情板并持杖激活，或用时空校准工程建立稳定通道。 |
 
 这些路线可以并行建设。锅炉、枢纽和加工机的总吞吐需要一起规划：只扩建机器并行而不补足供汽、冷却或输出空间，产线仍会受最弱的一环限制。熟悉当前机器的界面状态，再逐项提高负荷，比一次把所有档位拉满更容易找到瓶颈。
 
@@ -279,6 +279,14 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 <p align="center"><img src="README/Prosperity-Landscape.png" width="440" alt="繁荣维度地貌"> <img src="README/Prosperity-Ruins.png" width="440" alt="繁荣维度遗址"><br><em>繁荣时代的荒野与遗址 / Landscapes and ruins of Prosperity</em></p>
 
 这里曾有一套把城市与工坊连在一起的蒸汽文明。如今从草原、森林到荒漠与沼泽，散落着历史书页、史料信物、机械遗址和各自独立的遭遇。探索不只是开箱：阅读现场线索，操作机关，完成遭遇后再领取奖励；历史书会随着你的经历补充纪年，测绘罗盘帮助寻找入口。
+
+**时空奇点祭坛 / Spacetime Singularity Altar**
+
+<p align="center"><img src="README/Spacetime-Singularity-Altar.webp" width="600" alt="时空奇点祭坛，14×14×15 实际结构"><br><em>时空奇点祭坛：通往繁荣时代维度遗迹的大门 / Spacetime Singularity Altar</em></p>
+
+在主世界寻找祭坛，右击剧情板阅读线索并解锁本座祭坛的奖励箱。手持神秘法杖，点击剧情界面的“持杖激活奇点”：六种原始 vis 必须各有至少 50，成功后各扣除 50；任一种不足时全部不扣。激活约 10 秒后，奇点开始吸引附近玩家并将其送入繁荣。
+
+出发前，使用时空锚定信标在主世界 **Alt + 右击** 标记返程点，并通过 HV 充电备好至少 **320,000 EU** 的返程电量。
 
 **时空奇点校准工程 / Spacetime Singularity Calibration Engineering**
 

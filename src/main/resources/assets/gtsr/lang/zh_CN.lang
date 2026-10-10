@@ -3488,7 +3488,7 @@ gtsr.recipe.rockbreaker.abyssal.side=四个水平邻格中分别放置深渊执�
 
 # Spacetime Singularity Altar
 lore.entry.structures.spacetime_altar.title=时空奇点祭坛
-gtsr.altar.introduction=沉睡的星环等待六种原初魔力
+gtsr.altar.introduction=通往繁荣时代维度遗迹的大门
 gtsr.altar.activate=持杖激活奇点
 gtsr.altar.chest_unlocked=本座祭坛的T1封印箱已解锁。
 gtsr.altar.chest_requires_read=请先阅读这座祭坛的剧情板。
@@ -3498,11 +3498,11 @@ achievement.gtsr.spacetimeAltarEntered=星环下的访客
 achievement.gtsr.spacetimeAltarEntered.desc=进入主世界中真实生成的时空奇点祭坛。
 achievement.gtsr.spacetimeAltarActivated=唤醒时空奇点
 achievement.gtsr.spacetimeAltarActivated.desc=在真实祭坛用法杖支付六种原初魔力各50 vis。
-gtsr.altar.story.1=这座星环曾是通往繁荣纪的门。石台上的刻痕仍保存着最后一位守门人的记录。
-gtsr.altar.story.2=阅读记录只会解除本座祭坛旁的T1封印箱，不会开启其他祭坛的箱子。
-gtsr.altar.story.3=启程前，请用时空信标标记主世界的安全位置。返程召回消耗320,000 EU，信标至少需要储备这份电量；可使用HV充电。
-gtsr.altar.story.4=手持神秘时代法杖，再点击下方激活按钮。祭坛一次消耗风、火、水、地、秩序、混沌各50 vis；阅读本身不会消耗魔力。
-gtsr.altar.story.5=支付后，奇点将在200游戏刻（通常约10秒）内逐渐显现；完成后才开始牵引并将你送往繁荣纪。潜行可暂时退出牵引。
+gtsr.altar.story.1=时空奇点祭坛是通往繁荣时代维度遗迹的大门。未激活的奇点只有光效，不会吸引或传送玩家。
+gtsr.altar.story.2=右击剧情板阅读说明，可解锁本座祭坛旁的1级封印宝箱。阅读不会激活奇点，也不会消耗法杖魔力。
+gtsr.altar.story.3=出发前，手持时空锚定信标，在主世界的安全位置按Alt+右键标记返程点，再充入至少320,000 EU。信标可使用HV充电；这是一次返程所需的电量。
+gtsr.altar.story.4=手持神秘时代法杖，点击下方“持杖激活奇点”按钮。法杖中的风、火、水、地、秩序、混沌必须各有至少50 vis；成功时各扣除50 vis，任一种不足则全部不扣。
+gtsr.altar.story.5=激活后，奇点会在200游戏刻（通常约10秒）内逐渐显现。等待完成后，靠近奇点即可被吸引并传送至繁荣时代维度。潜行可暂时退出牵引。
 
 # Spacetime Singularity Altar
 gtsr.anchor.tooltip.tier=HV 级时空信标；可使用HV充电。

@@ -3493,7 +3493,7 @@ gtsr.recipe.rockbreaker.abyssal.side=Place Abyssal Obsession and lava in two of 
 
 # Spacetime Singularity Altar
 lore.entry.structures.spacetime_altar.title=Spacetime Singularity Altar
-gtsr.altar.introduction=A sleeping ring awaits six primal aspects
+gtsr.altar.introduction=A gateway to the ruins of the Age of Prosperity dimension
 gtsr.altar.activate=Activate with held wand
 gtsr.altar.chest_unlocked=This altar's T1 sealed chest is unlocked.
 gtsr.altar.chest_requires_read=Read this altar's story board first.
@@ -3503,11 +3503,11 @@ achievement.gtsr.spacetimeAltarEntered=Visitor Beneath the Ring
 achievement.gtsr.spacetimeAltarEntered.desc=Enter a generated Spacetime Singularity Altar in the Overworld.
 achievement.gtsr.spacetimeAltarActivated=Awaken the Spacetime Singularity
 achievement.gtsr.spacetimeAltarActivated.desc=Pay 50 vis of each primal aspect at a generated altar.
-gtsr.altar.story.1=This ring was once a gate to the Age of Prosperity. The stone dais still bears the last gatekeeper's record.
-gtsr.altar.story.2=Reading this record unlocks only the T1 sealed chest beside this altar. Other altars retain their seals.
-gtsr.altar.story.3=Before departing, mark a safe Overworld position with the Spacetime Beacon. Recall costs 320,000 EU; store that much energy first. The beacon can be charged at HV.
-gtsr.altar.story.4=Hold a Thaumcraft wand and press Activate below. The altar consumes exactly 50 vis of each primal aspect once. Reading consumes no vis.
-gtsr.altar.story.5=After payment, the singularity appears over 200 game ticks (normally about 10 seconds). Attraction and travel to Prosperity begin only when complete. Sneak to leave the attraction.
+gtsr.altar.story.1=The Spacetime Singularity Altar is a gateway to the ruins of the Age of Prosperity dimension. Its inactive singularity has only a light effect and cannot attract or teleport players.
+gtsr.altar.story.2=Right-click the story board to read these instructions and unlock this altar's level-1 sealed chest. Reading neither activates the singularity nor consumes wand vis.
+gtsr.altar.story.3=Before departing, hold the Spacetime Beacon and press Alt + right-click at a safe Overworld location to mark your return point. Charge it with at least 320,000 EU, enough for one recall. The beacon supports HV charging.
+gtsr.altar.story.4=Hold a Thaumcraft wand and press the Activate with held wand button below. Air, Fire, Water, Earth, Order and Entropy must each contain at least 50 vis. Activation consumes 50 vis of each; if any aspect is insufficient, none is consumed.
+gtsr.altar.story.5=After activation, the singularity gradually appears over 200 game ticks (normally about 10 seconds). When complete, approach it to be attracted and teleported to the Age of Prosperity dimension. Sneak to temporarily leave the attraction.
 
 # Spacetime Singularity Altar
 gtsr.anchor.tooltip.tier=HV-tier spacetime beacon; charge at HV.
