@@ -53,7 +53,7 @@ public final class SpacetimeAltarNavigationSearch {
 
     /** Validate a locked destination independently of discovery regions, cache age, or disk availability. */
     public static int targetStatus(World world, int x, int z) {
-        if (!eligible(world)) return AltarSearchQueue.UNKNOWN;
+        if (!serverWorld(world)) return AltarSearchQueue.UNKNOWN;
         WorldServer server = (WorldServer) world;
         SpacetimeAltarIndex index = SpacetimeAltarIndex.get(world);
         String id = "altar:" + (x >> 4) + ":" + (z >> 4);
@@ -91,10 +91,13 @@ public final class SpacetimeAltarNavigationSearch {
     }
 
     private static boolean eligible(World world) {
+        return serverWorld(world) && world.getWorldInfo()
+            .isMapFeaturesEnabled();
+    }
+
+    private static boolean serverWorld(World world) {
         return world instanceof WorldServer && !world.isRemote
             && world.provider.dimensionId == 0
-            && world.getWorldInfo()
-                .isMapFeaturesEnabled()
             && world.getChunkProvider() instanceof ChunkProviderServer;
     }
 
