@@ -3,7 +3,6 @@ package com.miaokatze.gtsr.common.machine;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static gregtech.api.enums.HatchElement.InputBus;
 import static gregtech.api.enums.HatchElement.OutputBus;
@@ -67,12 +66,21 @@ import gregtech.common.tileentities.machines.IDualInputHatch;
 public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
     implements IConstructable, ISurvivalConstructable {
 
-    // 炉温升降速率（每秒变化量，1.0 = 100%）
+    private static final int TICKS_PER_SECOND = 20;
+    private static final int TIER_UNKNOWN = -1;
+    private static final int TIER_BRONZE = 1;
+    private static final int TIER_STEEL = 2;
+    private static final String OUTPUT_PROTECTION_NBT_KEY = "gtsr.cokeOutputProtection";
+
+    // 热量以 1.0 表示满温；配方仅在启动时采样。
     private static final double HEAT_UP_PER_SECOND = 0.0001d; // 运行中：+0.01%/s
     private static final double HEAT_DOWN_PER_SECOND = 0.001d; // 停机时：-0.1%/s
     // 各等级并行数上限
     private static final int MAX_PARALLEL_T1 = 24; // 青铜
     private static final int MAX_PARALLEL_T2 = 64; // 钢
+    private static final double STEEL_DURATION_REDUCTION = 0.25d;
+    private static final double MAX_HEAT_DURATION_REDUCTION = 0.50d;
+    private static final double MAX_TOTAL_DURATION_REDUCTION = 0.75d;
 
     public double mHeat = 0.0d;
     // 默认值 -1 表示「未确定」，与 checkMachine() 中的重置值一致。
@@ -84,6 +92,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
     // mDualInputHatches（仿 GT5U addInputBusToMachineList）。此前裸 instanceof 会把样板仓收进
     // mInputBusses，随后被 GT5U getAllStoredInputs 对 CraftingInputME 的显式跳过逻辑忽略，
     // 导致样板输入静默失效（结构能成型、配方永不消耗）。
+    @Override
     public boolean addInputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
@@ -104,6 +113,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
         return false;
     }
 
+    @Override
     public boolean addOutputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
@@ -138,7 +148,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
             "gtsr.gui.coke_oven.temperature",
             "%.1f%%",
             EnumChatFormatting.RED,
-            () -> mHeat * 100.0d);
+            () -> getHeat() * 100.0d);
     }
 
     @Override
@@ -158,6 +168,11 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
 
     @Override
     public boolean showRecipeTextInGUI() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsVoidProtection() {
         return true;
     }
 
@@ -205,88 +220,77 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
 
     @Override
     public IStructureDefinition<MTELargeCokeOven> getStructureDefinition() {
-        if (STRUCTURE_DEFINITION == null) {
-            final int bronzeCasingIndex = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
-
-            STRUCTURE_DEFINITION = StructureDefinition.<MTELargeCokeOven>builder()
-                .addShape(
-                    STRUCTURE_PIECE_MAIN,
-                    transpose(
-                        new String[][] { { "   GFFF", "    F F", "   GFFF" }, { "   GFFF", "    F F", "   GFFF" },
-                            { "BBBGFFF", "BBBBF F", "BBBGFFF" }, { "BBBGFFF", "BCCCC F", "BBBGFFF" },
-                            { "BBBGFFF", "BCCCC F", "BBBGFFF" }, { "B~BGFFF", "BCCCC F", "BBBGFFF" },
-                            { "BBBGEEE", "BBBDEEE", "BBBGEEE" } }))
-                .addElement(
-                    'B',
-                    ofChain(
-                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
-                        onElementPass(
-                            t -> {},
-                            ofBlocksTiered(
-                                MTELargeCokeOven::getCasingTier,
-                                ImmutableList.of(
-                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                -1,
-                                (MTELargeCokeOven t, Integer tier) -> t.mTier = tier,
-                                (MTELargeCokeOven t) -> t.mTier)),
-                        buildHatchAdder(MTELargeCokeOven.class).atLeast(InputBus, OutputBus)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTELargeCokeOven.class).atLeast(OutputHatch)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1)
-                            .build()))
-                .addElement(
-                    'C',
-                    onElementPass(
-                        t -> {},
-                        ofBlocksTiered(
-                            MTELargeCokeOven::getPipeTier,
-                            ImmutableList
-                                .of(Pair.of(GregTechAPI.sBlockCasings2, 12), Pair.of(GregTechAPI.sBlockCasings2, 13)),
-                            -1,
-                            (MTELargeCokeOven t, Integer tier) -> { if (tier > t.mTier) t.mTier = tier; },
-                            (MTELargeCokeOven t) -> t.mTier)))
-                .addElement(
-                    'D',
-                    onElementPass(
-                        t -> {},
-                        ofBlocksTiered(
-                            MTELargeCokeOven::getGearTier,
-                            ImmutableList
-                                .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
-                            -1,
-                            (MTELargeCokeOven t, Integer tier) -> { if (tier > t.mTier) t.mTier = tier; },
-                            (MTELargeCokeOven t) -> t.mTier)))
-                .addElement(
-                    'E',
-                    onElementPass(
-                        t -> {},
-                        ofBlocksTiered(
-                            MTELargeCokeOven::getFireboxTier,
-                            ImmutableList
-                                .of(Pair.of(GregTechAPI.sBlockCasings3, 13), Pair.of(GregTechAPI.sBlockCasings3, 14)),
-                            -1,
-                            (MTELargeCokeOven t, Integer tier) -> { if (tier > t.mTier) t.mTier = tier; },
-                            (MTELargeCokeOven t) -> t.mTier)))
-                .addElement('F', onElementPass(t -> {}, ofBlock(GregTechAPI.sBlockCasings4, 15)))
-                .addElement(
-                    'G',
-                    onElementPass(
-                        t -> {},
-                        ofBlocksTiered(
-                            MTELargeCokeOven::getFrameTier,
-                            ImmutableList.of(
-                                Pair.of(GregTechAPI.sBlockFrames, gregtech.api.enums.Materials.Bronze.mMetaItemSubID),
-                                Pair.of(GregTechAPI.sBlockFrames, gregtech.api.enums.Materials.Steel.mMetaItemSubID)),
-                            -1,
-                            (MTELargeCokeOven t, Integer tier) -> { if (tier > t.mTier) t.mTier = tier; },
-                            (MTELargeCokeOven t) -> t.mTier)))
-                .build();
-        }
+        if (STRUCTURE_DEFINITION == null) STRUCTURE_DEFINITION = createStructureDefinition();
         return STRUCTURE_DEFINITION;
+    }
+
+    /** 所有分级部件共享 mTier，StructureLib 拒绝混用青铜和钢部件。 */
+    private static IStructureDefinition<MTELargeCokeOven> createStructureDefinition() {
+        final int bronzeCasingIndex = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
+
+        return StructureDefinition.<MTELargeCokeOven>builder()
+            .addShape(
+                STRUCTURE_PIECE_MAIN,
+                transpose(
+                    new String[][] { { "   GFFF", "    F F", "   GFFF" }, { "   GFFF", "    F F", "   GFFF" },
+                        { "BBBGFFF", "BBBBF F", "BBBGFFF" }, { "BBBGFFF", "BCCCC F", "BBBGFFF" },
+                        { "BBBGFFF", "BCCCC F", "BBBGFFF" }, { "B~BGFFF", "BCCCC F", "BBBGFFF" },
+                        { "BBBGEEE", "BBBDEEE", "BBBGEEE" } }))
+            .addElement(
+                'B',
+                ofChain(
+                    // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                    ofBlocksTiered(
+                        MTELargeCokeOven::getCasingTier,
+                        ImmutableList
+                            .of(Pair.of(GregTechAPI.sBlockCasings1, 10), Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                        -1,
+                        (MTELargeCokeOven t, Integer tier) -> t.mTier = tier,
+                        (MTELargeCokeOven t) -> t.mTier),
+                    buildHatchAdder(MTELargeCokeOven.class).atLeast(InputBus, OutputBus)
+                        .casingIndex(bronzeCasingIndex)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTELargeCokeOven.class).atLeast(OutputHatch)
+                        .casingIndex(bronzeCasingIndex)
+                        .hint(1)
+                        .build()))
+            .addElement(
+                'C',
+                ofBlocksTiered(
+                    MTELargeCokeOven::getPipeTier,
+                    ImmutableList.of(Pair.of(GregTechAPI.sBlockCasings2, 12), Pair.of(GregTechAPI.sBlockCasings2, 13)),
+                    -1,
+                    (MTELargeCokeOven t, Integer tier) -> { if (tier > t.mTier) t.mTier = tier; },
+                    (MTELargeCokeOven t) -> t.mTier))
+            .addElement(
+                'D',
+                ofBlocksTiered(
+                    MTELargeCokeOven::getGearTier,
+                    ImmutableList.of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
+                    -1,
+                    (MTELargeCokeOven t, Integer tier) -> { if (tier > t.mTier) t.mTier = tier; },
+                    (MTELargeCokeOven t) -> t.mTier))
+            .addElement(
+                'E',
+                ofBlocksTiered(
+                    MTELargeCokeOven::getFireboxTier,
+                    ImmutableList.of(Pair.of(GregTechAPI.sBlockCasings3, 13), Pair.of(GregTechAPI.sBlockCasings3, 14)),
+                    -1,
+                    (MTELargeCokeOven t, Integer tier) -> { if (tier > t.mTier) t.mTier = tier; },
+                    (MTELargeCokeOven t) -> t.mTier))
+            .addElement('F', ofBlock(GregTechAPI.sBlockCasings4, 15))
+            .addElement(
+                'G',
+                ofBlocksTiered(
+                    MTELargeCokeOven::getFrameTier,
+                    ImmutableList.of(
+                        Pair.of(GregTechAPI.sBlockFrames, gregtech.api.enums.Materials.Bronze.mMetaItemSubID),
+                        Pair.of(GregTechAPI.sBlockFrames, gregtech.api.enums.Materials.Steel.mMetaItemSubID)),
+                    -1,
+                    (MTELargeCokeOven t, Integer tier) -> { if (tier > t.mTier) t.mTier = tier; },
+                    (MTELargeCokeOven t) -> t.mTier))
+            .build();
     }
 
     private void updateHatchTexture() {
@@ -376,7 +380,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
         }
 
         // v1.9.39 修复：样板输入仓计入输入判定（重定向后位于 mDualInputHatches，不再计入 mInputBusses）
-        if (mInputBusses.size() + mDualInputHatches.size() < 1 || mOutputBusses.size() < 1) {
+        if ((mInputBusses.isEmpty() && mDualInputHatches.isEmpty()) || mOutputBusses.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             mTier = -1;
             return;
@@ -387,7 +391,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
 
     @Override
     public int getMaxParallelRecipes() {
-        if (mTier >= 2) return MAX_PARALLEL_T2;
+        if (mTier == TIER_STEEL) return MAX_PARALLEL_T2;
         return MAX_PARALLEL_T1;
     }
 
@@ -412,28 +416,85 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
                 return super.createOverclockCalculator(recipe).setNoOverclock(true);
             }
         }.setMaxParallelSupplier(this::getMaxParallelRecipes)
-            // 青铜基础速度 +20%，钢 +100%；每 1% 炉温再叠加 1% 工作速度。
-            .setSpeedBonusSupplier(
-                () -> ((mTier == 2) ? (1.0d / 2.0d) : (1.0d / 1.2d)) / (1.0d + normalizedHeat(mHeat)));
+            .setSpeedBonusSupplier(this::getRecipeDurationMultiplier);
+    }
+
+    /** 只供 GT5U 在配方检查时采样；已开始批次使用父类最终 mMaxProgresstime。 */
+    private double getRecipeDurationMultiplier() {
+        double tierReduction = mTier == TIER_STEEL ? STEEL_DURATION_REDUCTION : 0.0d;
+        double heatReduction = MAX_HEAT_DURATION_REDUCTION * getHeat();
+        return 1.0d - Math.min(MAX_TOTAL_DURATION_REDUCTION, tierReduction + heatReduction);
     }
 
     @Override
-    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
+    public void onPostTick(IGregTechTileEntity tile, long tick) {
+        // GT5U 独占配方检索、输入消耗、进度推进及输出；这里只维护焦炉热量。
+        super.onPostTick(tile, tick);
+        if (!tile.isServerSide()) return;
+        updateHeat(tile.isActive());
+    }
 
-        if (!aBaseMetaTileEntity.isServerSide()) return;
+    private void updateHeat(boolean active) {
+        if (!mMachine && mStartUpCheck > 0) return;
+        boolean working = mMachine && (mMaxProgresstime > 0 || active);
+        double changePerSecond = working ? HEAT_UP_PER_SECOND : -HEAT_DOWN_PER_SECOND;
+        setHeat(getHeat() + changePerSecond / TICKS_PER_SECOND);
+    }
 
-        if (mMachine) {
-            boolean working = mMaxProgresstime > 0 || aBaseMetaTileEntity.isActive();
-            if (working) {
-                mHeat = Math.min(1.0d, mHeat + HEAT_UP_PER_SECOND / 20.0d);
-            } else {
-                mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_PER_SECOND / 20.0d);
-            }
-        } else if (mStartUpCheck <= 0) {
-            // 加载后结构检测前的 100 tick 启动期冻结炉温；结构失效后正常降温。
-            mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_PER_SECOND / 20.0d);
+    public double getHeat() {
+        return normalizedHeat(mHeat);
+    }
+
+    public void setHeat(double heat) {
+        mHeat = normalizedHeat(heat);
+    }
+
+    public int getCokeTier() {
+        return mTier;
+    }
+
+    public void setCokeTier(int tier) {
+        mTier = tier == TIER_BRONZE || tier == TIER_STEEL ? tier : TIER_UNKNOWN;
+    }
+
+    public String getTemperatureText() {
+        return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.temperature")
+            + EnumChatFormatting.RED
+            + String.format(Locale.ROOT, "%.1f%%", getHeat() * 100.0d)
+            + EnumChatFormatting.RESET;
+    }
+
+    public String getStatusText() {
+        String key;
+        EnumChatFormatting color;
+        if (mMaxProgresstime > 0) {
+            key = "gtsr.gui.status.running";
+            color = EnumChatFormatting.AQUA;
+        } else if (getHeat() > 0.0d) {
+            key = "gtsr.gui.coke_oven.status.cooling";
+            color = EnumChatFormatting.BLUE;
+        } else {
+            key = "gtsr.gui.status.idle";
+            color = EnumChatFormatting.WHITE;
         }
+        return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
+            "gtsr.gui.status") + " " + color + StatCollector.translateToLocal(key) + EnumChatFormatting.RESET;
+    }
+
+    /** 与父 GUI 进度分母相同，展示本批最终总时长，不用当前炉温重算。 */
+    public String getRecipeTimeText() {
+        String value = mMaxProgresstime > 0
+            ? EnumChatFormatting.GOLD
+                + String.format(Locale.ROOT, "%.2fs", mMaxProgresstime / (double) TICKS_PER_SECOND)
+            : EnumChatFormatting.WHITE + "-";
+        return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time")
+            + value
+            + EnumChatFormatting.RESET;
+    }
+
+    public String getParallelText() {
+        return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
+            "gtsr.gui.parallel") + " " + EnumChatFormatting.GOLD + getMaxParallelRecipes() + EnumChatFormatting.RESET;
     }
 
     @Override
@@ -441,126 +502,50 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
         return new MTELargeCokeOvenGui(this);
     }
 
+    /** ModularUI 1 兼容适配；进度和总时长同步由父 GUI 提供。 */
     @Deprecated
     @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
-        screenElements
-            .widget(
-                new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.temperature")
-                        + EnumChatFormatting.RED
-                        + String.format("%.1f%%", mHeat * 100.0d)
-                        + EnumChatFormatting.RESET))
-            .widget(new TextWidget().setStringSupplier(() -> {
-                String statusKey;
-                EnumChatFormatting statusColor;
-                if (mMaxProgresstime > 0) {
-                    statusKey = "gtsr.gui.status.running";
-                    statusColor = EnumChatFormatting.AQUA;
-                } else if (mHeat > 0) {
-                    statusKey = "gtsr.gui.coke_oven.status.cooling";
-                    statusColor = EnumChatFormatting.GREEN;
-                } else {
-                    statusKey = "gtsr.gui.status.idle";
-                    statusColor = EnumChatFormatting.GRAY;
-                }
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
-                    + " "
-                    + statusColor
-                    + StatCollector.translateToLocal(statusKey)
-                    + EnumChatFormatting.RESET;
-            }))
-            .widget(new TextWidget().setStringSupplier(() -> {
-                // 直接显示当前配方总时长（已含基础倍率与炉温加速），避免二次加速
-                if (mMaxProgresstime > 0) {
-                    return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time")
-                        + EnumChatFormatting.GOLD
-                        + String.format(Locale.ROOT, "%.2f", mMaxProgresstime / 20.0d)
-                        + "s"
-                        + EnumChatFormatting.RESET;
-                }
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time")
-                    + EnumChatFormatting.GRAY
-                    + "-"
-                    + EnumChatFormatting.RESET;
-            }))
-            .widget(
-                new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
-                        + " "
-                        + EnumChatFormatting.GOLD
-                        + getMaxParallelRecipes()
-                        + EnumChatFormatting.RESET))
-            .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mProgresstime, val -> mProgresstime = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mTier, val -> mTier = val));
+        screenElements.widget(new TextWidget().setStringSupplier(this::getTemperatureText))
+            .widget(new TextWidget().setStringSupplier(this::getStatusText))
+            .widget(new TextWidget().setStringSupplier(this::getRecipeTimeText))
+            .widget(new TextWidget().setStringSupplier(this::getParallelText))
+            .widget(new FakeSyncWidget.DoubleSyncer(this::getHeat, this::setHeat))
+            .widget(new FakeSyncWidget.IntegerSyncer(this::getCokeTier, this::setCokeTier));
     }
 
     @Override
     public String[] getInfoData() {
         ArrayList<String> info = new ArrayList<>();
         info.add(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.coke_oven.type"));
-
         if (!mMachine) {
             info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
-            return info.toArray(new String[0]);
-        }
-
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.temperature")
-                + EnumChatFormatting.RED
-                + String.format("%.1f%%", mHeat * 100.0d));
-
-        String statusKey;
-        EnumChatFormatting statusColor;
-        if (mMaxProgresstime > 0) {
-            statusKey = "gtsr.gui.status.running";
-            statusColor = EnumChatFormatting.AQUA;
-        } else if (mHeat > 0) {
-            statusKey = "gtsr.gui.coke_oven.status.cooling";
-            statusColor = EnumChatFormatting.GREEN;
         } else {
-            statusKey = "gtsr.gui.status.idle";
-            statusColor = EnumChatFormatting.GRAY;
+            info.add(getTemperatureText());
+            info.add(getStatusText());
+            info.add(getRecipeTimeText());
+            info.add(getParallelText());
         }
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
-                + " "
-                + statusColor
-                + StatCollector.translateToLocal(statusKey));
-
-        if (mMaxProgresstime > 0) {
-            int secondsRemaining = (mMaxProgresstime - mProgresstime) / 20;
-            info.add(
-                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time")
-                    + EnumChatFormatting.GOLD
-                    + secondsRemaining
-                    + "s");
-        }
-
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
-                + " "
-                + EnumChatFormatting.GOLD
-                + (mTier >= 2 ? "24/64" : "24"));
-
         return info.toArray(new String[0]);
     }
 
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
-        aNBT.setDouble("mHeat", mHeat);
+        aNBT.setDouble("mHeat", getHeat());
         aNBT.setInteger("mTier", mTier);
+        aNBT.setBoolean(OUTPUT_PROTECTION_NBT_KEY, true);
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
-        mHeat = normalizedHeat(aNBT.getDouble("mHeat"));
-        mTier = aNBT.getInteger("mTier");
+        setHeat(aNBT.getDouble("mHeat"));
+        setCokeTier(aNBT.getInteger("mTier"));
+        // 旧焦炉不支持保护，其默认 VOID_ALL 并非玩家主动选择；首次升级恢复保护。
+        // 此后保留玩家在 GT 标准界面中明确选择的丢弃模式。
+        if (!aNBT.getBoolean(OUTPUT_PROTECTION_NBT_KEY)) setVoidingMode(getDefaultVoidingMode());
     }
 
     private static double normalizedHeat(double heat) {
@@ -594,7 +579,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
      */
     @Override
     public void onValueUpdate(byte aValue) {
-        mTier = aValue;
+        setCokeTier(aValue);
     }
 
     @Override

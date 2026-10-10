@@ -942,10 +942,10 @@ gtsr.tooltip.kinetic_array.energy=Energy Hatch
 
 # 6. Large Coke Oven - missing desc keys
 gtsr.tooltip.coke_oven.desc=Distills logs/coal in high-temperature, oxygen-free conditions,
-gtsr.tooltip.coke_oven.desc2=Heat System: Heats up while running, cools down when idle, recipe time decreases with temperature. Base processing speed: Bronze 120%, Steel 200%.
-gtsr.tooltip.coke_oven.desc3=After shutdown, temperature slowly drops and recipe time increases accordingly. Heat speedup: Each 1% heat adds 1% working speed.
+gtsr.tooltip.coke_oven.desc2=Self-heating with no external energy input. Bronze uses the original recipe duration; Steel reduces duration by 25%.
+gtsr.tooltip.coke_oven.desc3=Heat from 0% to 100% linearly reduces duration by 0% to 50%, added directly to the tier reduction, capped at 75% total. Duration is fixed when a batch starts; later heat changes affect the next batch.
 gtsr.tooltip.coke_oven.formula=Heat change: +0.01%/s (running) | -0.1%/s (idle)
-gtsr.tooltip.coke_oven.accel=Speedup formula: Actual duration = recipe duration × base multiplier ÷ (1 + heat); base multiplier: Bronze 1/1.2, Steel 1/2.0
+gtsr.tooltip.coke_oven.accel=Actual duration = recipe duration × (1 - tier reduction - 0.5 × heat); Bronze tier reduction: 0%, Steel: 25%; heat is 0–1; total reduction capped at 75%.
 gtsr.tooltip.coke_oven.parallel=Parallels: 24 (Bronze) / 64 (Steel)
 gtsr.tooltip.coke_oven.input_bus=Input Bus
 gtsr.tooltip.coke_oven.output_bus=Output Bus
@@ -3397,6 +3397,7 @@ gtsr.spacetime.gui.blocked=Singularity position obstructed
 gtsr.spacetime.materials=Materials: LuV machine casings, superconducting coils, RPP frames, RPP reinforced borosilicate glass and Naquadah plated blastproof stone
 gtsr.spacetime.optional_io=Energy, maintenance and optional item/fluid hatches may replace any LuV machine casing
 tile.SpacetimeSingularity.name=Spacetime Singularity
+tile.SpacetimeAltarCore.name=Spacetime Singularity
 gtsr.spacetime.node.tooltip=A stable spacetime variant: vertical accretion disk, no lightning
 gtsr.spacetime.node.owner=Maintained by the calibration engineering; attracts and transfers entities after calibration
 gtsr.air_intake.unstable=This dimension is unstable, making air collection difficult. Current rate: %s L/s. Complete the full Fiction Expansion Project to stabilize the dimension and restore normal collection rates.
@@ -3503,11 +3504,11 @@ achievement.gtsr.spacetimeAltarEntered=Visitor Beneath the Ring
 achievement.gtsr.spacetimeAltarEntered.desc=Enter a generated Spacetime Singularity Altar in the Overworld.
 achievement.gtsr.spacetimeAltarActivated=Awaken the Spacetime Singularity
 achievement.gtsr.spacetimeAltarActivated.desc=Pay 50 vis of each primal aspect at a generated altar.
-gtsr.altar.story.1=The Spacetime Singularity Altar is a gateway to the ruins of the Age of Prosperity dimension. Its inactive singularity has only a light effect and cannot attract or teleport players.
-gtsr.altar.story.2=Right-click the story board to read these instructions and unlock this altar's level-1 sealed chest. Reading neither activates the singularity nor consumes wand vis.
-gtsr.altar.story.3=Before departing, hold the Spacetime Beacon and press Alt + right-click at a safe Overworld location to mark your return point. Charge it with at least 320,000 EU, enough for one recall. The beacon supports HV charging.
-gtsr.altar.story.4=Hold a Thaumcraft wand and press the Activate with held wand button below. Air, Fire, Water, Earth, Order and Entropy must each contain at least 50 vis. Activation consumes 50 vis of each; if any aspect is insufficient, none is consumed.
-gtsr.altar.story.5=After activation, the singularity gradually appears over 200 game ticks (normally about 10 seconds). When complete, approach it to be attracted and teleported to the Age of Prosperity dimension. Sneak to temporarily leave the attraction.
+gtsr.altar.story.1=Activate the spacetime singularity: hold a Thaumcraft wand and right-click the inactive singularity at the centre of the ring. Alternatively, keep the wand in hand and click the activation button below.
+gtsr.altar.story.2=The wand must contain at least 50 vis of each primal aspect: Air, Fire, Water, Earth, Order and Entropy. Successful activation consumes 50 of each; if any aspect is insufficient, none is consumed. Reading alone does not activate it.
+gtsr.altar.story.3=After activation, the singularity gradually appears over 200 game ticks (normally about 10 seconds). Once ready, approach it to be pulled into the Age of Prosperity dimension. Sneak to temporarily escape the pull.
+gtsr.altar.story.4=The altar is a gateway to the ruins of the Age of Prosperity dimension. An inactive singularity only emits light and neither pulls nor teleports players. Reading this board unlocks this altar's tier-1 sealed chest.
+gtsr.altar.story.5=Before leaving, hold a Spacetime Anchor Beacon and Alt-right-click a safe Overworld location to mark your return point, then charge it with at least 320,000 EU. The beacon uses HV charging; this is the energy required for one return.
 
 # Spacetime Singularity Altar
 gtsr.anchor.tooltip.tier=HV-tier spacetime beacon; charge at HV.
