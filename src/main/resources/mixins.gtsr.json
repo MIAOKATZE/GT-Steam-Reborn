@@ -6,6 +6,7 @@
   "compatibilityLevel": "JAVA_8",
   "refmap": "mixins.gtsr.refmap.json",
   "mixins": [
+    "MixinWorldCriticalTime",
     "WeaponLootingMixin",
     "WeaponLootingApplicabilityMixin",
     "MTESteamMultiBaseMixin",

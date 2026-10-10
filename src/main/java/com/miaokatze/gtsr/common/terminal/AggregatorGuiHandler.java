@@ -6,6 +6,8 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.FakePlayer;
 
+import com.miaokatze.gtsr.common.critical.ContainerCriticalController;
+import com.miaokatze.gtsr.common.critical.TileEntityCriticalController;
 import com.miaokatze.gtsr.common.gui.terminal.ContainerAggregatorConfig;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
 import com.miaokatze.gtsr.main.ClientProxy;
@@ -50,6 +52,7 @@ public class AggregatorGuiHandler implements IGuiHandler {
      * registerGuiHandler，本 id 占用 0；如后续追加走尾追，禁复用）。
      */
     public static final int ID_AGGREGATOR = 0;
+    public static final int ID_CRITICAL_CONTROLLER = 1;
 
     /** @Mod 实例缓存（register/modInstance 惰性解析一次；openGui 与注册必须同一对象） */
     private static Object modInstance;
@@ -76,6 +79,14 @@ public class AggregatorGuiHandler implements IGuiHandler {
      */
     @Override
     public Object getServerGuiElement(int id, EntityPlayer player, World world, int x, int y, int z) {
+        if (id == ID_CRITICAL_CONTROLLER) {
+            if (!(player instanceof EntityPlayerMP) || player instanceof FakePlayer) return null;
+            TileEntity tile = world.getTileEntity(x, y, z);
+            if (tile instanceof TileEntityCriticalController controller && controller.isUseableByPlayer(player)) {
+                return new ContainerCriticalController(player, controller);
+            }
+            return null;
+        }
         if (id != ID_AGGREGATOR) {
             return null;
         }
@@ -97,6 +108,7 @@ public class AggregatorGuiHandler implements IGuiHandler {
      */
     @Override
     public Object getClientGuiElement(int id, EntityPlayer player, World world, int x, int y, int z) {
+        if (id == ID_CRITICAL_CONTROLLER) return ClientProxy.createCriticalControllerClientGui(player, world, x, y, z);
         if (id != ID_AGGREGATOR) {
             return null;
         }
