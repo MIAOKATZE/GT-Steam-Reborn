@@ -127,6 +127,11 @@ public final class WeaponAuditCommand extends CommandBase {
             auditTickBus = new EventBus();
             auditTickBus.register(controller);
             captureNetwork();
+            if (args.length > 0 && "dimensions".equals(args[0])) {
+                dimensionClocks();
+                report(sender, "PASS checks=" + checks + " fixture=isolated-dimension-clock-and-production-shots");
+                return;
+            }
             registrationAndEnchantments();
             newWeaponMechanics();
             singularityEnchantments();
@@ -142,6 +147,10 @@ public final class WeaponAuditCommand extends CommandBase {
             collision(WeaponKind.T20);
             collision(WeaponKind.QLZ04);
             modeBehavior();
+            modeSwitchCooldowns();
+            dimensionClocks();
+            futureWeaponClocks();
+            replacementPlayer();
             disconnect();
             report(
                 sender,
@@ -177,6 +186,213 @@ public final class WeaponAuditCommand extends CommandBase {
             .incrementTotalWorldTime(world.getTotalWorldTime() + 1);
         WeaponNetwork.enqueueControls(player, 0, fire, false, reload, switchAmmo);
         controller.serverTick();
+    }
+
+    private void dimensionClocks() {
+        WorldServer primary = world;
+        DimensionManager.initDimension(-1);
+        WorldServer secondary = DimensionManager.getWorld(-1);
+        require(secondary != null, "secondary server world loaded");
+        secondary.getChunkProvider()
+            .loadChunk(((int) x) >> 4, ((int) z) >> 4);
+        secondary.getChunkProvider()
+            .loadChunk((((int) x) >> 4) - 1, ((int) z) >> 4);
+        secondary.getChunkProvider()
+            .loadChunk(((int) x) >> 4, (((int) z) >> 4) + 1);
+        System.out.println(
+            "[GTSR-DIMENSION-CLOCK] primary=" + primary.getTotalWorldTime()
+                + " secondary="
+                + secondary.getTotalWorldTime());
+        try {
+            for (WeaponKind kind : new WeaponKind[] { WeaponKind.LM12, WeaponKind.T20, WeaponKind.QLZ04 }) {
+                ItemStack ammo = setup(kind);
+                if (kind == WeaponKind.LM12) WeaponController.data(player.getHeldItem())
+                    .setInteger("mode", 1);
+                reload(kind);
+                int first = 0;
+                for (int i = 0; i < 100 && first == 0; i++) first += modeStep(true, false, false);
+                require(first == 1, "primary fires " + kind);
+                clearModeEntities();
+                int transferSerial = player.getEntityData()
+                    .getInteger("gtsr.weaponShotSerial");
+                WeaponNetwork.enqueueControls(player, 0, true, false, false);
+                world = secondary;
+                player.worldObj = secondary;
+                player.dimension = -1;
+                controller.serverTick();
+                require(
+                    player.getEntityData()
+                        .getInteger("gtsr.weaponShotSerial") == transferSerial,
+                    "queued previous-dimension input cannot fire after transfer " + kind);
+                modeStep(false, false, false);
+                int transferred = 0;
+                for (int i = 0; i < 100; i++) {
+                    primary.getWorldInfo()
+                        .incrementTotalWorldTime(primary.getTotalWorldTime() + 1);
+                    transferred += modeStep(true, false, false);
+                }
+                System.out.println(
+                    "[GTSR-DIMENSION-SHOTS] kind=" + kind
+                        + " shots="
+                        + transferred
+                        + " primary="
+                        + primary.getTotalWorldTime()
+                        + " secondary="
+                        + secondary.getTotalWorldTime()
+                        + " cooldown="
+                        + capturedState.shotCooldown
+                        + " ammoDamage="
+                        + ammo.getItemDamage());
+                require(transferred > 1, "secondary sustained shots after transfer " + kind);
+                require(capturedState.dimension == -1, "secondary Snapshot identifies its production world " + kind);
+                clearModeEntities();
+                world = primary;
+                player.worldObj = primary;
+                player.dimension = 0;
+            }
+        } finally {
+            world = primary;
+            player.worldObj = primary;
+            player.dimension = 0;
+        }
+    }
+
+    private void futureWeaponClocks() {
+        for (WeaponKind kind : WeaponKind.values()) {
+            ItemStack ammo = setup(kind);
+            if (kind == WeaponKind.LM12) WeaponController.data(player.getHeldItem())
+                .setInteger("mode", 1);
+            reload(kind);
+            ItemStack gun = player.getHeldItem();
+            NBTTagCompound n = WeaponController.data(gun);
+            long now = world.getTotalWorldTime();
+            n.setLong("nextShot", now + 100000);
+            n.setLong("lastShot", now + 100000);
+            n.setLong("heatTick", now + 100000);
+            n.setInteger("shotInterval", kind == WeaponKind.LM12 ? 16 : kind.interval);
+            n.setFloat("heat", .8f);
+            // Round-trip exactly the NBT a restarted server or a different holder receives.
+            NBTTagCompound saved = new NBTTagCompound();
+            gun.writeToNBT(saved);
+            player.inventory.mainInventory[0] = ItemStack.loadItemStackFromNBT(saved);
+            n = WeaponController.data(player.getHeldItem());
+            int before = ammo.getItemDamage();
+            require(modeStep(false, false, false) == 0, "future timestamp repair never fires " + kind);
+            require(
+                n.getLong("nextShot") - world.getTotalWorldTime() <= capturedState.shotInterval,
+                "future deadline bounded to one legal interval " + kind);
+            require(n.getLong("lastShot") == world.getTotalWorldTime(), "future last shot rebased once " + kind);
+            require(
+                capturedState.shotAge == 0 && ammo.getItemDamage() == before,
+                "repair exposes zero shot age without an inventory debit " + kind);
+            if (kind == WeaponKind.LM12 || kind == WeaponKind.T20) {
+                for (int i = 0; i < 19; i++) modeStep(false, false, false);
+                close(n.getFloat("heat"), .8f, "future repair preserves nineteen-tick quiet window " + kind);
+                modeStep(false, false, false);
+                close(
+                    n.getFloat("heat"),
+                    .8f - WeaponController.coolingRate(kind),
+                    "future repair permits cooling at twentieth tick " + kind);
+            }
+            int shots = 0;
+            for (int i = 0; i < 160 && shots == 0; i++) shots += modeStep(true, false, false);
+            require(shots == 1, "serialized future gun resumes actual firing " + kind);
+            clearModeEntities();
+        }
+    }
+
+    private void modeSwitchCooldowns() {
+        for (WeaponKind kind : new WeaponKind[] { WeaponKind.LM12, WeaponKind.QLZ04 }) {
+            setup(kind);
+            if (kind == WeaponKind.LM12) WeaponController.data(player.getHeldItem())
+                .setInteger("mode", 1);
+            reload(kind);
+            int shots = 0;
+            for (int i = 0; i < 100 && shots == 0; i++) shots += modeStep(true, false, false);
+            int interval = kind == WeaponKind.LM12 ? 16 : 12;
+            require(
+                shots == 1 && capturedState.shotInterval == interval,
+                "mode-switch fixture fires one actual slow shot " + kind);
+            long deadline = WeaponController.data(player.getHeldItem())
+                .getLong("nextShot");
+            require(modeStep(false, false, true) == 0, "mode switch itself never fires " + kind);
+            require(
+                capturedState.shotInterval == interval && capturedState.shotCooldown == interval - 1,
+                "mode switch Snapshot retains previous shot interval and exact remaining cooldown " + kind);
+            if (kind == WeaponKind.QLZ04) {
+                modeStep(false, false, false);
+                modeStep(false, false, true);
+                require(
+                    capturedState.mode == WeaponMode.DRUM && capturedState.shotInterval == 12
+                        && capturedState.shotCooldown == 9,
+                    "QLZ drum HUD retains standard shot's twelve-tick interval and nine-tick remainder");
+            }
+            require(
+                WeaponController.data(player.getHeldItem())
+                    .getLong("nextShot") == deadline,
+                "mode changes preserve prior shot's real deadline " + kind);
+            clearModeEntities();
+        }
+    }
+
+    private void replacementPlayer() {
+        setup(WeaponKind.LM12);
+        WeaponController.data(player.getHeldItem())
+            .setInteger("mode", 1);
+        reload(WeaponKind.LM12);
+        modeStep(false, false, false);
+        EntityPlayerMP previous = player;
+        EmbeddedChannel previousChannel = channel;
+        EntityPlayerMP replacement = new EntityPlayerMP(
+            MinecraftServer.getServer(),
+            world,
+            previous.getGameProfile(),
+            new ItemInWorldManager(world));
+        NetworkManager manager = new NetworkManager(false);
+        channel = new EmbeddedChannel(manager);
+        replacement.playerNetServerHandler = new NetHandlerPlayServer(
+            MinecraftServer.getServer(),
+            manager,
+            replacement);
+        replacement.setPosition(x, 230, z);
+        replacement.inventory.currentItem = 0;
+        System.arraycopy(
+            previous.inventory.mainInventory,
+            0,
+            replacement.inventory.mainInventory,
+            0,
+            previous.inventory.mainInventory.length);
+        replacement.getEntityData()
+            .setInteger("gtsr.weaponShotSerial", 37);
+        player = replacement;
+        try {
+            modeStep(false, false, false);
+            require(
+                capturedState.entityId == replacement.getEntityId() && capturedState.shotSerial == 37,
+                "same UUID replacement binds Snapshot and shot serial to the new real player entity");
+            previous.playerNetServerHandler.playerEntity = replacement;
+            WeaponNetwork.enqueueControls(previous, 0, true, false, false);
+            modeStep(false, false, false);
+            require(
+                capturedState.entityId == replacement.getEntityId() && capturedState.shotSerial == 37,
+                "obsolete queued player whose handler was rebound cannot reclaim the new session");
+            int shots = 0;
+            for (int i = 0; i < 100 && shots == 0; i++) shots += modeStep(true, false, false);
+            require(
+                shots == 1 && capturedShot.entityId == replacement.getEntityId() && capturedShot.shotSerial == 38,
+                "replacement player emits its own first projectile and serial");
+            auditTickBus.unregister(controller);
+            controller = new WeaponController();
+            auditTickBus.register(controller);
+            modeStep(false, false, false);
+            require(
+                capturedState.entityId == replacement.getEntityId() && capturedState.shotSerial == 38,
+                "new controller restores persistent shot serial after session restart");
+            clearModeEntities();
+        } finally {
+            previous.setDead();
+            previousChannel.close();
+        }
     }
 
     private void switchingMechanics() {
@@ -794,8 +1010,8 @@ public final class WeaponAuditCommand extends CommandBase {
         if (held != null) {
             int interval = capturedState.shotInterval;
             require(
-                held == WeaponKind.LM12 ? interval >= 1 && interval <= 8
-                    : interval == (held == WeaponKind.T20 ? 8 : 12),
+                held == WeaponKind.LM12 ? interval >= 1 && interval <= 16
+                    : held == WeaponKind.QLZ04 ? interval == 4 || interval == 12 : interval == held.interval,
                 "actual Snapshot interval");
             require(
                 capturedState.shotCooldown >= 0 && capturedState.shotCooldown <= interval,
@@ -999,6 +1215,7 @@ public final class WeaponAuditCommand extends CommandBase {
                     && result.shotCooldown == state.shotCooldown
                     && result.shotAge == state.shotAge
                     && result.shotSerial == state.shotSerial
+                    && result.dimension == state.dimension
                     && result.remoteAmmoType == state.remoteAmmoType
                     && result.chargeTicks == state.chargeTicks
                     && result.chargeDuration == state.chargeDuration,
@@ -1015,7 +1232,8 @@ public final class WeaponAuditCommand extends CommandBase {
             r.fromBytes(bytes);
             Effect out = (Effect) e.get(r);
             require(
-                bytes.readableBytes() == 0 && out.x == effect.x
+                bytes.readableBytes() == 0 && out.dimension == effect.dimension
+                    && out.x == effect.x
                     && out.y == effect.y
                     && out.z == effect.z
                     && out.ejectX == effect.ejectX

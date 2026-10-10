@@ -101,6 +101,10 @@ public class CommonProxy {
         }
         GTSRFXNet.init();
         SpacetimeTravel.init();
+        com.miaokatze.gtsr.common.dimension.prosperity.travel.BeaconNavigationNetwork.register();
+        GameRegistry.registerWorldGenerator(
+            new com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarWorldGenerator(),
+            20);
         MinecraftForge.EVENT_BUS.register(new ProsperityAirIntake());
         // BetterQuesting 可选集成探测（BQ 缺席时静默降级；反射探测不加载 BQ 类）
         com.miaokatze.gtsr.crossmod.bq.BqCompat.detect();

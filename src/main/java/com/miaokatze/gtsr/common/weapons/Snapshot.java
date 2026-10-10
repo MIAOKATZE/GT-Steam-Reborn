@@ -2,7 +2,7 @@ package com.miaokatze.gtsr.common.weapons;
 
 public class Snapshot {
 
-    public int entityId, kind, magazine, reserve, reloadTicks, reloadDuration, shotSerial;
+    public int dimension, entityId, kind, magazine, reserve, reloadTicks, reloadDuration, shotSerial;
     public int ammoType, remoteAmmoType, remoteTicks;
     public int mode, chargeTicks, chargeDuration;
     public int shotInterval, shotCooldown, shotAge;

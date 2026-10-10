@@ -134,7 +134,9 @@ public final class StructureTitleOverlay {
         GL11.glScalef(scale, scale, 1);
         mc.fontRenderer.drawStringWithShadow(title, -mc.fontRenderer.getStringWidth(title) / 2, 0, 0xFFE7CF);
         GL11.glPopMatrix();
-        String introduction = INTRODUCTIONS.getProperty(current, "旧日的回声仍在此地");
+        String introduction = "lore.entry.structures.spacetime_altar.title".equals(current)
+            ? StatCollector.translateToLocal("gtsr.altar.introduction")
+            : INTRODUCTIONS.getProperty(current, "旧日的回声仍在此地");
         mc.fontRenderer.drawStringWithShadow(
             introduction,
             (resolution.getScaledWidth() - mc.fontRenderer.getStringWidth(introduction)) / 2,

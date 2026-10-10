@@ -9,10 +9,10 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 
-/** Independent 27-slot chest: vanilla ContainerChest and hopper contract, never joins neighbours. */
+/** Independent 54-slot chest: vanilla ContainerChest and hopper contract, never joins neighbours. */
 public final class TileEntityUnsealedChest extends TileEntity implements IInventory {
 
-    private ItemStack[] contents = new ItemStack[27];
+    private ItemStack[] contents = new ItemStack[54];
     private int viewers, ticks;
     private int rewardTier;
     private boolean rewardGenerated;
@@ -24,10 +24,15 @@ public final class TileEntityUnsealedChest extends TileEntity implements IInvent
         return rewardTier;
     }
 
-    /** Never refill a consumed reward or alter an existing player's inventory. */
-    public boolean beginReward(int tier) {
+    public boolean canBeginReward() {
         if (rewardGenerated) return false;
         for (ItemStack stack : contents) if (stack != null) return false;
+        return true;
+    }
+
+    /** Never refill a consumed reward or alter an existing player's inventory. */
+    public boolean beginReward(int tier) {
+        if (!canBeginReward()) return false;
         rewardTier = com.miaokatze.gtsr.common.dimension.prosperity.remaster.ChestTier.clamp(tier);
         rewardGenerated = true;
         markDirty();
@@ -92,7 +97,8 @@ public final class TileEntityUnsealedChest extends TileEntity implements IInvent
 
     public void setInventorySlotContents(int slot, ItemStack stack) {
         contents[slot] = stack;
-        if (stack != null && stack.stackSize > getInventoryStackLimit()) stack.stackSize = getInventoryStackLimit();
+        if (stack != null)
+            stack.stackSize = Math.min(stack.stackSize, Math.min(getInventoryStackLimit(), stack.getMaxStackSize()));
         markDirty();
     }
 
@@ -170,9 +176,11 @@ public final class TileEntityUnsealedChest extends TileEntity implements IInvent
 
     public void readFromNBT(NBTTagCompound tag) {
         super.readFromNBT(tag);
-        contents = new ItemStack[27];
+        contents = new ItemStack[54];
         rewardTier = tag.getInteger("rewardTier");
         rewardGenerated = tag.getBoolean("rewardGenerated");
+        // Legacy opened chests are already awarded, even when the player emptied all 27 slots.
+        if (!tag.hasKey("rewardGenerated")) rewardGenerated = true;
         storyOrigin = tag.getString("storyOrigin");
         storyEvent = tag.hasKey("storyEvent") ? tag.getInteger("storyEvent") : -1;
         NBTTagList list = tag.getTagList("Items", 10);

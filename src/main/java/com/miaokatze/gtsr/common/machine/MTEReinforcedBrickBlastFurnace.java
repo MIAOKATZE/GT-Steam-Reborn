@@ -46,13 +46,14 @@ import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
-import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.OverclockCalculator;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
@@ -315,18 +316,16 @@ public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTERei
 
     @Override
     protected ProcessingLogic createProcessingLogic() {
-        return new ProcessingLogic().setMaxParallelSupplier(this::getMaxParallelRecipes);
-    }
+        return new ProcessingLogic() {
 
-    @Override
-    public CheckRecipeResult checkProcessing() {
-        CheckRecipeResult result = super.checkProcessing();
-        if (!result.wasSuccessful()) return result;
-
-        double speedMultiplier = 1.0d + 0.5d * mFurnaceTemperature;
-        mMaxProgresstime = Math.max(1, (int) (mMaxProgresstime / speedMultiplier));
-
-        return result;
+            @Override
+            @Nonnull
+            protected OverclockCalculator createOverclockCalculator(@Nonnull GTRecipe recipe) {
+                // 无电炉只按温度缩时，不将不足一 tick 的加速转换为额外并行。
+                return super.createOverclockCalculator(recipe).setNoOverclock(true);
+            }
+        }.setMaxParallelSupplier(this::getMaxParallelRecipes)
+            .setSpeedBonusSupplier(() -> 1.0d / (1.0d + 0.5d * mFurnaceTemperature));
     }
 
     @Override

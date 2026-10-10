@@ -28,6 +28,7 @@ public final class SpacetimeBeaconRenderer implements IItemRenderer {
                 .getItem(),
             new SpacetimeBeaconRenderer());
         SpacetimeBeaconChargeVisual.register();
+        BeaconNavigationClient.register();
     }
 
     @Override
@@ -58,10 +59,13 @@ public final class SpacetimeBeaconRenderer implements IItemRenderer {
         if (icon == null) return;
         EntityLivingBase holder = null;
         for (Object object : data) if (object instanceof EntityLivingBase) holder = (EntityLivingBase) object;
-        float progress = holder instanceof EntityPlayer && charging((EntityPlayer) holder, item)
+        boolean charging = holder instanceof EntityPlayer && charging((EntityPlayer) holder, item);
+        float progress = charging
             ? Math.min(1F, ((EntityPlayer) holder).getItemInUseDuration() / (float) SpacetimeAnchorBeacon.RECALL_TICKS)
             : 0F;
+        int previousMatrixMode = GL11.glGetInteger(GL11.GL_MATRIX_MODE);
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
         GL11.glPushMatrix();
         try {
             if (type == ItemRenderType.INVENTORY) {
@@ -111,6 +115,7 @@ public final class SpacetimeBeaconRenderer implements IItemRenderer {
         } finally {
             GL11.glPopMatrix();
             GL11.glPopAttrib();
+            GL11.glMatrixMode(previousMatrixMode);
         }
     }
 

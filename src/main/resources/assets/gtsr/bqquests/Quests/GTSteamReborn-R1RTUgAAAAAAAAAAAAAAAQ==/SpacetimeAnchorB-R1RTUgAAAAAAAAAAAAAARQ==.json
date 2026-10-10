@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nKeep one Spacetime Anchor Beacon in your inventory to complete this check §2without consuming it§r. Before departure, hold the beacon and Alt-right-click at a safe place to record its dimension, coordinates, and facing. It stores one return point; marking again overwrites it. In Prosperity, sneak and hold right-click for §13§r seconds to return. Each successful recall costs §120,480,000§r EU and starts a §130§r-second cooldown; a full §1102,400,000§r EU charge allows five returns. §cAn unmarked, undercharged beacon or unsafe destination cannot return you.§r Mark it before touching the calibration core.\n\n§3§lImportant precautions§r\nUse marking, charging, and departure as a consistent preparation order, checking the return destination at a safe location. Quest rewards neither charge the beacon nor preserve an overwritten mark. In Prosperity, navigating to ruins with the compass and returning with the beacon are separate actions. Monitor remaining charge and the return cooldown throughout the journey.",
+      "desc:8": "§3§lPurpose and mechanism§r\nKeep one Spacetime Anchor Beacon in your inventory to complete this check §2without consuming it§r. Before departure, hold the beacon and Alt-right-click at a safe place to record its dimension, coordinates, and facing. It stores one return point; marking again overwrites it. Its capacity is §11,600,000§r EU and its charging tier is §1HV§r (tier §13§r, §1512§r EU/t). In Prosperity, sneak (Shift) and hold right-click for §160§r ticks (§13§r seconds) to return. Each successful recall consumes §120%§r of full capacity, or §1320,000§r EU, and starts a §130§r-second cooldown; a full charge allows five returns. §cAn unmarked, undercharged beacon or unsafe destination cannot return you.§r Mark it before touching the calibration core or using an altar.\n\n§3§lOverworld altar navigation§r\nIn the Overworld, the beacon navigates to the nearest Spacetime Singularity Altar §2without requiring charge§r. Navigation and recall are separate operations; finding an altar does not mark or charge the beacon.\n\n§3§lImportant precautions§r\nUse marking, charging, and departure as a consistent preparation order, checking the return destination at a safe location. Quest rewards neither charge the beacon nor preserve an overwritten mark. In Prosperity, navigating to ruins with the compass and returning with the beacon are separate actions. Monitor remaining charge and the return cooldown throughout the journey.\n\n§3§lBeacon pointer§r\nIn Prosperity, the beacon pointer points toward the nearest registered structure. In other dimensions, it rotates slowly and irregularly. While sneaking (Shift) and holding right-click through the §13§r-second recall charge-up, the pointer rotates rapidly. §2Navigation requires no charge§r; recall still requires a marked destination, sufficient charge, and a safe destination, and consumes recall energy on success.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -39,9 +39,9 @@
       "rewards:9": {
         "0:10": {
           "Count:3": 1,
-          "Damage:2": 6,
+          "Damage:2": 0,
           "OreDict:8": "",
-          "id:8": "gregtech:gt.blockcasings"
+          "id:8": "gtsr:CriticalSteamEntangledSingularity"
         }
       }
     }

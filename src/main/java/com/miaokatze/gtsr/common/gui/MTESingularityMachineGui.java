@@ -22,7 +22,6 @@ public class MTESingularityMachineGui<T extends MTESingularityMachineBase> exten
     @Override
     protected void registerSyncValues(PanelSyncManager syncManager) {
         super.registerSyncValues(syncManager);
-        syncManager.syncValue("gtsr.maxProgress", new IntSyncValue(() -> multiblock.mMaxProgresstime));
         syncManager.syncValue("gtsr.mode", new IntSyncValue(multiblock::getModeForGui));
         syncManager.syncValue("gtsr.fuelTicks", new IntSyncValue(multiblock::getFuelTicksForGui));
         syncManager.syncValue("gtsr.tier", new IntSyncValue(() -> multiblock.mTier));
@@ -39,7 +38,7 @@ public class MTESingularityMachineGui<T extends MTESingularityMachineBase> exten
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
         String keyPrefix = multiblock.getGuiKeyPrefix();
-        IntSyncValue maxProgressSyncer = syncManager.findSyncHandler("gtsr.maxProgress", IntSyncValue.class);
+        IntSyncValue maxProgressSyncer = syncManager.findSyncHandler("maxProgressTime", IntSyncValue.class);
         IntSyncValue modeSyncer = syncManager.findSyncHandler("gtsr.mode", IntSyncValue.class);
         IntSyncValue tierSyncer = syncManager.findSyncHandler("gtsr.tier", IntSyncValue.class);
 

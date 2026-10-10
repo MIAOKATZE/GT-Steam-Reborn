@@ -185,7 +185,8 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
         while (budget-- > 0 && (message = QUEUE.poll()) != null) {
             if (message instanceof Snapshot) {
                 Snapshot s = (Snapshot) message;
-                if (WeaponKind.fromId(s.kind) == null || mc.theWorld.getEntityByID(s.entityId) == null) continue;
+                if (s.dimension != mc.theWorld.provider.dimensionId || WeaponKind.fromId(s.kind) == null
+                    || mc.theWorld.getEntityByID(s.entityId) == null) continue;
                 State state = getState(s.entityId);
                 state.snapshot = s;
                 state.received = clock;
@@ -193,7 +194,8 @@ public final class PortableWeaponClient implements WeaponNetwork.ClientSink {
             } else {
                 Effect e = (Effect) message;
                 WeaponKind kind = WeaponKind.fromId(e.kind);
-                if (kind == null || mc.thePlayer.getDistanceSq(e.x, e.y, e.z) > 96 * 96) continue;
+                if (e.dimension != mc.theWorld.provider.dimensionId || kind == null
+                    || mc.thePlayer.getDistanceSq(e.x, e.y, e.z) > 96 * 96) continue;
                 if (e.type == 0) {
                     State state = getState(e.entityId);
                     if (e.shotSerial <= state.serial) continue;

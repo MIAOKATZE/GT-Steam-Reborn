@@ -622,6 +622,11 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
     }
 
     @Override
+    protected void incrementProgressTime() {
+        // 本机由 onPostTick 的自定义蒸汽周期统一推进；父 runMachine 不再重复增加进度。
+    }
+
+    @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (aBaseMetaTileEntity.isClientSide()) {

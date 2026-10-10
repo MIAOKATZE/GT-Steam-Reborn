@@ -71,8 +71,9 @@ public class SingularityClientFXHandler {
             if (t.isInvalid()) {
                 continue;
             }
-            boolean spacetime = t instanceof TileSpacetimeSingularity;
-            if (spacetime && t.getActiveFactor() <= 0) continue;
+            boolean altar = t instanceof com.miaokatze.gtsr.common.dimension.prosperity.altar.TileSpacetimeAltar;
+            boolean spacetime = t instanceof TileSpacetimeSingularity || altar;
+            if (spacetime && !altar && t.getActiveFactor() <= 0) continue;
             current.add(t);
             float[] rgb = t.getColorRGB();
             this.lastSeen.put(t, (t.xCoord & 0xFFFF) << 16 | (t.zCoord & 0xFFFF));
@@ -83,7 +84,7 @@ public class SingularityClientFXHandler {
             double glowBase = t.getFxRadius() * 0.2D;
             double cx = t.xCoord + 0.5D;
             double cy = t.yCoord + 0.5D;
-            double cz = t.zCoord + 0.5D;
+            double cz = t.zCoord + (altar ? 0.9D : 0.5D);
             // 距离裁剪（对齐原渲染侧 64/100 格裁剪；粒子管道无渲染侧裁剪，改在生成侧限制）：
             // 玩家超过 100 格不维护该奇点 FX（仅记录 lastSeen，防消散误判）
             float playerDist = 10000.0F;
@@ -96,6 +97,19 @@ public class SingularityClientFXHandler {
             // 吸积盘（vanilla 传统管道）：概率生成 × 活性系数（af→0 概率趋零，消散时不再中心冒泡），随活性系数变暗。
             // 概率公式基于 effRange（吸收范围）不变；生成半径 = 6 + 当前辉光（fxRadius 默认 10 → 8 格）；
             // nullplus（attributeId=-3）吸积盘更收敛：3 + 当前辉光（仅取消电弧，粒子/光片/辉光保留）
+            if (altar && af <= 0) {
+                // Dormant natural altars retain only a small light, with no disk or beams.
+                GTSRBeamFX[] oldBeams = this.beams.remove(t);
+                if (oldBeams != null) for (GTSRBeamFX beam : oldBeams) beam.setDead();
+                GTSRGlowFX dormant = this.glows.get(t);
+                if (dormant == null || dormant.isDead()) {
+                    dormant = GTSRGlowFX.spawn(world, cx, cy, cz, .4F, rgb[0], rgb[1], rgb[2], 10000);
+                    this.glows.put(t, dormant);
+                }
+                dormant.updateParams(.4F, .35F);
+                dormant.updateColor(rgb[0], rgb[1], rgb[2]);
+                continue;
+            }
             double diskP = (0.55D + 0.15D * Math.min(1.0D, effRange / 32.0D)) * af;
             double diskR = (t.getAttributeId() == TileRunawaySingularity.ATTRIBUTE_NULL_PLUS ? 3.0D : 6.0D)
                 + glowBase * af;
@@ -111,7 +125,8 @@ public class SingularityClientFXHandler {
                         diskR,
                         darkScale,
                         particleScale,
-                        ((TileSpacetimeSingularity) t).getFront());
+                        altar ? net.minecraftforge.common.util.ForgeDirection.NORTH
+                            : ((TileSpacetimeSingularity) t).getFront());
                 } else GTSRSingularityFX.spawnDisk(
                     world,
                     cx,
@@ -186,13 +201,14 @@ public class SingularityClientFXHandler {
                 b.updateColor(rgb[0], rgb[1], rgb[2]);
             }
             // 辉光：TC4 节点式多层光晕常驻，半径 = 光效半径 × 20%（默认 10 → 2 格），随活性系数收缩变暗
-            float glowR = glowRadius * (float) af * (spacetime ? 1.3F : 1.0F);
+            float glowR = altar ? .4F + (glowRadius * 1.3F - .4F) * (float) af
+                : glowRadius * (float) af * (spacetime ? 1.3F : 1.0F);
             GTSRGlowFX glow = this.glows.get(t);
             if (glow == null || glow.isDead()) {
                 glow = GTSRGlowFX.spawn(world, cx, cy, cz, glowR, 0.85F * rgb[0], 0.9F * rgb[1], 1.0F * rgb[2], 10000);
                 this.glows.put(t, glow);
             }
-            glow.updateParams(glowR, darkScale);
+            glow.updateParams(glowR, altar ? .35F + .65F * (float) af : darkScale);
             // 颜色实时同步（同光束：NBT 同步延迟期间初始为 white，到达后立即生效）
             glow.updateColor(rgb[0], rgb[1], rgb[2]);
         }

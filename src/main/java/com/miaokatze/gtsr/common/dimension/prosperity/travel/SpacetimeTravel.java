@@ -27,7 +27,7 @@ import ic2.api.item.ElectricItem;
 /** All target discovery and transfers happen on the server tick thread. Never edits terrain. */
 public final class SpacetimeTravel {
 
-    public static final double COST = 20480000;
+    public static final double COST = 320000;
     private static final Map<UUID, Long> COOLDOWN = new HashMap<>();
     private static final java.util.Set<UUID> TRANSFERRING = new java.util.HashSet<>();
 
@@ -113,7 +113,8 @@ public final class SpacetimeTravel {
             return false;
         }
         if (!eligible(p)) return false;
-        if (ElectricItem.manager.discharge(stack, COST, 6, true, false, true) < COST) {
+        com.miaokatze.gtsr.common.items.SpacetimeAnchorBeacon.clampCharge(stack);
+        if (ElectricItem.manager.discharge(stack, COST, 3, true, false, true) < COST) {
             message(p, "energy");
             return false;
         }
@@ -127,7 +128,7 @@ public final class SpacetimeTravel {
             move(p, destination, point, yaw, pitch);
             if (p.worldObj != destination || p.getDistanceSq(point[0], point[1], point[2]) > .01)
                 throw new IllegalStateException("Transfer did not arrive");
-            if (ElectricItem.manager.discharge(stack, COST, 6, true, false, false) < COST)
+            if (ElectricItem.manager.discharge(stack, COST, 3, true, false, false) < COST)
                 throw new IllegalStateException("Charge reservation changed");
         } catch (RuntimeException failure) {
             stack.setTagCompound(saved);
