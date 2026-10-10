@@ -943,10 +943,10 @@ gtsr.tooltip.kinetic_array.energy=能源仓
 
 # 6. Large Coke Oven - missing desc keys
 gtsr.tooltip.coke_oven.desc=将原木/煤炭在高温缺氧环境下干馏，
-gtsr.tooltip.coke_oven.desc2=炉室自发蓄热运行，无需外部能源输入；运行中炉温持续攀升，温度越高反应速度越快。基础加工速度：青铜120%、钢200%。
-gtsr.tooltip.coke_oven.desc3=停机后炉温缓慢冷却，反应时间随之回升。炉温加速：每1%炉温叠加1%工作速度。
+gtsr.tooltip.coke_oven.desc2=炉室自发蓄热运行，无需外部能源输入。青铜按原配方时长加工；钢基础减时25%。
+gtsr.tooltip.coke_oven.desc3=炉温从0%到100%线性减时0%到50%，与等级减时直接相加；累计最多减时75%。每批启动时确定时长，途中升降温只影响下一批。
 gtsr.tooltip.coke_oven.formula=炉温变化：+0.01%/s（运行中） | -0.1%/s（停机）
-gtsr.tooltip.coke_oven.accel=加速公式：实际时长 = 配方时长 × 基础倍率 ÷ (1 + 炉温)；基础倍率：青铜1/1.2、钢1/2.0
+gtsr.tooltip.coke_oven.accel=实际时长 = 配方时长 × (1 - 等级减时 - 0.5 × 炉温)；青铜等级减时0%，钢25%，炉温取0–1，累计上限75%。
 gtsr.tooltip.coke_oven.parallel=并行数：24（青铜）/ 64（钢）
 gtsr.tooltip.coke_oven.input_bus=输入总线
 gtsr.tooltip.coke_oven.output_bus=输出总线
@@ -3392,6 +3392,7 @@ gtsr.spacetime.gui.blocked=奇点位置被占用
 gtsr.spacetime.materials=材料：LuV机械外壳、超导线圈、镀铑钯框架、镀铑钯强化硼硅玻璃与硅岩镀层防爆石
 gtsr.spacetime.optional_io=能源、维护及可选物品/流体输入输出仓可替换任意LuV机械外壳
 tile.SpacetimeSingularity.name=时空奇点
+tile.SpacetimeAltarCore.name=时空奇点
 gtsr.spacetime.node.tooltip=稳定奇点的时空变体：竖直吸积盘，无闪电
 gtsr.spacetime.node.owner=由时空奇点校准工程维持；校准完成后吸引并传送实体
 gtsr.air_intake.unstable=维度处于不稳定状态，进气仓收集困难，目前速率为 %s L/s。请完成完整的虚构扩大工程，稳定维度后恢复正常收集速率。
@@ -3498,11 +3499,11 @@ achievement.gtsr.spacetimeAltarEntered=星环下的访客
 achievement.gtsr.spacetimeAltarEntered.desc=进入主世界中真实生成的时空奇点祭坛。
 achievement.gtsr.spacetimeAltarActivated=唤醒时空奇点
 achievement.gtsr.spacetimeAltarActivated.desc=在真实祭坛用法杖支付六种原初魔力各50 vis。
-gtsr.altar.story.1=时空奇点祭坛是通往繁荣时代维度遗迹的大门。未激活的奇点只有光效，不会吸引或传送玩家。
-gtsr.altar.story.2=右击剧情板阅读说明，可解锁本座祭坛旁的1级封印宝箱。阅读不会激活奇点，也不会消耗法杖魔力。
-gtsr.altar.story.3=出发前，手持时空锚定信标，在主世界的安全位置按Alt+右键标记返程点，再充入至少320,000 EU。信标可使用HV充电；这是一次返程所需的电量。
-gtsr.altar.story.4=手持神秘时代法杖，点击下方“持杖激活奇点”按钮。法杖中的风、火、水、地、秩序、混沌必须各有至少50 vis；成功时各扣除50 vis，任一种不足则全部不扣。
-gtsr.altar.story.5=激活后，奇点会在200游戏刻（通常约10秒）内逐渐显现。等待完成后，靠近奇点即可被吸引并传送至繁荣时代维度。潜行可暂时退出牵引。
+gtsr.altar.story.1=激活时空奇点：手持神秘时代法杖，右击圆环中央的失活时空奇点。也可以保持法杖在手，点击本面板下方“持杖激活奇点”按钮。
+gtsr.altar.story.2=法杖必须同时储有风、火、水、地、秩序、混沌六种原始要素各至少50 vis。激活成功时每种扣除50 vis；任一种不足则全部不扣。阅读剧情板本身不会激活奇点。
+gtsr.altar.story.3=激活后，奇点将在200游戏刻（通常约10秒）内逐渐显现。等待完成后靠近奇点，即可被吸引并传送至繁荣时代维度。潜行可暂时退出牵引。
+gtsr.altar.story.4=时空奇点祭坛是通往繁荣时代维度遗迹的大门。失活时的奇点只有光效，不会吸引或传送玩家。阅读本剧情板可解锁本座祭坛旁的1级封印宝箱。
+gtsr.altar.story.5=出发前，手持时空锚定信标，在主世界的安全位置按Alt+右键标记返程点，再充入至少320,000 EU。信标使用HV充电；这是一次返程所需的电量。
 
 # Spacetime Singularity Altar
 gtsr.anchor.tooltip.tier=HV 级时空信标；可使用HV充电。

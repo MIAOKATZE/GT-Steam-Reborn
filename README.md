@@ -9,7 +9,7 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0 beta1-3 & RC1-2" src="https://img.shields.io/badge/GTNH-2.9.0%20beta1--3%20%26%20RC1--2-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.21.13" src="https://img.shields.io/badge/Release-1.21.13-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.21.14" src="https://img.shields.io/badge/Release-1.21.14-green.svg"></a>
 </p>
 
 GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
@@ -454,4 +454,4 @@ GTSR 机器专用蒸汽输出仓。
 
 采用 AGPL-3.0 许可证，详见 LICENSE 文件。
 
-文档更新：2026-10-10 · 当前版本：1.21.13
+文档更新：2026-10-11 · 当前版本：1.21.14

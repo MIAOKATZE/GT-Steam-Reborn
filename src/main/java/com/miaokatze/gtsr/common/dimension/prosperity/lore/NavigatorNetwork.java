@@ -87,7 +87,6 @@ public final class NavigatorNetwork {
         HistoryProgress.recordGrantedRelic(player, RELIC_ID);
         mp.inventoryContainer.detectAndSendChanges();
         LoreNetwork.send(mp, false);
-        player.addChatMessage(new ChatComponentTranslation("gtsr.navigator.gift"));
         return true;
     }
 
