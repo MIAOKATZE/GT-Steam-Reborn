@@ -42,3 +42,6 @@
 *.[pP][sS]1             text eol=crlf
 
 *[aA][uU][tT][oO][gG][eE][nN][eE][rR][aA][tT][eE][dD]* binary
+
+# Keep approved animation metadata byte-identical to the asset SHA-256 manifest.
+src/main/resources/assets/gtsr/textures/blocks/critical/*.mcmeta -text whitespace=cr-at-eol

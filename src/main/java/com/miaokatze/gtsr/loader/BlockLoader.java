@@ -38,6 +38,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 public class BlockLoader {
 
     public static void initBlocks() {
+        com.miaokatze.gtsr.common.critical.CriticalMaterials.register();
         com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarBlocks.register();
         com.miaokatze.gtsr.common.dimension.prosperity.architecture.RuinsArchitecture.registerBlocks();
         com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterRegistry.registerBlocks();

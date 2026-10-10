@@ -265,6 +265,7 @@ public class CommonProxy {
         // 注册 FML 原生 IGuiHandler：聚合器终端配置界面双端 openGui 配对（terminal-native-ui M7，
         // 手持枢纽终端右击打开；服务端 Container + 客户端 Gui 经 main/ClientProxy 静态委托）
         NetworkRegistry.INSTANCE.registerGuiHandler(AggregatorGuiHandler.modInstance(), new AggregatorGuiHandler());
+        com.miaokatze.gtsr.common.critical.CriticalRuntime.register();
         com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreNetwork.register();
         // 注：钻井/蒸汽/蓄水三个枢纽状态界面已迁 terminal-native-ui 轨 A
         // （TerminalNet.sendOpen + 客户端 displayGuiScreen），对应 MUI2 factory 注册已随旧轨删除；
@@ -307,6 +308,7 @@ public class CommonProxy {
         GTSteamReborn.LOG.info("[3/3] 开始注册 GTSR 配方...");
         try {
             new GTSRRecipeLoader().run();
+            com.miaokatze.gtsr.common.critical.CriticalRuntime.registerRecipes();
             GTSteamReborn.LOG.info("[3/3] GTSR 配方注册完成。");
             // 注入蒸汽纠缠奇点到村庄/地牢/矿井/要塞箱子战利品（~2% 抽取概率，每次 1 个）
             LootInjectionRunawaySingularity.init();

@@ -33,6 +33,8 @@ public class ClientProxy extends CommonProxy {
     public void init(FMLInitializationEvent event) {
         // 调用父类的 init 方法，确保通用逻辑正常执行
         super.init(event);
+        com.miaokatze.gtsr.client.critical.CriticalControllerRenderer.register();
+        com.miaokatze.gtsr.client.critical.CriticalMaterialRenderer.register();
         SpacetimeClient.register();
         com.miaokatze.gtsr.client.travel.SpacetimeBeaconRenderer.register();
         com.miaokatze.gtsr.client.weapons.PortableWeaponClient.register();
@@ -89,4 +91,11 @@ public class ClientProxy extends CommonProxy {
         return new GuiAggregatorConfigScreen(new ContainerAggregatorConfig(player, aggregator));
     }
 
+    public static Object createCriticalControllerClientGui(net.minecraft.entity.player.EntityPlayer player,
+        net.minecraft.world.World world, int x, int y, int z) {
+        TileEntity tile = world.getTileEntity(x, y, z);
+        if (!(tile instanceof com.miaokatze.gtsr.common.critical.TileEntityCriticalController controller)) return null;
+        return new com.miaokatze.gtsr.client.critical.GuiCriticalController(
+            new com.miaokatze.gtsr.common.critical.ContainerCriticalController(player, controller));
+    }
 }
