@@ -10,7 +10,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.WorldProviderProsperityRuins;
-import com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarIndex;
 import com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarNavigationSearch;
 import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterData;
 import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterSite;
@@ -28,7 +27,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
 
-/** Session handshake carries no coordinates. All target selection uses server-owned generated indexes. */
+/** Session handshake carries no coordinates. Target selection belongs entirely to the server. */
 public final class BeaconNavigationNetwork {
 
     private static final SimpleNetworkWrapper NETWORK = NetworkRegistry.INSTANCE.newSimpleChannel("gtsr_beacon");
@@ -111,9 +110,7 @@ public final class BeaconNavigationNetwork {
 
     static int[] nearest(EntityPlayerMP player) {
         if (player.dimension == 0) {
-            SpacetimeAltarIndex.Entry altar = SpacetimeAltarIndex.nearest(player.worldObj, player.posX, player.posZ);
-            if (altar == null) SpacetimeAltarNavigationSearch.request(player.worldObj, player.posX, player.posZ);
-            return altar == null ? null : new int[] { altar.x, altar.z };
+            return SpacetimeAltarNavigationSearch.nearest(player.worldObj, player.posX, player.posZ);
         }
         if (!(player.worldObj.provider instanceof WorldProviderProsperityRuins)) return null;
         RemasterSite nearest = null;

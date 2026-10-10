@@ -1,59 +1,75 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.altar;
 
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.WeakHashMap;
 
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.gen.ChunkProviderServer;
 
-/** Bounded, shared discovery of real altars in previously unexplored overworld terrain. */
+/** Discover deterministic planned targets without loading or generating any chunks. */
 public final class SpacetimeAltarNavigationSearch {
 
-    private static final Map<WorldServer, State> SEARCHES = new WeakHashMap<>();
-    private static long ticks;
+    private static final Map<WorldServer, AltarSearchQueue> SEARCHES = new WeakHashMap<>();
 
     private SpacetimeAltarNavigationSearch() {}
 
     public static void beginTick() {
-        for (State state : SEARCHES.values()) state.search.beginTick();
+        for (AltarSearchQueue search : SEARCHES.values()) search.beginTick();
     }
 
     public static void keepAlive(World world, double x, double z) {
-        State state = SEARCHES.get(world);
-        if (state != null && eligible(world)) state.search.keepAlive(region(x), region(z));
+        AltarSearchQueue search = SEARCHES.get(world);
+        if (search != null && eligible(world)) search.keepAlive(x, z);
     }
 
     public static void request(World world, double x, double z) {
         if (!eligible(world)) return;
         WorldServer server = (WorldServer) world;
-        State state = SEARCHES.get(server);
-        if (state == null) {
+        AltarSearchQueue search = SEARCHES.get(server);
+        if (search == null) {
             final long seed = world.getSeed();
-            state = new State(
-                new AltarSearchQueue((rx, rz) -> SpacetimeAltarWorldGenerator.candidateInRegion(seed, rx, rz)));
-            SEARCHES.put(server, state);
+            search = new AltarSearchQueue((rx, rz) -> SpacetimeAltarWorldGenerator.candidateInRegion(seed, rx, rz));
+            SEARCHES.put(server, search);
         }
-        state.search.request(region(x), region(z));
+        search.request(x, z);
+    }
+
+    /** Real cores and confirmed unpopulated candidates compete by the player's actual block distance. */
+    public static int[] nearest(World world, double x, double z) {
+        request(world, x, z);
+        int[] planned = null;
+        AltarSearchQueue search = SEARCHES.get(world);
+        if (eligible(world) && search != null) planned = search.nearest(x, z, new WorldBackend((WorldServer) world));
+        // Run after live candidate validation so a recovered or removed core is reflected immediately.
+        SpacetimeAltarIndex.Entry actual = SpacetimeAltarIndex.nearest(world, x, z);
+        if (actual == null) return planned;
+        if (planned == null || distance(actual.x, actual.z, x, z) <= distance(planned[0], planned[1], x, z))
+            return new int[] { actual.x, actual.z };
+        return planned;
     }
 
     public static void tick() {
-        boolean mayLoad = ++ticks % 20 == 0;
-        for (Map.Entry<WorldServer, State> entry : SEARCHES.entrySet()) {
+        boolean mayProbe = true;
+        for (Map.Entry<WorldServer, AltarSearchQueue> entry : SEARCHES.entrySet()) {
             WorldServer world = entry.getKey();
+            if (!eligible(world)) continue;
             try {
-                entry.getValue().search.tick(new WorldBackend(world, entry.getValue()), mayLoad && eligible(world));
+                entry.getValue()
+                    .tick(new WorldBackend(world), mayProbe);
             } catch (RuntimeException failure) {
-                com.miaokatze.gtsr.main.GTSteamReborn.LOG.warn("[GTSR] Beacon altar search candidate failed", failure);
+                com.miaokatze.gtsr.main.GTSteamReborn.LOG.warn("[GTSR] Beacon altar candidate probe deferred", failure);
             }
-            // A server has only one overworld; retain a global budget even during world replacement.
-            if (eligible(world)) mayLoad = false;
+            // Keep a global budget even during overworld replacement.
+            mayProbe = false;
         }
+    }
+
+    private static double distance(int tx, int tz, double x, double z) {
+        double dx = tx - x, dz = tz - z;
+        return dx * dx + dz * dz;
     }
 
     private static boolean eligible(World world) {
@@ -64,93 +80,43 @@ public final class SpacetimeAltarNavigationSearch {
             && world.getChunkProvider() instanceof ChunkProviderServer;
     }
 
-    private static int region(double position) {
-        return Math.floorDiv((int) Math.floor(position), 512);
-    }
-
     private static final class WorldBackend implements AltarSearchQueue.Backend {
 
         private final WorldServer world;
         private final ChunkProviderServer provider;
-        private final State state;
+        private final SpacetimeAltarIndex index;
 
-        WorldBackend(WorldServer world, State state) {
+        WorldBackend(WorldServer world) {
             this.world = world;
-            this.state = state;
             provider = (ChunkProviderServer) world.getChunkProvider();
+            index = SpacetimeAltarIndex.get(world);
         }
 
         @Override
-        public boolean hasTarget() {
-            return SpacetimeAltarIndex.nearest(world, 0, 0) != null;
-        }
-
-        @Override
-        public boolean loaded(int x, int z) {
-            return provider.chunkExists(x, z);
-        }
-
-        @Override
-        public void load(int x, int z) {
-            // Explicit load works with GTNH's loadChunkOnProvideRequest=false. Natural 2x2 population
-            // runs all registered generators, including the unchanged altar terrain/placement checks.
-            Set<Chunk> before = new HashSet<>(provider.loadedChunks);
-            try {
-                provider.loadChunk(x, z);
-            } finally {
-                // Other registered generators may load beyond our four explicit chunks. Include
-                // only chunks acquired during this server-thread operation in eventual cleanup.
-                for (Chunk chunk : provider.loadedChunks) if (!before.contains(chunk))
-                    state.acquired.add(new ChunkCoordIntPair(chunk.xPosition, chunk.zPosition));
-            }
-        }
-
-        @Override
-        public boolean populated(int x, int z) {
-            return loaded(x, z) && provider.provideChunk(x, z).isTerrainPopulated;
-        }
-
-        @Override
-        public boolean confirm(int x, int z) {
+        public int classify(int x, int z, boolean allowDisk) {
             String id = "altar:" + x + ":" + z;
-            SpacetimeAltarIndex index = SpacetimeAltarIndex.get(world);
-            SpacetimeAltarIndex.Entry entry = index.find(id);
-            if (entry != null)
-                return entry.valid && world.getBlock(entry.x, entry.y, entry.z) == SpacetimeAltarBlocks.core;
-            // Recover only an actual matching saved core; never re-run generation on populated terrain.
-            if (!loaded(x, z)) return false;
-            int coreX = x * 16 + 7, coreZ = z * 16 + 7;
-            for (int y = 63; y <= 238; y++) {
-                if (world.getBlock(coreX, y, coreZ) != SpacetimeAltarBlocks.core) continue;
-                TileEntity tile = world.getTileEntity(coreX, y, coreZ);
-                if (tile instanceof TileSpacetimeAltar && id.equals(((TileSpacetimeAltar) tile).instanceId())) {
-                    index.add(id, coreX, y, coreZ);
-                    return true;
+            if (index.rejected(id)) return AltarSearchQueue.REJECTED;
+            if (provider.chunkExists(x, z)) {
+                Chunk chunk = provider.provideChunk(x, z);
+                int coreX = x * 16 + 7, coreZ = z * 16 + 7;
+                for (Object object : chunk.chunkTileEntityMap.values()) {
+                    if (!(object instanceof TileSpacetimeAltar)) continue;
+                    TileEntity tile = (TileEntity) object;
+                    if (tile.xCoord != coreX || tile.zCoord != coreZ
+                        || !id.equals(((TileSpacetimeAltar) tile).instanceId())
+                        || chunk.getBlock(7, tile.yCoord, 7) != SpacetimeAltarBlocks.core) continue;
+                    index.add(id, coreX, tile.yCoord, coreZ);
+                    return AltarSearchQueue.ACTUAL;
                 }
+                if (!chunk.isTerrainPopulated) return AltarSearchQueue.PLANNED;
+                index.reject(id);
+                return AltarSearchQueue.REJECTED;
             }
-            return false;
-        }
-
-        @Override
-        public void release(int x, int z) {
-            releaseIfUnwatched(x, z);
-            for (ChunkCoordIntPair chunk : state.acquired) releaseIfUnwatched(chunk.chunkXPos, chunk.chunkZPos);
-            state.acquired.clear();
-        }
-
-        private void releaseIfUnwatched(int x, int z) {
-            if (loaded(x, z) && !world.getPlayerManager()
-                .func_152621_a(x, z)) provider.unloadChunksIfNotNearSpawn(x, z);
-        }
-    }
-
-    private static final class State {
-
-        final AltarSearchQueue search;
-        final Set<ChunkCoordIntPair> acquired = new HashSet<>();
-
-        State(AltarSearchQueue search) {
-            this.search = search;
+            if (!allowDisk) return AltarSearchQueue.UNKNOWN;
+            SavedAltarCandidateProbe.Result result = SavedAltarCandidateProbe.inspect(provider, x, z);
+            if (result.status == AltarSearchQueue.ACTUAL) index.add(id, x * 16 + 7, result.y, z * 16 + 7);
+            if (result.status == AltarSearchQueue.REJECTED) index.reject(id);
+            return result.status;
         }
     }
 }

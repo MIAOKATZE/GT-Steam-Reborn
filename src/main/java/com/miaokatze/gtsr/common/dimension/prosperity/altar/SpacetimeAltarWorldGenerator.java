@@ -83,6 +83,9 @@ public final class SpacetimeAltarWorldGenerator implements IWorldGenerator {
             || !world.getWorldInfo()
                 .isMapFeaturesEnabled()
             || !candidate(world.getSeed(), chunkX, chunkZ)) return;
+        String id = "altar:" + chunkX + ":" + chunkZ;
+        SpacetimeAltarIndex index = SpacetimeAltarIndex.get(world);
+        if (index.rejected(id) || index.find(id) != null) return;
         int x = chunkX * 16 + 1, z = chunkZ * 16 + 1, min = 256, max = 0;
         // Every query and placement stays inside the populated chunk; no speculative neighbour loads.
         for (int dx = 0; dx < 14; dx++) for (int dz = 0; dz < 14; dz++) {
@@ -94,11 +97,17 @@ public final class SpacetimeAltarWorldGenerator implements IWorldGenerator {
                 y--;
             Material ground = world.getBlock(x + dx, y, z + dz)
                 .getMaterial();
-            if (!ground.isSolid() || ground.isLiquid() || y < 55 || y > 230) return;
+            if (!ground.isSolid() || ground.isLiquid() || y < 55 || y > 230) {
+                index.reject(id);
+                return;
+            }
             min = Math.min(min, y);
             max = Math.max(max, y);
         }
-        if (max - min > 2) return;
+        if (max - min > 2) {
+            index.reject(id);
+            return;
+        }
         int base = max;
         List<Cell> model = model();
         for (Cell cell : model) {
@@ -106,14 +115,18 @@ public final class SpacetimeAltarWorldGenerator implements IWorldGenerator {
             Block old = world.getBlock(px, py, pz);
             if (world.getTileEntity(px, py, pz) != null || old == Blocks.bedrock
                 || old.getMaterial()
-                    .isLiquid())
+                    .isLiquid()) {
+                index.reject(id);
                 return;
+            }
             if (cell.y > 0 && old != Blocks.air
                 && !old.isLeaves(world, px, py, pz)
                 && !old.isWood(world, px, py, pz)
-                && !old.isReplaceable(world, px, py, pz)) return;
+                && !old.isReplaceable(world, px, py, pz)) {
+                index.reject(id);
+                return;
+            }
         }
-        String id = "altar:" + chunkX + ":" + chunkZ;
         List<Original> originals = new ArrayList<>();
         boolean success = false;
         try {
@@ -122,23 +135,31 @@ public final class SpacetimeAltarWorldGenerator implements IWorldGenerator {
                 originals.add(new Original(px, py, pz, world.getBlock(px, py, pz), world.getBlockMetadata(px, py, pz)));
                 if (world.getBlock(px, py, pz) != cell.block || world.getBlockMetadata(px, py, pz) != cell.meta)
                     if (!world.setBlock(px, py, pz, cell.block, cell.meta, 2))
-                        throw new IllegalStateException("Altar placement refused");
+                        throw new PlacementRefused("Altar placement refused");
             }
             if (!world.setBlock(x + 6, base + 8, z + 6, SpacetimeAltarBlocks.core, 0, 2))
-                throw new IllegalStateException("Altar core refused");
+                throw new PlacementRefused("Altar core refused");
             TileEntity tile = world.getTileEntity(x + 6, base + 8, z + 6);
-            if (!(tile instanceof TileSpacetimeAltar)) throw new IllegalStateException("Altar core tile missing");
+            if (!(tile instanceof TileSpacetimeAltar)) throw new PlacementRefused("Altar core tile missing");
             ((TileSpacetimeAltar) tile).bind(id);
             if (!SpacetimeAltarStory.place(world, x, base, z, id))
-                throw new IllegalStateException("Altar story/chest refused");
+                throw new PlacementRefused("Altar story/chest refused");
             SpacetimeAltarIndex.get(world)
                 .add(id, x + 6, base + 8, z + 6);
             success = true;
         } catch (RuntimeException failure) {
+            if (failure instanceof PlacementRefused) index.reject(id);
             com.miaokatze.gtsr.main.GTSteamReborn.LOG
                 .warn("[GTSR] Altar placement rolled back at " + x + "," + z, failure);
         } finally {
             if (!success) for (Original old : originals) world.setBlock(old.x, old.y, old.z, old.block, old.meta, 2);
+        }
+    }
+
+    private static final class PlacementRefused extends RuntimeException {
+
+        PlacementRefused(String message) {
+            super(message);
         }
     }
 

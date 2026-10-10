@@ -1,18 +1,17 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.altar;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Server-thread scheduler; the backend is also the seam for deterministic budget/cancellation checks. */
+/** Bounded server-thread classification cache. Discovery never loads or generates terrain. */
 final class AltarSearchQueue {
 
-    // Seven surrounding 512-block regions keep each coordinate axis within 4096 blocks
-    // of any player in the shared origin region (including its opposite edge).
-    static final int RADIUS = 7, MAX_CANDIDATES = 32, MAX_REGIONS = 64, MAX_FAILURES = 512;
+    static final int RADIUS = 7, MAX_RADIUS = 64, MAX_CANDIDATES = 512, MAX_REGIONS = 64;
+    static final int UNKNOWN = -1, REJECTED = 0, PLANNED = 1, ACTUAL = 2;
+    private static final long RETRY_TICKS = 40, CACHE_TICKS = 1200;
 
     interface Candidates {
 
@@ -21,160 +20,166 @@ final class AltarSearchQueue {
 
     interface Backend {
 
-        boolean hasTarget();
-
-        boolean loaded(int x, int z);
-
-        void load(int x, int z);
-
-        boolean populated(int x, int z);
-
-        boolean confirm(int x, int z);
-
-        void release(int x, int z);
+        /** Without disk permission only inspect loaded chunks and persistent rejections. */
+        int classify(int x, int z, boolean allowDisk);
     }
 
     private final Candidates source;
     private final Map<Long, Search> regions = new LinkedHashMap<>(16, .75F, true);
-    private final Map<Long, Boolean> failures = new LinkedHashMap<>(16, .75F, true);
-    private Search active;
-    private int[] candidate;
-    private final boolean[] owned = new boolean[4];
-    private int step;
+    private long ticks;
+    private long lastSearch;
 
     AltarSearchQueue(Candidates source) {
         this.source = source;
     }
 
     void beginTick() {
-        for (Search search : regions.values()) search.requested = false;
+        ticks++;
+        for (Search search : regions.values()) search.origins.clear();
     }
 
-    void keepAlive(int regionX, int regionZ) {
-        Search search = regions.get(key(regionX, regionZ));
-        if (search != null) search.requested = true;
+    void keepAlive(double x, double z) {
+        Search search = regions.get(key(region(x), region(z)));
+        if (search != null) search.origins.add(new double[] { x, z });
     }
 
-    void request(int regionX, int regionZ) {
-        long key = key(regionX, regionZ);
+    void request(double x, double z) {
+        int rx = region(x), rz = region(z);
+        long key = key(rx, rz);
         Search search = regions.get(key);
         if (search == null) {
-            // Never evict an active or currently requested search to admit more players.
             if (regions.size() >= MAX_REGIONS) {
                 Iterator<Search> iterator = regions.values()
                     .iterator();
                 boolean removed = false;
-                while (iterator.hasNext()) {
-                    Search old = iterator.next();
-                    if (old != active && !old.requested) {
-                        iterator.remove();
-                        removed = true;
-                        break;
-                    }
+                while (iterator.hasNext()) if (iterator.next().origins.isEmpty()) {
+                    iterator.remove();
+                    removed = true;
+                    break;
                 }
                 if (!removed) return;
             }
-            List<int[]> candidates = new ArrayList<>();
+            search = new Search();
+            search.regionX = rx;
+            search.regionZ = rz;
             for (int dx = -RADIUS; dx <= RADIUS; dx++) for (int dz = -RADIUS; dz <= RADIUS; dz++) {
-                int[] position = source.inRegion(regionX + dx, regionZ + dz);
-                if (position != null && Math.abs((long) position[0]) < 1874998
-                    && Math.abs((long) position[1]) < 1874998) candidates.add(position);
+                int[] p = source.inRegion(rx + dx, rz + dz);
+                // Keep the full structure footprint inside vanilla's world limits.
+                if (p != null && Math.abs((long) p[0]) < 1874998 && Math.abs((long) p[1]) < 1874998)
+                    search.candidates.add(new Candidate(p[0], p[1]));
             }
-            final long centerX = (long) regionX * 32 + 16, centerZ = (long) regionZ * 32 + 16;
-            candidates.sort(Comparator.comparingLong(position -> distance(position, centerX, centerZ)));
-            if (candidates.size() > MAX_CANDIDATES) candidates = new ArrayList<>(candidates.subList(0, MAX_CANDIDATES));
-            search = new Search(candidates);
             regions.put(key, search);
         }
-        search.requested = true;
+        search.origins.add(new double[] { x, z });
     }
 
-    /** Cancel immediately each tick; perform at most one chunk load when the shared budget permits. */
-    void tick(Backend backend, boolean mayLoad) {
-        if (active != null && (!active.requested || backend.hasTarget())) cleanup(backend);
-        if (!mayLoad || backend.hasTarget()) return;
-        if (active == null) {
-            for (Search search : regions.values()) if (search.requested && search.cursor < search.candidates.size()) {
-                active = search;
+    int[] nearest(double x, double z, Backend backend) {
+        Search search = regions.get(key(region(x), region(z)));
+        if (search == null) return null;
+        Candidate nearest = null;
+        double distance = Double.POSITIVE_INFINITY;
+        for (Candidate candidate : search.candidates) {
+            if (candidate.status != PLANNED && candidate.status != ACTUAL) continue;
+            int live = backend.classify(candidate.x, candidate.z, false);
+            if (live != UNKNOWN) record(candidate, live);
+            if (candidate.status != PLANNED || ticks - candidate.checked >= CACHE_TICKS) continue;
+            double current = distance(candidate, x, z);
+            if (current < distance) {
+                nearest = candidate;
+                distance = current;
+            }
+        }
+        return nearest == null ? null : new int[] { nearest.x * 16 + 7, nearest.z * 16 + 7 };
+    }
+
+    /** At most one disk probe per server tick, shared by every player and region. */
+    void tick(Backend backend, boolean mayProbe) {
+        if (!mayProbe) return;
+        List<Map.Entry<Long, Search>> requested = new ArrayList<>();
+        for (Map.Entry<Long, Search> entry : regions.entrySet())
+            if (!entry.getValue().origins.isEmpty()) requested.add(entry);
+        if (requested.isEmpty()) return;
+        int start = 0;
+        for (int i = 0; i < requested.size(); i++) if (requested.get(i)
+            .getKey() == lastSearch) {
+                start = (i + 1) % requested.size();
                 break;
             }
-        }
-        if (active == null) return;
-        if (candidate == null) {
-            while (active.cursor < active.candidates.size()) {
-                int[] next = active.candidates.get(active.cursor);
-                if (!failures.containsKey(key(next[0], next[1]))) {
-                    candidate = next;
-                    break;
+        for (int i = 0; i < requested.size(); i++) {
+            Map.Entry<Long, Search> entry = requested.get((start + i) % requested.size());
+            expand(entry.getValue());
+            Candidate next = null;
+            double distance = Double.POSITIVE_INFINITY;
+            for (Candidate candidate : entry.getValue().candidates) {
+                long age = ticks - candidate.checked;
+                if (candidate.status == REJECTED || (candidate.checked != Long.MIN_VALUE
+                    && age < (candidate.status == UNKNOWN ? RETRY_TICKS : CACHE_TICKS))) continue;
+                for (double[] origin : entry.getValue().origins) {
+                    double current = distance(candidate, origin[0], origin[1]);
+                    if (current < distance) {
+                        next = candidate;
+                        distance = current;
+                    }
                 }
-                active.cursor++;
             }
-            if (candidate == null) {
-                active = null;
-                return;
-            }
-        }
-        int x = candidate[0] + (step & 1), z = candidate[1] + (step >> 1);
-        owned[step] = !backend.loaded(x, z);
-        // A loaded, already populated candidate can be recovered without touching neighbours.
-        if (step == 0 && !owned[0] && backend.confirm(x, z)) {
-            active.cursor++;
-            cleanup(backend);
+            if (next == null) continue;
+            record(next, backend.classify(next.x, next.z, true));
+            lastSearch = entry.getKey();
             return;
         }
-        try {
-            backend.load(x, z);
-            step++;
-            if (step == 4 || backend.populated(candidate[0], candidate[1])) {
-                if (!backend.confirm(candidate[0], candidate[1])) rememberFailure(candidate);
-                active.cursor++;
-                cleanup(backend);
-            }
-        } catch (RuntimeException failure) {
-            rememberFailure(candidate);
-            active.cursor++;
-            cleanup(backend);
-            throw failure;
+    }
+
+    private void expand(Search search) {
+        if (search.radius >= MAX_RADIUS) return;
+        for (Candidate candidate : search.candidates)
+            if (candidate.checked == Long.MIN_VALUE || candidate.status == PLANNED || candidate.status == ACTUAL)
+                return;
+        search.candidates.removeIf(candidate -> candidate.status == REJECTED);
+        // Every completed ring advances once; transient UNKNOWN entries retain their retry budget.
+        if (search.candidates.size() + (search.radius + 1) * 8 > MAX_CANDIDATES) return;
+        int radius = ++search.radius;
+        for (int dx = -radius; dx <= radius; dx++) for (int dz = -radius; dz <= radius; dz++) {
+            if (Math.abs(dx) != radius && Math.abs(dz) != radius) continue;
+            int[] p = source.inRegion(search.regionX + dx, search.regionZ + dz);
+            if (p != null && Math.abs((long) p[0]) < 1874998 && Math.abs((long) p[1]) < 1874998)
+                search.candidates.add(new Candidate(p[0], p[1]));
         }
     }
 
-    private void cleanup(Backend backend) {
-        if (candidate != null) for (int i = 0; i < 4; i++) {
-            if (owned[i]) backend.release(candidate[0] + (i & 1), candidate[1] + (i >> 1));
-            owned[i] = false;
-        }
-        candidate = null;
-        step = 0;
-        active = null;
+    private void record(Candidate candidate, int status) {
+        candidate.status = status;
+        candidate.checked = ticks;
     }
 
-    private void rememberFailure(int[] position) {
-        failures.put(key(position[0], position[1]), true);
-        if (failures.size() > MAX_FAILURES) {
-            Iterator<Long> iterator = failures.keySet()
-                .iterator();
-            iterator.next();
-            iterator.remove();
-        }
+    private static double distance(Candidate candidate, double x, double z) {
+        double dx = candidate.x * 16.0 + 7 - x, dz = candidate.z * 16.0 + 7 - z;
+        return dx * dx + dz * dz;
+    }
+
+    private static int region(double coordinate) {
+        return Math.floorDiv((int) Math.floor(coordinate), 512);
     }
 
     private static long key(int x, int z) {
         return (long) x << 32 | z & 0xffffffffL;
     }
 
-    private static long distance(int[] position, long x, long z) {
-        long dx = position[0] - x, dz = position[1] - z;
-        return dx * dx + dz * dz;
+    private static final class Candidate {
+
+        final int x, z;
+        int status = UNKNOWN;
+        long checked = Long.MIN_VALUE;
+
+        Candidate(int x, int z) {
+            this.x = x;
+            this.z = z;
+        }
     }
 
     private static final class Search {
 
-        final List<int[]> candidates;
-        int cursor;
-        boolean requested;
-
-        Search(List<int[]> candidates) {
-            this.candidates = candidates;
-        }
+        final List<Candidate> candidates = new ArrayList<>();
+        final List<double[]> origins = new ArrayList<>();
+        int regionX, regionZ, radius = RADIUS;
     }
 }

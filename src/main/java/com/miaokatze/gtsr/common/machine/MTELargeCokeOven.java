@@ -408,17 +408,13 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
             @Override
             @Nonnull
             protected OverclockCalculator createOverclockCalculator(@Nonnull GTRecipe recipe) {
-                // 基础加工速度：青铜（mTier=1）120% → duration×(1/1.2)；
-                // 钢（mTier=2）200% → duration×(1/2.0)
-                double baseDurationMultiplier = (mTier == 2) ? (1.0 / 2.0) : (1.0 / 1.2);
-                // 炉温加速：每1%炉温叠加1%工作速度
-                // 工作速度 = 基础速度 × (1 + mHeat)
-                // 故 duration 乘数 = 基础速度 / (1 + mHeat)
-                double durationModifier = baseDurationMultiplier / (1.0 + normalizedHeat(mHeat));
-                return OverclockCalculator.ofNoOverclock(recipe)
-                    .setDurationModifier(durationModifier);
+                // 无电炉只按炉温缩时，不将不足一 tick 的加速转换为额外并行。
+                return super.createOverclockCalculator(recipe).setNoOverclock(true);
             }
-        }.setMaxParallelSupplier(this::getMaxParallelRecipes);
+        }.setMaxParallelSupplier(this::getMaxParallelRecipes)
+            // 青铜基础速度 +20%，钢 +100%；每 1% 炉温再叠加 1% 工作速度。
+            .setSpeedBonusSupplier(
+                () -> ((mTier == 2) ? (1.0d / 2.0d) : (1.0d / 1.2d)) / (1.0d + normalizedHeat(mHeat)));
     }
 
     @Override
@@ -427,15 +423,17 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
 
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
-        if (mMachine && aTick % 20 == 0) {
-            if (mMaxProgresstime > 0) {
-                mHeat = Math.min(1.0d, mHeat + HEAT_UP_PER_SECOND);
+        if (mMachine) {
+            boolean working = mMaxProgresstime > 0 || aBaseMetaTileEntity.isActive();
+            if (working) {
+                mHeat = Math.min(1.0d, mHeat + HEAT_UP_PER_SECOND / 20.0d);
             } else {
-                mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_PER_SECOND);
+                mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_PER_SECOND / 20.0d);
             }
+        } else if (mStartUpCheck <= 0) {
+            // 加载后结构检测前的 100 tick 启动期冻结炉温；结构失效后正常降温。
+            mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_PER_SECOND / 20.0d);
         }
-
-        aBaseMetaTileEntity.setActive(mMaxProgresstime > 0);
     }
 
     @Override

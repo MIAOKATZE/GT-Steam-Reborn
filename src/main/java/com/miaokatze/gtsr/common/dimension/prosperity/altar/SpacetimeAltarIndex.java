@@ -1,7 +1,9 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.altar;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -13,6 +15,7 @@ public final class SpacetimeAltarIndex extends WorldSavedData {
 
     private static final String KEY = "gtsrSpacetimeAltars";
     private final List<Entry> entries = new ArrayList<>();
+    private final Set<String> rejected = new HashSet<>();
 
     public SpacetimeAltarIndex() {
         super(KEY);
@@ -54,6 +57,7 @@ public final class SpacetimeAltarIndex extends WorldSavedData {
     }
 
     public void add(String id, int x, int y, int z) {
+        if (rejected.contains(id)) return;
         for (Entry entry : entries) if (entry.id.equals(id)) return;
         entries.add(new Entry(id, x, y, z, true));
         markDirty();
@@ -62,6 +66,17 @@ public final class SpacetimeAltarIndex extends WorldSavedData {
     public Entry find(String id) {
         for (Entry entry : entries) if (entry.id.equals(id)) return entry;
         return null;
+    }
+
+    /** Failed natural placements and retired cores must never become speculative targets again. */
+    public boolean rejected(String id) {
+        Entry entry = find(id);
+        return rejected.contains(id) || entry != null && !entry.valid;
+    }
+
+    public void reject(String id) {
+        if (rejected.add(id)) markDirty();
+        retire(id);
     }
 
     public void markRead(String id) {
@@ -82,6 +97,11 @@ public final class SpacetimeAltarIndex extends WorldSavedData {
     @Override
     public void readFromNBT(NBTTagCompound tag) {
         entries.clear();
+        rejected.clear();
+        NBTTagList failures = tag.getTagList("rejected", 10);
+        for (int i = 0; i < failures.tagCount(); i++) rejected.add(
+            failures.getCompoundTagAt(i)
+                .getString("id"));
         NBTTagList list = tag.getTagList("entries", 10);
         for (int i = 0; i < list.tagCount(); i++) {
             NBTTagCompound row = list.getCompoundTagAt(i);
@@ -110,6 +130,13 @@ public final class SpacetimeAltarIndex extends WorldSavedData {
             list.appendTag(row);
         }
         tag.setTag("entries", list);
+        NBTTagList failures = new NBTTagList();
+        for (String id : rejected) {
+            NBTTagCompound row = new NBTTagCompound();
+            row.setString("id", id);
+            failures.appendTag(row);
+        }
+        tag.setTag("rejected", failures);
     }
 
     public static final class Entry {
