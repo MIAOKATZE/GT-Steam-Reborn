@@ -21,19 +21,15 @@ import ic2.api.item.IElectricItem;
 
 public final class SpacetimeAnchorBeacon extends Item implements IElectricItem {
 
-    @SideOnly(Side.CLIENT)
-    private net.minecraft.util.IIcon needleIcon;
-
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(net.minecraft.client.renderer.texture.IIconRegister register) {
+        if (register instanceof net.minecraft.client.renderer.texture.TextureMap) {
+            ((net.minecraft.client.renderer.texture.TextureMap) register).setTextureEntry(
+                getIconString(),
+                new com.miaokatze.gtsr.client.travel.SpacetimeBeaconSprite(getIconString()));
+        }
         super.registerIcons(register);
-        needleIcon = register.registerIcon("gtsr:spacetime_anchor_beacon_needle");
-    }
-
-    @SideOnly(Side.CLIENT)
-    public net.minecraft.util.IIcon needleIcon() {
-        return needleIcon;
     }
 
     public static final int USE_DURATION = 72000;

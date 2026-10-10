@@ -11,6 +11,7 @@ import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.WorldProviderProsperityRuins;
 import com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarIndex;
+import com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarNavigationSearch;
 import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterData;
 import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterSite;
 import com.miaokatze.gtsr.common.items.SpacetimeAnchorBeacon;
@@ -64,6 +65,7 @@ public final class BeaconNavigationNetwork {
     @SubscribeEvent
     public void tick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        SpacetimeAltarNavigationSearch.beginTick();
         for (int i = 0; i < 32; i++) {
             Pending pending = QUEUE.poll();
             if (pending == null) break;
@@ -97,15 +99,20 @@ public final class BeaconNavigationNetwork {
                 iterator.remove();
                 continue;
             }
-            if (player.ticksExisted % 40 != 0 || !carries(player)) continue;
+            if (!carries(player)) continue;
+            if (player.dimension == 0)
+                SpacetimeAltarNavigationSearch.keepAlive(player.worldObj, player.posX, player.posZ);
+            if (player.ticksExisted % 40 != 0) continue;
             int[] nearest = nearest(player);
             NETWORK.sendTo(new Target(session.nonce, player.dimension, nearest), player);
         }
+        SpacetimeAltarNavigationSearch.tick();
     }
 
     static int[] nearest(EntityPlayerMP player) {
         if (player.dimension == 0) {
             SpacetimeAltarIndex.Entry altar = SpacetimeAltarIndex.nearest(player.worldObj, player.posX, player.posZ);
+            if (altar == null) SpacetimeAltarNavigationSearch.request(player.worldObj, player.posX, player.posZ);
             return altar == null ? null : new int[] { altar.x, altar.z };
         }
         if (!(player.worldObj.provider instanceof WorldProviderProsperityRuins)) return null;

@@ -57,7 +57,6 @@ public final class SpacetimeBeaconRenderer implements IItemRenderer {
         Minecraft mc = Minecraft.getMinecraft();
         IIcon icon = item.getIconIndex();
         if (icon == null) return;
-        IIcon needle = ((SpacetimeAnchorBeacon) item.getItem()).needleIcon();
         EntityLivingBase holder = null;
         for (Object object : data) if (object instanceof EntityLivingBase) holder = (EntityLivingBase) object;
         boolean charging = holder instanceof EntityPlayer && charging((EntityPlayer) holder, item);
@@ -86,29 +85,6 @@ public final class SpacetimeBeaconRenderer implements IItemRenderer {
                 icon.getMaxV(),
                 icon.getIconWidth(),
                 icon.getIconHeight());
-            if (needle != null) {
-                GL11.glPushMatrix();
-                try {
-                    // Rotate only the transparent pointer about the dial center, never the casing.
-                    GL11.glTranslatef(.5F, .5F, type == ItemRenderType.INVENTORY ? -.002F : .002F);
-                    GL11.glRotatef(
-                        (type == ItemRenderType.INVENTORY ? 1 : -1) * BeaconNavigationClient.angle(charging),
-                        0,
-                        0,
-                        1);
-                    GL11.glTranslatef(-.5F, -.5F, 0);
-                    geometry(
-                        type,
-                        needle.getMaxU(),
-                        needle.getMinV(),
-                        needle.getMinU(),
-                        needle.getMaxV(),
-                        needle.getIconWidth(),
-                        needle.getIconHeight());
-                } finally {
-                    GL11.glPopMatrix();
-                }
-            }
             if (item.hasEffect(0)) {
                 GL11.glDepthMask(false);
                 GL11.glDepthFunc(GL11.GL_EQUAL);

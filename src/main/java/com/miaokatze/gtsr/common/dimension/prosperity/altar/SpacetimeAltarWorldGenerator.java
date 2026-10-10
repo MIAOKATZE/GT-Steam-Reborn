@@ -29,11 +29,18 @@ public final class SpacetimeAltarWorldGenerator implements IWorldGenerator {
 
     public static boolean candidate(long seed, int chunkX, int chunkZ) {
         int rx = Math.floorDiv(chunkX, SPACING), rz = Math.floorDiv(chunkZ, SPACING);
+        int[] position = candidateInRegion(seed, rx, rz);
+        return position != null && chunkX == position[0] && chunkZ == position[1];
+    }
+
+    /** The exact generation roll, without loading terrain or promising a successful placement. */
+    public static int[] candidateInRegion(long seed, int rx, int rz) {
         Random grid = new Random(seed + rx * 341873128712L + rz * 132897987541L + CANDIDATE_SALT);
         int x = rx * SPACING + grid.nextInt(SPACING - SEPARATION),
             z = rz * SPACING + grid.nextInt(SPACING - SEPARATION);
-        if (chunkX != x || chunkZ != z) return false;
-        return new Random(seed + x * 341873128712L + z * 132897987541L + CHANCE_SALT).nextInt(8) == 0;
+        return new Random(seed + x * 341873128712L + z * 132897987541L + CHANCE_SALT).nextInt(8) == 0
+            ? new int[] { x, z }
+            : null;
     }
 
     private static List<Cell> model() {
