@@ -102,8 +102,32 @@ public final class BeaconNavigationNetwork {
             if (player.dimension == 0)
                 SpacetimeAltarNavigationSearch.keepAlive(player.worldObj, player.posX, player.posZ);
             if (player.ticksExisted % 40 != 0) continue;
-            int[] nearest = nearest(player);
-            NETWORK.sendTo(new Target(session.nonce, player.dimension, nearest), player);
+            int[] nearest;
+            if (player.dimension == 0) {
+                nearest = session.target.update(new BeaconTargetLock.Lookup() {
+
+                    @Override
+                    public int[] nearest() {
+                        return BeaconNavigationNetwork.nearest(player);
+                    }
+
+                    @Override
+                    public int status(int x, int z) {
+                        return SpacetimeAltarNavigationSearch.targetStatus(player.worldObj, x, z);
+                    }
+                });
+            } else nearest = nearest(player);
+            Target packet = new Target(session.nonce, player.dimension, nearest);
+            if (player.dimension == 0 && session.target.unavailable()) packet.reason = Reason.UNAVAILABLE;
+            if (session.changed(nearest, packet.reason)) {
+                com.miaokatze.gtsr.main.GTSteamReborn.LOG.debug(
+                    "[GTSR] Beacon navigation player={} dimension={} reason={} target={}",
+                    player.getCommandSenderName(),
+                    player.dimension,
+                    packet.reason,
+                    nearest == null ? "searching" : nearest[0] + "," + nearest[1]);
+            }
+            NETWORK.sendTo(packet, player);
         }
         SpacetimeAltarNavigationSearch.tick();
     }
@@ -138,12 +162,25 @@ public final class BeaconNavigationNetwork {
         final World world;
         final net.minecraft.network.NetHandlerPlayServer connection;
         final long nonce;
+        final BeaconTargetLock target = new BeaconTargetLock();
+        private boolean sent;
+        private int[] lastTarget;
         long lastHelloTick = Long.MIN_VALUE;
 
         Session(EntityPlayerMP player, long nonce) {
             world = player.worldObj;
             connection = player.playerNetServerHandler;
             this.nonce = nonce;
+        }
+
+        boolean changed(int[] position, Reason reason) {
+            boolean changed = !sent || reason != Reason.NONE
+                || (position == null) != (lastTarget == null)
+                || position != null && lastTarget != null
+                    && (position[0] != lastTarget[0] || position[1] != lastTarget[1]);
+            sent = true;
+            lastTarget = position;
+            return changed;
         }
     }
 
@@ -187,11 +224,17 @@ public final class BeaconNavigationNetwork {
         }
     }
 
+    public enum Reason {
+        NONE,
+        UNAVAILABLE
+    }
+
     public static final class Target implements IMessage {
 
         public long nonce;
         public int dimension, x, z;
         public boolean found, valid, acknowledgement;
+        public Reason reason = Reason.NONE;
 
         public Target() {}
 
@@ -213,19 +256,26 @@ public final class BeaconNavigationNetwork {
             buf.writeInt(x);
             buf.writeInt(z);
             buf.writeBoolean(acknowledgement);
+            buf.writeByte(reason.ordinal());
         }
 
         @Override
         public void fromBytes(ByteBuf buf) {
             valid = false;
-            if (buf.readableBytes() != 22) return;
+            if (buf.readableBytes() != 23) return;
             nonce = buf.readLong();
             dimension = buf.readInt();
             found = buf.readBoolean();
             x = buf.readInt();
             z = buf.readInt();
             acknowledgement = buf.readBoolean();
-            valid = nonce != 0 && Math.abs((long) x) <= 30000000 && Math.abs((long) z) <= 30000000;
+            int ordinal = buf.readUnsignedByte();
+            if (ordinal >= Reason.values().length) return;
+            reason = Reason.values()[ordinal];
+            valid = nonce != 0 && Math.abs((long) x) <= 30000000
+                && Math.abs((long) z) <= 30000000
+                && (!acknowledgement || !found && reason == Reason.NONE)
+                && (dimension == 0 || reason == Reason.NONE);
         }
     }
 

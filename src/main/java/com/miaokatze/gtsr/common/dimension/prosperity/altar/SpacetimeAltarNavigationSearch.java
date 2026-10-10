@@ -51,6 +51,24 @@ public final class SpacetimeAltarNavigationSearch {
         return planned;
     }
 
+    /** Validate a locked destination independently of discovery regions, cache age, or disk availability. */
+    public static int targetStatus(World world, int x, int z) {
+        if (!eligible(world)) return AltarSearchQueue.UNKNOWN;
+        WorldServer server = (WorldServer) world;
+        SpacetimeAltarIndex index = SpacetimeAltarIndex.get(world);
+        String id = "altar:" + (x >> 4) + ":" + (z >> 4);
+        if (index.rejected(id)) return AltarSearchQueue.REJECTED;
+        SpacetimeAltarIndex.Entry entry = index.find(id);
+        if (entry != null && server.getChunkProvider()
+            .chunkExists(x >> 4, z >> 4) && world.getBlock(entry.x, entry.y, entry.z) != SpacetimeAltarBlocks.core) {
+            index.reject(id);
+            return AltarSearchQueue.REJECTED;
+        }
+        int live = new WorldBackend(server).classify(x >> 4, z >> 4, false);
+        if (live != AltarSearchQueue.UNKNOWN) return live;
+        return entry != null && entry.valid ? AltarSearchQueue.ACTUAL : AltarSearchQueue.UNKNOWN;
+    }
+
     public static void tick() {
         boolean mayProbe = true;
         for (Map.Entry<WorldServer, AltarSearchQueue> entry : SEARCHES.entrySet()) {

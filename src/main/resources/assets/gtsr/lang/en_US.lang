@@ -3511,4 +3511,6 @@ gtsr.altar.story.5=After payment, the singularity appears over 200 game ticks (n
 
 # Spacetime Singularity Altar
 gtsr.anchor.tooltip.tier=HV-tier spacetime beacon; charge at HV.
-gtsr.anchor.tooltip.navigation=Needle: nearest valid altar in the Overworld; nearest generated structure in Prosperity. Navigation requires no charge.
+gtsr.anchor.tooltip.navigation=Needle: locks onto the first confirmed nearest valid altar in the Overworld; nearest generated structure in Prosperity. Navigation requires no charge. While locating an Overworld altar, the needle stays still.
+gtsr.beacon.navigation.searching=Locating an altar. The needle stays still until a destination is found.
+gtsr.beacon.navigation.unavailable=The previous altar is unavailable. Locating a new destination.

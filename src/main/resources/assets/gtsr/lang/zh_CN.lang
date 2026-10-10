@@ -3506,4 +3506,7 @@ gtsr.altar.story.5=支付后，奇点将在200游戏刻（通常约10秒）内�
 
 # Spacetime Singularity Altar
 gtsr.anchor.tooltip.tier=HV 级时空信标；可使用HV充电。
-gtsr.anchor.tooltip.navigation=指针：主世界指向最近有效祭坛；繁荣维度指向最近已生成结构。导航不需要电量。
+gtsr.anchor.tooltip.navigation=指针：主世界锁定首次确认的最近有效祭坛；繁荣维度指向最近已生成结构。导航不需要电量。定位祭坛期间指针静止。
+
+gtsr.beacon.navigation.searching=正在定位祭坛；找到目标前，指针保持静止。
+gtsr.beacon.navigation.unavailable=原祭坛已不可用，正在重新定位。

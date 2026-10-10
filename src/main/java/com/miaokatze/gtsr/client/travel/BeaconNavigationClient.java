@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.client.travel;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.ChatComponentTranslation;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.travel.BeaconNavigationNetwork;
 
@@ -17,10 +18,11 @@ public final class BeaconNavigationClient {
 
     private static WorldClient world;
     private static EntityPlayer player;
-    private static long nonce = System.nanoTime(), receivedAt;
+    private static long nonce = System.nanoTime();
     private static int x, z;
     private static boolean found;
     private static boolean handshakeComplete;
+    private static boolean searchingReported;
     private static int helloRetryTicks;
 
     public static void register() {
@@ -37,7 +39,7 @@ public final class BeaconNavigationClient {
             world = mc.theWorld;
             player = mc.thePlayer;
             found = false;
-            receivedAt = 0;
+            searchingReported = false;
             handshakeComplete = false;
             helloRetryTicks = 0;
             if (++nonce == 0) nonce++;
@@ -65,10 +67,16 @@ public final class BeaconNavigationClient {
                 handshakeComplete = true;
                 // Duplicate handshake acknowledgements never erase a previously displayed target.
                 if (target.acknowledgement) return;
+                if (target.reason == BeaconNavigationNetwork.Reason.UNAVAILABLE) {
+                    player.addChatMessage(new ChatComponentTranslation("gtsr.beacon.navigation.unavailable"));
+                    searchingReported = true;
+                } else if (target.dimension == 0 && !target.found && !searchingReported) {
+                    player.addChatMessage(new ChatComponentTranslation("gtsr.beacon.navigation.searching"));
+                    searchingReported = true;
+                }
                 found = target.found;
                 x = target.x;
                 z = target.z;
-                receivedAt = Minecraft.getSystemTime();
             }
         });
     }
@@ -78,13 +86,11 @@ public final class BeaconNavigationClient {
         double seconds = Minecraft.getSystemTime() / 1000D;
         if (charging) return (float) (seconds * 720 % 360);
         Minecraft mc = Minecraft.getMinecraft();
-        if (found && world == mc.theWorld
-            && player != null
-            && player == mc.thePlayer
-            && Minecraft.getSystemTime() - receivedAt <= 6000) {
+        if (found && world == mc.theWorld && player != null && player == mc.thePlayer) {
             double dx = x + .5 - player.posX, dz = z + .5 - player.posZ;
             return (float) (Math.toDegrees(Math.atan2(-dx, dz)) - player.rotationYaw);
         }
+        if (mc.thePlayer != null && mc.thePlayer.dimension == 0) return 0;
         return (float) (seconds * 12 % 360);
     }
 }
