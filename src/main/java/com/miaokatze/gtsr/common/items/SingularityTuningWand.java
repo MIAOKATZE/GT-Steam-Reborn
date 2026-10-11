@@ -41,7 +41,9 @@ public class SingularityTuningWand extends Item {
     @Override
     public boolean onItemUseFirst(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
-        return world.getTileEntity(x, y, z) instanceof IGregTechTileEntity;
+        if (!(world.getTileEntity(x, y, z) instanceof IGregTechTileEntity base)) return false;
+        if (world.isRemote) com.miaokatze.gtsr.common.debug.WandClient.useTarget(player, base, x, y, z);
+        return true;
     }
 
     /** Shift+右击空气（客户端）打开选择界面；其余场景交还原有使用路径。 */
@@ -59,10 +61,7 @@ public class SingularityTuningWand extends Item {
         // A canceled block interaction can fall through to tryUseItem; it is not an air click.
         if (mc.objectMouseOver != null
             && mc.objectMouseOver.typeOfHit == net.minecraft.util.MovingObjectPosition.MovingObjectType.BLOCK) return;
-        mc.displayGuiScreen(
-            new com.miaokatze.gtsr.client.gui.wand.GuiTuningWandSelector(
-                getSelectedEntry(stack),
-                getSelectedDeltaIndex(stack)));
+        mc.displayGuiScreen(new com.miaokatze.gtsr.client.gui.wand.GuiTuningWandSelector());
     }
 
     /** 读词条游标（0..2；无键/越界回退 0=超限） */
@@ -122,9 +121,15 @@ public class SingularityTuningWand extends Item {
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tuning_wand.desc.2"));
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tuning_wand.desc.3"));
         list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.tuning_wand.desc.4"));
-        String entry = StatCollector.translateToLocal("gtsr.wand.entry." + entryNameKey(getSelectedEntry(stack)));
-        list.add(
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal(
-                "gtsr.wand.debug.family.singularity") + ": " + entry + " " + deltaLabel(getSelectedDeltaIndex(stack)));
+        for (String family : com.miaokatze.gtsr.common.debug.MachineDebugRegistry.families()) {
+            var adapter = com.miaokatze.gtsr.common.debug.MachineDebugRegistry.findFamily(family);
+            var options = adapter.options(null);
+            int[] values = com.miaokatze.gtsr.common.debug.MachineDebugRegistry.readProfile(stack, adapter, null);
+            StringBuilder selection = new StringBuilder(
+                StatCollector.translateToLocal("gtsr.wand.debug.family." + family));
+            for (int i = 0; i < options.length; i++) selection.append(i == 0 ? ": " : " / ")
+                .append(StatCollector.translateToLocal(options[i].values()[values[i]]));
+            list.add(EnumChatFormatting.WHITE + selection.toString());
+        }
     }
 }

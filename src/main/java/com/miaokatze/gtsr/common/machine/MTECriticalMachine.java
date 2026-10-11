@@ -67,6 +67,11 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         registerCriticalProgress();
     }
 
+    @Override
+    protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
+        return new com.miaokatze.gtsr.common.gui.MTECriticalMachineGui(this);
+    }
+
     private void registerCriticalProgress() {
         registerEntry(
             GTSRProgressEntry

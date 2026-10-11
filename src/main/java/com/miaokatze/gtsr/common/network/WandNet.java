@@ -13,7 +13,10 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 import com.miaokatze.gtsr.common.debug.MachineDebugRegistry;
 import com.miaokatze.gtsr.common.debug.WandClient;
+import com.miaokatze.gtsr.common.gui.CriticalMachineTerminalFactory;
+import com.miaokatze.gtsr.common.items.HubTerminal;
 import com.miaokatze.gtsr.common.items.SingularityTuningWand;
+import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -42,6 +45,8 @@ public final class WandNet {
         NETWORK.registerMessage(TargetHandler.class, PacketTarget.class, 1, Side.SERVER);
         NETWORK.registerMessage(OpenHandler.class, PacketOpen.class, 2, Side.CLIENT);
         NETWORK.registerMessage(ProfileHandler.class, PacketProfile.class, 3, Side.SERVER);
+        NETWORK.registerMessage(AirProfileHandler.class, PacketAirProfile.class, 4, Side.SERVER);
+        NETWORK.registerMessage(TerminalTargetHandler.class, PacketTerminalTarget.class, 5, Side.SERVER);
         ServerDrain drain = new ServerDrain();
         FMLCommonHandler.instance()
             .bus()
@@ -76,6 +81,24 @@ public final class WandNet {
     public static void sendProfile(int token, int[] values) {
         PacketProfile message = new PacketProfile();
         message.token = token;
+        message.values = values.clone();
+        NETWORK.sendToServer(message);
+    }
+
+    public static void sendTerminalTarget(int x, int y, int z, int dimension, int metaId, int slot) {
+        PacketTerminalTarget message = new PacketTerminalTarget();
+        message.x = x;
+        message.y = y;
+        message.z = z;
+        message.dimension = dimension;
+        message.metaId = metaId;
+        message.slot = slot;
+        NETWORK.sendToServer(message);
+    }
+
+    public static void sendAirProfile(String family, int[] values) {
+        PacketAirProfile message = new PacketAirProfile();
+        message.family = family;
         message.values = values.clone();
         NETWORK.sendToServer(message);
     }
@@ -116,6 +139,22 @@ public final class WandNet {
         @SideOnly(Side.CLIENT)
         public IMessage onMessage(PacketOpen message, MessageContext context) {
             WandClient.enqueue(message);
+            return null;
+        }
+    }
+
+    public static class AirProfileHandler implements IMessageHandler<PacketAirProfile, IMessage> {
+
+        public IMessage onMessage(PacketAirProfile message, MessageContext context) {
+            enqueue(message, context);
+            return null;
+        }
+    }
+
+    public static class TerminalTargetHandler implements IMessageHandler<PacketTerminalTarget, IMessage> {
+
+        public IMessage onMessage(PacketTerminalTarget message, MessageContext context) {
+            enqueue(message, context);
             return null;
         }
     }
@@ -247,9 +286,19 @@ public final class WandNet {
                     || player.playerNetServerHandler == null
                     || !player.playerNetServerHandler.netManager.isChannelOpen()) continue;
                 ItemStack held = player.getHeldItem();
-                if (held == null || held != task.wand()
-                    || !(held.getItem() instanceof SingularityTuningWand)
-                    || player.inventory.currentItem != task.slot()) continue;
+                if (held == null || held != task.wand() || player.inventory.currentItem != task.slot()) continue;
+                if (task.message() instanceof PacketTerminalTarget target) {
+                    if (!(held.getItem() instanceof HubTerminal) || target.dimension != player.dimension
+                        || target.slot != player.inventory.currentItem
+                        || !player.worldObj.blockExists(target.x, target.y, target.z)) continue;
+                    if (player.worldObj.getTileEntity(target.x, target.y, target.z) instanceof IGregTechTileEntity base
+                        && base.getMetaTileID() == target.metaId
+                        && usable(player, base)
+                        && base.getMetaTileEntity() instanceof MTECriticalMachine)
+                        CriticalMachineTerminalFactory.open(player, base);
+                    continue;
+                }
+                if (!(held.getItem() instanceof SingularityTuningWand)) continue;
                 if (!player.capabilities.isCreativeMode && !player.canCommandSenderUseCommand(2, "gtsrdebug")) {
                     MachineDebugRegistry.feedback(player, "gtsr.wand.debug.denied");
                     continue;
@@ -269,6 +318,11 @@ public final class WandNet {
                     handleTarget(player, held, target);
                 } else if (task.message() instanceof PacketProfile profile) {
                     handleProfile(player, held, profile);
+                } else if (task.message() instanceof PacketAirProfile profile) {
+                    var adapter = MachineDebugRegistry.findFamily(profile.family);
+                    // Air selection changes the held item's profile only; applying requires a validated target.
+                    if (adapter != null && MachineDebugRegistry.writeProfile(held, adapter, null, profile.values))
+                        player.inventoryContainer.detectAndSendChanges();
                 }
             }
         }
@@ -406,6 +460,9 @@ public final class WandNet {
         }
     }
 
+    public static class PacketTerminalTarget extends PacketTarget {
+    }
+
     public static class PacketProfile implements IMessage {
 
         public int token;
@@ -418,6 +475,22 @@ public final class WandNet {
 
         public void toBytes(ByteBuf buffer) {
             buffer.writeInt(token);
+            writeValues(buffer, values);
+        }
+    }
+
+    public static class PacketAirProfile implements IMessage {
+
+        public String family = "";
+        public int[] values = new int[0];
+
+        public void fromBytes(ByteBuf buffer) {
+            family = ByteBufUtils.readUTF8String(buffer);
+            values = readValues(buffer);
+        }
+
+        public void toBytes(ByteBuf buffer) {
+            ByteBufUtils.writeUTF8String(buffer, family);
             writeValues(buffer, values);
         }
     }

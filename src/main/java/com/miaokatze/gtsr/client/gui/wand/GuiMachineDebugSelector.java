@@ -18,13 +18,19 @@ public final class GuiMachineDebugSelector extends GuiScreen {
     private final String family;
     private final Option[] options;
     private final int[] values;
+    private final boolean air;
     private static final int WIDTH = 320;
 
     public GuiMachineDebugSelector(int token, String family, Option[] options, int[] values) {
+        this(token, family, options, values, false);
+    }
+
+    public GuiMachineDebugSelector(int token, String family, Option[] options, int[] values, boolean air) {
         this.token = token;
         this.family = family;
         this.options = options;
         this.values = values.clone();
+        this.air = air;
     }
 
     @Override
@@ -48,14 +54,15 @@ public final class GuiMachineDebugSelector extends GuiScreen {
     @Override
     protected void actionPerformed(GuiButton button) {
         if (button.id == 99) {
-            mc.displayGuiScreen(null);
+            mc.displayGuiScreen(air ? new GuiTuningWandSelector() : null);
             return;
         }
         if (button.id < 0 || button.id >= options.length) return;
         int i = button.id;
         values[i] = (values[i] + 1) % options[i].values().length;
         button.displayString = label(i);
-        WandNet.sendProfile(token, values);
+        if (air) WandNet.sendAirProfile(family, values);
+        else WandNet.sendProfile(token, values);
     }
 
     @Override

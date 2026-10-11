@@ -71,6 +71,18 @@ public final class MachineDebugRegistry {
         return null;
     }
 
+    public static Adapter findFamily(String family) {
+        for (Adapter adapter : ADAPTERS) if (adapter.family()
+            .equals(family)) return adapter;
+        return null;
+    }
+
+    public static String[] families() {
+        return ADAPTERS.stream()
+            .map(Adapter::family)
+            .toArray(String[]::new);
+    }
+
     public static int[] readProfile(ItemStack wand, Adapter adapter, IMetaTileEntity machine) {
         Option[] options = adapter.options(machine);
         int[] values = new int[options.length];

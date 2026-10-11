@@ -3,8 +3,7 @@ package com.miaokatze.gtsr.common.debug;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.client.Minecraft;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraft.entity.player.EntityPlayer;
 
 import org.lwjgl.input.Keyboard;
 
@@ -27,7 +26,6 @@ public final class WandClient {
 
     public static void init() {
         WandClient listener = new WandClient();
-        MinecraftForge.EVENT_BUS.register(listener);
         FMLCommonHandler.instance()
             .bus()
             .register(listener);
@@ -37,22 +35,16 @@ public final class WandClient {
         OPEN.add(message);
     }
 
-    @SubscribeEvent
-    public void interact(PlayerInteractEvent event) {
-        if (!event.world.isRemote || event.action != PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK) return;
-        var held = event.entityPlayer.getHeldItem();
-        if (held == null || !(held.getItem() instanceof SingularityTuningWand)) return;
-        if (!(event.world.getTileEntity(event.x, event.y, event.z) instanceof IGregTechTileEntity base)) return;
-        event.setCanceled(true);
+    public static void useTarget(EntityPlayer player, IGregTechTileEntity base, int x, int y, int z) {
         boolean alt = Keyboard.isKeyDown(Keyboard.KEY_LMENU) || Keyboard.isKeyDown(Keyboard.KEY_RMENU);
         WandNet.sendTarget(
-            event.x,
-            event.y,
-            event.z,
-            event.world.provider.dimensionId,
+            x,
+            y,
+            z,
+            player.dimension,
             base.getMetaTileID(),
-            alt ? 0 : event.entityPlayer.isSneaking() ? 2 : 1,
-            event.entityPlayer.inventory.currentItem);
+            alt ? 0 : player.isSneaking() ? 2 : 1,
+            player.inventory.currentItem);
     }
 
     @SubscribeEvent

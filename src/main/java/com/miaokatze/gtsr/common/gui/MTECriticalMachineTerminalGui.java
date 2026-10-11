@@ -53,7 +53,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
 
     private final CriticalMachineState state;
     private EntityPlayer viewer;
-    private IntSyncValue tier, kind, parallel, speed, economy, status, stage, job, total, batch, duration;
+    private IntSyncValue tier, kind, parallel, speed, economy, status, reason, stage, job, total, batch, duration;
     private LongSyncValue energy, capacity, euPerTick, constructionElapsed, constructionDuration;
     private IntSyncValue constructionRound, constructionRounds, roundElapsed, roundDuration;
     private GenericListSyncHandler<ItemStack> constructionCosts, nextConstructionCosts, missingConstructionCosts;
@@ -82,7 +82,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
 
     @Override
     protected int getBasePanelHeight() {
-        return 212;
+        return 300;
     }
 
     @Override
@@ -103,6 +103,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         speed = integer(manager, "speed", state::getSpeedPlugins);
         economy = integer(manager, "economy", state::getEfficiencyPlugins);
         status = integer(manager, "status", state::getStatusCode);
+        reason = integer(manager, "reason", state::getReasonCode);
         stage = integer(manager, "stage", state::getStage);
         job = integer(manager, "job", state::getJobProgress);
         total = integer(manager, "total", state::getJobTotal);
@@ -178,7 +179,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
 
     @Override
     public Flow createMainColumn(ModularPanel panel, PanelSyncManager manager) {
-        PagedWidget<?> pages = new PagedWidget<>().size(338, 100);
+        PagedWidget<?> pages = new PagedWidget<>().size(338, 136);
         pages.addPage(statusPage(panel, manager));
         pages.addPage(configurationPage(manager));
         pages.addPage(inventoryPage(manager));
@@ -200,6 +201,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         }
         return Flow.column()
             .padding(6)
+            .child(statusHeader())
             .child(tabs)
             .child(pages)
             .child(
@@ -208,26 +210,37 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                     .alignX(0.5f));
     }
 
+    private IWidget statusHeader() {
+        ListWidget<IWidget, ?> lines = new ListWidget<>().size(330, 40);
+        constructionLine(lines, () -> tr("machine." + configuration().kind.key) + " · " + configuration().tier.name());
+        constructionLine(lines, () -> tr(loomValid.getValue() ? "loom.formed" : "loom.unformed"));
+        constructionLine(lines, () -> tr("status." + status.getValue()) + " · " + tr("reason." + reason.getValue()));
+        return new ParentWidget<>().size(338, 48)
+            .padding(4)
+            .widgetTheme(GTWidgetThemes.BACKGROUND_TERMINAL)
+            .child(lines);
+    }
+
     private IWidget statusPage(ModularPanel panel, PanelSyncManager manager) {
-        ParentWidget<?> page = new ParentWidget<>().size(338, 100);
+        ParentWidget<?> page = new ParentWidget<>().size(338, 136);
         page.child(
             new ParentWidget<>().pos(0, 0)
-                .size(338, 56)
+                .size(338, 78)
                 .padding(4)
                 .widgetTheme(GTWidgetThemes.BACKGROUND_TERMINAL)
-                .child(createTerminalTextWidget(manager, panel).size(330, 48)));
+                .child(createTerminalTextWidget(manager, panel).size(330, 70)));
         page.child(
-            action(manager, "build", player -> state.startConstruction(player)).pos(0, 60)
+            action(manager, "build", player -> state.startConstruction(player)).pos(0, 86)
                 .size(80, 18)
                 .setEnabledIf(w -> permitted.getValue() && loomValid.getValue() && status.getValue() == 0)
                 .tooltipBuilder(this::constructionTooltip)
                 .tooltipAutoUpdate(true));
         page.child(
-            action(manager, "dismantle", player -> state.startDismantle(player)).pos(86, 60)
+            action(manager, "dismantle", player -> state.startDismantle(player)).pos(86, 86)
                 .size(80, 18)
                 .setEnabledIf(w -> permitted.getValue() && (status.getValue() == 1 || status.getValue() == 2)));
         page.child(
-            action(manager, "repair", player -> state.repairStructure(player)).pos(172, 60)
+            action(manager, "repair", player -> state.repairStructure(player)).pos(172, 86)
                 .size(80, 18)
                 .setEnabledIf(w -> permitted.getValue() && loomValid.getValue() && status.getValue() != 0)
                 .tooltipBuilder(this::constructionTooltip)
@@ -235,19 +248,19 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         page.child(
             action(manager, "power", player -> state.setEnabled(player, !state.isEnabled()))
                 .overlay(IKey.dynamic(() -> tr(enabled.getValue() ? "stop" : "start")))
-                .pos(258, 60)
+                .pos(258, 86)
                 .size(80, 18)
                 .setEnabledIf(w -> permitted.getValue() && (enabled.getValue() || loomValid.getValue())));
         page.child(
             IKey.lang(key("recipes"))
                 .asWidget()
-                .pos(0, 84)
+                .pos(0, 112)
                 .size(80, 16));
         page.child(
             new GTProgressWidget().neiTransferRect(multiblock.getRecipeMap())
                 .texture(GTGuiTextures.PROGRESSBAR_ARROW_STANDARD, 20)
                 .progress(() -> duration.getValue() <= 0 ? 0 : (double) batch.getValue() / duration.getValue())
-                .pos(86, 84)
+                .pos(86, 112)
                 .size(252, 16));
         return page;
     }
@@ -255,16 +268,6 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager manager, ModularPanel parent) {
         ListWidget<IWidget, ?> list = new ListWidget<>();
-        list.child(
-            IKey.dynamic(() -> tr("machine." + configuration().kind.key) + " · " + configuration().tier.name())
-                .asWidget()
-                .fullWidth()
-                .marginBottom(3));
-        list.child(
-            IKey.dynamic(() -> tr("status." + status.getValue()) + " · " + detail.getValue())
-                .asWidget()
-                .fullWidth()
-                .marginBottom(3));
         list.child(
             IKey.dynamic(() -> "EU " + energy.getValue() + " / " + capacity.getValue())
                 .asWidget()
@@ -294,18 +297,23 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     }
 
     private IWidget configurationPage(PanelSyncManager manager) {
-        ParentWidget<?> page = new ParentWidget<>().size(338, 100);
+        ParentWidget<?> page = new ParentWidget<>().size(338, 136);
+        page.child(
+            IKey.lang(key("configuration.section"))
+                .asWidget()
+                .pos(0, 0)
+                .size(338, 14));
         page.child(
             action(manager, "tier", player -> change(player, 0, 1))
                 .overlay(IKey.dynamic(() -> configuration().tier.name()))
-                .pos(0, 0)
+                .pos(0, 18)
                 .size(70, 18)
                 .setEnabledIf(w -> editable())
                 .tooltipBuilder(t -> t.add(IKey.lang(key("configuration_hint")))));
         page.child(
             action(manager, "kind", player -> change(player, 1, 1))
                 .overlay(IKey.dynamic(() -> tr("machine." + configuration().kind.key)))
-                .pos(76, 0)
+                .pos(76, 18)
                 .size(262, 18)
                 .setEnabledIf(w -> editable() && multiblock.isKindSelector())
                 .tooltipBuilder(t -> t.add(IKey.lang(key("configuration_hint")))));
@@ -316,22 +324,22 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             page.child(
                 IKey.dynamic(() -> tr(labels[index]) + " " + values[index].getValue())
                     .asWidget()
-                    .pos(0, 22 + i * 20)
+                    .pos(0, 42 + i * 20)
                     .size(224, 18));
             page.child(
                 action(manager, labels[i] + ".minus", player -> change(player, index + 2, -1)).overlay(IKey.str("−"))
-                    .pos(230, 22 + i * 20)
+                    .pos(230, 42 + i * 20)
                     .size(50, 18)
                     .setEnabledIf(w -> editable() && values[index].getValue() > 0));
             page.child(
                 action(manager, labels[i] + ".plus", player -> change(player, index + 2, 1)).overlay(IKey.str("+"))
-                    .pos(286, 22 + i * 20)
+                    .pos(286, 42 + i * 20)
                     .size(52, 18)
                     .setEnabledIf(w -> editable() && parallel.getValue() + speed.getValue() + economy.getValue() < 8));
         }
         page.child(
             new ButtonWidget<>().overlay(IKey.lang(key("recipes")))
-                .pos(0, 82)
+                .pos(0, 112)
                 .size(110, 18)
                 .onMousePressed(button -> {
                     if (button != 0) return false;
@@ -351,7 +359,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     }
 
     private IWidget constructionPage() {
-        ListWidget<IWidget, ?> list = new ListWidget<>().size(338, 100);
+        ListWidget<IWidget, ?> list = new ListWidget<>().size(338, 136);
         constructionLine(list, () -> tr("machine." + configuration().kind.key) + " · " + configuration().tier.name());
         constructionLine(list, () -> tr(loomValid.getValue() ? "loom.ready" : "loom.incomplete"));
         for (String suffix : new String[] { "loom.dimensions", "loom.hatches", "loom.orientation", "loom.area",
@@ -477,7 +485,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     }
 
     private IWidget inventoryPage(PanelSyncManager manager) {
-        ParentWidget<?> page = new ParentWidget<>().size(338, 100);
+        ParentWidget<?> page = new ParentWidget<>().size(338, 136);
         InvWrapper inventory = new InvWrapper(state) {
 
             private boolean allowed() {
