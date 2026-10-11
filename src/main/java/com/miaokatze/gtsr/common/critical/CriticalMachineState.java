@@ -32,7 +32,7 @@ import com.miaokatze.gtsr.common.critical.recipe.RecipeMatch;
 
 import gregtech.api.interfaces.tileentity.IEnergyConnected;
 
-/** All input, escrow and delivery state is saved in one tile NBT, never across independent hatches. */
+/** Live inputs stay in GT hatches; task escrow and pending delivery are saved in the controller NBT. */
 public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEnergyConnected {
 
     private TileEntity host;
@@ -300,7 +300,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (status.contains("加载")) return 3;
         if (status.contains("缺损")) return 4;
         if (status.contains("禁止降低等级")) return 9;
-        if (status.contains("空间") || status.contains("容量")) return 5;
+        if (status.contains("空间") || status.contains("容量") || status.contains("锚点") || status.contains("施工高度"))
+            return 5;
         if (status.contains("冲突") || status.contains("身份") || status.contains("锁")) return 6;
         if (!isEnabled()) return 7;
         if (status.contains("先启动")) return 8;
@@ -424,10 +425,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             return fail("必要织机结构缺损，请先手搭完整织机及仓口");
         }
         if (getOriginY() < 0 || getOriginY() + 161 > worldObj.getHeight()) return fail("施工高度超出世界");
-        TileEntity visual = worldObj.getTileEntity(xCoord, yCoord + 1, zCoord);
-        if (!worldObj.isAirBlock(xCoord, yCoord + 1, zCoord)
+        int anchorX = CriticalRenderAnchors.getX(this), anchorY = CriticalRenderAnchors.getY(this),
+            anchorZ = CriticalRenderAnchors.getZ(this);
+        TileEntity visual = worldObj.getTileEntity(anchorX, anchorY, anchorZ);
+        if (!worldObj.isAirBlock(anchorX, anchorY, anchorZ)
             && !(visual instanceof TileEntityCriticalRenderAnchor anchor && anchor.ownedBy(this)))
-            return fail("控制器上方渲染锚点位置存在外来方块");
+            return fail("织机前上方渲染锚点位置存在外来方块");
         // Target collision and permission checks happen in the loaded window before funding each round.
         for (CriticalGeometry.Voxel voxel : allVoxels())
             if (!isUserBuilt(voxel) && !worldObj.canMineBlock(p, wx(voxel), wy(voxel), wz(voxel)))
@@ -1116,11 +1119,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public ItemStack[] getConstructionMissingItemsForGui() {
         List<ItemStack> missing = new ArrayList<>();
         if (constructionRoundFunded) return new ItemStack[0];
+        ItemStack[] physicalItems = gtMachine() == null ? new ItemStack[0]
+            : gtMachine().criticalPhysicalItemsSnapshot();
         ItemStack[] networkItems = gtMachine() == null ? new ItemStack[0] : gtMachine().criticalMEItemsSnapshot();
         for (ItemStack wanted : getConstructionNextItemCostsForGui()) {
             long available = 0;
-            for (int slot = 0; slot < INPUT_SLOTS; slot++)
-                if (same(inventory[slot], wanted)) available += inventory[slot].stackSize;
+            for (ItemStack physical : physicalItems) if (same(physical, wanted)) available += physical.stackSize;
             for (ItemStack network : networkItems) if (same(network, wanted)) available += network.stackSize;
             if (available < wanted.stackSize) {
                 ItemStack item = wanted.copy();
@@ -1134,57 +1138,17 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public FluidStack[] getConstructionMissingFluidsForGui() {
         List<FluidStack> missing = new ArrayList<>();
         if (constructionRoundFunded) return new FluidStack[0];
+        FluidStack[] physicalFluids = gtMachine() == null ? new FluidStack[0]
+            : gtMachine().criticalPhysicalFluidsSnapshot();
         FluidStack[] networkFluids = gtMachine() == null ? new FluidStack[0] : gtMachine().criticalMEFluidsSnapshot();
         for (FluidStack wanted : getConstructionNextFluidCostsForGui()) {
             long available = 0;
-            for (int slot = 0; slot < 8; slot++)
-                if (tanks[slot] != null && tanks[slot].isFluidEqual(wanted)) available += tanks[slot].amount;
+            for (FluidStack physical : physicalFluids) if (physical.isFluidEqual(wanted)) available += physical.amount;
             for (FluidStack network : networkFluids) if (network.isFluidEqual(wanted)) available += network.amount;
             if (available < wanted.amount) {
                 FluidStack fluid = wanted.copy();
                 fluid.amount -= available;
                 missing.add(fluid);
-            }
-        }
-        return missing.toArray(new FluidStack[0]);
-    }
-
-    private ItemStack[] missingCriticalItems(ItemStack[] wanted) {
-        ItemStack[] remaining = copyItems(inventory);
-        List<ItemStack> missing = new ArrayList<>();
-        for (ItemStack item : wanted) if (item != null) {
-            int amount = item.stackSize;
-            for (int slot = 0; slot < INPUT_SLOTS && amount > 0; slot++) if (same(remaining[slot], item)) {
-                int taken = Math.min(amount, remaining[slot].stackSize);
-                amount -= taken;
-                remaining[slot].stackSize -= taken;
-                if (remaining[slot].stackSize == 0) remaining[slot] = null;
-            }
-            if (amount > 0) {
-                ItemStack deficit = item.copy();
-                deficit.stackSize = amount;
-                missing.add(deficit);
-            }
-        }
-        return missing.toArray(new ItemStack[0]);
-    }
-
-    private FluidStack[] missingCriticalFluids(FluidStack[] wanted) {
-        FluidStack[] remaining = copyFluids(tanks);
-        List<FluidStack> missing = new ArrayList<>();
-        for (FluidStack fluid : wanted) if (fluid != null) {
-            int amount = fluid.amount;
-            for (int slot = 0; slot < 8 && amount > 0; slot++)
-                if (remaining[slot] != null && remaining[slot].isFluidEqual(fluid)) {
-                    int taken = Math.min(amount, remaining[slot].amount);
-                    amount -= taken;
-                    remaining[slot].amount -= taken;
-                    if (remaining[slot].amount == 0) remaining[slot] = null;
-                }
-            if (amount > 0) {
-                FluidStack deficit = fluid.copy();
-                deficit.amount = amount;
-                missing.add(deficit);
             }
         }
         return missing.toArray(new FluidStack[0]);
@@ -1197,13 +1161,13 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     private boolean fundCriticalInputs(ItemStack[] items, FluidStack[] fluids) {
         if (nativeFundingUncertain) return fail("ME扣料结果待人工核验，任务已锁定");
-        ItemStack[] missingItems = missingCriticalItems(items);
-        FluidStack[] missingFluids = missingCriticalFluids(fluids);
+        ItemStack[] missingItems = items;
+        FluidStack[] missingFluids = fluids;
         if (missingItems.length > 0 || missingFluids.length > 0) {
             if (!(host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt)
                 || !(gt.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine machine))
                 return fail("缺少材料或流体，暂停");
-            CriticalNativeMEFunding.Result result = machine.fundMissingCriticalInputs(missingItems, missingFluids);
+            CriticalNativeMEFunding.Result result = machine.fundCriticalHatchInputs(missingItems, missingFluids);
             if (result == CriticalNativeMEFunding.Result.SHORTAGE) return fail("缺少材料或流体，暂停");
             if (result != CriticalNativeMEFunding.Result.SUCCESS) {
                 nativeFundingUncertain = true;
@@ -1212,26 +1176,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 markDirty();
                 return fail("ME扣料结果待人工核验，任务已锁定");
             }
-        }
-        // The ME transaction committed only the deficit; consume the available physical portion now.
-        for (ItemStack item : items) if (item != null) {
-            int amount = item.stackSize;
-            for (int slot = 0; slot < INPUT_SLOTS && amount > 0; slot++) if (same(inventory[slot], item)) {
-                int taken = Math.min(amount, inventory[slot].stackSize);
-                amount -= taken;
-                inventory[slot].stackSize -= taken;
-                if (inventory[slot].stackSize == 0) inventory[slot] = null;
-            }
-        }
-        for (FluidStack fluid : fluids) if (fluid != null) {
-            int amount = fluid.amount;
-            for (int slot = 0; slot < 8 && amount > 0; slot++)
-                if (tanks[slot] != null && tanks[slot].isFluidEqual(fluid)) {
-                    int taken = Math.min(amount, tanks[slot].amount);
-                    amount -= taken;
-                    tanks[slot].amount -= taken;
-                    if (tanks[slot].amount == 0) tanks[slot] = null;
-                }
         }
         markDirty();
         return true;
@@ -1676,20 +1620,18 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 : null;
     }
 
-    private RecipeMatch matchCriticalMERecipe(ItemStack[] physicalItems, FluidStack[] physicalFluids) {
+    private RecipeMatch matchCriticalHatchRecipe(ItemStack[] physicalItems, FluidStack[] physicalFluids) {
         com.miaokatze.gtsr.common.machine.MTECriticalMachine machine = gtMachine();
         if (machine == null) return null;
         ItemStack[] networkItems = machine.criticalMEItemsSnapshot();
         FluidStack[] networkFluids = machine.criticalMEFluidsSnapshot();
-        if (networkItems.length == 0 && networkFluids.length == 0) return null;
         for (RecipeMatch reference : CriticalRecipes.list(config))
             for (int multiplier = 1; multiplier <= config.parallelMultiplier(); multiplier++) {
                 ItemStack[] items = copyItems(reference.itemInputs);
                 FluidStack[] fluids = copyFluids(reference.fluidInputs);
                 for (ItemStack item : items) item.stackSize = Math.multiplyExact(item.stackSize, multiplier);
                 for (FluidStack fluid : fluids) fluid.amount = Math.multiplyExact(fluid.amount, multiplier);
-                // Physical buffers retain exact semantics: unrelated or excess imported material rejects this
-                // candidate.
+                // Real GT inputs may contain unrelated or excess stock. Reserve only this batch's exact costs.
                 ItemStack[] residualItems = copyItems(items);
                 boolean compatible = true;
                 for (ItemStack actual : physicalItems) if (actual != null) {
@@ -1699,12 +1641,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                         remaining.stackSize -= used;
                         left -= used;
                     }
-                    if (left > 0) {
-                        compatible = false;
-                        break;
-                    }
                 }
-                if (!compatible) continue;
                 FluidStack[] residualFluids = copyFluids(fluids);
                 for (FluidStack actual : physicalFluids) if (actual != null) {
                     int left = actual.amount;
@@ -1713,12 +1650,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                         remaining.amount -= used;
                         left -= used;
                     }
-                    if (left > 0) {
-                        compatible = false;
-                        break;
-                    }
                 }
-                if (!compatible) continue;
                 for (ItemStack remaining : residualItems) if (remaining.stackSize > 0) {
                     int available = 0;
                     for (ItemStack network : networkItems)
@@ -1750,12 +1682,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             }
         }
         if (batchId.isEmpty()) {
-            ItemStack[] inputs = new ItemStack[18];
-            FluidStack[] fluids = new FluidStack[8];
-            for (int i = 0; i < 18; i++) inputs[i] = inventory[i] == null ? null : inventory[i].copy();
-            for (int i = 0; i < 8; i++) fluids[i] = tanks[i] == null ? null : tanks[i].copy();
+            ItemStack[] inputs = gtMachine() == null ? new ItemStack[0] : gtMachine().criticalPhysicalItemsSnapshot();
+            FluidStack[] fluids = gtMachine() == null ? new FluidStack[0]
+                : gtMachine().criticalPhysicalFluidsSnapshot();
             RecipeMatch match = CriticalRecipes.match(config, inputs, fluids);
-            if (match == null) match = matchCriticalMERecipe(inputs, fluids);
+            if (match == null) match = matchCriticalHatchRecipe(inputs, fluids);
             if (match == null) {
                 status = "没有完整可执行批次";
                 return;
@@ -1862,6 +1793,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private boolean consumeItems(ItemStack[] items) {
+        if (gtMachine() != null) return fundCriticalInputs(items, new FluidStack[0]);
         if (!hasItems(items)) return false;
         removeItems(inventory, items);
         markDirty();

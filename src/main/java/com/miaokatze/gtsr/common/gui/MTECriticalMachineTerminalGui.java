@@ -5,9 +5,8 @@ import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.StatCollector;
-import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
@@ -17,11 +16,9 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
-import com.cleanroommc.modularui.utils.item.InvWrapper;
 import com.cleanroommc.modularui.utils.serialization.ByteBufAdapters;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
-import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.InteractionSyncHandler;
 import com.cleanroommc.modularui.value.sync.LongSyncValue;
@@ -29,14 +26,11 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
-import com.cleanroommc.modularui.widgets.FluidDisplayWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.PagedWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
-import com.cleanroommc.modularui.widgets.slot.ItemSlot;
-import com.cleanroommc.modularui.widgets.slot.ModularSlot;
-import com.cleanroommc.modularui.widgets.slot.SlotGroup;
+import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
@@ -61,7 +55,10 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     private GenericListSyncHandler<FluidStack> stageConstructionFluids, nextConstructionFluids,
         missingConstructionFluids;
     private BooleanSyncValue enabled, permitted, loomValid, roundFunded;
-    private StringSyncValue detail;
+    private StringSyncValue detail, inputOverview, outputOverview, actionName, actionDetail, jobProgressText;
+    private BooleanSyncValue actionAccepted;
+    private String lastAction = "", lastActionDetail = "";
+    private boolean lastActionAccepted;
     private int recipePreview;
     private int selectedPage;
 
@@ -147,8 +144,19 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         manager.syncValue("critical.enabled", enabled);
         manager.syncValue("critical.permitted", permitted);
         manager.syncValue("critical.detail", detail);
-        manager.registerSlotGroup(new SlotGroup("critical.inputs", 9));
-        manager.registerSlotGroup(new SlotGroup("critical.outputs", 9));
+        inputOverview = new StringSyncValue(multiblock::getCriticalInputOverviewForGui);
+        outputOverview = new StringSyncValue(multiblock::getCriticalOutputOverviewForGui);
+        actionName = new StringSyncValue(() -> lastAction);
+        actionDetail = new StringSyncValue(() -> lastActionDetail);
+        actionAccepted = new BooleanSyncValue(() -> lastActionAccepted);
+        manager.syncValue("critical.inputOverview", inputOverview);
+        manager.syncValue("critical.outputOverview", outputOverview);
+        manager.syncValue("critical.actionName", actionName);
+        manager.syncValue("critical.actionDetail", actionDetail);
+        manager.syncValue("critical.actionAccepted", actionAccepted);
+        // Send the stage cursor and total together so a stage transition cannot display mismatched counts.
+        jobProgressText = new StringSyncValue(() -> state.getJobProgress() + " / " + state.getJobTotal());
+        manager.syncValue("critical.jobProgressText", jobProgressText);
     }
 
     private GenericListSyncHandler<ItemStack> itemCosts(java.util.function.Supplier<ItemStack[]> getter) {
@@ -181,27 +189,26 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
 
     @Override
     public Flow createMainColumn(ModularPanel panel, PanelSyncManager manager) {
-        PagedWidget<?> pages = new PagedWidget<>().size(463, 186);
+        PagedWidget<?> pages = new PagedWidget<>().size(463, 202);
         pages.addPage(statusPage(panel, manager));
         pages.addPage(configurationPage(manager));
         pages.addPage(inventoryPage(manager));
         pages.addPage(constructionPage());
         Flow tabs = Flow.row()
-            .size(463, 24)
+            .size(463, 20)
             .childPadding(4);
         String[] labels = { "tab.status", "tab.configuration", "tab.inventory", "tab.requirements" };
         for (int i = 0; i < labels.length; i++) {
             final int page = i;
             tabs.child(
-                new ButtonWidget<>().size(112, 22)
+                new ButtonWidget<>().size(112, 18)
                     .background(
                         new DynamicDrawable(
                             () -> selectedPage == page ? CriticalGuiStyle.SELECTED_TAB : CriticalGuiStyle.TAB))
                     .hoverBackground(CriticalGuiStyle.SELECTED_TAB)
                     .overlay(
-                        IKey.dynamic(
-                            () -> (selectedPage == page ? EnumChatFormatting.GOLD : EnumChatFormatting.WHITE)
-                                + tr(labels[page])))
+                        IKey.dynamic(() -> tr(labels[page]))
+                            .color(() -> selectedPage == page ? GtsrGuiPalette.TEXT_ACCENT : GtsrGuiPalette.TEXT_BODY))
                     .onMousePressed(button -> {
                         if (button != 0) return false;
                         pages.setPage(page);
@@ -221,123 +228,152 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     }
 
     private IWidget statusHeader() {
-        ParentWidget<?> header = new ParentWidget<>().size(463, 48);
+        ParentWidget<?> header = new ParentWidget<>().size(463, 32);
         header.child(
-            IKey.dynamic(
-                () -> EnumChatFormatting.GOLD + tr("machine." + configuration().kind.key)
-                    + " \u00b7 "
-                    + configuration().tier.name())
-                .color(0xFFFFFF)
+            IKey.dynamic(() -> tr("machine." + configuration().kind.key))
+                .color(GtsrGuiPalette.TEXT_TITLE)
                 .asWidget()
-                .pos(8, 4)
-                .size(447, 14));
+                .pos(4, 2)
+                .size(393, 12));
         header.child(
-            IKey.dynamic(
-                () -> (loomValid.getValue() ? EnumChatFormatting.GREEN : EnumChatFormatting.RED)
-                    + tr(loomValid.getValue() ? "loom.formed" : "loom.unformed"))
-                .color(0xFFFFFF)
+            IKey.dynamic(() -> configuration().tier.name())
+                .color(GtsrGuiPalette.TEXT_ACCENT)
                 .asWidget()
                 .background(CriticalGuiStyle.CHIP)
-                .pos(4, 23)
-                .size(190, 20));
+                .pos(405, 0)
+                .size(54, 16));
+        header.child(
+            IKey.dynamic(() -> tr(loomValid.getValue() ? "ui.loom_valid" : "ui.loom_invalid"))
+                .color(() -> loomValid.getValue() ? GtsrGuiPalette.STATE_ONLINE : GtsrGuiPalette.STATE_OFFLINE)
+                .asWidget()
+                .pos(4, 18)
+                .size(140, 12));
         header.child(
             IKey.dynamic(
-                () -> EnumChatFormatting.WHITE + tr("status." + status.getValue())
-                    + " \u00b7 "
-                    + tr("reason." + reason.getValue()))
-                .color(0xFFFFFF)
+                () -> detail.getValue()
+                    .equals("\u5f85\u914d\u7f6e") ? tr("status.0") : detail.getValue())
+                .color(GtsrGuiPalette.TEXT_BODY)
                 .asWidget()
-                .background(CriticalGuiStyle.CHIP)
-                .pos(200, 23)
-                .size(259, 20));
+                .pos(148, 18)
+                .size(311, 12)
+                .tooltipBuilder(t -> t.add(detail.getValue()))
+                .tooltipAutoUpdate(true));
         return header;
     }
 
     private IWidget statusPage(ModularPanel panel, PanelSyncManager manager) {
-        ParentWidget<?> page = new ParentWidget<>().size(463, 186);
-        ParentWidget<?> dashboard = new ParentWidget<>().size(307, 180)
-            .background(CriticalGuiStyle.CARD);
-        dashboard.child(
-            meter(
-                () -> "EU " + energy.getValue() + " / " + capacity.getValue(),
+        ParentWidget<?> page = new ParentWidget<>().size(463, 202);
+        page.child(
+            metric(
+                "ui.energy",
+                () -> energy.getValue() + " / " + capacity.getValue() + " EU",
                 () -> ratio(energy.getValue(), capacity.getValue()),
-                8,
-                8,
-                291));
-        dashboard.child(
-            meter(
-                () -> tr(
-                    "construction") + " " + stage.getValue() + " \u00b7 " + job.getValue() + " / " + total.getValue(),
+                0,
+                0));
+        page.child(
+            metric(
+                "ui.construction_progress",
+                jobProgressText::getValue,
                 () -> ratio(job.getValue(), total.getValue()),
-                8,
-                48,
-                291));
-        dashboard.child(
-            meter(
-                () -> tr("construction.round_time") + " "
-                    + roundElapsed.getValue()
-                    + " / "
-                    + roundDuration.getValue()
-                    + " t",
+                235,
+                0));
+        page.child(
+            metric(
+                "ui.construction_round",
+                () -> time(roundElapsed.getValue(), roundDuration.getValue()),
                 () -> ratio(roundElapsed.getValue(), roundDuration.getValue()),
-                8,
-                88,
-                291));
-        dashboard.child(
-            meter(
-                () -> tr("batch") + " "
-                    + batch.getValue()
-                    + " / "
-                    + duration.getValue()
-                    + " t \u00b7 "
-                    + euPerTick.getValue()
-                    + " EU/t",
+                0,
+                48));
+        page.child(
+            metric(
+                "batch",
+                () -> time(batch.getValue(), duration.getValue()),
                 () -> ratio(batch.getValue(), duration.getValue()),
-                8,
-                128,
-                291));
-        page.child(dashboard);
-        ParentWidget<?> controls = new ParentWidget<>().pos(313, 0)
-            .size(150, 180)
+                235,
+                48));
+        ParentWidget<?> summary = new ParentWidget<>().pos(0, 96)
+            .size(463, 48)
             .background(CriticalGuiStyle.CARD);
-        controls.child(
-            IKey.lang(key("ui.operations"))
-                .color(0xFFFFFF)
+        summary.child(
+            IKey.dynamic(
+                () -> tr("construction") + " "
+                    + Math.min(5, stage.getValue() + 1)
+                    + " / 5 | "
+                    + tr("construction.round")
+                    + " "
+                    + (constructionRounds.getValue() == 0 ? 0
+                        : Math.min(constructionRounds.getValue(), constructionRound.getValue() + 1))
+                    + " / "
+                    + constructionRounds.getValue()
+                    + " | "
+                    + tr(roundFunded.getValue() ? "construction.funded" : "construction.unfunded"))
+                .color(GtsrGuiPalette.TEXT_BODY)
                 .asWidget()
-                .pos(8, 8)
-                .size(134, 14));
-        controls.child(
-            action(manager, "build", player -> state.startConstruction(player)).pos(8, 30)
-                .size(134, 24)
-                .setEnabledIf(w -> permitted.getValue() && loomValid.getValue() && status.getValue() == 0)
-                .tooltipBuilder(this::constructionTooltip)
-                .tooltipAutoUpdate(true));
-        controls.child(
-            action(manager, "dismantle", player -> state.startDismantle(player)).pos(8, 60)
-                .size(134, 24)
-                .setEnabledIf(w -> permitted.getValue() && (status.getValue() == 1 || status.getValue() == 2)));
-        controls.child(
-            action(manager, "repair", player -> state.repairStructure(player)).pos(8, 90)
-                .size(134, 24)
-                .setEnabledIf(w -> permitted.getValue() && loomValid.getValue() && status.getValue() != 0)
-                .tooltipBuilder(this::constructionTooltip)
-                .tooltipAutoUpdate(true));
-        controls.child(
-            action(manager, "power", player -> state.setEnabled(player, !state.isEnabled()))
-                .overlay(
-                    IKey.dynamic(() -> tr(enabled.getValue() ? "stop" : "start"))
-                        .color(0xFFFFFF))
-                .pos(8, 120)
-                .size(134, 24)
-                .setEnabledIf(w -> permitted.getValue() && (enabled.getValue() || loomValid.getValue())));
-        controls.child(
+                .pos(8, 6)
+                .size(447, 12));
+        summary.child(
+            IKey.dynamic(
+                () -> tr("construction_power") + " "
+                    + configuration().tier.constructionVoltage()
+                    + " EU/t | "
+                    + tr("ui.batch_power")
+                    + " "
+                    + euPerTick.getValue()
+                    + " EU/t")
+                .color(GtsrGuiPalette.TEXT_LABEL)
+                .asWidget()
+                .pos(8, 23)
+                .size(411, 12));
+        summary.child(
             new GTProgressWidget().neiTransferRect(multiblock.getRecipeMap())
                 .texture(GTGuiTextures.PROGRESSBAR_ARROW_STANDARD, 20)
                 .progress(() -> ratio(batch.getValue(), duration.getValue()))
-                .pos(8, 154)
-                .size(134, 16)
-                .tooltipBuilder(t -> t.add(IKey.lang(key("recipes")))));
-        page.child(controls);
+                .pos(435, 22)
+                .size(20, 16));
+        page.child(summary);
+        page.child(
+            action(manager, "build", player -> state.startConstruction(player)).pos(0, 150)
+                .size(112, 20)
+                .setEnabledIf(w -> permitted.getValue() && loomValid.getValue() && status.getValue() == 0)
+                .tooltipBuilder(this::constructionTooltip)
+                .tooltipAutoUpdate(true));
+        page.child(
+            action(manager, "dismantle", player -> state.startDismantle(player)).pos(117, 150)
+                .size(112, 20)
+                .setEnabledIf(w -> permitted.getValue() && (status.getValue() == 1 || status.getValue() == 2)));
+        page.child(
+            action(manager, "repair", player -> state.repairStructure(player)).pos(234, 150)
+                .size(112, 20)
+                .setEnabledIf(w -> permitted.getValue() && loomValid.getValue() && status.getValue() != 0)
+                .tooltipBuilder(this::constructionTooltip)
+                .tooltipAutoUpdate(true));
+        page.child(
+            action(manager, "power", player -> state.setEnabled(player, !state.isEnabled()))
+                .overlay(
+                    IKey.dynamic(() -> tr(enabled.getValue() ? "stop" : "start"))
+                        .color(GtsrGuiPalette.TEXT_BODY))
+                .pos(351, 150)
+                .size(112, 20)
+                .setEnabledIf(w -> permitted.getValue() && (enabled.getValue() || loomValid.getValue())));
+        page.child(
+            IKey.dynamic(
+                () -> actionName.getValue()
+                    .isEmpty()
+                        ? tr("ui.supply_short")
+                        : tr(actionName.getValue()) + " | "
+                            + tr(actionAccepted.getValue() ? "action.accepted" : "action.refused"))
+                .color(
+                    () -> actionName.getValue()
+                        .isEmpty() ? GtsrGuiPalette.TEXT_MUTED
+                            : actionAccepted.getValue() ? GtsrGuiPalette.STATE_ONLINE : GtsrGuiPalette.STATE_OFFLINE)
+                .asWidget()
+                .pos(4, 178)
+                .size(455, 18)
+                .tooltipBuilder(
+                    t -> t.add(
+                        actionDetail.getValue()
+                            .equals(key("action.permission")) ? tr("action.permission") : actionDetail.getValue()))
+                .tooltipAutoUpdate(true));
         return page;
     }
 
@@ -345,20 +381,31 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         return maximum <= 0 ? 0 : Math.max(0, Math.min(1, (double) value / maximum));
     }
 
-    private static IWidget meter(java.util.function.Supplier<String> label, java.util.function.DoubleSupplier progress,
-        int x, int y, int width) {
+    private static String time(int elapsed, int duration) {
+        return String.format(java.util.Locale.ROOT, "%.1f / %.1f s", elapsed / 20D, duration / 20D);
+    }
+
+    private static IWidget metric(String label, java.util.function.Supplier<String> value,
+        java.util.function.DoubleSupplier progress, int x, int y) {
         return new ParentWidget<>().pos(x, y)
-            .size(width, 34)
+            .size(228, 44)
+            .background(CriticalGuiStyle.CARD)
             .child(
-                IKey.dynamic(() -> EnumChatFormatting.WHITE + label.get())
-                    .color(0xFFFFFF)
+                IKey.lang(key(label))
+                    .color(GtsrGuiPalette.TEXT_MUTED)
                     .asWidget()
-                    .size(width, 14))
+                    .pos(8, 5)
+                    .size(212, 10))
             .child(
-                new GTProgressWidget().texture(GTGuiTextures.PROGRESSBAR_FUEL_STANDARD, 14)
-                    .progress(progress)
-                    .pos(0, 18)
-                    .size(width, 12));
+                IKey.dynamic(value)
+                    .color(GtsrGuiPalette.TEXT_BODY)
+                    .asWidget()
+                    .pos(8, 17)
+                    .size(212, 12))
+            .child(
+                new ParentWidget<>().background(new CriticalProgressBar(progress))
+                    .pos(8, 32)
+                    .size(212, 7));
     }
 
     @Override
@@ -366,43 +413,43 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         ListWidget<IWidget, ?> list = new ListWidget<>();
         list.child(
             IKey.dynamic(() -> "EU " + energy.getValue() + " / " + capacity.getValue())
-                .color(0xFFFFFF)
+                .color(GtsrGuiPalette.TEXT_BODY)
                 .asWidget()
                 .fullWidth()
                 .marginBottom(3));
         list.child(
             IKey.dynamic(
                 () -> tr("construction") + " " + stage.getValue() + " · " + job.getValue() + " / " + total.getValue())
-                .color(0xFFFFFF)
+                .color(GtsrGuiPalette.TEXT_BODY)
                 .asWidget()
                 .fullWidth()
                 .marginBottom(3));
         list.child(
             IKey.dynamic(() -> tr("batch") + " " + batch.getValue() + " / " + duration.getValue() + " t")
-                .color(0xFFFFFF)
+                .color(GtsrGuiPalette.TEXT_BODY)
                 .asWidget()
                 .fullWidth()
                 .marginBottom(3));
         list.child(
             IKey.dynamic(() -> euPerTick.getValue() + " EU/t")
-                .color(0xFFFFFF)
+                .color(GtsrGuiPalette.TEXT_BODY)
                 .asWidget()
                 .fullWidth()
                 .marginBottom(3));
         list.child(
             IKey.dynamic(() -> tr("construction_power") + " " + configuration().tier.constructionVoltage() + " EU/t")
-                .color(0xFFFFFF)
+                .color(GtsrGuiPalette.TEXT_BODY)
                 .asWidget()
                 .fullWidth());
         return list;
     }
 
     private IWidget configurationPage(PanelSyncManager manager) {
-        ParentWidget<?> page = new ParentWidget<>().size(463, 186)
+        ParentWidget<?> page = new ParentWidget<>().size(463, 202)
             .background(CriticalGuiStyle.CARD);
         page.child(
             IKey.lang(key("configuration.section"))
-                .color(0xFFFFFF)
+                .color(GtsrGuiPalette.TEXT_BODY)
                 .asWidget()
                 .pos(8, 8)
                 .size(447, 14));
@@ -410,18 +457,18 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             action(manager, "tier", player -> change(player, 0, 1))
                 .overlay(
                     IKey.dynamic(() -> configuration().tier.name())
-                        .color(0xFFFFFF))
+                        .color(GtsrGuiPalette.TEXT_BODY))
                 .pos(8, 30)
-                .size(88, 24)
+                .size(88, 20)
                 .setEnabledIf(w -> editable())
                 .tooltipBuilder(t -> t.add(IKey.lang(key("configuration_hint")))));
         page.child(
             action(manager, "kind", player -> change(player, 1, 1))
                 .overlay(
                     IKey.dynamic(() -> tr("machine." + configuration().kind.key))
-                        .color(0xFFFFFF))
+                        .color(GtsrGuiPalette.TEXT_BODY))
                 .pos(102, 30)
-                .size(353, 24)
+                .size(353, 20)
                 .setEnabledIf(w -> editable() && multiblock.isKindSelector())
                 .tooltipBuilder(t -> t.add(IKey.lang(key("configuration_hint")))));
         String[] labels = { "parallel", "speed", "economy" };
@@ -430,24 +477,24 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             final int index = i;
             page.child(
                 IKey.dynamic(() -> tr(labels[index]) + " " + values[index].getValue())
-                    .color(0xFFFFFF)
+                    .color(GtsrGuiPalette.TEXT_BODY)
                     .asWidget()
                     .background(CriticalGuiStyle.CHIP)
                     .pos(8, 64 + i * 28)
-                    .size(325, 24));
+                    .size(365, 20));
             page.child(
                 action(manager, labels[i] + ".minus", player -> change(player, index + 2, -1)).overlay(
                     IKey.str("−")
-                        .color(0xFFFFFF))
-                    .pos(339, 64 + i * 28)
-                    .size(55, 24)
+                        .color(GtsrGuiPalette.TEXT_BODY))
+                    .pos(379, 64 + i * 28)
+                    .size(34, 20)
                     .setEnabledIf(w -> editable() && values[index].getValue() > 0));
             page.child(
                 action(manager, labels[i] + ".plus", player -> change(player, index + 2, 1)).overlay(
                     IKey.str("+")
-                        .color(0xFFFFFF))
-                    .pos(400, 64 + i * 28)
-                    .size(55, 24)
+                        .color(GtsrGuiPalette.TEXT_BODY))
+                    .pos(421, 64 + i * 28)
+                    .size(34, 20)
                     .setEnabledIf(w -> editable() && parallel.getValue() + speed.getValue() + economy.getValue() < 8));
         }
         page.child(
@@ -455,9 +502,9 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 .hoverBackground(CriticalGuiStyle.HOVER)
                 .overlay(
                     IKey.lang(key("recipes"))
-                        .color(0xFFFFFF))
-                .pos(8, 152)
-                .size(447, 24)
+                        .color(GtsrGuiPalette.TEXT_BODY))
+                .pos(8, 158)
+                .size(112, 20)
                 .onMousePressed(button -> {
                     if (button != 0) return false;
                     recipePreview++;
@@ -476,7 +523,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     }
 
     private IWidget constructionPage() {
-        ListWidget<IWidget, ?> list = new ListWidget<>().size(451, 174)
+        ListWidget<IWidget, ?> list = new ListWidget<>().size(451, 190)
             .pos(6, 6);
         constructionLine(list, () -> tr("machine." + configuration().kind.key) + " · " + configuration().tier.name());
         constructionLine(list, () -> tr(loomValid.getValue() ? "loom.ready" : "loom.incomplete"));
@@ -534,15 +581,15 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 .isEmpty()
                 && missingConstructionFluids.getValue()
                     .isEmpty() ? tr("construction.supplied") : "");
-        return new ParentWidget<>().size(463, 186)
+        return new ParentWidget<>().size(463, 202)
             .background(CriticalGuiStyle.CARD)
             .child(list);
     }
 
     private static void constructionLine(ListWidget<IWidget, ?> list, java.util.function.Supplier<String> text) {
         list.child(
-            IKey.dynamic(() -> EnumChatFormatting.WHITE + text.get())
-                .color(0xFFFFFF)
+            IKey.dynamic(() -> text.get())
+                .color(GtsrGuiPalette.TEXT_BODY)
                 .asWidget()
                 .fullWidth()
                 .marginBottom(3)
@@ -576,15 +623,15 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         return line.toString();
     }
 
-    private void change(EntityPlayer player, int field, int delta) {
-        if (state.getState() != 0 || (field == 1 && !multiblock.isKindSelector())) return;
+    private boolean change(EntityPlayer player, int field, int delta) {
+        if (state.getState() != 0 || (field == 1 && !multiblock.isKindSelector())) return false;
         CriticalConfiguration cfg = state.getConfiguration();
         CriticalTier nextTier = field == 0 ? CriticalTier.byId((cfg.tier.ordinal() + 1) % CriticalTier.values().length)
             : cfg.tier;
         CriticalMachineKind nextKind = field == 1
             ? CriticalMachineKind.byId((cfg.kind.ordinal() + 1) % CriticalMachineKind.values().length)
             : cfg.kind;
-        state.configure(
+        return state.configure(
             player,
             nextTier,
             nextKind,
@@ -594,11 +641,25 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     }
 
     private ButtonWidget<?> action(PanelSyncManager manager, String name,
-        java.util.function.Consumer<EntityPlayer> command) {
+        java.util.function.Predicate<EntityPlayer> command) {
         InteractionSyncHandler handler = new InteractionSyncHandler().setOnMousePressed(data -> {
             if (!baseMetaTileEntity.isServerSide() || data.mouseButton != 0) return;
             EntityPlayer player = manager.getPlayer();
-            if (state.canUse(player)) command.accept(player);
+            int separator = name.indexOf('.');
+            lastAction = separator < 0 ? name : name.substring(0, separator);
+            if (!state.canUse(player)) {
+                lastActionAccepted = false;
+                lastActionDetail = "gtsr.critical.action.permission";
+                player.addChatMessage(new ChatComponentTranslation(key("action.permission")));
+                return;
+            }
+            lastActionAccepted = command.test(player);
+            lastActionDetail = state.getStatus();
+            if (!lastActionAccepted) player.addChatMessage(
+                new ChatComponentTranslation(
+                    key("action.rejected"),
+                    new ChatComponentTranslation(key(lastAction)),
+                    lastActionDetail));
         });
         manager.syncValue("critical.action." + name, handler);
         return new ButtonWidget<>().background(CriticalGuiStyle.BUTTON)
@@ -606,84 +667,35 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             .syncHandler(handler)
             .overlay(
                 IKey.lang(key(name))
-                    .color(0xFFFFFF));
+                    .color(GtsrGuiPalette.TEXT_BODY));
     }
 
     private IWidget inventoryPage(PanelSyncManager manager) {
-        ParentWidget<?> page = new ParentWidget<>().size(463, 186);
-        InvWrapper inventory = new InvWrapper(state) {
-
-            private boolean allowed() {
-                return !baseMetaTileEntity.isServerSide() || state.canUse(viewer);
-            }
-
-            @Override
-            public void setStackInSlot(int slot, ItemStack stack) {
-                if (allowed()) super.setStackInSlot(slot, stack);
-            }
-
-            @Override
-            public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-                return allowed() ? super.insertItem(slot, stack, simulate) : stack;
-            }
-
-            @Override
-            public ItemStack extractItem(int slot, int amount, boolean simulate) {
-                return allowed() ? super.extractItem(slot, amount, simulate) : null;
-            }
-        };
+        ParentWidget<?> page = new ParentWidget<>().size(463, 202);
+        StringSyncValue[] summaries = { inputOverview, outputOverview };
         for (int side = 0; side < 2; side++) {
-            int x = side * 235 + 10;
-            page.child(
-                new ParentWidget<>().pos(side * 235, 0)
-                    .size(228, 154)
-                    .background(CriticalGuiStyle.CARD));
-            page.child(
+            final int index = side;
+            ParentWidget<?> card = new ParentWidget<>().pos(side * 235, 0)
+                .size(228, 166)
+                .background(CriticalGuiStyle.CARD);
+            card.child(
                 IKey.lang(key(side == 0 ? "input" : "output"))
-                    .color(0xFFFFFF)
+                    .color(GtsrGuiPalette.TEXT_BODY)
                     .asWidget()
-                    .pos(x, 8)
-                    .size(208, 14));
-            for (int i = 0; i < 18; i++) {
-                ModularSlot slot = new ModularSlot(inventory, side * 18 + i) {
-
-                    @Override
-                    public boolean canTakeStack(EntityPlayer player) {
-                        return (!baseMetaTileEntity.isServerSide() || state.canUse(player))
-                            && super.canTakeStack(player);
-                    }
-                }.canPut(false)
-                    .slotGroup(side == 0 ? "critical.inputs" : "critical.outputs");
-                page.child(
-                    new ItemSlot().slot(slot)
-                        .background(CriticalGuiStyle.SLOT)
-                        .pos(x + 23 + (i % 9) * 18, 30 + (i / 9) * 18));
-            }
-            for (int i = 0; i < 8; i++) {
-                final int tank = side * 8 + i;
-                // Empty tanks are legitimate null values. The convenience forFluid factory infers
-                // its value class from the first getter result, so it cannot initialize an empty tank.
-                GenericSyncValue<FluidStack, ?> fluid = GenericSyncValue.builder(FluidStack.class)
-                    .getter(() -> state.getTankInfo(ForgeDirection.UNKNOWN)[tank].fluid)
-                    .adapter(ByteBufAdapters.FLUID_STACK)
-                    .copy(FluidStack::copy)
-                    .nullable()
-                    .build();
-                manager.syncValue("critical.fluid." + tank, fluid);
-                page.child(
-                    new FluidDisplayWidget().value(fluid)
-                        .background(CriticalGuiStyle.SLOT)
-                        .capacity(CriticalMachineState.TANK_CAPACITY)
-                        .pos(x + 32 + i * 18, 84)
-                        .size(18));
-            }
+                    .pos(8, 8)
+                    .size(212, 14));
+            ListWidget<IWidget, ?> contents = new ListWidget<>().pos(8, 28)
+                .size(212, 130);
+            constructionLine(contents, () -> summaries[index].getValue());
+            card.child(contents);
+            page.child(card);
         }
         page.child(
-            IKey.lang(key("fluid_hint"))
-                .color(0xFFFFFF)
+            IKey.lang(key("hatch_overview_hint"))
+                .color(GtsrGuiPalette.TEXT_BODY)
                 .asWidget()
-                .pos(0, 80)
-                .size(463, 24));
+                .pos(8, 174)
+                .size(447, 22));
         return page;
     }
 

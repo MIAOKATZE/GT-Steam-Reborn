@@ -27,7 +27,6 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchDynamo;
-import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
@@ -298,7 +297,6 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         energySpentThisTick = 0;
         energyEmittedThisTick = 0;
         hatchEnergySpent.clear();
-        if (isLoomStructureValid()) importHatchResources();
         chargeBattery();
         current.updateEntity();
         if (tick % 20 == 0)
@@ -435,9 +433,57 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         return meFluidsSnapshot;
     }
 
-    public com.miaokatze.gtsr.common.critical.CriticalNativeMEFunding.Result fundMissingCriticalInputs(
-        ItemStack[] items, FluidStack[] fluids) {
-        com.miaokatze.gtsr.common.critical.CriticalNativeMEFunding.Result result = com.miaokatze.gtsr.common.critical.CriticalNativeMEFunding
+    public ItemStack[] criticalPhysicalItemsSnapshot() {
+        return com.miaokatze.gtsr.common.critical.CriticalHatchFunding.snapshotItems(mInputBusses);
+    }
+
+    public FluidStack[] criticalPhysicalFluidsSnapshot() {
+        return com.miaokatze.gtsr.common.critical.CriticalHatchFunding.snapshotFluids(mInputHatches);
+    }
+
+    public String getCriticalInputOverviewForGui() {
+        StringBuilder text = new StringBuilder();
+        for (ItemStack stack : criticalPhysicalItemsSnapshot())
+            appendInputOverview(text, stack.getDisplayName(), stack.stackSize);
+        for (FluidStack fluid : criticalPhysicalFluidsSnapshot())
+            appendInputOverview(text, fluid.getLocalizedName(), fluid.amount);
+        for (ItemStack stack : criticalMEItemsSnapshot())
+            appendInputOverview(text, "ME: " + stack.getDisplayName(), stack.stackSize);
+        for (FluidStack fluid : criticalMEFluidsSnapshot())
+            appendInputOverview(text, "ME: " + fluid.getLocalizedName(), fluid.amount);
+        return text.length() == 0 ? "\u2014" : text.toString();
+    }
+
+    public String getCriticalOutputOverviewForGui() {
+        StringBuilder text = new StringBuilder();
+        for (gregtech.api.metatileentity.implementations.MTEHatchOutputBus bus : mOutputBusses) {
+            if (!bus.isValid()) continue;
+            for (int slot = 0; slot < bus.getSizeInventory(); slot++) {
+                ItemStack stack = bus.getStackInSlot(slot);
+                if (stack != null && stack.stackSize > 0)
+                    appendInputOverview(text, stack.getDisplayName(), stack.stackSize);
+            }
+        }
+        for (gregtech.api.metatileentity.implementations.MTEHatchOutput hatch : mOutputHatches) {
+            if (!hatch.isValid()) continue;
+            for (net.minecraftforge.fluids.FluidTankInfo tank : hatch.getTankInfo(ForgeDirection.UNKNOWN))
+                if (tank != null && tank.fluid != null && tank.fluid.amount > 0)
+                    appendInputOverview(text, tank.fluid.getLocalizedName(), tank.fluid.amount);
+        }
+        return text.length() == 0 ? "\u2014" : text.toString();
+    }
+
+    private static void appendInputOverview(StringBuilder text, String name, int amount) {
+        if (text.length() >= 2048) return;
+        if (text.length() > 0) text.append('\n');
+        text.append(name)
+            .append(" x ")
+            .append(amount);
+    }
+
+    public com.miaokatze.gtsr.common.critical.CriticalNativeMEFunding.Result fundCriticalHatchInputs(ItemStack[] items,
+        FluidStack[] fluids) {
+        com.miaokatze.gtsr.common.critical.CriticalNativeMEFunding.Result result = com.miaokatze.gtsr.common.critical.CriticalHatchFunding
             .fund(this, mInputBusses, mInputHatches, items, fluids);
         meSnapshotTick = Long.MIN_VALUE;
         return result;
@@ -562,53 +608,6 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             energyEmittedThisTick += emitted;
         }
         return accepted;
-    }
-
-    private void importHatchResources() {
-        for (MTEHatchInputBus bus : mInputBusses) {
-            if (bus instanceof gregtech.common.tileentities.machines.IRecipeProcessingAwareHatch) continue;
-            for (int slot = 0; slot < bus.getSizeInventory(); slot++) {
-                if (slot == bus.getCircuitSlot()) continue;
-                for (int target = 0; target < CriticalMachineState.INPUT_SLOTS; target++) {
-                    // A whole-stack native removal clears the slot without mutating the old stack reference.
-                    // Re-read the real slot and transfer only the stack actually returned by GT's removal.
-                    ItemStack source = bus.getStackInSlot(slot);
-                    if (source == null || source.stackSize <= 0) break;
-                    ItemStack existing = state.getStackInSlot(target);
-                    if (existing != null
-                        && (!existing.isItemEqual(source) || !ItemStack.areItemStackTagsEqual(existing, source)))
-                        continue;
-                    int moved = Math.min(
-                        source.stackSize,
-                        existing == null ? Math.min(64, source.getMaxStackSize())
-                            : Math.min(64, existing.getMaxStackSize()) - existing.stackSize);
-                    if (moved <= 0) continue;
-                    ItemStack removed = bus.decrStackSize(slot, moved);
-                    if (removed == null || removed.stackSize <= 0) continue;
-                    ItemStack result = removed.copy();
-                    result.stackSize = removed.stackSize + (existing == null ? 0 : existing.stackSize);
-                    state.setInventorySlotContents(target, result);
-                }
-            }
-        }
-        for (gregtech.api.metatileentity.implementations.MTEHatchInput hatch : mInputHatches) {
-            if (hatch instanceof gregtech.common.tileentities.machines.IRecipeProcessingAwareHatch) continue;
-            for (net.minecraftforge.fluids.FluidTankInfo tank : hatch.getTankInfo(ForgeDirection.UNKNOWN)) {
-                FluidStack fluid = tank.fluid;
-                if (fluid == null || fluid.amount <= 0) continue;
-                int accepted = state.fill(ForgeDirection.UNKNOWN, fluid, false);
-                if (accepted > 0) {
-                    FluidStack request = fluid.copy();
-                    request.amount = accepted;
-                    FluidStack drained = hatch.drain(ForgeDirection.UNKNOWN, request, true);
-                    int removed = drained != null && drained.isFluidEqual(request) ? drained.amount : 0;
-                    if (removed > 0) {
-                        request.amount = removed;
-                        state.fill(ForgeDirection.UNKNOWN, request, true);
-                    }
-                }
-            }
-        }
     }
 
     private void exportHatchResources() {

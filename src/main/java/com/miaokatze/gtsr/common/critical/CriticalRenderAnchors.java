@@ -13,6 +13,18 @@ public final class CriticalRenderAnchors {
 
     private CriticalRenderAnchors() {}
 
+    public static int getX(CriticalMachineState state) {
+        return state.getOriginX() + 40;
+    }
+
+    public static int getY(CriticalMachineState state) {
+        return state.getOriginY() + 1;
+    }
+
+    public static int getZ(CriticalMachineState state) {
+        return state.getOriginZ() + 32;
+    }
+
     public static void register() {
         if (registered) return;
         GameRegistry.registerBlock(BLOCK, CriticalMaterials.ConstructionOnlyItemBlock.class, "critical_render_anchor");
@@ -35,7 +47,7 @@ public final class CriticalRenderAnchors {
             remove(state);
             return;
         }
-        int x = state.xCoord, y = state.yCoord + 1, z = state.zCoord;
+        int x = getX(state), y = getY(state), z = getZ(state);
         if (!state.worldObj.blockExists(x, y, z)) return;
         TileEntity tile = state.worldObj.getTileEntity(x, y, z);
         if (tile instanceof TileEntityCriticalRenderAnchor anchor && anchor.ownedBy(state)) {
@@ -49,7 +61,7 @@ public final class CriticalRenderAnchors {
 
     public static void remove(CriticalMachineState state) {
         if (state.worldObj == null || state.worldObj.isRemote) return;
-        int x = state.xCoord, y = state.yCoord + 1, z = state.zCoord;
+        int x = getX(state), y = getY(state), z = getZ(state);
         if (state.worldObj.blockExists(x, y, z)
             && state.worldObj.getTileEntity(x, y, z) instanceof TileEntityCriticalRenderAnchor anchor
             && anchor.ownedBy(state)) state.worldObj.setBlockToAir(x, y, z);

@@ -37,9 +37,9 @@ public final class CriticalLoomProxyVisibility {
         if (world == null || !world.isRemote) return;
         CriticalMachineState state = anchor.getVisualState();
         boolean visible = !anchor.isInvalid() && anchor.isLoomVisible()
-            && anchor.xCoord == state.xCoord
-            && anchor.yCoord == state.yCoord + 1
-            && anchor.zCoord == state.zCoord;
+            && anchor.xCoord == CriticalRenderAnchors.getX(state)
+            && anchor.yCoord == CriticalRenderAnchors.getY(state)
+            && anchor.zCoord == CriticalRenderAnchors.getZ(state);
         Registration old = ANCHORS.get(anchor);
         if (old != null && visible
             && old.world.get() == world

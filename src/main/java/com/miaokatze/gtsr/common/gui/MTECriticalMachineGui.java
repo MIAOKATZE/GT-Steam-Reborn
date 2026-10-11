@@ -8,20 +8,21 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.utils.Alignment.MainAxis;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.LongSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
+import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.CriticalTier;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
-import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
-import gregtech.common.modularui2.widget.GTProgressWidget;
 
 /** Ordinary right-click keeps GT controls and adds server-owned loom/journal telemetry. */
 public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECriticalMachine> {
@@ -44,11 +45,24 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
     }
 
     @Override
+    protected Flow createButtonColumn(ModularPanel panel, PanelSyncManager manager) {
+        // The loom has no controller storage slot: all material supply belongs to real hatches/buses.
+        return Flow.column()
+            .width(18)
+            .leftRel(1, -2, 1)
+            .mainAxisAlignment(MainAxis.END)
+            .reverseLayout(true)
+            .child(createPowerSwitchButton())
+            .child(createStructureUpdateButton(manager));
+    }
+
+    @Override
     protected void registerSyncValues(PanelSyncManager manager) {
         super.registerSyncValues(manager);
         manager.syncValue("critical.native.loom", new BooleanSyncValue(state::isLoomStructureValid));
         manager.syncValue("critical.native.status", new IntSyncValue(state::getStatusCode));
         manager.syncValue("critical.native.reason", new IntSyncValue(state::getReasonCode));
+        manager.syncValue("critical.native.detail", new StringSyncValue(state::getStatus));
         manager.syncValue(
             "critical.native.kind",
             new IntSyncValue(
@@ -74,7 +88,7 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager manager, ModularPanel panel) {
         BooleanSyncValue loom = manager.findSyncHandler("critical.native.loom", BooleanSyncValue.class);
         IntSyncValue status = manager.findSyncHandler("critical.native.status", IntSyncValue.class);
-        IntSyncValue reason = manager.findSyncHandler("critical.native.reason", IntSyncValue.class);
+        StringSyncValue detail = manager.findSyncHandler("critical.native.detail", StringSyncValue.class);
         IntSyncValue kind = manager.findSyncHandler("critical.native.kind", IntSyncValue.class);
         IntSyncValue tier = manager.findSyncHandler("critical.native.tier", IntSyncValue.class);
         IntSyncValue stage = manager.findSyncHandler("critical.native.stage", IntSyncValue.class);
@@ -97,7 +111,7 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
                 + " · "
                 + CriticalTier.byId(tier.getValue())
                     .name());
-        line(list, () -> tr("status." + status.getValue()) + " · " + tr("reason." + reason.getValue()));
+        line(list, () -> tr("status." + status.getValue()) + " · " + detail.getValue());
         line(
             list,
             () -> tr("construction") + " " + stage.getValue() + " · " + placed.getValue() + " / " + total.getValue());
@@ -122,10 +136,9 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
 
     private static void progress(ListWidget<IWidget, ?> list, java.util.function.DoubleSupplier value) {
         list.child(
-            new GTProgressWidget().texture(GTGuiTextures.PROGRESSBAR_FUEL_STANDARD, 14)
-                .progress(value)
+            new ParentWidget<>().background(new CriticalProgressBar(value))
                 .fullWidth()
-                .height(12)
+                .height(7)
                 .marginBottom(4));
     }
 
