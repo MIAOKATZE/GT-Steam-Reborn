@@ -75,6 +75,7 @@ public final class CriticalMaterials {
                 GameRegistry.registerBlock(loomProxy, "critical_loom_proxy_" + id);
             }
         }
+        CriticalControllerTextures.register();
     }
 
     public static JsonObject properties(String alias) {

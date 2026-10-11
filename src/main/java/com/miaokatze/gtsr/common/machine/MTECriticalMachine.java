@@ -25,8 +25,8 @@ import com.miaokatze.gtsr.common.machine.base.MTEGTSRExtendedPowerMultiBlockBase
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchDynamo;
-import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.structure.error.StructureError;
@@ -41,12 +41,13 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     private final CriticalMachineState state = new CriticalMachineState();
     private long energySpentThisTick;
     private long energyEmittedThisTick;
-    private final java.util.Map<MTEHatchEnergy, Long> hatchEnergySpent = new java.util.IdentityHashMap<>();
+    private final java.util.Map<MTEHatch, Long> hatchEnergySpent = new java.util.IdentityHashMap<>();
     private final java.util.Map<Long, TileEntity> portSnapshot = new java.util.LinkedHashMap<>();
     private int previousJournalState = -1;
     private boolean previousCanonicalValidation;
     private boolean loomStructureValid;
     private long loomValidationTick = Long.MIN_VALUE, meSnapshotTick = Long.MIN_VALUE;
+    private long hatchDiscoveryTick = Long.MIN_VALUE;
     private ItemStack[] meItemsSnapshot = new ItemStack[0];
     private FluidStack[] meFluidsSnapshot = new FluidStack[0];
     private World previewWorld;
@@ -205,9 +206,15 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     @Override
     protected com.gtnewhorizon.structurelib.alignment.IAlignmentLimits getInitialAlignmentLimits() {
-        return (direction, rotation, flip) -> direction == ForgeDirection.NORTH
+        return (direction, rotation, flip) -> direction.offsetY == 0 && direction != ForgeDirection.UNKNOWN
             && rotation == com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL
             && flip == com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE;
+    }
+
+    /** The fabrication region uses fixed world axes even when the controller front faces another direction. */
+    @Override
+    public com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing getExtendedFacing() {
+        return com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.DEFAULT;
     }
 
     @Override
@@ -252,6 +259,10 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     private void discoverHatches(boolean force) {
         CriticalMachineState current = getCriticalState();
         if (current.getWorldObj() == null) return;
+        long now = current.getWorldObj()
+            .getTotalWorldTime();
+        if (!force && hatchDiscoveryTick != Long.MIN_VALUE && now - hatchDiscoveryTick < 20) return;
+        hatchDiscoveryTick = now;
         java.util.Map<Long, TileEntity> next = new java.util.LinkedHashMap<>();
         for (CriticalGeometry.Voxel port : current.getHatchPorts()) {
             int x = current.getOriginX() + port.x, y = current.getOriginY() + port.y, z = current.getOriginZ() + port.z;
@@ -269,7 +280,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         portSnapshot.putAll(next);
         for (TileEntity tile : next.values())
             if (CriticalMachineState.isStandardHatchHost(tile) && tile instanceof IGregTechTileEntity gt)
-                addToMachineList(gt, CriticalControllerTextures.casingIndex());
+                if (!addMultiAmpEnergyInputToMachineList(gt, CriticalControllerTextures.casingIndex()))
+                    addToMachineList(gt, CriticalControllerTextures.casingIndex());
     }
 
     @Override
@@ -391,7 +403,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     public long availableCriticalEnergy() {
         long total = getBaseMetaTileEntity() == null ? 0 : getBaseMetaTileEntity().getStoredEU();
-        for (MTEHatchEnergy hatch : mEnergyHatches) if (hatch.isValid()) {
+        for (MTEHatch hatch : getExoticAndNormalEnergyHatchList()) if (hatch.isValid()) {
             long stored = hatch.getBaseMetaTileEntity()
                 .getStoredEU();
             total = total > Long.MAX_VALUE - stored ? Long.MAX_VALUE : total + stored;
@@ -447,7 +459,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         return true;
     }
 
-    private long nativeHatchBudget(MTEHatchEnergy hatch) {
+    private long nativeHatchBudget(MTEHatch hatch) {
         long voltage = hatch.maxEUInput(), amperage = hatch.maxWorkingAmperesIn();
         long nativePower = voltage > 0 && amperage > Long.MAX_VALUE / voltage ? Long.MAX_VALUE : voltage * amperage;
         return Math.max(0L, nativePower - hatchEnergySpent.getOrDefault(hatch, 0L));
@@ -455,7 +467,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     private long availableHatchEnergyThisTick() {
         long total = 0;
-        for (MTEHatchEnergy hatch : mEnergyHatches) if (hatch.isValid()) {
+        for (MTEHatch hatch : getExoticAndNormalEnergyHatchList()) if (hatch.isValid()) {
             long legal = Math.min(
                 hatch.getBaseMetaTileEntity()
                     .getStoredEU(),
@@ -467,30 +479,22 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     private boolean drainNativeHatchEnergy(long amount) {
         if (amount < 0 || availableHatchEnergyThisTick() < amount) return false;
-        java.util.ArrayList<MTEHatchEnergy> original = new java.util.ArrayList<>(mEnergyHatches);
         long remaining = amount;
-        try {
-            // Use GT's standard energy helper, scoped to one hatch's remaining native power budget.
-            // The shared helper otherwise drains the first full buffer beyond its rated per-tick amperage.
-            for (MTEHatchEnergy hatch : original) {
-                if (!hatch.isValid()) continue;
-                long portion = Math.min(
-                    remaining,
-                    Math.min(
-                        nativeHatchBudget(hatch),
-                        hatch.getBaseMetaTileEntity()
-                            .getStoredEU()));
-                if (portion <= 0) continue;
-                mEnergyHatches.clear();
-                mEnergyHatches.add(hatch);
-                if (!drainEnergyInput(portion)) return false;
-                hatchEnergySpent.put(hatch, hatchEnergySpent.getOrDefault(hatch, 0L) + portion);
-                remaining -= portion;
-                if (remaining == 0) break;
-            }
-        } finally {
-            mEnergyHatches.clear();
-            mEnergyHatches.addAll(original);
+        // Drain one explicit hatch at a time, so exotic hatches cannot bypass another hatch's native rate budget.
+        for (MTEHatch hatch : getExoticAndNormalEnergyHatchList()) {
+            if (!hatch.isValid()) continue;
+            long portion = Math.min(
+                remaining,
+                Math.min(
+                    nativeHatchBudget(hatch),
+                    hatch.getBaseMetaTileEntity()
+                        .getStoredEU()));
+            if (portion <= 0) continue;
+            if (!gregtech.api.util.ExoticEnergyInputHelper
+                .drainEnergy(portion, java.util.Collections.singletonList(hatch))) return false;
+            hatchEnergySpent.put(hatch, hatchEnergySpent.getOrDefault(hatch, 0L) + portion);
+            remaining -= portion;
+            if (remaining == 0) break;
         }
         return remaining == 0;
     }

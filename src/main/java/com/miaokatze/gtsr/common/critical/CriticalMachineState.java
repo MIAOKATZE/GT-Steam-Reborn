@@ -369,15 +369,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return yCoord;
     }
 
-    // Missing NBT version belongs to the pre-v19 geometry; paid cursors and region ownership stay fixed.
-    private int controllerZ = 33;
-
     public int getControllerZ() {
-        return controllerZ;
+        return CriticalStructures.CONTROLLER_Z;
     }
 
     public int getOriginZ() {
-        return zCoord - controllerZ;
+        return zCoord - CriticalStructures.CONTROLLER_Z;
     }
 
     public boolean canUse(EntityPlayer p) {
@@ -651,7 +648,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     private List<CriticalGeometry.Voxel> allVoxels() {
         if (geometryCache == null) {
-            List<CriticalGeometry.Voxel> result = CriticalStructures.voxels(config.tier, config.kind, controllerZ);
+            List<CriticalGeometry.Voxel> result = CriticalStructures.voxels(config.tier, config.kind);
             geometryCache = Collections.unmodifiableList(result);
             stageCache.clear();
             voxelIndices.clear();
@@ -686,13 +683,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         removalVerified = false;
     }
 
-    /** Eight fixed static foundation positions are the only standard GT hatch ports. */
+    /** All physical alloy frames in the loom and target are shared GT hatch positions. */
     public List<CriticalGeometry.Voxel> getHatchPorts() {
         if (hatchPortsCache == null) {
             java.util.Map<Long, CriticalGeometry.Voxel> ports = new java.util.LinkedHashMap<>();
-            for (CriticalGeometry.Voxel port : CriticalLoomStructure.hatchPorts(controllerZ))
-                ports.put(port.positionKey(), port);
-            for (CriticalGeometry.Voxel port : CriticalStructures.hatchPorts(config.tier, config.kind, controllerZ))
+            for (CriticalGeometry.Voxel port : CriticalLoomStructure.hatchPorts()) ports.put(port.positionKey(), port);
+            for (CriticalGeometry.Voxel port : CriticalStructures.hatchPorts(config.tier, config.kind))
                 ports.put(port.positionKey(), port);
             hatchPortsCache = new ArrayList<>(ports.values());
         }
@@ -700,12 +696,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public boolean isStandardHatch(CriticalGeometry.Voxel v) {
-        boolean port = false;
-        for (CriticalGeometry.Voxel candidate : getHatchPorts()) if (candidate.positionKey() == v.positionKey()) {
-            port = true;
-            break;
-        }
-        if (!port) return false;
+        if (!CriticalStructures.isHatchPosition(v)) return false;
         if (worldObj == null || !worldObj.getChunkProvider()
             .chunkExists(wx(v) >> 4, wz(v) >> 4)) return false;
         TileEntity tile = worldObj.getTileEntity(wx(v), wy(v), wz(v));
@@ -724,14 +715,19 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (mte instanceof gregtech.api.metatileentity.implementations.MTEHatchInput) return true;
         return mte instanceof gregtech.api.metatileentity.implementations.MTEHatchOutputBus
             || mte instanceof gregtech.api.metatileentity.implementations.MTEHatchOutput
-            || mte instanceof gregtech.api.metatileentity.implementations.MTEHatchEnergy
+            || isEnergyInputHatchMeta(mte)
             || mte instanceof gregtech.api.metatileentity.implementations.MTEHatchDynamo;
+    }
+
+    public static boolean isEnergyInputHatchMeta(gregtech.api.interfaces.metatileentity.IMetaTileEntity mte) {
+        return mte instanceof gregtech.api.metatileentity.implementations.MTEHatchEnergy
+            || mte instanceof tectech.thing.metaTileEntity.hatch.MTEHatchEnergyMulti multi && multi.getHatchType() == 1;
     }
 
     private boolean matches(CriticalGeometry.Voxel v) {
         if (isStandardHatch(v)) return true;
-        if (CriticalLoomStructure.isLoomVoxel(v)) return CriticalLoomStructure
-            .matchesVoxel(worldObj, getOriginX(), getOriginY(), getOriginZ(), v, controllerZ);
+        if (CriticalLoomStructure.isLoomVoxel(v))
+            return CriticalLoomStructure.matchesVoxel(worldObj, getOriginX(), getOriginY(), getOriginZ(), v);
         return worldObj.getBlock(wx(v), wy(v), wz(v)) == v.block
             && worldObj.getBlockMetadata(wx(v), wy(v), wz(v)) == v.metadata;
     }
@@ -743,7 +739,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             xCoord >> 4,
             zCoord >> 4);
         chunks.put(((long) controller.chunkXPos << 32) ^ (controller.chunkZPos & 0xffffffffL), controller);
-        for (CriticalGeometry.Voxel voxel : CriticalLoomStructure.voxels(controllerZ)) {
+        for (CriticalGeometry.Voxel voxel : CriticalLoomStructure.voxels()) {
             int x = wx(voxel) >> 4, z = wz(voxel) >> 4;
             chunks.put(((long) x << 32) ^ (z & 0xffffffffL), new net.minecraft.world.ChunkCoordIntPair(x, z));
         }
@@ -2209,7 +2205,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public void writeToNBT(NBTTagCompound n) {
-        n.setInteger("criticalControllerZ", controllerZ);
 
         n.setBoolean("nativeFundingUncertain", nativeFundingUncertain);
         n.setTag("uncertainFundingItems", writeItems(uncertainFundingItems));
@@ -2263,7 +2258,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public void readFromNBT(NBTTagCompound n) {
-        controllerZ = n.hasKey("criticalControllerZ") && n.getInteger("criticalControllerZ") == 33 ? 33 : 32;
         geometryCache = null;
         hatchPortsCache = null;
 
@@ -2337,7 +2331,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     /** Side-neutral visual snapshot for renderer anchors and description packets. */
     public NBTTagCompound getVisualData() {
         NBTTagCompound n = new NBTTagCompound();
-        n.setInteger("criticalControllerZ", controllerZ);
         n.setString("visualHostId", visualHostId);
         n.setTag("config", config.write());
         n.setInteger("state", state);
@@ -2365,7 +2358,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     /** Reads only visual fields; never depends on client-only packet accessors. */
     public void readVisualData(NBTTagCompound n) {
-        controllerZ = n.hasKey("criticalControllerZ") && n.getInteger("criticalControllerZ") == 33 ? 33 : 32;
         if (n.hasKey("visualHostId")) visualHostId = n.getString("visualHostId");
         config = CriticalConfiguration.read(n.getCompoundTag("config"));
         state = n.getInteger("state");

@@ -182,12 +182,6 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                 .reversed());
         for (int pass = 0; pass < 3; pass++) {
             GL11.glDepthMask(pass != 2);
-            // Cube faces have outward CCW winding; positive-scale poses preserve it.
-            // Blended volumes retain both surfaces so their existing transparency is unchanged.
-            GL11.glFrontFace(GL11.GL_CCW);
-            GL11.glCullFace(GL11.GL_BACK);
-            if (pass == 2) GL11.glDisable(GL11.GL_CULL_FACE);
-            else GL11.glEnable(GL11.GL_CULL_FACE);
             if (pass == 2) GL11.glEnable(GL11.GL_BLEND);
             else GL11.glDisable(GL11.GL_BLEND);
             GL11.glAlphaFunc(GL11.GL_GREATER, pass == 1 ? .5F : .01F);

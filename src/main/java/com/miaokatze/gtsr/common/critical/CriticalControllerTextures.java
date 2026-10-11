@@ -2,7 +2,6 @@ package com.miaokatze.gtsr.common.critical;
 
 import net.minecraftforge.common.util.ForgeDirection;
 
-import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
@@ -12,14 +11,26 @@ import gregtech.api.util.GTUtility;
 /** Controller icons use the same graphite shell as the surrounding player-built loom. */
 public final class CriticalControllerTextures {
 
+    // Fixed on both logical sides; dynamically choosing a free slot would break hatch S2C texture IDs.
+    private static final int CASING_INDEX = 124 << 7;
+    private static boolean registered;
+
     private CriticalControllerTextures() {}
 
+    public static void register() {
+        if (registered) return;
+        GTUtility.addTexturePage((byte) (CASING_INDEX >> 7));
+        Textures.BlockIcons
+            .setCasingTextureForId(CASING_INDEX, TextureFactory.of(CriticalMaterials.loomBlock("graphite", false), 0));
+        registered = true;
+    }
+
     public static int casingIndex() {
-        return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
+        return CASING_INDEX;
     }
 
     public static ITexture[] get(CriticalMachineKind kind, ForgeDirection side, ForgeDirection facing, boolean active) {
-        ITexture casing = TextureFactory.of(CriticalMaterials.loomBlock("graphite", false), 0);
+        ITexture casing = Textures.BlockIcons.getCasingTextureForId(casingIndex());
         if (side != facing) return new ITexture[] { casing };
         IIconContainer[] icons = icons(kind);
         return new ITexture[] { casing, TextureFactory.builder()
