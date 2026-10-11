@@ -10,7 +10,7 @@ import com.miaokatze.gtsr.common.network.WandNet;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Target-specific schema; changing selection saves the family profile, right-click applies it. */
+/** Air saves a wand profile; construction targets apply selections immediately; singularity selects an increment. */
 @SideOnly(Side.CLIENT)
 public final class GuiMachineDebugSelector extends GuiScreen {
 
@@ -85,7 +85,10 @@ public final class GuiMachineDebugSelector extends GuiScreen {
                 0xFFFFFF);
         }
         fontRendererObj.drawSplitString(
-            localize("gtsr.wand.debug.hint"),
+            localize(
+                air ? "gtsr.wand.debug.air_hint"
+                    : family.equals("construction") ? "gtsr.wand.debug.construction_immediate"
+                        : "gtsr.wand.debug.hint"),
             left() + 10,
             top() + 42 + options.length * 28,
             WIDTH - 20,

@@ -410,7 +410,17 @@ public final class WandNet {
                 adapter,
                 session.base()
                     .getMetaTileEntity(),
-                message.values)) player.inventoryContainer.detectAndSendChanges();
+                message.values)) {
+                // A validated target construction screen edits that controller's debug settings immediately.
+                // Air profiles and singularity increment selection remain item-only settings.
+                if ("construction".equals(adapter.family())) adapter.apply(
+                    session.base()
+                        .getMetaTileEntity(),
+                    player,
+                    message.values,
+                    false);
+                player.inventoryContainer.detectAndSendChanges();
+            }
         }
     }
 

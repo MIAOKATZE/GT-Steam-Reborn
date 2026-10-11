@@ -3730,3 +3730,5 @@ gtsr.critical.construction.solder_hint=每阶段每板材单位需144mB熔融焊
 gtsr.critical.tooltip.optional_ports=物品/流体输出仓按目标配方选装；织机组装和拆除均无需动力仓。
 gtsr.critical.tooltip.loom_energy=织机组装与拆除均从电力仓消耗EU；动力仓只供发电目标输出。
 gtsr.critical.tooltip.port_hint=任意合金骨架：物品输入/输出总线、流体输入/输出仓、普通或多A能源仓、动力仓；无仓室等级限制
+gtsr.critical.ui.operations=施工与运行控制
+gtsr.wand.debug.construction_immediate=选择后立即应用到当前控制器，并保存到棒；材料需求、施工速度与电力设置立即生效。

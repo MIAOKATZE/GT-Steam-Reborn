@@ -122,7 +122,14 @@ public final class CriticalLoomStructure {
             fluids |= mte instanceof MTEHatchInput;
             energy |= CriticalMachineState.isEnergyInputHatchMeta(hatch.getMetaTileEntity());
         }
-        return items && fluids && energy;
+        CriticalMachineState state = host.getCriticalState();
+        boolean construction = state.getState() == 0 || state.getState() == 1 || state.getState() == 4;
+        int requirements = construction ? state.getConstructionDebugRequirements() : 0;
+        boolean ignoreItems = requirements == 1 || requirements == 3;
+        boolean ignoreFluids = requirements == 2 || requirements == 3;
+        boolean ignoreEnergy = construction && state.getConstructionDebugIgnoreEnergy();
+        // Only resource interfaces may be waived. Every loom voxel above must still match the real structure.
+        return (items || ignoreItems) && (fluids || ignoreFluids) && (energy || ignoreEnergy);
     }
 
     public static void construct(MTECriticalMachine host, ItemStack trigger, boolean hintsOnly) {

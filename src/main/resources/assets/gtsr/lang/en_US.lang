@@ -3734,3 +3734,5 @@ gtsr.critical.construction.solder_hint=Each stage requires 144 mB molten solderi
 gtsr.critical.tooltip.optional_ports=Item/fluid output ports depend on the target recipe; loom assembly and removal need no dynamo.
 gtsr.critical.tooltip.loom_energy=Loom assembly and removal consume EU from energy hatches; dynamos only output power from generating targets.
 gtsr.critical.tooltip.port_hint=Any alloy frame: item/fluid inputs or outputs, normal or multi-amp energy, or dynamo; no hatch tier limit
+gtsr.critical.ui.operations=Construction and operation
+gtsr.wand.debug.construction_immediate=Selections apply to this controller immediately and are saved on the wand; material requirements, construction speed and power settings take effect now.

@@ -937,6 +937,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         debugRequirements = requirements;
         debugSpeed = speed;
         debugIgnoreEnergy = ignoreEnergy;
+        // GT's lifecycle must see the same resource-interface requirements as the journal immediately.
+        forceLoomStructureCheck();
         changed();
         return true;
     }

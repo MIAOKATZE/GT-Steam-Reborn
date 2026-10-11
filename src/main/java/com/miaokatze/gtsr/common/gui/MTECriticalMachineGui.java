@@ -5,17 +5,23 @@ import net.minecraft.util.StatCollector;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
+import com.cleanroommc.modularui.value.sync.LongSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.CriticalTier;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
+import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.modularui2.widget.GTProgressWidget;
 
 /** Ordinary right-click keeps GT controls and adds server-owned loom/journal telemetry. */
 public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECriticalMachine> {
@@ -25,6 +31,16 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
     public MTECriticalMachineGui(MTECriticalMachine machine) {
         super(machine);
         state = machine.getCriticalState();
+    }
+
+    @Override
+    public ModularPanel build(PosGuiData data, PanelSyncManager manager, UISettings settings) {
+        return super.build(data, manager, settings).background(CriticalGuiStyle.CARD);
+    }
+
+    @Override
+    protected ParentWidget<?> createTerminalParentWidget(ModularPanel panel, PanelSyncManager manager) {
+        return super.createTerminalParentWidget(panel, manager).background(CriticalGuiStyle.CARD);
     }
 
     @Override
@@ -48,6 +64,10 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
         manager.syncValue("critical.native.total", new IntSyncValue(state::getJobTotal));
         manager.syncValue("critical.native.round", new IntSyncValue(state::getConstructionRoundIndex));
         manager.syncValue("critical.native.rounds", new IntSyncValue(state::getConstructionRoundTotal));
+        manager.syncValue("critical.native.batch", new IntSyncValue(state::getBatchProgress));
+        manager.syncValue("critical.native.duration", new IntSyncValue(state::getBatchDuration));
+        manager.syncValue("critical.native.energy", new LongSyncValue(state::getEnergyStored));
+        manager.syncValue("critical.native.capacity", new LongSyncValue(state::getEnergyCapacity));
     }
 
     @Override
@@ -62,6 +82,10 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
         IntSyncValue total = manager.findSyncHandler("critical.native.total", IntSyncValue.class);
         IntSyncValue round = manager.findSyncHandler("critical.native.round", IntSyncValue.class);
         IntSyncValue rounds = manager.findSyncHandler("critical.native.rounds", IntSyncValue.class);
+        IntSyncValue batch = manager.findSyncHandler("critical.native.batch", IntSyncValue.class);
+        IntSyncValue duration = manager.findSyncHandler("critical.native.duration", IntSyncValue.class);
+        LongSyncValue energy = manager.findSyncHandler("critical.native.energy", LongSyncValue.class);
+        LongSyncValue capacity = manager.findSyncHandler("critical.native.capacity", LongSyncValue.class);
         ListWidget<IWidget, ?> list = super.createTerminalTextWidget(manager, panel);
         line(
             list,
@@ -77,6 +101,11 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
         line(
             list,
             () -> tr("construction") + " " + stage.getValue() + " · " + placed.getValue() + " / " + total.getValue());
+        progress(list, () -> ratio(placed.getValue(), total.getValue()));
+        line(list, () -> tr("batch") + " " + batch.getValue() + " / " + duration.getValue() + " t");
+        progress(list, () -> ratio(batch.getValue(), duration.getValue()));
+        line(list, () -> "EU " + energy.getValue() + " / " + capacity.getValue());
+        progress(list, () -> ratio(energy.getValue(), capacity.getValue()));
         line(
             list,
             () -> tr("construction.round") + " "
@@ -85,6 +114,19 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
                 + rounds.getValue());
         line(list, () -> EnumChatFormatting.GRAY + tr("management_hint"));
         return list;
+    }
+
+    private static double ratio(long value, long maximum) {
+        return maximum <= 0 ? 0 : Math.max(0, Math.min(1, (double) value / maximum));
+    }
+
+    private static void progress(ListWidget<IWidget, ?> list, java.util.function.DoubleSupplier value) {
+        list.child(
+            new GTProgressWidget().texture(GTGuiTextures.PROGRESSBAR_FUEL_STANDARD, 14)
+                .progress(value)
+                .fullWidth()
+                .height(12)
+                .marginBottom(4));
     }
 
     private static void line(ListWidget<IWidget, ?> list, java.util.function.Supplier<String> text) {
