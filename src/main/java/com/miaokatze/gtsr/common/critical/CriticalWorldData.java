@@ -50,7 +50,8 @@ public final class CriticalWorldData extends WorldSavedData {
             .chunkExists((region.x + 40) >> 4, (region.z + 32) >> 4);
         if (live) {
             net.minecraft.tileentity.TileEntity tile = world.getTileEntity(region.x + 40, region.y, region.z + 32);
-            live = tile instanceof TileEntityCriticalController controller && controller.isEnabled()
+            CriticalMachineState controller = CriticalMachineState.resolve(tile);
+            live = controller != null && controller.isEnabled()
                 && controller.isStructureComplete()
                 && controller.isStructureValidated()
                 && controller.getMachineKind() == CriticalMachineKind.SOLAR
@@ -132,7 +133,8 @@ public final class CriticalWorldData extends WorldSavedData {
             if (live) {
                 net.minecraft.tileentity.TileEntity tile = world
                     .getTileEntity(previous.x + 40, previous.y, previous.z + 32);
-                live = tile instanceof TileEntityCriticalController controller && controller.isEnabled()
+                CriticalMachineState controller = CriticalMachineState.resolve(tile);
+                live = controller != null && controller.isEnabled()
                     && controller.isStructureComplete()
                     && controller.isStructureValidated();
             }
@@ -163,7 +165,8 @@ public final class CriticalWorldData extends WorldSavedData {
             if (!world.getChunkProvider()
                 .chunkExists((r.x + 40) >> 4, (r.z + 32) >> 4)) continue;
             net.minecraft.tileentity.TileEntity tile = world.getTileEntity(r.x + 40, r.y, r.z + 32);
-            if (tile instanceof TileEntityCriticalController controller) controller.invalidateStructure();
+            CriticalMachineState controller = CriticalMachineState.resolve(tile);
+            if (controller != null) controller.invalidateStructure();
         }
     }
 

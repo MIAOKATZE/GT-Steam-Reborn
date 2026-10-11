@@ -28,8 +28,9 @@ import org.lwjgl.opengl.GL11;
 import com.google.gson.JsonObject;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry.Voxel;
+import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.CriticalMaterials;
-import com.miaokatze.gtsr.common.critical.TileEntityCriticalController;
+import com.miaokatze.gtsr.common.critical.TileEntityCriticalRenderAnchor;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.relauncher.Side;
@@ -42,7 +43,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
 
     private final Map<String, List<Mesh>> meshes = new HashMap<>();
     private final DoubleBuffer matrix = BufferUtils.createDoubleBuffer(16);
-    private final Map<TileEntityCriticalController, CriticalGroupVisibility> visibility = new WeakHashMap<>();
+    private final Map<TileEntityCriticalRenderAnchor, CriticalGroupVisibility> visibility = new WeakHashMap<>();
     private final Map<JsonObject, double[]> groupMatrices = new IdentityHashMap<>();
     private Set<String> activeGroups;
     private double posePhase = Double.NaN, poseSeconds = Double.NaN;
@@ -57,7 +58,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
 
     public static void register() {
         CriticalControllerRenderer renderer = new CriticalControllerRenderer();
-        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCriticalController.class, renderer);
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCriticalRenderAnchor.class, renderer);
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(renderer);
     }
@@ -72,17 +73,18 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
 
     @Override
     public void renderTileEntityAt(TileEntity tile, double x, double y, double z, float partialTicks) {
-        if (!(tile instanceof TileEntityCriticalController controller)) return;
+        if (!(tile instanceof TileEntityCriticalRenderAnchor anchor)) return;
+        CriticalMachineState controller = anchor.getVisualState();
         if (controller.getStructureId()
             .isEmpty() || controller.getState() == 0) return;
         boolean complete = controller.isStructureComplete();
-        CriticalGroupVisibility checked = visibility.get(controller);
+        CriticalGroupVisibility checked = visibility.get(anchor);
         if (checked == null || !checked.matches(controller)) {
             checked = new CriticalGroupVisibility(controller);
-            visibility.put(controller, checked);
+            visibility.put(anchor, checked);
         }
         // Vanilla TESR dispatch supplies the controller's full installation AABB for frustum culling.
-        if (controller.getDistanceFrom(
+        if (anchor.getDistanceFrom(
             Minecraft.getMinecraft().thePlayer.posX,
             Minecraft.getMinecraft().thePlayer.posY,
             Minecraft.getMinecraft().thePlayer.posZ) > 512D * 512D) return;
@@ -137,7 +139,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         }
     }
 
-    private void renderPlugins(TileEntityCriticalController controller, double phase, double seconds) {
+    private void renderPlugins(CriticalMachineState controller, double phase, double seconds) {
         String tier = controller.getTier()
             .name()
             .toLowerCase(Locale.ROOT);

@@ -1,0 +1,49 @@
+package com.miaokatze.gtsr.common.critical;
+
+import net.minecraft.block.Block;
+import net.minecraft.tileentity.TileEntity;
+
+import cpw.mods.fml.common.registry.GameRegistry;
+
+/** Canonical (40,1,32) is empty in every base/machine/loom model. Only this one coordinate is reserved. */
+public final class CriticalRenderAnchors {
+
+    public static final Block BLOCK = new BlockCriticalRenderAnchor();
+    private static boolean registered;
+
+    private CriticalRenderAnchors() {}
+
+    public static void register() {
+        if (registered) return;
+        GameRegistry.registerBlock(BLOCK, CriticalMaterials.ConstructionOnlyItemBlock.class, "critical_render_anchor");
+        GameRegistry.registerTileEntity(TileEntityCriticalRenderAnchor.class, "gtsr.critical.render_anchor");
+        registered = true;
+    }
+
+    public static void ensure(CriticalMachineState state) {
+        if (state.worldObj == null || state.worldObj.isRemote) return;
+        if (state.getStructureId()
+            .isEmpty() || state.getState() == 0) {
+            remove(state);
+            return;
+        }
+        int x = state.xCoord, y = state.yCoord + 1, z = state.zCoord;
+        if (!state.worldObj.blockExists(x, y, z)) return;
+        TileEntity tile = state.worldObj.getTileEntity(x, y, z);
+        if (tile instanceof TileEntityCriticalRenderAnchor anchor && anchor.ownedBy(state)) {
+            anchor.syncFrom(state);
+        } else if (state.worldObj.isAirBlock(x, y, z)) {
+            if (state.worldObj.setBlock(x, y, z, BLOCK, 0, 3)
+                && state.worldObj.getTileEntity(x, y, z) instanceof TileEntityCriticalRenderAnchor anchor)
+                anchor.syncFrom(state);
+        }
+    }
+
+    public static void remove(CriticalMachineState state) {
+        if (state.worldObj == null || state.worldObj.isRemote) return;
+        int x = state.xCoord, y = state.yCoord + 1, z = state.zCoord;
+        if (state.worldObj.blockExists(x, y, z)
+            && state.worldObj.getTileEntity(x, y, z) instanceof TileEntityCriticalRenderAnchor anchor
+            && anchor.ownedBy(state)) state.worldObj.setBlockToAir(x, y, z);
+    }
+}

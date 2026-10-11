@@ -3,7 +3,7 @@ from pathlib import Path
 import argparse, hashlib, json, os, shutil, socket, subprocess, time, zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / 'build/critical-machines-v12115/native'
+OUT = ROOT / 'build/critical-machines-v12116/native'
 BASE = ROOT / 'build/coke-rebuild-v12114/native/natural-final/fixture'
 LEASE = Path('E:/CodeGT/.gtsr-native-server.lease')
 
@@ -13,7 +13,7 @@ def java_processes():
     data = json.loads(r.stdout) if r.stdout.strip() else []
     return data if isinstance(data, list) else [data]
 
-def prepare(jar, phase):
+def prepare(jar, phase, hatch_guards=False):
     target = OUT / phase
     target.mkdir(parents=True, exist_ok=False)
     fixture = target / 'fixture'
@@ -34,18 +34,22 @@ def prepare(jar, phase):
     shutil.copy2(jar, fixture / 'mods/production-gtsr.jar')
     java = Path.home() / '.gradle/jdks/azul_systems__inc_-21-amd64-windows.2/bin/java.exe'
     command = [str(java), '-Xms512M', '-Xmx3G', '-Djava.awt.headless=true', '-Dcritical.receipt=' + str(target / 'checks.json'), '@java9args.txt', '-jar', 'lwjgl3ify-forgePatches.jar', 'nogui']
+    if hatch_guards: command.insert(4, '-Dcritical.hatchGuards=true')
     spec = dict(command=command, cwd=str(fixture), jar=str(jar.resolve()), sha256=hashlib.sha256(jar.read_bytes()).hexdigest(), port=port, seed='1211501', baseline=str(BASE))
     (target / 'launch.json').write_text(json.dumps(spec, indent=2))
     print(target)
 
-def compile_probe(phase):
+def compile_probe(phase, probe='legacy'):
     target = OUT / phase; fixture = target / 'fixture'; classes = target / 'classes'
+    if (target / 'receipt.json').exists():
+        raise ValueError('Completed phase is immutable; compile into a new phase')
     classes.mkdir(exist_ok=True)
     gson = next((Path.home() / '.gradle/caches/modules-2/files-2.1').glob('com.google.code.gson/gson/2.2.4/*/*.jar'))
     javac = Path.home() / '.gradle/jdks/azul_systems__inc_-17-amd64-windows.2/bin/javac.exe'
     cp = [ROOT / 'build/classes/java/patchedMc', fixture / 'forge-1.7.10-10.13.4.1614-1.7.10-universal.jar', fixture / 'minecraft_server.1.7.10.jar', gson, fixture / 'mods/*']
-    source = target / 'CriticalNativeProbe.java'
-    shutil.copy2(Path(__file__).with_name('CriticalNativeProbe.java'), source)
+    source_name='CriticalGTIntegrationProbe.java' if probe=='gt' else 'CriticalNativeProbe.java'
+    source = target / source_name
+    shutil.copy2(Path(__file__).with_name(source_name), source)
     proc = subprocess.run([str(javac), '-encoding', 'UTF-8', '-proc:none', '-source', '8', '-target', '8', '-cp', ';'.join(map(str, cp)), '-d', str(classes), str(source)], capture_output=True, text=True)
     (target / 'compile.log').write_text(proc.stdout + proc.stderr)
     if proc.returncode: raise RuntimeError(proc.stderr)
@@ -57,13 +61,38 @@ def compile_probe(phase):
     spec['probe_jar_sha256'] = hashlib.sha256((fixture / 'mods/critical-native-helper.jar').read_bytes()).hexdigest()
     (target / 'launch.json').write_text(json.dumps(spec, indent=2), encoding='utf-8')
 
+def fork_restart(source_phase, phase):
+    source = (OUT / source_phase).resolve(); target = (OUT / phase).resolve()
+    if source.parent != OUT.resolve() or target.parent != OUT.resolve():
+        raise ValueError('Restart phases must be direct private native fixture children')
+    if LEASE.exists(): raise RuntimeError('Runtime lease occupied; restart fork waits for owner')
+    receipt = json.loads((source / 'checks.json').read_text(encoding='utf-8'))
+    if not receipt.get('restartExpected'): raise ValueError('Source has no genuine persisted job snapshot')
+    shutil.copytree(source / 'fixture', target / 'fixture')
+    spec = json.loads((source / 'launch.json').read_text(encoding='utf-8'))
+    spec['cwd'] = str(target / 'fixture')
+    spec['command'] = [arg for arg in spec['command'] if not arg.startswith('-Dcritical.receipt=')]
+    spec['command'][4:4] = ['-Dcritical.receipt=' + str(target / 'checks.json'), '-Dcritical.restart=true', '-Dcritical.restart.expected=' + str(source / 'checks.json')]
+    spec['restart_source'] = str(source)
+    (target / 'launch.json').write_text(json.dumps(spec, indent=2), encoding='utf-8')
+    print(target)
+
 def run(phase):
     target = OUT / phase; spec = json.loads((target / 'launch.json').read_text())
+    if (target / 'receipt.json').exists():
+        raise ValueError('Completed phase is immutable; run a new phase')
+    production = Path(spec['cwd']) / 'mods/production-gtsr.jar'
+    if hashlib.sha256(production.read_bytes()).hexdigest() != spec['sha256']:
+        raise ValueError('Fixture production jar differs from candidate binding')
+    helper = Path(spec['cwd']) / 'mods/critical-native-helper.jar'
+    if hashlib.sha256(helper.read_bytes()).hexdigest() != spec.get('probe_jar_sha256'):
+        raise ValueError('Fixture helper jar differs from compiled binding')
     if phase.startswith('final'):
         spec['command'].insert(4, '-Dcritical.final=true')
     processes = java_processes()
-    occupied = [p for p in processes if any(s in (p.get('CommandLine') or '').lower() for s in ['lwjgl3ify-forgepatches', 'minecraft_server', 'launchwrapper.launch', 'net.minecraft.server'])]
-    (target / 'preflight.json').write_text(json.dumps(dict(time=time.time(), processes=processes, occupied=occupied), indent=2))
+    reasons=['lwjgl3ify', 'minecraft_server', 'launchwrapper.launch', 'net.minecraft.server','retrofuturabootstrap','gradlestart']
+    occupied = [dict(pid=p['ProcessId'],matchedReasons=[s for s in reasons if s in (p.get('CommandLine') or '').lower()]) for p in processes if any(s in (p.get('CommandLine') or '').lower() for s in reasons)]
+    (target / 'preflight.json').write_text(json.dumps(dict(time=time.time(), javaPIDs=[p['ProcessId'] for p in processes], occupied=occupied), indent=2))
     if occupied: raise RuntimeError('Native server already occupied: ' + str(occupied))
     fd = os.open(LEASE, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     os.write(fd, json.dumps(dict(pid=os.getpid(), fixture=spec['cwd'], created=time.time())).encode()); os.close(fd)
@@ -83,10 +112,13 @@ def run(phase):
         if proc is None or proc.poll() is not None: LEASE.unlink()
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(); parser.add_argument('action', choices=['prepare', 'compile', 'run']); parser.add_argument('phase'); parser.add_argument('--jar', type=Path)
+    parser = argparse.ArgumentParser(); parser.add_argument('action', choices=['prepare', 'compile', 'run','restart']); parser.add_argument('phase'); parser.add_argument('--jar', type=Path);parser.add_argument('--probe',choices=['legacy','gt'],default='legacy');parser.add_argument('--from-phase');parser.add_argument('--hatch-guards',action='store_true')
     args = parser.parse_args()
     if args.action == 'prepare':
         if not args.jar: parser.error('--jar is required for prepare')
-        prepare(args.jar, args.phase)
-    elif args.action == 'compile': compile_probe(args.phase)
+        prepare(args.jar, args.phase,args.hatch_guards)
+    elif args.action == 'restart':
+        if not args.from_phase: parser.error('--from-phase is required for restart')
+        fork_restart(args.from_phase,args.phase)
+    elif args.action == 'compile': compile_probe(args.phase,args.probe)
     else: run(args.phase)

@@ -15,7 +15,7 @@ public final class CriticalProjection {
 
     private CriticalProjection() {}
 
-    public static void construct(TileEntityCriticalController controller, ItemStack trigger, boolean hintsOnly) {
+    public static void construct(CriticalMachineState controller, ItemStack trigger, boolean hintsOnly) {
         World world = controller.getWorldObj();
         if (!hintsOnly || world == null || !world.isRemote) return;
         List<CriticalGeometry.Voxel> voxels = CriticalGeometry.getModel(controller.getKind().key).voxels;
@@ -29,7 +29,7 @@ public final class CriticalProjection {
                 controller.getOriginX() + voxel.x,
                 controller.getOriginY() + voxel.y,
                 controller.getOriginZ() + voxel.z,
-                voxel.block,
+                CriticalMaterials.block(voxel.material, false),
                 voxel.metadata);
         }
     }

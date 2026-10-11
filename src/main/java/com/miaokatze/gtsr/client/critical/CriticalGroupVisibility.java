@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
-import com.miaokatze.gtsr.common.critical.TileEntityCriticalController;
+import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 
 /** Client-only bounded identity checks. A group is never drawn before its entire proxy set is present. */
 final class CriticalGroupVisibility {
@@ -21,7 +21,7 @@ final class CriticalGroupVisibility {
     private long nextCheck = Long.MIN_VALUE;
     private boolean lastValidated;
 
-    CriticalGroupVisibility(TileEntityCriticalController controller) {
+    CriticalGroupVisibility(CriticalMachineState controller) {
         identity = identity(controller);
         lastValidated = controller.isStructureValidated();
         add("loom");
@@ -31,11 +31,11 @@ final class CriticalGroupVisibility {
                 .toLowerCase(Locale.ROOT));
     }
 
-    static String identity(TileEntityCriticalController controller) {
+    static String identity(CriticalMachineState controller) {
         return controller.getStructureId() + ":" + controller.getTier() + ":" + controller.getMachineKind();
     }
 
-    boolean matches(TileEntityCriticalController controller) {
+    boolean matches(CriticalMachineState controller) {
         return identity.equals(identity(controller));
     }
 
@@ -51,7 +51,7 @@ final class CriticalGroupVisibility {
         }
     }
 
-    Set<String> update(TileEntityCriticalController controller) {
+    Set<String> update(CriticalMachineState controller) {
         long now = controller.getWorldObj()
             .getTotalWorldTime();
         if (now < nextCheck) return visible;

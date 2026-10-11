@@ -7,8 +7,6 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
-import com.miaokatze.gtsr.common.terminal.AggregatorGuiHandler;
-
 /** Permanent terminal: a funded structure cannot be mined to erase its ownership or journal. */
 public final class BlockCriticalController extends BlockContainer {
 
@@ -34,17 +32,6 @@ public final class BlockCriticalController extends BlockContainer {
     @Override
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX,
         float hitY, float hitZ) {
-        net.minecraft.item.ItemStack held = player.getCurrentEquippedItem();
-        if (held != null && held.getItem() instanceof com.gtnewhorizon.structurelib.item.ItemConstructableTrigger) {
-            com.gtnewhorizon.structurelib.alignment.constructable.ConstructableUtility
-                .handle(held, player, world, x, y, z, side);
-            return true;
-        }
-        if (!world.isRemote && world.getTileEntity(x, y, z) instanceof TileEntityCriticalController controller
-            && controller.canUse(player)) {
-            Object mod = AggregatorGuiHandler.modInstance();
-            if (mod != null) player.openGui(mod, 1, world, x, y, z);
-        }
         return true;
     }
 

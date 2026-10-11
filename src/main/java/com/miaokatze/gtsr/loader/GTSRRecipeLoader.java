@@ -5,6 +5,7 @@ import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.log;
 import com.miaokatze.gtsr.common.dimension.prosperity.industrial.ProsperityIndustrialRecipes;
 import com.miaokatze.gtsr.loader.recipes.AbyssalObsessionRecipes;
 import com.miaokatze.gtsr.loader.recipes.ClusterRecipes;
+import com.miaokatze.gtsr.loader.recipes.CriticalMachineRecipes;
 import com.miaokatze.gtsr.loader.recipes.DisplayRecipes;
 import com.miaokatze.gtsr.loader.recipes.HatchRecipes;
 import com.miaokatze.gtsr.loader.recipes.MiscRecipes;
@@ -75,6 +76,7 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("ProsperityIndustrial", ProsperityIndustrialRecipes::registerAll);
         safeRegister("AbyssalObsession", AbyssalObsessionRecipes::register);
         safeRegister("SpacetimeEngineering", SpacetimeMachineRecipes::register);
+        safeRegister("CriticalMachines", CriticalMachineRecipes::register);
         com.miaokatze.gtsr.loader.recipes.PortableWeaponRecipes.register();
     }
 }
