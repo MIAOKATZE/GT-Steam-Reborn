@@ -30,14 +30,26 @@ import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 public final class CriticalLoomStructure {
 
     public static final String PIECE = "critical_loom";
-    private static IStructureDefinition<MTECriticalMachine> definition;
-    private static final int[][] PORTS = { { 40, 33 }, { 39, 33 }, { 41, 33 }, { 40, 34 }, { 39, 34 }, { 41, 34 },
-        { 38, 34 }, { 42, 34 } };
+    private static final Map<Integer, IStructureDefinition<MTECriticalMachine>> DEFINITIONS = new HashMap<>();
+    private static final int[][] LEGACY_PORTS = { { 40, 33 }, { 39, 33 }, { 41, 33 }, { 40, 34 }, { 39, 34 },
+        { 41, 34 }, { 38, 34 }, { 42, 34 } };
 
     private CriticalLoomStructure() {}
 
     public static List<CriticalGeometry.Voxel> voxels() {
-        return CriticalGeometry.getLoom();
+        return voxels(33);
+    }
+
+    public static List<CriticalGeometry.Voxel> voxels(int controllerZ) {
+        List<CriticalGeometry.Voxel> result = new ArrayList<>(CriticalGeometry.getLoom());
+        result.removeIf(v -> v.x == 40 && v.y == 0 && v.z == controllerZ);
+        return Collections.unmodifiableList(result);
+    }
+
+    private static int[][] ports(int controllerZ) {
+        if (controllerZ == 32) return LEGACY_PORTS;
+        return new int[][] { { 40, 35 }, { 39, 33 }, { 41, 33 }, { 40, 34 }, { 39, 34 }, { 41, 34 }, { 38, 34 },
+            { 42, 34 } };
     }
 
     public static boolean isLoomVoxel(CriticalGeometry.Voxel voxel) {
@@ -45,27 +57,38 @@ public final class CriticalLoomStructure {
     }
 
     public static List<CriticalGeometry.Voxel> hatchPorts() {
+        return hatchPorts(33);
+    }
+
+    public static List<CriticalGeometry.Voxel> hatchPorts(int controllerZ) {
         List<CriticalGeometry.Voxel> result = new ArrayList<>();
-        for (int[] port : PORTS) for (CriticalGeometry.Voxel voxel : voxels())
+        for (int[] port : ports(controllerZ)) for (CriticalGeometry.Voxel voxel : voxels(controllerZ))
             if (voxel.x == port[0] && voxel.y == 0 && voxel.z == port[1]) {
                 result.add(voxel);
                 break;
             }
-        if (result.size() != PORTS.length) throw new IllegalStateException("Missing canonical loom hatch port");
+        if (result.size() != ports(controllerZ).length)
+            throw new IllegalStateException("Missing canonical loom hatch port");
         return Collections.unmodifiableList(result);
     }
 
-    private static boolean isPort(CriticalGeometry.Voxel voxel) {
-        for (int[] port : PORTS) if (voxel.x == port[0] && voxel.y == 0 && voxel.z == port[1]) return true;
+    private static boolean isPort(CriticalGeometry.Voxel voxel, int controllerZ) {
+        for (int[] port : ports(controllerZ)) if (voxel.x == port[0] && voxel.y == 0 && voxel.z == port[1]) return true;
         return false;
     }
 
     public static boolean matchesVoxel(World world, int originX, int originY, int originZ,
         CriticalGeometry.Voxel voxel) {
+        return matchesVoxel(world, originX, originY, originZ, voxel, 33);
+    }
+
+    public static boolean matchesVoxel(World world, int originX, int originY, int originZ, CriticalGeometry.Voxel voxel,
+        int controllerZ) {
         int x = originX + voxel.x, y = originY + voxel.y, z = originZ + voxel.z;
         if (!world.getChunkProvider()
             .chunkExists(x >> 4, z >> 4)) return false;
-        if (isPort(voxel) && CriticalMachineState.isStandardHatchHost(world.getTileEntity(x, y, z))) return true;
+        if (isPort(voxel, controllerZ) && CriticalMachineState.isStandardHatchHost(world.getTileEntity(x, y, z)))
+            return true;
         return CriticalMaterials.matchesLoomVoxel(world.getBlock(x, y, z), world.getBlockMetadata(x, y, z), voxel);
     }
 
@@ -74,14 +97,18 @@ public final class CriticalLoomStructure {
     }
 
     public static synchronized IStructureDefinition<MTECriticalMachine> definition() {
-        if (definition != null) return definition;
+        return definition(33);
+    }
+
+    public static synchronized IStructureDefinition<MTECriticalMachine> definition(int controllerZ) {
+        if (DEFINITIONS.containsKey(controllerZ)) return DEFINITIONS.get(controllerZ);
         StructureDefinition.Builder<MTECriticalMachine> builder = StructureDefinition.builder();
         Map<String, Character> characters = new HashMap<>();
         // NORTH axes are WEST, DOWN, SOUTH. Include the controller immediately before the cylinder.
         char[][][] grid = new char[16][36][15];
         for (char[][] slice : grid) for (char[] row : slice) java.util.Arrays.fill(row, ' ');
-        for (CriticalGeometry.Voxel voxel : voxels()) {
-            boolean port = isPort(voxel);
+        for (CriticalGeometry.Voxel voxel : voxels(controllerZ)) {
+            boolean port = isPort(voxel, controllerZ);
             String key = voxel.material + ':' + ((CriticalMaterials.MaterialBlock) voxel.block).proxy + ':' + port;
             Character symbol = characters.get(key);
             if (symbol == null) {
@@ -94,21 +121,29 @@ public final class CriticalLoomStructure {
             }
             grid[voxel.z - 32][35 - voxel.y][47 - voxel.x] = symbol;
         }
-        grid[0][35][7] = '~';
+        grid[controllerZ - 32][35][7] = '~';
         String[][] shape = new String[16][36];
         for (int z = 0; z < 16; z++) for (int y = 0; y < 36; y++) shape[z][y] = new String(grid[z][y]);
-        return definition = builder.addShape(PIECE, shape)
+        IStructureDefinition<MTECriticalMachine> result = builder.addShape(PIECE, shape)
             .build();
+        DEFINITIONS.put(controllerZ, result);
+        return result;
     }
 
     public static boolean validate(MTECriticalMachine host) {
         IGregTechTileEntity tile = host.getBaseMetaTileEntity();
         if (tile == null) return false;
         World world = tile.getWorld();
-        for (CriticalGeometry.Voxel voxel : voxels())
-            if (!matchesVoxel(world, tile.getXCoord() - 40, tile.getYCoord(), tile.getZCoord() - 32, voxel))
-                return false;
-        if (!definition().check(
+        int controllerZ = host.getCriticalState()
+            .getControllerZ();
+        for (CriticalGeometry.Voxel voxel : voxels(controllerZ)) if (!matchesVoxel(
+            world,
+            tile.getXCoord() - 40,
+            tile.getYCoord(),
+            tile.getZCoord() - controllerZ,
+            voxel,
+            controllerZ)) return false;
+        if (!definition(controllerZ).check(
             host,
             PIECE,
             world,
@@ -118,14 +153,14 @@ public final class CriticalLoomStructure {
             tile.getZCoord(),
             7,
             35,
-            0,
+            controllerZ - 32,
             false)) return false;
         boolean items = false, fluids = false, energy = false;
-        for (CriticalGeometry.Voxel port : hatchPorts()) {
+        for (CriticalGeometry.Voxel port : hatchPorts(controllerZ)) {
             if (!(world.getTileEntity(
                 tile.getXCoord() - 40 + port.x,
                 tile.getYCoord() + port.y,
-                tile.getZCoord() - 32 + port.z) instanceof IGregTechTileEntity hatch)) continue;
+                tile.getZCoord() - controllerZ + port.z) instanceof IGregTechTileEntity hatch)) continue;
             Object mte = hatch.getMetaTileEntity();
             items |= mte instanceof MTEHatchInputBus;
             fluids |= mte instanceof MTEHatchInput;
@@ -137,7 +172,9 @@ public final class CriticalLoomStructure {
     public static void construct(MTECriticalMachine host, ItemStack trigger, boolean hintsOnly) {
         IGregTechTileEntity tile = host.getBaseMetaTileEntity();
         if (tile == null) return;
-        definition().buildOrHints(
+        int controllerZ = host.getCriticalState()
+            .getControllerZ();
+        definition(controllerZ).buildOrHints(
             host,
             trigger,
             PIECE,
@@ -148,7 +185,7 @@ public final class CriticalLoomStructure {
             tile.getZCoord(),
             7,
             35,
-            0,
+            controllerZ - 32,
             hintsOnly);
     }
 
@@ -156,7 +193,9 @@ public final class CriticalLoomStructure {
         ISurvivalBuildEnvironment env) {
         IGregTechTileEntity tile = host.getBaseMetaTileEntity();
         if (tile == null) return -1;
-        return definition().survivalBuild(
+        int controllerZ = host.getCriticalState()
+            .getControllerZ();
+        return definition(controllerZ).survivalBuild(
             host,
             trigger,
             PIECE,
@@ -167,7 +206,7 @@ public final class CriticalLoomStructure {
             tile.getZCoord(),
             7,
             35,
-            0,
+            controllerZ - 32,
             budget,
             env,
             false);

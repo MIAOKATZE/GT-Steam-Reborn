@@ -9,7 +9,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 
-/** Standard GT casing remains visible through transparent controller icon overlays. */
+/** Controller icons use the same graphite shell as the surrounding player-built loom. */
 public final class CriticalControllerTextures {
 
     private CriticalControllerTextures() {}
@@ -19,7 +19,7 @@ public final class CriticalControllerTextures {
     }
 
     public static ITexture[] get(CriticalMachineKind kind, ForgeDirection side, ForgeDirection facing, boolean active) {
-        ITexture casing = Textures.BlockIcons.getCasingTextureForId(casingIndex());
+        ITexture casing = TextureFactory.of(CriticalMaterials.loomBlock("graphite", false), 0);
         if (side != facing) return new ITexture[] { casing };
         IIconContainer[] icons = icons(kind);
         return new ITexture[] { casing, TextureFactory.builder()

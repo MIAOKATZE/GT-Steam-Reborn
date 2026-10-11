@@ -6,7 +6,6 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,33 +39,46 @@ import gregtech.common.blocks.ItemMachines;
 /** Canonical StructureLib geometry, shared by GT structure viewers and construction hints. */
 public final class CriticalStructures {
 
-    private static final Map<CriticalMachineKind, IStructureDefinition<MTECriticalMachine>> DEFINITIONS = new EnumMap<>(
-        CriticalMachineKind.class);
+    private static final Map<String, IStructureDefinition<MTECriticalMachine>> DEFINITIONS = new HashMap<>();
     // NORTH's StructureLib axes are WEST, DOWN, SOUTH. Shape X and Y are reversed accordingly.
     private static final int MAX_X = 76, MAX_Z = 76;
 
     private CriticalStructures() {}
 
     public static synchronized IStructureDefinition<MTECriticalMachine> definition(MTECriticalMachine machine) {
-        return machine.isKindSelector() ? CriticalLoomStructure.definition() : fullDefinition(machine);
+        return machine.isKindSelector() ? CriticalLoomStructure.definition(
+            machine.getCriticalState()
+                .getControllerZ())
+            : fullDefinition(machine);
     }
 
     public static synchronized IStructureDefinition<MTECriticalMachine> fullDefinition(MTECriticalMachine machine) {
         CriticalMachineKind kind = machine.getCriticalState()
             .getKind();
-        return DEFINITIONS.computeIfAbsent(kind, CriticalStructures::create);
+        int controllerZ = machine.getCriticalState()
+            .getControllerZ();
+        return DEFINITIONS.computeIfAbsent(kind.name() + controllerZ, key -> create(kind, controllerZ));
     }
 
     public static List<CriticalGeometry.Voxel> voxels(CriticalTier tier, CriticalMachineKind kind) {
+        return voxels(tier, kind, 33);
+    }
+
+    public static List<CriticalGeometry.Voxel> voxels(CriticalTier tier, CriticalMachineKind kind, int controllerZ) {
         Map<Long, CriticalGeometry.Voxel> positions = new LinkedHashMap<>();
         for (CriticalGeometry.Voxel voxel : CriticalGeometry.getLoom()) positions.put(voxel.positionKey(), voxel);
         for (CriticalGeometry.Voxel voxel : CriticalGeometry.get(tier, kind)) positions.put(voxel.positionKey(), voxel);
-        positions.remove(CriticalGeometry.Voxel.positionKey(40, 0, 32));
+        positions.remove(CriticalGeometry.Voxel.positionKey(40, 0, controllerZ));
         return new ArrayList<>(positions.values());
     }
 
     public static List<CriticalGeometry.Voxel> hatchPorts(CriticalTier tier, CriticalMachineKind kind) {
-        List<CriticalGeometry.Voxel> ports = voxels(tier, kind);
+        return hatchPorts(tier, kind, 33);
+    }
+
+    public static List<CriticalGeometry.Voxel> hatchPorts(CriticalTier tier, CriticalMachineKind kind,
+        int controllerZ) {
+        List<CriticalGeometry.Voxel> ports = voxels(tier, kind, controllerZ);
         ports.removeIf(
             v -> v.stage >= 4 || v.y != 0
                 || !(v.block instanceof CriticalMaterials.MaterialBlock material)
@@ -74,24 +86,25 @@ public final class CriticalStructures {
                 || material.transparent
                 || material.animated
                 || CriticalGeometry.getModel(v.model).animations.has(v.group));
-        ports.sort(Comparator.comparingInt(v -> Math.abs(v.x - 40) + Math.abs(v.z - 32)));
+        ports.sort(Comparator.comparingInt(v -> Math.abs(v.x - 40) + Math.abs(v.z - controllerZ)));
         Map<Long, CriticalGeometry.Voxel> combined = new LinkedHashMap<>();
-        for (CriticalGeometry.Voxel port : CriticalLoomStructure.hatchPorts()) combined.put(port.positionKey(), port);
+        for (CriticalGeometry.Voxel port : CriticalLoomStructure.hatchPorts(controllerZ))
+            combined.put(port.positionKey(), port);
         for (CriticalGeometry.Voxel port : ports.subList(0, Math.min(8, ports.size())))
             combined.put(port.positionKey(), port);
         return Collections.unmodifiableList(new ArrayList<>(combined.values()));
     }
 
-    private static IStructureDefinition<MTECriticalMachine> create(CriticalMachineKind kind) {
+    private static IStructureDefinition<MTECriticalMachine> create(CriticalMachineKind kind, int controllerZ) {
         StructureDefinition.Builder<MTECriticalMachine> builder = StructureDefinition.builder();
         Map<String, Character> characters = new HashMap<>();
         for (CriticalTier tier : CriticalTier.values()) {
-            List<CriticalGeometry.Voxel> voxels = voxels(tier, kind);
+            List<CriticalGeometry.Voxel> voxels = voxels(tier, kind, controllerZ);
             int top = top(voxels);
             char[][][] grid = new char[MAX_Z + 1][top + 1][MAX_X + 1];
             for (char[][] slice : grid) for (char[] row : slice) java.util.Arrays.fill(row, ' ');
             java.util.Set<Long> ports = new java.util.HashSet<>();
-            for (CriticalGeometry.Voxel port : hatchPorts(tier, kind)) ports.add(port.positionKey());
+            for (CriticalGeometry.Voxel port : hatchPorts(tier, kind, controllerZ)) ports.add(port.positionKey());
             for (CriticalGeometry.Voxel voxel : voxels) {
                 boolean hatch = ports.contains(voxel.positionKey());
                 boolean loom = CriticalLoomStructure.isLoomVoxel(voxel);
@@ -116,7 +129,7 @@ public final class CriticalStructures {
                 }
                 grid[voxel.z][top - voxel.y][MAX_X - voxel.x] = character;
             }
-            grid[32][top][MAX_X - 40] = '~';
+            grid[controllerZ][top][MAX_X - 40] = '~';
             String[][] shape = new String[grid.length][top + 1];
             for (int z = 0; z < grid.length; z++) for (int y = 0; y <= top; y++) shape[z][y] = new String(grid[z][y]);
             builder.addShape(piece(tier), shape);
@@ -161,7 +174,9 @@ public final class CriticalStructures {
             .getKind();
         CriticalTier tier = CriticalTier
             .byId(trigger == null ? 0 : trigger.stackSize - (machine.isKindSelector() ? 2 : 1));
-        int top = top(voxels(tier, kind));
+        int controllerZ = machine.getCriticalState()
+            .getControllerZ();
+        int top = top(voxels(tier, kind, controllerZ));
         fullDefinition(machine).buildOrHints(
             machine,
             trigger,
@@ -173,25 +188,33 @@ public final class CriticalStructures {
             tile.getZCoord(),
             MAX_X - 40,
             top,
-            32,
+            controllerZ,
             hintsOnly);
         if (!hintsOnly) previewPlugins(
             machine.getCriticalState()
                 .getConfiguration(),
             tier,
             tile,
-            world);
+            world,
+            controllerZ);
     }
 
     /** Only the permanent loom may be built from the player's inventory; target bodies remain funded. */
     public static int survivalConstruct(MTECriticalMachine machine, ItemStack trigger, int budget,
         ISurvivalBuildEnvironment env) {
+        IGregTechTileEntity tile = machine.getBaseMetaTileEntity();
+        if (tile != null && isPreviewWorld(tile.getWorld())) {
+            // BlockRenderer takes only the survival callback for ISurvivalConstructable controllers.
+            // Its isolated world gets the selected full preview; live survival remains loom-only.
+            machine.constructPreview(trigger);
+            return -1;
+        }
         return CriticalLoomStructure.survivalConstruct(machine, trigger, budget, env);
     }
 
     /** Installed plugins are virtual meshes in the live machine, never required physical structure blocks. */
     private static void previewPlugins(CriticalConfiguration configuration, CriticalTier tier, IGregTechTileEntity tile,
-        World world) {
+        World world, int configurationControllerZ) {
         String tierKey = tier.name()
             .toLowerCase(java.util.Locale.ROOT);
         com.google.gson.JsonArray slots = CriticalGeometry.getModel("base_" + tierKey).meta
@@ -213,7 +236,7 @@ public final class CriticalStructures {
                                 .getAsInt()
                             + voxel.x,
                         tile.getYCoord() + offsetY + voxel.y,
-                        tile.getZCoord() - 32
+                        tile.getZCoord() - configurationControllerZ
                             + position.get(1)
                                 .getAsInt()
                             + voxel.z,

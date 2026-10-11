@@ -49,6 +49,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     private long loomValidationTick = Long.MIN_VALUE, meSnapshotTick = Long.MIN_VALUE;
     private ItemStack[] meItemsSnapshot = new ItemStack[0];
     private FluidStack[] meFluidsSnapshot = new FluidStack[0];
+    private World previewWorld;
+    private NBTTagCompound previewSelection;
 
     public MTECriticalMachine(int id, String name, String localizedName, CriticalMachineKind kind) {
         super(id, name, localizedName);
@@ -216,6 +218,22 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     @Override
     public void construct(ItemStack stack, boolean hintsOnly) {
         CriticalStructures.construct(this, stack, hintsOnly);
+    }
+
+    /** BlockRenderer repeats survival callbacks until its DummyWorld receives no writes. */
+    public void constructPreview(ItemStack trigger) {
+        IGregTechTileEntity tile = getBaseMetaTileEntity();
+        if (tile == null || !CriticalStructures.isPreviewWorld(tile.getWorld())) return;
+        CriticalMachineState current = getCriticalState();
+        NBTTagCompound selection = current.getConfiguration()
+            .write();
+        selection.setInteger("previewTriggerCount", trigger == null ? 0 : trigger.stackSize);
+        selection.setInteger("previewControllerZ", current.getControllerZ());
+        World world = tile.getWorld();
+        if (world == previewWorld && selection.equals(previewSelection)) return;
+        CriticalStructures.construct(this, trigger, false);
+        previewWorld = world;
+        previewSelection = selection;
     }
 
     @Override

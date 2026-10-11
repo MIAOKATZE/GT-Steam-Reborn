@@ -49,6 +49,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     private double posePhase = Double.NaN, poseSeconds = Double.NaN;
     private String poseMode = "";
     private double cameraX, cameraY, cameraZ;
+    private static final double[] IDENTITY = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
     private static final int[][] NEIGHBOR = { { 0, -1, 0 }, { 0, 1, 0 }, { 0, 0, -1 }, { 0, 0, 1 }, { -1, 0, 0 },
         { 1, 0, 0 } };
     private static final double[][][] CORNERS = { { { 0, 0, 1 }, { 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 1 } },
@@ -181,6 +182,12 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                 .reversed());
         for (int pass = 0; pass < 3; pass++) {
             GL11.glDepthMask(pass != 2);
+            // Cube faces have outward CCW winding; positive-scale poses preserve it.
+            // Blended volumes retain both surfaces so their existing transparency is unchanged.
+            GL11.glFrontFace(GL11.GL_CCW);
+            GL11.glCullFace(GL11.GL_BACK);
+            if (pass == 2) GL11.glDisable(GL11.GL_CULL_FACE);
+            else GL11.glEnable(GL11.GL_CULL_FACE);
             if (pass == 2) GL11.glEnable(GL11.GL_BLEND);
             else GL11.glDisable(GL11.GL_BLEND);
             GL11.glAlphaFunc(GL11.GL_GREATER, pass == 1 ? .5F : .01F);
@@ -190,9 +197,9 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                 try {
                     affine(mesh.animation, phase, seconds, mode);
                     bindTexture(mesh.texture);
-                    animateTexture(mesh.animated, seconds);
+                    if (mesh.animated) animateTexture(true, seconds);
                     GL11.glCallList(mesh.list);
-                    finishTexture();
+                    if (mesh.animated) finishTexture();
                     if (mesh.emission != null) {
                         float oldX = OpenGlHelper.lastBrightnessX, oldY = OpenGlHelper.lastBrightnessY;
                         OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240, 240);
@@ -203,9 +210,9 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                         GL11.glPolygonOffset(-1, -1);
                         GL11.glColor4f(mesh.strength, mesh.strength, mesh.strength, 1);
                         bindTexture(mesh.emission);
-                        animateTexture(mesh.animated, seconds);
+                        if (mesh.animated) animateTexture(true, seconds);
                         GL11.glCallList(mesh.list);
-                        finishTexture();
+                        if (mesh.animated) finishTexture();
                         GL11.glColor4f(1, 1, 1, 1);
                         GL11.glDisable(GL11.GL_POLYGON_OFFSET_FILL);
                         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -235,7 +242,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     }
 
     private boolean visible(String slug, Mesh mesh) {
-        return activeGroups == null || slug.startsWith("plugin_") || activeGroups.contains(slug + ":" + mesh.group);
+        return activeGroups == null || slug.startsWith("plugin_") || activeGroups.contains(mesh.visibilityKey);
     }
 
     private double distanceSquared(Mesh mesh, double phase, double seconds, String mode) {
@@ -248,6 +255,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     }
 
     private void affine(JsonObject animation, double phase, double seconds, String mode) {
+        if (idleIdentity(animation, mode)) return;
         matrix.clear();
         matrix.put(pose(animation, phase, seconds, mode))
             .flip();
@@ -255,6 +263,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     }
 
     private double[] pose(JsonObject animation, double phase, double seconds, String mode) {
+        if (idleIdentity(animation, mode)) return IDENTITY;
         if (phase != posePhase || seconds != poseSeconds || !mode.equals(poseMode)) {
             groupMatrices.clear();
             posePhase = phase;
@@ -285,6 +294,13 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         matrix.rewind();
         groupMatrices.put(animation, cached);
         return cached;
+    }
+
+    private static boolean idleIdentity(JsonObject animation, String mode) {
+        return "idle".equals(mode) && !animation.has("idleMotion")
+            && !animation.has("ambientRotation")
+            && !animation.has("ambientTilt")
+            && !animation.has("ambientOrbit");
     }
 
     private List<Mesh> compile(String slug) {
@@ -354,6 +370,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                         .getAsString(),
                     strength,
                     first.voxel.group,
+                    slug + ":" + first.voxel.group,
                     meshCenter(faces)));
         }
         return result;
@@ -392,12 +409,12 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         final ResourceLocation texture, emission;
         final boolean animated, transparent;
         final int pass;
-        final String group;
+        final String group, visibilityKey;
         final double[] center;
         final float strength;
 
         Mesh(int list, JsonObject animation, ResourceLocation texture, ResourceLocation emission, boolean animated,
-            String alphaMode, float strength, String group, double[] center) {
+            String alphaMode, float strength, String group, String visibilityKey, double[] center) {
             this.list = list;
             this.animation = animation;
             this.texture = texture;
@@ -406,6 +423,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             this.transparent = "blend".equals(alphaMode);
             this.pass = "blend".equals(alphaMode) ? 2 : "cutout".equals(alphaMode) ? 1 : 0;
             this.group = group;
+            this.visibilityKey = visibilityKey;
             this.center = center;
             this.strength = strength;
         }

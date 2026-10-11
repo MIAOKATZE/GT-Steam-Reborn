@@ -23,20 +23,24 @@ public final class CriticalTooltips {
             .addSeparator()
             .beginStructureBlock(preset == null ? 15 : 80, preset == null ? 36 : 162, preset == null ? 15 : 80, false)
             .addController(tr("tooltip.controller"))
-            .addInputBus(tr("tooltip.ports"), 1)
-            .addOutputBus(tr("tooltip.ports"), 1)
-            .addInputHatch(tr("tooltip.ports"), 1)
-            .addOutputHatch(tr("tooltip.ports"), 1)
-            .addEnergyHatch(tr("tooltip.ports"), 1)
-            .addDynamoHatch(tr("tooltip.ports"), 1)
+            .addInputBus(tr("tooltip.ports"))
+            .addInputHatch(tr("tooltip.ports"))
+            .addEnergyHatch(tr("tooltip.ports"))
             .addStructureInfo(tr("tooltip.loom_bounds"))
             .addStructureInfo(tr("tooltip.loom_hatches"))
             .addStructureInfo(tr("tooltip.bounds"))
             .addStructureInfo(tr("tooltip.material"))
             .addStructureInfo(tr("tooltip.hatches"))
-            .addStructureInfo(tr("tooltip.physical_inputs"))
-            .addStructureInfo(tr("tooltip.dynamo"))
-            .toolTipFinisher("GTSteamReborn");
+            .addStructureInfo(tr("tooltip.optional_ports"))
+            .addStructureInfo(tr("tooltip.loom_energy"))
+            .addStructureInfo(tr("tooltip.physical_inputs"));
+        if (preset == CriticalMachineKind.BATTERY || preset == CriticalMachineKind.TURBINE
+            || preset == CriticalMachineKind.SUN
+            || preset == CriticalMachineKind.ACCELERATOR)
+            tt.addDynamoHatch(tr("tooltip.ports"))
+                .addStructureInfo(tr("tooltip.dynamo"));
+        tt.addStructureHint("gtsr.critical.tooltip.port_hint", 1);
+        tt.toolTipFinisher("GTSteamReborn");
         return tt;
     }
 
