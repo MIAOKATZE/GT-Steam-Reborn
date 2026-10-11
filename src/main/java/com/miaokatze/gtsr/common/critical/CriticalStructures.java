@@ -21,6 +21,7 @@ import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.structure.AutoPlaceEnvironment;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
+import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
@@ -106,7 +107,12 @@ public final class CriticalStructures {
                     characters.put(key, character);
                     IStructureElement<MTECriticalMachine> material = loom ? CriticalLoomStructure.materialElement(voxel)
                         : new MaterialElement(voxel.block, CriticalMaterials.block(voxel.material, false));
-                    builder.addElement(character, hatch ? ofChain(material, new PaidHatchElement()) : material);
+                    builder.addElement(
+                        character,
+                        hatch
+                            ? (loom ? ofChain(new PaidHatchElement(true), material)
+                                : ofChain(material, new PaidHatchElement()))
+                            : material);
                 }
                 grid[voxel.z][top - voxel.y][MAX_X - voxel.x] = character;
             }
@@ -146,9 +152,9 @@ public final class CriticalStructures {
             CriticalLoomStructure.construct(machine, trigger, hintsOnly);
             return;
         }
-        if (!isPreviewWorld(world)) {
-            machine.getCriticalState()
-                .construct(trigger, hintsOnly);
+        if (!isPreviewWorld(world) && !hintsOnly) {
+            // The loom is player-built for every controller and every projection tier.
+            CriticalLoomStructure.construct(machine, trigger, hintsOnly);
             return;
         }
         CriticalMachineKind kind = machine.getCriticalState()
@@ -175,6 +181,12 @@ public final class CriticalStructures {
             tier,
             tile,
             world);
+    }
+
+    /** Only the permanent loom may be built from the player's inventory; target bodies remain funded. */
+    public static int survivalConstruct(MTECriticalMachine machine, ItemStack trigger, int budget,
+        ISurvivalBuildEnvironment env) {
+        return CriticalLoomStructure.survivalConstruct(machine, trigger, budget, env);
     }
 
     /** Installed plugins are virtual meshes in the live machine, never required physical structure blocks. */

@@ -34,12 +34,13 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.MultiblockTooltipBuilder;
 
 /** One GT host owns the construction journal and runs the critical engine. */
-public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase<MTECriticalMachine>
-    implements gregtech.api.interfaces.IChunkLoader {
+public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase<MTECriticalMachine> implements
+    gregtech.api.interfaces.IChunkLoader, com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable {
 
     private final CriticalMachineKind presetKind;
     private final CriticalMachineState state = new CriticalMachineState();
     private long energySpentThisTick;
+    private long energyEmittedThisTick;
     private final java.util.Map<MTEHatchEnergy, Long> hatchEnergySpent = new java.util.IdentityHashMap<>();
     private final java.util.Map<Long, TileEntity> portSnapshot = new java.util.LinkedHashMap<>();
     private int previousJournalState = -1;
@@ -145,8 +146,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         CriticalMachineState current = getCriticalState();
         tag.setInteger("progress", current.getBatchProgress());
         tag.setInteger("maxProgress", current.getBatchDuration());
-        tag.setLong("energyUsage", current.isWorking() ? current.getBatchEuPerTick() : 0L);
-        tag.setFloat("efficiency", 100F);
+        tag.setLong("energyUsage", -lEUt);
+        tag.setFloat("efficiency", mEfficiency / 100F);
         tag.setInteger("criticalState", current.getState());
         tag.setInteger("criticalReason", current.getReasonCode());
         tag.setInteger("criticalStage", current.getStage());
@@ -218,6 +219,12 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     }
 
     @Override
+    public int survivalConstruct(ItemStack stack, int budget,
+        com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment environment) {
+        return CriticalStructures.survivalConstruct(this, stack, budget, environment);
+    }
+
+    @Override
     public void checkMachine(IGregTechTileEntity tile, ItemStack stack, List<StructureError> errors) {
         forceLoomStructureCheck();
         if (!getCriticalState().isFabricationHostValid() || state.getState() == 2 && !state.isStructureValidated())
@@ -254,6 +261,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         CriticalMachineState current = getCriticalState();
         discoverHatches(false);
         energySpentThisTick = 0;
+        energyEmittedThisTick = 0;
         hatchEnergySpent.clear();
         if (isLoomStructureValid()) importHatchResources();
         chargeBattery();
@@ -267,7 +275,34 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             checkStructure(true, tile);
         }
         exportHatchResources();
+        syncNativeMachineDisplay(current);
         tile.setActive(current.isWorking());
+    }
+
+    /** The critical journal is the sole processing engine; GT still owns structure and host lifecycle. */
+    @Override
+    protected void runMachine(IGregTechTileEntity tile, long tick) {
+        // Native recipe processing must never consume the display-only progress/EU fields below.
+    }
+
+    private void syncNativeMachineDisplay(CriticalMachineState current) {
+        boolean construction = current.getState() == 1 || current.getState() == 4;
+        // GT uses max progress > 0 as its lifecycle activity flag, not merely as an informational duration.
+        // Paused journal progress remains visible in the handheld terminal without activating native leases/sounds.
+        mProgresstime = !current.isWorking() ? 0
+            : construction ? current.getConstructionElapsedTicks() : current.getBatchProgress();
+        mMaxProgresstime = !current.isWorking() ? 0
+            : construction ? current.getConstructionDurationTicks() : current.getBatchDuration();
+        lEUt = energyEmittedThisTick - energySpentThisTick;
+        mEUt = (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, lEUt));
+        mEfficiency = current.isWorking() || lEUt != 0L ? 10000 : 0;
+        if (current.isWorking()) mLastWorkingTick = mTotalRunTime;
+        // Structure validity and maintenance bits remain the result of GT's real checks.
+        setCheckRecipeResult(
+            current.getReasonCode() == 1
+                ? gregtech.api.recipe.check.CheckRecipeResultRegistry.insufficientPower(current.getBatchEuPerTick())
+                : current.isWorking() ? gregtech.api.recipe.check.CheckRecipeResultRegistry.SUCCESSFUL
+                    : gregtech.api.recipe.check.CheckRecipeResultRegistry.NONE);
     }
 
     @Override
@@ -495,7 +530,10 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             mDynamoHatches.clear();
             mDynamoHatches.addAll(original);
         }
-        if (emitted > 0) getBaseMetaTileEntity().decreaseStoredEnergyUnits(emitted, false);
+        if (emitted > 0) {
+            getBaseMetaTileEntity().decreaseStoredEnergyUnits(emitted, false);
+            energyEmittedThisTick += emitted;
+        }
         return accepted;
     }
 
@@ -611,14 +649,6 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         else state.presetKind(presetKind);
     }
 
-    public void importLegacyState(NBTTagCompound legacy) {
-        getCriticalState().readFromNBT(legacy);
-        long stored = state.legacyEnergy();
-        if (stored > 0 && !getBaseMetaTileEntity().increaseStoredEnergyUnits(stored, false))
-            throw new IllegalStateException("Legacy critical energy cannot fit the GT host");
-        state.clearLegacyEnergy();
-    }
-
     @Override
     public void onRemoval() {
         getCriticalState().invalidate();
@@ -640,11 +670,6 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     public RecipeMap<?> getRecipeMap() {
         return presetKind == null ? com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.displayRecipes
             : com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.forKind(presetKind);
-    }
-
-    @Override
-    protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
-        return new com.miaokatze.gtsr.common.gui.MTECriticalMachineGui(this);
     }
 
     @Override

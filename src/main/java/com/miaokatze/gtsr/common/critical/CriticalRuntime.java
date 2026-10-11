@@ -1,17 +1,14 @@
 package com.miaokatze.gtsr.common.critical;
 
-import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
-
-import cpw.mods.fml.common.registry.GameRegistry;
 
 public final class CriticalRuntime {
 
-    public static Block controller;
+    private static boolean registered;
 
     private CriticalRuntime() {}
 
-    /** GT controller factory used by recipes and legacy migration. */
+    /** GT controller factory used by recipes. */
     public static ItemStack getLoomControllerStack() {
         return com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalLoom.get(1);
     }
@@ -25,13 +22,11 @@ public final class CriticalRuntime {
     }
 
     public static void register() {
-        if (controller != null) return;
+        if (registered) return;
         CriticalRenderAnchors.register();
-        controller = new BlockCriticalController();
-        GameRegistry.registerBlock(controller, "critical_controller");
-        GameRegistry.registerTileEntity(TileEntityCriticalController.class, "gtsr.critical.controller");
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new StructureChangeListener());
         CriticalNightClock.register();
+        registered = true;
     }
 
     public static final class StructureChangeListener {

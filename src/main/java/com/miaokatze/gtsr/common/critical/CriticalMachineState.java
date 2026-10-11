@@ -33,8 +33,7 @@ import com.miaokatze.gtsr.common.critical.recipe.RecipeMatch;
 import gregtech.api.interfaces.tileentity.IEnergyConnected;
 
 /** All input, escrow and delivery state is saved in one tile NBT, never across independent hatches. */
-public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEnergyConnected,
-    com.gtnewhorizon.structurelib.alignment.constructable.IConstructable {
+public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEnergyConnected {
 
     private TileEntity host;
     public net.minecraft.world.World worldObj;
@@ -66,7 +65,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (tile instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt
             && gt.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine machine)
             return machine.getCriticalState();
-        if (tile instanceof TileEntityCriticalController legacy) return legacy.getCriticalState();
         return null;
     }
 
@@ -310,8 +308,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public boolean isEnabled() {
-        return enabled
-            && (!(host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt) || gt.isAllowedToWork());
+        return host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt ? gt.isAllowedToWork()
+            : enabled;
     }
 
     public boolean isWorking() {
@@ -2383,12 +2381,4 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return 512D * 512D;
     }
 
-    public void construct(ItemStack trigger, boolean hintsOnly) {
-        CriticalProjection.construct(this, trigger, hintsOnly);
-    }
-
-    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
-    public String[] getStructureDescription(ItemStack trigger) {
-        return CriticalProjection.description();
-    }
 }

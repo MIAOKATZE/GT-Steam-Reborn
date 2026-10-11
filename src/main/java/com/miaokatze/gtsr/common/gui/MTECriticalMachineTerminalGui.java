@@ -48,8 +48,8 @@ import gregtech.api.modularui2.GTWidgetThemes;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.modularui2.widget.GTProgressWidget;
 
-/** GT's native screen/container lifecycle owns inventory and NEI integration. */
-public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECriticalMachine> {
+/** Handheld terminal only; GT's native container lifecycle owns inventory and NEI integration. */
+public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MTECriticalMachine> {
 
     private final CriticalMachineState state;
     private EntityPlayer viewer;
@@ -63,7 +63,7 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
     private StringSyncValue detail;
     private int recipePreview;
 
-    public MTECriticalMachineGui(MTECriticalMachine multiblock) {
+    public MTECriticalMachineTerminalGui(MTECriticalMachine multiblock) {
         super(multiblock);
         state = multiblock.getCriticalState();
     }

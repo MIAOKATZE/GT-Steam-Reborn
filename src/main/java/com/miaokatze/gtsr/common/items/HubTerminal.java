@@ -33,18 +33,18 @@ public class HubTerminal extends Item {
         setCreativeTab(CreativeTabManager.CREATIVE_TAB);
         setTextureName("gtsr:HubTerminal");
         setMaxStackSize(1);
+        com.miaokatze.gtsr.common.gui.CriticalMachineTerminalFactory.register();
     }
 
-    /** 服务端打开原生织机界面或缓存节点编辑器。 */
+    /** 服务端打开独立机器终端或缓存节点编辑器。 */
     @Override
     public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
         if (world.isRemote) return false;
         TileEntity te = world.getTileEntity(x, y, z);
-        if (te instanceof IGregTechTileEntity base && base.getMetaTileEntity() instanceof MTECriticalMachine machine) {
+        if (te instanceof IGregTechTileEntity base && base.getMetaTileEntity() instanceof MTECriticalMachine) {
             // Consume the use even when denied, preventing the block activation fallback from opening twice.
-            if (machine.getCriticalState()
-                .canUse(player)) machine.onRightclick(base, player);
+            com.miaokatze.gtsr.common.gui.CriticalMachineTerminalFactory.open(player, base);
             return true;
         }
         if (!(te instanceof IGregTechTileEntity gte) || !(gte.getMetaTileEntity() instanceof IHubCacheNode node))
