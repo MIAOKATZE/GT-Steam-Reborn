@@ -34,7 +34,8 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.MultiblockTooltipBuilder;
 
 /** One GT host owns the construction journal and runs the critical engine. */
-public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase<MTECriticalMachine> {
+public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase<MTECriticalMachine>
+    implements gregtech.api.interfaces.IChunkLoader {
 
     private final CriticalMachineKind presetKind;
     private final CriticalMachineState state = new CriticalMachineState();
@@ -43,6 +44,10 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     private final java.util.Map<Long, TileEntity> portSnapshot = new java.util.LinkedHashMap<>();
     private int previousJournalState = -1;
     private boolean previousCanonicalValidation;
+    private boolean loomStructureValid;
+    private long loomValidationTick = Long.MIN_VALUE, meSnapshotTick = Long.MIN_VALUE;
+    private ItemStack[] meItemsSnapshot = new ItemStack[0];
+    private FluidStack[] meFluidsSnapshot = new FluidStack[0];
 
     public MTECriticalMachine(int id, String name, String localizedName, CriticalMachineKind kind) {
         super(id, name, localizedName);
@@ -214,7 +219,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     @Override
     public void checkMachine(IGregTechTileEntity tile, ItemStack stack, List<StructureError> errors) {
-        discoverHatches(true);
+        forceLoomStructureCheck();
         if (!getCriticalState().isFabricationHostValid() || state.getState() == 2 && !state.isStructureValidated())
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
     }
@@ -250,9 +255,11 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         discoverHatches(false);
         energySpentThisTick = 0;
         hatchEnergySpent.clear();
-        importHatchResources();
+        if (isLoomStructureValid()) importHatchResources();
         chargeBattery();
         current.updateEntity();
+        if (tick % 20 == 0)
+            com.miaokatze.gtsr.common.critical.CriticalRenderAnchors.ensure(current, isLoomStructureValid());
         if (previousJournalState != current.getState()
             || previousCanonicalValidation != current.isStructureValidated()) {
             previousJournalState = current.getState();
@@ -277,11 +284,51 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     public void stopMachine(gregtech.api.util.shutdown.ShutDownReason reason) {
         boolean allowed = getBaseMetaTileEntity() != null && getBaseMetaTileEntity().isAllowedToWork();
         super.stopMachine(reason);
-        // The fabrication journal must keep scanning unfinished or damaged canonical geometry.
-        // This preserves the user's switch, while mMachine/errors still report incomplete READY geometry.
-        // All real batch execution remains gated by the journal's completed canonical validation.
-        if (allowed && reason == gregtech.api.util.shutdown.ShutDownReasonRegistry.STRUCTURE_INCOMPLETE)
+        // An intact loom must keep the journal's full target scan running after canonical damage.
+        if (allowed && loomStructureValid
+            && reason == gregtech.api.util.shutdown.ShutDownReasonRegistry.STRUCTURE_INCOMPLETE)
             getBaseMetaTileEntity().enableWorking();
+    }
+
+    public boolean isLoomStructureValid() {
+        IGregTechTileEntity tile = getBaseMetaTileEntity();
+        if (tile == null) return false;
+        long now = tile.getWorld()
+            .getTotalWorldTime();
+        if (loomValidationTick == Long.MIN_VALUE || now - loomValidationTick >= 20) return forceLoomStructureCheck();
+        return loomStructureValid;
+    }
+
+    public boolean forceLoomStructureCheck() {
+        IGregTechTileEntity tile = getBaseMetaTileEntity();
+        if (tile == null) return false;
+        loomValidationTick = tile.getWorld()
+            .getTotalWorldTime();
+        clearHatches();
+        loomStructureValid = com.miaokatze.gtsr.common.critical.CriticalLoomStructure.validate(this);
+        discoverHatches(true);
+        return loomStructureValid;
+    }
+
+    public boolean applyConstructionDebug(net.minecraft.entity.player.EntityPlayer player, int requirements, int speed,
+        boolean ignoreEnergy) {
+        return getCriticalState().applyConstructionDebug(player, requirements, speed, ignoreEnergy);
+    }
+
+    public boolean resetConstructionDebug(net.minecraft.entity.player.EntityPlayer player) {
+        return getCriticalState().resetConstructionDebug(player);
+    }
+
+    public int getConstructionDebugRequirements() {
+        return state.getConstructionDebugRequirements();
+    }
+
+    public int getConstructionDebugSpeed() {
+        return state.getConstructionDebugSpeed();
+    }
+
+    public boolean getConstructionDebugIgnoreEnergy() {
+        return state.getConstructionDebugIgnoreEnergy();
     }
 
     @Override
@@ -297,6 +344,41 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             total = total > Long.MAX_VALUE - stored ? Long.MAX_VALUE : total + stored;
         }
         return total;
+    }
+
+    private void refreshCriticalMESnapshot() {
+        long now = getBaseMetaTileEntity().getWorld()
+            .getTotalWorldTime();
+        if (meSnapshotTick != Long.MIN_VALUE && now - meSnapshotTick < 20) return;
+        meSnapshotTick = now;
+        meItemsSnapshot = com.miaokatze.gtsr.common.critical.CriticalNativeMEFunding.snapshotItems(mInputBusses);
+        meFluidsSnapshot = com.miaokatze.gtsr.common.critical.CriticalNativeMEFunding.snapshotFluids(mInputHatches);
+    }
+
+    public ItemStack[] criticalMEItemsSnapshot() {
+        refreshCriticalMESnapshot();
+        return meItemsSnapshot;
+    }
+
+    public FluidStack[] criticalMEFluidsSnapshot() {
+        refreshCriticalMESnapshot();
+        return meFluidsSnapshot;
+    }
+
+    public com.miaokatze.gtsr.common.critical.CriticalNativeMEFunding.Result fundMissingCriticalInputs(
+        ItemStack[] items, FluidStack[] fluids) {
+        com.miaokatze.gtsr.common.critical.CriticalNativeMEFunding.Result result = com.miaokatze.gtsr.common.critical.CriticalNativeMEFunding
+            .fund(this, mInputBusses, mInputHatches, items, fluids);
+        meSnapshotTick = Long.MIN_VALUE;
+        return result;
+    }
+
+    public boolean canConsumeCriticalEnergy(long amount) {
+        long budget = state.getTier()
+            .recipeVoltage() * 16L;
+        long buffered = getBaseMetaTileEntity() == null ? 0L : getBaseMetaTileEntity().getStoredEU();
+        return amount >= 0 && amount <= budget - energySpentThisTick
+            && amount <= gregtech.api.util.GTUtility.addSafe(buffered, availableHatchEnergyThisTick());
     }
 
     public boolean consumeCriticalEnergy(long amount) {
@@ -419,6 +501,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     private void importHatchResources() {
         for (MTEHatchInputBus bus : mInputBusses) {
+            if (bus instanceof gregtech.common.tileentities.machines.IRecipeProcessingAwareHatch) continue;
             for (int slot = 0; slot < bus.getSizeInventory(); slot++) {
                 if (slot == bus.getCircuitSlot()) continue;
                 for (int target = 0; target < CriticalMachineState.INPUT_SLOTS; target++) {
@@ -443,16 +526,21 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
                 }
             }
         }
-        for (FluidStack fluid : getStoredFluids()) {
-            if (fluid == null || fluid.amount <= 0) continue;
-            int accepted = state.fill(ForgeDirection.UNKNOWN, fluid, false);
-            if (accepted > 0) {
-                FluidStack request = fluid.copy();
-                request.amount = accepted;
-                int removed = depleteInputQuantity(request, false);
-                if (removed > 0) {
-                    request.amount = removed;
-                    state.fill(ForgeDirection.UNKNOWN, request, true);
+        for (gregtech.api.metatileentity.implementations.MTEHatchInput hatch : mInputHatches) {
+            if (hatch instanceof gregtech.common.tileentities.machines.IRecipeProcessingAwareHatch) continue;
+            for (net.minecraftforge.fluids.FluidTankInfo tank : hatch.getTankInfo(ForgeDirection.UNKNOWN)) {
+                FluidStack fluid = tank.fluid;
+                if (fluid == null || fluid.amount <= 0) continue;
+                int accepted = state.fill(ForgeDirection.UNKNOWN, fluid, false);
+                if (accepted > 0) {
+                    FluidStack request = fluid.copy();
+                    request.amount = accepted;
+                    FluidStack drained = hatch.drain(ForgeDirection.UNKNOWN, request, true);
+                    int removed = drained != null && drained.isFluidEqual(request) ? drained.amount : 0;
+                    if (removed > 0) {
+                        request.amount = removed;
+                        state.fill(ForgeDirection.UNKNOWN, request, true);
+                    }
                 }
             }
         }
@@ -477,6 +565,11 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
                 }
             }
         }
+    }
+
+    @Override
+    public net.minecraft.world.ChunkCoordIntPair getActiveChunk() {
+        return state.getActiveConstructionChunk();
     }
 
     @Override

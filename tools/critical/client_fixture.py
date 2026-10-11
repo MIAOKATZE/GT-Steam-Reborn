@@ -4,7 +4,7 @@ import argparse, hashlib, json, os, re, shutil, subprocess, time, zipfile
 from native_fixture import java_processes
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / 'build/critical-machines-v12116/client'
+OUT = ROOT / 'build/critical-machines-v12117/client'
 SOURCE = Path('E:/Prism Launcher/instances/GTNH-2.9.0-RC-2-SH')
 PRISM = Path.home() / 'AppData/Roaming/PrismLauncher'
 JAVA = Path.home() / '.gradle/jdks/azul_systems__inc_-21-amd64-windows.2/bin/java.exe'
@@ -93,7 +93,7 @@ def compile_probe(phase,mode,preview_from=None):
     target=OUT/phase;fixture=target/'fixture';classes=target/'classes';classes.mkdir(exist_ok=True)
     jars=list((fixture/'libraries').rglob('*.jar'))+list((fixture/'mods').glob('*.jar'))
     cp=';'.join(map(str,[ROOT/'build/classes/java/patchedMc']+jars))
-    probe_name='CriticalGTClientProbe' if mode.startswith('gt') else 'CriticalGuiLifecycleProbe'
+    probe_name='CriticalLoomClientProbe' if mode=='loom' else 'CriticalGTClientProbe' if mode.startswith('gt') else 'CriticalGuiLifecycleProbe'
     source=target/(probe_name+'.java')
     shutil.copy2(Path(__file__).with_name(probe_name+'.java'),source)
     args=['-encoding','UTF-8','-proc:none','-source','8','-target','8','-cp',cp,'-d',str(classes),str(source)]
@@ -107,7 +107,7 @@ def compile_probe(phase,mode,preview_from=None):
     spec=json.loads((target/'launch.json').read_text());spec.update(probeSourceSHA=sha(source),probeJarSHA=sha(helper),probeMode=mode)
     spec['command']=[s for s in spec['command'] if not s.startswith(('-Dcritical.gui.small=','-Dcritical.gui.anchorOnly=','-Dcritical.gui.previewEvidence='))]
     spec.pop('previewEvidence',None)
-    if mode=='gt':
+    if mode in ['gt','loom']:
         spec['command'][spec['command'].index('--width')+1]='1280'
         spec['command'][spec['command'].index('--height')+1]='720'
     if mode in ['gt-small','gt-anchor']:
@@ -149,7 +149,7 @@ def run(phase):
             (target/'pid.json').write_text(json.dumps(dict(pid=proc.pid)))
             try:code=proc.wait(timeout=900)
             except subprocess.TimeoutExpired:proc.terminate();code=proc.wait(timeout=60)
-        checks=json.loads((target/'checks.json').read_text()) if (target/'checks.json').exists() else {}
+        checks=json.loads((target/'checks.json').read_text(encoding='utf-8')) if (target/'checks.json').exists() else {}
         status=checks.get('status','NO_RECEIPT')
         from urllib.parse import unquote
         source=unquote(checks.get('productionCodeSource','')).lower()
@@ -162,7 +162,7 @@ def run(phase):
         if proc is None or proc.poll() is not None:LEASE.unlink()
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['prepare','finish','fork','compile','run']);parser.add_argument('phase',type=phase_name);parser.add_argument('--jar',type=Path);parser.add_argument('--from-phase',type=phase_name);parser.add_argument('--source-out',type=Path);parser.add_argument('--mode',choices=['legacy','gt','gt-small','gt-anchor'],default='legacy');parser.add_argument('--preview-from',type=phase_name);parser.add_argument('--expect-legacy-failure',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['prepare','finish','fork','compile','run']);parser.add_argument('phase',type=phase_name);parser.add_argument('--jar',type=Path);parser.add_argument('--from-phase',type=phase_name);parser.add_argument('--source-out',type=Path);parser.add_argument('--mode',choices=['legacy','gt','gt-small','gt-anchor','loom'],default='legacy');parser.add_argument('--preview-from',type=phase_name);parser.add_argument('--expect-legacy-failure',action='store_true');args=parser.parse_args()
     if args.action in ['prepare','finish']:
         if not args.jar:parser.error('--jar required')
         (prepare if args.action=='prepare' else finish)(args.phase,args.jar,args.expect_legacy_failure)

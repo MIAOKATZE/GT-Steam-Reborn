@@ -47,6 +47,10 @@ public final class CriticalStructures {
     private CriticalStructures() {}
 
     public static synchronized IStructureDefinition<MTECriticalMachine> definition(MTECriticalMachine machine) {
+        return machine.isKindSelector() ? CriticalLoomStructure.definition() : fullDefinition(machine);
+    }
+
+    public static synchronized IStructureDefinition<MTECriticalMachine> fullDefinition(MTECriticalMachine machine) {
         CriticalMachineKind kind = machine.getCriticalState()
             .getKind();
         return DEFINITIONS.computeIfAbsent(kind, CriticalStructures::create);
@@ -70,7 +74,11 @@ public final class CriticalStructures {
                 || material.animated
                 || CriticalGeometry.getModel(v.model).animations.has(v.group));
         ports.sort(Comparator.comparingInt(v -> Math.abs(v.x - 40) + Math.abs(v.z - 32)));
-        return Collections.unmodifiableList(new ArrayList<>(ports.subList(0, Math.min(8, ports.size()))));
+        Map<Long, CriticalGeometry.Voxel> combined = new LinkedHashMap<>();
+        for (CriticalGeometry.Voxel port : CriticalLoomStructure.hatchPorts()) combined.put(port.positionKey(), port);
+        for (CriticalGeometry.Voxel port : ports.subList(0, Math.min(8, ports.size())))
+            combined.put(port.positionKey(), port);
+        return Collections.unmodifiableList(new ArrayList<>(combined.values()));
     }
 
     private static IStructureDefinition<MTECriticalMachine> create(CriticalMachineKind kind) {
@@ -85,14 +93,19 @@ public final class CriticalStructures {
             for (CriticalGeometry.Voxel port : hatchPorts(tier, kind)) ports.add(port.positionKey());
             for (CriticalGeometry.Voxel voxel : voxels) {
                 boolean hatch = ports.contains(voxel.positionKey());
-                String key = voxel.material + ':' + ((CriticalMaterials.MaterialBlock) voxel.block).proxy + ':' + hatch;
+                boolean loom = CriticalLoomStructure.isLoomVoxel(voxel);
+                String key = voxel.material + ':'
+                    + ((CriticalMaterials.MaterialBlock) voxel.block).proxy
+                    + ':'
+                    + hatch
+                    + ':'
+                    + loom;
                 Character character = characters.get(key);
                 if (character == null) {
                     character = (char) (0x100 + characters.size());
                     characters.put(key, character);
-                    IStructureElement<MTECriticalMachine> material = new MaterialElement(
-                        voxel.block,
-                        CriticalMaterials.block(voxel.material, false));
+                    IStructureElement<MTECriticalMachine> material = loom ? CriticalLoomStructure.materialElement(voxel)
+                        : new MaterialElement(voxel.block, CriticalMaterials.block(voxel.material, false));
                     builder.addElement(character, hatch ? ofChain(material, new PaidHatchElement()) : material);
                 }
                 grid[voxel.z][top - voxel.y][MAX_X - voxel.x] = character;
@@ -129,6 +142,10 @@ public final class CriticalStructures {
         IGregTechTileEntity tile = machine.getBaseMetaTileEntity();
         if (tile == null) return;
         World world = tile.getWorld();
+        if (machine.isKindSelector() && (trigger == null || trigger.stackSize <= 1)) {
+            CriticalLoomStructure.construct(machine, trigger, hintsOnly);
+            return;
+        }
         if (!isPreviewWorld(world)) {
             machine.getCriticalState()
                 .construct(trigger, hintsOnly);
@@ -136,9 +153,10 @@ public final class CriticalStructures {
         }
         CriticalMachineKind kind = machine.getCriticalState()
             .getKind();
-        CriticalTier tier = CriticalTier.byId(trigger == null ? 0 : trigger.stackSize - 1);
+        CriticalTier tier = CriticalTier
+            .byId(trigger == null ? 0 : trigger.stackSize - (machine.isKindSelector() ? 2 : 1));
         int top = top(voxels(tier, kind));
-        definition(machine).buildOrHints(
+        fullDefinition(machine).buildOrHints(
             machine,
             trigger,
             piece(tier),
@@ -234,9 +252,19 @@ public final class CriticalStructures {
     }
 
     /** Native hatch matching/catalogue, with the paid construction boundary retained. */
-    private static final class PaidHatchElement implements IStructureElement<MTECriticalMachine> {
+    static final class PaidHatchElement implements IStructureElement<MTECriticalMachine> {
 
         private volatile BlocksToPlace catalogue;
+        private final boolean manual;
+
+        PaidHatchElement() {
+            this(false);
+        }
+
+        PaidHatchElement(boolean manual) {
+            this.manual = manual;
+        }
+
         private final IStructureElement<MTECriticalMachine> nativeElement = buildHatchAdder(MTECriticalMachine.class)
             .anyOf(
                 HatchElement.InputBus,
@@ -275,7 +303,7 @@ public final class CriticalStructures {
 
         @Override
         public boolean placeBlock(MTECriticalMachine machine, World world, int x, int y, int z, ItemStack trigger) {
-            return false;
+            return manual && nativeElement.placeBlock(machine, world, x, y, z, trigger);
         }
 
         @Override
@@ -313,7 +341,8 @@ public final class CriticalStructures {
         @Override
         public PlaceResult survivalPlaceBlock(MTECriticalMachine machine, World world, int x, int y, int z,
             ItemStack trigger, AutoPlaceEnvironment env) {
-            return PlaceResult.REJECT;
+            return manual ? nativeElement.survivalPlaceBlock(machine, world, x, y, z, trigger, env)
+                : PlaceResult.REJECT;
         }
     }
 }

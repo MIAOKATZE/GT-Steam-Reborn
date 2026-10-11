@@ -89,65 +89,61 @@ public class MachineLoader {
     }
 
     private static void registerAllMachines() {
-        GTSRItemList.CriticalLoom.set(
-            new MTECriticalMachine(
-                MetaTileEntityID.CRITICAL_LOOM.ID,
-                "gtsr.critical.loom",
-                "Critical Structure Loom",
-                null));
+        GTSRItemList.CriticalLoom
+            .set(new MTECriticalMachine(MetaTileEntityID.CRITICAL_LOOM.ID, "gtsr.critical.loom", "Mimetic Loom", null));
         GTSRItemList.CriticalSolar.set(
             new MTECriticalMachine(
                 MetaTileEntityID.CRITICAL_SOLAR.ID,
                 "gtsr.critical.solar",
-                "Critical Solar",
+                "Dimensional Irradiance Coupling Boiler",
                 CriticalMachineKind.SOLAR));
         GTSRItemList.CriticalTurbine.set(
             new MTECriticalMachine(
                 MetaTileEntityID.CRITICAL_TURBINE.ID,
                 "gtsr.critical.turbine",
-                "Critical Turbine",
+                "Supercritical Steam Pulse Power Core",
                 CriticalMachineKind.TURBINE));
         GTSRItemList.CriticalProcessing.set(
             new MTECriticalMachine(
                 MetaTileEntityID.CRITICAL_PROCESSING.ID,
                 "gtsr.critical.processing",
-                "Critical Processing",
+                "Hyperstructural Processing Matrix",
                 CriticalMachineKind.PROCESSING));
         GTSRItemList.CriticalEntangler.set(
             new MTECriticalMachine(
                 MetaTileEntityID.CRITICAL_ENTANGLER.ID,
                 "gtsr.critical.entangler",
-                "Critical Entangler",
+                "Dual Singularity Coherence Coupler",
                 CriticalMachineKind.ENTANGLER));
         GTSRItemList.CriticalSun.set(
             new MTECriticalMachine(
                 MetaTileEntityID.CRITICAL_SUN.ID,
                 "gtsr.critical.sun",
-                "Critical Sun",
+                "Artificial Stellar Confinement Core",
                 CriticalMachineKind.SUN));
         GTSRItemList.CriticalDimension.set(
             new MTECriticalMachine(
                 MetaTileEntityID.CRITICAL_DIMENSION.ID,
                 "gtsr.critical.dimension",
-                "Critical Dimension",
+                "Metric Phase Mapper",
                 CriticalMachineKind.DIMENSION));
         GTSRItemList.CriticalBattery.set(
             new MTECriticalMachine(
                 MetaTileEntityID.CRITICAL_BATTERY.ID,
                 "gtsr.critical.battery",
-                "Critical Battery",
+                "Multiphase Chemical Energy Matrix",
                 CriticalMachineKind.BATTERY));
         GTSRItemList.CriticalAssembly.set(
             new MTECriticalMachine(
                 MetaTileEntityID.CRITICAL_ASSEMBLY.ID,
                 "gtsr.critical.assembly",
-                "Critical Assembly",
+                "Nonsequential Matter Compiler",
                 CriticalMachineKind.ASSEMBLY));
         GTSRItemList.CriticalAccelerator.set(
             new MTECriticalMachine(
                 MetaTileEntityID.CRITICAL_ACCELERATOR.ID,
                 "gtsr.critical.accelerator",
-                "Critical Accelerator",
+                "Neutron Flux Pulse Energy Emitter",
                 CriticalMachineKind.ACCELERATOR));
         // --- 单方块机器 ---
         GTSRItemList.SteamCacheNode.set(

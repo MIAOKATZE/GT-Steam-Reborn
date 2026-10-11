@@ -54,9 +54,12 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
     private final CriticalMachineState state;
     private EntityPlayer viewer;
     private IntSyncValue tier, kind, parallel, speed, economy, status, stage, job, total, batch, duration;
-    private LongSyncValue energy, capacity, euPerTick;
-    private GenericListSyncHandler<ItemStack> constructionCosts;
-    private BooleanSyncValue enabled, permitted;
+    private LongSyncValue energy, capacity, euPerTick, constructionElapsed, constructionDuration;
+    private IntSyncValue constructionRound, constructionRounds, roundElapsed, roundDuration;
+    private GenericListSyncHandler<ItemStack> constructionCosts, nextConstructionCosts, missingConstructionCosts;
+    private GenericListSyncHandler<FluidStack> stageConstructionFluids, nextConstructionFluids,
+        missingConstructionFluids;
+    private BooleanSyncValue enabled, permitted, loomValid, roundFunded;
     private StringSyncValue detail;
     private int recipePreview;
 
@@ -108,24 +111,32 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
         energy = new LongSyncValue(state::getEnergyStored);
         capacity = new LongSyncValue(state::getEnergyCapacity);
         euPerTick = new LongSyncValue(state::getBatchEuPerTick);
-        constructionCosts = new GenericListSyncHandler<>(
-            () -> Arrays.asList(state.getConstructionCostsForGui()),
-            null,
-            packet -> {
-                ItemStack stack = NetworkUtils.readItemStack(packet);
-                int count = packet.readInt();
-                if (stack != null) stack.stackSize = count;
-                return stack;
-            },
-            (packet, stack) -> {
-                NetworkUtils.writeItemStack(packet, stack);
-                packet.writeInt(stack == null ? 0 : stack.stackSize);
-            },
-            ItemStack::areItemStacksEqual,
-            stack -> stack == null ? null : stack.copy());
+        constructionElapsed = new LongSyncValue(state::getConstructionElapsedTicks);
+        constructionDuration = new LongSyncValue(state::getConstructionDurationTicks);
+        constructionCosts = itemCosts(state::getConstructionCostsForGui);
+        nextConstructionCosts = itemCosts(state::getConstructionNextItemCostsForGui);
+        missingConstructionCosts = itemCosts(state::getConstructionMissingItemsForGui);
+        stageConstructionFluids = fluidCosts(state::getConstructionStageFluidCostsForGui);
+        nextConstructionFluids = fluidCosts(state::getConstructionNextFluidCostsForGui);
+        missingConstructionFluids = fluidCosts(state::getConstructionMissingFluidsForGui);
+        loomValid = new BooleanSyncValue(state::isLoomStructureValid);
+        roundFunded = new BooleanSyncValue(state::isConstructionRoundFunded);
+        constructionRound = integer(manager, "constructionRound", state::getConstructionRoundIndex);
+        constructionRounds = integer(manager, "constructionRounds", state::getConstructionRoundTotal);
+        roundElapsed = integer(manager, "roundElapsed", state::getConstructionRoundElapsedTicks);
+        roundDuration = integer(manager, "roundDuration", state::getConstructionRoundDurationTicks);
         enabled = new BooleanSyncValue(state::isEnabled);
         permitted = new BooleanSyncValue(() -> state.canUse(viewer));
         detail = new StringSyncValue(state::getStatus);
+        manager.syncValue("critical.constructionElapsed", constructionElapsed);
+        manager.syncValue("critical.constructionDuration", constructionDuration);
+        manager.syncValue("critical.nextConstructionCosts", nextConstructionCosts);
+        manager.syncValue("critical.missingConstructionCosts", missingConstructionCosts);
+        manager.syncValue("critical.nextConstructionFluids", nextConstructionFluids);
+        manager.syncValue("critical.stageConstructionFluids", stageConstructionFluids);
+        manager.syncValue("critical.missingConstructionFluids", missingConstructionFluids);
+        manager.syncValue("critical.loomValid", loomValid);
+        manager.syncValue("critical.roundFunded", roundFunded);
         manager.syncValue("critical.energy", energy);
         manager.syncValue("critical.capacity", capacity);
         manager.syncValue("critical.euPerTick", euPerTick);
@@ -135,6 +146,28 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
         manager.syncValue("critical.detail", detail);
         manager.registerSlotGroup(new SlotGroup("critical.inputs", 9));
         manager.registerSlotGroup(new SlotGroup("critical.outputs", 9));
+    }
+
+    private GenericListSyncHandler<ItemStack> itemCosts(java.util.function.Supplier<ItemStack[]> getter) {
+        return new GenericListSyncHandler<>(() -> Arrays.asList(getter.get()), null, packet -> {
+            ItemStack stack = NetworkUtils.readItemStack(packet);
+            int count = packet.readInt();
+            if (stack != null) stack.stackSize = count;
+            return stack;
+        }, (packet, stack) -> {
+            NetworkUtils.writeItemStack(packet, stack);
+            packet.writeInt(stack == null ? 0 : stack.stackSize);
+        }, ItemStack::areItemStacksEqual, stack -> stack == null ? null : stack.copy());
+    }
+
+    private GenericListSyncHandler<FluidStack> fluidCosts(java.util.function.Supplier<FluidStack[]> getter) {
+        return new GenericListSyncHandler<>(
+            () -> Arrays.asList(getter.get()),
+            null,
+            packet -> ByteBufAdapters.FLUID_STACK.deserialize(packet),
+            (packet, stack) -> ByteBufAdapters.FLUID_STACK.serialize(packet, stack),
+            FluidStack::isFluidStackIdentical,
+            FluidStack::copy);
     }
 
     private IntSyncValue integer(PanelSyncManager manager, String key, java.util.function.IntSupplier getter) {
@@ -149,14 +182,15 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
         pages.addPage(statusPage(panel, manager));
         pages.addPage(configurationPage(manager));
         pages.addPage(inventoryPage(manager));
+        pages.addPage(constructionPage());
         Flow tabs = Flow.row()
             .size(338, 20)
             .childPadding(4);
-        String[] labels = { "tab.status", "tab.configuration", "tab.inventory" };
+        String[] labels = { "tab.status", "tab.configuration", "tab.inventory", "tab.requirements" };
         for (int i = 0; i < labels.length; i++) {
             final int page = i;
             tabs.child(
-                new ButtonWidget<>().size(110, 18)
+                new ButtonWidget<>().size(81, 18)
                     .overlay(IKey.lang(key(labels[i])))
                     .onMousePressed(button -> {
                         if (button != 0) return false;
@@ -185,7 +219,7 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
         page.child(
             action(manager, "build", player -> state.startConstruction(player)).pos(0, 60)
                 .size(80, 18)
-                .setEnabledIf(w -> permitted.getValue() && status.getValue() == 0)
+                .setEnabledIf(w -> permitted.getValue() && loomValid.getValue() && status.getValue() == 0)
                 .tooltipBuilder(this::constructionTooltip)
                 .tooltipAutoUpdate(true));
         page.child(
@@ -195,7 +229,7 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
         page.child(
             action(manager, "repair", player -> state.repairStructure(player)).pos(172, 60)
                 .size(80, 18)
-                .setEnabledIf(w -> permitted.getValue() && status.getValue() != 0)
+                .setEnabledIf(w -> permitted.getValue() && loomValid.getValue() && status.getValue() != 0)
                 .tooltipBuilder(this::constructionTooltip)
                 .tooltipAutoUpdate(true));
         page.child(
@@ -203,7 +237,7 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
                 .overlay(IKey.dynamic(() -> tr(enabled.getValue() ? "stop" : "start")))
                 .pos(258, 60)
                 .size(80, 18)
-                .setEnabledIf(w -> permitted.getValue()));
+                .setEnabledIf(w -> permitted.getValue() && (enabled.getValue() || loomValid.getValue())));
         page.child(
             IKey.lang(key("recipes"))
                 .asWidget()
@@ -316,6 +350,103 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
         return permitted.getValue() && status.getValue() == 0;
     }
 
+    private IWidget constructionPage() {
+        ListWidget<IWidget, ?> list = new ListWidget<>().size(338, 100);
+        constructionLine(list, () -> tr("machine." + configuration().kind.key) + " · " + configuration().tier.name());
+        constructionLine(list, () -> tr(loomValid.getValue() ? "loom.ready" : "loom.incomplete"));
+        for (String suffix : new String[] { "loom.dimensions", "loom.hatches", "loom.orientation", "loom.area",
+            "loom.supply", "loom.clock" }) constructionLine(list, () -> tr(suffix));
+        constructionLine(
+            list,
+            () -> tr("construction") + " " + stage.getValue() + " · " + job.getValue() + " / " + total.getValue());
+        constructionLine(
+            list,
+            () -> tr("construction.elapsed") + " "
+                + constructionElapsed.getValue()
+                + " t · "
+                + tr("construction.remaining")
+                + " "
+                + Math.max(0, constructionDuration.getValue() - constructionElapsed.getValue())
+                + " t");
+        constructionLine(list, () -> tr("construction.duration") + " " + constructionDuration.getValue() + " t");
+        constructionLine(
+            list,
+            () -> tr("construction.round") + " "
+                + (constructionRounds.getValue() == 0 ? 0
+                    : Math.min(constructionRounds.getValue(), constructionRound.getValue() + 1))
+                + " / "
+                + constructionRounds.getValue()
+                + " · "
+                + tr(roundFunded.getValue() ? "construction.funded" : "construction.unfunded"));
+        constructionLine(
+            list,
+            () -> tr(
+                "construction.round_time") + " " + roundElapsed.getValue() + " / " + roundDuration.getValue() + " t");
+        constructionLine(
+            list,
+            () -> tr("construction_power") + " " + configuration().tier.constructionVoltage() + " EU/t");
+        constructionLine(list, () -> tr("construction.stage_cost"));
+        constructionLine(list, () -> itemCostLines(constructionCosts));
+        constructionLine(list, () -> tr("construction.stage_fluid_cost"));
+        constructionLine(
+            list,
+            () -> stageConstructionFluids.getValue()
+                .isEmpty() ? tr("construction.no_stage_fluid") : fluidCostLine(stageConstructionFluids));
+        constructionLine(list, () -> tr("construction.solder_hint"));
+        constructionLine(list, () -> tr("construction.next_cost"));
+        constructionLine(list, () -> itemCostLines(nextConstructionCosts));
+        constructionLine(
+            list,
+            () -> nextConstructionFluids.getValue()
+                .isEmpty() ? tr("construction.no_round_fluid") : fluidCostLine(nextConstructionFluids));
+        constructionLine(list, () -> tr("construction.missing"));
+        constructionLine(list, () -> itemCostLines(missingConstructionCosts));
+        constructionLine(list, () -> fluidCostLine(missingConstructionFluids));
+        constructionLine(
+            list,
+            () -> missingConstructionCosts.getValue()
+                .isEmpty()
+                && missingConstructionFluids.getValue()
+                    .isEmpty() ? tr("construction.supplied") : "");
+        return list;
+    }
+
+    private static void constructionLine(ListWidget<IWidget, ?> list, java.util.function.Supplier<String> text) {
+        list.child(
+            IKey.dynamic(text)
+                .asWidget()
+                .fullWidth()
+                .marginBottom(3)
+                .setEnabledIf(
+                    w -> !text.get()
+                        .isEmpty()));
+    }
+
+    private static String itemCostLines(GenericListSyncHandler<ItemStack> value) {
+        StringBuilder lines = new StringBuilder();
+        for (ItemStack stack : value.getValue()) {
+            if (stack == null) continue;
+            if (lines.length() > 0) lines.append("\n");
+            lines.append(stack.getDisplayName())
+                .append(" × ")
+                .append(stack.stackSize);
+        }
+        return lines.toString();
+    }
+
+    private static String fluidCostLine(GenericListSyncHandler<FluidStack> value) {
+        StringBuilder line = new StringBuilder();
+        for (FluidStack stack : value.getValue()) {
+            if (stack == null) continue;
+            if (line.length() > 0) line.append(" · ");
+            line.append(stack.getLocalizedName())
+                .append(" × ")
+                .append(stack.amount)
+                .append(" mB");
+        }
+        return line.toString();
+    }
+
     private void change(EntityPlayer player, int field, int delta) {
         if (state.getState() != 0 || (field == 1 && !multiblock.isKindSelector())) return;
         CriticalConfiguration cfg = state.getConfiguration();
@@ -383,7 +514,7 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
                         return (!baseMetaTileEntity.isServerSide() || state.canUse(player))
                             && super.canTakeStack(player);
                     }
-                }.canPut(side == 0)
+                }.canPut(false)
                     .slotGroup(side == 0 ? "critical.inputs" : "critical.outputs");
                 page.child(
                     new ItemSlot().slot(slot)

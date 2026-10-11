@@ -75,8 +75,9 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     public void renderTileEntityAt(TileEntity tile, double x, double y, double z, float partialTicks) {
         if (!(tile instanceof TileEntityCriticalRenderAnchor anchor)) return;
         CriticalMachineState controller = anchor.getVisualState();
-        if (controller.getStructureId()
-            .isEmpty() || controller.getState() == 0) return;
+        boolean installation = !controller.getStructureId()
+            .isEmpty() && controller.getState() != 0;
+        if (!installation && !anchor.isLoomVisible()) return;
         boolean complete = controller.isStructureComplete();
         CriticalGroupVisibility checked = visibility.get(anchor);
         if (checked == null || !checked.matches(controller)) {
@@ -120,14 +121,15 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             String slug = controller.getMachineKind()
                 .name()
                 .toLowerCase(Locale.ROOT);
-            double buildPhase = complete ? 0
-                : controller.getJobProgress() / (double) Math.max(1, controller.getJobTotal());
-            String constructionMode = controller.getState() == 3 ? "destroy"
-                : controller.getState() == 1 || controller.getState() == 4 ? "build" : "idle";
-            renderModel("loom", buildPhase, seconds, constructionMode);
-            renderModel(slug, phase, seconds, hasBatch ? "build" : "idle");
-            if (controller.getState() >= 2) renderPlugins(controller, phase, seconds);
-            if (complete && controller.isStructureValidated()) {
+            double buildPhase = Math.min(
+                1,
+                controller.getVisualConstructionTicks(partialTicks)
+                    / Math.max(1D, controller.getConstructionDuration()));
+            String constructionMode = controller.getConstructionVisualMode();
+            if (anchor.isLoomVisible()) renderModel("loom", buildPhase, seconds, constructionMode);
+            if (installation) renderModel(slug, phase, seconds, hasBatch ? "build" : "idle");
+            if (installation && controller.getState() >= 2) renderPlugins(controller, phase, seconds);
+            if (installation && complete && controller.isStructureValidated()) {
                 CriticalFX.render(slug, CriticalGeometry.getModel(slug), phase, seconds);
             }
         } finally {

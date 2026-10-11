@@ -6,6 +6,7 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.IBlockAccess;
 
+import com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility;
 import com.miaokatze.gtsr.common.critical.CriticalMaterials;
 
 import cpw.mods.fml.client.registry.ISimpleBlockRenderingHandler;
@@ -77,6 +78,17 @@ public final class CriticalMaterialRenderer implements ISimpleBlockRenderingHand
     @Override
     public boolean renderWorldBlock(IBlockAccess world, int x, int y, int z, Block block, int id,
         RenderBlocks renderer) {
+        // Hand-placed loom parts stay visible until their canonical anchor owns the moving mesh.
+        if (block instanceof CriticalMaterials.MaterialBlock material && material.proxy
+            && (!material.loom || CriticalLoomProxyVisibility.animated(
+                world instanceof net.minecraft.world.World real ? real
+                    : net.minecraft.client.Minecraft.getMinecraft().theWorld,
+                x,
+                y,
+                z,
+                block,
+                world.getBlockMetadata(x, y, z))))
+            return false;
         boolean rendered = renderer.renderStandardBlock(block, x, y, z);
         if (!(block instanceof CriticalMaterials.MaterialBlock material) || !material.emissive
             || material.emission == null) return rendered;

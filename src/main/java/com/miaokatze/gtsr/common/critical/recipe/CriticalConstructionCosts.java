@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.common.critical.recipe;
 
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 
@@ -42,6 +43,16 @@ public final class CriticalConstructionCosts {
         int pluginCount = cfg.parallel + cfg.speed + cfg.economy;
         return new ItemStack[] { count(p[0], plates), count(p[1], 32 + 8 * pluginCount),
             count(p[2], 16 + 2 * cfg.economy), count(p[3], 16 + 2 * cfg.speed + 2 * cfg.parallel) };
+    }
+
+    /** Standard soldering alloy: one ingot volume per plate in this stage's construction bill. */
+    public static FluidStack[] forStageFluids(CriticalConfiguration cfg, int stage, int voxelCount) {
+        ItemStack[] itemCosts = forStage(cfg, stage, voxelCount);
+        long amount = 144L * itemCosts[0].stackSize;
+        FluidStack solder = Materials.SolderingAlloy.getMolten(amount);
+        if (solder == null || solder.amount <= 0)
+            throw new IllegalStateException("Missing construction soldering alloy");
+        return new FluidStack[] { solder.copy() };
     }
 
     private static ItemStack count(ItemStack source, int amount) {

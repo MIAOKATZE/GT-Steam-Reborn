@@ -4,7 +4,7 @@ import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
 
 /**
- * 奇点调谐棒选择提交包（C2S，disc 0）：词条游标 + 增量档位索引（原始索引，钳位在服务端）。
+ * 兼容 Shift 空气选择界面的 C2S 包；服务端拒绝越界值并更新奇点族 profile。
  */
 public class PacketWandSelect implements IMessage {
 

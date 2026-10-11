@@ -1,0 +1,124 @@
+package com.miaokatze.gtsr.common.critical;
+
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
+
+import net.minecraft.block.Block;
+import net.minecraft.world.World;
+
+/** Client-world chunk ownership index. No world scan, chunk loading or per-voxel tile entity. */
+public final class CriticalLoomProxyVisibility {
+
+    private static final Map<World, Map<Long, Map<Long, Entry>>> WORLDS = Collections
+        .synchronizedMap(new WeakHashMap<>());
+    private static final Map<TileEntityCriticalRenderAnchor, Registration> ANCHORS = new WeakHashMap<>();
+    private static List<CriticalGeometry.Voxel> proxies;
+
+    private CriticalLoomProxyVisibility() {}
+
+    public static boolean animated(World world, int x, int y, int z, Block block, int metadata) {
+        if (world == null || !world.isRemote) return false;
+        Map<Long, Map<Long, Entry>> chunks = WORLDS.get(world);
+        Map<Long, Entry> positions = chunks == null ? null : chunks.get(chunkKey(x, z));
+        Entry entry = positions == null ? null : positions.get(positionKey(x, y, z));
+        TileEntityCriticalRenderAnchor anchor = entry == null ? null : entry.anchor.get();
+        return anchor != null && !anchor.isInvalid()
+            && anchor.isLoomVisible()
+            && CriticalMaterials.matchesLoomVoxel(block, metadata, entry.voxel);
+    }
+
+    public static void refresh(TileEntityCriticalRenderAnchor anchor) {
+        World world = anchor.getWorldObj();
+        if (world == null || !world.isRemote) return;
+        CriticalMachineState state = anchor.getVisualState();
+        boolean visible = !anchor.isInvalid() && anchor.isLoomVisible()
+            && anchor.xCoord == state.xCoord
+            && anchor.yCoord == state.yCoord + 1
+            && anchor.zCoord == state.zCoord;
+        Registration old = ANCHORS.get(anchor);
+        if (old != null && visible
+            && old.world.get() == world
+            && old.x == state.getOriginX()
+            && old.y == state.getOriginY()
+            && old.z == state.getOriginZ()) return;
+        remove(anchor);
+        if (!visible) return;
+        Registration registration = new Registration(world, state.getOriginX(), state.getOriginY(), state.getOriginZ());
+        ANCHORS.put(anchor, registration);
+        Map<Long, Map<Long, Entry>> chunks = WORLDS.computeIfAbsent(world, ignored -> new ConcurrentHashMap<>());
+        for (CriticalGeometry.Voxel voxel : proxies()) {
+            int x = registration.x + voxel.x, y = registration.y + voxel.y, z = registration.z + voxel.z;
+            chunks.computeIfAbsent(chunkKey(x, z), ignored -> new ConcurrentHashMap<>())
+                .put(positionKey(x, y, z), new Entry(anchor, voxel));
+        }
+        registration.redraw();
+    }
+
+    public static void remove(TileEntityCriticalRenderAnchor anchor) {
+        Registration registration = ANCHORS.remove(anchor);
+        if (registration == null) return;
+        World world = registration.world.get();
+        Map<Long, Map<Long, Entry>> chunks = world == null ? null : WORLDS.get(world);
+        if (chunks != null) for (CriticalGeometry.Voxel voxel : proxies()) {
+            int x = registration.x + voxel.x, y = registration.y + voxel.y, z = registration.z + voxel.z;
+            long chunk = chunkKey(x, z), position = positionKey(x, y, z);
+            Map<Long, Entry> positions = chunks.get(chunk);
+            if (positions == null) continue;
+            Entry entry = positions.get(position);
+            if (entry != null && entry.anchor.get() == anchor) positions.remove(position);
+            if (positions.isEmpty()) chunks.remove(chunk);
+        }
+        registration.redraw();
+    }
+
+    private static List<CriticalGeometry.Voxel> proxies() {
+        if (proxies == null) {
+            proxies = new ArrayList<>();
+            CriticalGeometry.Model model = CriticalGeometry.getModel("loom");
+            for (CriticalGeometry.Voxel voxel : model.voxels) if (model.animations.has(voxel.group)) proxies.add(voxel);
+        }
+        return proxies;
+    }
+
+    private static long chunkKey(int x, int z) {
+        return (long) (x >> 4) << 32 | (z >> 4) & 0xffffffffL;
+    }
+
+    private static long positionKey(int x, int y, int z) {
+        return (long) y << 8 | (x & 15) << 4 | z & 15;
+    }
+
+    private static final class Entry {
+
+        final WeakReference<TileEntityCriticalRenderAnchor> anchor;
+        final CriticalGeometry.Voxel voxel;
+
+        Entry(TileEntityCriticalRenderAnchor anchor, CriticalGeometry.Voxel voxel) {
+            this.anchor = new WeakReference<>(anchor);
+            this.voxel = voxel;
+        }
+    }
+
+    private static final class Registration {
+
+        final WeakReference<World> world;
+        final int x, y, z;
+
+        Registration(World world, int x, int y, int z) {
+            this.world = new WeakReference<>(world);
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        void redraw() {
+            World current = world.get();
+            if (current != null) current.markBlockRangeForRenderUpdate(x + 33, y, z + 33, x + 47, y + 35, z + 47);
+        }
+    }
+}

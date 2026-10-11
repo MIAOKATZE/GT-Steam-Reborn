@@ -22,6 +22,8 @@ public final class CriticalMaterials {
 
     private static final Map<String, MaterialBlock> STATIC = new LinkedHashMap<>();
     private static final Map<String, MaterialBlock> PROXY = new LinkedHashMap<>();
+    private static final Map<String, MaterialBlock> LOOM_STATIC = new LinkedHashMap<>();
+    private static final Map<String, MaterialBlock> LOOM_PROXY = new LinkedHashMap<>();
     private static JsonObject palette;
 
     private CriticalMaterials() {}
@@ -29,6 +31,20 @@ public final class CriticalMaterials {
     public static void register() {
         if (!STATIC.isEmpty()) return;
         palette = CriticalGeometry.readJson("materials.json");
+        JsonObject loomGeometry = CriticalGeometry.readJson("models/loom.geometry.json");
+        java.util.Set<String> loomForms = new java.util.HashSet<>();
+        for (JsonElement element : loomGeometry.getAsJsonArray("blocks")) {
+            com.google.gson.JsonArray row = element.getAsJsonArray();
+            String id = properties(
+                row.get(3)
+                    .getAsString()).get("id")
+                        .getAsString();
+            boolean dynamic = loomGeometry.getAsJsonObject("animationGroups")
+                .has(
+                    row.get(4)
+                        .getAsString());
+            loomForms.add(id + ':' + dynamic);
+        }
         for (Map.Entry<String, JsonElement> entry : palette.entrySet()) {
             JsonObject value = entry.getValue()
                 .getAsJsonObject();
@@ -48,6 +64,16 @@ public final class CriticalMaterials {
             PROXY.put(id, proxy);
             GameRegistry.registerBlock(normal, ConstructionOnlyItemBlock.class, "critical_" + id);
             GameRegistry.registerBlock(proxy, ConstructionOnlyItemBlock.class, "critical_proxy_" + id);
+            if (loomForms.contains(id + ":false")) {
+                MaterialBlock loom = new MaterialBlock(id, false, glass, animated, emissive, true);
+                LOOM_STATIC.put(id, loom);
+                GameRegistry.registerBlock(loom, "critical_loom_" + id);
+            }
+            if (loomForms.contains(id + ":true")) {
+                MaterialBlock loomProxy = new MaterialBlock(id, true, glass, animated, emissive, true);
+                LOOM_PROXY.put(id, loomProxy);
+                GameRegistry.registerBlock(loomProxy, "critical_loom_proxy_" + id);
+            }
         }
     }
 
@@ -66,23 +92,43 @@ public final class CriticalMaterials {
         return block;
     }
 
+    public static Block loomBlock(String alias, boolean dynamic) {
+        String id = properties(alias).get("id")
+            .getAsString();
+        Block block = (dynamic ? LOOM_PROXY : LOOM_STATIC).get(id);
+        if (block == null) throw new IllegalStateException("Critical materials not registered");
+        return block;
+    }
+
+    public static boolean matchesLoomVoxel(Block block, int metadata, CriticalGeometry.Voxel voxel) {
+        return "loom".equals(voxel.model) && metadata == 0
+            && (block == voxel.block || block == loomBlock(voxel.material, ((MaterialBlock) voxel.block).proxy));
+    }
+
     public static final class MaterialBlock extends Block {
 
         public final String materialId;
-        public final boolean proxy, transparent, animated, emissive;
+        public final boolean proxy, transparent, animated, emissive, loom;
         @SideOnly(Side.CLIENT)
         public IIcon emission;
         @SideOnly(Side.CLIENT)
         private IIcon top;
 
         private MaterialBlock(String id, boolean proxy, boolean transparent, boolean animated, boolean emissive) {
+            this(id, proxy, transparent, animated, emissive, false);
+        }
+
+        private MaterialBlock(String id, boolean proxy, boolean transparent, boolean animated, boolean emissive,
+            boolean loom) {
             super(transparent ? Material.glass : Material.iron);
+            this.loom = loom;
+            if (loom) setCreativeTab(com.miaokatze.gtsr.register.CreativeTabManager.CREATIVE_TAB);
             this.materialId = id;
             this.proxy = proxy;
             this.transparent = transparent;
             this.animated = animated;
             this.emissive = emissive;
-            setBlockName("critical_" + (proxy ? "proxy_" : "") + id);
+            setBlockName("critical_" + (loom ? "loom_" : "") + (proxy ? "proxy_" : "") + id);
             setHardness(500);
             setResistance(10000);
             setLightOpacity(transparent ? 0 : 255);
@@ -91,7 +137,7 @@ public final class CriticalMaterials {
 
         @Override
         public boolean canPlaceBlockAt(net.minecraft.world.World world, int x, int y, int z) {
-            return false;
+            return loom && super.canPlaceBlockAt(world, x, y, z);
         }
 
         @Override
@@ -118,7 +164,7 @@ public final class CriticalMaterials {
 
         @Override
         public int getRenderType() {
-            return proxy ? -1 : renderId;
+            return proxy && !loom ? -1 : renderId;
         }
 
         @Override

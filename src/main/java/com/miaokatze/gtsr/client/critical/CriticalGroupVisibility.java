@@ -10,6 +10,7 @@ import java.util.Set;
 
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
+import com.miaokatze.gtsr.common.critical.CriticalMaterials;
 
 /** Client-only bounded identity checks. A group is never drawn before its entire proxy set is present. */
 final class CriticalGroupVisibility {
@@ -25,14 +26,24 @@ final class CriticalGroupVisibility {
         identity = identity(controller);
         lastValidated = controller.isStructureValidated();
         add("loom");
-        add(
+        if (hasInstallation(controller)) add(
             controller.getMachineKind()
                 .name()
                 .toLowerCase(Locale.ROOT));
     }
 
     static String identity(CriticalMachineState controller) {
-        return controller.getStructureId() + ":" + controller.getTier() + ":" + controller.getMachineKind();
+        return controller.getStructureId() + ":"
+            + controller.getTier()
+            + ":"
+            + controller.getMachineKind()
+            + ":"
+            + hasInstallation(controller);
+    }
+
+    private static boolean hasInstallation(CriticalMachineState controller) {
+        return !controller.getStructureId()
+            .isEmpty() && controller.getState() != 0;
     }
 
     boolean matches(CriticalMachineState controller) {
@@ -69,10 +80,16 @@ final class CriticalGroupVisibility {
                 z = controller.getOriginZ() + voxel.z;
             boolean present = controller.getWorldObj()
                 .blockExists(x, y, z)
-                && controller.getWorldObj()
-                    .getBlock(x, y, z) == voxel.block
-                && controller.getWorldObj()
-                    .getBlockMetadata(x, y, z) == voxel.metadata;
+                && (group.loom ? CriticalMaterials.matchesLoomVoxel(
+                    controller.getWorldObj()
+                        .getBlock(x, y, z),
+                    controller.getWorldObj()
+                        .getBlockMetadata(x, y, z),
+                    voxel)
+                    : controller.getWorldObj()
+                        .getBlock(x, y, z) == voxel.block
+                        && controller.getWorldObj()
+                            .getBlockMetadata(x, y, z) == voxel.metadata);
             remaining--;
             if (!present) {
                 visible.remove(group.key);
@@ -93,11 +110,13 @@ final class CriticalGroupVisibility {
 
         final String key;
         final List<CriticalGeometry.Voxel> voxels;
+        final boolean loom;
         int cursor;
 
         Group(String key, List<CriticalGeometry.Voxel> voxels) {
             this.key = key;
             this.voxels = voxels;
+            this.loom = key.startsWith("loom:");
         }
     }
 }

@@ -13,6 +13,7 @@ public final class TileEntityCriticalRenderAnchor extends TileEntity {
     private final CriticalMachineState visual = new CriticalMachineState();
     private NBTTagCompound descriptor = new NBTTagCompound();
     private int ownerX, ownerY, ownerZ;
+    private long lastSync = Long.MIN_VALUE;
 
     @Override
     public boolean canUpdate() {
@@ -20,21 +21,48 @@ public final class TileEntityCriticalRenderAnchor extends TileEntity {
     }
 
     public boolean ownedBy(CriticalMachineState state) {
-        return ownerX == state.xCoord && ownerY == state.yCoord
-            && ownerZ == state.zCoord
-            && descriptor.getString("structureId")
-                .equals(state.getStructureId());
+        if (ownerX != state.xCoord || ownerY != state.yCoord || ownerZ != state.zCoord) return false;
+        String hostId = descriptor.getString("visualHostId");
+        // Old saves have no host token: only their original structure may adopt them once.
+        return hostId.isEmpty() ? descriptor.getString("structureId")
+            .equals(state.getStructureId()) : hostId.equals(state.getVisualHostId());
     }
 
     public void syncFrom(CriticalMachineState state) {
+        syncFrom(state, true);
+    }
+
+    public void syncFrom(CriticalMachineState state, boolean loomVisible) {
         NBTTagCompound next = state.getVisualData();
+        next.setString("visualHostId", state.getVisualHostId());
+        next.setBoolean("loomVisible", loomVisible);
         if (ownedBy(state) && descriptor.equals(next)) return;
+        long now = worldObj.getTotalWorldTime();
+        if (ownedBy(state) && sameStatus(descriptor, next)
+            && lastSync != Long.MIN_VALUE
+            && now >= lastSync
+            && now - lastSync < 20) return;
         ownerX = state.xCoord;
         ownerY = state.yCoord;
         ownerZ = state.zCoord;
         descriptor = (NBTTagCompound) next.copy();
+        lastSync = now;
         markDirty();
         worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+    }
+
+    private static boolean sameStatus(NBTTagCompound previous, NBTTagCompound next) {
+        NBTTagCompound a = (NBTTagCompound) previous.copy(), b = (NBTTagCompound) next.copy();
+        for (String clock : new String[] { "cycleTicks", "constructionElapsed", "cursor", "status" }) {
+            a.removeTag(clock);
+            b.removeTag(clock);
+        }
+        return a.equals(b);
+    }
+
+    public boolean isLoomVisible() {
+        return descriptor.getBoolean("loomVisible") || !descriptor.getString("structureId")
+            .isEmpty();
     }
 
     public CriticalMachineState getVisualState() {
@@ -68,6 +96,25 @@ public final class TileEntityCriticalRenderAnchor extends TileEntity {
         ownerZ = n.getInteger("ownerZ");
         descriptor = n.getCompoundTag("visual");
         applyDescriptor();
+        CriticalLoomProxyVisibility.refresh(this);
+    }
+
+    @Override
+    public void validate() {
+        super.validate();
+        CriticalLoomProxyVisibility.refresh(this);
+    }
+
+    @Override
+    public void invalidate() {
+        CriticalLoomProxyVisibility.remove(this);
+        super.invalidate();
+    }
+
+    @Override
+    public void onChunkUnload() {
+        CriticalLoomProxyVisibility.remove(this);
+        super.onChunkUnload();
     }
 
     @Override

@@ -3,6 +3,8 @@ package com.miaokatze.gtsr.loader.recipes;
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
+import com.miaokatze.gtsr.common.critical.CriticalGeometry;
+import com.miaokatze.gtsr.common.critical.CriticalLoomStructure;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalTier;
 import com.miaokatze.gtsr.common.critical.recipe.CriticalRecipes;
@@ -31,6 +33,7 @@ public final class CriticalMachineRecipes {
 
     public static void register() {
         if (registered) return;
+        registerLoomMaterials();
         if (!GTModHandler.addCraftingRecipe(
             GTSRItemList.CriticalLoom.get(1),
             new Object[] { "RFR", "SCE", "RMR", 'R', ItemList.Robot_Arm_ZPM.get(1), 'F',
@@ -73,6 +76,25 @@ public final class CriticalMachineRecipes {
             }
         }
         registered = true;
+    }
+
+    private static void registerLoomMaterials() {
+        java.util.Set<net.minecraft.block.Block> shells = new java.util.LinkedHashSet<>();
+        int circuit = 1;
+        for (CriticalGeometry.Voxel voxel : CriticalLoomStructure.voxels()) {
+            net.minecraft.block.Block shell = CriticalLoomStructure.shell(voxel);
+            if (!shells.add(shell)) continue;
+            GTValues.RA.stdBuilder()
+                .itemInputs(
+                    ItemList.Casing_ZPM.get(1),
+                    gregtech.api.util.GTOreDictUnificator.get(OrePrefixes.plate, Materials.TungstenSteel, 4),
+                    GTUtility.getIntegratedCircuit(circuit++))
+                .fluidInputs(Materials.SolderingAlloy.getMolten(144))
+                .itemOutputs(new net.minecraft.item.ItemStack(shell, 16))
+                .duration(100)
+                .eut(131072)
+                .addTo(RecipeMaps.assemblerRecipes);
+        }
     }
 
     private static void addBatch(RecipeMatch batch, int code, RecipeMap<RecipeMapBackend> map) {

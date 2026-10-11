@@ -21,9 +21,17 @@ public final class CriticalRenderAnchors {
     }
 
     public static void ensure(CriticalMachineState state) {
+        ensure(state, false);
+    }
+
+    /** The host supplies a cached, complete loom check; the anchor never scans the structure. */
+    public static void ensure(CriticalMachineState state, boolean independentLoomPresent) {
         if (state.worldObj == null || state.worldObj.isRemote) return;
-        if (state.getStructureId()
-            .isEmpty() || state.getState() == 0) {
+        if (state.getHost() == null
+            || state.worldObj.getTileEntity(state.xCoord, state.yCoord, state.zCoord) != state.getHost()) return;
+        boolean installation = !state.getStructureId()
+            .isEmpty() && state.getState() != 0;
+        if (!independentLoomPresent && !installation) {
             remove(state);
             return;
         }
@@ -31,11 +39,11 @@ public final class CriticalRenderAnchors {
         if (!state.worldObj.blockExists(x, y, z)) return;
         TileEntity tile = state.worldObj.getTileEntity(x, y, z);
         if (tile instanceof TileEntityCriticalRenderAnchor anchor && anchor.ownedBy(state)) {
-            anchor.syncFrom(state);
+            anchor.syncFrom(state, independentLoomPresent || installation);
         } else if (state.worldObj.isAirBlock(x, y, z)) {
             if (state.worldObj.setBlock(x, y, z, BLOCK, 0, 3)
                 && state.worldObj.getTileEntity(x, y, z) instanceof TileEntityCriticalRenderAnchor anchor)
-                anchor.syncFrom(state);
+                anchor.syncFrom(state, independentLoomPresent || installation);
         }
     }
 

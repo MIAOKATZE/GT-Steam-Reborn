@@ -31,3 +31,19 @@ python tools/critical/client_fixture.py run gt-<唯一名称>
 夹具禁用失焦暂停，并读回实际 `GameSettings` 值。玩家必须完成登录、落在真实石平台上，双端同维度且在原生交互距离内稳定 20 ticks；客户端实际 GT 主机/MTE 网络同步后才请求服务端开窗。UI 截图在 `RenderTick.END` 捕获完整帧，NEI 结构页通过原生 `setRecipePage` 切换。TESR 样本绑定真实主 framebuffer 后立即读取像素与截图；它只证明纯 visual NBT 与 canonical proxy geometry 的实际渲染，不证明支付业务。
 
 定向补查可用 `compile <新phase> --mode gt --preview-from <旧phase>` 引用已执行的完整预览证据。脚本必须验证同一候选 SHA、实际来源绑定、候选未变及所有 preview 检查通过；新回执明确记录引用路径，不声称本轮重新构造矩阵。`receipt.probeSHA` 是已执行 helper JAR 的 SHA；源 SHA 为 `launch.probeSourceSHA`，归档源文件位于该 phase 的 `CriticalGTClientProbe.java`。
+
+## v1.21.17 独立织机客户端模式
+
+`compile <新phase> --mode loom` 编译 `CriticalLoomClientProbe.java`，输出位于 `build/critical-machines-v12117/client`。从旧版本 fixture 使用 `fork --source-out build/critical-machines-v12116/client --from-phase <phase> --jar <冻结候选jar>`，不复制旧世界。该模式以1280×720启动真实 RC-2 客户端和独立集成服务器，手工放置1941 canonical loom voxels、三种GT舱口，真实StructureLib成型；通过HubTerminal开四页原生MUI2并核验72slots、16fluids、windowId/S2C、350×212布局和点击释放/关闭。新候选执行1个独立loom与3个selected target完整预览，不引用旧27矩阵。
+
+调试测试发布真实Forge PlayerInteractEvent，证明生产WandClient拦截和正常右击发送；OPEN使用明确的WandNet.sendTarget(action0)网络入口，不声称模拟Alt实体键。真实selector按钮鼠标命中产生C2Sprofile，只写棒NBT；随后目标APPLY/RESET包检查生产adapter。TESR使用独立纯视觉NBT样本，在真实客户端AngelicaGLStateManager/dispatcher/framebuffer中绘制loom idle与施工两态并保存PNG；该视觉样本不证明材料支付。完整自然施工支付、ME事务与survival由专服loom探针覆盖。
+
+需求页另核对大阶段焊锡需求同步，并用原生ListWidget滚动保存大阶段成本与小回合缺料截图。第二个真实奇点控制器验证动态schema和旧超限应用/逆向。新loomproxy fallback使用真实TrackedDummyWorld观测子类（仅记录其空markRange方法调用）检查15×36×15范围、ownership缓存、clock不重画、invalidate/validate/descriptor切换，以及实际MaterialRenderer/RenderBlocks/Tessellator顶点。
+
+客户端ME显示验收在已启动但未供料的真实织机上暂停工作，保留普通输入总线/流体仓/能源仓，并加入原生ME总线/流体仓、AE胸箱与有限1k物品/AE2FC流体存储单元。待网络自然启动后向真实monitor注入下一回合库存，检查生产缺料getter与客户端MUI2 item/fluid缺料列表S2C共同归零、内部槽不伪导入且elapsed不推进；这只证明ME显示/同步，扣款另用专服事务证据。
+
+滚轮输入明确写入synthetic GuiContext wheel，再经真实screen/ListWidget分派；原生ScrollData有500ms动画，因此在后续20个自然client ticks读取实际滚动位置。ME展示快照有20个world ticks缓存，注入与getter验收分开，至少等待25个实际world ticks；不反射清生产缓存。回执保存即时/过期后的需求、快照、过滤器、网格工作状态及elapsed，用于区分正常缓存延迟与库存问题。Windows读checks.json显式使用UTF-8。
+
+冻结候选D的实际完整结果位于`build/critical-machines-v12117/client/candidate-d-loom-r3`：156/156 PASS，exit0，候选绑定及未变检查均为true，1280×720，新世界/新JVM，运行164.36秒；15张PNG位于其`screenshots`。候选SHA256为`5eef79642722afa13d88899dab3504f2f3aef1ecd9f477f18e35b0e248b15a57`。前两次`candidate-d-loom`与`candidate-d-loom-r2`的FAIL证据保留：分别是helper在500ms滚动动画同回调立即读取起点、在ME20worldtick缓存过期前立即断言库存，不当作生产故障或PASS。
+
+最终ME注入后第35个实际worldtick，需求1plate/99mB、有限库存快照8plate/122mB，物品与流体缺料均归零，host暂停且elapsed=0。主代理已逐张查看需求三位置、ME已供应、两families调试面板及idle/build TESR截图，确认文字与按钮可读。OPEN代表Alt右击所触发的包入口模拟，未模拟硬件Alt按键；真实Forge PlayerInteractEvent另覆盖正常右击客户端键状态捕获与APPLY。TESR纯视觉图显示实际动画组，不能视为完整1941壳体世界照片，不证明FPS或施工支付。

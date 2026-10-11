@@ -3,7 +3,7 @@ from pathlib import Path
 import argparse, hashlib, json, os, shutil, socket, subprocess, time, zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / 'build/critical-machines-v12116/native'
+OUT = ROOT / 'build/critical-machines-v12117/native'
 BASE = ROOT / 'build/coke-rebuild-v12114/native/natural-final/fixture'
 LEASE = Path('E:/CodeGT/.gtsr-native-server.lease')
 
@@ -13,7 +13,7 @@ def java_processes():
     data = json.loads(r.stdout) if r.stdout.strip() else []
     return data if isinstance(data, list) else [data]
 
-def prepare(jar, phase, hatch_guards=False):
+def prepare(jar, phase, hatch_guards=False, auto_diagnostic=False):
     target = OUT / phase
     target.mkdir(parents=True, exist_ok=False)
     fixture = target / 'fixture'
@@ -34,6 +34,7 @@ def prepare(jar, phase, hatch_guards=False):
     shutil.copy2(jar, fixture / 'mods/production-gtsr.jar')
     java = Path.home() / '.gradle/jdks/azul_systems__inc_-21-amd64-windows.2/bin/java.exe'
     command = [str(java), '-Xms512M', '-Xmx3G', '-Djava.awt.headless=true', '-Dcritical.receipt=' + str(target / 'checks.json'), '@java9args.txt', '-jar', 'lwjgl3ify-forgePatches.jar', 'nogui']
+    if auto_diagnostic: command.insert(4, "-Dcritical.autoDiagnostic=true")
     if hatch_guards: command.insert(4, '-Dcritical.hatchGuards=true')
     spec = dict(command=command, cwd=str(fixture), jar=str(jar.resolve()), sha256=hashlib.sha256(jar.read_bytes()).hexdigest(), port=port, seed='1211501', baseline=str(BASE))
     (target / 'launch.json').write_text(json.dumps(spec, indent=2))
@@ -47,7 +48,7 @@ def compile_probe(phase, probe='legacy'):
     gson = next((Path.home() / '.gradle/caches/modules-2/files-2.1').glob('com.google.code.gson/gson/2.2.4/*/*.jar'))
     javac = Path.home() / '.gradle/jdks/azul_systems__inc_-17-amd64-windows.2/bin/javac.exe'
     cp = [ROOT / 'build/classes/java/patchedMc', fixture / 'forge-1.7.10-10.13.4.1614-1.7.10-universal.jar', fixture / 'minecraft_server.1.7.10.jar', gson, fixture / 'mods/*']
-    source_name='CriticalGTIntegrationProbe.java' if probe=='gt' else 'CriticalNativeProbe.java'
+    source_name={'gt':'CriticalGTIntegrationProbe.java','loom':'CriticalLoomIntegrationProbe.java','legacy':'CriticalNativeProbe.java'}[probe]
     source = target / source_name
     shutil.copy2(Path(__file__).with_name(source_name), source)
     proc = subprocess.run([str(javac), '-encoding', 'UTF-8', '-proc:none', '-source', '8', '-target', '8', '-cp', ';'.join(map(str, cp)), '-d', str(classes), str(source)], capture_output=True, text=True)
@@ -106,17 +107,20 @@ def run(phase):
                 proc.stdin.write(b'stop\n'); proc.stdin.flush(); code = proc.wait(timeout=120)
         checks = target / 'checks.json'
         status = json.loads(checks.read_text(encoding='utf-8')).get('status') if checks.exists() else 'NO_RECEIPT'
-        receipt = dict(spec, pid=proc.pid, exit_code=code, seconds=time.time()-start, status=status)
+        shutdown_log = (target / 'stdout.log').read_text(encoding='utf-8', errors='replace') + (target / 'stderr.log').read_text(encoding='utf-8', errors='replace')
+        shutdown_errors = [line for line in shutdown_log.splitlines() if 'Exception stopping the server' in line or ('releaseTicket' in line and ('ForgeChunkManager.java' in line or 'CriticalChunkLoading.java' in line))]
+        shutdown_clean = not shutdown_errors
+        receipt = dict(spec, pid=proc.pid, exit_code=code, seconds=time.time()-start, status=status if shutdown_clean else 'FAIL_SHUTDOWN', shutdown_clean=shutdown_clean, shutdown_errors=shutdown_errors)
         (target / 'receipt.json').write_text(json.dumps(receipt, indent=2)); print(json.dumps(receipt))
     finally:
         if proc is None or proc.poll() is not None: LEASE.unlink()
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(); parser.add_argument('action', choices=['prepare', 'compile', 'run','restart']); parser.add_argument('phase'); parser.add_argument('--jar', type=Path);parser.add_argument('--probe',choices=['legacy','gt'],default='legacy');parser.add_argument('--from-phase');parser.add_argument('--hatch-guards',action='store_true')
+    parser = argparse.ArgumentParser(); parser.add_argument('action', choices=['prepare', 'compile', 'run','restart']); parser.add_argument('phase'); parser.add_argument('--jar', type=Path);parser.add_argument('--probe',choices=['legacy','gt','loom'],default='legacy');parser.add_argument('--from-phase');parser.add_argument('--hatch-guards',action='store_true');parser.add_argument('--auto-diagnostic',action='store_true')
     args = parser.parse_args()
     if args.action == 'prepare':
         if not args.jar: parser.error('--jar is required for prepare')
-        prepare(args.jar, args.phase,args.hatch_guards)
+        prepare(args.jar, args.phase,args.hatch_guards,args.auto_diagnostic)
     elif args.action == 'restart':
         if not args.from_phase: parser.error('--from-phase is required for restart')
         fork_restart(args.from_phase,args.phase)
