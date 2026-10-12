@@ -5,6 +5,21 @@ import net.minecraft.item.ItemStack;
 public final class CriticalRuntime {
 
     private static boolean registered;
+    private static final java.util.Set<CriticalMachineState> CLEARANCE = java.util.Collections
+        .newSetFromMap(new java.util.WeakHashMap<>());
+
+    static void registerClearance(CriticalMachineState state) {
+        if (state.worldObj != null && !state.worldObj.isRemote) CLEARANCE.add(state);
+    }
+
+    static void unregisterClearance(CriticalMachineState state) {
+        if (state.worldObj != null && !state.worldObj.isRemote) CLEARANCE.remove(state);
+    }
+
+    public static void changedDuringClearance(net.minecraft.world.World world, int x, int y, int z) {
+        if (world.isRemote || CLEARANCE.isEmpty()) return;
+        for (CriticalMachineState state : CLEARANCE) if (state.worldObj == world) state.recordClearanceChange(x, y, z);
+    }
 
     private CriticalRuntime() {}
 
@@ -44,8 +59,11 @@ public final class CriticalRuntime {
 
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
         public void onChange(net.minecraftforge.event.world.BlockEvent event) {
-            if (!event.world.isRemote) CriticalWorldData.get(event.world)
-                .invalidateAt(event.world, event.x, event.y, event.z);
+            if (!event.world.isRemote) {
+                changedDuringClearance(event.world, event.x, event.y, event.z);
+                CriticalWorldData.get(event.world)
+                    .invalidateAt(event.world, event.x, event.y, event.z);
+            }
         }
     }
 }

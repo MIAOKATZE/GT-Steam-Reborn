@@ -10,6 +10,7 @@ public final class CriticalTooltips {
     private CriticalTooltips() {}
 
     public static MultiblockTooltipBuilder create(CriticalMachineKind preset) {
+        if (preset == null || preset == CriticalMachineKind.SUN) return v2(preset);
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(tr(preset == null ? "type" : "kind." + preset.key))
             .addInfo(tr("tooltip.selection"))
@@ -39,6 +40,32 @@ public final class CriticalTooltips {
             || preset == CriticalMachineKind.ACCELERATOR)
             tt.addDynamoHatch(tr("tooltip.ports"))
                 .addStructureInfo(tr("tooltip.dynamo"));
+        tt.addStructureHint("gtsr.critical.tooltip.port_hint", 1);
+        tt.toolTipFinisher("GTSteamReborn");
+        return tt;
+    }
+
+    private static MultiblockTooltipBuilder v2(CriticalMachineKind preset) {
+        MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
+        tt.addMachineType(tr(preset == null ? "v2.loom_type" : "kind.sun"))
+            .addInfo(tr("v2.shared"))
+            .addInfo(tr("v2.tier"))
+            .addInfo(tr("tooltip.plugins"))
+            .addInfo(tr("tooltip.recipe"))
+            .addInfo(tr("v2.loom"))
+            .addInfo(tr("v2.safe"))
+            .addInfo(tr("v2.dismantle"))
+            .addInfo(tr("v2.legacy"))
+            .addSeparator()
+            .beginStructureBlock(112, 180, 112, false)
+            .addController(tr(preset == null ? "v2.loom_controller" : "v2.main_controller"))
+            .addStructureInfo(tr("v2.region"))
+            .addStructureInfo(tr("v2.controllers"))
+            .addInputBus(tr("tooltip.ports"))
+            .addInputHatch(tr("tooltip.ports"))
+            .addEnergyHatch(tr("tooltip.ports"))
+            .addDynamoHatch(tr("tooltip.ports"))
+            .addStructureInfo(tr("tooltip.physical_inputs"));
         tt.addStructureHint("gtsr.critical.tooltip.port_hint", 1);
         tt.toolTipFinisher("GTSteamReborn");
         return tt;

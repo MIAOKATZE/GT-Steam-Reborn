@@ -55,14 +55,16 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     public MTECriticalMachine(int id, String name, String localizedName, CriticalMachineKind kind) {
         super(id, name, localizedName);
         presetKind = kind;
-        state.presetKind(kind);
+        state.setLoomController(kind == null);
+        state.presetKind(kind == null ? CriticalMachineKind.SUN : kind);
         registerCriticalProgress();
     }
 
     public MTECriticalMachine(String name, CriticalMachineKind kind) {
         super(name);
         presetKind = kind;
-        state.presetKind(kind);
+        state.setLoomController(kind == null);
+        state.presetKind(kind == null ? CriticalMachineKind.SUN : kind);
         registerCriticalProgress();
     }
 
@@ -113,6 +115,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     public String[] getInfoData() {
         java.util.List<String> info = new java.util.ArrayList<>(java.util.Arrays.asList(super.getInfoData()));
         CriticalMachineState current = getCriticalState();
+        if (current.getGeometryVersion() == 2) info.add(StatCollector.translateToLocal("gtsr.critical.v2.shared"));
+        info.add(current.getStatus());
         info.add(
             StatCollector.translateToLocal("gtsr.critical.status." + current.getState()) + " / "
                 + StatCollector.translateToLocal("gtsr.critical.reason." + current.getReasonCode()));
@@ -199,6 +203,29 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     }
 
     public CriticalMachineState getCriticalState() {
+        getLocalCriticalState();
+        if (isKindSelector() && state.getGeometryVersion() == 2 && getBaseMetaTileEntity() != null) {
+            IGregTechTileEntity tile = getBaseMetaTileEntity();
+            if (tile.getFrontFacing() == ForgeDirection.NORTH && tile.getWorld()
+                .getChunkProvider()
+                .chunkExists(tile.getXCoord() >> 4, (tile.getZCoord() - 12) >> 4)
+                && tile.getWorld()
+                    .getTileEntity(
+                        tile.getXCoord(),
+                        tile.getYCoord(),
+                        tile.getZCoord() - 12) instanceof IGregTechTileEntity gt
+                && gt.getFrontFacing() == ForgeDirection.SOUTH
+                && gt.getMetaTileEntity() instanceof MTECriticalMachine main
+                && main.getPresetKind() == CriticalMachineKind.SUN
+                && main.getLocalCriticalState()
+                    .getGeometryVersion() == 2)
+                return main.getLocalCriticalState();
+        }
+        return state;
+    }
+
+    /** The selector has no second journal; its local state describes only its physical control position. */
+    public CriticalMachineState getLocalCriticalState() {
         if (getBaseMetaTileEntity() instanceof TileEntity tile) state.bindHost(tile);
         return state;
     }
@@ -293,6 +320,15 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         super.onPostTick(tile, tick);
         if (!tile.isServerSide()) return;
         CriticalMachineState current = getCriticalState();
+        if (getLocalCriticalState().getGeometryVersion() == 2) {
+            byte light = 4;
+            if (tile instanceof gregtech.api.metatileentity.BaseMetaTileEntity base && base.getLightValue() != light)
+                base.setLightValue(light);
+        }
+        if (isKindSelector() && state.getGeometryVersion() == 2) {
+            tile.setActive(current != state && current.isWorking());
+            return;
+        }
         discoverHatches(false);
         energySpentThisTick = 0;
         energyEmittedThisTick = 0;
@@ -653,7 +689,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     public void setItemNBT(NBTTagCompound n) {
         super.setItemNBT(n);
         NBTTagCompound journal = new NBTTagCompound();
-        getCriticalState().writeToNBT(journal);
+        getLocalCriticalState().writeToNBT(journal);
         n.setTag("criticalState", journal);
         if (getBaseMetaTileEntity() != null) n.setLong("mStoredEnergy", getBaseMetaTileEntity().getStoredEU());
     }
@@ -669,6 +705,11 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     }
 
     @Override
+    public int getLightOpacity() {
+        return getLocalCriticalState().getGeometryVersion() == 2 ? 255 : super.getLightOpacity();
+    }
+
+    @Override
     public void loadNBTData(NBTTagCompound n) {
         super.loadNBTData(n);
         if (n.hasKey("criticalState", 10)) state.readFromNBT(n.getCompoundTag("criticalState"));
@@ -677,13 +718,13 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     @Override
     public void onRemoval() {
-        getCriticalState().invalidate();
+        if (!isKindSelector() || state.getGeometryVersion() != 2) getCriticalState().invalidate();
         super.onRemoval();
     }
 
     @Override
     public void onUnload() {
-        getCriticalState().onChunkUnload();
+        if (!isKindSelector() || state.getGeometryVersion() != 2) getCriticalState().onChunkUnload();
         super.onUnload();
     }
 
@@ -701,6 +742,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     @Override
     public ITexture[] getTexture(IGregTechTileEntity tile, ForgeDirection side, ForgeDirection facing, int color,
         boolean active, boolean redstone) {
-        return CriticalControllerTextures.get(presetKind, side, facing, active);
+        return CriticalControllerTextures
+            .get(presetKind, side, facing, active, getLocalCriticalState().getGeometryVersion() == 2);
     }
 }

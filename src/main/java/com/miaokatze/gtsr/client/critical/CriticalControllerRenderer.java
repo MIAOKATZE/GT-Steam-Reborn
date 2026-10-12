@@ -15,6 +15,7 @@ import java.util.WeakHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraft.client.resources.IResourceManager;
@@ -42,6 +43,13 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     implements IResourceManagerReloadListener {
 
     private final Map<String, List<Mesh>> meshes = new HashMap<>();
+    private final CriticalMeshCache nativeMeshes = new CriticalMeshCache();
+    private final Map<TileEntityCriticalRenderAnchor, CriticalLightCache> lightCaches = new WeakHashMap<>();
+    private final Map<TileEntityCriticalRenderAnchor, VisualClock> clocks = new WeakHashMap<>();
+    private final List<CriticalMeshCache.Mesh> nativeBlended = new ArrayList<>();
+    private CriticalMachineState renderingController;
+    private CriticalLightCache currentLight;
+    private int anchorLight;
     private final DoubleBuffer matrix = BufferUtils.createDoubleBuffer(16);
     private final Map<TileEntityCriticalRenderAnchor, CriticalGroupVisibility> visibility = new WeakHashMap<>();
     private final Map<JsonObject, double[]> groupMatrices = new IdentityHashMap<>();
@@ -59,6 +67,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
 
     public static void register() {
         CriticalControllerRenderer renderer = new CriticalControllerRenderer();
+        CriticalFXBudget.register();
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCriticalRenderAnchor.class, renderer);
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(renderer);
@@ -68,14 +77,20 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     public void onResourceManagerReload(IResourceManager manager) {
         for (List<Mesh> model : meshes.values()) for (Mesh mesh : model) GL11.glDeleteLists(mesh.list, 1);
         meshes.clear();
+        nativeMeshes.clear();
+        lightCaches.clear();
         visibility.clear();
         groupMatrices.clear();
+        CriticalFX.clear();
     }
 
     @Override
     public void renderTileEntityAt(TileEntity tile, double x, double y, double z, float partialTicks) {
         if (!(tile instanceof TileEntityCriticalRenderAnchor anchor)) return;
         CriticalMachineState controller = anchor.getVisualState();
+        CriticalRenderMetrics.renderCalls++;
+        renderingController = controller;
+        currentLight = lightCaches.computeIfAbsent(anchor, ignored -> new CriticalLightCache());
         boolean installation = !controller.getStructureId()
             .isEmpty() && controller.getState() != 0;
         if (!installation && !anchor.isLoomVisible()) return;
@@ -91,10 +106,14 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             Minecraft.getMinecraft().thePlayer.posY,
             Minecraft.getMinecraft().thePlayer.posZ) > 512D * 512D) return;
         activeGroups = checked.update(controller);
-        double seconds = (controller.getWorldObj()
-            .getTotalWorldTime() + partialTicks) / 20D;
         boolean hasBatch = !controller.getBatchId()
             .isEmpty();
+        boolean pending = hasBatch || controller.getState() == 1 || controller.getState() == 4;
+        double seconds = clocks.computeIfAbsent(anchor, ignored -> new VisualClock())
+            .update(
+                controller.getWorldObj()
+                    .getTotalWorldTime() + partialTicks,
+                pending && !controller.isWorking());
         double phase = hasBatch
             ? Math.min(1, controller.getVisualCycleTicks(partialTicks) / Math.max(1D, controller.getCycleDuration()))
             : 0;
@@ -116,22 +135,50 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             GL11.glColor4f(1, 1, 1, 1);
-            int light = controller.getWorldObj()
-                .getLightBrightnessForSkyBlocks(tile.xCoord, tile.yCoord + 1, tile.zCoord, 0);
-            OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, light & 65535, light >> 16);
-            String slug = controller.getMachineKind()
-                .name()
-                .toLowerCase(Locale.ROOT);
+            anchorLight = currentLight.sample(
+                controller.getWorldObj(),
+                "anchor",
+                new double[][] { { tile.xCoord, tile.yCoord + 1, tile.zCoord } },
+                IDENTITY,
+                0,
+                0,
+                0,
+                0);
+            OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, anchorLight & 65535, anchorLight >> 16);
+            String slug = CriticalGeometry.visualMachineSlug(controller),
+                loomSlug = CriticalGeometry.visualLoomSlug(controller),
+                baseSlug = CriticalGeometry.visualBaseSlug(controller);
             double buildPhase = Math.min(
                 1,
                 controller.getVisualConstructionTicks(partialTicks)
                     / Math.max(1D, controller.getConstructionDuration()));
+            if (controller.getState() == 3)
+                buildPhase = Math.min(1, controller.getCursor() / Math.max(1D, controller.getJobTotal()));
             String constructionMode = controller.getConstructionVisualMode();
-            if (anchor.isLoomVisible()) renderModel("loom", buildPhase, seconds, constructionMode);
-            if (installation) renderModel(slug, phase, seconds, hasBatch ? "build" : "idle");
-            if (installation && controller.getState() >= 2) renderPlugins(controller, phase, seconds);
+            if (anchor.isLoomVisible()) renderModel(loomSlug, buildPhase, seconds, constructionMode);
+            if (installation) {
+                renderModel(baseSlug, phase, seconds, hasBatch ? "build" : "idle");
+                renderModel(slug, phase, seconds, hasBatch ? "build" : "idle");
+            }
+            if (installation && controller.hasInstalledPlugins()) renderPlugins(controller, phase, seconds);
             if (installation && complete && controller.isStructureValidated()) {
-                CriticalFX.render(slug, CriticalGeometry.getModel(slug), phase, seconds);
+                double dx = cameraX - controller.getRegionSize() * .5,
+                    dy = cameraY - controller.getRegionHeight() * .55, dz = cameraZ - controller.getRegionSize() * .5;
+                double distanceSquared = dx * dx + dy * dy + dz * dz;
+                int setting = Minecraft.getMinecraft().gameSettings.particleSetting;
+                if (CriticalGeometry.isV2(controller)) CriticalFX.renderV2(
+                    CriticalGeometry.getModel(slug),
+                    CriticalGeometry.getModel(loomSlug),
+                    CriticalGeometry.getModel(baseSlug),
+                    phase,
+                    seconds,
+                    distanceSquared,
+                    setting,
+                    activeGroups,
+                    slug,
+                    loomSlug,
+                    baseSlug);
+                else CriticalFX.render(slug, CriticalGeometry.getModel(slug), phase, seconds, distanceSquared, setting);
             }
         } finally {
             GL11.glMatrixMode(GL11.GL_MODELVIEW);
@@ -139,10 +186,14 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             GL11.glPopAttrib();
             OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, previousLightX, previousLightY);
             activeGroups = null;
+            renderingController = null;
+            currentLight = null;
         }
     }
 
     private void renderPlugins(CriticalMachineState controller, double phase, double seconds) {
+        // V2 generic contacts are actual fixed blocks; chunk rendering owns them, never a duplicate TESR mesh.
+        if (controller.hasPhysicalPlugins()) return;
         String tier = controller.getTier()
             .name()
             .toLowerCase(Locale.ROOT);
@@ -174,6 +225,10 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     }
 
     private void renderModel(String slug, double phase, double seconds, String mode) {
+        if (slug.startsWith("v2_")) {
+            renderNativeModel(slug, phase, seconds, mode);
+            return;
+        }
         List<Mesh> model = meshes.computeIfAbsent(slug, this::compile);
         List<Mesh> blended = new ArrayList<>();
         for (Mesh mesh : model) if (mesh.pass == 2 && visible(slug, mesh)) blended.add(mesh);
@@ -193,6 +248,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                     bindTexture(mesh.texture);
                     if (mesh.animated) animateTexture(true, seconds);
                     GL11.glCallList(mesh.list);
+                    CriticalRenderMetrics.displayListDraws++;
                     if (mesh.animated) finishTexture();
                     if (mesh.emission != null) {
                         float oldX = OpenGlHelper.lastBrightnessX, oldY = OpenGlHelper.lastBrightnessY;
@@ -206,6 +262,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                         bindTexture(mesh.emission);
                         if (mesh.animated) animateTexture(true, seconds);
                         GL11.glCallList(mesh.list);
+                        CriticalRenderMetrics.displayListDraws++;
                         if (mesh.animated) finishTexture();
                         GL11.glColor4f(1, 1, 1, 1);
                         GL11.glDisable(GL11.GL_POLYGON_OFFSET_FILL);
@@ -213,6 +270,68 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                         GL11.glDepthMask(pass != 2);
                         if (pass != 2) GL11.glDisable(GL11.GL_BLEND);
                         OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, oldX, oldY);
+                    }
+                } finally {
+                    GL11.glPopMatrix();
+                }
+            }
+        }
+        GL11.glDepthMask(true);
+    }
+
+    private void renderNativeModel(String slug, double phase, double seconds, String mode) {
+        List<CriticalMeshCache.Mesh> model = nativeMeshes.get(slug);
+        nativeBlended.clear();
+        for (CriticalMeshCache.Mesh mesh : model)
+            if (mesh.pass == 2 && (activeGroups == null || activeGroups.contains(mesh.visibilityKey)))
+                nativeBlended.add(mesh);
+        nativeBlended.sort(Comparator.comparingDouble((CriticalMeshCache.Mesh mesh) -> {
+            double[] matrix = pose(mesh.animation, phase, seconds, mode), p = mesh.center;
+            double dx = matrix[0] * p[0] + matrix[4] * p[1] + matrix[8] * p[2] + matrix[12] - cameraX,
+                dy = matrix[1] * p[0] + matrix[5] * p[1] + matrix[9] * p[2] + matrix[13] - cameraY,
+                dz = matrix[2] * p[0] + matrix[6] * p[1] + matrix[10] * p[2] + matrix[14] - cameraZ;
+            return dx * dx + dy * dy + dz * dz;
+        })
+            .reversed());
+        bindTexture(TextureMap.locationBlocksTexture);
+        for (int pass = 0; pass < 3; pass++) {
+            GL11.glDepthMask(pass != 2);
+            if (pass == 2) GL11.glEnable(GL11.GL_BLEND);
+            else GL11.glDisable(GL11.GL_BLEND);
+            GL11.glAlphaFunc(GL11.GL_GREATER, pass == 1 ? .5F : .01F);
+            for (CriticalMeshCache.Mesh mesh : pass == 2 ? nativeBlended : model) {
+                if (mesh.pass != pass || activeGroups != null && !activeGroups.contains(mesh.visibilityKey)) continue;
+                GL11.glPushMatrix();
+                try {
+                    double[] transform = pose(mesh.animation, phase, seconds, mode);
+                    int light = currentLight.sample(
+                        renderingController.getWorldObj(),
+                        mesh.visibilityKey,
+                        mesh.lightSamples,
+                        transform,
+                        renderingController.getOriginX(),
+                        renderingController.getOriginY(),
+                        renderingController.getOriginZ(),
+                        anchorLight);
+                    OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, light & 65535, light >>> 16);
+                    affine(mesh.animation, phase, seconds, mode);
+                    GL11.glCallList(mesh.albedo);
+                    CriticalRenderMetrics.displayListDraws++;
+                    if (mesh.emission != 0) {
+                        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240, 240);
+                        GL11.glEnable(GL11.GL_BLEND);
+                        GL11.glDepthMask(false);
+                        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+                        GL11.glEnable(GL11.GL_POLYGON_OFFSET_FILL);
+                        GL11.glPolygonOffset(-1, -1);
+                        GL11.glCallList(mesh.emission);
+                        CriticalRenderMetrics.displayListDraws++;
+                        GL11.glDisable(GL11.GL_POLYGON_OFFSET_FILL);
+                        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                        GL11.glDepthMask(pass != 2);
+                        if (pass != 2) GL11.glDisable(GL11.GL_BLEND);
+                        OpenGlHelper
+                            .setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, light & 65535, light >>> 16);
                     }
                 } finally {
                     GL11.glPopMatrix();
@@ -298,6 +417,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     }
 
     private List<Mesh> compile(String slug) {
+        CriticalRenderMetrics.meshCompiles++;
         CriticalGeometry.Model model = CriticalGeometry.getModel(slug);
         Map<String, List<Face>> batches = new LinkedHashMap<>();
         Map<Long, Voxel> occupied = new HashMap<>();
@@ -393,6 +513,18 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         Face(Voxel voxel, int side) {
             this.voxel = voxel;
             this.side = side;
+        }
+    }
+
+    private static final class VisualClock {
+
+        double last = Double.NaN, ticks;
+
+        double update(double now, boolean paused) {
+            if (Double.isNaN(last)) ticks = now;
+            else if (!paused) ticks += Math.max(0, now - last);
+            last = now;
+            return ticks / 20D;
         }
     }
 

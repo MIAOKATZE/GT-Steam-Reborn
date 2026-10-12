@@ -7,6 +7,7 @@
   "refmap": "mixins.gtsr.refmap.json",
   "mixins": [
     "MixinWorldCriticalTime",
+    "MixinWorldCriticalClearance",
     "WeaponLootingMixin",
     "WeaponLootingApplicabilityMixin",
     "MTESteamMultiBaseMixin",

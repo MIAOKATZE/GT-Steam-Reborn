@@ -34,7 +34,46 @@ final class CriticalFX {
 
     private CriticalFX() {}
 
-    static void render(String slug, CriticalGeometry.Model model, double phase, double seconds) {
+    static void clear() {
+        SOURCES.clear();
+        SURFACES.clear();
+        CriticalSunFX.clear();
+    }
+
+    static void renderV2(CriticalGeometry.Model sun, CriticalGeometry.Model loom, CriticalGeometry.Model base,
+        double phase, double seconds, double distanceSquared, int setting, java.util.Set<String> visible,
+        String sunSlug, String loomSlug, String baseSlug) {
+        int lod = CriticalFXBudget.lod(distanceSquared, setting);
+        if (lod == 0) {
+            CriticalRenderMetrics.particleLodSkips++;
+            CriticalRenderMetrics.lastSunParticles = 0;
+            CriticalRenderMetrics.lastSunRingParticles = 0;
+            CriticalRenderMetrics.lastSunRingCount = 0;
+            CriticalRenderMetrics.lastSunParticlesPerRing = 0;
+            CriticalRenderMetrics.lastSunLod = 0;
+            return;
+        }
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glDepthMask(false);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+        Tessellator tessellator = Tessellator.instance;
+        tessellator.startDrawingQuads();
+        tessellator.setBrightness(0x00f000f0);
+        CriticalSunFX.render(sun, loom, base, phase, seconds, lod, visible, sunSlug, loomSlug, baseSlug, tessellator);
+        tessellator.draw();
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glDepthMask(true);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+    }
+
+    static void render(String slug, CriticalGeometry.Model model, double phase, double seconds, double distanceSquared,
+        int particleSetting) {
+        int lod = CriticalFXBudget.lod(distanceSquared, particleSetting);
+        if (lod == 0) {
+            CriticalRenderMetrics.particleLodSkips++;
+            return;
+        }
         int profile = 0;
         while (profile < SLUGS.length && !SLUGS[profile].equals(slug)) profile++;
         if (profile == SLUGS.length) return;
@@ -48,9 +87,9 @@ final class CriticalFX {
         t.startDrawingQuads();
         t.setBrightness(0x00f000f0);
         for (int layer = 0; layer < 2; layer++) {
-            int budget = layer == 0 ? 192 : phase > 0 && phase < 1 ? 1024 : 0;
+            int budget = (layer == 0 ? 192 : phase > 0 && phase < 1 ? 512 : 0) / lod;
             if (layer == 1 && slug.equals("sun")) {
-                renderSun(model, phase, seconds, t);
+                renderSun(model, phase, seconds, t, lod);
                 continue;
             }
             for (int si = 0; si < sources.size(); si++) {
@@ -111,6 +150,7 @@ final class CriticalFX {
                         * Math.pow(Math.sin(Math.PI * travel), 2);
                     float[] color = COLORS[profile];
                     if (source.id.equals("stellar_corona")) color = new float[] { 1, .30F, .035F };
+                    if (!CriticalFXBudget.claim()) continue;
                     t.setColorRGBA_F(color[0], color[1], color[2], (float) alpha);
                     double size = SIZES[profile] * (layer == 0 ? .95 : 1.25 + .4 * Math.sin(Math.PI * travel));
                     for (double[][] face : FACES) for (double[] vertex : face) t.addVertex(
@@ -127,7 +167,7 @@ final class CriticalFX {
     }
 
     /** Four crossed confinement planes and transfers use actual ring voxels, cached only once. */
-    private static void renderSun(CriticalGeometry.Model model, double phase, double seconds, Tessellator t) {
+    private static void renderSun(CriticalGeometry.Model model, double phase, double seconds, Tessellator t, int lod) {
         if (!(phase > 0 && phase < 1)) return;
         JsonObject star = model.animations.getAsJsonObject("star");
         double[] core = CriticalAnimation
@@ -143,7 +183,7 @@ final class CriticalFX {
             List<double[]> points = surface(model, name, normal);
             if (points.isEmpty()) continue;
             for (int layer = 0; layer < 2; layer++) {
-                int total = layer == 0 ? 675 : 349, count = total / 4 + (ring < total % 4 ? 1 : 0);
+                int total = layer == 0 ? 288 : 128, count = (total / 4 + (ring < total % 4 ? 1 : 0)) / lod;
                 for (int i = 0; i < count; i++) {
                     double tail = i / (double) count, turn = wrap(phase * (1.5 + ring * .19) + ring * .25 - tail * .72);
                     double[] point = points.get(Math.min(points.size() - 1, (int) (turn * points.size()))),
@@ -169,7 +209,7 @@ final class CriticalFX {
                         size = .62 + .26 * Math.sin(Math.PI * travel);
                         alpha = .13 * envelope * Math.pow(Math.sin(Math.PI * travel), 2);
                     }
-                    cube(t, pos, colors[ring], alpha, size);
+                    if (CriticalFXBudget.claim()) cube(t, pos, colors[ring], alpha, size);
                 }
             }
         }
@@ -200,7 +240,7 @@ final class CriticalFX {
         });
     }
 
-    private static void cube(Tessellator t, double[] pos, float[] color, double alpha, double size) {
+    static void cube(Tessellator t, double[] pos, float[] color, double alpha, double size) {
         t.setColorRGBA_F(color[0], color[1], color[2], (float) alpha);
         for (double[][] face : FACES) for (double[] vertex : face)
             t.addVertex(pos[0] + .5 + vertex[0] * size, pos[1] + .5 + vertex[1] * size, pos[2] + .5 + vertex[2] * size);

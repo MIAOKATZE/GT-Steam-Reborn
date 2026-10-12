@@ -47,9 +47,9 @@ public final class CriticalWorldData extends WorldSavedData {
         if (nightOwner.isEmpty()) return false;
         Region region = regions.get(nightOwner);
         boolean live = region != null && world.getChunkProvider()
-            .chunkExists((region.x + 40) >> 4, (region.z + 32) >> 4);
+            .chunkExists(region.cx >> 4, region.cz >> 4);
         if (live) {
-            net.minecraft.tileentity.TileEntity tile = world.getTileEntity(region.x + 40, region.y, region.z + 32);
+            net.minecraft.tileentity.TileEntity tile = world.getTileEntity(region.cx, region.cy, region.cz);
             CriticalMachineState controller = CriticalMachineState.resolve(tile);
             live = controller != null && controller.isEnabled()
                 && controller.isStructureComplete()
@@ -82,12 +82,22 @@ public final class CriticalWorldData extends WorldSavedData {
     }
 
     public boolean acquire(String id, String owner, int x, int y, int z) {
+        return acquire(id, owner, x, y, z, 80, 162, x + 40, y, z + 33);
+    }
+
+    public boolean acquire(String id, String owner, int x, int y, int z, int size, int height, int cx, int cy, int cz) {
         Region own = regions.get(id);
-        if (own != null) return own.x == x && own.y == y && own.z == z && own.owner.equals(owner);
+        if (own != null) return own.x == x && own.y == y && own.z == z && own.owner.equals(owner) && own.size == size;
         for (Region r : regions.values()) {
-            if (x < r.x + 80 && x + 80 > r.x && z < r.z + 80 && z + 80 > r.z) return false;
+            if (x < r.x + r.size && x + size > r.x && z < r.z + r.size && z + size > r.z) return false;
         }
-        regions.put(id, new Region(id, owner, x, y, z));
+        Region region = new Region(id, owner, x, y, z);
+        region.size = size;
+        region.height = height;
+        region.cx = cx;
+        region.cy = cy;
+        region.cz = cz;
+        regions.put(id, region);
         markDirty();
         return true;
     }
@@ -129,10 +139,9 @@ public final class CriticalWorldData extends WorldSavedData {
         if (!nightOwner.isEmpty() && !nightOwner.equals(id)) {
             Region previous = regions.get(nightOwner);
             boolean live = previous != null && world.getChunkProvider()
-                .chunkExists((previous.x + 40) >> 4, (previous.z + 32) >> 4);
+                .chunkExists(previous.cx >> 4, previous.cz >> 4);
             if (live) {
-                net.minecraft.tileentity.TileEntity tile = world
-                    .getTileEntity(previous.x + 40, previous.y, previous.z + 32);
+                net.minecraft.tileentity.TileEntity tile = world.getTileEntity(previous.cx, previous.cy, previous.cz);
                 CriticalMachineState controller = CriticalMachineState.resolve(tile);
                 live = controller != null && controller.isEnabled()
                     && controller.isStructureComplete()
@@ -161,10 +170,11 @@ public final class CriticalWorldData extends WorldSavedData {
 
     public void invalidateAt(World world, int x, int y, int z) {
         for (Region r : regions.values()) {
-            if (x < r.x || x >= r.x + 80 || z < r.z || z >= r.z + 80 || y < r.y || y > r.y + 161) continue;
+            if (x < r.x || x >= r.x + r.size || z < r.z || z >= r.z + r.size || y < r.y || y >= r.y + r.height)
+                continue;
             if (!world.getChunkProvider()
-                .chunkExists((r.x + 40) >> 4, (r.z + 32) >> 4)) continue;
-            net.minecraft.tileentity.TileEntity tile = world.getTileEntity(r.x + 40, r.y, r.z + 32);
+                .chunkExists(r.cx >> 4, r.cz >> 4)) continue;
+            net.minecraft.tileentity.TileEntity tile = world.getTileEntity(r.cx, r.cy, r.cz);
             CriticalMachineState controller = CriticalMachineState.resolve(tile);
             if (controller != null) controller.invalidateStructure();
         }
@@ -189,6 +199,11 @@ public final class CriticalWorldData extends WorldSavedData {
                     r.getInteger("y"),
                     r.getInteger("z"));
                 region.jobId = r.getString("jobId");
+                region.size = r.hasKey("size") ? r.getInteger("size") : 80;
+                region.height = r.hasKey("height") ? r.getInteger("height") : 162;
+                region.cx = r.hasKey("cx") ? r.getInteger("cx") : region.x + 40;
+                region.cy = r.hasKey("cy") ? r.getInteger("cy") : region.y;
+                region.cz = r.hasKey("cz") ? r.getInteger("cz") : region.z + 33;
                 regions.put(id, region);
             } catch (IllegalArgumentException ignored) {}
         }
@@ -208,6 +223,11 @@ public final class CriticalWorldData extends WorldSavedData {
             t.setInteger("x", r.x);
             t.setInteger("y", r.y);
             t.setInteger("z", r.z);
+            t.setInteger("size", r.size);
+            t.setInteger("height", r.height);
+            t.setInteger("cx", r.cx);
+            t.setInteger("cy", r.cy);
+            t.setInteger("cz", r.cz);
             list.appendTag(t);
         }
         n.setTag("regions", list);
@@ -217,6 +237,7 @@ public final class CriticalWorldData extends WorldSavedData {
 
         final String id, owner;
         final int x, y, z;
+        int size = 80, height = 162, cx, cy, cz;
         String jobId = "";
 
         Region(String id, String owner, int x, int y, int z) {
@@ -225,6 +246,9 @@ public final class CriticalWorldData extends WorldSavedData {
             this.x = x;
             this.y = y;
             this.z = z;
+            cx = x + 40;
+            cy = y;
+            cz = z + 33;
         }
     }
 }

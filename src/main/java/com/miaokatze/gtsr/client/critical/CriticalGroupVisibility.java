@@ -4,13 +4,12 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
+import com.miaokatze.gtsr.common.critical.CriticalLoomStructure;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
-import com.miaokatze.gtsr.common.critical.CriticalMaterials;
 
 /** Client-only bounded identity checks. A group is never drawn before its entire proxy set is present. */
 final class CriticalGroupVisibility {
@@ -25,15 +24,17 @@ final class CriticalGroupVisibility {
     CriticalGroupVisibility(CriticalMachineState controller) {
         identity = identity(controller);
         lastValidated = controller.isStructureValidated();
-        add("loom");
-        if (hasInstallation(controller)) add(
-            controller.getMachineKind()
-                .name()
-                .toLowerCase(Locale.ROOT));
+        add(CriticalGeometry.visualLoomSlug(controller));
+        if (hasInstallation(controller)) {
+            add(CriticalGeometry.visualBaseSlug(controller));
+            add(CriticalGeometry.visualMachineSlug(controller));
+        }
     }
 
     static String identity(CriticalMachineState controller) {
-        return controller.getStructureId() + ":"
+        return CriticalGeometry.visualLoomSlug(controller) + ":"
+            + controller.getStructureId()
+            + ":"
             + controller.getTier()
             + ":"
             + controller.getMachineKind()
@@ -53,7 +54,7 @@ final class CriticalGroupVisibility {
     private void add(String slug) {
         CriticalGeometry.Model model = CriticalGeometry.getModel(slug);
         Map<String, List<CriticalGeometry.Voxel>> indexed = new LinkedHashMap<>();
-        for (CriticalGeometry.Voxel voxel : model.voxels) if (model.animations.has(voxel.group)) {
+        for (CriticalGeometry.Voxel voxel : model.voxels) if (CriticalGeometry.isDynamic(slug, voxel.group)) {
             indexed.computeIfAbsent(voxel.group, ignored -> new ArrayList<>())
                 .add(voxel);
         }
@@ -80,12 +81,13 @@ final class CriticalGroupVisibility {
                 z = controller.getOriginZ() + voxel.z;
             boolean present = controller.getWorldObj()
                 .blockExists(x, y, z)
-                && (group.loom ? CriticalMaterials.matchesLoomVoxel(
-                    controller.getWorldObj()
-                        .getBlock(x, y, z),
-                    controller.getWorldObj()
-                        .getBlockMetadata(x, y, z),
-                    voxel)
+                && (group.loom
+                    ? CriticalLoomStructure.matchesVoxel(
+                        controller.getWorldObj(),
+                        controller.getOriginX(),
+                        controller.getOriginY(),
+                        controller.getOriginZ(),
+                        voxel)
                     : controller.getWorldObj()
                         .getBlock(x, y, z) == voxel.block
                         && controller.getWorldObj()
@@ -116,7 +118,7 @@ final class CriticalGroupVisibility {
         Group(String key, List<CriticalGeometry.Voxel> voxels) {
             this.key = key;
             this.voxels = voxels;
-            this.loom = key.startsWith("loom:");
+            this.loom = key.startsWith("loom:") || key.startsWith("v2_loom:");
         }
     }
 }

@@ -28,6 +28,7 @@ public final class CriticalLoomStructure {
 
     public static final String PIECE = "critical_loom";
     private static IStructureDefinition<MTECriticalMachine> definition;
+    private static final Map<Integer, IStructureDefinition<MTECriticalMachine>> v2Definitions = new HashMap<>();
 
     private CriticalLoomStructure() {}
 
@@ -37,8 +38,12 @@ public final class CriticalLoomStructure {
         return Collections.unmodifiableList(result);
     }
 
+    public static List<CriticalGeometry.Voxel> voxels(CriticalMachineState state) {
+        return CriticalGeometry.isV2(state) ? CriticalGeometry.getModel("v2_loom").voxels : voxels();
+    }
+
     public static boolean isLoomVoxel(CriticalGeometry.Voxel voxel) {
-        return "loom".equals(voxel.model);
+        return "loom".equals(voxel.model) || "v2_loom".equals(voxel.model);
     }
 
     public static List<CriticalGeometry.Voxel> hatchPorts() {
@@ -52,6 +57,8 @@ public final class CriticalLoomStructure {
         int x = originX + voxel.x, y = originY + voxel.y, z = originZ + voxel.z;
         if (!world.getChunkProvider()
             .chunkExists(x >> 4, z >> 4)) return false;
+        if (CriticalStructures.isController(voxel))
+            return new CriticalStructures.ControllerElement(voxel.z == 47).check(null, world, x, y, z);
         if (CriticalStructures.isHatchPosition(voxel)
             && CriticalMachineState.isStandardHatchHost(world.getTileEntity(x, y, z))) return true;
         return CriticalMaterials.matchesLoomVoxel(world.getBlock(x, y, z), world.getBlockMetadata(x, y, z), voxel);
@@ -88,17 +95,26 @@ public final class CriticalLoomStructure {
         return definition = result;
     }
 
+    public static synchronized IStructureDefinition<MTECriticalMachine> definition(MTECriticalMachine host) {
+        CriticalMachineState state = host.getLocalCriticalState();
+        return CriticalGeometry.isV2(state)
+            ? v2Definitions.computeIfAbsent(state.getControllerZ(), ignored -> CriticalStructures.createV2(state, true))
+            : definition();
+    }
+
     public static boolean validate(MTECriticalMachine host) {
         IGregTechTileEntity tile = host.getBaseMetaTileEntity();
         if (tile == null) return false;
         World world = tile.getWorld();
-        for (CriticalGeometry.Voxel voxel : voxels()) if (!matchesVoxel(
-            world,
-            tile.getXCoord() - 40,
-            tile.getYCoord(),
-            tile.getZCoord() - CriticalStructures.CONTROLLER_Z,
-            voxel)) return false;
-        if (!definition().check(
+        CriticalMachineState local = host.getLocalCriticalState();
+        if (CriticalGeometry.isV2(local)
+            && tile.getFrontFacing() != (host.isKindSelector() ? net.minecraftforge.common.util.ForgeDirection.NORTH
+                : net.minecraftforge.common.util.ForgeDirection.SOUTH))
+            return false;
+        for (CriticalGeometry.Voxel voxel : voxels(local))
+            if (!matchesVoxel(world, local.getOriginX(), local.getOriginY(), local.getOriginZ(), voxel)) return false;
+        int top = CriticalGeometry.isV2(local) ? 45 : 35;
+        if (!definition(host).check(
             host,
             PIECE,
             world,
@@ -106,17 +122,17 @@ public final class CriticalLoomStructure {
             tile.getXCoord(),
             tile.getYCoord(),
             tile.getZCoord(),
-            7,
-            35,
-            1,
+            CriticalGeometry.isV2(local) ? 111 - local.getControllerX() : 7,
+            top - local.getControllerY(),
+            CriticalGeometry.isV2(local) ? local.getControllerZ() : 1,
             false)) return false;
         boolean items = false, fluids = false, energy = false;
-        for (CriticalGeometry.Voxel port : hatchPorts()) {
+        for (CriticalGeometry.Voxel port : voxels(local)) {
+            if (!CriticalStructures.isHatchPosition(port)) continue;
             if (!(world.getTileEntity(
-                tile.getXCoord() - 40 + port.x,
-                tile.getYCoord() + port.y,
-                tile.getZCoord() - CriticalStructures.CONTROLLER_Z + port.z) instanceof IGregTechTileEntity hatch))
-                continue;
+                local.getOriginX() + port.x,
+                local.getOriginY() + port.y,
+                local.getOriginZ() + port.z) instanceof IGregTechTileEntity hatch)) continue;
             Object mte = hatch.getMetaTileEntity();
             items |= mte instanceof MTEHatchInputBus;
             fluids |= mte instanceof MTEHatchInput;
@@ -135,7 +151,8 @@ public final class CriticalLoomStructure {
     public static void construct(MTECriticalMachine host, ItemStack trigger, boolean hintsOnly) {
         IGregTechTileEntity tile = host.getBaseMetaTileEntity();
         if (tile == null) return;
-        definition().buildOrHints(
+        CriticalMachineState local = host.getLocalCriticalState();
+        definition(host).buildOrHints(
             host,
             trigger,
             PIECE,
@@ -144,9 +161,9 @@ public final class CriticalLoomStructure {
             tile.getXCoord(),
             tile.getYCoord(),
             tile.getZCoord(),
-            7,
-            35,
-            1,
+            CriticalGeometry.isV2(local) ? 111 - local.getControllerX() : 7,
+            CriticalGeometry.isV2(local) ? 45 - local.getControllerY() : 35,
+            CriticalGeometry.isV2(local) ? local.getControllerZ() : 1,
             hintsOnly);
     }
 
@@ -154,7 +171,8 @@ public final class CriticalLoomStructure {
         ISurvivalBuildEnvironment env) {
         IGregTechTileEntity tile = host.getBaseMetaTileEntity();
         if (tile == null) return -1;
-        return definition().survivalBuild(
+        CriticalMachineState local = host.getLocalCriticalState();
+        return definition(host).survivalBuild(
             host,
             trigger,
             PIECE,
@@ -163,9 +181,9 @@ public final class CriticalLoomStructure {
             tile.getXCoord(),
             tile.getYCoord(),
             tile.getZCoord(),
-            7,
-            35,
-            1,
+            CriticalGeometry.isV2(local) ? 111 - local.getControllerX() : 7,
+            CriticalGeometry.isV2(local) ? 45 - local.getControllerY() : 35,
+            CriticalGeometry.isV2(local) ? local.getControllerZ() : 1,
             budget,
             env,
             false);

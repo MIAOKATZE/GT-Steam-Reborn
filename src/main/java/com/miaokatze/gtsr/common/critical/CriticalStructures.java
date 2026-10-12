@@ -46,13 +46,137 @@ public final class CriticalStructures {
     private CriticalStructures() {}
 
     public static synchronized IStructureDefinition<MTECriticalMachine> definition(MTECriticalMachine machine) {
-        return machine.isKindSelector() ? CriticalLoomStructure.definition() : fullDefinition(machine);
+        return machine.isKindSelector() ? CriticalLoomStructure.definition(machine) : fullDefinition(machine);
     }
 
     public static synchronized IStructureDefinition<MTECriticalMachine> fullDefinition(MTECriticalMachine machine) {
         CriticalMachineKind kind = machine.getCriticalState()
             .getKind();
+        if (CriticalGeometry.isV2(machine.getCriticalState())) return DEFINITIONS.computeIfAbsent(
+            "v2_sun:" + machine.getCriticalState()
+                .getControllerZ()
+                + ':'
+                + machine.getCriticalState()
+                    .getParallelPlugins()
+                + ':'
+                + machine.getCriticalState()
+                    .getSpeedPlugins()
+                + ':'
+                + machine.getCriticalState()
+                    .getEfficiencyPlugins(),
+            key -> createV2(machine.getCriticalState(), false));
         return DEFINITIONS.computeIfAbsent(kind.name(), key -> create(kind));
+    }
+
+    public static List<CriticalGeometry.Voxel> voxels(CriticalMachineState state) {
+        if (!CriticalGeometry.isV2(state)) return voxels(state.getTier(), state.getKind());
+        Map<Long, CriticalGeometry.Voxel> cells = new LinkedHashMap<>();
+        for (String slug : new String[] { "v2_loom", "v2_base_t3", "v2_sun" })
+            for (CriticalGeometry.Voxel v : CriticalGeometry.getModel(slug).voxels) cells.put(v.positionKey(), v);
+        for (CriticalGeometry.Voxel v : CriticalGeometry.physicalPlugins(state.getConfiguration()))
+            cells.put(v.positionKey(), v);
+        List<CriticalGeometry.Voxel> result = new ArrayList<>(cells.values());
+        result.sort(
+            java.util.Comparator.comparingInt((CriticalGeometry.Voxel v) -> v.stage)
+                .thenComparingInt(v -> v.y)
+                .thenComparingInt(v -> v.x)
+                .thenComparingInt(v -> v.z));
+        return result;
+    }
+
+    static boolean isController(CriticalGeometry.Voxel v) {
+        return "v2_loom".equals(v.model) && v.x == 56 && v.y == 4 && (v.z == 35 || v.z == 47);
+    }
+
+    static IStructureDefinition<MTECriticalMachine> createV2(CriticalMachineState state, boolean loomOnly) {
+        StructureDefinition.Builder<MTECriticalMachine> builder = StructureDefinition.builder();
+        Map<String, Character> characters = new HashMap<>();
+        List<CriticalGeometry.Voxel> source = loomOnly ? CriticalGeometry.getModel("v2_loom").voxels : voxels(state);
+        int top = top(source), max = 111;
+        char[][][] grid = new char[112][top + 1][112];
+        for (char[][] slice : grid) for (char[] row : slice) java.util.Arrays.fill(row, ' ');
+        for (CriticalGeometry.Voxel v : source) {
+            String key = isController(v) ? "controller:" + v.z
+                : v.material + ':'
+                    + ((CriticalMaterials.MaterialBlock) v.block).proxy
+                    + ':'
+                    + CriticalLoomStructure.isLoomVoxel(v)
+                    + ':'
+                    + isHatchPosition(v);
+            Character symbol = characters.get(key);
+            if (symbol == null) {
+                symbol = (char) (0x100 + characters.size());
+                characters.put(key, symbol);
+                IStructureElement<MTECriticalMachine> material = CriticalLoomStructure.isLoomVoxel(v)
+                    ? CriticalLoomStructure.materialElement(v)
+                    : new MaterialElement(v.block, CriticalMaterials.block(v.material, false));
+                builder.addElement(
+                    symbol,
+                    isController(v) ? new ControllerElement(v.z == 47)
+                        : isHatchPosition(v)
+                            ? ofChain(material, new PaidHatchElement(CriticalLoomStructure.isLoomVoxel(v)))
+                            : material);
+            }
+            grid[v.z][top - v.y][max - v.x] = symbol;
+        }
+        grid[state.getControllerZ()][top - state.getControllerY()][max - state.getControllerX()] = '~';
+        String[][] shape = new String[112][top + 1];
+        for (int z = 0; z < 112; z++) for (int y = 0; y <= top; y++) shape[z][y] = new String(grid[z][y]);
+        if (loomOnly) builder.addShape(CriticalLoomStructure.PIECE, shape);
+        else for (CriticalTier tier : CriticalTier.values()) builder.addShape(piece(tier), shape);
+        return builder.build();
+    }
+
+    static final class ControllerElement implements IStructureElement<MTECriticalMachine> {
+
+        private final boolean selector;
+
+        ControllerElement(boolean selector) {
+            this.selector = selector;
+        }
+
+        @Override
+        public boolean check(MTECriticalMachine machine, World world, int x, int y, int z) {
+            return world.getTileEntity(x, y, z) instanceof IGregTechTileEntity gt
+                && gt.getMetaTileEntity() instanceof MTECriticalMachine other
+                && other.isKindSelector() == selector
+                && (selector || other.getPresetKind() == CriticalMachineKind.SUN)
+                && gt.getFrontFacing() == (selector ? net.minecraftforge.common.util.ForgeDirection.NORTH
+                    : net.minecraftforge.common.util.ForgeDirection.SOUTH);
+        }
+
+        private ItemStack stack() {
+            return selector ? CriticalRuntime.getLoomControllerStack()
+                : com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSun.get(1);
+        }
+
+        @Override
+        public boolean spawnHint(MTECriticalMachine m, World w, int x, int y, int z, ItemStack trigger) {
+            StructureLibAPI.hintParticle(w, x, y, z, gregtech.api.GregTechAPI.sBlockMachines, stack().getItemDamage());
+            return true;
+        }
+
+        @Override
+        public boolean placeBlock(MTECriticalMachine m, World w, int x, int y, int z, ItemStack trigger) {
+            if (!isPreviewWorld(w)) return false;
+            ItemStack controller = stack();
+            IMetaTileEntity prototype = GregTechAPI.METATILEENTITIES[controller.getItemDamage()];
+            if (prototype == null
+                || !w.setBlock(x, y, z, GregTechAPI.sBlockMachines, prototype.getTileEntityBaseType(), 2)) return false;
+            if (w.getTileEntity(x, y, z) instanceof IGregTechTileEntity tile) {
+                tile.setInitialValuesAsNBT(null, (short) controller.getItemDamage());
+                tile.setFrontFacing(
+                    selector ? net.minecraftforge.common.util.ForgeDirection.NORTH
+                        : net.minecraftforge.common.util.ForgeDirection.SOUTH);
+            }
+            return true;
+        }
+
+        @Override
+        public BlocksToPlace getBlocksToPlace(MTECriticalMachine m, World w, int x, int y, int z, ItemStack trigger,
+            AutoPlaceEnvironment env) {
+            return BlocksToPlace.create(stack());
+        }
     }
 
     public static List<CriticalGeometry.Voxel> voxels(CriticalTier tier, CriticalMachineKind kind) {
@@ -65,6 +189,14 @@ public final class CriticalStructures {
 
     /** Every physical alloy frame can be replaced by a supported GT hatch, at any height. */
     public static boolean isHatchPosition(CriticalGeometry.Voxel voxel) {
+        if (voxel.model.startsWith("v2_")) {
+            if (isController(voxel) || voxel.model.startsWith("v2_plugin_")) return false;
+            return voxel.block instanceof CriticalMaterials.MaterialBlock block
+                && ("v2_alloy_frame".equals(block.materialId) || "v2_service_hatch".equals(block.materialId))
+                || "v2_loom".equals(voxel.model) && voxel.y == 4
+                    && voxel.z == 36
+                    && (voxel.x == 50 || voxel.x == 53 || voxel.x == 59 || voxel.x == 62);
+        }
         return voxel.block instanceof CriticalMaterials.MaterialBlock material
             && "alloy_frame".equals(material.materialId);
     }
@@ -154,6 +286,33 @@ public final class CriticalStructures {
             .getKind();
         CriticalTier tier = CriticalTier
             .byId(trigger == null ? 0 : trigger.stackSize - (machine.isKindSelector() ? 2 : 1));
+        CriticalMachineState current = machine.getCriticalState();
+        if (CriticalGeometry.isV2(current)) {
+            int top = top(voxels(current));
+            fullDefinition(machine).buildOrHints(
+                machine,
+                trigger,
+                piece(tier),
+                world,
+                ExtendedFacing.DEFAULT,
+                tile.getXCoord(),
+                tile.getYCoord(),
+                tile.getZCoord(),
+                111 - current.getControllerX(),
+                top - current.getControllerY(),
+                current.getControllerZ(),
+                hintsOnly);
+            if (!hintsOnly)
+                for (CriticalGeometry.Voxel v : CriticalGeometry.physicalPlugins(current.getConfiguration()))
+                    world.setBlock(
+                        current.getOriginX() + v.x,
+                        current.getOriginY() + v.y,
+                        current.getOriginZ() + v.z,
+                        v.block,
+                        0,
+                        2);
+            return;
+        }
         int top = top(voxels(tier, kind));
         fullDefinition(machine).buildOrHints(
             machine,

@@ -7,9 +7,11 @@ import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.util.IIcon;
+import net.minecraft.util.StatCollector;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.miaokatze.gtsr.client.critical.CriticalMaterialTextures;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
@@ -31,19 +33,23 @@ public final class CriticalMaterials {
     public static void register() {
         if (!STATIC.isEmpty()) return;
         palette = CriticalGeometry.readJson("materials.json");
-        JsonObject loomGeometry = CriticalGeometry.readJson("models/loom.geometry.json");
         java.util.Set<String> loomForms = new java.util.HashSet<>();
-        for (JsonElement element : loomGeometry.getAsJsonArray("blocks")) {
-            com.google.gson.JsonArray row = element.getAsJsonArray();
-            String id = properties(
-                row.get(3)
-                    .getAsString()).get("id")
-                        .getAsString();
-            boolean dynamic = loomGeometry.getAsJsonObject("animationGroups")
-                .has(
-                    row.get(4)
-                        .getAsString());
-            loomForms.add(id + ':' + dynamic);
+        for (String slug : new String[] { "loom", "v2_loom" }) {
+            JsonObject loomGeometry = CriticalGeometry.readJson("models/" + slug + ".geometry.json");
+            for (JsonElement element : loomGeometry.getAsJsonArray("blocks")) {
+                com.google.gson.JsonArray row = element.getAsJsonArray();
+                String id = properties(
+                    row.get(3)
+                        .getAsString()).get("id")
+                            .getAsString();
+                // Registration precedes getModel(): resolving Voxel.block here would recurse into the empty registry.
+                // The imported V2 animationGroups contain only genuinely moving groups.
+                boolean dynamic = loomGeometry.getAsJsonObject("animationGroups")
+                    .has(
+                        row.get(4)
+                            .getAsString());
+                loomForms.add(id + ':' + dynamic);
+            }
         }
         for (Map.Entry<String, JsonElement> entry : palette.entrySet()) {
             JsonObject value = entry.getValue()
@@ -67,12 +73,12 @@ public final class CriticalMaterials {
             if (loomForms.contains(id + ":false")) {
                 MaterialBlock loom = new MaterialBlock(id, false, glass, animated, emissive, true);
                 LOOM_STATIC.put(id, loom);
-                GameRegistry.registerBlock(loom, "critical_loom_" + id);
+                GameRegistry.registerBlock(loom, MaterialItemBlock.class, "critical_loom_" + id);
             }
             if (loomForms.contains(id + ":true")) {
                 MaterialBlock loomProxy = new MaterialBlock(id, true, glass, animated, emissive, true);
                 LOOM_PROXY.put(id, loomProxy);
-                GameRegistry.registerBlock(loomProxy, "critical_loom_proxy_" + id);
+                GameRegistry.registerBlock(loomProxy, MaterialItemBlock.class, "critical_loom_proxy_" + id);
             }
         }
         CriticalControllerTextures.register();
@@ -102,7 +108,7 @@ public final class CriticalMaterials {
     }
 
     public static boolean matchesLoomVoxel(Block block, int metadata, CriticalGeometry.Voxel voxel) {
-        return "loom".equals(voxel.model) && metadata == 0
+        return ("loom".equals(voxel.model) || "v2_loom".equals(voxel.model)) && metadata == 0
             && (block == voxel.block || block == loomBlock(voxel.material, ((MaterialBlock) voxel.block).proxy));
     }
 
@@ -110,6 +116,7 @@ public final class CriticalMaterials {
 
         public final String materialId;
         public final boolean proxy, transparent, animated, emissive, loom;
+        public final int lightLevel;
         @SideOnly(Side.CLIENT)
         public IIcon emission;
         @SideOnly(Side.CLIENT)
@@ -129,10 +136,19 @@ public final class CriticalMaterials {
             this.transparent = transparent;
             this.animated = animated;
             this.emissive = emissive;
+            JsonObject properties = properties(id);
+            lightLevel = properties.has("lightValue") ? properties.get("lightValue")
+                .getAsInt() : 0;
+            if (lightLevel < 0 || lightLevel > 15)
+                throw new IllegalArgumentException("Invalid critical light level: " + id);
             setBlockName("critical_" + (loom ? "loom_" : "") + (proxy ? "proxy_" : "") + id);
             setHardness(500);
             setResistance(10000);
-            setLightOpacity(transparent ? 0 : 255);
+            setLightOpacity(
+                properties.has("lightOpacity") ? properties.get("lightOpacity")
+                    .getAsInt() : transparent ? 0 : 255);
+            // Native light is an immutable registered block property, never a texture-frame or machine-state update.
+            setLightLevel(lightLevel / 15F);
             setBlockTextureName("gtsr:critical/" + id);
         }
 
@@ -177,6 +193,13 @@ public final class CriticalMaterials {
         @Override
         @SideOnly(Side.CLIENT)
         public void registerBlockIcons(IIconRegister icons) {
+            if (materialId.startsWith("v2_")) {
+                CriticalMaterialTextures.register(materialId, icons);
+                blockIcon = CriticalMaterialTextures.icon(materialId, 3, 0, false, false);
+                top = CriticalMaterialTextures.icon(materialId, 1, 0, false, false);
+                emission = CriticalMaterialTextures.icon(materialId, 3, 0, true, false);
+                return;
+            }
             blockIcon = icons.registerIcon("gtsr:critical/" + materialId);
             top = icons.registerIcon("gtsr:critical/" + materialId + "__top");
             if (emissive) emission = icons.registerIcon("gtsr:critical/" + materialId + "_emission");
@@ -185,6 +208,7 @@ public final class CriticalMaterials {
         @Override
         @SideOnly(Side.CLIENT)
         public IIcon getIcon(int side, int meta) {
+            if (materialId.startsWith("v2_")) return CriticalMaterialTextures.icon(materialId, side, 0, false, false);
             return side < 2 ? top : blockIcon;
         }
 
@@ -197,7 +221,26 @@ public final class CriticalMaterials {
     }
 
     /** Only the controller's paid world mutation may create a structure material. */
-    public static final class ConstructionOnlyItemBlock extends net.minecraft.item.ItemBlock {
+    public static class MaterialItemBlock extends net.minecraft.item.ItemBlock {
+
+        public MaterialItemBlock(Block block) {
+            super(block);
+        }
+
+        @Override
+        @SideOnly(Side.CLIENT)
+        @SuppressWarnings("unchecked")
+        public void addInformation(net.minecraft.item.ItemStack stack, net.minecraft.entity.player.EntityPlayer player,
+            java.util.List tooltip, boolean advanced) {
+            super.addInformation(stack, player, tooltip, advanced);
+            if (!(field_150939_a instanceof MaterialBlock material) || !material.materialId.startsWith("v2_")) return;
+            JsonObject data = properties(material.materialId);
+            if (data.has("tooltipKeys")) for (JsonElement key : data.getAsJsonArray("tooltipKeys"))
+                tooltip.add(StatCollector.translateToLocal(key.getAsString()));
+        }
+    }
+
+    public static final class ConstructionOnlyItemBlock extends MaterialItemBlock {
 
         public ConstructionOnlyItemBlock(Block block) {
             super(block);

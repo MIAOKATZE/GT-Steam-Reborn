@@ -14,15 +14,15 @@ public final class CriticalRenderAnchors {
     private CriticalRenderAnchors() {}
 
     public static int getX(CriticalMachineState state) {
-        return state.getOriginX() + 40;
+        return state.getOriginX() + state.getControllerX();
     }
 
     public static int getY(CriticalMachineState state) {
-        return state.getOriginY() + 1;
+        return state.getOriginY() + state.getControllerY() + 1;
     }
 
     public static int getZ(CriticalMachineState state) {
-        return state.getOriginZ() + 32;
+        return state.getOriginZ() + (state.getGeometryVersion() == 2 ? 34 : 32);
     }
 
     public static void register() {

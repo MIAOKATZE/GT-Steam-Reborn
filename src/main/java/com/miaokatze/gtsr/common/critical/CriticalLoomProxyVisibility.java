@@ -17,7 +17,7 @@ public final class CriticalLoomProxyVisibility {
     private static final Map<World, Map<Long, Map<Long, Entry>>> WORLDS = Collections
         .synchronizedMap(new WeakHashMap<>());
     private static final Map<TileEntityCriticalRenderAnchor, Registration> ANCHORS = new WeakHashMap<>();
-    private static List<CriticalGeometry.Voxel> proxies;
+    private static final Map<String, List<CriticalGeometry.Voxel>> PROXIES = new java.util.HashMap<>();
 
     private CriticalLoomProxyVisibility() {}
 
@@ -45,13 +45,19 @@ public final class CriticalLoomProxyVisibility {
             && old.world.get() == world
             && old.x == state.getOriginX()
             && old.y == state.getOriginY()
-            && old.z == state.getOriginZ()) return;
+            && old.z == state.getOriginZ()
+            && old.slug.equals(CriticalGeometry.visualLoomSlug(state))) return;
         remove(anchor);
         if (!visible) return;
-        Registration registration = new Registration(world, state.getOriginX(), state.getOriginY(), state.getOriginZ());
+        Registration registration = new Registration(
+            world,
+            state.getOriginX(),
+            state.getOriginY(),
+            state.getOriginZ(),
+            CriticalGeometry.visualLoomSlug(state));
         ANCHORS.put(anchor, registration);
         Map<Long, Map<Long, Entry>> chunks = WORLDS.computeIfAbsent(world, ignored -> new ConcurrentHashMap<>());
-        for (CriticalGeometry.Voxel voxel : proxies()) {
+        for (CriticalGeometry.Voxel voxel : proxies(registration.slug)) {
             int x = registration.x + voxel.x, y = registration.y + voxel.y, z = registration.z + voxel.z;
             chunks.computeIfAbsent(chunkKey(x, z), ignored -> new ConcurrentHashMap<>())
                 .put(positionKey(x, y, z), new Entry(anchor, voxel));
@@ -64,7 +70,7 @@ public final class CriticalLoomProxyVisibility {
         if (registration == null) return;
         World world = registration.world.get();
         Map<Long, Map<Long, Entry>> chunks = world == null ? null : WORLDS.get(world);
-        if (chunks != null) for (CriticalGeometry.Voxel voxel : proxies()) {
+        if (chunks != null) for (CriticalGeometry.Voxel voxel : proxies(registration.slug)) {
             int x = registration.x + voxel.x, y = registration.y + voxel.y, z = registration.z + voxel.z;
             long chunk = chunkKey(x, z), position = positionKey(x, y, z);
             Map<Long, Entry> positions = chunks.get(chunk);
@@ -76,13 +82,13 @@ public final class CriticalLoomProxyVisibility {
         registration.redraw();
     }
 
-    private static List<CriticalGeometry.Voxel> proxies() {
-        if (proxies == null) {
-            proxies = new ArrayList<>();
-            CriticalGeometry.Model model = CriticalGeometry.getModel("loom");
-            for (CriticalGeometry.Voxel voxel : model.voxels) if (model.animations.has(voxel.group)) proxies.add(voxel);
-        }
-        return proxies;
+    private static List<CriticalGeometry.Voxel> proxies(String slug) {
+        return PROXIES.computeIfAbsent(slug, ignored -> {
+            List<CriticalGeometry.Voxel> result = new ArrayList<>();
+            CriticalGeometry.Model model = CriticalGeometry.getModel(slug);
+            for (CriticalGeometry.Voxel voxel : model.voxels) if (model.animations.has(voxel.group)) result.add(voxel);
+            return result;
+        });
     }
 
     private static long chunkKey(int x, int z) {
@@ -108,17 +114,25 @@ public final class CriticalLoomProxyVisibility {
 
         final WeakReference<World> world;
         final int x, y, z;
+        final String slug;
 
-        Registration(World world, int x, int y, int z) {
+        Registration(World world, int x, int y, int z, String slug) {
             this.world = new WeakReference<>(world);
             this.x = x;
             this.y = y;
             this.z = z;
+            this.slug = slug;
         }
 
         void redraw() {
             World current = world.get();
-            if (current != null) current.markBlockRangeForRenderUpdate(x + 33, y, z + 33, x + 47, y + 35, z + 47);
+            if (current != null) current.markBlockRangeForRenderUpdate(
+                x,
+                y,
+                z,
+                x + (slug.startsWith("v2_") ? 111 : 79),
+                y + 45,
+                z + (slug.startsWith("v2_") ? 111 : 79));
         }
     }
 }

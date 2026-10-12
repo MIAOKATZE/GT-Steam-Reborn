@@ -13,6 +13,7 @@ public final class CriticalControllerTextures {
 
     // Fixed on both logical sides; dynamically choosing a free slot would break hatch S2C texture IDs.
     private static final int CASING_INDEX = 124 << 7;
+    private static final int V2_CASING_INDEX = CASING_INDEX + 1;
     private static boolean registered;
 
     private CriticalControllerTextures() {}
@@ -22,11 +23,67 @@ public final class CriticalControllerTextures {
         GTUtility.addTexturePage((byte) (CASING_INDEX >> 7));
         Textures.BlockIcons
             .setCasingTextureForId(CASING_INDEX, TextureFactory.of(CriticalMaterials.loomBlock("graphite", false), 0));
+        Textures.BlockIcons.setCasingTextureForId(
+            V2_CASING_INDEX,
+            TextureFactory.of(CriticalMaterials.block("v2_reinforced_panel", false), 0));
         registered = true;
     }
 
     public static int casingIndex() {
         return CASING_INDEX;
+    }
+
+    public static int casingIndex(boolean v2) {
+        return v2 ? V2_CASING_INDEX : CASING_INDEX;
+    }
+
+    public static ITexture[] get(CriticalMachineKind kind, ForgeDirection side, ForgeDirection facing, boolean active,
+        boolean v2) {
+        if (!v2) return get(kind, side, facing, active);
+        ITexture casing = Textures.BlockIcons.getCasingTextureForId(V2_CASING_INDEX);
+        if (side != facing) return new ITexture[] { casing };
+        String alias = kind == null ? "v2_loom_machine_controller" : "v2_gt_controller";
+        int materialFace = kind == null ? 2 : 3;
+        return new ITexture[] { casing, TextureFactory.builder()
+            .addIcon(new V2Icon(alias, materialFace, false))
+            .extFacing()
+            .build(),
+            TextureFactory.builder()
+                .addIcon(new V2Icon(alias, materialFace, true))
+                .extFacing()
+                .glow()
+                .build() };
+    }
+
+    private static final class V2Icon implements IIconContainer {
+
+        private final String alias;
+        private final int face;
+        private final boolean emission;
+
+        private V2Icon(String alias, int face, boolean emission) {
+            this.alias = alias;
+            this.face = face;
+            this.emission = emission;
+        }
+
+        @Override
+        @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+        public net.minecraft.util.IIcon getIcon() {
+            return com.miaokatze.gtsr.client.critical.CriticalMaterialTextures.icon(alias, face, 0, emission, true);
+        }
+
+        @Override
+        @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+        public net.minecraft.util.IIcon getOverlayIcon() {
+            return null;
+        }
+
+        @Override
+        @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+        public net.minecraft.util.ResourceLocation getTextureFile() {
+            return net.minecraft.client.renderer.texture.TextureMap.locationBlocksTexture;
+        }
     }
 
     public static ITexture[] get(CriticalMachineKind kind, ForgeDirection side, ForgeDirection facing, boolean active) {

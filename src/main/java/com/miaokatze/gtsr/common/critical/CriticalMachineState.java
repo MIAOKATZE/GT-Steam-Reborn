@@ -147,6 +147,70 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private long pendingConstructionDeadline;
     private String visualHostId = UUID.randomUUID()
         .toString();
+    private int geometryVersion;
+    private boolean loomController, initialClearanceAccepted;
+    private int clearanceCursor, blocksChangedThisTick, lightsChangedThisTick;
+    private long blockBudgetStarted;
+
+    public int getBlocksChangedThisTick() {
+        return blocksChangedThisTick;
+    }
+
+    public int getLightsChangedThisTick() {
+        return lightsChangedThisTick;
+    }
+
+    private List<CriticalGeometry.Voxel> clearanceTargets;
+    private final java.util.Set<Long> clearanceTargetPositions = new java.util.HashSet<>();
+    private final java.util.Set<Long> clearanceRechecks = new java.util.HashSet<>();
+
+    public void setLoomController(boolean selector) {
+        loomController = selector;
+    }
+
+    public int getGeometryVersion() {
+        return geometryVersion == 0 ? (config.kind == CriticalMachineKind.SUN ? 2 : 1) : geometryVersion;
+    }
+
+    public int getControllerX() {
+        return getGeometryVersion() == 2 ? 56 : 40;
+    }
+
+    public int getControllerY() {
+        return getGeometryVersion() == 2 ? 4 : 0;
+    }
+
+    public int getRegionSize() {
+        return getGeometryVersion() == 2 ? 112 : 80;
+    }
+
+    public int getRegionHeight() {
+        return getGeometryVersion() == 2 ? 180 : 162;
+    }
+
+    public boolean isInitialClearanceAccepted() {
+        return initialClearanceAccepted;
+    }
+
+    public boolean hasPhysicalPlugins() {
+        return getGeometryVersion() == 2;
+    }
+
+    public boolean hasInstalledPlugins() {
+        return state == 1 || state == 2 || state == 4;
+    }
+
+    public void recordClearanceChange(int x, int y, int z) {
+        int rx = x - getOriginX(), ry = y - getOriginY(), rz = z - getOriginZ();
+        if (clearanceTargets == null || rx < 0
+            || rx >= getRegionSize()
+            || ry < 0
+            || ry >= getRegionHeight()
+            || rz < 0
+            || rz >= getRegionSize()) return;
+        long key = CriticalGeometry.Voxel.positionKey(rx, ry, rz);
+        if (clearanceTargetPositions.contains(key)) clearanceRechecks.add(key);
+    }
 
     public String getVisualHostId() {
         return visualHostId;
@@ -363,19 +427,19 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public int getOriginX() {
-        return xCoord - 40;
+        return xCoord - getControllerX();
     }
 
     public int getOriginY() {
-        return yCoord;
+        return yCoord - getControllerY();
     }
 
     public int getControllerZ() {
-        return CriticalStructures.CONTROLLER_Z;
+        return getGeometryVersion() == 2 ? (loomController ? 47 : 35) : CriticalStructures.CONTROLLER_Z;
     }
 
     public int getOriginZ() {
-        return zCoord - CriticalStructures.CONTROLLER_Z;
+        return zCoord - getControllerZ();
     }
 
     public boolean canUse(EntityPlayer p) {
@@ -398,6 +462,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 return fail("储能容量不足，禁止降低等级");
             }
             config = next;
+            if (geometryVersion == 2 && kind != CriticalMachineKind.SUN) geometryVersion = 1;
         } catch (IllegalArgumentException e) {
             return false;
         }
@@ -405,6 +470,10 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             .toString();
         geometryCache = null;
         hatchPortsCache = null;
+        loomChunksCache = null;
+        clearanceTargets = null;
+        clearanceCursor = 0;
+        clearPendingClearance();
         changed();
         return true;
     }
@@ -420,26 +489,39 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             return fail("施工区块加载等待");
         }
         pendingConstructionPlayer = "";
-        if (!forceLoomStructureCheck()) {
+        if (!(clearanceTargets == null ? forceLoomStructureCheck() : isLoomStructureValid())) {
             chunkLoading.release(host);
             return fail("必要织机结构缺损，请先手搭完整织机及仓口");
         }
-        if (getOriginY() < 0 || getOriginY() + 161 > worldObj.getHeight()) return fail("施工高度超出世界");
+        if (getOriginY() < 0 || getOriginY() + getRegionHeight() > worldObj.getHeight()) return fail("施工高度超出世界");
+        if (getGeometryVersion() == 2 && ((getOriginX() & 15) != 0 || (getOriginZ() & 15) != 0))
+            return fail("施工区域原点必须按区块对齐");
         int anchorX = CriticalRenderAnchors.getX(this), anchorY = CriticalRenderAnchors.getY(this),
             anchorZ = CriticalRenderAnchors.getZ(this);
         TileEntity visual = worldObj.getTileEntity(anchorX, anchorY, anchorZ);
         if (!worldObj.isAirBlock(anchorX, anchorY, anchorZ)
             && !(visual instanceof TileEntityCriticalRenderAnchor anchor && anchor.ownedBy(this)))
             return fail("织机前上方渲染锚点位置存在外来方块");
-        // Target collision and permission checks happen in the loaded window before funding each round.
-        for (CriticalGeometry.Voxel voxel : allVoxels())
-            if (!isUserBuilt(voxel) && !worldObj.canMineBlock(p, wx(voxel), wy(voxel), wz(voxel)))
-                return fail("没有施工权限");
+        if (!initialClearanceAccepted && !scanInitialClearance(p)) return false;
         owner = p.getUniqueID()
             .toString();
-        if (structureId.isEmpty()) structureId = UUID.randomUUID()
-            .toString();
-        if (!data().acquire(structureId, owner, getOriginX(), getOriginY(), getOriginZ())) return fail("施工区与已登记区域重叠");
+        String acceptedId = structureId.isEmpty() ? UUID.randomUUID()
+            .toString() : structureId;
+        if (!data().acquire(
+            acceptedId,
+            owner,
+            getOriginX(),
+            getOriginY(),
+            getOriginZ(),
+            getRegionSize(),
+            getRegionHeight(),
+            xCoord,
+            yCoord,
+            zCoord)) return fail("施工区与已登记区域重叠");
+        structureId = acceptedId;
+        initialClearanceAccepted = true;
+        CriticalRuntime.unregisterClearance(this);
+        clearanceTargets = null;
         jobId = UUID.randomUUID()
             .toString();
         bindTask();
@@ -455,6 +537,105 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         status = "施工中";
         changed();
         return true;
+    }
+
+    /** Sparse, windowed first-start scan; no payment or region registration exists during this phase. */
+    private boolean scanInitialClearance(EntityPlayer player) {
+        if (clearanceTargets == null) {
+            clearanceTargets = new ArrayList<>();
+            clearanceTargetPositions.clear();
+            for (CriticalGeometry.Voxel v : allVoxels()) if (!isUserBuilt(v)) {
+                clearanceTargets.add(v);
+                clearanceTargetPositions.add(v.positionKey());
+            }
+            clearanceCursor = 0;
+            clearanceRechecks.clear();
+            CriticalRuntime.registerClearance(this);
+        }
+        int end = loadedWindowEnd(clearanceTargets, clearanceCursor, clearanceTargets.size());
+        if (end < 0) return waitForClearance(player, "等待检查区块 " + clearanceCursor + "/" + clearanceTargets.size());
+        for (; clearanceCursor < end; clearanceCursor++) {
+            CriticalGeometry.Voxel v = clearanceTargets.get(clearanceCursor);
+            if (!worldObj.canMineBlock(player, wx(v), wy(v), wz(v))) return clearanceFailed("没有施工权限");
+            if (!worldObj.isAirBlock(wx(v), wy(v), wz(v))) return clearanceFailed(
+                "目标位置存在方块：" + worldObj.getBlock(wx(v), wy(v), wz(v))
+                    .getLocalizedName() + "，世界(" + wx(v) + "," + wy(v) + "," + wz(v) + ")");
+        }
+        if (clearanceCursor < clearanceTargets.size())
+            return waitForClearance(player, "首次施工占位检查 " + clearanceCursor + "/" + clearanceTargets.size());
+        if (!areaLoaded()) return waitForClearance(player, "等待检查区块全部加载");
+        if (!forceLoomStructureCheck()) return clearanceFailed("必要织机结构缺损，请先手搭完整织机及仓口");
+        // Changes signaled during the scan must be read again in the accepting server tick.
+        for (CriticalGeometry.Voxel v : clearanceTargets) if (clearanceRechecks.contains(v.positionKey())) {
+            if (!worldObj.isAirBlock(wx(v), wy(v), wz(v)))
+                return clearanceFailed("目标位置存在方块，世界(" + wx(v) + "," + wy(v) + "," + wz(v) + ")");
+            if (!worldObj.canMineBlock(player, wx(v), wy(v), wz(v))) return clearanceFailed("没有施工权限");
+        }
+        if (getGeometryVersion() == 2) {
+            for (com.google.gson.JsonElement entry : CriticalGeometry.getModel("v2_loom").meta
+                .getAsJsonArray("operatingClearances")) {
+                com.google.gson.JsonObject port = entry.getAsJsonObject();
+                com.google.gson.JsonArray pos = port.getAsJsonArray("standing");
+                for (int dy = 0; dy < port.get("headroomCells")
+                    .getAsInt(); dy++) {
+                    int x = getOriginX() + pos.get(0)
+                        .getAsInt(), y = getOriginY()
+                            + pos.get(1)
+                                .getAsInt()
+                            + dy,
+                        z = getOriginZ() + pos.get(2)
+                            .getAsInt();
+                    if (!worldObj.isAirBlock(x, y, z))
+                        return clearanceFailed("通道净空被占用，世界(" + x + "," + y + "," + z + ")");
+                }
+            }
+        }
+        java.util.Set<Long> targets = new java.util.HashSet<>(clearanceTargetPositions);
+        if (worldObj.isAirBlock(
+            CriticalRenderAnchors.getX(this),
+            CriticalRenderAnchors.getY(this),
+            CriticalRenderAnchors.getZ(this)))
+            targets.add(
+                CriticalGeometry.Voxel.positionKey(
+                    CriticalRenderAnchors.getX(this) - getOriginX(),
+                    CriticalRenderAnchors.getY(this) - getOriginY(),
+                    CriticalRenderAnchors.getZ(this) - getOriginZ()));
+        for (Object object : worldObj.playerEntities) if (object instanceof EntityPlayer p && p.boundingBox != null) {
+            AxisAlignedBB box = p.boundingBox;
+            for (int x = (int) Math.floor(box.minX); x < Math.ceil(box.maxX); x++)
+                for (int y = (int) Math.floor(box.minY); y < Math.ceil(box.maxY); y++)
+                    for (int z = (int) Math.floor(box.minZ); z < Math.ceil(box.maxZ); z++) {
+                        int rx = x - getOriginX(), ry = y - getOriginY(), rz = z - getOriginZ();
+                        if (targets.contains(CriticalGeometry.Voxel.positionKey(rx, ry, rz)) && box.maxX > x
+                            && box.minX < x + 1
+                            && box.maxY > y
+                            && box.minY < y + 1
+                            && box.maxZ > z
+                            && box.minZ < z + 1)
+                            return clearanceFailed(
+                                "玩家占用施工方块：相对(" + rx + "," + ry + "," + rz + ")，世界(" + x + "," + y + "," + z + ")");
+                    }
+        }
+        pendingConstructionPlayer = "";
+        return true;
+    }
+
+    private boolean waitForClearance(EntityPlayer player, String reason) {
+        pendingConstructionPlayer = player.getUniqueID()
+            .toString();
+        pendingConstructionDeadline = worldObj.getTotalWorldTime() + 6000;
+        return fail(reason);
+    }
+
+    private boolean clearanceFailed(String reason) {
+        pendingConstructionPlayer = "";
+        clearanceTargets = null;
+        clearanceCursor = 0;
+        clearanceRechecks.clear();
+        clearanceTargetPositions.clear();
+        CriticalRuntime.unregisterClearance(this);
+        chunkLoading.release(host);
+        return fail(reason);
     }
 
     public boolean startDismantle(EntityPlayer p) {
@@ -483,6 +664,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             stageFunded = false;
         }
         state = 3;
+        invalidateStructure();
+        CriticalRenderAnchors.ensure(this, isLoomStructureValid());
         cursor = 0;
         jobId = UUID.randomUUID()
             .toString();
@@ -579,7 +762,17 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 return fail("任务账本重核发现方块冲突，禁止恢复");
             }
         }
-        if (!data().acquire(structureId, owner, getOriginX(), getOriginY(), getOriginZ()) || !bindTask()) {
+        if (!data().acquire(
+            structureId,
+            owner,
+            getOriginX(),
+            getOriginY(),
+            getOriginZ(),
+            getRegionSize(),
+            getRegionHeight(),
+            xCoord,
+            yCoord,
+            zCoord) || !bindTask()) {
             return fail("任务账本重核区域归属冲突");
         }
         invalidateStructure();
@@ -626,15 +819,29 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public void onChunkUnload() {
         // Follow GT drillers: Forge persists/unloads tickets, then GT clears owners on server stop.
         // Releasing here runs after Forge's HIGHEST world-unload handler has removed its ticket map.
-        if (worldObj != null && !worldObj.isRemote) data().releaseNight(structureId);
+        if (worldObj != null && !worldObj.isRemote) {
+            clearPendingClearance();
+            data().releaseNight(structureId);
+        }
 
     }
 
     public void invalidate() {
+        clearPendingClearance();
         CriticalRenderAnchors.remove(this);
         chunkLoading.release(host);
         if (worldObj != null && !worldObj.isRemote) data().releaseNight(structureId);
 
+    }
+
+    private void clearPendingClearance() {
+        if (worldObj != null && worldObj.isRemote) return;
+        CriticalRuntime.unregisterClearance(this);
+        pendingConstructionPlayer = "";
+        clearanceTargets = null;
+        clearanceCursor = 0;
+        clearanceRechecks.clear();
+        clearanceTargetPositions.clear();
     }
 
     private int wx(CriticalGeometry.Voxel v) {
@@ -651,7 +858,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     private List<CriticalGeometry.Voxel> allVoxels() {
         if (geometryCache == null) {
-            List<CriticalGeometry.Voxel> result = CriticalStructures.voxels(config.tier, config.kind);
+            List<CriticalGeometry.Voxel> result = CriticalStructures.voxels(this);
             geometryCache = Collections.unmodifiableList(result);
             stageCache.clear();
             voxelIndices.clear();
@@ -690,9 +897,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public List<CriticalGeometry.Voxel> getHatchPorts() {
         if (hatchPortsCache == null) {
             java.util.Map<Long, CriticalGeometry.Voxel> ports = new java.util.LinkedHashMap<>();
-            for (CriticalGeometry.Voxel port : CriticalLoomStructure.hatchPorts()) ports.put(port.positionKey(), port);
-            for (CriticalGeometry.Voxel port : CriticalStructures.hatchPorts(config.tier, config.kind))
-                ports.put(port.positionKey(), port);
+            for (CriticalGeometry.Voxel port : allVoxels())
+                if (CriticalStructures.isHatchPosition(port)) ports.put(port.positionKey(), port);
             hatchPortsCache = new ArrayList<>(ports.values());
         }
         return hatchPortsCache;
@@ -742,7 +948,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             xCoord >> 4,
             zCoord >> 4);
         chunks.put(((long) controller.chunkXPos << 32) ^ (controller.chunkZPos & 0xffffffffL), controller);
-        for (CriticalGeometry.Voxel voxel : CriticalLoomStructure.voxels()) {
+        for (CriticalGeometry.Voxel voxel : getGeometryVersion() == 2 ? Collections.<CriticalGeometry.Voxel>emptyList()
+            : CriticalLoomStructure.voxels()) {
             int x = wx(voxel) >> 4, z = wz(voxel) >> 4;
             chunks.put(((long) x << 32) ^ (z & 0xffffffffL), new net.minecraft.world.ChunkCoordIntPair(x, z));
         }
@@ -783,8 +990,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private boolean areaLoaded() {
-        for (int x = getOriginX() >> 4; x <= (getOriginX() + 79) >> 4; x++) {
-            for (int z = getOriginZ() >> 4; z <= (getOriginZ() + 79) >> 4; z++) {
+        for (int x = getOriginX() >> 4; x <= (getOriginX() + getRegionSize() - 1) >> 4; x++) {
+            for (int z = getOriginZ() >> 4; z <= (getOriginZ() + getRegionSize() - 1) >> 4; z++) {
                 if (!worldObj.getChunkProvider()
                     .chunkExists(x, z)) return false;
             }
@@ -794,6 +1001,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public void updateEntity() {
         constructionAdvancing = false;
+        blocksChangedThisTick = lightsChangedThisTick = 0;
+        blockBudgetStarted = 0;
         if (worldObj == null || worldObj.isRemote) return;
         if (state == 0) {
             if (!pendingConstructionPlayer.isEmpty() && isEnabled()
@@ -808,6 +1017,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 return;
             }
             pendingConstructionPlayer = "";
+            CriticalRuntime.unregisterClearance(this);
             chunkLoading.release(host);
             return;
         }
@@ -863,14 +1073,18 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             constructionTickBudget = debugSpeed == 3 ? Integer.MAX_VALUE
                 : debugSpeed == 2 ? 10 : debugSpeed == 1 ? 2 : 1;
             boolean anyAdvance = false;
-            for (int steps = 0; steps < 8192 && constructionTickBudget > 0 && (state == 1 || state == 4); steps++) {
+            for (int steps = 0; steps < 8192 && constructionTickBudget > 0
+                && blocksChangedThisTick < 128
+                && lightsChangedThisTick < 16
+                && (state == 1 || state == 4); steps++) {
                 int oldStage = stage, oldCursor = cursor, oldRepairScan = repairScanCursor;
+                int oldBlockChanges = blocksChangedThisTick;
                 constructionLastAdvance = 0;
                 boolean legacyStep = constructionTimeVersion == 0;
                 if (state == 1) build();
                 else repair();
                 if (legacyStep) break;
-                anyAdvance |= constructionLastAdvance > 0;
+                anyAdvance |= constructionLastAdvance > 0 || blocksChangedThisTick > oldBlockChanges;
                 constructionTickBudget -= constructionLastAdvance;
                 if (constructionLastAdvance == 0 && oldStage == stage
                     && oldCursor == cursor
@@ -1282,8 +1496,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         for (; cursor < end; cursor++) {
             CriticalGeometry.Voxel voxel = current.get(cursor);
             if (isUserBuilt(voxel)) continue;
-            if (!matches(voxel)
-                && !worldObj.setBlock(wx(voxel), wy(voxel), wz(voxel), voxel.block, voxel.metadata, 2)) {
+            if (!matches(voxel) && !hasBlockBudget(voxel)) return;
+            if (!matches(voxel) && !placeOwnedBlock(voxel)) {
                 fail("施工放置失败，已付进度保留");
                 return;
             }
@@ -1409,7 +1623,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                     fail("修复冲突");
                     return;
                 }
-                if (!worldObj.setBlock(wx(v), wy(v), wz(v), v.block, v.metadata, 2)) {
+                if (!hasBlockBudget(v)) return;
+                if (!placeOwnedBlock(v)) {
                     fail("修复放置失败");
                     return;
                 }
@@ -1489,7 +1704,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                     fail("施工冲突，禁止覆盖方块");
                     return;
                 }
-                if (!worldObj.setBlock(wx(v), wy(v), wz(v), v.block, v.metadata, 2)) {
+                if (!hasBlockBudget(v)) return;
+                if (!placeOwnedBlock(v)) {
                     fail("方块放置失败");
                     return;
                 }
@@ -1509,6 +1725,27 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             stage++;
             changed();
         }
+    }
+
+    private boolean hasBlockBudget(CriticalGeometry.Voxel v) {
+        return blocksChangedThisTick < 128
+            && (blockBudgetStarted == 0 || System.nanoTime() - blockBudgetStarted < 6_000_000L)
+            && (lightsChangedThisTick < 16 || v.block.getLightValue(worldObj, wx(v), wy(v), wz(v)) == 0);
+    }
+
+    private boolean placeOwnedBlock(CriticalGeometry.Voxel v) {
+        if (!worldObj.isAirBlock(wx(v), wy(v), wz(v))) return false;
+        EntityPlayer ownerPlayer = null;
+        for (Object object : worldObj.playerEntities) if (object instanceof EntityPlayer p && owner.equals(
+            p.getUniqueID()
+                .toString()))
+            ownerPlayer = p;
+        if (ownerPlayer != null && !worldObj.canMineBlock(ownerPlayer, wx(v), wy(v), wz(v))) return false;
+        if (blockBudgetStarted == 0) blockBudgetStarted = System.nanoTime();
+        if (!worldObj.setBlock(wx(v), wy(v), wz(v), v.block, v.metadata, 2)) return false;
+        blocksChangedThisTick++;
+        if (v.block.getLightValue(worldObj, wx(v), wy(v), wz(v)) > 0) lightsChangedThisTick++;
+        return true;
     }
 
     private void dismantle() {
@@ -1536,10 +1773,15 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                     fail("拆除冲突，目标不是已登记结构方块");
                     return;
                 }
+                if (!hasBlockBudget(v)) return;
+                boolean light = v.block.getLightValue(worldObj, wx(v), wy(v), wz(v)) > 0;
+                if (blockBudgetStarted == 0) blockBudgetStarted = System.nanoTime();
                 if (!worldObj.setBlockToAir(wx(v), wy(v), wz(v))) {
                     fail("拆除方块失败");
                     return;
                 }
+                blocksChangedThisTick++;
+                if (light) lightsChangedThisTick++;
             }
             cursor++;
         }
@@ -1602,6 +1844,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         chunkLoading.release(host);
         data().release(structureId);
         state = 0;
+        invalidateStructure();
+        initialClearanceAccepted = false;
+        clearanceCursor = 0;
+        clearanceTargets = null;
+        clearanceRechecks.clear();
         constructionPaidFluids = new FluidStack[0];
         completionValidationPending = false;
         structureId = "";
@@ -1610,6 +1857,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         stage = 0;
         refundPrepared = false;
         placed.clear();
+        repairTargets.clear();
+        scanCursor = 0;
+        removalVerified = false;
+        jobFingerprint = 0;
+        visualHostId = UUID.randomUUID()
+            .toString();
         status = "拆除完成";
         changed();
     }
@@ -2044,11 +2297,32 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public boolean isUseableByPlayer(EntityPlayer p) {
         return p != null && !p.isDead
+            && worldObj != null
             && worldObj.getTileEntity(xCoord, yCoord, zCoord) == host
             && (owner.isEmpty() || owner.equals(
                 p.getUniqueID()
                     .toString()))
-            && p.getDistanceSq(xCoord + .5, yCoord + .5, zCoord + .5) <= 64;
+            && (p.getDistanceSq(xCoord + .5, yCoord + .5, zCoord + .5) <= 64 || isNearLinkedLoom(p));
+    }
+
+    private boolean isNearLinkedLoom(EntityPlayer p) {
+        if (getGeometryVersion() != 2 || loomController
+            || gtMachine() == null
+            || gtMachine().getPresetKind() != CriticalMachineKind.SUN) return false;
+        int z = zCoord + 12;
+        return worldObj.getChunkProvider()
+            .chunkExists(xCoord >> 4, z >> 4)
+            && host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity main
+            && main.getFrontFacing() == ForgeDirection.SOUTH
+            && worldObj
+                .getTileEntity(xCoord, yCoord, z) instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity tile
+            && tile.getFrontFacing() == ForgeDirection.NORTH
+            && tile.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine other
+            && other.isKindSelector()
+            && other.getLocalCriticalState()
+                .getGeometryVersion() == 2
+            && other.getCriticalState() == this
+            && p.getDistanceSq(xCoord + .5, yCoord + .5, z + .5) <= 64;
     }
 
     public void openInventory() {}
@@ -2139,6 +2413,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public void writeToNBT(NBTTagCompound n) {
+        n.setInteger("geometryVersion", getGeometryVersion());
+        n.setBoolean("loomController", loomController);
+        n.setBoolean("initialClearanceAccepted", initialClearanceAccepted);
 
         n.setBoolean("nativeFundingUncertain", nativeFundingUncertain);
         n.setTag("uncertainFundingItems", writeItems(uncertainFundingItems));
@@ -2192,6 +2469,10 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public void readFromNBT(NBTTagCompound n) {
+        geometryVersion = n.hasKey("geometryVersion") ? n.getInteger("geometryVersion") : 1;
+        if (n.hasKey("loomController")) loomController = n.getBoolean("loomController");
+        initialClearanceAccepted = n.hasKey("initialClearanceAccepted") ? n.getBoolean("initialClearanceAccepted")
+            : n.getInteger("state") != 0;
         geometryCache = null;
         hatchPortsCache = null;
 
@@ -2265,6 +2546,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     /** Side-neutral visual snapshot for renderer anchors and description packets. */
     public NBTTagCompound getVisualData() {
         NBTTagCompound n = new NBTTagCompound();
+        n.setInteger("geometryVersion", getGeometryVersion());
+        n.setBoolean("loomController", loomController);
         n.setString("visualHostId", visualHostId);
         n.setTag("config", config.write());
         n.setInteger("state", state);
@@ -2292,6 +2575,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     /** Reads only visual fields; never depends on client-only packet accessors. */
     public void readVisualData(NBTTagCompound n) {
+        geometryVersion = n.hasKey("geometryVersion") ? n.getInteger("geometryVersion") : 1;
+        loomController = n.getBoolean("loomController");
         if (n.hasKey("visualHostId")) visualHostId = n.getString("visualHostId");
         config = CriticalConfiguration.read(n.getCompoundTag("config"));
         state = n.getInteger("state");
@@ -2315,9 +2600,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             getOriginX(),
             getOriginY(),
             getOriginZ(),
-            getOriginX() + 80,
-            getOriginY() + 162,
-            getOriginZ() + 80);
+            getOriginX() + getRegionSize(),
+            getOriginY() + getRegionHeight(),
+            getOriginZ() + getRegionSize());
     }
 
     public double getMaxRenderDistanceSquared() {

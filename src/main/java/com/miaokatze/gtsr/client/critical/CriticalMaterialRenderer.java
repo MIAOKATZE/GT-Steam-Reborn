@@ -42,6 +42,14 @@ public final class CriticalMaterialRenderer implements ISimpleBlockRenderingHand
             for (int side = 0; side < 6; side++) {
                 t.startDrawingQuads();
                 IIcon icon = block.getIcon(side, metadata);
+                if (block instanceof CriticalMaterials.MaterialBlock material
+                    && material.materialId.startsWith("v2_")) {
+                    int[] normal = CriticalMaterialTextures.NORMALS[side];
+                    t.setNormal(normal[0], normal[1], normal[2]);
+                    face(t, 0, 0, 0, side, icon, 0);
+                    t.draw();
+                    continue;
+                }
                 switch (side) {
                     case 0 -> {
                         t.setNormal(0, -1, 0);
@@ -89,6 +97,9 @@ public final class CriticalMaterialRenderer implements ISimpleBlockRenderingHand
                 block,
                 world.getBlockMetadata(x, y, z))))
             return false;
+        if (block instanceof CriticalMaterials.MaterialBlock material && material.materialId.startsWith("v2_")) {
+            return renderV2(world, x, y, z, material);
+        }
         boolean rendered = renderer.renderStandardBlock(block, x, y, z);
         if (!(block instanceof CriticalMaterials.MaterialBlock material) || !material.emissive
             || material.emission == null) return rendered;
@@ -108,5 +119,48 @@ public final class CriticalMaterialRenderer implements ISimpleBlockRenderingHand
             renderer.setRenderBounds(old[0], old[1], old[2], old[3], old[4], old[5]);
         }
         return rendered;
+    }
+
+    private static boolean renderV2(IBlockAccess world, int x, int y, int z, CriticalMaterials.MaterialBlock material) {
+        Tessellator tessellator = Tessellator.instance;
+        boolean rendered = false;
+        for (int side = 0; side < 6; side++) {
+            int[] normal = CriticalMaterialTextures.NORMALS[side];
+            int nx = x + normal[0], ny = y + normal[1], nz = z + normal[2];
+            if (!material.shouldSideBeRendered(world, nx, ny, nz, side)) continue;
+            int mask = CriticalMaterialTextures.worldMask(world, x, y, z, material, side);
+            IIcon albedo = CriticalMaterialTextures.icon(material.materialId, side, mask, false, false);
+            if (albedo == null) continue;
+            // Packed native sky/block light for this exposed face, baked when the chunk mesh is rebuilt.
+            tessellator.setBrightness(material.getMixedBrightnessForBlock(world, nx, ny, nz));
+            float shade = side == 0 ? .5F : side == 1 ? 1 : side < 4 ? .8F : .6F;
+            tessellator.setColorOpaque_F(shade, shade, shade);
+            face(tessellator, x, y, z, side, albedo, 0);
+            IIcon emission = CriticalMaterialTextures.icon(material.materialId, side, mask, true, false);
+            if (emission != null) {
+                tessellator.setBrightness(0x00f000f0);
+                tessellator.setColorOpaque_F(1, 1, 1);
+                face(tessellator, x, y, z, side, emission, .0005);
+            }
+            rendered = true;
+        }
+        return rendered;
+    }
+
+    private static void face(Tessellator tessellator, double x, double y, double z, int side, IIcon icon,
+        double offset) {
+        int[] normal = CriticalMaterialTextures.NORMALS[side], u = CriticalMaterialTextures.U[side],
+            v = CriticalMaterialTextures.V[side];
+        double cx = x + .5 + normal[0] * (.5 + offset), cy = y + .5 + normal[1] * (.5 + offset),
+            cz = z + .5 + normal[2] * (.5 + offset);
+        for (int corner = 0; corner < 4; corner++) {
+            int us = corner == 0 || corner == 3 ? -1 : 1, vs = corner < 2 ? -1 : 1;
+            tessellator.addVertexWithUV(
+                cx + .5 * (us * u[0] + vs * v[0]),
+                cy + .5 * (us * u[1] + vs * v[1]),
+                cz + .5 * (us * u[2] + vs * v[2]),
+                us < 0 ? icon.getMinU() : icon.getMaxU(),
+                vs < 0 ? icon.getMinV() : icon.getMaxV());
+        }
     }
 }
