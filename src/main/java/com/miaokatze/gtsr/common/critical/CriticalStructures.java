@@ -15,7 +15,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
 import com.gtnewhorizon.structurelib.StructureLibAPI;
-import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.structure.AutoPlaceEnvironment;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
@@ -39,6 +38,7 @@ import gregtech.common.blocks.ItemMachines;
 public final class CriticalStructures {
 
     private static final Map<String, IStructureDefinition<MTECriticalMachine>> DEFINITIONS = new HashMap<>();
+    private static final Map<IStructureDefinition<MTECriticalMachine>, IStructureDefinition<MTECriticalMachine>> ALL_DEFINITIONS = new HashMap<>();
     // NORTH's StructureLib axes are WEST, DOWN, SOUTH. Shape X and Y are reversed accordingly.
     public static final int CONTROLLER_Z = 33;
     private static final int MAX_X = 76, MAX_Z = 76;
@@ -46,7 +46,26 @@ public final class CriticalStructures {
     private CriticalStructures() {}
 
     public static synchronized IStructureDefinition<MTECriticalMachine> definition(MTECriticalMachine machine) {
-        return machine.isKindSelector() ? CriticalLoomStructure.definition(machine) : fullDefinition(machine);
+        IStructureDefinition<MTECriticalMachine> full = fullDefinition(machine);
+        return ALL_DEFINITIONS.computeIfAbsent(full, ignored -> {
+            IStructureDefinition<MTECriticalMachine> loom = CriticalLoomStructure.definition(machine);
+            return new IStructureDefinition<>() {
+
+                private IStructureDefinition<MTECriticalMachine> forPiece(String piece) {
+                    return CriticalLoomStructure.PIECE.equals(piece) ? loom : full;
+                }
+
+                @Override
+                public IStructureElement<MTECriticalMachine>[] getStructureFor(String piece) {
+                    return forPiece(piece).getStructureFor(piece);
+                }
+
+                @Override
+                public boolean isContainedInStructure(String piece, int a, int b, int c) {
+                    return forPiece(piece).isContainedInStructure(piece, a, b, c);
+                }
+            };
+        });
     }
 
     public static synchronized IStructureDefinition<MTECriticalMachine> fullDefinition(MTECriticalMachine machine) {
@@ -56,7 +75,7 @@ public final class CriticalStructures {
             CriticalGeometry.visualMachineSlug(machine.getCriticalState()) + ':'
                 + CriticalGeometry.visualLoomSlug(machine.getCriticalState())
                 + ':'
-                + machine.getCriticalState()
+                + machine.getLocalCriticalState()
                     .getControllerZ()
                 + ':'
                 + machine.getCriticalState()
@@ -67,7 +86,7 @@ public final class CriticalStructures {
                 + ':'
                 + machine.getCriticalState()
                     .getEfficiencyPlugins(),
-            key -> createV2(machine.getCriticalState(), false));
+            key -> createV2(machine.getCriticalState(), false, machine.isKindSelector()));
         return DEFINITIONS.computeIfAbsent(kind.name(), key -> create(kind));
     }
 
@@ -96,11 +115,12 @@ public final class CriticalStructures {
         return v.model.startsWith("v2_") && v.x == 56 && v.y == 4 && (v.z == 35 || v.z == 47);
     }
 
-    static IStructureDefinition<MTECriticalMachine> createV2(CriticalMachineState state, boolean loomOnly) {
+    static IStructureDefinition<MTECriticalMachine> createV2(CriticalMachineState state, boolean loomOnly,
+        boolean selector) {
         StructureDefinition.Builder<MTECriticalMachine> builder = StructureDefinition.builder();
         Map<String, Character> characters = new HashMap<>();
         List<CriticalGeometry.Voxel> source = loomOnly ? CriticalLoomStructure.voxels(state) : voxels(state);
-        int top = top(source), max = 111;
+        int top = top(source);
         char[][][] grid = new char[112][top + 1][112];
         for (char[][] slice : grid) for (char[] row : slice) java.util.Arrays.fill(row, ' ');
         for (CriticalGeometry.Voxel v : source) {
@@ -125,9 +145,12 @@ public final class CriticalStructures {
                             ? ofChain(material, new PaidHatchElement(CriticalLoomStructure.isLoomVoxel(v)))
                             : material);
             }
-            grid[v.z][top - v.y][max - v.x] = symbol;
+            // Each controller declares the same canonical layout in its own native facing axes.
+            grid[CriticalStructureAlignment.shapeC(v.z, selector)][top - v.y][CriticalStructureAlignment
+                .shapeA(v.x, selector)] = symbol;
         }
-        grid[state.getControllerZ()][top - state.getControllerY()][max - state.getControllerX()] = '~';
+        grid[CriticalStructureAlignment.controllerC(selector)][top - state.getControllerY()][CriticalStructureAlignment
+            .controllerA(selector)] = '~';
         String[][] shape = new String[112][top + 1];
         for (int z = 0; z < 112; z++) for (int y = 0; y <= top; y++) shape[z][y] = new String(grid[z][y]);
         if (loomOnly) builder.addShape(CriticalLoomStructure.PIECE, shape);
@@ -139,10 +162,24 @@ public final class CriticalStructures {
 
         private final boolean selector;
         private final CriticalMachineKind kind;
+        private final net.minecraftforge.common.util.ForgeDirection frame;
 
         ControllerElement(boolean selector, CriticalMachineKind kind) {
+            this(selector, kind, net.minecraftforge.common.util.ForgeDirection.NORTH);
+        }
+
+        ControllerElement(boolean selector, CriticalMachineKind kind,
+            net.minecraftforge.common.util.ForgeDirection frame) {
             this.selector = selector;
             this.kind = kind;
+            this.frame = frame;
+        }
+
+        private net.minecraftforge.common.util.ForgeDirection facing(MTECriticalMachine machine) {
+            net.minecraftforge.common.util.ForgeDirection direction = machine == null ? frame
+                : machine.getCriticalState()
+                    .getStructureFacing();
+            return selector ? direction : direction.getOpposite();
         }
 
         @Override
@@ -157,8 +194,7 @@ public final class CriticalStructures {
                         .isLoomJournalOwner()
                     || other.getLocalCriticalState()
                         .isLoomOwnedMainOf(machine.getCriticalState()))
-                && gt.getFrontFacing() == (selector ? net.minecraftforge.common.util.ForgeDirection.NORTH
-                    : net.minecraftforge.common.util.ForgeDirection.SOUTH);
+                && gt.getFrontFacing() == facing(machine);
         }
 
         private ItemStack stack() {
@@ -201,9 +237,7 @@ public final class CriticalStructures {
                     tile.setOwnerUuid(ownerHost.getOwnerUuid());
                 }
                 tile.setInitialValuesAsNBT(null, (short) controller.getItemDamage());
-                tile.setFrontFacing(
-                    selector ? net.minecraftforge.common.util.ForgeDirection.NORTH
-                        : net.minecraftforge.common.util.ForgeDirection.SOUTH);
+                tile.setFrontFacing(facing(machine));
                 if (!selector && !preview && tile.getMetaTileEntity() instanceof MTECriticalMachine main)
                     main.getLocalCriticalState()
                         .setLoomOwnedMain(machine.getCriticalState());
@@ -350,42 +384,19 @@ public final class CriticalStructures {
         CriticalMachineState current = machine.getCriticalState();
         if (CriticalGeometry.isV2(current)) {
             int top = top(voxels(current));
-            fullDefinition(machine).buildOrHints(
-                machine,
-                trigger,
+            machine.buildCriticalPiece(
                 piece(tier),
-                world,
-                ExtendedFacing.DEFAULT,
-                current.xCoord,
-                current.yCoord,
-                current.zCoord,
-                111 - current.getControllerX(),
+                trigger,
+                hintsOnly,
+                CriticalStructureAlignment.controllerA(machine.isKindSelector()),
                 top - current.getControllerY(),
-                current.getControllerZ(),
-                hintsOnly);
-            if (!hintsOnly) for (CriticalGeometry.Voxel v : CriticalGeometry.physicalPlugins(current)) world.setBlock(
-                current.getOriginX() + v.x,
-                current.getOriginY() + v.y,
-                current.getOriginZ() + v.z,
-                v.block,
-                0,
-                2);
+                CriticalStructureAlignment.controllerC(machine.isKindSelector()));
+            if (!hintsOnly) for (CriticalGeometry.Voxel v : CriticalGeometry.physicalPlugins(current))
+                world.setBlock(current.blockWorldX(v), current.blockWorldY(v.y), current.blockWorldZ(v), v.block, 0, 2);
             return;
         }
         int top = top(voxels(tier, kind));
-        fullDefinition(machine).buildOrHints(
-            machine,
-            trigger,
-            piece(tier),
-            world,
-            ExtendedFacing.DEFAULT,
-            tile.getXCoord(),
-            tile.getYCoord(),
-            tile.getZCoord(),
-            MAX_X - 40,
-            top,
-            CONTROLLER_Z,
-            hintsOnly);
+        machine.buildCriticalPiece(piece(tier), trigger, hintsOnly, MAX_X - 40, top, CONTROLLER_Z);
         if (!hintsOnly) previewPlugins(
             machine.getCriticalState()
                 .getConfiguration(),
@@ -503,33 +514,42 @@ public final class CriticalStructures {
         private final boolean manual;
 
         PaidHatchElement() {
-            this(false);
+            this(false, false);
         }
 
         PaidHatchElement(boolean manual) {
-            this.manual = manual;
+            this(manual, true);
         }
 
-        private final IStructureElement<MTECriticalMachine> nativeElement = buildHatchAdder(MTECriticalMachine.class)
-            .anyOf(
-                HatchElement.InputBus,
-                HatchElement.OutputBus,
-                HatchElement.InputHatch,
-                HatchElement.OutputHatch,
-                HatchElement.Energy,
-                HatchElement.MultiAmpEnergy,
-                HatchElement.Dynamo)
-            .hatchClasses(
-                MTEHatchInputBus.class,
-                MTEHatchOutputBus.class,
-                MTEHatchInput.class,
-                MTEHatchOutput.class,
-                MTEHatchEnergy.class,
-                tectech.thing.metaTileEntity.hatch.MTEHatchEnergyMulti.class,
-                MTEHatchDynamo.class)
-            .casingIndex(CriticalControllerTextures.casingIndex())
-            .hint(1)
-            .build();
+        private PaidHatchElement(boolean manual, boolean v2) {
+            this.manual = manual;
+            nativeElement = nativeElement(v2);
+        }
+
+        private final IStructureElement<MTECriticalMachine> nativeElement;
+
+        private static IStructureElement<MTECriticalMachine> nativeElement(boolean v2) {
+            return buildHatchAdder(MTECriticalMachine.class)
+                .anyOf(
+                    HatchElement.InputBus,
+                    HatchElement.OutputBus,
+                    HatchElement.InputHatch,
+                    HatchElement.OutputHatch,
+                    HatchElement.Energy,
+                    HatchElement.MultiAmpEnergy,
+                    HatchElement.Dynamo)
+                .hatchClasses(
+                    MTEHatchInputBus.class,
+                    MTEHatchOutputBus.class,
+                    MTEHatchInput.class,
+                    MTEHatchOutput.class,
+                    MTEHatchEnergy.class,
+                    tectech.thing.metaTileEntity.hatch.MTEHatchEnergyMulti.class,
+                    MTEHatchDynamo.class)
+                .casingIndex(CriticalControllerTextures.casingIndex(v2))
+                .hint(1)
+                .build();
+        }
 
         @Override
         public boolean check(MTECriticalMachine machine, World world, int x, int y, int z) {

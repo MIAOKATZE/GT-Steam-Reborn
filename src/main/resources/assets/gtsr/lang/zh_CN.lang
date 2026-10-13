@@ -3898,7 +3898,7 @@ tile.critical_loom_v2_gt_controller.name=主结构控制器
 tile.critical_loom_proxy_v2_gt_controller.name=主结构控制器
 tile.gtsr.critical_v2.gt_controller.tooltip.1=管理绑定的基座与上层机器结构。
 tile.gtsr.critical_v2.gt_controller.tooltip.2=右键查看整机类型、结构配置与运行状态。
-tile.gtsr.critical_v2.gt_controller.tooltip.3=深蓝紫总控徽记面朝南，与织机本机控制器同高对望。
+tile.gtsr.critical_v2.gt_controller.tooltip.3=深蓝紫总控徽记与织机本机控制器同高对望，朝向随织机旋转。
 tile.critical_v2_gt_hatch.name=临界结构供给舱
 tile.critical_proxy_v2_gt_hatch.name=临界结构供给舱
 tile.critical_loom_v2_gt_hatch.name=临界结构供给舱
@@ -3937,7 +3937,7 @@ tile.critical_loom_v2_loom_machine_controller.name=拟态织机本机控制器
 tile.critical_loom_proxy_v2_loom_machine_controller.name=拟态织机本机控制器
 tile.gtsr.critical_v2.loom_machine_controller.tooltip.1=显示并管理拟态织机本机的供料与施工状态。
 tile.gtsr.critical_v2.loom_machine_controller.tooltip.2=右键本机控制器操作施工；整机类型与基座设置由主结构控制器管理。
-tile.gtsr.critical_v2.loom_machine_controller.tooltip.3=冷蓝织线徽记面朝北，与主结构控制器同高对望。
+tile.gtsr.critical_v2.loom_machine_controller.tooltip.3=冷蓝织线徽记支持北/东/南/西四向，与主结构控制器同高对望。
 
 gtsr.critical.v2.loom_type=拟态织机控制器
 gtsr.critical.v2.shared=新辐照锅炉与恒星共用 V2 织机；任务、权限及材料账本归永久织机，主控代理同一账本。
@@ -3946,10 +3946,10 @@ gtsr.critical.v2.loom=永久手搭织机：主体、下方箍环、控制器附�
 gtsr.critical.v2.safe=首次仅检查将放置的实块和规定净空；玩家可站在空域，续建不重复首次检查。
 gtsr.critical.v2.dismantle=拆除付费结构、自动主控及插件，保留织机和玩家换装仓室及内容；保留合法业务仓口可直接重建。
 gtsr.critical.v2.legacy=既有任务保留原有布局及账本归属；其余七机型沿用旧 80 格结构，独立织机仍可选择。
-gtsr.critical.v2.loom_controller=本机控制器 (56,4,47) 正面朝北。
-gtsr.critical.v2.main_controller=锅炉或恒星主控 (56,4,35) 正面朝南，由织机首次施工自动放置。
-gtsr.critical.v2.region=区域原点 X/Z 必须对齐区块；区域 112×112，高180格。
-gtsr.critical.v2.controllers=织机与后施工主控均为真实 GT 控制器，同高 Y=4，不可替换成仓口。
+gtsr.critical.v2.loom_controller=本机控制器局部坐标 (56,4,47)，支持北/东/南/西四向放置；结构随正面旋转。
+gtsr.critical.v2.main_controller=锅炉或恒星主控局部坐标 (56,4,35)，正面与织机相反，由首次施工自动放置。
+gtsr.critical.v2.region=旋转后世界区域的最小 X/Z 角须对齐区块；区域 112×112，高180格。
+gtsr.critical.v2.controllers=织机与后施工主控均为真实 GT 控制器，同高 Y=4、朝向互反，不可替换成仓口。
 gtsr.critical.v2.ports=仅以下声明的施工口与业务口支持标准 GT 仓室。
 gtsr.critical.v2.loom_ports=织机控制器同高度 Y=4 的一圈超构加固机壳可替换为标准 GT 仓室，原四口 (50/53/59/62,4,47) 保留，用于施工供料、流体及供电；控制器与内部轨道不可替换。
 gtsr.critical.v2.main_ports=主控独立工作口共13个：X=50..62，Y=4，Z=34，用于运行配方输入输出及能源接口，独立于织机施工口。

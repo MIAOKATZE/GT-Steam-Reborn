@@ -3902,7 +3902,7 @@ tile.critical_loom_v2_gt_controller.name=Main Structure Controller
 tile.critical_loom_proxy_v2_gt_controller.name=Main Structure Controller
 tile.gtsr.critical_v2.gt_controller.tooltip.1=Manages the bound foundation and upper machine structure.
 tile.gtsr.critical_v2.gt_controller.tooltip.2=Right-click to inspect machine type, structure configuration and operating status.
-tile.gtsr.critical_v2.gt_controller.tooltip.3=The deep blue-violet command emblem faces south, opposite the loom machine controller at the same height.
+tile.gtsr.critical_v2.gt_controller.tooltip.3=The deep blue-violet command emblem faces the loom machine controller at the same height and rotates with the loom.
 tile.critical_v2_gt_hatch.name=Critical Structure Supply Hatch
 tile.critical_proxy_v2_gt_hatch.name=Critical Structure Supply Hatch
 tile.critical_loom_v2_gt_hatch.name=Critical Structure Supply Hatch
@@ -3941,7 +3941,7 @@ tile.critical_loom_v2_loom_machine_controller.name=Mimetic Loom Machine Controll
 tile.critical_loom_proxy_v2_loom_machine_controller.name=Mimetic Loom Machine Controller
 tile.gtsr.critical_v2.loom_machine_controller.tooltip.1=Displays and manages the mimetic loom's material supply and construction state.
 tile.gtsr.critical_v2.loom_machine_controller.tooltip.2=Right-click this controller to operate construction; machine type and foundation settings are managed by the main structure controller.
-tile.gtsr.critical_v2.loom_machine_controller.tooltip.3=The cold-blue woven emblem faces north, opposite the main structure controller at the same height.
+tile.gtsr.critical_v2.loom_machine_controller.tooltip.3=The cold-blue woven emblem supports north/east/south/west placement, opposite the main structure controller at the same height.
 
 gtsr.critical.v2.loom_type=Mimetic Loom Controller
 gtsr.critical.v2.shared=New solar boilers and stellar cores share the V2 loom. The permanent loom owns the task, permissions and journal; the main controller proxies it.
@@ -3950,10 +3950,10 @@ gtsr.critical.v2.loom=Build the permanent loom body, lower hoop and eight low br
 gtsr.critical.v2.safe=First start checks future physical blocks and required clearance. Players may occupy empty space; continuation skips this first-start gate.
 gtsr.critical.v2.dismantle=Dismantle paid bodies, the main controller and plugins. Preserve the loom and player hatches with their contents; retained operating ports support rebuilding.
 gtsr.critical.v2.legacy=Existing jobs retain their original layout and journal ownership. The other seven machine kinds keep their legacy 80-block structures and remain selectable.
-gtsr.critical.v2.loom_controller=Loom controller at (56,4,47), facing north.
-gtsr.critical.v2.main_controller=Solar or stellar main controller at (56,4,35), facing south; the loom places it during first construction.
-gtsr.critical.v2.region=The X/Z origin must align to chunks; the region is 112 by 112 and 180 blocks high.
-gtsr.critical.v2.controllers=The loom and commissioned main controller are real GT controllers at Y=4; hatches cannot replace them.
+gtsr.critical.v2.loom_controller=Loom controller at local (56,4,47), with north/east/south/west placement; the structure rotates with its front.
+gtsr.critical.v2.main_controller=Solar or stellar main controller at local (56,4,35), facing opposite the loom; placed during first construction.
+gtsr.critical.v2.region=The minimum world X/Z corner of the rotated 112 by 112, 180-high region must align to chunks.
+gtsr.critical.v2.controllers=The loom and commissioned main are real GT controllers at Y=4 with opposite fronts; hatches cannot replace them.
 gtsr.critical.v2.ports=Standard GT hatches fit only the declared construction and operating ports below.
 gtsr.critical.v2.loom_ports=The ring of Hyperstructure Reinforced Casing at the loom controller height Y=4 accepts standard GT hatches. The four original ports (50/53/59/62,4,47) remain for construction items, fluids and power; controllers and internal rails cannot be replaced.
 gtsr.critical.v2.main_ports=13 independent main operating ports: X=50..62, Y=4, Z=34, for recipe inputs, outputs and energy interfaces, separate from loom construction ports.

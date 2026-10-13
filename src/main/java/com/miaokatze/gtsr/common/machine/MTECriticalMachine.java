@@ -208,14 +208,14 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         getLocalCriticalState();
         if (state.getGeometryVersion() == 2 && getBaseMetaTileEntity() != null) {
             IGregTechTileEntity tile = getBaseMetaTileEntity();
-            int partnerZ = tile.getZCoord() + (isKindSelector() ? -12 : 12);
-            if (tile.getFrontFacing() == (isKindSelector() ? ForgeDirection.NORTH : ForgeDirection.SOUTH)
+            int partnerX = state.blockWorldX(56, isKindSelector() ? 35 : 47);
+            int partnerZ = state.blockWorldZ(56, isKindSelector() ? 35 : 47);
+            if (tile.getFrontFacing() == state.getControllerFacing(isKindSelector()) && tile.getWorld()
+                .getChunkProvider()
+                .chunkExists(partnerX >> 4, partnerZ >> 4)
                 && tile.getWorld()
-                    .getChunkProvider()
-                    .chunkExists(tile.getXCoord() >> 4, partnerZ >> 4)
-                && tile.getWorld()
-                    .getTileEntity(tile.getXCoord(), tile.getYCoord(), partnerZ) instanceof IGregTechTileEntity gt
-                && gt.getFrontFacing() == (isKindSelector() ? ForgeDirection.SOUTH : ForgeDirection.NORTH)
+                    .getTileEntity(partnerX, tile.getYCoord(), partnerZ) instanceof IGregTechTileEntity gt
+                && gt.getFrontFacing() == state.getControllerFacing(!isKindSelector())
                 && gt.getMetaTileEntity() instanceof MTECriticalMachine partner
                 && partner.isKindSelector() != isKindSelector()
                 && partner.getLocalCriticalState()
@@ -249,15 +249,27 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             && flip == com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE;
     }
 
-    /** The fabrication region uses fixed world axes even when the controller front faces another direction. */
+    /** Both native declarations describe the same rotated region from their respective controller fronts. */
     @Override
     public com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing getExtendedFacing() {
-        return com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.DEFAULT;
+        if (state == null) return com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.DEFAULT;
+        return com.miaokatze.gtsr.common.critical.CriticalStructureAlignment
+            .facing(getLocalCriticalState().getStructureFacing(), isKindSelector() || state.getGeometryVersion() != 2);
     }
 
     @Override
     public IStructureDefinition<MTECriticalMachine> getStructureDefinition() {
         return CriticalStructures.definition(this);
+    }
+
+    /** Use GT's declaration entry point so StructureLib-aware tools can capture the piece and offsets. */
+    public boolean buildCriticalPiece(String piece, ItemStack trigger, boolean hintsOnly, int a, int b, int c) {
+        return buildPiece(piece, trigger, hintsOnly, a, b, c);
+    }
+
+    public int survivalBuildCriticalPiece(String piece, ItemStack trigger, int a, int b, int c, int budget,
+        com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment environment) {
+        return survivalBuildPiece(piece, trigger, a, b, c, budget, environment, false);
     }
 
     @Override
@@ -316,7 +328,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         hatchDiscoveryJournalState = current.getState();
         java.util.Map<Long, TileEntity> next = new java.util.LinkedHashMap<>();
         for (CriticalGeometry.Voxel port : current.getResourceHatchPorts()) {
-            int x = current.getOriginX() + port.x, y = current.getOriginY() + port.y, z = current.getOriginZ() + port.z;
+            int x = current.blockWorldX(port), y = current.blockWorldY(port.y), z = current.blockWorldZ(port);
             TileEntity tile = current.worldObj.getChunkProvider()
                 .chunkExists(x >> 4, z >> 4) ? current.worldObj.getTileEntity(x, y, z) : null;
             next.put(port.positionKey(), tile);
@@ -332,8 +344,10 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         portSnapshot.putAll(next);
         for (TileEntity tile : next.values())
             if (CriticalMachineState.isStandardHatchHost(tile) && tile instanceof IGregTechTileEntity gt)
-                if (!addMultiAmpEnergyInputToMachineList(gt, CriticalControllerTextures.casingIndex()))
-                    addToMachineList(gt, CriticalControllerTextures.casingIndex());
+                if (!addMultiAmpEnergyInputToMachineList(
+                    gt,
+                    CriticalControllerTextures.casingIndex(current.getGeometryVersion() == 2)))
+                    addToMachineList(gt, CriticalControllerTextures.casingIndex(current.getGeometryVersion() == 2));
         hatchesDirty = false;
     }
 

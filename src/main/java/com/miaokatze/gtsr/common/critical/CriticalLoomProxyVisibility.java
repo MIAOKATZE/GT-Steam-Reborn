@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.block.Block;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.ForgeDirection;
 
 /** Client-world chunk ownership index. No world scan, chunk loading or per-voxel tile entity. */
 public final class CriticalLoomProxyVisibility {
@@ -46,6 +47,7 @@ public final class CriticalLoomProxyVisibility {
             && old.x == state.getOriginX()
             && old.y == state.getOriginY()
             && old.z == state.getOriginZ()
+            && old.frame == state.getStructureFacing()
             && old.slug.equals(CriticalGeometry.visualLoomSlug(state))) return;
         remove(anchor);
         if (!visible) return;
@@ -54,11 +56,14 @@ public final class CriticalLoomProxyVisibility {
             state.getOriginX(),
             state.getOriginY(),
             state.getOriginZ(),
+            state.blockWorldX(0, 0),
+            state.blockWorldZ(0, 0),
+            state.getStructureFacing(),
             CriticalGeometry.visualLoomSlug(state));
         ANCHORS.put(anchor, registration);
         Map<Long, Map<Long, Entry>> chunks = WORLDS.computeIfAbsent(world, ignored -> new ConcurrentHashMap<>());
         for (CriticalGeometry.Voxel voxel : proxies(registration.slug)) {
-            int x = registration.x + voxel.x, y = registration.y + voxel.y, z = registration.z + voxel.z;
+            int x = registration.worldX(voxel), y = registration.y + voxel.y, z = registration.worldZ(voxel);
             chunks.computeIfAbsent(chunkKey(x, z), ignored -> new ConcurrentHashMap<>())
                 .put(positionKey(x, y, z), new Entry(anchor, voxel));
         }
@@ -71,7 +76,7 @@ public final class CriticalLoomProxyVisibility {
         World world = registration.world.get();
         Map<Long, Map<Long, Entry>> chunks = world == null ? null : WORLDS.get(world);
         if (chunks != null) for (CriticalGeometry.Voxel voxel : proxies(registration.slug)) {
-            int x = registration.x + voxel.x, y = registration.y + voxel.y, z = registration.z + voxel.z;
+            int x = registration.worldX(voxel), y = registration.y + voxel.y, z = registration.worldZ(voxel);
             long chunk = chunkKey(x, z), position = positionKey(x, y, z);
             Map<Long, Entry> positions = chunks.get(chunk);
             if (positions == null) continue;
@@ -114,14 +119,28 @@ public final class CriticalLoomProxyVisibility {
 
         final WeakReference<World> world;
         final int x, y, z;
+        final int blockOriginX, blockOriginZ;
+        final ForgeDirection frame;
         final String slug;
 
-        Registration(World world, int x, int y, int z, String slug) {
+        Registration(World world, int x, int y, int z, int blockOriginX, int blockOriginZ, ForgeDirection frame,
+            String slug) {
             this.world = new WeakReference<>(world);
             this.x = x;
             this.y = y;
             this.z = z;
+            this.blockOriginX = blockOriginX;
+            this.blockOriginZ = blockOriginZ;
+            this.frame = frame;
             this.slug = slug;
+        }
+
+        int worldX(CriticalGeometry.Voxel voxel) {
+            return blockOriginX + CriticalStructureAlignment.rotateX(voxel.x, voxel.z, frame);
+        }
+
+        int worldZ(CriticalGeometry.Voxel voxel) {
+            return blockOriginZ + CriticalStructureAlignment.rotateZ(voxel.x, voxel.z, frame);
         }
 
         void redraw() {

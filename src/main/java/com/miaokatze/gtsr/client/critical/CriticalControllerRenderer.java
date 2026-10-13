@@ -119,17 +119,21 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         double phase = hasBatch
             ? Math.min(1, controller.getVisualCycleTicks(partialTicks) / Math.max(1D, controller.getCycleDuration()))
             : 0;
-        cameraX = Minecraft.getMinecraft().thePlayer.posX - controller.getOriginX();
+        cameraX = controller
+            .localPointX(Minecraft.getMinecraft().thePlayer.posX, Minecraft.getMinecraft().thePlayer.posZ);
         cameraY = Minecraft.getMinecraft().thePlayer.posY - controller.getOriginY();
-        cameraZ = Minecraft.getMinecraft().thePlayer.posZ - controller.getOriginZ();
+        cameraZ = controller
+            .localPointZ(Minecraft.getMinecraft().thePlayer.posX, Minecraft.getMinecraft().thePlayer.posZ);
         float previousLightX = OpenGlHelper.lastBrightnessX, previousLightY = OpenGlHelper.lastBrightnessY;
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
         GL11.glPushMatrix();
         try {
             GL11.glTranslated(
-                x + controller.getOriginX() - tile.xCoord,
+                x + controller.getMeshOriginX() - tile.xCoord,
                 y + controller.getOriginY() - tile.yCoord,
-                z + controller.getOriginZ() - tile.zCoord);
+                z + controller.getMeshOriginZ() - tile.zCoord);
+            // Every mesh, mechanical pose and FX point stays in the shared canonical scene frame.
+            GL11.glRotated(controller.getStructureYawDegrees(), 0, 1, 0);
             GL11.glDisable(GL11.GL_LIGHTING);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             GL11.glEnable(GL11.GL_ALPHA_TEST);
@@ -312,9 +316,10 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                         mesh.visibilityKey,
                         mesh.lightSamples,
                         transform,
-                        renderingController.getOriginX(),
+                        renderingController.getMeshOriginX(),
                         renderingController.getOriginY(),
-                        renderingController.getOriginZ(),
+                        renderingController.getMeshOriginZ(),
+                        renderingController.getStructureFacing(),
                         anchorLight);
                     OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, light & 65535, light >>> 16);
                     if (transform != IDENTITY) {
@@ -403,26 +408,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         }
         double[] cached = groupMatrices.get(animation);
         if (cached != null) return cached;
-        double[] origin = CriticalAnimation.transform(new double[3], animation, phase, seconds, mode);
-        double[][] cols = new double[3][];
-        for (int i = 0; i < 3; i++) {
-            double[] unit = new double[3];
-            unit[i] = 1;
-            cols[i] = CriticalAnimation.transform(unit, animation, phase, seconds, mode);
-            for (int j = 0; j < 3; j++) cols[i][j] -= origin[j];
-        }
-        // JSON positions are cube centers; world block coordinates are cube corners.
-        matrix.clear();
-        for (int i = 0; i < 3; i++) matrix.put(cols[i])
-            .put(0);
-        matrix.put(origin[0] + .5 - .5 * (cols[0][0] + cols[1][0] + cols[2][0]));
-        matrix.put(origin[1] + .5 - .5 * (cols[0][1] + cols[1][1] + cols[2][1]));
-        matrix.put(origin[2] + .5 - .5 * (cols[0][2] + cols[1][2] + cols[2][2]))
-            .put(1)
-            .flip();
-        cached = new double[16];
-        matrix.get(cached);
-        matrix.rewind();
+        cached = CriticalMechanicalPose.matrix(animation, phase, seconds, mode);
         groupMatrices.put(animation, cached);
         return cached;
     }

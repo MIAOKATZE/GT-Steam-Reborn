@@ -172,11 +172,14 @@ public final class CriticalMaterials {
             return !proxy;
         }
 
-        /** The moving mesh has no fixed invisible collision wall; original static supports retain collision. */
+        /**
+         * Every material is a real structure block at its placed coordinate. Proxy only selects the renderer;
+         * the TESR's visual motion does not remove the paid block's native collision.
+         */
         @Override
         public net.minecraft.util.AxisAlignedBB getCollisionBoundingBoxFromPool(net.minecraft.world.World world, int x,
             int y, int z) {
-            return proxy ? null : super.getCollisionBoundingBoxFromPool(world, x, y, z);
+            return super.getCollisionBoundingBoxFromPool(world, x, y, z);
         }
 
         @Override

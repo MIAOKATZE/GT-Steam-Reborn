@@ -47,6 +47,15 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         xCoord = tile.xCoord;
         yCoord = tile.yCoord;
         zCoord = tile.zCoord;
+        ForgeDirection frame = getStructureFacing();
+        if (boundStructureFacing != frame) {
+            loomChunksCache = null;
+            if (boundStructureFacing != ForgeDirection.UNKNOWN && !structureFacingLocked) {
+                if (worldObj != null) CriticalRenderAnchors.remove(this, boundStructureFacing);
+                clearPendingClearance();
+            }
+            boundStructureFacing = frame;
+        }
     }
 
     public TileEntity getHost() {
@@ -148,7 +157,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private String visualHostId = UUID.randomUUID()
         .toString();
     private int geometryVersion;
-    private int v2LayoutRevision = 26;
+    private int v2LayoutRevision = 27;
+    private ForgeDirection structureFacing = ForgeDirection.NORTH, boundStructureFacing = ForgeDirection.UNKNOWN;
+    private boolean structureFacingLocked;
     private boolean loomController, loomJournalOwner, loomOwnedMain, initialClearanceAccepted;
     private int clearanceCursor, blocksChangedThisTick, lightsChangedThisTick;
     private long blockBudgetStarted;
@@ -183,6 +194,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         loomOwnedMain = true;
         geometryVersion = journalOwner.getGeometryVersion();
         v2LayoutRevision = journalOwner.getV2LayoutRevision();
+        structureFacing = journalOwner.getStructureFacing();
+        structureFacingLocked = true;
         config = journalOwner.config;
         owner = journalOwner.owner;
         visualHostId = journalOwner.visualHostId;
@@ -213,6 +226,83 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 .isEmpty()
             || n.getLong("jobFingerprint") != 0L
             || n.getByteArray("placed").length != 0 ? 25 : 26;
+    }
+
+    private static boolean hasPersistentLayout(NBTTagCompound n) {
+        return n.getBoolean("loomOwnedMain") || n.getInteger("state") != 0
+            || !n.getString("structureId")
+                .isEmpty()
+            || !n.getString("jobId")
+                .isEmpty()
+            || n.getLong("jobFingerprint") != 0L
+            || n.getByteArray("placed").length != 0;
+    }
+
+    /** Canonical loom-N/main-S frame. Existing commissioned layouts keep their original world axes. */
+    public ForgeDirection getStructureFacing() {
+        if (getGeometryVersion() != 2 || v2LayoutRevision <= 26) return ForgeDirection.NORTH;
+        if (!structureFacingLocked && host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt) {
+            ForgeDirection front = CriticalStructureAlignment.horizontal(gt.getFrontFacing());
+            return loomController ? front : front.getOpposite();
+        }
+        return structureFacing;
+    }
+
+    public ForgeDirection getControllerFacing(boolean selector) {
+        return selector ? getStructureFacing() : getStructureFacing().getOpposite();
+    }
+
+    public int blockWorldX(int x, int z) {
+        return xCoord
+            + CriticalStructureAlignment.rotateX(x - getControllerX(), z - getControllerZ(), getStructureFacing());
+    }
+
+    public int blockWorldY(int y) {
+        return getOriginY() + y;
+    }
+
+    public int blockWorldZ(int x, int z) {
+        return zCoord
+            + CriticalStructureAlignment.rotateZ(x - getControllerX(), z - getControllerZ(), getStructureFacing());
+    }
+
+    public int blockWorldX(CriticalGeometry.Voxel voxel) {
+        return blockWorldX(voxel.x, voxel.z);
+    }
+
+    public int blockWorldZ(CriticalGeometry.Voxel voxel) {
+        return blockWorldZ(voxel.x, voxel.z);
+    }
+
+    public int localBlockX(int x, int z) {
+        return getControllerX()
+            + (int) CriticalStructureAlignment.unrotateX(x - xCoord, z - zCoord, getStructureFacing());
+    }
+
+    public int localBlockZ(int x, int z) {
+        return getControllerZ()
+            + (int) CriticalStructureAlignment.unrotateZ(x - xCoord, z - zCoord, getStructureFacing());
+    }
+
+    /** Continuous cube vertices rotate around block centers, rather than integer block corners. */
+    public double getMeshOriginX() {
+        return blockWorldX(0, 0) + .5 - CriticalStructureAlignment.rotateX(.5, .5, getStructureFacing());
+    }
+
+    public double getMeshOriginZ() {
+        return blockWorldZ(0, 0) + .5 - CriticalStructureAlignment.rotateZ(.5, .5, getStructureFacing());
+    }
+
+    public double localPointX(double x, double z) {
+        return CriticalStructureAlignment.unrotateX(x - getMeshOriginX(), z - getMeshOriginZ(), getStructureFacing());
+    }
+
+    public double localPointZ(double x, double z) {
+        return CriticalStructureAlignment.unrotateZ(x - getMeshOriginX(), z - getMeshOriginZ(), getStructureFacing());
+    }
+
+    public double getStructureYawDegrees() {
+        return CriticalStructureAlignment.yawDegrees(getStructureFacing());
     }
 
     public static boolean supportsV2Kind(CriticalMachineKind kind) {
@@ -252,7 +342,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public void recordClearanceChange(int x, int y, int z) {
-        int rx = x - getOriginX(), ry = y - getOriginY(), rz = z - getOriginZ();
+        int rx = localBlockX(x, z), ry = y - getOriginY(), rz = localBlockZ(x, z);
         if (clearanceTargets == null || rx < 0
             || rx >= getRegionSize()
             || ry < 0
@@ -478,7 +568,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public int getOriginX() {
-        return xCoord - getControllerX();
+        int max = getRegionSize() - 1;
+        return Math.min(blockWorldX(0, 0), blockWorldX(max, max));
     }
 
     public int getOriginY() {
@@ -490,7 +581,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public int getOriginZ() {
-        return zCoord - getControllerZ();
+        int max = getRegionSize() - 1;
+        return Math.min(blockWorldZ(0, 0), blockWorldZ(max, max));
     }
 
     public boolean canUse(EntityPlayer p) {
@@ -572,6 +664,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             zCoord)) return fail("施工区与已登记区域重叠");
         structureId = acceptedId;
         initialClearanceAccepted = true;
+        structureFacing = getStructureFacing();
+        structureFacingLocked = true;
         CriticalRuntime.unregisterClearance(this);
         clearanceTargets = null;
         jobId = UUID.randomUUID()
@@ -632,13 +726,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 com.google.gson.JsonArray pos = port.getAsJsonArray("standing");
                 for (int dy = 0; dy < port.get("headroomCells")
                     .getAsInt(); dy++) {
-                    int x = getOriginX() + pos.get(0)
-                        .getAsInt(), y = getOriginY()
-                            + pos.get(1)
-                                .getAsInt()
-                            + dy,
-                        z = getOriginZ() + pos.get(2)
+                    int lx = pos.get(0)
+                        .getAsInt(),
+                        lz = pos.get(2)
                             .getAsInt();
+                    int x = blockWorldX(lx, lz), y = getOriginY() + pos.get(1)
+                        .getAsInt() + dy, z = blockWorldZ(lx, lz);
                     if (!worldObj.isAirBlock(x, y, z))
                         return clearanceFailed("通道净空被占用，世界(" + x + "," + y + "," + z + ")");
                 }
@@ -651,15 +744,15 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             CriticalRenderAnchors.getZ(this)))
             targets.add(
                 CriticalGeometry.Voxel.positionKey(
-                    CriticalRenderAnchors.getX(this) - getOriginX(),
+                    localBlockX(CriticalRenderAnchors.getX(this), CriticalRenderAnchors.getZ(this)),
                     CriticalRenderAnchors.getY(this) - getOriginY(),
-                    CriticalRenderAnchors.getZ(this) - getOriginZ()));
+                    localBlockZ(CriticalRenderAnchors.getX(this), CriticalRenderAnchors.getZ(this))));
         for (Object object : worldObj.playerEntities) if (object instanceof EntityPlayer p && p.boundingBox != null) {
             AxisAlignedBB box = p.boundingBox;
             for (int x = (int) Math.floor(box.minX); x < Math.ceil(box.maxX); x++)
                 for (int y = (int) Math.floor(box.minY); y < Math.ceil(box.maxY); y++)
                     for (int z = (int) Math.floor(box.minZ); z < Math.ceil(box.maxZ); z++) {
-                        int rx = x - getOriginX(), ry = y - getOriginY(), rz = z - getOriginZ();
+                        int rx = localBlockX(x, z), ry = y - getOriginY(), rz = localBlockZ(x, z);
                         if (targets.contains(CriticalGeometry.Voxel.positionKey(rx, ry, rz)) && box.maxX > x
                             && box.minX < x + 1
                             && box.maxY > y
@@ -905,7 +998,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private int wx(CriticalGeometry.Voxel v) {
-        return getOriginX() + v.x;
+        return blockWorldX(v);
     }
 
     private int wy(CriticalGeometry.Voxel v) {
@@ -913,7 +1006,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private int wz(CriticalGeometry.Voxel v) {
-        return getOriginZ() + v.z;
+        return blockWorldZ(v);
     }
 
     private List<CriticalGeometry.Voxel> allVoxels() {
@@ -1008,8 +1101,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (CriticalStructures.isController(v)) return new CriticalStructures.ControllerElement(v.z == 47, config.kind)
             .check(gtMachine(), worldObj, wx(v), wy(v), wz(v));
         if (isStandardHatch(v)) return true;
-        if (CriticalLoomStructure.isLoomVoxel(v)) return CriticalLoomStructure
-            .matchesVoxel(worldObj, getOriginX(), getOriginY(), getOriginZ(), v, config.kind);
+        if (CriticalLoomStructure.isLoomVoxel(v)) return CriticalLoomStructure.matchesVoxel(this, v);
         return worldObj.getBlock(wx(v), wy(v), wz(v)) == v.block
             && worldObj.getBlockMetadata(wx(v), wy(v), wz(v)) == v.metadata;
     }
@@ -2384,20 +2476,19 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     private boolean isNearLinkedLoom(EntityPlayer p) {
         if (getGeometryVersion() != 2 || gtMachine() == null) return false;
-        int z = zCoord + (loomController ? -12 : 12);
+        int x = blockWorldX(56, loomController ? 35 : 47), z = blockWorldZ(56, loomController ? 35 : 47);
         return worldObj.getChunkProvider()
-            .chunkExists(xCoord >> 4, z >> 4)
-            && host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity main
-            && main.getFrontFacing() == (loomController ? ForgeDirection.NORTH : ForgeDirection.SOUTH)
+            .chunkExists(x >> 4, z >> 4) && host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity main
+            && main.getFrontFacing() == getControllerFacing(loomController)
             && worldObj
-                .getTileEntity(xCoord, yCoord, z) instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity tile
-            && tile.getFrontFacing() == (loomController ? ForgeDirection.SOUTH : ForgeDirection.NORTH)
+                .getTileEntity(x, yCoord, z) instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity tile
+            && tile.getFrontFacing() == getControllerFacing(!loomController)
             && tile.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine other
             && other.isKindSelector() != loomController
             && other.getLocalCriticalState()
                 .getGeometryVersion() == 2
             && other.getCriticalState() == this
-            && p.getDistanceSq(xCoord + .5, yCoord + .5, z + .5) <= 64;
+            && p.getDistanceSq(x + .5, yCoord + .5, z + .5) <= 64;
     }
 
     public void openInventory() {}
@@ -2490,6 +2581,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public void writeToNBT(NBTTagCompound n) {
         n.setInteger("geometryVersion", getGeometryVersion());
         n.setInteger("v2LayoutRevision", v2LayoutRevision);
+        n.setInteger("structureFacing", getStructureFacing().ordinal());
+        n.setBoolean("structureFacingLocked", structureFacingLocked);
         n.setBoolean("loomController", loomController);
         n.setBoolean("loomJournalOwner", loomJournalOwner);
         n.setBoolean("loomOwnedMain", loomOwnedMain);
@@ -2549,6 +2642,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public void readFromNBT(NBTTagCompound n) {
         geometryVersion = n.hasKey("geometryVersion") ? n.getInteger("geometryVersion") : 1;
         v2LayoutRevision = readV2LayoutRevision(n);
+        if (getGeometryVersion() == 2 && !hasPersistentLayout(n)) v2LayoutRevision = Math.max(27, v2LayoutRevision);
+        structureFacing = v2LayoutRevision <= 26 ? ForgeDirection.NORTH
+            : CriticalStructureAlignment.horizontal(ForgeDirection.getOrientation(n.getInteger("structureFacing")));
+        structureFacingLocked = v2LayoutRevision <= 26 || n.getBoolean("structureFacingLocked")
+            || hasPersistentLayout(n);
+        boundStructureFacing = ForgeDirection.UNKNOWN;
         // Missing flag denotes the existing main-owned layout; its geometry and placement indices stay frozen.
         loomJournalOwner = n.getBoolean("loomJournalOwner");
         loomOwnedMain = n.getBoolean("loomOwnedMain");
@@ -2630,6 +2729,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         NBTTagCompound n = new NBTTagCompound();
         n.setInteger("geometryVersion", getGeometryVersion());
         n.setInteger("v2LayoutRevision", v2LayoutRevision);
+        n.setInteger("structureFacing", getStructureFacing().ordinal());
+        n.setBoolean("structureFacingLocked", structureFacingLocked);
         n.setBoolean("loomController", loomController);
         n.setBoolean("loomJournalOwner", loomJournalOwner);
         n.setBoolean("loomOwnedMain", loomOwnedMain);
@@ -2662,6 +2763,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public void readVisualData(NBTTagCompound n) {
         geometryVersion = n.hasKey("geometryVersion") ? n.getInteger("geometryVersion") : 1;
         v2LayoutRevision = readV2LayoutRevision(n);
+        structureFacing = v2LayoutRevision <= 26 ? ForgeDirection.NORTH
+            : CriticalStructureAlignment.horizontal(ForgeDirection.getOrientation(n.getInteger("structureFacing")));
+        structureFacingLocked = true;
         loomController = n.getBoolean("loomController");
         loomJournalOwner = n.getBoolean("loomJournalOwner");
         loomOwnedMain = n.getBoolean("loomOwnedMain");

@@ -12,7 +12,6 @@ import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
-import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
@@ -77,6 +76,19 @@ public final class CriticalLoomStructure {
         return CriticalMaterials.matchesLoomVoxel(world.getBlock(x, y, z), world.getBlockMetadata(x, y, z), voxel);
     }
 
+    public static boolean matchesVoxel(CriticalMachineState state, CriticalGeometry.Voxel voxel) {
+        World world = state.getWorldObj();
+        int x = state.blockWorldX(voxel), y = state.blockWorldY(voxel.y), z = state.blockWorldZ(voxel);
+        if (world == null || !world.getChunkProvider()
+            .chunkExists(x >> 4, z >> 4)) return false;
+        if (CriticalStructures.isController(voxel))
+            return new CriticalStructures.ControllerElement(voxel.z == 47, state.getKind(), state.getStructureFacing())
+                .check(null, world, x, y, z);
+        if (CriticalStructures.isHatchPosition(voxel)
+            && CriticalMachineState.isStandardHatchHost(world.getTileEntity(x, y, z))) return true;
+        return CriticalMaterials.matchesLoomVoxel(world.getBlock(x, y, z), world.getBlockMetadata(x, y, z), voxel);
+    }
+
     public static Block shell(CriticalGeometry.Voxel voxel) {
         return CriticalMaterials.loomBlock(voxel.material, ((CriticalMaterials.MaterialBlock) voxel.block).proxy);
     }
@@ -111,8 +123,8 @@ public final class CriticalLoomStructure {
     public static synchronized IStructureDefinition<MTECriticalMachine> definition(MTECriticalMachine host) {
         CriticalMachineState state = host.getCriticalState();
         return CriticalGeometry.isV2(state) ? v2Definitions.computeIfAbsent(
-            CriticalGeometry.visualLoomSlug(state) + ':' + state.getControllerZ() + ':' + state.getKind(),
-            ignored -> CriticalStructures.createV2(state, true)) : definition();
+            CriticalGeometry.visualLoomSlug(state) + ':' + host.isKindSelector() + ':' + state.getKind(),
+            ignored -> CriticalStructures.createV2(state, true, host.isKindSelector())) : definition();
     }
 
     public static boolean validate(MTECriticalMachine host) {
@@ -120,37 +132,29 @@ public final class CriticalLoomStructure {
         if (tile == null) return false;
         World world = tile.getWorld();
         CriticalMachineState local = host.getCriticalState();
-        if (CriticalGeometry.isV2(local)
-            && tile.getFrontFacing() != (host.isKindSelector() ? net.minecraftforge.common.util.ForgeDirection.NORTH
-                : net.minecraftforge.common.util.ForgeDirection.SOUTH))
+        if (CriticalGeometry.isV2(local) && tile.getFrontFacing() != local.getControllerFacing(host.isKindSelector()))
             return false;
-        for (CriticalGeometry.Voxel voxel : voxels(local)) if (!matchesVoxel(
-            world,
-            local.getOriginX(),
-            local.getOriginY(),
-            local.getOriginZ(),
-            voxel,
-            local.getKind())) return false;
+        for (CriticalGeometry.Voxel voxel : voxels(local)) if (!matchesVoxel(local, voxel)) return false;
         int top = CriticalGeometry.isV2(local) ? top(local) : 35;
         if (!definition(host).check(
             host,
             PIECE,
             world,
-            ExtendedFacing.DEFAULT,
-            local.xCoord,
-            local.yCoord,
-            local.zCoord,
-            CriticalGeometry.isV2(local) ? 111 - local.getControllerX() : 7,
+            host.getExtendedFacing(),
+            tile.getXCoord(),
+            tile.getYCoord(),
+            tile.getZCoord(),
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerA(host.isKindSelector()) : 7,
             top - local.getControllerY(),
-            CriticalGeometry.isV2(local) ? local.getControllerZ() : 1,
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerC(host.isKindSelector()) : 1,
             false)) return false;
         boolean items = false, fluids = false, energy = false;
         for (CriticalGeometry.Voxel port : voxels(local)) {
             if (!CriticalStructures.isHatchPosition(port)) continue;
             if (!(world.getTileEntity(
-                local.getOriginX() + port.x,
-                local.getOriginY() + port.y,
-                local.getOriginZ() + port.z) instanceof IGregTechTileEntity hatch)) continue;
+                local.blockWorldX(port),
+                local.blockWorldY(port.y),
+                local.blockWorldZ(port)) instanceof IGregTechTileEntity hatch)) continue;
             Object mte = hatch.getMetaTileEntity();
             items |= mte instanceof MTEHatchInputBus;
             fluids |= mte instanceof MTEHatchInput;
@@ -170,19 +174,13 @@ public final class CriticalLoomStructure {
         IGregTechTileEntity tile = host.getBaseMetaTileEntity();
         if (tile == null) return;
         CriticalMachineState local = host.getCriticalState();
-        definition(host).buildOrHints(
-            host,
-            trigger,
+        host.buildCriticalPiece(
             PIECE,
-            tile.getWorld(),
-            ExtendedFacing.DEFAULT,
-            local.xCoord,
-            local.yCoord,
-            local.zCoord,
-            CriticalGeometry.isV2(local) ? 111 - local.getControllerX() : 7,
+            trigger,
+            hintsOnly,
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerA(host.isKindSelector()) : 7,
             CriticalGeometry.isV2(local) ? top(local) - local.getControllerY() : 35,
-            CriticalGeometry.isV2(local) ? local.getControllerZ() : 1,
-            hintsOnly);
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerC(host.isKindSelector()) : 1);
     }
 
     public static int survivalConstruct(MTECriticalMachine host, ItemStack trigger, int budget,
@@ -190,21 +188,14 @@ public final class CriticalLoomStructure {
         IGregTechTileEntity tile = host.getBaseMetaTileEntity();
         if (tile == null) return -1;
         CriticalMachineState local = host.getCriticalState();
-        return definition(host).survivalBuild(
-            host,
-            trigger,
+        return host.survivalBuildCriticalPiece(
             PIECE,
-            tile.getWorld(),
-            ExtendedFacing.DEFAULT,
-            local.xCoord,
-            local.yCoord,
-            local.zCoord,
-            CriticalGeometry.isV2(local) ? 111 - local.getControllerX() : 7,
+            trigger,
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerA(host.isKindSelector()) : 7,
             CriticalGeometry.isV2(local) ? top(local) - local.getControllerY() : 35,
-            CriticalGeometry.isV2(local) ? local.getControllerZ() : 1,
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerC(host.isKindSelector()) : 1,
             budget,
-            env,
-            false);
+            env);
     }
 
     /** Native elements remain visible to StructureLib-aware construction tools. */

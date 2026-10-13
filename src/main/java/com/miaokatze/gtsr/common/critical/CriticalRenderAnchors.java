@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.common.critical;
 
 import net.minecraft.block.Block;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraftforge.common.util.ForgeDirection;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
@@ -14,7 +15,7 @@ public final class CriticalRenderAnchors {
     private CriticalRenderAnchors() {}
 
     public static int getX(CriticalMachineState state) {
-        return state.getOriginX() + state.getControllerX();
+        return state.blockWorldX(state.getControllerX(), state.getGeometryVersion() == 2 ? 34 : 32);
     }
 
     public static int getY(CriticalMachineState state) {
@@ -22,7 +23,7 @@ public final class CriticalRenderAnchors {
     }
 
     public static int getZ(CriticalMachineState state) {
-        return state.getOriginZ() + (state.getGeometryVersion() == 2 ? 34 : 32);
+        return state.blockWorldZ(state.getControllerX(), state.getGeometryVersion() == 2 ? 34 : 32);
     }
 
     public static void register() {
@@ -60,8 +61,15 @@ public final class CriticalRenderAnchors {
     }
 
     public static void remove(CriticalMachineState state) {
+        remove(state, state.getStructureFacing());
+    }
+
+    /** An uncommissioned controller may turn; remove the previous frame's owned visual before rebinding. */
+    static void remove(CriticalMachineState state, ForgeDirection frame) {
         if (state.worldObj == null || state.worldObj.isRemote) return;
-        int x = getX(state), y = getY(state), z = getZ(state);
+        int depth = (state.getGeometryVersion() == 2 ? 34 : 32) - state.getControllerZ();
+        int x = state.xCoord + CriticalStructureAlignment.rotateX(0, depth, frame), y = getY(state),
+            z = state.zCoord + CriticalStructureAlignment.rotateZ(0, depth, frame);
         if (state.worldObj.blockExists(x, y, z)
             && state.worldObj.getTileEntity(x, y, z) instanceof TileEntityCriticalRenderAnchor anchor
             && anchor.ownedBy(state)) state.worldObj.setBlockToAir(x, y, z);

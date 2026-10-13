@@ -39,7 +39,15 @@ final class CriticalGroupVisibility {
             + ":"
             + controller.getMachineKind()
             + ":"
-            + hasInstallation(controller);
+            + hasInstallation(controller)
+            + ":"
+            + controller.getStructureFacing()
+            + ":"
+            + controller.getMeshOriginX()
+            + ":"
+            + controller.getOriginY()
+            + ":"
+            + controller.getMeshOriginZ();
     }
 
     private static boolean hasInstallation(CriticalMachineState controller) {
@@ -77,17 +85,11 @@ final class CriticalGroupVisibility {
         while (remaining > 0 && completed < groups.size() && !groups.isEmpty()) {
             Group group = groups.get(nextGroup);
             CriticalGeometry.Voxel voxel = group.voxels.get(group.cursor);
-            int x = controller.getOriginX() + voxel.x, y = controller.getOriginY() + voxel.y,
-                z = controller.getOriginZ() + voxel.z;
+            int x = controller.blockWorldX(voxel), y = controller.blockWorldY(voxel.y),
+                z = controller.blockWorldZ(voxel);
             boolean present = controller.getWorldObj()
                 .blockExists(x, y, z)
-                && (group.loom
-                    ? CriticalLoomStructure.matchesVoxel(
-                        controller.getWorldObj(),
-                        controller.getOriginX(),
-                        controller.getOriginY(),
-                        controller.getOriginZ(),
-                        voxel)
+                && (group.loom ? CriticalLoomStructure.matchesVoxel(controller, voxel)
                     : controller.getWorldObj()
                         .getBlock(x, y, z) == voxel.block
                         && controller.getWorldObj()
