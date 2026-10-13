@@ -19,6 +19,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 public final class CriticalMaterialRenderer implements ISimpleBlockRenderingHandler {
 
     public static void register() {
+        CriticalAngelicaCompat.register();
         CriticalMaterials.renderId = RenderingRegistry.getNextAvailableRenderId();
         RenderingRegistry.registerBlockHandler(new CriticalMaterialRenderer());
     }

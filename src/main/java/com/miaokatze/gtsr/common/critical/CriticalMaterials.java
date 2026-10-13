@@ -184,7 +184,8 @@ public final class CriticalMaterials {
 
         @Override
         public int getRenderType() {
-            return proxy && !loom ? -1 : renderId;
+            // Inventory uses this render id too. The world handler suppresses paid moving proxies itself.
+            return renderId;
         }
 
         @Override

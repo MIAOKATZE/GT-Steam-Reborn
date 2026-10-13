@@ -11674,9 +11674,9 @@
       },
       "top": {
         "albedo": "gtsr:critical/v2/gravity_modulator__top",
-        "emission": null,
+        "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
         "frozenAlbedo": "gtsr:critical/v2/gravity_modulator__top",
-        "frozenEmission": null
+        "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
       },
       "bottom": {
         "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00",
@@ -11714,10 +11714,12 @@
     "animationFaces": [
       "px",
       "nx",
+      "py",
+      "ny",
       "pz",
       "nz"
     ],
-    "runtimeRevision": "V2-R4",
+    "runtimeRevision": "V2-R4 + v1.21.29 circular gravity caps",
     "tooltipKeys": [
       "tile.gtsr.critical_v2.gravity_modulator.tooltip.1",
       "tile.gtsr.critical_v2.gravity_modulator.tooltip.2",
@@ -11804,7 +11806,7 @@
       },
       "faceFrameCounts": {
         "side": 12,
-        "top": 1,
+        "top": 12,
         "bottom": 12
       },
       "requiresSameCanonical": true,
@@ -11839,99 +11841,99 @@
         "top": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_00",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_00",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_00_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_01",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_01_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_01",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_01_emission_frozen"
           },
           "2": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_02",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_02_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_02",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_02_emission_frozen"
           },
           "3": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_03",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_03_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_03",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_03_emission_frozen"
           },
           "4": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_04",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_04_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_04",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_04_emission_frozen"
           },
           "5": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_05",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_05_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_05",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_05_emission_frozen"
           },
           "6": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_06",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_06_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_06",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_06_emission_frozen"
           },
           "7": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_07",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_07_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_07",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_07_emission_frozen"
           },
           "8": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_08",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_08_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_08",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_08_emission_frozen"
           },
           "9": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_09",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_09_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_09",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_09_emission_frozen"
           },
           "10": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_10",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_10_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_10",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_10_emission_frozen"
           },
           "11": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_11",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_11_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_11",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_11_emission_frozen"
           },
           "12": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_12",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_12_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_12",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_12_emission_frozen"
           },
           "13": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_13",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_13_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_13",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_13_emission_frozen"
           },
           "14": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_14",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_14_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_14",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_14_emission_frozen"
           },
           "15": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_15",
-            "emission": null,
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_15_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_15",
-            "frozenEmission": null
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_15_emission_frozen"
           }
         },
         "bottom": {
