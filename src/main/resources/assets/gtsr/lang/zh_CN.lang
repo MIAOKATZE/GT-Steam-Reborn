@@ -3944,7 +3944,7 @@ gtsr.critical.v2.shared=新辐照锅炉与恒星共用 V2 织机；任务、权�
 gtsr.critical.v2.tier=基座外观统一 T3；三档等级仍控制配方电压及插件效果。
 gtsr.critical.v2.loom=永久手搭织机：主体、下方箍环、控制器附近低位八枝及周围三圈运动箍环；悬浮枝、装甲与功能插件随底座和主机付费构建。
 gtsr.critical.v2.safe=首次仅检查将放置的实块和规定净空；玩家可站在空域，续建不重复首次检查。
-gtsr.critical.v2.dismantle=拆除付费结构、自动主控及插件，保留织机和玩家换装仓室及内容；保留合法业务仓口可直接重建。
+gtsr.critical.v2.dismantle=付费基座和主结构仅可由控制器按钮拆除；织机与真实GT仓室可手动维护，按钮保留仓室及内容。
 gtsr.critical.v2.legacy=既有任务保留原有布局及账本归属；其余七机型沿用旧 80 格结构，独立织机仍可选择。
 gtsr.critical.v2.loom_controller=本机控制器局部坐标 (56,4,47)，支持北/东/南/西四向放置；结构随正面旋转。
 gtsr.critical.v2.main_controller=锅炉或恒星主控局部坐标 (56,4,35)，正面与织机相反，由首次施工自动放置。
@@ -3952,4 +3952,4 @@ gtsr.critical.v2.region=区域 112×112，高180格；可在任意坐标施工�
 gtsr.critical.v2.controllers=织机与后施工主控均为真实 GT 控制器，同高 Y=4、朝向互反，不可替换成仓口。
 gtsr.critical.v2.ports=仅以下声明的施工口与业务口支持标准 GT 仓室。
 gtsr.critical.v2.loom_ports=织机控制器同高度 Y=4 的一圈超构加固机壳可替换为标准 GT 仓室，原四口 (50/53/59/62,4,47) 保留，用于施工供料、流体及供电；控制器与内部轨道不可替换。
-gtsr.critical.v2.main_ports=主控独立工作口共13个：X=50..62，Y=4，Z=34，用于运行配方输入输出及能源接口，独立于织机施工口。
+gtsr.critical.v2.main_ports=主控独立工作口共13个：X=50..62，Y=5，Z=34，可留空或放标准GT仓室；其下一排固定机壳。旧开工任务保留原Y=4仓口。

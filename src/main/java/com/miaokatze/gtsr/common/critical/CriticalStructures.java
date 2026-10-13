@@ -75,6 +75,9 @@ public final class CriticalStructures {
             CriticalGeometry.visualMachineSlug(machine.getCriticalState()) + ':'
                 + CriticalGeometry.visualLoomSlug(machine.getCriticalState())
                 + ':'
+                + machine.getCriticalState()
+                    .getV2LayoutRevision()
+                + ":"
                 + machine.getLocalCriticalState()
                     .getControllerZ()
                 + ':'
@@ -119,7 +122,9 @@ public final class CriticalStructures {
         boolean selector) {
         StructureDefinition.Builder<MTECriticalMachine> builder = StructureDefinition.builder();
         Map<String, Character> characters = new HashMap<>();
-        List<CriticalGeometry.Voxel> source = loomOnly ? CriticalLoomStructure.voxels(state) : voxels(state);
+        List<CriticalGeometry.Voxel> source = new ArrayList<>(
+            loomOnly ? CriticalLoomStructure.voxels(state) : voxels(state));
+        if (!loomOnly) source.addAll(CriticalGeometry.optionalWorkPorts(state));
         int top = top(source);
         char[][][] grid = new char[112][top + 1][112];
         for (char[][] slice : grid) for (char[] row : slice) java.util.Arrays.fill(row, ' ');
@@ -130,7 +135,9 @@ public final class CriticalStructures {
                     + ':'
                     + CriticalLoomStructure.isLoomVoxel(v)
                     + ':'
-                    + isHatchPosition(v);
+                    + isHatchPosition(state, v)
+                    + ":"
+                    + isOptionalWorkPort(v);
             Character symbol = characters.get(key);
             if (symbol == null) {
                 symbol = (char) (0x100 + characters.size());
@@ -141,9 +148,10 @@ public final class CriticalStructures {
                 builder.addElement(
                     symbol,
                     isController(v) ? new ControllerElement(v.z == 47, state.getKind())
-                        : isHatchPosition(v)
-                            ? ofChain(material, new PaidHatchElement(CriticalLoomStructure.isLoomVoxel(v)))
-                            : material);
+                        : isOptionalWorkPort(v) ? new OptionalWorkPortElement()
+                            : isHatchPosition(state, v)
+                                ? ofChain(material, new PaidHatchElement(CriticalLoomStructure.isLoomVoxel(v)))
+                                : material);
             }
             // Each controller declares the same canonical layout in its own native facing axes.
             grid[CriticalStructureAlignment.shapeC(v.z, selector)][top - v.y][CriticalStructureAlignment
@@ -267,6 +275,7 @@ public final class CriticalStructures {
 
     /** V2 loom interfaces and its controller-height reinforced shell accept supported GT chambers. */
     public static boolean isHatchPosition(CriticalGeometry.Voxel voxel) {
+        if (isOptionalWorkPort(voxel)) return true;
         if (voxel.model.startsWith("v2_")) {
             if (isController(voxel) || voxel.model.startsWith("v2_plugin_")) return false;
             if ("v2_loom".equals(voxel.model) || "v2_v25_loom".equals(voxel.model) || "v2_v27_loom".equals(voxel.model))
@@ -289,7 +298,25 @@ public final class CriticalStructures {
             && "alloy_frame".equals(material.materialId);
     }
 
+    public static boolean isOptionalWorkPort(CriticalGeometry.Voxel voxel) {
+        return "v2_optional_work_port".equals(voxel.model) && voxel.y == 5
+            && voxel.z == 34
+            && voxel.x >= 50
+            && voxel.x <= 62;
+    }
+
+    public static boolean isHatchPosition(CriticalMachineState state, CriticalGeometry.Voxel voxel) {
+        return isOptionalWorkPort(voxel)
+            || isHatchPosition(voxel) && !(state.getGeometryVersion() == 2 && state.getV2LayoutRevision() >= 30
+                && !CriticalLoomStructure.isLoomVoxel(voxel)
+                && voxel.y == 4
+                && voxel.z == 34
+                && voxel.x >= 50
+                && voxel.x <= 62);
+    }
+
     static boolean isPaidChamberPosition(CriticalGeometry.Voxel voxel) {
+        if (isOptionalWorkPort(voxel)) return true;
         return !CriticalLoomStructure.isLoomVoxel(voxel) && isHatchPosition(voxel)
             && voxel.y == 4
             && voxel.z == 34
@@ -452,6 +479,37 @@ public final class CriticalStructures {
                         2);
                 }
             }
+        }
+    }
+
+    /** Explicit upper-row slots accept air or a real supported GT chamber; placement leaves air intact. */
+    static final class OptionalWorkPortElement implements IStructureElement<MTECriticalMachine> {
+
+        @Override
+        public boolean check(MTECriticalMachine machine, World world, int x, int y, int z) {
+            return world.isAirBlock(x, y, z) || CriticalMachineState.isStandardHatchHost(world.getTileEntity(x, y, z));
+        }
+
+        @Override
+        public boolean spawnHint(MTECriticalMachine machine, World world, int x, int y, int z, ItemStack trigger) {
+            return new PaidHatchElement().spawnHint(machine, world, x, y, z, trigger);
+        }
+
+        @Override
+        public boolean placeBlock(MTECriticalMachine machine, World world, int x, int y, int z, ItemStack trigger) {
+            return check(machine, world, x, y, z);
+        }
+
+        @Override
+        public BlocksToPlace getBlocksToPlace(MTECriticalMachine machine, World world, int x, int y, int z,
+            ItemStack trigger, AutoPlaceEnvironment env) {
+            return new PaidHatchElement().getBlocksToPlace(machine, world, x, y, z, trigger, env);
+        }
+
+        @Override
+        public PlaceResult survivalPlaceBlock(MTECriticalMachine machine, World world, int x, int y, int z,
+            ItemStack trigger, AutoPlaceEnvironment env) {
+            return check(machine, world, x, y, z) ? PlaceResult.SKIP : PlaceResult.REJECT;
         }
     }
 

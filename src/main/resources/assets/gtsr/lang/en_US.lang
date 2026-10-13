@@ -3948,7 +3948,7 @@ gtsr.critical.v2.shared=New solar boilers and stellar cores share the V2 loom. T
 gtsr.critical.v2.tier=The foundation uses the T3 appearance; operating tiers retain their recipe voltage and plugin effects.
 gtsr.critical.v2.loom=Build the permanent loom body, lower hoop, eight low branches near its controller and three surrounding moving hoops. Floating branches, armor and functional plugins remain paid construction with the base and main machine.
 gtsr.critical.v2.safe=First start checks future physical blocks and required clearance. Players may occupy empty space; continuation skips this first-start gate.
-gtsr.critical.v2.dismantle=Dismantle paid bodies, the main controller and plugins. Preserve the loom and player hatches with their contents; retained operating ports support rebuilding.
+gtsr.critical.v2.dismantle=Paid bases and main structures can only be dismantled with the controller button. The loom and real GT chambers remain maintainable; the button preserves chambers and contents.
 gtsr.critical.v2.legacy=Existing jobs retain their original layout and journal ownership. The other seven machine kinds keep their legacy 80-block structures and remain selectable.
 gtsr.critical.v2.loom_controller=Loom controller at local (56,4,47), with north/east/south/west placement; the structure rotates with its front.
 gtsr.critical.v2.main_controller=Solar or stellar main controller at local (56,4,35), facing opposite the loom; placed during first construction.
@@ -3956,4 +3956,4 @@ gtsr.critical.v2.region=The 112 by 112, 180-high region can start at any coordin
 gtsr.critical.v2.controllers=The loom and commissioned main are real GT controllers at Y=4 with opposite fronts; hatches cannot replace them.
 gtsr.critical.v2.ports=Standard GT hatches fit only the declared construction and operating ports below.
 gtsr.critical.v2.loom_ports=The ring of Hyperstructure Reinforced Casing at the loom controller height Y=4 accepts standard GT hatches. The four original ports (50/53/59/62,4,47) remain for construction items, fluids and power; controllers and internal rails cannot be replaced.
-gtsr.critical.v2.main_ports=13 independent main operating ports: X=50..62, Y=4, Z=34, for recipe inputs, outputs and energy interfaces, separate from loom construction ports.
+gtsr.critical.v2.main_ports=13 independent main operating ports: X=50..62, Y=5, Z=34. Leave air or install standard GT chambers; keep the casing row below. Existing commissioned jobs retain their Y=4 ports.

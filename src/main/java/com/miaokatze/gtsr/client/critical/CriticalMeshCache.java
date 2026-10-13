@@ -44,10 +44,10 @@ final class CriticalMeshCache {
         Map<String, List<Face>> groups = new LinkedHashMap<>();
         for (Voxel voxel : model.voxels) {
             if (!CriticalGeometry.isDynamic(slug, voxel.group)) continue;
-            // Real GT controllers, buses and hatches render through their own block/TESR, not the proxy mesh.
-            if (voxel.material.equals("v2_gt_controller") || voxel.material.equals("v2_loom_machine_controller")
-                || voxel.material.equals("v2_gt_bus")
-                || voxel.material.equals("v2_gt_hatch")) continue;
+            // Controller markers are real GT hosts. Hatch/bus materials are decorative MaterialBlocks;
+            // their fixed interface group stays in chunk rendering, never in this moving mesh.
+            if (voxel.material.equals("v2_gt_controller") || voxel.material.equals("v2_loom_machine_controller"))
+                continue;
             JsonObject material = CriticalMaterials.properties(voxel.material);
             String mode = material.get("alphaMode")
                 .getAsString();

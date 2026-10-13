@@ -168,6 +168,53 @@ public final class CriticalWorldData extends WorldSavedData {
         }
     }
 
+    void updateProtection(CriticalMachineState controller) {
+        Region region = regions.get(controller.getStructureId());
+        if (region == null || !ownsTask(
+            region.id,
+            region.owner,
+            controller.getJobId(),
+            controller.getOriginX(),
+            controller.getOriginY(),
+            controller.getOriginZ())) return;
+        region.protection = controller.protectionSnapshot();
+        region.protectionState = null;
+        markDirty();
+    }
+
+    public boolean protectsPlayerBreak(World world, int x, int y, int z) {
+        for (Region region : regions.values()) {
+            if (x < region.x || x >= region.x + region.size
+                || z < region.z
+                || z >= region.z + region.size
+                || y < region.y
+                || y >= region.y + region.height) continue;
+            if (world.getChunkProvider()
+                .chunkExists(region.cx >> 4, region.cz >> 4)) {
+                CriticalMachineState live = CriticalMachineState
+                    .resolve(world.getTileEntity(region.cx, region.cy, region.cz));
+                if (live != null && ownsTask(
+                    region.id,
+                    region.owner,
+                    live.getJobId(),
+                    live.getOriginX(),
+                    live.getOriginY(),
+                    live.getOriginZ())) return live.protectsPlayerBreak(x, y, z);
+            }
+            if (region.protection == null) return false;
+            if (region.protectionState == null) {
+                region.protectionState = new CriticalMachineState();
+                region.protectionState.worldObj = world;
+                region.protectionState.xCoord = region.cx;
+                region.protectionState.yCoord = region.cy;
+                region.protectionState.zCoord = region.cz;
+                region.protectionState.readProtectionSnapshot(region.protection);
+            }
+            return region.protectionState.protectsPlayerBreak(x, y, z);
+        }
+        return false;
+    }
+
     public void invalidateAt(World world, int x, int y, int z) {
         for (Region r : regions.values()) {
             if (x < r.x || x >= r.x + r.size || z < r.z || z >= r.z + r.size || y < r.y || y >= r.y + r.height)
@@ -199,6 +246,7 @@ public final class CriticalWorldData extends WorldSavedData {
                     r.getInteger("y"),
                     r.getInteger("z"));
                 region.jobId = r.getString("jobId");
+                region.protection = r.hasKey("protection") ? r.getCompoundTag("protection") : null;
                 region.size = r.hasKey("size") ? r.getInteger("size") : 80;
                 region.height = r.hasKey("height") ? r.getInteger("height") : 162;
                 region.cx = r.hasKey("cx") ? r.getInteger("cx") : region.x + 40;
@@ -220,6 +268,7 @@ public final class CriticalWorldData extends WorldSavedData {
             t.setString("id", r.id);
             t.setString("owner", r.owner);
             t.setString("jobId", r.jobId);
+            if (r.protection != null) t.setTag("protection", r.protection.copy());
             t.setInteger("x", r.x);
             t.setInteger("y", r.y);
             t.setInteger("z", r.z);
@@ -239,6 +288,8 @@ public final class CriticalWorldData extends WorldSavedData {
         final int x, y, z;
         int size = 80, height = 162, cx, cy, cz;
         String jobId = "";
+        NBTTagCompound protection;
+        CriticalMachineState protectionState;
 
         Region(String id, String owner, int x, int y, int z) {
             this.id = id;

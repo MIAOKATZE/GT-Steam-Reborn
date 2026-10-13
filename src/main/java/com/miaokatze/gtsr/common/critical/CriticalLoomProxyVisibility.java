@@ -30,8 +30,10 @@ public final class CriticalLoomProxyVisibility {
         TileEntityCriticalRenderAnchor anchor = entry == null ? null : entry.anchor.get();
         return anchor != null && !anchor.isInvalid()
             && anchor.isLoomVisible()
-            && entry.registration.activeGroups.contains(entry.registration.slug + ':' + entry.voxel.group)
-            && CriticalMaterials.matchesLoomVoxel(block, metadata, entry.voxel);
+            && entry.registration.activeGroups.contains(entry.voxel.model + ':' + entry.voxel.group)
+            && (CriticalLoomStructure.isLoomVoxel(entry.voxel)
+                ? CriticalMaterials.matchesLoomVoxel(block, metadata, entry.voxel)
+                : block == entry.voxel.block && metadata == entry.voxel.metadata);
     }
 
     /** The renderer publishes only complete groups that it actually draws. Chunk workers read an immutable snapshot. */
@@ -65,7 +67,7 @@ public final class CriticalLoomProxyVisibility {
             && old.y == state.getOriginY()
             && old.z == state.getOriginZ()
             && old.frame == state.getStructureFacing()
-            && old.slug.equals(CriticalGeometry.visualLoomSlug(state))) return;
+            && old.slug.equals(slugs(state))) return;
         remove(anchor);
         if (!visible) return;
         Registration registration = new Registration(
@@ -76,12 +78,12 @@ public final class CriticalLoomProxyVisibility {
             state.blockWorldX(0, 0),
             state.blockWorldZ(0, 0),
             state.getStructureFacing(),
-            CriticalGeometry.visualLoomSlug(state));
+            slugs(state));
         ANCHORS.put(anchor, registration);
         Map<Long, Map<Long, Entry>> chunks = WORLDS.computeIfAbsent(world, ignored -> new ConcurrentHashMap<>());
         for (CriticalGeometry.Voxel voxel : proxies(registration.slug)) {
             int x = registration.worldX(voxel), y = registration.y + voxel.y, z = registration.worldZ(voxel);
-            registration.record(registration.slug + ':' + voxel.group, x, y, z);
+            registration.record(voxel.model + ':' + voxel.group, x, y, z);
             chunks.computeIfAbsent(chunkKey(x, z), ignored -> new ConcurrentHashMap<>())
                 .put(positionKey(x, y, z), new Entry(anchor, voxel, registration));
         }
@@ -106,11 +108,19 @@ public final class CriticalLoomProxyVisibility {
         registration.redraw();
     }
 
+    private static String slugs(CriticalMachineState state) {
+        String loom = CriticalGeometry.visualLoomSlug(state);
+        return state.getStructureId()
+            .isEmpty() || state.getState() == 0 ? loom
+                : loom + "|" + CriticalGeometry.visualBaseSlug(state) + "|" + CriticalGeometry.visualMachineSlug(state);
+    }
+
     private static List<CriticalGeometry.Voxel> proxies(String slug) {
         return PROXIES.computeIfAbsent(slug, ignored -> {
             List<CriticalGeometry.Voxel> result = new ArrayList<>();
-            CriticalGeometry.Model model = CriticalGeometry.getModel(slug);
-            for (CriticalGeometry.Voxel voxel : model.voxels) if (model.animations.has(voxel.group)) result.add(voxel);
+            for (String modelSlug : slug.split("\\|"))
+                for (CriticalGeometry.Voxel voxel : CriticalGeometry.getModel(modelSlug).voxels)
+                    if (CriticalGeometry.isDynamic(modelSlug, voxel.group)) result.add(voxel);
             return result;
         });
     }

@@ -71,7 +71,30 @@ public final class CriticalGeometry {
     }
 
     public static boolean isDynamic(String slug, String group) {
-        return getModel(slug).animations.has(group);
+        JsonObject animations = getModel(slug).animations;
+        return animations.has(group) && !(animations.getAsJsonObject(group)
+            .has("kind")
+            && "static-material-zone".equals(
+                animations.getAsJsonObject(group)
+                    .get("kind")
+                    .getAsString()));
+    }
+
+    /** Optional working chambers are not paid voxels and never enter the persistent placement indices. */
+    public static List<Voxel> optionalWorkPorts(CriticalMachineState state) {
+        if (!isV2(state) || state.getV2LayoutRevision() < 30) return Collections.emptyList();
+        List<Voxel> ports = new ArrayList<>();
+        for (int x = 50; x <= 62; x++) ports.add(
+            new Voxel(
+                x,
+                5,
+                34,
+                CriticalMaterials.block("v2_service_hatch", false),
+                1,
+                "v2_service_hatch",
+                "optional_work_ports",
+                "v2_optional_work_port"));
+        return Collections.unmodifiableList(ports);
     }
 
     public static boolean isV2(CriticalMachineState state) {

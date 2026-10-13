@@ -89,14 +89,14 @@ public final class CriticalMaterialRenderer implements ISimpleBlockRenderingHand
         RenderBlocks renderer) {
         // Hand-placed loom parts stay visible until their canonical anchor owns the moving mesh.
         if (block instanceof CriticalMaterials.MaterialBlock material && material.proxy
-            && (!material.loom || CriticalLoomProxyVisibility.animated(
+            && CriticalLoomProxyVisibility.animated(
                 world instanceof net.minecraft.world.World real ? real
                     : net.minecraft.client.Minecraft.getMinecraft().theWorld,
                 x,
                 y,
                 z,
                 block,
-                world.getBlockMetadata(x, y, z))))
+                world.getBlockMetadata(x, y, z)))
             return false;
         if (block instanceof CriticalMaterials.MaterialBlock material && material.materialId.startsWith("v2_")) {
             return renderV2(world, x, y, z, material);

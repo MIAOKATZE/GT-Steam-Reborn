@@ -6,7 +6,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
-/** Canonical (40,1,32) is empty in every base/machine/loom model. Only this one coordinate is reserved. */
+/** One empty canonical cell is reserved; revision 30 leaves the entire upper chamber row free. */
 public final class CriticalRenderAnchors {
 
     public static final Block BLOCK = new BlockCriticalRenderAnchor();
@@ -19,7 +19,8 @@ public final class CriticalRenderAnchors {
     }
 
     public static int getY(CriticalMachineState state) {
-        return state.getOriginY() + state.getControllerY() + 1;
+        return state.getOriginY() + state.getControllerY()
+            + (state.getGeometryVersion() == 2 && state.getV2LayoutRevision() >= 30 ? 2 : 1);
     }
 
     public static int getZ(CriticalMachineState state) {
@@ -50,6 +51,9 @@ public final class CriticalRenderAnchors {
         }
         int x = getX(state), y = getY(state), z = getZ(state);
         if (!state.worldObj.blockExists(x, y, z)) return;
+        if (state.getGeometryVersion() == 2 && state.getV2LayoutRevision() >= 30
+            && state.worldObj.getTileEntity(x, y - 1, z) instanceof TileEntityCriticalRenderAnchor previous
+            && previous.ownedBy(state)) state.worldObj.setBlockToAir(x, y - 1, z);
         TileEntity tile = state.worldObj.getTileEntity(x, y, z);
         if (tile instanceof TileEntityCriticalRenderAnchor anchor && anchor.ownedBy(state)) {
             anchor.syncFrom(state, independentLoomPresent || installation);
@@ -73,5 +77,9 @@ public final class CriticalRenderAnchors {
         if (state.worldObj.blockExists(x, y, z)
             && state.worldObj.getTileEntity(x, y, z) instanceof TileEntityCriticalRenderAnchor anchor
             && anchor.ownedBy(state)) state.worldObj.setBlockToAir(x, y, z);
+        if (state.getGeometryVersion() == 2 && state.getV2LayoutRevision() >= 30
+            && state.worldObj.blockExists(x, y - 1, z)
+            && state.worldObj.getTileEntity(x, y - 1, z) instanceof TileEntityCriticalRenderAnchor previous
+            && previous.ownedBy(state)) state.worldObj.setBlockToAir(x, y - 1, z);
     }
 }

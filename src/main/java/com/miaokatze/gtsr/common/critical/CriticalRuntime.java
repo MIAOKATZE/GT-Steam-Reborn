@@ -49,6 +49,11 @@ public final class CriticalRuntime {
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
         public void onControllerBreak(net.minecraftforge.event.world.BlockEvent.BreakEvent event) {
             if (event.world.isRemote) return;
+            if (CriticalWorldData.get(event.world)
+                .protectsPlayerBreak(event.world, event.x, event.y, event.z)) {
+                event.setCanceled(true);
+                return;
+            }
             net.minecraft.tileentity.TileEntity tile = event.world.getTileEntity(event.x, event.y, event.z);
             if (!(tile instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt)
                 || !(gt.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine machine))
@@ -60,6 +65,18 @@ public final class CriticalRuntime {
                 return;
             }
             if (!state.canUse(event.getPlayer()) || !state.canRemove()) event.setCanceled(true);
+        }
+
+        /** Cancel destructive GT tool interactions before they bypass the normal harvest event. */
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onPlayerInteract(net.minecraftforge.event.entity.player.PlayerInteractEvent event) {
+            if (event.world.isRemote
+                || event.action == net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR)
+                return;
+            if (event.world.getBlock(event.x, event.y, event.z) instanceof CriticalMaterials.MaterialBlock
+                && CriticalWorldData.get(event.world)
+                    .protectsPlayerBreak(event.world, event.x, event.y, event.z))
+                event.setCanceled(true);
         }
 
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
