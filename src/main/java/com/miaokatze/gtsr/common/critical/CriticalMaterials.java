@@ -34,7 +34,7 @@ public final class CriticalMaterials {
         if (!STATIC.isEmpty()) return;
         palette = CriticalGeometry.readJson("materials.json");
         java.util.Set<String> loomForms = new java.util.HashSet<>();
-        for (String slug : new String[] { "loom", "v2_loom", "v2_v25_loom", "v2_legacy_loom" }) {
+        for (String slug : new String[] { "loom", "v2_loom", "v2_v25_loom", "v2_v27_loom", "v2_legacy_loom" }) {
             JsonObject loomGeometry = CriticalGeometry.readJson("models/" + slug + ".geometry.json");
             for (JsonElement element : loomGeometry.getAsJsonArray("blocks")) {
                 com.google.gson.JsonArray row = element.getAsJsonArray();
@@ -142,7 +142,7 @@ public final class CriticalMaterials {
             if (lightLevel < 0 || lightLevel > 15)
                 throw new IllegalArgumentException("Invalid critical light level: " + id);
             setBlockName("critical_" + (loom ? "loom_" : "") + (proxy ? "proxy_" : "") + id);
-            setHardness(500);
+            setHardness(loom ? 5 : 500);
             setResistance(10000);
             setLightOpacity(
                 properties.has("lightOpacity") ? properties.get("lightOpacity")

@@ -54,4 +54,6 @@ src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json -text wh
 src/main/resources/assets/gtsr/critical/models/v2_solar.geometry.json -text whitespace=cr-at-eol
 src/main/resources/assets/gtsr/critical/models/v2_v25_loom.geometry.json -text whitespace=cr-at-eol
 src/main/resources/assets/gtsr/critical/models/v2_v25_base_t3.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_v27_loom.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_v27_base_t3.geometry.json -text whitespace=cr-at-eol
 src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/bottom/*.mcmeta -text whitespace=cr-at-eol

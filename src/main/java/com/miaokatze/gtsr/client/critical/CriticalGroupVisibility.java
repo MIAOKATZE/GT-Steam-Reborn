@@ -122,6 +122,7 @@ final class CriticalGroupVisibility {
             this.voxels = voxels;
             this.loom = key.startsWith("loom:") || key.startsWith("v2_loom:")
                 || key.startsWith("v2_v25_loom:")
+                || key.startsWith("v2_v27_loom:")
                 || key.startsWith("v2_legacy_loom:");
         }
     }

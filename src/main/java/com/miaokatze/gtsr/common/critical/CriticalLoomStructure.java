@@ -44,6 +44,7 @@ public final class CriticalLoomStructure {
     public static boolean isLoomVoxel(CriticalGeometry.Voxel voxel) {
         return "loom".equals(voxel.model) || "v2_loom".equals(voxel.model)
             || "v2_v25_loom".equals(voxel.model)
+            || "v2_v27_loom".equals(voxel.model)
             || "v2_legacy_loom".equals(voxel.model);
     }
 
@@ -128,6 +129,11 @@ public final class CriticalLoomStructure {
     }
 
     public static boolean validate(MTECriticalMachine host) {
+        return validateGeometry(host) && validateInterfaces(host);
+    }
+
+    /** Visual completeness does not waive the construction resource interface requirements. */
+    public static boolean validateGeometry(MTECriticalMachine host) {
         IGregTechTileEntity tile = host.getBaseMetaTileEntity();
         if (tile == null) return false;
         World world = tile.getWorld();
@@ -148,6 +154,13 @@ public final class CriticalLoomStructure {
             top - local.getControllerY(),
             CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerC(host.isKindSelector()) : 1,
             false)) return false;
+        return true;
+    }
+
+    public static boolean validateInterfaces(MTECriticalMachine host) {
+        World world = host.getBaseMetaTileEntity()
+            .getWorld();
+        CriticalMachineState local = host.getCriticalState();
         boolean items = false, fluids = false, energy = false;
         for (CriticalGeometry.Voxel port : voxels(local)) {
             if (!CriticalStructures.isHatchPosition(port)) continue;

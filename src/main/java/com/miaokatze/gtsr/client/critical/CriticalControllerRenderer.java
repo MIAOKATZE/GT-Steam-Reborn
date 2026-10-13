@@ -108,6 +108,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             Minecraft.getMinecraft().thePlayer.posY,
             Minecraft.getMinecraft().thePlayer.posZ) > 512D * 512D) return;
         activeGroups = checked.update(controller);
+        com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility.publishVisibleGroups(anchor, activeGroups);
         boolean hasBatch = !controller.getBatchId()
             .isEmpty();
         boolean pending = hasBatch || controller.getState() == 1 || controller.getState() == 4;

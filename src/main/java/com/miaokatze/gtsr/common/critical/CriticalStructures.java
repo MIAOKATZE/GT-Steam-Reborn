@@ -269,14 +269,15 @@ public final class CriticalStructures {
     public static boolean isHatchPosition(CriticalGeometry.Voxel voxel) {
         if (voxel.model.startsWith("v2_")) {
             if (isController(voxel) || voxel.model.startsWith("v2_plugin_")) return false;
-            if ("v2_loom".equals(voxel.model) || "v2_v25_loom".equals(voxel.model)) return voxel.y == 4
-                && (voxel.z == 47 && (voxel.x == 50 || voxel.x == 53 || voxel.x == 59 || voxel.x == 62)
-                    || "static".equals(voxel.group) && voxel.x >= 47
-                        && voxel.x <= 65
-                        && voxel.z >= 47
-                        && voxel.z <= 65
-                        && voxel.block instanceof CriticalMaterials.MaterialBlock shell
-                        && "v2_reinforced_panel".equals(shell.materialId));
+            if ("v2_loom".equals(voxel.model) || "v2_v25_loom".equals(voxel.model) || "v2_v27_loom".equals(voxel.model))
+                return voxel.y == 4
+                    && (voxel.z == 47 && (voxel.x == 50 || voxel.x == 53 || voxel.x == 59 || voxel.x == 62)
+                        || "static".equals(voxel.group) && voxel.x >= 47
+                            && voxel.x <= 65
+                            && voxel.z >= 47
+                            && voxel.z <= 65
+                            && voxel.block instanceof CriticalMaterials.MaterialBlock shell
+                            && "v2_reinforced_panel".equals(shell.materialId));
             return voxel.block instanceof CriticalMaterials.MaterialBlock block
                 && ("v2_alloy_frame".equals(block.materialId) || "v2_service_hatch".equals(block.materialId)
                     || "v2_gt_hatch".equals(block.materialId))

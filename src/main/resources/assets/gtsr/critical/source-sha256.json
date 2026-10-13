@@ -174,8 +174,8 @@
     "src/main/resources/assets/gtsr/textures/blocks/critical/violet_phase_glass__top.png": "64cda79b59478d41cb57930249333d6d25a504697abb2461a05b78167ded48a8",
     "src/main/resources/assets/gtsr/textures/blocks/critical/violet_phase_glass_emission.png": "d2bd24f31befae7fde3342396ebf7f75d1b0a705670ccc2884bfadbe2475eb87",
     "src/main/resources/assets/gtsr/textures/blocks/critical/violet_phase_glass_emission.png.mcmeta": "a4fd1db69a2c1e0416032ce4c9cd2757a70fe92738cee4f83e1f8a4bdfa2f716",
-    "src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json": "1cc2c1d3d5f3500d523e992778551cd542fd348a5455b22f0e49c65a0ecdc005",
-    "src/main/resources/assets/gtsr/critical/models/v2_loom.geometry.json": "5401b8739028b0b4e1b5cfd5adbdca7c9fb9a737a5670ee6c207b841f707c0d5",
+    "src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json": "bb019c1f55a8eb29435b551f878c6c87374dbc7b95e5a5d523d179d7152a6151",
+    "src/main/resources/assets/gtsr/critical/models/v2_loom.geometry.json": "8d7333167bc46da9d83f950e8805bfb619a94099943ba4cb30ea189e40a7319d",
     "src/main/resources/assets/gtsr/critical/models/v2_plugin_efficiency.geometry.json": "6050ebadf5f3ccf21ea1f9f0e6f3746b2fea0f2bd9f4f25ed45fa454685c246b",
     "src/main/resources/assets/gtsr/critical/models/v2_plugin_parallel.geometry.json": "254489a790086e4406b1aeb5ec4cdb44080838116de3935733c081d481f4d74c",
     "src/main/resources/assets/gtsr/critical/models/v2_plugin_speed.geometry.json": "1e728aedc0b620e15d3d580b443846a634c0c28be37eac609bfb1a10504be5d5",
@@ -1117,7 +1117,9 @@
     "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/bottom/mask_15_emission.png.mcmeta": "f850d35264a34566f95694159539b17bb42d669f12939e24db6d070842fea3b2",
     "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/bottom/mask_15_emission_frozen.png": "78df7c6c6e6a1224b4e6639d1e5c3c7d510fe3caf7510c50359580948658b3c0",
     "src/main/resources/assets/gtsr/critical/models/v2_v25_loom.geometry.json": "e7414c5fc6c98bba98bf984d8a1a5bb3669de7bd033f2e4398be72200dcbbef7",
-    "src/main/resources/assets/gtsr/critical/models/v2_v25_base_t3.geometry.json": "794d924b69123690e75a50b3e7e6e61cf81064a2345795d9249b2da5ffc6113f"
+    "src/main/resources/assets/gtsr/critical/models/v2_v25_base_t3.geometry.json": "794d924b69123690e75a50b3e7e6e61cf81064a2345795d9249b2da5ffc6113f",
+    "src/main/resources/assets/gtsr/critical/models/v2_v27_loom.geometry.json": "5401b8739028b0b4e1b5cfd5adbdca7c9fb9a737a5670ee6c207b841f707c0d5",
+    "src/main/resources/assets/gtsr/critical/models/v2_v27_base_t3.geometry.json": "1cc2c1d3d5f3500d523e992778551cd542fd348a5455b22f0e49c65a0ecdc005"
   },
   "authorities": {
     "legacy": {
@@ -1658,12 +1660,12 @@
       },
       "designTagScope": "approved Solar R4 geometry, motion, FX and original material artwork; excludes amended loom/base membership",
       "sharedStructureRevision": {
-        "revision": "v1.21.25",
+        "revision": "v1.21.28",
         "models": [
           "loom",
           "base_t3"
         ],
-        "source": "approved runtime membership amendment; current input hashes identify revised shared models"
+        "source": "tools/critical/amend_loom_v28.py against released 16c15ed2 V27 runtime bytes"
       },
       "runtimeAmendment": "v1.21.25 Solar: loom journal and same-row ports; main controller and supported service-shell row paid by base",
       "directionalFaceRegistration": "gravity ny bottom pair reuses approved mask_00 albedo, live twelve-frame emission and frozen emission; CTM rules retained",
@@ -1695,6 +1697,16 @@
       "sourceRef": "v1.21.25",
       "sha256": "794d924b69123690e75a50b3e7e6e61cf81064a2345795d9249b2da5ffc6113f",
       "usage": "existing revision25 persisted journals; original geometry/animation/job ordering retained"
+    },
+    "v2_v27_loom": {
+      "sourceRef": "16c15ed2",
+      "sha256": "5401b8739028b0b4e1b5cfd5adbdca7c9fb9a737a5670ee6c207b841f707c0d5",
+      "usage": "persisted revision 26 and 27 loom-owned jobs; exact released bytes and order"
+    },
+    "v2_v27_base_t3": {
+      "sourceRef": "16c15ed2",
+      "sha256": "1cc2c1d3d5f3500d523e992778551cd542fd348a5455b22f0e49c65a0ecdc005",
+      "usage": "persisted revision 26 and 27 loom-owned jobs; exact released bytes and order"
     }
   }
 }

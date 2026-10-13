@@ -47,6 +47,18 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         xCoord = tile.xCoord;
         yCoord = tile.yCoord;
         zCoord = tile.zCoord;
+        // Old retained blueprints rewrote the legacy "owner" string as a name. Only empty copies may
+        // recover identity from GT's independently maintained owner UUID and the matching legacy name.
+        if (worldObj != null && !worldObj.isRemote
+            && hasNoJournalAssets()
+            && tile instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt
+            && gt.getOwnerUuid() != null
+            && !owner.isEmpty()
+            && owner.equals(gt.getOwnerName())) {
+            owner = gt.getOwnerUuid()
+                .toString();
+            markDirty();
+        }
         ForgeDirection frame = getStructureFacing();
         if (boundStructureFacing != frame) {
             loomChunksCache = null;
@@ -157,7 +169,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private String visualHostId = UUID.randomUUID()
         .toString();
     private int geometryVersion;
-    private int v2LayoutRevision = 27;
+    private int v2LayoutRevision = 28;
     private ForgeDirection structureFacing = ForgeDirection.NORTH, boundStructureFacing = ForgeDirection.UNKNOWN;
     private boolean structureFacingLocked;
     private boolean loomController, loomJournalOwner, loomOwnedMain, initialClearanceAccepted;
@@ -638,8 +650,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             return fail("必要织机结构缺损，请先手搭完整织机及仓口");
         }
         if (getOriginY() < 0 || getOriginY() + getRegionHeight() > worldObj.getHeight()) return fail("施工高度超出世界");
-        if (getGeometryVersion() == 2 && ((getOriginX() & 15) != 0 || (getOriginZ() & 15) != 0))
-            return fail("施工区域原点必须按区块对齐");
         int anchorX = CriticalRenderAnchors.getX(this), anchorY = CriticalRenderAnchors.getY(this),
             anchorZ = CriticalRenderAnchors.getZ(this);
         TileEntity visual = worldObj.getTileEntity(anchorX, anchorY, anchorZ);
@@ -818,7 +828,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         }
         state = 3;
         invalidateStructure();
-        CriticalRenderAnchors.ensure(this, isLoomStructureValid());
+        CriticalRenderAnchors.ensure(this, isLoomGeometryValid());
         cursor = 0;
         jobId = UUID.randomUUID()
             .toString();
@@ -953,7 +963,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     private void changed() {
         markDirty();
-        CriticalRenderAnchors.ensure(this, isLoomStructureValid());
+        CriticalRenderAnchors.ensure(this, isLoomGeometryValid());
         if (worldObj != null) worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
     }
 
@@ -967,6 +977,25 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         for (ItemStack item : inventory) if (item != null) return false;
         for (FluidStack fluid : tanks) if (fluid != null) return false;
         return true;
+    }
+
+    /** A copied passive main has no journal to cancel. Only its authorized owner may remove an empty copy. */
+    public boolean canRemoveOrphanedMain(EntityPlayer player) {
+        return loomOwnedMain && hasNoJournalAssets()
+            && player != null
+            && isUseableByPlayer(player)
+            && (owner.isEmpty() || owner.equals(
+                player.getUniqueID()
+                    .toString()));
+    }
+
+    private boolean hasNoJournalAssets() {
+        return canRemove() && jobId.isEmpty()
+            && jobFingerprint == 0L
+            && placed.isEmpty()
+            && spent.isEmpty()
+            && repairEscrow.length == 0
+            && !nativeFundingUncertain;
     }
 
     public void onChunkUnload() {
@@ -1296,6 +1325,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt
             && gt.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine machine
             && machine.isLoomStructureValid();
+    }
+
+    public boolean isLoomGeometryValid() {
+        return host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt
+            && gt.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine machine
+            && machine.isLoomGeometryValid();
     }
 
     private boolean forceLoomStructureCheck() {
@@ -2604,7 +2639,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         n.setBoolean("constructionDebugIgnoreEnergy", debugIgnoreEnergy);
         n.setString("visualHostId", visualHostId);
         n.setTag("config", config.write());
-        n.setString("owner", owner);
+        n.setString("ownerUuid", owner);
         n.setString("structureId", structureId);
         n.setString("jobId", jobId);
         n.setString("batchId", batchId);
@@ -2642,7 +2677,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public void readFromNBT(NBTTagCompound n) {
         geometryVersion = n.hasKey("geometryVersion") ? n.getInteger("geometryVersion") : 1;
         v2LayoutRevision = readV2LayoutRevision(n);
-        if (getGeometryVersion() == 2 && !hasPersistentLayout(n)) v2LayoutRevision = Math.max(27, v2LayoutRevision);
+        if (getGeometryVersion() == 2 && !hasPersistentLayout(n)) v2LayoutRevision = Math.max(28, v2LayoutRevision);
         structureFacing = v2LayoutRevision <= 26 ? ForgeDirection.NORTH
             : CriticalStructureAlignment.horizontal(ForgeDirection.getOrientation(n.getInteger("structureFacing")));
         structureFacingLocked = v2LayoutRevision <= 26 || n.getBoolean("structureFacingLocked")
@@ -2673,7 +2708,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         debugIgnoreEnergy = n.getBoolean("constructionDebugIgnoreEnergy");
         if (n.hasKey("visualHostId")) visualHostId = n.getString("visualHostId");
         config = CriticalConfiguration.read(n.getCompoundTag("config"));
-        owner = n.getString("owner");
+        owner = n.hasKey("ownerUuid", 8) ? n.getString("ownerUuid") : n.getString("owner");
         structureId = n.getString("structureId");
         jobId = n.getString("jobId");
         batchId = n.getString("batchId");

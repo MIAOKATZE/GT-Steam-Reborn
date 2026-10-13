@@ -56,7 +56,7 @@ public final class CriticalRuntime {
             CriticalMachineState state = machine.getCriticalState();
             if (machine.getLocalCriticalState()
                 .isLoomOwnedMain() && state == machine.getLocalCriticalState()) {
-                event.setCanceled(true);
+                event.setCanceled(!machine.canRemoveOrphanedMain(event.getPlayer()));
                 return;
             }
             if (!state.canUse(event.getPlayer()) || !state.canRemove()) event.setCanceled(true);

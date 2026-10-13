@@ -44,7 +44,7 @@ public final class CriticalStructureAlignmentContract {
             check(Arrays.equals(actual, expected[i]), "Independent cardinal basis: " + faces[i]);
         }
         Path modelRoot = Path.of(args[0]);
-        String[] slugs = { "v2_loom", "v2_v25_loom", "v2_legacy_loom", "v2_base_t3", "v2_v25_base_t3",
+        String[] slugs = { "v2_loom", "v2_v25_loom", "v2_v27_loom", "v2_legacy_loom", "v2_base_t3", "v2_v25_base_t3", "v2_v27_base_t3",
             "v2_legacy_base_t3", "v2_solar", "v2_sun" };
         for (String slug : slugs) {
             JsonArray blocks = JsonParser.parseString(Files.readString(modelRoot.resolve(slug + ".geometry.json")))
@@ -157,7 +157,7 @@ public final class CriticalStructureAlignmentContract {
             check(reloaded.getStructureFacing() == expected, "Running journal preserves frame after NBT " + front);
             tag.setInteger("v2LayoutRevision", 26); tag.removeTag("structureFacing"); tag.removeTag("structureFacingLocked");
             CriticalMachineState oldEmpty = new CriticalMachineState(); oldEmpty.readFromNBT(tag); oldEmpty.bindHost(tile);
-            check(oldEmpty.getV2LayoutRevision() == 27 && oldEmpty.getControllerFacing(selector) == tile.front,
+            check(oldEmpty.getV2LayoutRevision() == 28 && oldEmpty.getControllerFacing(selector) == tile.front,
                 "Uncommissioned old controller can follow current front " + front);
         }
     }

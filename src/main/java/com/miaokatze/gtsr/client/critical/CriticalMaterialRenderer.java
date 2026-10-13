@@ -140,7 +140,9 @@ public final class CriticalMaterialRenderer implements ISimpleBlockRenderingHand
             if (emission != null) {
                 tessellator.setBrightness(0x00f000f0);
                 tessellator.setColorOpaque_F(1, 1, 1);
-                face(tessellator, x, y, z, side, emission, .0005);
+                // Chunk rendering uses LEQUAL: identical vertices share exact depth with the albedo.
+                // A tiny world-space offset loses precision at distance and makes the mask peel away.
+                face(tessellator, x, y, z, side, emission, 0);
             }
             rendered = true;
         }

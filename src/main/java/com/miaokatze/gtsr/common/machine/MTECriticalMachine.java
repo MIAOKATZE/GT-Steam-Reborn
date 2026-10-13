@@ -44,7 +44,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     private final java.util.Map<Long, TileEntity> portSnapshot = new java.util.LinkedHashMap<>();
     private int previousJournalState = -1;
     private boolean previousCanonicalValidation;
-    private boolean loomStructureValid;
+    private boolean loomStructureValid, loomGeometryValid;
     private long loomValidationTick = Long.MIN_VALUE, meSnapshotTick = Long.MIN_VALUE;
     private long hatchDiscoveryTick = Long.MIN_VALUE;
     private int hatchDiscoveryJournalState = -1;
@@ -237,6 +237,23 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         return state;
     }
 
+    /** Never treat an unloaded or merely turned journal owner as an orphan. No copied task is reset. */
+    public boolean canRemoveOrphanedMain(net.minecraft.entity.player.EntityPlayer player) {
+        CriticalMachineState local = getLocalCriticalState();
+        IGregTechTileEntity tile = getBaseMetaTileEntity();
+        if (tile == null || !local.canRemoveOrphanedMain(player) || getCriticalState() != local) return false;
+        int x = local.blockWorldX(56, 47), z = local.blockWorldZ(56, 47);
+        if (!tile.getWorld()
+            .getChunkProvider()
+            .chunkExists(x >> 4, z >> 4)) return false;
+        if (tile.getWorld()
+            .getTileEntity(x, tile.getYCoord(), z) instanceof IGregTechTileEntity gt
+            && gt.getMetaTileEntity() instanceof MTECriticalMachine partner
+            && partner.isKindSelector()
+            && local.isLoomOwnedMainOf(partner.getLocalCriticalState())) return false;
+        return true;
+    }
+
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity tile) {
         return new MTECriticalMachine(mName, presetKind);
@@ -372,7 +389,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         chargeBattery();
         current.updateEntity();
         if (tick % 20 == 0)
-            com.miaokatze.gtsr.common.critical.CriticalRenderAnchors.ensure(current, isLoomStructureValid());
+            com.miaokatze.gtsr.common.critical.CriticalRenderAnchors.ensure(current, isLoomGeometryValid());
         if (previousJournalState != current.getState()
             || previousCanonicalValidation != current.isStructureValidated()) {
             previousJournalState = current.getState();
@@ -445,9 +462,16 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         loomValidationTick = tile.getWorld()
             .getTotalWorldTime();
         clearHatches();
-        loomStructureValid = com.miaokatze.gtsr.common.critical.CriticalLoomStructure.validate(this);
+        loomGeometryValid = com.miaokatze.gtsr.common.critical.CriticalLoomStructure.validateGeometry(this);
+        loomStructureValid = loomGeometryValid
+            && com.miaokatze.gtsr.common.critical.CriticalLoomStructure.validateInterfaces(this);
         discoverHatches(true);
         return loomStructureValid;
+    }
+
+    public boolean isLoomGeometryValid() {
+        isLoomStructureValid();
+        return loomGeometryValid;
     }
 
     public boolean applyConstructionDebug(net.minecraft.entity.player.EntityPlayer player, int requirements, int speed,

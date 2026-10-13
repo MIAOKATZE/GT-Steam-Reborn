@@ -80,13 +80,16 @@ public final class CriticalGeometry {
 
     public static String visualLoomSlug(CriticalMachineState state) {
         return isV2(state) ? state.usesLegacyV2Geometry() ? "v2_legacy_loom"
-            : state.getV2LayoutRevision() == 25 ? "v2_v25_loom" : "v2_loom" : "loom";
+            : state.getV2LayoutRevision() == 25 ? "v2_v25_loom"
+                : state.getV2LayoutRevision() <= 27 ? "v2_v27_loom" : "v2_loom"
+            : "loom";
     }
 
     public static String visualBaseSlug(CriticalMachineState state) {
         return isV2(state)
             ? state.usesLegacyV2Geometry() ? "v2_legacy_base_t3"
-                : state.getV2LayoutRevision() == 25 ? "v2_v25_base_t3" : "v2_base_t3"
+                : state.getV2LayoutRevision() == 25 ? "v2_v25_base_t3"
+                    : state.getV2LayoutRevision() <= 27 ? "v2_v27_base_t3" : "v2_base_t3"
             : "base_" + state.getTier()
                 .name()
                 .toLowerCase(Locale.ROOT);

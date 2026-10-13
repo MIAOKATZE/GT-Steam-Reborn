@@ -30,7 +30,24 @@ public final class CriticalLoomProxyVisibility {
         TileEntityCriticalRenderAnchor anchor = entry == null ? null : entry.anchor.get();
         return anchor != null && !anchor.isInvalid()
             && anchor.isLoomVisible()
+            && entry.registration.activeGroups.contains(entry.registration.slug + ':' + entry.voxel.group)
             && CriticalMaterials.matchesLoomVoxel(block, metadata, entry.voxel);
+    }
+
+    /** The renderer publishes only complete groups that it actually draws. Chunk workers read an immutable snapshot. */
+    public static void publishVisibleGroups(TileEntityCriticalRenderAnchor anchor, java.util.Set<String> activeGroups) {
+        Registration registration = ANCHORS.get(anchor);
+        if (registration == null) return;
+        java.util.Set<String> next = java.util.Collections.unmodifiableSet(new java.util.HashSet<>(activeGroups));
+        java.util.Set<String> previous = registration.activeGroups;
+        if (previous.equals(next)) return;
+        registration.activeGroups = next;
+        java.util.Set<String> changed = new java.util.HashSet<>(previous);
+        changed.addAll(next);
+        java.util.Set<String> same = new java.util.HashSet<>(previous);
+        same.retainAll(next);
+        changed.removeAll(same);
+        registration.redrawGroups(changed);
     }
 
     public static void refresh(TileEntityCriticalRenderAnchor anchor) {
@@ -64,8 +81,9 @@ public final class CriticalLoomProxyVisibility {
         Map<Long, Map<Long, Entry>> chunks = WORLDS.computeIfAbsent(world, ignored -> new ConcurrentHashMap<>());
         for (CriticalGeometry.Voxel voxel : proxies(registration.slug)) {
             int x = registration.worldX(voxel), y = registration.y + voxel.y, z = registration.worldZ(voxel);
+            registration.record(registration.slug + ':' + voxel.group, x, y, z);
             chunks.computeIfAbsent(chunkKey(x, z), ignored -> new ConcurrentHashMap<>())
-                .put(positionKey(x, y, z), new Entry(anchor, voxel));
+                .put(positionKey(x, y, z), new Entry(anchor, voxel, registration));
         }
         registration.redraw();
     }
@@ -73,6 +91,7 @@ public final class CriticalLoomProxyVisibility {
     public static void remove(TileEntityCriticalRenderAnchor anchor) {
         Registration registration = ANCHORS.remove(anchor);
         if (registration == null) return;
+        registration.activeGroups = java.util.Collections.emptySet();
         World world = registration.world.get();
         Map<Long, Map<Long, Entry>> chunks = world == null ? null : WORLDS.get(world);
         if (chunks != null) for (CriticalGeometry.Voxel voxel : proxies(registration.slug)) {
@@ -108,10 +127,12 @@ public final class CriticalLoomProxyVisibility {
 
         final WeakReference<TileEntityCriticalRenderAnchor> anchor;
         final CriticalGeometry.Voxel voxel;
+        final Registration registration;
 
-        Entry(TileEntityCriticalRenderAnchor anchor, CriticalGeometry.Voxel voxel) {
+        Entry(TileEntityCriticalRenderAnchor anchor, CriticalGeometry.Voxel voxel, Registration registration) {
             this.anchor = new WeakReference<>(anchor);
             this.voxel = voxel;
+            this.registration = registration;
         }
     }
 
@@ -122,6 +143,8 @@ public final class CriticalLoomProxyVisibility {
         final int blockOriginX, blockOriginZ;
         final ForgeDirection frame;
         final String slug;
+        volatile java.util.Set<String> activeGroups = java.util.Collections.emptySet();
+        final Map<String, Map<Long, int[]>> groupChunks = new java.util.HashMap<>();
 
         Registration(World world, int x, int y, int z, int blockOriginX, int blockOriginZ, ForgeDirection frame,
             String slug) {
@@ -143,15 +166,29 @@ public final class CriticalLoomProxyVisibility {
             return blockOriginZ + CriticalStructureAlignment.rotateZ(voxel.x, voxel.z, frame);
         }
 
+        void record(String group, int x, int y, int z) {
+            int[] bounds = groupChunks.computeIfAbsent(group, ignored -> new java.util.HashMap<>())
+                .computeIfAbsent(chunkKey(x, z), ignored -> new int[] { x, y, z, x, y, z });
+            bounds[0] = Math.min(bounds[0], x);
+            bounds[1] = Math.min(bounds[1], y);
+            bounds[2] = Math.min(bounds[2], z);
+            bounds[3] = Math.max(bounds[3], x);
+            bounds[4] = Math.max(bounds[4], y);
+            bounds[5] = Math.max(bounds[5], z);
+        }
+
         void redraw() {
+            redrawGroups(groupChunks.keySet());
+        }
+
+        void redrawGroups(java.util.Set<String> groups) {
             World current = world.get();
-            if (current != null) current.markBlockRangeForRenderUpdate(
-                x,
-                y,
-                z,
-                x + (slug.startsWith("v2_") ? 111 : 79),
-                y + 45,
-                z + (slug.startsWith("v2_") ? 111 : 79));
+            if (current == null) return;
+            for (String group : groups) {
+                Map<Long, int[]> chunks = groupChunks.get(group);
+                if (chunks != null) for (int[] b : chunks.values())
+                    current.markBlockRangeForRenderUpdate(b[0], b[1], b[2], b[3], b[4], b[5]);
+            }
         }
     }
 }
