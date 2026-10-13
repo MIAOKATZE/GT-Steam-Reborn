@@ -56,6 +56,8 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     private Set<String> activeGroups;
     private double posePhase = Double.NaN, poseSeconds = Double.NaN;
     private String poseMode = "";
+    private double constructionPhase;
+    private String constructionMode = "idle";
     private double cameraX, cameraY, cameraZ;
     private static final double[] IDENTITY = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
     private static final int[][] NEIGHBOR = { { 0, -1, 0 }, { 0, 1, 0 }, { 0, 0, -1 }, { 0, 0, 1 }, { -1, 0, 0 },
@@ -154,7 +156,8 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                     / Math.max(1D, controller.getConstructionDuration()));
             if (controller.getState() == 3)
                 buildPhase = Math.min(1, controller.getCursor() / Math.max(1D, controller.getJobTotal()));
-            String constructionMode = controller.getConstructionVisualMode();
+            constructionPhase = buildPhase;
+            constructionMode = controller.getConstructionVisualMode();
             if (anchor.isLoomVisible()) renderModel(loomSlug, buildPhase, seconds, constructionMode);
             if (installation) {
                 renderModel(baseSlug, phase, seconds, hasBatch ? "build" : "idle");
@@ -286,7 +289,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             if (mesh.pass == 2 && (activeGroups == null || activeGroups.contains(mesh.visibilityKey)))
                 nativeBlended.add(mesh);
         nativeBlended.sort(Comparator.comparingDouble((CriticalMeshCache.Mesh mesh) -> {
-            double[] matrix = pose(mesh.animation, phase, seconds, mode), p = mesh.center;
+            double[] matrix = nativePose(mesh, phase, seconds, mode), p = mesh.center;
             double dx = matrix[0] * p[0] + matrix[4] * p[1] + matrix[8] * p[2] + matrix[12] - cameraX,
                 dy = matrix[1] * p[0] + matrix[5] * p[1] + matrix[9] * p[2] + matrix[13] - cameraY,
                 dz = matrix[2] * p[0] + matrix[6] * p[1] + matrix[10] * p[2] + matrix[14] - cameraZ;
@@ -303,7 +306,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                 if (mesh.pass != pass || activeGroups != null && !activeGroups.contains(mesh.visibilityKey)) continue;
                 GL11.glPushMatrix();
                 try {
-                    double[] transform = pose(mesh.animation, phase, seconds, mode);
+                    double[] transform = nativePose(mesh, phase, seconds, mode);
                     int light = currentLight.sample(
                         renderingController.getWorldObj(),
                         mesh.visibilityKey,
@@ -314,7 +317,12 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                         renderingController.getOriginZ(),
                         anchorLight);
                     OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, light & 65535, light >>> 16);
-                    affine(mesh.animation, phase, seconds, mode);
+                    if (transform != IDENTITY) {
+                        matrix.clear();
+                        matrix.put(transform)
+                            .flip();
+                        GL11.glMultMatrix(matrix);
+                    }
                     GL11.glCallList(mesh.albedo);
                     CriticalRenderMetrics.displayListDraws++;
                     if (mesh.emission != 0) {
@@ -339,6 +347,16 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             }
         }
         GL11.glDepthMask(true);
+    }
+
+    private double[] nativePose(CriticalMeshCache.Mesh mesh, double phase, double seconds, String mode) {
+        // V26 changes payment ownership only; transferred loom groups keep their construction clock and mode.
+        boolean transferredLoom = mesh.visibilityKey.startsWith("v2_base_t3:loom_");
+        return pose(
+            mesh.animation,
+            transferredLoom ? constructionPhase : phase,
+            seconds,
+            transferredLoom ? constructionMode : mode);
     }
 
     private void animateTexture(boolean animated, double seconds) {

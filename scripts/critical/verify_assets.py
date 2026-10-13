@@ -27,7 +27,7 @@ if options.jar:
             assert hashlib.sha256(archive.read(entry)).hexdigest() == expected, 'Jar changed ' + entry
 models = {p.name.removesuffix('.geometry.json'): json.loads(p.read_text(encoding='utf-8'))
           for p in (DEST / 'models').glob('*.geometry.json')}
-assert len(models) == 31
+assert len(models) == 33
 authorities = manifest['authorities']
 legacy = authorities['legacy']
 for filename, expected in legacy['files'].items():
@@ -40,12 +40,35 @@ for filename, expected in authorities['v2']['inputs'].items():
     source = ROOT / filename
     if source.is_file(): assert hashlib.sha256(source.read_bytes()).hexdigest() == expected, 'Bound design input changed: ' + filename
 compatibility_checks = {}
-for slug in ('loom', 'base_t3'):
-    snapshot = DEST / 'models' / ('v2_legacy_' + slug + '.geometry.json')
-    source_ref = manifest['compatibilitySnapshots']['v2_legacy_' + slug]['sourceRef']
-    original = subprocess.check_output(['git', 'show', source_ref + ':src/main/resources/assets/gtsr/critical/models/v2_' + slug + '.geometry.json'], cwd=ROOT)
-    assert snapshot.read_bytes() == original, 'Legacy V2 bytes/order changed: ' + slug
-    compatibility_checks[slug] = {'sourceRef': source_ref, 'originalBytesAndOrderPreserved': True}
+v25_original_hashes = {
+    'loom': 'e7414c5fc6c98bba98bf984d8a1a5bb3669de7bd033f2e4398be72200dcbbef7',
+    'base_t3': '794d924b69123690e75a50b3e7e6e61cf81064a2345795d9249b2da5ffc6113f',
+}
+for prefix, release in (('v2_legacy_', 'v1.21.24'), ('v2_v25_', 'v1.21.25')):
+    for slug in ('loom', 'base_t3'):
+        key = prefix + slug
+        snapshot = DEST / 'models' / (key + '.geometry.json')
+        contract = manifest['compatibilitySnapshots'][key]
+        source_ref = contract['sourceRef']
+        data = snapshot.read_bytes()
+        assert source_ref == release, (key, source_ref)
+        assert hashlib.sha256(data).hexdigest() == contract['sha256'], 'Snapshot bytes/order changed: ' + key
+        if prefix == 'v2_v25_':
+            assert contract['sha256'] == v25_original_hashes[slug], 'V25 original reference changed: ' + key
+            assert len(models[key]['blocks']) == {'loom': 11146, 'base_t3': 19391}[slug]
+        original = subprocess.check_output(['git', 'show', source_ref + ':src/main/resources/assets/gtsr/critical/models/v2_' + slug + '.geometry.json'], cwd=ROOT)
+        assert data == original, 'Original V2 bytes/order changed: ' + key
+        if options.jar:
+            with zipfile.ZipFile(options.jar) as archive:
+                packed = archive.read('assets/gtsr/critical/models/' + snapshot.name)
+            assert packed == data, 'Jar snapshot bytes/order changed: ' + key
+            packed_model = json.loads(packed)
+            assert packed_model['blocks'] == models[key]['blocks'], 'Jar snapshot block ordering changed: ' + key
+            assert packed_model['animationGroups'] == models[key]['animationGroups'], 'Jar snapshot animation ordering changed: ' + key
+        compatibility_checks[slug if prefix == 'v2_legacy_' else key] = {
+            'sourceRef': source_ref, 'originalBytesAndOrderPreserved': True,
+            'sha256': hashlib.sha256(data).hexdigest(), 'jarOriginalBytesAndOrderPreserved': bool(options.jar),
+        }
 for slug in ('loom', 'base_t3', 'sun', 'solar', 'plugin_parallel', 'plugin_speed', 'plugin_efficiency'):
     model = models['v2_' + slug]
     source_path = ROOT / authorities['v2']['source'] / 'models' / (slug + '.geometry.json')
@@ -61,7 +84,7 @@ for slug in ('loom', 'base_t3', 'sun', 'solar', 'plugin_parallel', 'plugin_speed
                 assert model['meta'][key] == value, (slug, key)
     assert all(b[3] in palette for b in model['blocks']), slug
 v2_cells = {}
-for slug, count in (('loom', 11146), ('base_t3', 19391), ('sun', 34325), ('solar', 43118)):
+for slug, count in (('loom', 5616), ('base_t3', 25089), ('sun', 34325), ('solar', 43118)):
     rows = models['v2_' + slug]['blocks']
     cells = {tuple(b[:3]) for b in rows}
     assert len(rows) == len(cells) == count, slug
@@ -149,14 +172,14 @@ if source_palette.is_file():
     indices = [index for frame in design_gravity['ctm']['frameLookup']['bottom'] for index in frame.values()]
     assert sorted(indices) == list(range(1712, 1904))
 assert len(addon_checks) == 24
-print(f'PASS {len(manifest["files"])} SHA256 assets; 31 models including SUN/Solar and 2 legacy V2 snapshots; 24 physical addon placements')
-report = ROOT / 'plan/implementation/critical-machines-v1.21.25/verification/assets-checker-report.json'
+print(f'PASS {len(manifest["files"])} SHA256 assets; 33 models including SUN/Solar and 4 V2 compatibility snapshots; 24 physical addon placements')
+report = ROOT / 'plan/implementation/critical-machines-v1.21.26/verification/assets-checker-report.json'
 report.parent.mkdir(parents=True, exist_ok=True)
 report.write_text(json.dumps({'passed': True, 'sha256Files': len(manifest['files']), 'models': len(models),
     'animatedMaterials': 27, 'ticksPerFrame': 10, 'interpolation': False,
     'v2AnimatedSprites': v2_animated, 'v2TicksPerFrame': 8, 'v2PhysicalAddonChecks': addon_checks,
-    'v2ManualLoom': 11146, 'v2PaidBase': 19391,
-    'v2PaidWithoutAddons': {'sun': 53716, 'solar': 62509},
+    'v2ManualLoom': 5616, 'v2PaidBase': 25089,
+    'v2PaidWithoutAddons': {'sun': 59414, 'solar': 68207},
     'v2PaidMachineCounts': {'sun': 34325, 'solar': 43118},
     'legacyAliasesPreserved': len(legacy['materialAliases']), 'compatibilitySnapshots': compatibility_checks,
     'v2GravityBottomCTM': bottom_checks, 'v2GravityTopAtlasTile': 199, 'v2GravityBottomAtlasTiles': [1712, 1903],

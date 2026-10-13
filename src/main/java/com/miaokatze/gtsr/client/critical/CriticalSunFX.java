@@ -100,7 +100,14 @@ final class CriticalSunFX {
             if (emitter.animation != null && visible != null && !visible.contains(slug + ':' + emitter.group)) continue;
             double cycle = seconds * .65 + emitter.height * .07;
             double[] source = emitter.members[Math.floorMod((int) Math.floor(cycle), emitter.members.length)];
-            transform(source, emitter.animation, phase, seconds, MOVED, slug.endsWith("loom") ? "idle" : "build");
+            boolean transferredLoom = "v2_base_t3".equals(slug) && emitter.group.startsWith("loom_");
+            transform(
+                source,
+                emitter.animation,
+                phase,
+                seconds,
+                MOVED,
+                slug.endsWith("loom") || transferredLoom ? "idle" : "build");
             double progress = wrap(cycle);
             MOVED[1] -= .65 + 2.8 * progress;
             emit(tessellator, MOVED, COLD, .20 * Math.sin(Math.PI * progress), .23);

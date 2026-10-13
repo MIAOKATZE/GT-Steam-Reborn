@@ -79,11 +79,14 @@ public final class CriticalGeometry {
     }
 
     public static String visualLoomSlug(CriticalMachineState state) {
-        return isV2(state) ? state.usesLegacyV2Geometry() ? "v2_legacy_loom" : "v2_loom" : "loom";
+        return isV2(state) ? state.usesLegacyV2Geometry() ? "v2_legacy_loom"
+            : state.getV2LayoutRevision() == 25 ? "v2_v25_loom" : "v2_loom" : "loom";
     }
 
     public static String visualBaseSlug(CriticalMachineState state) {
-        return isV2(state) ? state.usesLegacyV2Geometry() ? "v2_legacy_base_t3" : "v2_base_t3"
+        return isV2(state)
+            ? state.usesLegacyV2Geometry() ? "v2_legacy_base_t3"
+                : state.getV2LayoutRevision() == 25 ? "v2_v25_base_t3" : "v2_base_t3"
             : "base_" + state.getTier()
                 .name()
                 .toLowerCase(Locale.ROOT);
@@ -102,8 +105,16 @@ public final class CriticalGeometry {
 
     /** Exact inverse sampling used by the frozen design's integer-world addon exporter. */
     public static List<Voxel> physicalPlugins(CriticalConfiguration config) {
+        return physicalPlugins(config, "v2_base_t3");
+    }
+
+    public static List<Voxel> physicalPlugins(CriticalMachineState state) {
+        return physicalPlugins(state.getConfiguration(), visualBaseSlug(state));
+    }
+
+    private static List<Voxel> physicalPlugins(CriticalConfiguration config, String baseSlug) {
         List<Voxel> result = new ArrayList<>();
-        JsonArray mounts = getModel("v2_base_t3").meta.getAsJsonObject("attachmentPlacement")
+        JsonArray mounts = getModel(baseSlug).meta.getAsJsonObject("attachmentPlacement")
             .getAsJsonArray("mounts");
         int[] counts = { config.parallel, config.speed, config.economy };
         String[] kinds = { "parallel", "speed", "efficiency" };

@@ -79,8 +79,7 @@ public final class CriticalStructures {
         for (String slug : new String[] { CriticalGeometry.visualBaseSlug(state),
             CriticalGeometry.visualMachineSlug(state) })
             for (CriticalGeometry.Voxel v : CriticalGeometry.getModel(slug).voxels) cells.put(v.positionKey(), v);
-        for (CriticalGeometry.Voxel v : CriticalGeometry.physicalPlugins(state.getConfiguration()))
-            cells.put(v.positionKey(), v);
+        for (CriticalGeometry.Voxel v : CriticalGeometry.physicalPlugins(state)) cells.put(v.positionKey(), v);
         // The complete manual loom owns every shared coordinate; paid bodies and addons cannot reclassify it.
         if (!state.usesLegacyV2Geometry())
             for (CriticalGeometry.Voxel v : CriticalLoomStructure.voxels(state)) cells.put(v.positionKey(), v);
@@ -232,12 +231,18 @@ public final class CriticalStructures {
         return new ArrayList<>(positions.values());
     }
 
-    /** Every physical alloy frame can be replaced by a supported GT hatch, at any height. */
+    /** V2 loom interfaces and its controller-height reinforced shell accept supported GT chambers. */
     public static boolean isHatchPosition(CriticalGeometry.Voxel voxel) {
         if (voxel.model.startsWith("v2_")) {
             if (isController(voxel) || voxel.model.startsWith("v2_plugin_")) return false;
-            if ("v2_loom".equals(voxel.model)) return voxel.y == 4 && voxel.z == 47
-                && (voxel.x == 50 || voxel.x == 53 || voxel.x == 59 || voxel.x == 62);
+            if ("v2_loom".equals(voxel.model) || "v2_v25_loom".equals(voxel.model)) return voxel.y == 4
+                && (voxel.z == 47 && (voxel.x == 50 || voxel.x == 53 || voxel.x == 59 || voxel.x == 62)
+                    || "static".equals(voxel.group) && voxel.x >= 47
+                        && voxel.x <= 65
+                        && voxel.z >= 47
+                        && voxel.z <= 65
+                        && voxel.block instanceof CriticalMaterials.MaterialBlock shell
+                        && "v2_reinforced_panel".equals(shell.materialId));
             return voxel.block instanceof CriticalMaterials.MaterialBlock block
                 && ("v2_alloy_frame".equals(block.materialId) || "v2_service_hatch".equals(block.materialId)
                     || "v2_gt_hatch".equals(block.materialId))
@@ -358,15 +363,13 @@ public final class CriticalStructures {
                 top - current.getControllerY(),
                 current.getControllerZ(),
                 hintsOnly);
-            if (!hintsOnly)
-                for (CriticalGeometry.Voxel v : CriticalGeometry.physicalPlugins(current.getConfiguration()))
-                    world.setBlock(
-                        current.getOriginX() + v.x,
-                        current.getOriginY() + v.y,
-                        current.getOriginZ() + v.z,
-                        v.block,
-                        0,
-                        2);
+            if (!hintsOnly) for (CriticalGeometry.Voxel v : CriticalGeometry.physicalPlugins(current)) world.setBlock(
+                current.getOriginX() + v.x,
+                current.getOriginY() + v.y,
+                current.getOriginZ() + v.z,
+                v.block,
+                0,
+                2);
             return;
         }
         int top = top(voxels(tier, kind));

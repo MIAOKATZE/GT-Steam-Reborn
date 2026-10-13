@@ -34,7 +34,7 @@ public final class CriticalMaterials {
         if (!STATIC.isEmpty()) return;
         palette = CriticalGeometry.readJson("materials.json");
         java.util.Set<String> loomForms = new java.util.HashSet<>();
-        for (String slug : new String[] { "loom", "v2_loom", "v2_legacy_loom" }) {
+        for (String slug : new String[] { "loom", "v2_loom", "v2_v25_loom", "v2_legacy_loom" }) {
             JsonObject loomGeometry = CriticalGeometry.readJson("models/" + slug + ".geometry.json");
             for (JsonElement element : loomGeometry.getAsJsonArray("blocks")) {
                 com.google.gson.JsonArray row = element.getAsJsonArray();
@@ -108,8 +108,7 @@ public final class CriticalMaterials {
     }
 
     public static boolean matchesLoomVoxel(Block block, int metadata, CriticalGeometry.Voxel voxel) {
-        return ("loom".equals(voxel.model) || "v2_loom".equals(voxel.model) || "v2_legacy_loom".equals(voxel.model))
-            && metadata == 0
+        return CriticalLoomStructure.isLoomVoxel(voxel) && metadata == 0
             && (block == voxel.block || block == loomBlock(voxel.material, ((MaterialBlock) voxel.block).proxy));
     }
 

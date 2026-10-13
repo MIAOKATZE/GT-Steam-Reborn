@@ -148,6 +148,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private String visualHostId = UUID.randomUUID()
         .toString();
     private int geometryVersion;
+    private int v2LayoutRevision = 26;
     private boolean loomController, loomJournalOwner, loomOwnedMain, initialClearanceAccepted;
     private int clearanceCursor, blocksChangedThisTick, lightsChangedThisTick;
     private long blockBudgetStarted;
@@ -181,6 +182,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public void setLoomOwnedMain(CriticalMachineState journalOwner) {
         loomOwnedMain = true;
         geometryVersion = journalOwner.getGeometryVersion();
+        v2LayoutRevision = journalOwner.getV2LayoutRevision();
         config = journalOwner.config;
         owner = journalOwner.owner;
         visualHostId = journalOwner.visualHostId;
@@ -195,6 +197,22 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public boolean usesLegacyV2Geometry() {
         return getGeometryVersion() == 2 && !loomJournalOwner && !loomOwnedMain;
+    }
+
+    /** A running journal keeps its exact voxel ordering across layout fixes. */
+    public int getV2LayoutRevision() {
+        return v2LayoutRevision;
+    }
+
+    private static int readV2LayoutRevision(NBTTagCompound n) {
+        if (n.hasKey("v2LayoutRevision")) return n.getInteger("v2LayoutRevision");
+        return n.getBoolean("loomOwnedMain") || n.getInteger("state") != 0
+            || !n.getString("structureId")
+                .isEmpty()
+            || !n.getString("jobId")
+                .isEmpty()
+            || n.getLong("jobFingerprint") != 0L
+            || n.getByteArray("placed").length != 0 ? 25 : 26;
     }
 
     public static boolean supportsV2Kind(CriticalMachineKind kind) {
@@ -2471,6 +2489,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public void writeToNBT(NBTTagCompound n) {
         n.setInteger("geometryVersion", getGeometryVersion());
+        n.setInteger("v2LayoutRevision", v2LayoutRevision);
         n.setBoolean("loomController", loomController);
         n.setBoolean("loomJournalOwner", loomJournalOwner);
         n.setBoolean("loomOwnedMain", loomOwnedMain);
@@ -2529,6 +2548,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public void readFromNBT(NBTTagCompound n) {
         geometryVersion = n.hasKey("geometryVersion") ? n.getInteger("geometryVersion") : 1;
+        v2LayoutRevision = readV2LayoutRevision(n);
         // Missing flag denotes the existing main-owned layout; its geometry and placement indices stay frozen.
         loomJournalOwner = n.getBoolean("loomJournalOwner");
         loomOwnedMain = n.getBoolean("loomOwnedMain");
@@ -2609,6 +2629,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public NBTTagCompound getVisualData() {
         NBTTagCompound n = new NBTTagCompound();
         n.setInteger("geometryVersion", getGeometryVersion());
+        n.setInteger("v2LayoutRevision", v2LayoutRevision);
         n.setBoolean("loomController", loomController);
         n.setBoolean("loomJournalOwner", loomJournalOwner);
         n.setBoolean("loomOwnedMain", loomOwnedMain);
@@ -2640,6 +2661,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     /** Reads only visual fields; never depends on client-only packet accessors. */
     public void readVisualData(NBTTagCompound n) {
         geometryVersion = n.hasKey("geometryVersion") ? n.getInteger("geometryVersion") : 1;
+        v2LayoutRevision = readV2LayoutRevision(n);
         loomController = n.getBoolean("loomController");
         loomJournalOwner = n.getBoolean("loomJournalOwner");
         loomOwnedMain = n.getBoolean("loomOwnedMain");

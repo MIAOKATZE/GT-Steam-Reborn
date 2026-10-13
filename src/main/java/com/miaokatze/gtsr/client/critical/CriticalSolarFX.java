@@ -59,7 +59,15 @@ final class CriticalSolarFX {
                 if (!visible(visible, slugs[owner], member.group, group)) continue;
                 int index = familyIndex++;
                 if (index % lod != 0) continue;
-                transform(member.position, group, phase, seconds, owner == 1 ? "idle" : mode(group, work), MOVED);
+                boolean transferredLoom = "v2_base_t3".equals(slugs[owner]) && member.group != null
+                    && member.group.startsWith("loom_");
+                transform(
+                    member.position,
+                    group,
+                    phase,
+                    seconds,
+                    owner == 1 || transferredLoom ? "idle" : mode(group, work),
+                    MOVED);
                 double progress = wrap(cycle);
                 MOVED[1] -= .65 + 2.8 * progress;
                 double alpha = (work ? .28 : .21) * Math.sin(Math.PI * progress);

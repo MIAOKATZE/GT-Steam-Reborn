@@ -118,7 +118,9 @@ final class CriticalGroupVisibility {
         Group(String key, List<CriticalGeometry.Voxel> voxels) {
             this.key = key;
             this.voxels = voxels;
-            this.loom = key.startsWith("loom:") || key.startsWith("v2_loom:") || key.startsWith("v2_legacy_loom:");
+            this.loom = key.startsWith("loom:") || key.startsWith("v2_loom:")
+                || key.startsWith("v2_v25_loom:")
+                || key.startsWith("v2_legacy_loom:");
         }
     }
 }

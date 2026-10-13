@@ -174,8 +174,8 @@
     "src/main/resources/assets/gtsr/textures/blocks/critical/violet_phase_glass__top.png": "64cda79b59478d41cb57930249333d6d25a504697abb2461a05b78167ded48a8",
     "src/main/resources/assets/gtsr/textures/blocks/critical/violet_phase_glass_emission.png": "d2bd24f31befae7fde3342396ebf7f75d1b0a705670ccc2884bfadbe2475eb87",
     "src/main/resources/assets/gtsr/textures/blocks/critical/violet_phase_glass_emission.png.mcmeta": "a4fd1db69a2c1e0416032ce4c9cd2757a70fe92738cee4f83e1f8a4bdfa2f716",
-    "src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json": "794d924b69123690e75a50b3e7e6e61cf81064a2345795d9249b2da5ffc6113f",
-    "src/main/resources/assets/gtsr/critical/models/v2_loom.geometry.json": "e7414c5fc6c98bba98bf984d8a1a5bb3669de7bd033f2e4398be72200dcbbef7",
+    "src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json": "1cc2c1d3d5f3500d523e992778551cd542fd348a5455b22f0e49c65a0ecdc005",
+    "src/main/resources/assets/gtsr/critical/models/v2_loom.geometry.json": "5401b8739028b0b4e1b5cfd5adbdca7c9fb9a737a5670ee6c207b841f707c0d5",
     "src/main/resources/assets/gtsr/critical/models/v2_plugin_efficiency.geometry.json": "6050ebadf5f3ccf21ea1f9f0e6f3746b2fea0f2bd9f4f25ed45fa454685c246b",
     "src/main/resources/assets/gtsr/critical/models/v2_plugin_parallel.geometry.json": "254489a790086e4406b1aeb5ec4cdb44080838116de3935733c081d481f4d74c",
     "src/main/resources/assets/gtsr/critical/models/v2_plugin_speed.geometry.json": "1e728aedc0b620e15d3d580b443846a634c0c28be37eac609bfb1a10504be5d5",
@@ -1115,7 +1115,9 @@
     "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/bottom/mask_15.png": "31009ef47b1ceea5813049673e2a1fba81401216518e423d8ced9923c5bd432a",
     "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/bottom/mask_15_emission.png": "0b53345828f7618a71be1842c55e33b63b791929607062200a967dd5e3b07c6e",
     "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/bottom/mask_15_emission.png.mcmeta": "f850d35264a34566f95694159539b17bb42d669f12939e24db6d070842fea3b2",
-    "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/bottom/mask_15_emission_frozen.png": "78df7c6c6e6a1224b4e6639d1e5c3c7d510fe3caf7510c50359580948658b3c0"
+    "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/bottom/mask_15_emission_frozen.png": "78df7c6c6e6a1224b4e6639d1e5c3c7d510fe3caf7510c50359580948658b3c0",
+    "src/main/resources/assets/gtsr/critical/models/v2_v25_loom.geometry.json": "e7414c5fc6c98bba98bf984d8a1a5bb3669de7bd033f2e4398be72200dcbbef7",
+    "src/main/resources/assets/gtsr/critical/models/v2_v25_base_t3.geometry.json": "794d924b69123690e75a50b3e7e6e61cf81064a2345795d9249b2da5ffc6113f"
   },
   "authorities": {
     "legacy": {
@@ -1620,30 +1622,39 @@
     "v2": {
       "source": "plan/临时计划/临界机器设计计划v2",
       "designTag": "design-20261013-critical-machines-v2-r4",
-      "revision": "R4 + v1.21.25 shared runtime membership",
+      "revision": "R4 + v1.21.26 manual low-branch / paid floating membership",
       "inputs": {
-        "plan/临时计划/临界机器设计计划v2/models/base_t3.geometry.json": "05f5b26353be540c68aa010c8b886251258508ce739e729baa14d44eadbbddf1",
-        "plan/临时计划/临界机器设计计划v2/models/loom.geometry.json": "3f035283e3734f2fe92b7ecc832735e597343cd249d4b6b4624918ca88f3f78e",
+        "plan/临时计划/临界机器设计计划v2/models/base_t3.geometry.json": "f738305b09441b31be53a38828ca299dd2db2b30b5a6d6971be95c384de976b0",
+        "plan/临时计划/临界机器设计计划v2/models/loom.geometry.json": "0cb88bbcc561e8cf97e274bbcdd3340188c1deafed5fecd30608df3bed8e774b",
         "plan/临时计划/临界机器设计计划v2/models/plugin_efficiency.geometry.json": "32f24085a285d89ac10cc87a5156c1046ba897ddd3dd9cbad392357be4bd549d",
         "plan/临时计划/临界机器设计计划v2/models/plugin_parallel.geometry.json": "b005d5bf71bb0e63923437c7ea66d01897de45a336955104336df072550d6933",
         "plan/临时计划/临界机器设计计划v2/models/plugin_speed.geometry.json": "ca463dbd49345f7dfef0947b5ed30fbba25a0bc0d21bd88c6faeaf6f5311245f",
         "plan/临时计划/临界机器设计计划v2/models/solar.geometry.json": "a79d198668ffd7df5188454b10a0e2983660b5a37643403dc6d8c1c6c3da5698",
         "plan/临时计划/临界机器设计计划v2/models/sun.geometry.json": "9e1239594c58cd71e4d2729f519b57f51b85315cf604b940ce792b6da3ef800c",
-        "plan/临时计划/临界机器设计计划v2/models/base_t3.structure.json": "5b5e1968daeb086a8bb36142b73328d92f86fadf82cd4d0b3cb5a642cf4863bd",
-        "plan/临时计划/临界机器设计计划v2/models/loom.structure.json": "56ceedd71e4fd274569c24f6fb5a800e62984aad21f7432db8cd89e501e9ed7b",
+        "plan/临时计划/临界机器设计计划v2/models/base_t3.structure.json": "c004bae1b0b9f9fafaa71628312e8fb5264a74c74d842e6f05f24b0e1ce0c783",
+        "plan/临时计划/临界机器设计计划v2/models/loom.structure.json": "4a0c2b5ee5763f713f740e4939913ec81d5dd9fb5da10582679e06dde1a10290",
         "plan/临时计划/临界机器设计计划v2/models/plugin_efficiency.structure.json": "b723157f4a942a70bbe7cbac3fc1df60cfbc999d40b87623ee147d64e677e736",
         "plan/临时计划/临界机器设计计划v2/models/plugin_parallel.structure.json": "e1a7138a17d881cfd3eb1fbf63dcbb772ca2ffe8ebf997e859595a84c3765e86",
         "plan/临时计划/临界机器设计计划v2/models/plugin_speed.structure.json": "7e1c2e0ee8bb4b380ecf8bfcdeea450981248411f498facef214e484962e1a87",
         "plan/临时计划/临界机器设计计划v2/models/solar.structure.json": "e6bf044cadbae1714fbe386f67c3cb75ada17c383250aef128a31bd157588ade",
         "plan/临时计划/临界机器设计计划v2/models/sun.structure.json": "916680a45fe3be30d1e1c08499a2b89207146e17a3c0579d8c4e8237e49534d7",
-        "plan/临时计划/临界机器设计计划v2/models/manifest.json": "be827b14f02c16aaf891fa6e8f89acd2b7911bc9f4330e37489102e5f8269920",
-        "plan/临时计划/临界机器设计计划v2/models/solar.manifest.json": "c222ab5a12b1a3acd27044002923957c89e2dc96c2b30e3c603cbfc5cca78727",
+        "plan/临时计划/临界机器设计计划v2/models/manifest.json": "9379dad8258290e03b223832c7c93751374fb8f33876738fa896855a1c833c75",
+        "plan/临时计划/临界机器设计计划v2/models/solar.manifest.json": "3182e424518bf0a663a82139a98456743e821fd77b09d5e996093f4fb0f918e8",
         "plan/临时计划/临界机器设计计划v2/scripts/import_runtime_materials.py": "eaa13cbd3df7067b94b22448ddeb958d51dd0545a8cb098787c1d80012dc7ee2",
         "plan/临时计划/临界机器设计计划v2/textures/palette.json": "dcf21fb0491a2bce03595d60cc3f5a14610bd532ac7448740d06cd2440275949",
         "plan/临时计划/临界机器设计计划v2/textures/ctm-rules.json": "6a695e1346e114492594294990d70a1b11bc72cd79f317df525627bc0e2a5633",
         "plan/临时计划/临界机器设计计划v2/textures/catalog.json": "bc89a680146d6236b4324a80fe227b1ae48aeee051031828e5453ce2fe854eae",
         "plan/临时计划/临界机器设计计划v2/textures/atlas.png": "948511aa13fa2d910478e72643a9c0a5f3ea9fa3ff771cf7502d26a92d15e23f",
-        "plan/临时计划/临界机器设计计划v2/textures/emission_atlas.png": "3f84225b3fa3c5c7235a5f2c2bd3329aa2d9ab0554e8fde3689edb8875d67bc8"
+        "plan/临时计划/临界机器设计计划v2/textures/emission_atlas.png": "3f84225b3fa3c5c7235a5f2c2bd3329aa2d9ab0554e8fde3689edb8875d67bc8",
+        "plan/临时计划/临界机器设计计划v2/scripts/refine_manual_boundary_v26.py": "a97a228f7b44cece069e935877035f8fec0e1b96dece6dc3455def0b50a2a236",
+        "plan/临时计划/临界机器设计计划v2/scripts/refine_runtime_ports.py": "2cd9e084b4b619fa1833dd943c67f1ee475b5ae21818c4ad06bf0ed13c9ff0b7",
+        "plan/临时计划/临界机器设计计划v2/scripts/generate_v2.py": "229e39ecabcbee5a22c749b08ec6a4d583829f19e44398b09543d8801e7075dc",
+        "plan/临时计划/临界机器设计计划v2/preview/models.js": "816d585bb0749440efa3c6896ebc27c055ede3b277ff460b4410bebfdf3659a9",
+        "plan/临时计划/临界机器设计计划v2/preview/index.html": "43e3d3508a8af5ffc24a036a6d05f45c4a8de3a64c4c40baae351c2746995205",
+        "plan/临时计划/临界机器设计计划v2/preview/solar.html": "f350f2e1057f076273562b65b9fc132dc42c7f9053d4f7a37cef02718b7a6ced",
+        "plan/临时计划/临界机器设计计划v2/preview/viewer.js": "e7d2e5abb7e7efa68eb5aa9ce66b79b2d759a5d0068ad0149a87862c089f49fa",
+        "plan/临时计划/临界机器设计计划v2/preview/mechanism_fx.js": "e41c13b7bdf93d5fc9f5ecaf0b0ca20773c0348b85f6a66e2981943a70409909",
+        "plan/临时计划/临界机器设计计划v2/preview/solar_fx.js": "5543d897580ac709bbe4c92278ed545dcaa48b1a6ff34cbd66e69988fbbdacc2"
       },
       "designTagScope": "approved Solar R4 geometry, motion, FX and original material artwork; excludes amended loom/base membership",
       "sharedStructureRevision": {
@@ -1672,6 +1683,18 @@
       "sourceRef": "v1.21.24",
       "sha256": "cd209979ddfcbd75e44bda39465e2137028554b31822acc8c04ba96a81f7427f",
       "usage": "existing main-owned persisted journals only; excluded from new loom-owned construction"
+    },
+    "v2_v25_loom": {
+      "source": "v1.21.25 runtime V2 original bytes, frozen before low-branch boundary amendment",
+      "sourceRef": "v1.21.25",
+      "sha256": "e7414c5fc6c98bba98bf984d8a1a5bb3669de7bd033f2e4398be72200dcbbef7",
+      "usage": "existing revision25 persisted journals; original geometry/animation/job ordering retained"
+    },
+    "v2_v25_base_t3": {
+      "source": "v1.21.25 runtime V2 original bytes, frozen before low-branch boundary amendment",
+      "sourceRef": "v1.21.25",
+      "sha256": "794d924b69123690e75a50b3e7e6e61cf81064a2345795d9249b2da5ffc6113f",
+      "usage": "existing revision25 persisted journals; original geometry/animation/job ordering retained"
     }
   }
 }

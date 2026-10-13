@@ -43,7 +43,15 @@ public final class CriticalLoomStructure {
     }
 
     public static boolean isLoomVoxel(CriticalGeometry.Voxel voxel) {
-        return "loom".equals(voxel.model) || "v2_loom".equals(voxel.model) || "v2_legacy_loom".equals(voxel.model);
+        return "loom".equals(voxel.model) || "v2_loom".equals(voxel.model)
+            || "v2_v25_loom".equals(voxel.model)
+            || "v2_legacy_loom".equals(voxel.model);
+    }
+
+    private static int top(CriticalMachineState state) {
+        int top = 0;
+        for (CriticalGeometry.Voxel voxel : voxels(state)) top = Math.max(top, voxel.y);
+        return top;
     }
 
     public static List<CriticalGeometry.Voxel> hatchPorts() {
@@ -123,7 +131,7 @@ public final class CriticalLoomStructure {
             local.getOriginZ(),
             voxel,
             local.getKind())) return false;
-        int top = CriticalGeometry.isV2(local) ? 45 : 35;
+        int top = CriticalGeometry.isV2(local) ? top(local) : 35;
         if (!definition(host).check(
             host,
             PIECE,
@@ -172,7 +180,7 @@ public final class CriticalLoomStructure {
             local.yCoord,
             local.zCoord,
             CriticalGeometry.isV2(local) ? 111 - local.getControllerX() : 7,
-            CriticalGeometry.isV2(local) ? 45 - local.getControllerY() : 35,
+            CriticalGeometry.isV2(local) ? top(local) - local.getControllerY() : 35,
             CriticalGeometry.isV2(local) ? local.getControllerZ() : 1,
             hintsOnly);
     }
@@ -192,7 +200,7 @@ public final class CriticalLoomStructure {
             local.yCoord,
             local.zCoord,
             CriticalGeometry.isV2(local) ? 111 - local.getControllerX() : 7,
-            CriticalGeometry.isV2(local) ? 45 - local.getControllerY() : 35,
+            CriticalGeometry.isV2(local) ? top(local) - local.getControllerY() : 35,
             CriticalGeometry.isV2(local) ? local.getControllerZ() : 1,
             budget,
             env,

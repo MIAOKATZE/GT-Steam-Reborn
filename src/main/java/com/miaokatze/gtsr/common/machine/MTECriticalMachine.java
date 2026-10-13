@@ -48,6 +48,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     private long loomValidationTick = Long.MIN_VALUE, meSnapshotTick = Long.MIN_VALUE;
     private long hatchDiscoveryTick = Long.MIN_VALUE;
     private int hatchDiscoveryJournalState = -1;
+    private boolean hatchesDirty = true;
     private ItemStack[] meItemsSnapshot = new ItemStack[0];
     private FluidStack[] meFluidsSnapshot = new FluidStack[0];
     private World previewWorld;
@@ -294,12 +295,21 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
     }
 
+    @Override
+    public void clearHatches() {
+        super.clearHatches();
+        // GT structure checks can clear the lists without changing any port's TileEntity identity.
+        hatchesDirty = true;
+        meSnapshotTick = Long.MIN_VALUE;
+    }
+
     private void discoverHatches(boolean force) {
         CriticalMachineState current = getCriticalState();
         if (current.getWorldObj() == null) return;
         long now = current.getWorldObj()
             .getTotalWorldTime();
-        if (!force && hatchDiscoveryJournalState == current.getState()
+        if (!force && !hatchesDirty
+            && hatchDiscoveryJournalState == current.getState()
             && hatchDiscoveryTick != Long.MIN_VALUE
             && now - hatchDiscoveryTick < 20) return;
         hatchDiscoveryTick = now;
@@ -315,7 +325,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         for (java.util.Map.Entry<Long, TileEntity> entry : next.entrySet())
             if (!portSnapshot.containsKey(entry.getKey()) || portSnapshot.get(entry.getKey()) != entry.getValue())
                 changed = true;
-        if (!force && !changed) return;
+        if (!force && !hatchesDirty && !changed) return;
         clearHatches();
         meSnapshotTick = Long.MIN_VALUE;
         portSnapshot.clear();
@@ -324,6 +334,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             if (CriticalMachineState.isStandardHatchHost(tile) && tile instanceof IGregTechTileEntity gt)
                 if (!addMultiAmpEnergyInputToMachineList(gt, CriticalControllerTextures.casingIndex()))
                     addToMachineList(gt, CriticalControllerTextures.casingIndex());
+        hatchesDirty = false;
     }
 
     @Override
@@ -336,11 +347,11 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             if (tile instanceof gregtech.api.metatileentity.BaseMetaTileEntity base && base.getLightValue() != light)
                 base.setLightValue(light);
         }
+        discoverHatches(false);
         if (current != state || state.isLoomOwnedMain() || isKindSelector() && state.usesLegacyV2Geometry()) {
             tile.setActive(current != state && current.isWorking());
             return;
         }
-        discoverHatches(false);
         energySpentThisTick = 0;
         energyEmittedThisTick = 0;
         hatchEnergySpent.clear();
