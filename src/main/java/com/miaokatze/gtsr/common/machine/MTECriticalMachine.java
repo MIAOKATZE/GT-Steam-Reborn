@@ -47,6 +47,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     private boolean loomStructureValid;
     private long loomValidationTick = Long.MIN_VALUE, meSnapshotTick = Long.MIN_VALUE;
     private long hatchDiscoveryTick = Long.MIN_VALUE;
+    private int hatchDiscoveryJournalState = -1;
     private ItemStack[] meItemsSnapshot = new ItemStack[0];
     private FluidStack[] meFluidsSnapshot = new FluidStack[0];
     private World previewWorld;
@@ -204,27 +205,32 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     public CriticalMachineState getCriticalState() {
         getLocalCriticalState();
-        if (isKindSelector() && state.getGeometryVersion() == 2 && getBaseMetaTileEntity() != null) {
+        if (state.getGeometryVersion() == 2 && getBaseMetaTileEntity() != null) {
             IGregTechTileEntity tile = getBaseMetaTileEntity();
-            if (tile.getFrontFacing() == ForgeDirection.NORTH && tile.getWorld()
-                .getChunkProvider()
-                .chunkExists(tile.getXCoord() >> 4, (tile.getZCoord() - 12) >> 4)
+            int partnerZ = tile.getZCoord() + (isKindSelector() ? -12 : 12);
+            if (tile.getFrontFacing() == (isKindSelector() ? ForgeDirection.NORTH : ForgeDirection.SOUTH)
                 && tile.getWorld()
-                    .getTileEntity(
-                        tile.getXCoord(),
-                        tile.getYCoord(),
-                        tile.getZCoord() - 12) instanceof IGregTechTileEntity gt
-                && gt.getFrontFacing() == ForgeDirection.SOUTH
-                && gt.getMetaTileEntity() instanceof MTECriticalMachine main
-                && main.getPresetKind() == CriticalMachineKind.SUN
-                && main.getLocalCriticalState()
-                    .getGeometryVersion() == 2)
-                return main.getLocalCriticalState();
+                    .getChunkProvider()
+                    .chunkExists(tile.getXCoord() >> 4, partnerZ >> 4)
+                && tile.getWorld()
+                    .getTileEntity(tile.getXCoord(), tile.getYCoord(), partnerZ) instanceof IGregTechTileEntity gt
+                && gt.getFrontFacing() == (isKindSelector() ? ForgeDirection.SOUTH : ForgeDirection.NORTH)
+                && gt.getMetaTileEntity() instanceof MTECriticalMachine partner
+                && partner.isKindSelector() != isKindSelector()
+                && partner.getLocalCriticalState()
+                    .getGeometryVersion() == 2) {
+                CriticalMachineState other = partner.getLocalCriticalState();
+                if (isKindSelector() && !state.isLoomJournalOwner()
+                    && CriticalMachineState.supportsV2Kind(partner.getPresetKind())) return other;
+                if (!isKindSelector() && other.isLoomJournalOwner()
+                    && other.getKind() == presetKind
+                    && state.isLoomOwnedMainOf(other)) return other;
+            }
         }
         return state;
     }
 
-    /** The selector has no second journal; its local state describes only its physical control position. */
+    /** Local state owns persistence only on a journal host; linked main controllers are passive proxies. */
     public CriticalMachineState getLocalCriticalState() {
         if (getBaseMetaTileEntity() instanceof TileEntity tile) state.bindHost(tile);
         return state;
@@ -283,7 +289,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     @Override
     public void checkMachine(IGregTechTileEntity tile, ItemStack stack, List<StructureError> errors) {
         forceLoomStructureCheck();
-        if (!getCriticalState().isFabricationHostValid() || state.getState() == 2 && !state.isStructureValidated())
+        CriticalMachineState current = getCriticalState();
+        if (!current.isFabricationHostValid() || current.getState() == 2 && !current.isStructureValidated())
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
     }
 
@@ -292,10 +299,13 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         if (current.getWorldObj() == null) return;
         long now = current.getWorldObj()
             .getTotalWorldTime();
-        if (!force && hatchDiscoveryTick != Long.MIN_VALUE && now - hatchDiscoveryTick < 20) return;
+        if (!force && hatchDiscoveryJournalState == current.getState()
+            && hatchDiscoveryTick != Long.MIN_VALUE
+            && now - hatchDiscoveryTick < 20) return;
         hatchDiscoveryTick = now;
+        hatchDiscoveryJournalState = current.getState();
         java.util.Map<Long, TileEntity> next = new java.util.LinkedHashMap<>();
-        for (CriticalGeometry.Voxel port : current.getHatchPorts()) {
+        for (CriticalGeometry.Voxel port : current.getResourceHatchPorts()) {
             int x = current.getOriginX() + port.x, y = current.getOriginY() + port.y, z = current.getOriginZ() + port.z;
             TileEntity tile = current.worldObj.getChunkProvider()
                 .chunkExists(x >> 4, z >> 4) ? current.worldObj.getTileEntity(x, y, z) : null;
@@ -307,6 +317,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
                 changed = true;
         if (!force && !changed) return;
         clearHatches();
+        meSnapshotTick = Long.MIN_VALUE;
         portSnapshot.clear();
         portSnapshot.putAll(next);
         for (TileEntity tile : next.values())
@@ -325,7 +336,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             if (tile instanceof gregtech.api.metatileentity.BaseMetaTileEntity base && base.getLightValue() != light)
                 base.setLightValue(light);
         }
-        if (isKindSelector() && state.getGeometryVersion() == 2) {
+        if (current != state || state.isLoomOwnedMain() || isKindSelector() && state.usesLegacyV2Geometry()) {
             tile.setActive(current != state && current.isWorking());
             return;
         }
@@ -424,15 +435,15 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     }
 
     public int getConstructionDebugRequirements() {
-        return state.getConstructionDebugRequirements();
+        return getCriticalState().getConstructionDebugRequirements();
     }
 
     public int getConstructionDebugSpeed() {
-        return state.getConstructionDebugSpeed();
+        return getCriticalState().getConstructionDebugSpeed();
     }
 
     public boolean getConstructionDebugIgnoreEnergy() {
-        return state.getConstructionDebugIgnoreEnergy();
+        return getCriticalState().getConstructionDebugIgnoreEnergy();
     }
 
     @Override
@@ -674,7 +685,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     @Override
     public long maxEUStore() {
-        return state.energyCapacity();
+        return getCriticalState().energyCapacity();
     }
 
     @Override
@@ -718,13 +729,15 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     @Override
     public void onRemoval() {
-        if (!isKindSelector() || state.getGeometryVersion() != 2) getCriticalState().invalidate();
+        if (!state.isLoomOwnedMain() && getCriticalState() == state
+            && (!isKindSelector() || !state.usesLegacyV2Geometry())) state.invalidate();
         super.onRemoval();
     }
 
     @Override
     public void onUnload() {
-        if (!isKindSelector() || state.getGeometryVersion() != 2) getCriticalState().onChunkUnload();
+        if (!state.isLoomOwnedMain() && getCriticalState() == state
+            && (!isKindSelector() || !state.usesLegacyV2Geometry())) state.onChunkUnload();
         super.onUnload();
     }
 

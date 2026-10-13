@@ -3940,13 +3940,16 @@ tile.gtsr.critical_v2.loom_machine_controller.tooltip.2=右键本机控制器操
 tile.gtsr.critical_v2.loom_machine_controller.tooltip.3=冷蓝织线徽记面朝北，与主结构控制器同高对望。
 
 gtsr.critical.v2.loom_type=拟态织机控制器
-gtsr.critical.v2.shared=织机控制器与恒星主控制器操作同一任务、权限及材料账本。
+gtsr.critical.v2.shared=新辐照锅炉与恒星共用 V2 织机；任务、权限及材料账本归永久织机，主控代理同一账本。
 gtsr.critical.v2.tier=基座外观统一 T3；三档等级仍控制配方电压及插件效果。
-gtsr.critical.v2.loom=永久手搭完整织机：主体、低箍环、三旋转环及八条四轴对称枝。
+gtsr.critical.v2.loom=永久手搭完整织机：主体、低箍环、三旋转环及八条四轴对称枝；手搭不含插件或机器主控。
 gtsr.critical.v2.safe=首次仅检查将放置的实块和规定净空；玩家可站在空域，续建不重复首次检查。
-gtsr.critical.v2.dismantle=固定八壳及插件功能增补为实块；完整拆除保留手搭织机并释放区域供重建。
-gtsr.critical.v2.legacy=既有旧恒星存档及其余八机型沿用旧 80 格结构；独立织机可选择旧机型。
+gtsr.critical.v2.dismantle=拆除付费结构、自动主控及插件，保留织机和玩家换装仓室及内容；保留合法业务仓口可直接重建。
+gtsr.critical.v2.legacy=既有存档保留原有布局及主控账本；其余七机型沿用旧 80 格结构，独立织机仍可选择。
 gtsr.critical.v2.loom_controller=本机控制器 (56,4,47) 正面朝北。
-gtsr.critical.v2.main_controller=恒星主控制器 (56,4,35) 正面朝南。
+gtsr.critical.v2.main_controller=锅炉或恒星主控 (56,4,35) 正面朝南，由织机首次施工自动放置。
 gtsr.critical.v2.region=区域原点 X/Z 必须对齐区块；区域 112×112，高180格。
-gtsr.critical.v2.controllers=两处真实 GT 控制器，同高 Y=4；控制器不可替换成仓口。
+gtsr.critical.v2.controllers=织机与后施工主控均为真实 GT 控制器，同高 Y=4，不可替换成仓口。
+gtsr.critical.v2.ports=仅以下声明的施工口与业务口支持标准 GT 仓室。
+gtsr.critical.v2.loom_ports=织机施工口共4个：(50/53/59/62,4,47)，用于施工供料、流体及供电。
+gtsr.critical.v2.main_ports=主控业务口共13个：X=50..62，Y=4，Z=34，用于运行配方输入输出。

@@ -38,6 +38,7 @@ final class CriticalFX {
         SOURCES.clear();
         SURFACES.clear();
         CriticalSunFX.clear();
+        CriticalSolarFX.clear();
     }
 
     static void renderV2(CriticalGeometry.Model sun, CriticalGeometry.Model loom, CriticalGeometry.Model base,
@@ -51,6 +52,8 @@ final class CriticalFX {
             CriticalRenderMetrics.lastSunRingCount = 0;
             CriticalRenderMetrics.lastSunParticlesPerRing = 0;
             CriticalRenderMetrics.lastSunLod = 0;
+            CriticalRenderMetrics.lastSolarParticles = 0;
+            CriticalRenderMetrics.lastSolarLod = 0;
             return;
         }
         GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -60,11 +63,46 @@ final class CriticalFX {
         Tessellator tessellator = Tessellator.instance;
         tessellator.startDrawingQuads();
         tessellator.setBrightness(0x00f000f0);
-        CriticalSunFX.render(sun, loom, base, phase, seconds, lod, visible, sunSlug, loomSlug, baseSlug, tessellator);
+        if ("v2_solar".equals(sunSlug)) {
+            renderSolar(sun, loom, base, phase, seconds, lod, visible, sunSlug, loomSlug, baseSlug, tessellator);
+        } else {
+            CriticalSunFX
+                .render(sun, loom, base, phase, seconds, lod, visible, sunSlug, loomSlug, baseSlug, tessellator);
+        }
         tessellator.draw();
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glDepthMask(true);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+    }
+
+    private static void renderSolar(CriticalGeometry.Model solar, CriticalGeometry.Model loom,
+        CriticalGeometry.Model base, double phase, double seconds, int lod, java.util.Set<String> visible,
+        String solarSlug, String loomSlug, String baseSlug, Tessellator tessellator) {
+        long before = CriticalRenderMetrics.particlesDrawn;
+        CriticalSolarFX.sample(
+            new JsonObject[] { base.meta, loom.meta, solar.meta },
+            new JsonObject[] { base.animations, loom.animations, solar.animations },
+            new String[] { baseSlug, loomSlug, solarSlug },
+            phase,
+            seconds,
+            lod,
+            visible,
+            (family, index, point, color, alpha, glow, glowAlpha, size) -> {
+                if (!CriticalFXBudget.claim()) return;
+                solarCube(tessellator, point, color, alpha * .62, size);
+                solarCube(tessellator, point, glow, glowAlpha * .95, size * .56);
+                solarCube(tessellator, point, glow, glowAlpha * .16, size * 2);
+            });
+        CriticalRenderMetrics.lastSolarParticles = CriticalRenderMetrics.particlesDrawn - before;
+        CriticalRenderMetrics.lastSolarLod = lod;
+    }
+
+    private static void solarCube(Tessellator tessellator, double[] point, double[] color, double alpha, double size) {
+        tessellator.setColorRGBA_F((float) color[0], (float) color[1], (float) color[2], (float) alpha);
+        for (double[][] face : FACES) for (double[] vertex : face) tessellator.addVertex(
+            point[0] + .5 + vertex[0] * size,
+            point[1] + .5 + vertex[1] * size,
+            point[2] + .5 + vertex[2] * size);
     }
 
     static void render(String slug, CriticalGeometry.Model model, double phase, double seconds, double distanceSquared,

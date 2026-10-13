@@ -10,7 +10,8 @@ public final class CriticalTooltips {
     private CriticalTooltips() {}
 
     public static MultiblockTooltipBuilder create(CriticalMachineKind preset) {
-        if (preset == null || preset == CriticalMachineKind.SUN) return v2(preset);
+        if (preset == null || preset == CriticalMachineKind.SUN || preset == CriticalMachineKind.SOLAR)
+            return v2(preset);
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(tr(preset == null ? "type" : "kind." + preset.key))
             .addInfo(tr("tooltip.selection"))
@@ -47,7 +48,7 @@ public final class CriticalTooltips {
 
     private static MultiblockTooltipBuilder v2(CriticalMachineKind preset) {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(tr(preset == null ? "v2.loom_type" : "kind.sun"))
+        tt.addMachineType(tr(preset == null ? "v2.loom_type" : "kind." + preset.key))
             .addInfo(tr("v2.shared"))
             .addInfo(tr("v2.tier"))
             .addInfo(tr("tooltip.plugins"))
@@ -61,10 +62,12 @@ public final class CriticalTooltips {
             .addController(tr(preset == null ? "v2.loom_controller" : "v2.main_controller"))
             .addStructureInfo(tr("v2.region"))
             .addStructureInfo(tr("v2.controllers"))
-            .addInputBus(tr("tooltip.ports"))
-            .addInputHatch(tr("tooltip.ports"))
-            .addEnergyHatch(tr("tooltip.ports"))
-            .addDynamoHatch(tr("tooltip.ports"))
+            .addInputBus(tr("v2.ports"))
+            .addInputHatch(tr("v2.ports"))
+            .addEnergyHatch(tr("v2.ports"))
+            .addDynamoHatch(tr("v2.ports"))
+            .addStructureInfo(tr("v2.loom_ports"))
+            .addStructureInfo(tr("v2.main_ports"))
             .addStructureInfo(tr("tooltip.physical_inputs"));
         tt.addStructureHint("gtsr.critical.tooltip.port_hint", 1);
         tt.toolTipFinisher("GTSteamReborn");

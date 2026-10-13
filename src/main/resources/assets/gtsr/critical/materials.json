@@ -11677,6 +11677,12 @@
         "emission": null,
         "frozenAlbedo": "gtsr:critical/v2/gravity_modulator__top",
         "frozenEmission": null
+      },
+      "bottom": {
+        "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00",
+        "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
+        "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00",
+        "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
       }
     },
     "faceSprites": {
@@ -11694,7 +11700,7 @@
       },
       "ny": {
         "material": "gravity_modulator",
-        "group": "side"
+        "group": "bottom"
       },
       "pz": {
         "material": "gravity_modulator",
@@ -11725,7 +11731,8 @@
       ],
       "emittingFace": "ny",
       "sideWindowPngYMirrored": true,
-      "previewUnpackFlipY": false
+      "previewUnpackFlipY": false,
+      "ctmFaceGroup": "bottom"
     },
     "ctm": {
       "family": "vertical-only",
@@ -11742,7 +11749,7 @@
         "px": "side",
         "nx": "side",
         "py": "top",
-        "ny": "top",
+        "ny": "bottom",
         "pz": "side",
         "nz": "side"
       },
@@ -11770,15 +11777,35 @@
           13,
           14,
           15
+        ],
+        "bottom": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
         ]
       },
       "faceFamilies": {
         "side": "vertical-only",
-        "top": "all-directions"
+        "top": "all-directions",
+        "bottom": "all-directions"
       },
       "faceFrameCounts": {
         "side": 12,
-        "top": 1
+        "top": 1,
+        "bottom": 12
       },
       "requiresSameCanonical": true,
       "requiresSameAnimationOwner": true,
@@ -11905,6 +11932,104 @@
             "emission": null,
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_15",
             "frozenEmission": null
+          }
+        },
+        "bottom": {
+          "0": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
+          },
+          "1": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_01",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_01_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_01",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_01_emission_frozen"
+          },
+          "2": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_02",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_02_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_02",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_02_emission_frozen"
+          },
+          "3": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_03",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_03_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_03",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_03_emission_frozen"
+          },
+          "4": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_04",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_04_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_04",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_04_emission_frozen"
+          },
+          "5": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_05",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_05_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_05",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_05_emission_frozen"
+          },
+          "6": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_06",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_06_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_06",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_06_emission_frozen"
+          },
+          "7": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_07",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_07_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_07",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_07_emission_frozen"
+          },
+          "8": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_08",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_08_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_08",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_08_emission_frozen"
+          },
+          "9": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_09",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_09_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_09",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_09_emission_frozen"
+          },
+          "10": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_10",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_10_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_10",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_10_emission_frozen"
+          },
+          "11": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_11",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_11_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_11",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_11_emission_frozen"
+          },
+          "12": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_12",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_12_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_12",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_12_emission_frozen"
+          },
+          "13": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_13",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_13_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_13",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_13_emission_frozen"
+          },
+          "14": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_14",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_14_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_14",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_14_emission_frozen"
+          },
+          "15": {
+            "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_15",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_15_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_15",
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_15_emission_frozen"
           }
         }
       }
@@ -12490,5 +12615,331 @@
       "tile.gtsr.critical_v2.loom_machine_controller.tooltip.3"
     ],
     "frontFace": "nz"
+  },
+  "v2_service_hatch": {
+    "canonical": "gt_hatch",
+    "alphaMode": "opaque",
+    "emissionStrength": 0,
+    "lightValue": 0,
+    "lightOpacity": 255,
+    "lightStatePolicy": {
+      "idle": 0,
+      "working": 0,
+      "paused": 0,
+      "invalid": 0,
+      "basis": "physical block membership",
+      "changesOnlyOnPhysicalMembership": true,
+      "textureFramesNeverUpdateBlocklight": true
+    },
+    "lightSourceRole": "non-source (local glow may remain visible)",
+    "id": "v2_gt_hatch",
+    "animated": false,
+    "frameCount": 1,
+    "ticksPerFrame": 8,
+    "sprites": {
+      "side": {
+        "albedo": "gtsr:critical/v2/gt_hatch",
+        "emission": null,
+        "frozenAlbedo": "gtsr:critical/v2/gt_hatch",
+        "frozenEmission": null
+      },
+      "top": {
+        "albedo": "gtsr:critical/v2/gt_hatch__top",
+        "emission": null,
+        "frozenAlbedo": "gtsr:critical/v2/gt_hatch__top",
+        "frozenEmission": null
+      }
+    },
+    "faceSprites": {
+      "px": {
+        "material": "gt_hatch",
+        "group": "side"
+      },
+      "nx": {
+        "material": "gt_hatch",
+        "group": "side"
+      },
+      "py": {
+        "material": "gt_hatch",
+        "group": "top"
+      },
+      "ny": {
+        "material": "gt_hatch",
+        "group": "top"
+      },
+      "pz": {
+        "material": "gt_hatch",
+        "group": "side"
+      },
+      "nz": {
+        "material": "gt_hatch",
+        "group": "side"
+      }
+    },
+    "animationFaces": [
+      "px",
+      "nx",
+      "pz",
+      "nz"
+    ],
+    "runtimeRevision": "V2-R4",
+    "tooltipKeys": [
+      "tile.gtsr.critical_v2.gt_hatch.tooltip.1",
+      "tile.gtsr.critical_v2.gt_hatch.tooltip.2"
+    ]
+  },
+  "v2_solar_flux_collector": {
+    "canonical": "reinforced_panel",
+    "alphaMode": "opaque",
+    "emissionStrength": 0,
+    "lightValue": 0,
+    "lightOpacity": 255,
+    "lightStatePolicy": {
+      "idle": 0,
+      "working": 0,
+      "paused": 0,
+      "invalid": 0,
+      "basis": "physical block membership",
+      "changesOnlyOnPhysicalMembership": true,
+      "textureFramesNeverUpdateBlocklight": true
+    },
+    "lightSourceRole": "non-source (local glow may remain visible)",
+    "id": "v2_reinforced_panel",
+    "animated": false,
+    "frameCount": 1,
+    "ticksPerFrame": 8,
+    "sprites": {
+      "side": {
+        "albedo": "gtsr:critical/v2/reinforced_panel",
+        "emission": null,
+        "frozenAlbedo": "gtsr:critical/v2/reinforced_panel",
+        "frozenEmission": null
+      },
+      "top": {
+        "albedo": "gtsr:critical/v2/reinforced_panel__top",
+        "emission": null,
+        "frozenAlbedo": "gtsr:critical/v2/reinforced_panel__top",
+        "frozenEmission": null
+      }
+    },
+    "faceSprites": {
+      "px": {
+        "material": "reinforced_panel",
+        "group": "side"
+      },
+      "nx": {
+        "material": "reinforced_panel",
+        "group": "side"
+      },
+      "py": {
+        "material": "reinforced_panel",
+        "group": "top"
+      },
+      "ny": {
+        "material": "reinforced_panel",
+        "group": "top"
+      },
+      "pz": {
+        "material": "reinforced_panel",
+        "group": "side"
+      },
+      "nz": {
+        "material": "reinforced_panel",
+        "group": "side"
+      }
+    },
+    "animationFaces": [
+      "px",
+      "nx",
+      "pz",
+      "nz"
+    ],
+    "runtimeRevision": "V2-R4",
+    "tooltipKeys": [
+      "tile.gtsr.critical_v2.reinforced_panel.tooltip.1",
+      "tile.gtsr.critical_v2.reinforced_panel.tooltip.2"
+    ],
+    "ctm": {
+      "family": "vertical-only",
+      "allowedMask": 5,
+      "faceAllowedMask": {
+        "px": 5,
+        "nx": 5,
+        "py": 15,
+        "ny": 15,
+        "pz": 5,
+        "nz": 5
+      },
+      "faceLookup": {
+        "px": "side",
+        "nx": "side",
+        "py": "top",
+        "ny": "top",
+        "pz": "side",
+        "nz": "side"
+      },
+      "faceValidMasks": {
+        "side": [
+          0,
+          1,
+          4,
+          5
+        ],
+        "top": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      "faceFamilies": {
+        "side": "vertical-only",
+        "top": "all-directions"
+      },
+      "faceFrameCounts": {
+        "side": 1,
+        "top": 1
+      },
+      "requiresSameCanonical": true,
+      "requiresSameAnimationOwner": true,
+      "sprites": {
+        "side": {
+          "0": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/side/mask_00",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/side/mask_00",
+            "frozenEmission": null
+          },
+          "1": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/side/mask_01",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/side/mask_01",
+            "frozenEmission": null
+          },
+          "4": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/side/mask_04",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/side/mask_04",
+            "frozenEmission": null
+          },
+          "5": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/side/mask_05",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/side/mask_05",
+            "frozenEmission": null
+          }
+        },
+        "top": {
+          "0": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_00",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_00",
+            "frozenEmission": null
+          },
+          "1": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_01",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_01",
+            "frozenEmission": null
+          },
+          "2": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_02",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_02",
+            "frozenEmission": null
+          },
+          "3": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_03",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_03",
+            "frozenEmission": null
+          },
+          "4": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_04",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_04",
+            "frozenEmission": null
+          },
+          "5": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_05",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_05",
+            "frozenEmission": null
+          },
+          "6": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_06",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_06",
+            "frozenEmission": null
+          },
+          "7": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_07",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_07",
+            "frozenEmission": null
+          },
+          "8": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_08",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_08",
+            "frozenEmission": null
+          },
+          "9": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_09",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_09",
+            "frozenEmission": null
+          },
+          "10": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_10",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_10",
+            "frozenEmission": null
+          },
+          "11": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_11",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_11",
+            "frozenEmission": null
+          },
+          "12": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_12",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_12",
+            "frozenEmission": null
+          },
+          "13": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_13",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_13",
+            "frozenEmission": null
+          },
+          "14": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_14",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_14",
+            "frozenEmission": null
+          },
+          "15": {
+            "albedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_15",
+            "emission": null,
+            "frozenAlbedo": "gtsr:critical/v2/ctm/reinforced_panel/top/mask_15",
+            "frozenEmission": null
+          }
+        }
+      }
+    }
   }
 }

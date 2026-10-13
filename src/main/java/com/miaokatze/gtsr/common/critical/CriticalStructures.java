@@ -53,8 +53,11 @@ public final class CriticalStructures {
         CriticalMachineKind kind = machine.getCriticalState()
             .getKind();
         if (CriticalGeometry.isV2(machine.getCriticalState())) return DEFINITIONS.computeIfAbsent(
-            "v2_sun:" + machine.getCriticalState()
-                .getControllerZ()
+            CriticalGeometry.visualMachineSlug(machine.getCriticalState()) + ':'
+                + CriticalGeometry.visualLoomSlug(machine.getCriticalState())
+                + ':'
+                + machine.getCriticalState()
+                    .getControllerZ()
                 + ':'
                 + machine.getCriticalState()
                     .getParallelPlugins()
@@ -71,10 +74,16 @@ public final class CriticalStructures {
     public static List<CriticalGeometry.Voxel> voxels(CriticalMachineState state) {
         if (!CriticalGeometry.isV2(state)) return voxels(state.getTier(), state.getKind());
         Map<Long, CriticalGeometry.Voxel> cells = new LinkedHashMap<>();
-        for (String slug : new String[] { "v2_loom", "v2_base_t3", "v2_sun" })
+        if (state.usesLegacyV2Geometry())
+            for (CriticalGeometry.Voxel v : CriticalLoomStructure.voxels(state)) cells.put(v.positionKey(), v);
+        for (String slug : new String[] { CriticalGeometry.visualBaseSlug(state),
+            CriticalGeometry.visualMachineSlug(state) })
             for (CriticalGeometry.Voxel v : CriticalGeometry.getModel(slug).voxels) cells.put(v.positionKey(), v);
         for (CriticalGeometry.Voxel v : CriticalGeometry.physicalPlugins(state.getConfiguration()))
             cells.put(v.positionKey(), v);
+        // The complete manual loom owns every shared coordinate; paid bodies and addons cannot reclassify it.
+        if (!state.usesLegacyV2Geometry())
+            for (CriticalGeometry.Voxel v : CriticalLoomStructure.voxels(state)) cells.put(v.positionKey(), v);
         List<CriticalGeometry.Voxel> result = new ArrayList<>(cells.values());
         result.sort(
             java.util.Comparator.comparingInt((CriticalGeometry.Voxel v) -> v.stage)
@@ -85,13 +94,13 @@ public final class CriticalStructures {
     }
 
     static boolean isController(CriticalGeometry.Voxel v) {
-        return "v2_loom".equals(v.model) && v.x == 56 && v.y == 4 && (v.z == 35 || v.z == 47);
+        return v.model.startsWith("v2_") && v.x == 56 && v.y == 4 && (v.z == 35 || v.z == 47);
     }
 
     static IStructureDefinition<MTECriticalMachine> createV2(CriticalMachineState state, boolean loomOnly) {
         StructureDefinition.Builder<MTECriticalMachine> builder = StructureDefinition.builder();
         Map<String, Character> characters = new HashMap<>();
-        List<CriticalGeometry.Voxel> source = loomOnly ? CriticalGeometry.getModel("v2_loom").voxels : voxels(state);
+        List<CriticalGeometry.Voxel> source = loomOnly ? CriticalLoomStructure.voxels(state) : voxels(state);
         int top = top(source), max = 111;
         char[][][] grid = new char[112][top + 1][112];
         for (char[][] slice : grid) for (char[] row : slice) java.util.Arrays.fill(row, ' ');
@@ -112,7 +121,7 @@ public final class CriticalStructures {
                     : new MaterialElement(v.block, CriticalMaterials.block(v.material, false));
                 builder.addElement(
                     symbol,
-                    isController(v) ? new ControllerElement(v.z == 47)
+                    isController(v) ? new ControllerElement(v.z == 47, state.getKind())
                         : isHatchPosition(v)
                             ? ofChain(material, new PaidHatchElement(CriticalLoomStructure.isLoomVoxel(v)))
                             : material);
@@ -130,9 +139,11 @@ public final class CriticalStructures {
     static final class ControllerElement implements IStructureElement<MTECriticalMachine> {
 
         private final boolean selector;
+        private final CriticalMachineKind kind;
 
-        ControllerElement(boolean selector) {
+        ControllerElement(boolean selector, CriticalMachineKind kind) {
             this.selector = selector;
+            this.kind = kind;
         }
 
         @Override
@@ -140,14 +151,22 @@ public final class CriticalStructures {
             return world.getTileEntity(x, y, z) instanceof IGregTechTileEntity gt
                 && gt.getMetaTileEntity() instanceof MTECriticalMachine other
                 && other.isKindSelector() == selector
-                && (selector || other.getPresetKind() == CriticalMachineKind.SUN)
+                && (selector || other.getPresetKind() == kind)
+                && (selector || machine == null
+                    || isPreviewWorld(world)
+                    || !machine.getCriticalState()
+                        .isLoomJournalOwner()
+                    || other.getLocalCriticalState()
+                        .isLoomOwnedMainOf(machine.getCriticalState()))
                 && gt.getFrontFacing() == (selector ? net.minecraftforge.common.util.ForgeDirection.NORTH
                     : net.minecraftforge.common.util.ForgeDirection.SOUTH);
         }
 
         private ItemStack stack() {
             return selector ? CriticalRuntime.getLoomControllerStack()
-                : com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSun.get(1);
+                : kind == CriticalMachineKind.SOLAR
+                    ? com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSolar.get(1)
+                    : com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSun.get(1);
         }
 
         @Override
@@ -159,17 +178,43 @@ public final class CriticalStructures {
         @Override
         public boolean placeBlock(MTECriticalMachine m, World w, int x, int y, int z, ItemStack trigger) {
             if (!isPreviewWorld(w)) return false;
+            return placeController(m, w, x, y, z);
+        }
+
+        /** Paid placement uses GT's real controller registry and initialisation, never a decorative casing. */
+        boolean placeController(MTECriticalMachine machine, World w, int x, int y, int z) {
             ItemStack controller = stack();
+            if (controller == null || controller.getItemDamage() <= 0
+                || controller.getItemDamage() >= GregTechAPI.METATILEENTITIES.length) return false;
             IMetaTileEntity prototype = GregTechAPI.METATILEENTITIES[controller.getItemDamage()];
-            if (prototype == null
-                || !w.setBlock(x, y, z, GregTechAPI.sBlockMachines, prototype.getTileEntityBaseType(), 2)) return false;
-            if (w.getTileEntity(x, y, z) instanceof IGregTechTileEntity tile) {
+            boolean preview = isPreviewWorld(w);
+            if (!(prototype instanceof MTECriticalMachine) || !preview && (machine == null || !w.isAirBlock(x, y, z)))
+                return false;
+            Block previous = w.getBlock(x, y, z);
+            int previousMetadata = w.getBlockMetadata(x, y, z);
+            if (!w.setBlock(x, y, z, GregTechAPI.sBlockMachines, prototype.getTileEntityBaseType(), 2)) return false;
+            boolean initialized = false;
+            try {
+                if (!(w.getTileEntity(x, y, z) instanceof IGregTechTileEntity tile)) return false;
+                if (!preview) {
+                    IGregTechTileEntity ownerHost = machine.getBaseMetaTileEntity();
+                    tile.setOwnerName(ownerHost.getOwnerName());
+                    tile.setOwnerUuid(ownerHost.getOwnerUuid());
+                }
                 tile.setInitialValuesAsNBT(null, (short) controller.getItemDamage());
                 tile.setFrontFacing(
                     selector ? net.minecraftforge.common.util.ForgeDirection.NORTH
                         : net.minecraftforge.common.util.ForgeDirection.SOUTH);
+                if (!selector && !preview && tile.getMetaTileEntity() instanceof MTECriticalMachine main)
+                    main.getLocalCriticalState()
+                        .setLoomOwnedMain(machine.getCriticalState());
+                initialized = check(machine, w, x, y, z);
+                return initialized;
+            } catch (RuntimeException failedInitialization) {
+                return false;
+            } finally {
+                if (!initialized) w.setBlock(x, y, z, previous, previousMetadata, 2);
             }
-            return true;
         }
 
         @Override
@@ -191,14 +236,25 @@ public final class CriticalStructures {
     public static boolean isHatchPosition(CriticalGeometry.Voxel voxel) {
         if (voxel.model.startsWith("v2_")) {
             if (isController(voxel) || voxel.model.startsWith("v2_plugin_")) return false;
+            if ("v2_loom".equals(voxel.model)) return voxel.y == 4 && voxel.z == 47
+                && (voxel.x == 50 || voxel.x == 53 || voxel.x == 59 || voxel.x == 62);
             return voxel.block instanceof CriticalMaterials.MaterialBlock block
-                && ("v2_alloy_frame".equals(block.materialId) || "v2_service_hatch".equals(block.materialId))
-                || "v2_loom".equals(voxel.model) && voxel.y == 4
+                && ("v2_alloy_frame".equals(block.materialId) || "v2_service_hatch".equals(block.materialId)
+                    || "v2_gt_hatch".equals(block.materialId))
+                || "v2_legacy_loom".equals(voxel.model) && voxel.y == 4
                     && voxel.z == 36
                     && (voxel.x == 50 || voxel.x == 53 || voxel.x == 59 || voxel.x == 62);
         }
         return voxel.block instanceof CriticalMaterials.MaterialBlock material
             && "alloy_frame".equals(material.materialId);
+    }
+
+    static boolean isPaidChamberPosition(CriticalGeometry.Voxel voxel) {
+        return !CriticalLoomStructure.isLoomVoxel(voxel) && isHatchPosition(voxel)
+            && voxel.y == 4
+            && voxel.z == 34
+            && voxel.x >= 50
+            && voxel.x <= 62;
     }
 
     public static List<CriticalGeometry.Voxel> hatchPorts(CriticalTier tier, CriticalMachineKind kind) {
@@ -295,9 +351,9 @@ public final class CriticalStructures {
                 piece(tier),
                 world,
                 ExtendedFacing.DEFAULT,
-                tile.getXCoord(),
-                tile.getYCoord(),
-                tile.getZCoord(),
+                current.xCoord,
+                current.yCoord,
+                current.zCoord,
                 111 - current.getControllerX(),
                 top - current.getControllerY(),
                 current.getControllerZ(),

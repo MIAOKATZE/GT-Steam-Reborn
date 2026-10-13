@@ -148,7 +148,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private String visualHostId = UUID.randomUUID()
         .toString();
     private int geometryVersion;
-    private boolean loomController, initialClearanceAccepted;
+    private boolean loomController, loomJournalOwner, loomOwnedMain, initialClearanceAccepted;
     private int clearanceCursor, blocksChangedThisTick, lightsChangedThisTick;
     private long blockBudgetStarted;
 
@@ -166,10 +166,43 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public void setLoomController(boolean selector) {
         loomController = selector;
+        loomJournalOwner = selector;
+    }
+
+    /** New installations keep their persistent job on the permanent loom, including after main removal. */
+    public boolean isLoomJournalOwner() {
+        return loomJournalOwner;
+    }
+
+    public boolean isLoomOwnedMain() {
+        return loomOwnedMain;
+    }
+
+    public void setLoomOwnedMain(CriticalMachineState journalOwner) {
+        loomOwnedMain = true;
+        geometryVersion = journalOwner.getGeometryVersion();
+        config = journalOwner.config;
+        owner = journalOwner.owner;
+        visualHostId = journalOwner.visualHostId;
+        markDirty();
+    }
+
+    public boolean isLoomOwnedMainOf(CriticalMachineState journalOwner) {
+        return loomOwnedMain && journalOwner.isLoomJournalOwner()
+            && visualHostId.equals(journalOwner.visualHostId)
+            && owner.equals(journalOwner.owner);
+    }
+
+    public boolean usesLegacyV2Geometry() {
+        return getGeometryVersion() == 2 && !loomJournalOwner && !loomOwnedMain;
+    }
+
+    public static boolean supportsV2Kind(CriticalMachineKind kind) {
+        return kind == CriticalMachineKind.SUN || kind == CriticalMachineKind.SOLAR;
     }
 
     public int getGeometryVersion() {
-        return geometryVersion == 0 ? (config.kind == CriticalMachineKind.SUN ? 2 : 1) : geometryVersion;
+        return geometryVersion == 0 ? (supportsV2Kind(config.kind) ? 2 : 1) : geometryVersion;
     }
 
     public int getControllerX() {
@@ -443,7 +476,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public boolean canUse(EntityPlayer p) {
-        return p != null && isUseableByPlayer(p)
+        return !loomOwnedMain && p != null
+            && isUseableByPlayer(p)
             && (owner.isEmpty() || owner.equals(
                 p.getUniqueID()
                     .toString()));
@@ -462,7 +496,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 return fail("储能容量不足，禁止降低等级");
             }
             config = next;
-            if (geometryVersion == 2 && kind != CriticalMachineKind.SUN) geometryVersion = 1;
+            if (geometryVersion == 2 && !supportsV2Kind(kind)) geometryVersion = 1;
         } catch (IllegalArgumentException e) {
             return false;
         }
@@ -544,10 +578,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (clearanceTargets == null) {
             clearanceTargets = new ArrayList<>();
             clearanceTargetPositions.clear();
-            for (CriticalGeometry.Voxel v : allVoxels()) if (!isUserBuilt(v)) {
-                clearanceTargets.add(v);
-                clearanceTargetPositions.add(v.positionKey());
-            }
+            for (CriticalGeometry.Voxel v : allVoxels())
+                if (getGeometryVersion() == 2 && isLoomJournalOwner() ? !CriticalLoomStructure.isLoomVoxel(v)
+                    : !isUserBuilt(v)) {
+                        clearanceTargets.add(v);
+                        clearanceTargetPositions.add(v.positionKey());
+                    }
             clearanceCursor = 0;
             clearanceRechecks.clear();
             CriticalRuntime.registerClearance(this);
@@ -557,7 +593,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         for (; clearanceCursor < end; clearanceCursor++) {
             CriticalGeometry.Voxel v = clearanceTargets.get(clearanceCursor);
             if (!worldObj.canMineBlock(player, wx(v), wy(v), wz(v))) return clearanceFailed("没有施工权限");
-            if (!worldObj.isAirBlock(wx(v), wy(v), wz(v))) return clearanceFailed(
+            if (!isClearForConstruction(v)) return clearanceFailed(
                 "目标位置存在方块：" + worldObj.getBlock(wx(v), wy(v), wz(v))
                     .getLocalizedName() + "，世界(" + wx(v) + "," + wy(v) + "," + wz(v) + ")");
         }
@@ -567,13 +603,13 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (!forceLoomStructureCheck()) return clearanceFailed("必要织机结构缺损，请先手搭完整织机及仓口");
         // Changes signaled during the scan must be read again in the accepting server tick.
         for (CriticalGeometry.Voxel v : clearanceTargets) if (clearanceRechecks.contains(v.positionKey())) {
-            if (!worldObj.isAirBlock(wx(v), wy(v), wz(v)))
+            if (!isClearForConstruction(v))
                 return clearanceFailed("目标位置存在方块，世界(" + wx(v) + "," + wy(v) + "," + wz(v) + ")");
             if (!worldObj.canMineBlock(player, wx(v), wy(v), wz(v))) return clearanceFailed("没有施工权限");
         }
         if (getGeometryVersion() == 2) {
-            for (com.google.gson.JsonElement entry : CriticalGeometry.getModel("v2_loom").meta
-                .getAsJsonArray("operatingClearances")) {
+            for (com.google.gson.JsonElement entry : CriticalGeometry
+                .getModel(CriticalGeometry.visualLoomSlug(this)).meta.getAsJsonArray("operatingClearances")) {
                 com.google.gson.JsonObject port = entry.getAsJsonObject();
                 com.google.gson.JsonArray pos = port.getAsJsonArray("standing");
                 for (int dy = 0; dy < port.get("headroomCells")
@@ -618,6 +654,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         }
         pendingConstructionPlayer = "";
         return true;
+    }
+
+    private boolean isClearForConstruction(CriticalGeometry.Voxel voxel) {
+        return worldObj.isAirBlock(wx(voxel), wy(voxel), wz(voxel)) || getGeometryVersion() == 2 && loomJournalOwner
+            && CriticalStructures.isPaidChamberPosition(voxel)
+            && isStandardHatch(voxel);
     }
 
     private boolean waitForClearance(EntityPlayer player, String reason) {
@@ -904,6 +946,17 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return hatchPortsCache;
     }
 
+    /** The manual loom funds fabrication; only the commissioned main's chamber row serves recipes. */
+    public List<CriticalGeometry.Voxel> getResourceHatchPorts() {
+        if (getGeometryVersion() != 2 || !loomJournalOwner) return getHatchPorts();
+        List<CriticalGeometry.Voxel> result = new ArrayList<>();
+        for (CriticalGeometry.Voxel port : getHatchPorts()) {
+            if (state == 2 ? CriticalStructures.isPaidChamberPosition(port) : CriticalLoomStructure.isLoomVoxel(port))
+                result.add(port);
+        }
+        return result;
+    }
+
     public boolean isStandardHatch(CriticalGeometry.Voxel v) {
         if (!CriticalStructures.isHatchPosition(v)) return false;
         if (worldObj == null || !worldObj.getChunkProvider()
@@ -934,9 +987,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private boolean matches(CriticalGeometry.Voxel v) {
+        if (CriticalStructures.isController(v)) return new CriticalStructures.ControllerElement(v.z == 47, config.kind)
+            .check(gtMachine(), worldObj, wx(v), wy(v), wz(v));
         if (isStandardHatch(v)) return true;
-        if (CriticalLoomStructure.isLoomVoxel(v))
-            return CriticalLoomStructure.matchesVoxel(worldObj, getOriginX(), getOriginY(), getOriginZ(), v);
+        if (CriticalLoomStructure.isLoomVoxel(v)) return CriticalLoomStructure
+            .matchesVoxel(worldObj, getOriginX(), getOriginY(), getOriginZ(), v, config.kind);
         return worldObj.getBlock(wx(v), wy(v), wz(v)) == v.block
             && worldObj.getBlockMetadata(wx(v), wy(v), wz(v)) == v.metadata;
     }
@@ -1742,7 +1797,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             ownerPlayer = p;
         if (ownerPlayer != null && !worldObj.canMineBlock(ownerPlayer, wx(v), wy(v), wz(v))) return false;
         if (blockBudgetStarted == 0) blockBudgetStarted = System.nanoTime();
-        if (!worldObj.setBlock(wx(v), wy(v), wz(v), v.block, v.metadata, 2)) return false;
+        boolean placedBlock = CriticalStructures.isController(v)
+            ? new CriticalStructures.ControllerElement(v.z == 47, config.kind)
+                .placeController(gtMachine(), worldObj, wx(v), wy(v), wz(v))
+            : worldObj.setBlock(wx(v), wy(v), wz(v), v.block, v.metadata, 2);
+        if (!placedBlock) return false;
         blocksChangedThisTick++;
         if (v.block.getLightValue(worldObj, wx(v), wy(v), wz(v)) > 0) lightsChangedThisTick++;
         return true;
@@ -2306,19 +2365,17 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private boolean isNearLinkedLoom(EntityPlayer p) {
-        if (getGeometryVersion() != 2 || loomController
-            || gtMachine() == null
-            || gtMachine().getPresetKind() != CriticalMachineKind.SUN) return false;
-        int z = zCoord + 12;
+        if (getGeometryVersion() != 2 || gtMachine() == null) return false;
+        int z = zCoord + (loomController ? -12 : 12);
         return worldObj.getChunkProvider()
             .chunkExists(xCoord >> 4, z >> 4)
             && host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity main
-            && main.getFrontFacing() == ForgeDirection.SOUTH
+            && main.getFrontFacing() == (loomController ? ForgeDirection.NORTH : ForgeDirection.SOUTH)
             && worldObj
                 .getTileEntity(xCoord, yCoord, z) instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity tile
-            && tile.getFrontFacing() == ForgeDirection.NORTH
+            && tile.getFrontFacing() == (loomController ? ForgeDirection.SOUTH : ForgeDirection.NORTH)
             && tile.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine other
-            && other.isKindSelector()
+            && other.isKindSelector() != loomController
             && other.getLocalCriticalState()
                 .getGeometryVersion() == 2
             && other.getCriticalState() == this
@@ -2415,6 +2472,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public void writeToNBT(NBTTagCompound n) {
         n.setInteger("geometryVersion", getGeometryVersion());
         n.setBoolean("loomController", loomController);
+        n.setBoolean("loomJournalOwner", loomJournalOwner);
+        n.setBoolean("loomOwnedMain", loomOwnedMain);
         n.setBoolean("initialClearanceAccepted", initialClearanceAccepted);
 
         n.setBoolean("nativeFundingUncertain", nativeFundingUncertain);
@@ -2470,6 +2529,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public void readFromNBT(NBTTagCompound n) {
         geometryVersion = n.hasKey("geometryVersion") ? n.getInteger("geometryVersion") : 1;
+        // Missing flag denotes the existing main-owned layout; its geometry and placement indices stay frozen.
+        loomJournalOwner = n.getBoolean("loomJournalOwner");
+        loomOwnedMain = n.getBoolean("loomOwnedMain");
         if (n.hasKey("loomController")) loomController = n.getBoolean("loomController");
         initialClearanceAccepted = n.hasKey("initialClearanceAccepted") ? n.getBoolean("initialClearanceAccepted")
             : n.getInteger("state") != 0;
@@ -2548,6 +2610,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         NBTTagCompound n = new NBTTagCompound();
         n.setInteger("geometryVersion", getGeometryVersion());
         n.setBoolean("loomController", loomController);
+        n.setBoolean("loomJournalOwner", loomJournalOwner);
+        n.setBoolean("loomOwnedMain", loomOwnedMain);
         n.setString("visualHostId", visualHostId);
         n.setTag("config", config.write());
         n.setInteger("state", state);
@@ -2577,6 +2641,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public void readVisualData(NBTTagCompound n) {
         geometryVersion = n.hasKey("geometryVersion") ? n.getInteger("geometryVersion") : 1;
         loomController = n.getBoolean("loomController");
+        loomJournalOwner = n.getBoolean("loomJournalOwner");
+        loomOwnedMain = n.getBoolean("loomOwnedMain");
         if (n.hasKey("visualHostId")) visualHostId = n.getString("visualHostId");
         config = CriticalConfiguration.read(n.getCompoundTag("config"));
         state = n.getInteger("state");

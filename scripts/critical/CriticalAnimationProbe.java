@@ -11,12 +11,13 @@ public final class CriticalAnimationProbe {
     public static void main(String[] args) throws Exception {
         JsonArray cases = JsonParser.parseString(Files.readString(Path.of(args[0]))).getAsJsonArray();
         Map<String, JsonObject> models = new HashMap<>();
+        String prefix = args.length > 2 ? args[2] : "";
         double error = 0;
         for (JsonElement element : cases) {
             JsonObject row = element.getAsJsonObject();
             String slug = row.get("model").getAsString();
             if (!models.containsKey(slug)) models.put(slug, JsonParser.parseString(Files.readString(
-                Path.of(args[1], slug + ".geometry.json"))).getAsJsonObject());
+                Path.of(args[1], prefix + slug + ".geometry.json"))).getAsJsonObject());
             JsonObject group = models.get(slug).getAsJsonObject("animationGroups").getAsJsonObject(row.get("group").getAsString());
             double[] actual = CriticalAnimation.transform(CriticalAnimation.vector(row, "point", new double[3]), group,
                 row.get("phase").getAsDouble(), row.get("seconds").getAsDouble(), row.get("mode").getAsString());

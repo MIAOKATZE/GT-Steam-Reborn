@@ -54,6 +54,11 @@ public final class CriticalRuntime {
                 || !(gt.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine machine))
                 return;
             CriticalMachineState state = machine.getCriticalState();
+            if (machine.getLocalCriticalState()
+                .isLoomOwnedMain() && state == machine.getLocalCriticalState()) {
+                event.setCanceled(true);
+                return;
+            }
             if (!state.canUse(event.getPlayer()) || !state.canRemove()) event.setCanceled(true);
         }
 

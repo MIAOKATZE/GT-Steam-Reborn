@@ -158,7 +158,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             if (anchor.isLoomVisible()) renderModel(loomSlug, buildPhase, seconds, constructionMode);
             if (installation) {
                 renderModel(baseSlug, phase, seconds, hasBatch ? "build" : "idle");
-                renderModel(slug, phase, seconds, hasBatch ? "build" : "idle");
+                renderModel(slug, phase, seconds, hasBatch ? ("v2_solar".equals(slug) ? "working" : "build") : "idle");
             }
             if (installation && controller.hasInstalledPlugins()) renderPlugins(controller, phase, seconds);
             if (installation && complete && controller.isStructureValidated()) {

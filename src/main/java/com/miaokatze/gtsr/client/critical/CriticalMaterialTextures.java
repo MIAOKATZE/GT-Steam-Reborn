@@ -90,11 +90,7 @@ public final class CriticalMaterialTextures {
         String group = side < 2 ? "top" : "side";
         String kind = emission ? "emission" : "albedo";
         String frozenKind = emission ? "frozenEmission" : "frozenAlbedo";
-        boolean directional = properties.has("directionalEmission") && face.equals(
-            properties.getAsJsonObject("directionalEmission")
-                .get("emittingFace")
-                .getAsString());
-        if (properties.has("ctm") && !directional) {
+        if (properties.has("ctm")) {
             JsonObject ctm = properties.getAsJsonObject("ctm");
             group = ctm.getAsJsonObject("faceLookup")
                 .get(face)
@@ -124,11 +120,6 @@ public final class CriticalMaterialTextures {
         JsonObject properties = CriticalMaterials.properties(material.materialId);
         if (!properties.has("ctm") || material.proxy) return 0;
         String face = FACE_NAMES[side];
-        if (properties.has("directionalEmission") && face.equals(
-            properties.getAsJsonObject("directionalEmission")
-                .get("emittingFace")
-                .getAsString()))
-            return 0;
         int allowed = properties.getAsJsonObject("ctm")
             .getAsJsonObject("faceAllowedMask")
             .get(face)

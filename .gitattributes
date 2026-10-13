@@ -45,3 +45,11 @@
 
 # Keep approved animation metadata byte-identical to the asset SHA-256 manifest.
 src/main/resources/assets/gtsr/textures/blocks/critical/*.mcmeta -text whitespace=cr-at-eol
+
+# Preserve the byte hashes of the approved V2 Solar runtime asset bundle.
+src/main/resources/assets/gtsr/critical/materials.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/source-sha256.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_loom.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_solar.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/bottom/*.mcmeta -text whitespace=cr-at-eol

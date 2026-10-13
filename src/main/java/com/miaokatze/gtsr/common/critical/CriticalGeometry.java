@@ -79,18 +79,18 @@ public final class CriticalGeometry {
     }
 
     public static String visualLoomSlug(CriticalMachineState state) {
-        return isV2(state) ? "v2_loom" : "loom";
+        return isV2(state) ? state.usesLegacyV2Geometry() ? "v2_legacy_loom" : "v2_loom" : "loom";
     }
 
     public static String visualBaseSlug(CriticalMachineState state) {
-        return isV2(state) ? "v2_base_t3"
+        return isV2(state) ? state.usesLegacyV2Geometry() ? "v2_legacy_base_t3" : "v2_base_t3"
             : "base_" + state.getTier()
                 .name()
                 .toLowerCase(Locale.ROOT);
     }
 
     public static String visualMachineSlug(CriticalMachineState state) {
-        return isV2(state) ? "v2_sun"
+        return isV2(state) ? (state.getKind() == CriticalMachineKind.SOLAR ? "v2_solar" : "v2_sun")
             : state.getKind()
                 .name()
                 .toLowerCase(Locale.ROOT);

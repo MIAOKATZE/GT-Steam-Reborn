@@ -3944,13 +3944,16 @@ tile.gtsr.critical_v2.loom_machine_controller.tooltip.2=Right-click this control
 tile.gtsr.critical_v2.loom_machine_controller.tooltip.3=The cold-blue woven emblem faces north, opposite the main structure controller at the same height.
 
 gtsr.critical.v2.loom_type=Mimetic Loom Controller
-gtsr.critical.v2.shared=Loom and stellar controllers share one task, permissions and material journal.
+gtsr.critical.v2.shared=New solar boilers and stellar cores share the V2 loom. The permanent loom owns the task, permissions and journal; the main controller proxies it.
 gtsr.critical.v2.tier=The foundation uses the T3 appearance; operating tiers retain their recipe voltage and plugin effects.
-gtsr.critical.v2.loom=Build the complete permanent loom: body, lower hoop, three rotating hoops and eight four-axis branches.
+gtsr.critical.v2.loom=Build the permanent loom: body, lower hoop, three rotating hoops and eight four-axis branches. Plugins and the main controller are commissioned later.
 gtsr.critical.v2.safe=First start checks future physical blocks and required clearance. Players may occupy empty space; continuation skips this first-start gate.
-gtsr.critical.v2.dismantle=Eight permanent shells and selected addons are physical blocks. Dismantling preserves the hand-built loom and releases the area for rebuilding.
-gtsr.critical.v2.legacy=Existing legacy stellar saves and the other eight machine kinds retain their 80-block structures; a standalone loom may select a legacy kind.
+gtsr.critical.v2.dismantle=Dismantle paid bodies, the main controller and plugins. Preserve the loom and player hatches with their contents; retained operating ports support rebuilding.
+gtsr.critical.v2.legacy=Existing saves retain their original layout and main-owned journal. The other seven machine kinds keep their legacy 80-block structures and remain selectable.
 gtsr.critical.v2.loom_controller=Loom controller at (56,4,47), facing north.
-gtsr.critical.v2.main_controller=Stellar main controller at (56,4,35), facing south.
+gtsr.critical.v2.main_controller=Solar or stellar main controller at (56,4,35), facing south; the loom places it during first construction.
 gtsr.critical.v2.region=The X/Z origin must align to chunks; the region is 112 by 112 and 180 blocks high.
-gtsr.critical.v2.controllers=Two real GT controllers at Y=4; controllers cannot be substituted by hatches.
+gtsr.critical.v2.controllers=The loom and commissioned main controller are real GT controllers at Y=4; hatches cannot replace them.
+gtsr.critical.v2.ports=Standard GT hatches fit only the declared construction and operating ports below.
+gtsr.critical.v2.loom_ports=Four loom construction ports: (50/53/59/62,4,47), for construction items, fluids and power.
+gtsr.critical.v2.main_ports=13 main operating ports: X=50..62, Y=4, Z=34, for recipe inputs and outputs.

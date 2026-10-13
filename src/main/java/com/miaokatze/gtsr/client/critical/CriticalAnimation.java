@@ -22,6 +22,12 @@ final class CriticalAnimation {
             axis(g),
             g.has("cycleRotation") && !g.get("cycleRotation")
                 .getAsBoolean() ? 0 : pose.angle);
+        // Independent of the cycle pose: piston offsets and scale must survive the crown's work spin.
+        if (g.has("workSpin") && "working".equals(mode)) {
+            JsonObject spin = g.getAsJsonObject("workSpin");
+            double ramp = Math.min(.49, Math.max(.001, number(spin, "ramp", .2)));
+            q = rotate(q, axis(g), spinAngle(spin, phase, ramp, 0));
+        }
         if (g.has("ambientTilt")) {
             JsonObject a = g.getAsJsonObject("ambientTilt");
             double[] tp = vector(a, "pivot", pivot);
@@ -40,7 +46,26 @@ final class CriticalAnimation {
         double wave = Math.sin(seconds * Math.PI * 2 / number(idle, "periodSeconds", 12) + number(idle, "phase", 0));
         q = rotate(q, axis(idle), number(idle, "angleDeg", 0) * Math.PI / 180 * wave);
         double[] idleOffset = vector(idle, "offset", new double[3]);
-        for (int i = 0; i < 3; i++) q[i] += pivot[i] + pose.offset[i] + idleOffset[i] * wave;
+        double[] workOffset = new double[3];
+        if (g.has("workMotion")) {
+            JsonObject work = g.getAsJsonObject("workMotion");
+            double[] range = work.has("activePhase") ? new double[] { work.getAsJsonArray("activePhase")
+                .get(0)
+                .getAsDouble(),
+                work.getAsJsonArray("activePhase")
+                    .get(1)
+                    .getAsDouble() }
+                : new double[] { .28, .83 };
+            double fade = Math.max(.001, number(work, "fadePhase", .05));
+            double gain = "working".equals(mode) ? smooth((phase - range[0]) / fade) * smooth((range[1] - phase) / fade)
+                : 0;
+            double workWave = Math
+                .sin(seconds * Math.PI * 2 / number(work, "periodSeconds", 3) + number(work, "phase", 0)) * gain;
+            q = rotate(q, axis(work), number(work, "angleDeg", 0) * Math.PI / 180 * workWave);
+            workOffset = vector(work, "offset", new double[3]);
+            for (int i = 0; i < 3; i++) workOffset[i] *= workWave;
+        }
+        for (int i = 0; i < 3; i++) q[i] += pivot[i] + pose.offset[i] + idleOffset[i] * wave + workOffset[i];
         if (g.has("ambientOrbit")) {
             JsonObject a = g.getAsJsonObject("ambientOrbit");
             double[] center = vector(a, "pivot", pivot);
@@ -62,14 +87,7 @@ final class CriticalAnimation {
         if ("idle".equals(mode)) return result;
         if (g.has("continuousSpin")) {
             JsonObject spin = g.getAsJsonObject("continuousSpin");
-            double x = Math.max(0, Math.min(1, phase)), r = number(spin, "ramp", .22), u = x / r, integral;
-            if (x < r) integral = r * (u * u * u - .5 * u * u * u * u);
-            else if (x <= 1 - r) integral = r * .5 + x - r;
-            else {
-                u = (x - (1 - r)) / r;
-                integral = 1 - 1.5 * r + r * (u - u * u * u + .5 * u * u * u * u);
-            }
-            result.angle = Math.PI * 2 * number(spin, "turns", 1) * number(spin, "direction", 1) * integral / (1 - r);
+            result.angle = spinAngle(spin, phase, number(spin, "ramp", .22), 1);
             return result;
         }
         JsonObject cycle = g.has("cycle") ? g.getAsJsonObject("cycle") : null;
@@ -110,6 +128,22 @@ final class CriticalAnimation {
         double[] a = vector(left, "offset", new double[3]), b = vector(right, "offset", new double[3]);
         for (int i = 0; i < 3; i++) result.offset[i] = lerp(a[i], b[i], t);
         return result;
+    }
+
+    private static double smooth(double x) {
+        x = Math.max(0, Math.min(1, x));
+        return x * x * (3 - 2 * x);
+    }
+
+    private static double spinAngle(JsonObject spin, double phase, double r, double defaultTurns) {
+        double x = Math.max(0, Math.min(1, phase)), u = x / r, integral;
+        if (x < r) integral = r * (u * u * u - .5 * u * u * u * u);
+        else if (x <= 1 - r) integral = r * .5 + x - r;
+        else {
+            u = (x - (1 - r)) / r;
+            integral = 1 - 1.5 * r + r * (u - u * u * u + .5 * u * u * u * u);
+        }
+        return Math.PI * 2 * number(spin, "turns", defaultTurns) * number(spin, "direction", 1) * integral / (1 - r);
     }
 
     static double number(JsonObject object, String key, double fallback) {
