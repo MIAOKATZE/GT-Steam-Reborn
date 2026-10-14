@@ -1182,12 +1182,22 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (worldObj == null || !worldObj.getChunkProvider()
             .chunkExists(wx(v) >> 4, wz(v) >> 4)) return false;
         TileEntity tile = worldObj.getTileEntity(wx(v), wy(v), wz(v));
-        return isStandardHatchHost(tile);
+        return CriticalLoomStructure.isLoomVoxel(v) ? isLoomHatchHost(tile) : isStandardHatchHost(tile);
     }
 
     public static boolean isStandardHatchHost(TileEntity tile) {
         return tile instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt
             && isSupportedHatchMeta(gt.getMetaTileEntity());
+    }
+
+    public static boolean isLoomHatchHost(TileEntity tile) {
+        return tile instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt
+            && isSupportedLoomHatchMeta(gt.getMetaTileEntity());
+    }
+
+    public static boolean isSupportedLoomHatchMeta(gregtech.api.interfaces.metatileentity.IMetaTileEntity mte) {
+        return isSupportedHatchMeta(mte)
+            && !(mte instanceof gregtech.api.metatileentity.implementations.MTEHatchDynamo);
     }
 
     /** Physical and native ME stock inputs are supported; dual crafting buffers are excluded. */
@@ -1960,9 +1970,14 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         List<CriticalGeometry.Voxel> current = stage <= maxStage ? stageCache.get(stage) : Collections.emptyList();
         if (stage > maxStage) {
             state = 2;
-            completionValidationPending = true;
             invalidateStructure();
-            status = "完工核验中";
+            // The paid placement journal and checked manual loom establish the initial result.
+            // Repairs and disk reloads never enter this construction-only handoff.
+            integrityOptionalPorts = CriticalGeometry.optionalWorkPorts(this);
+            structureMonitor.primeConstruction(voxels.size() + integrityOptionalPorts.size());
+            structureValid = true;
+            completionValidationPending = false;
+            status = "建造完成";
             changed();
             return;
         }

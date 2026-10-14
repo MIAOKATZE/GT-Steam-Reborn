@@ -19,8 +19,6 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.implementations.MTEHatchInput;
-import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 
 /** The permanent, player-built fabrication multiblock; never owned by a target construction journal. */
 public final class CriticalLoomStructure {
@@ -74,7 +72,7 @@ public final class CriticalLoomStructure {
         if (CriticalStructures.isController(voxel))
             return new CriticalStructures.ControllerElement(voxel.z == 47, kind).check(null, world, x, y, z);
         if (CriticalStructures.isHatchPosition(voxel)
-            && CriticalMachineState.isStandardHatchHost(world.getTileEntity(x, y, z))) return true;
+            && CriticalMachineState.isLoomHatchHost(world.getTileEntity(x, y, z))) return true;
         return CriticalMaterials.matchesLoomVoxel(world.getBlock(x, y, z), world.getBlockMetadata(x, y, z), voxel);
     }
 
@@ -87,7 +85,7 @@ public final class CriticalLoomStructure {
             return new CriticalStructures.ControllerElement(voxel.z == 47, state.getKind(), state.getStructureFacing())
                 .check(null, world, x, y, z);
         if (CriticalStructures.isHatchPosition(voxel)
-            && CriticalMachineState.isStandardHatchHost(world.getTileEntity(x, y, z))) return true;
+            && CriticalMachineState.isLoomHatchHost(world.getTileEntity(x, y, z))) return true;
         return CriticalMaterials.matchesLoomVoxel(world.getBlock(x, y, z), world.getBlockMetadata(x, y, z), voxel);
     }
 
@@ -133,7 +131,7 @@ public final class CriticalLoomStructure {
         return validateGeometry(host) && validateInterfaces(host);
     }
 
-    /** Visual completeness does not waive the construction resource interface requirements. */
+    /** Geometry forms independently of recipe and construction resource availability. */
     public static boolean validateGeometry(MTECriticalMachine host) {
         IGregTechTileEntity tile = host.getBaseMetaTileEntity();
         if (tile == null) return false;
@@ -159,29 +157,8 @@ public final class CriticalLoomStructure {
     }
 
     public static boolean validateInterfaces(MTECriticalMachine host) {
-        World world = host.getBaseMetaTileEntity()
-            .getWorld();
-        CriticalMachineState local = host.getCriticalState();
-        boolean items = false, fluids = false, energy = false;
-        for (CriticalGeometry.Voxel port : voxels(local)) {
-            if (!CriticalStructures.isHatchPosition(port)) continue;
-            if (!(world.getTileEntity(
-                local.blockWorldX(port),
-                local.blockWorldY(port.y),
-                local.blockWorldZ(port)) instanceof IGregTechTileEntity hatch)) continue;
-            Object mte = hatch.getMetaTileEntity();
-            items |= mte instanceof MTEHatchInputBus;
-            fluids |= mte instanceof MTEHatchInput;
-            energy |= CriticalMachineState.isEnergyInputHatchMeta(hatch.getMetaTileEntity());
-        }
-        CriticalMachineState state = host.getCriticalState();
-        boolean construction = state.getState() == 0 || state.getState() == 1 || state.getState() == 4;
-        int requirements = construction ? state.getConstructionDebugRequirements() : 0;
-        boolean ignoreItems = requirements == 1 || requirements == 3;
-        boolean ignoreFluids = requirements == 2 || requirements == 3;
-        boolean ignoreEnergy = construction && state.getConstructionDebugIgnoreEnergy();
-        // Only resource interfaces may be waived. Every loom voxel above must still match the real structure.
-        return (items || ignoreItems) && (fluids || ignoreFluids) && (energy || ignoreEnergy);
+        // Chambers are optional for formation; each operation still pays through the journal.
+        return true;
     }
 
     public static void construct(MTECriticalMachine host, ItemStack trigger, boolean hintsOnly) {

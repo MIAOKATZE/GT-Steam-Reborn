@@ -570,8 +570,7 @@ public final class CriticalStructures {
                 HatchElement.InputHatch,
                 HatchElement.OutputHatch,
                 HatchElement.Energy,
-                HatchElement.MultiAmpEnergy,
-                HatchElement.Dynamo)
+                HatchElement.MultiAmpEnergy)
             .casingIndex(CriticalControllerTextures.casingIndex())
             .hint(1)
             .buildAndChain(shell, 0);
@@ -593,12 +592,30 @@ public final class CriticalStructures {
 
         private PaidHatchElement(boolean manual, boolean v2) {
             this.manual = manual;
-            nativeElement = nativeElement(v2);
+            nativeElement = nativeElement(v2, manual);
         }
 
         private final IStructureElement<MTECriticalMachine> nativeElement;
 
-        private static IStructureElement<MTECriticalMachine> nativeElement(boolean v2) {
+        private static IStructureElement<MTECriticalMachine> nativeElement(boolean v2, boolean manual) {
+            if (manual) return buildHatchAdder(MTECriticalMachine.class)
+                .anyOf(
+                    HatchElement.InputBus,
+                    HatchElement.OutputBus,
+                    HatchElement.InputHatch,
+                    HatchElement.OutputHatch,
+                    HatchElement.Energy,
+                    HatchElement.MultiAmpEnergy)
+                .hatchClasses(
+                    MTEHatchInputBus.class,
+                    MTEHatchOutputBus.class,
+                    MTEHatchInput.class,
+                    MTEHatchOutput.class,
+                    MTEHatchEnergy.class,
+                    tectech.thing.metaTileEntity.hatch.MTEHatchEnergyMulti.class)
+                .casingIndex(CriticalControllerTextures.casingIndex(v2))
+                .hint(1)
+                .build();
             return buildHatchAdder(MTECriticalMachine.class)
                 .anyOf(
                     HatchElement.InputBus,
@@ -621,6 +638,11 @@ public final class CriticalStructures {
                 .build();
         }
 
+        private boolean supports(IMetaTileEntity mte) {
+            return manual ? CriticalMachineState.isSupportedLoomHatchMeta(mte)
+                : CriticalMachineState.isSupportedHatchMeta(mte);
+        }
+
         @Override
         public boolean check(MTECriticalMachine machine, World world, int x, int y, int z) {
             return couldBeValid(machine, world, x, y, z, null) && nativeElement.check(machine, world, x, y, z);
@@ -629,7 +651,7 @@ public final class CriticalStructures {
         @Override
         public boolean couldBeValid(MTECriticalMachine machine, World world, int x, int y, int z, ItemStack trigger) {
             if (!(world.getTileEntity(x, y, z) instanceof IGregTechTileEntity tile)
-                || !CriticalMachineState.isSupportedHatchMeta(tile.getMetaTileEntity())) return false;
+                || !supports(tile.getMetaTileEntity())) return false;
             return nativeElement.couldBeValid(machine, world, x, y, z, trigger);
         }
 
@@ -652,16 +674,14 @@ public final class CriticalStructures {
             List<ItemStack> stacks = new ArrayList<>();
             if (nativeBlocks.getStacks() != null) {
                 for (ItemStack stack : nativeBlocks.getStacks()) {
-                    if (stack != null
-                        && CriticalMachineState.isSupportedHatchMeta(ItemMachines.getMetaTileEntity(stack)))
-                        stacks.add(stack.copy());
+                    if (stack != null && supports(ItemMachines.getMetaTileEntity(stack))) stacks.add(stack.copy());
                 }
             }
             // Native hatch elements expose a predicate. BlockRenderer 1.4.24 reads only getStacks(),
             // so enumerate the frozen GT registry once, when the first NEI scan requests a catalogue.
             if (nativeBlocks.getStacks() == null && nativeBlocks.getPredicate() != null) {
                 for (IMetaTileEntity mte : GregTechAPI.METATILEENTITIES) {
-                    if (!CriticalMachineState.isSupportedHatchMeta(mte)) continue;
+                    if (!supports(mte)) continue;
                     ItemStack stack = mte.getStackForm(1);
                     if (stack != null && nativeBlocks.getPredicate()
                         .test(stack)) stacks.add(stack);

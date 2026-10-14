@@ -64,10 +64,10 @@ public final class CriticalTooltips {
             .addInputBus(tr("v2.ports"))
             .addInputHatch(tr("v2.ports"))
             .addEnergyHatch(tr("v2.ports"))
-            .addDynamoHatch(tr("v2.ports"))
             .addStructureInfo(tr("v2.loom_ports"))
             .addStructureInfo(tr("v2.main_ports"))
             .addStructureInfo(tr("tooltip.physical_inputs"));
+        if (preset != null) tt.addDynamoHatch(tr("v2.ports"));
         tt.addStructureHint("gtsr.critical.tooltip.port_hint", 1);
         tt.toolTipFinisher("GTSteamReborn");
         return tt;

@@ -17,6 +17,14 @@ public final class CriticalStructureMonitor {
         roundClean = true;
     }
 
+    /** Trust only a just-finished paid construction; the next ordinary sweep starts at zero. */
+    void primeConstruction(int total) {
+        reset();
+        completedRounds = 0;
+        count = total;
+        valid = total > 0;
+    }
+
     /** Revokes the cached result without restarting the sweep at its first voxel. */
     public void invalidate() {
         valid = false;

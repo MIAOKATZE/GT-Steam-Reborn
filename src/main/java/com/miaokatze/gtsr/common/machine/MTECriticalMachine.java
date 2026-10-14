@@ -350,7 +350,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             int x = current.blockWorldX(port), y = current.blockWorldY(port.y), z = current.blockWorldZ(port);
             TileEntity tile = current.worldObj.getChunkProvider()
                 .chunkExists(x >> 4, z >> 4) ? current.worldObj.getTileEntity(x, y, z) : null;
-            next.put(port.positionKey(), tile);
+            next.put(port.positionKey(), current.isStandardHatch(port) ? tile : null);
         }
         boolean changed = next.size() != portSnapshot.size();
         for (java.util.Map.Entry<Long, TileEntity> entry : next.entrySet())
@@ -388,6 +388,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         }
         discoverHatches(false);
         if (current != state || state.isLoomOwnedMain() || isKindSelector() && state.usesLegacyV2Geometry()) {
+            refreshNativeStructure(current, tile);
             tile.setActive(current != state && current.isWorking());
             return;
         }
@@ -398,15 +399,20 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         chargeBattery();
         if (tick % 20 == 0)
             com.miaokatze.gtsr.common.critical.CriticalRenderAnchors.ensure(current, isLoomGeometryValid());
+        refreshNativeStructure(current, tile);
+        exportHatchResources();
+        syncNativeMachineDisplay(current);
+        tile.setActive(current.isWorking());
+    }
+
+    /** Passive mains observe the journal's formation changes without waiting for a neighbour update. */
+    private void refreshNativeStructure(CriticalMachineState current, IGregTechTileEntity tile) {
         if (previousJournalState != current.getState()
             || previousCanonicalValidation != current.isStructureValidated()) {
             previousJournalState = current.getState();
             previousCanonicalValidation = current.isStructureValidated();
             checkStructure(true, tile);
         }
-        exportHatchResources();
-        syncNativeMachineDisplay(current);
-        tile.setActive(current.isWorking());
     }
 
     /** The critical journal is the sole processing engine; GT still owns structure and host lifecycle. */
