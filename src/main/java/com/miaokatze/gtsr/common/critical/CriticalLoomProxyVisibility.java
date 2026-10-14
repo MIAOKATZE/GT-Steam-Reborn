@@ -78,10 +78,11 @@ public final class CriticalLoomProxyVisibility {
             state.blockWorldX(0, 0),
             state.blockWorldZ(0, 0),
             state.getStructureFacing(),
-            slugs(state));
+            slugs(state),
+            proxies(state));
         ANCHORS.put(anchor, registration);
         Map<Long, Map<Long, Entry>> chunks = WORLDS.computeIfAbsent(world, ignored -> new ConcurrentHashMap<>());
-        for (CriticalGeometry.Voxel voxel : proxies(registration.slug)) {
+        for (CriticalGeometry.Voxel voxel : registration.voxels) {
             int x = registration.worldX(voxel), y = registration.y + voxel.y, z = registration.worldZ(voxel);
             registration.record(voxel.model + ':' + voxel.group, x, y, z);
             chunks.computeIfAbsent(chunkKey(x, z), ignored -> new ConcurrentHashMap<>())
@@ -96,7 +97,7 @@ public final class CriticalLoomProxyVisibility {
         registration.activeGroups = java.util.Collections.emptySet();
         World world = registration.world.get();
         Map<Long, Map<Long, Entry>> chunks = world == null ? null : WORLDS.get(world);
-        if (chunks != null) for (CriticalGeometry.Voxel voxel : proxies(registration.slug)) {
+        if (chunks != null) for (CriticalGeometry.Voxel voxel : registration.voxels) {
             int x = registration.worldX(voxel), y = registration.y + voxel.y, z = registration.worldZ(voxel);
             long chunk = chunkKey(x, z), position = positionKey(x, y, z);
             Map<Long, Entry> positions = chunks.get(chunk);
@@ -109,20 +110,39 @@ public final class CriticalLoomProxyVisibility {
     }
 
     private static String slugs(CriticalMachineState state) {
+        return modelSlugs(state) + "#plugins="
+            + state.getParallelPlugins()
+            + ','
+            + state.getSpeedPlugins()
+            + ','
+            + state.getEfficiencyPlugins();
+    }
+
+    private static String modelSlugs(CriticalMachineState state) {
         String loom = CriticalGeometry.visualLoomSlug(state);
         return state.getStructureId()
             .isEmpty() || state.getState() == 0 ? loom
                 : loom + "|" + CriticalGeometry.visualBaseSlug(state) + "|" + CriticalGeometry.visualMachineSlug(state);
     }
 
-    private static List<CriticalGeometry.Voxel> proxies(String slug) {
-        return PROXIES.computeIfAbsent(slug, ignored -> {
+    private static List<CriticalGeometry.Voxel> proxies(CriticalMachineState state) {
+        String slug = modelSlugs(state);
+        List<CriticalGeometry.Voxel> models = PROXIES.computeIfAbsent(slug, ignored -> {
             List<CriticalGeometry.Voxel> result = new ArrayList<>();
             for (String modelSlug : slug.split("\\|"))
                 for (CriticalGeometry.Voxel voxel : CriticalGeometry.getModel(modelSlug).voxels)
                     if (CriticalGeometry.isDynamic(modelSlug, voxel.group)) result.add(voxel);
             return result;
         });
+        if (state.getStructureId()
+            .isEmpty() || state.getState() == 0
+            || !state.hasPhysicalPlugins()) return models;
+        // Plugin templates have no authored dynamic groups: the installed, integer-sampled cells
+        // inherit the slot's base carrier. Registration owns these exact cells for both add/remove.
+        List<CriticalGeometry.Voxel> result = new ArrayList<>(models);
+        for (CriticalGeometry.Voxel voxel : CriticalGeometry.physicalPlugins(state))
+            if (CriticalGeometry.isDynamic(voxel.model, voxel.group)) result.add(voxel);
+        return Collections.unmodifiableList(result);
     }
 
     private static long chunkKey(int x, int z) {
@@ -153,11 +173,12 @@ public final class CriticalLoomProxyVisibility {
         final int blockOriginX, blockOriginZ;
         final ForgeDirection frame;
         final String slug;
+        final List<CriticalGeometry.Voxel> voxels;
         volatile java.util.Set<String> activeGroups = java.util.Collections.emptySet();
         final Map<String, Map<Long, int[]>> groupChunks = new java.util.HashMap<>();
 
         Registration(World world, int x, int y, int z, int blockOriginX, int blockOriginZ, ForgeDirection frame,
-            String slug) {
+            String slug, List<CriticalGeometry.Voxel> voxels) {
             this.world = new WeakReference<>(world);
             this.x = x;
             this.y = y;
@@ -166,6 +187,7 @@ public final class CriticalLoomProxyVisibility {
             this.blockOriginZ = blockOriginZ;
             this.frame = frame;
             this.slug = slug;
+            this.voxels = voxels;
         }
 
         int worldX(CriticalGeometry.Voxel voxel) {

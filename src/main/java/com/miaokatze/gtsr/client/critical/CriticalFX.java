@@ -39,11 +39,30 @@ final class CriticalFX {
         SURFACES.clear();
         CriticalSunFX.clear();
         CriticalSolarFX.clear();
+        CriticalDesignFX.clear();
     }
 
     static void renderV2(CriticalGeometry.Model sun, CriticalGeometry.Model loom, CriticalGeometry.Model base,
         double phase, double seconds, double distanceSquared, int setting, java.util.Set<String> visible,
         String sunSlug, String loomSlug, String baseSlug) {
+        renderV2(
+            sun,
+            loom,
+            base,
+            phase,
+            seconds,
+            distanceSquared,
+            setting,
+            visible,
+            sunSlug,
+            loomSlug,
+            baseSlug,
+            phase > 0 && phase < 1 ? "working" : "idle");
+    }
+
+    static void renderV2(CriticalGeometry.Model sun, CriticalGeometry.Model loom, CriticalGeometry.Model base,
+        double phase, double seconds, double distanceSquared, int setting, java.util.Set<String> visible,
+        String sunSlug, String loomSlug, String baseSlug, String mode) {
         int lod = CriticalFXBudget.lod(distanceSquared, setting);
         if (lod == 0) {
             CriticalRenderMetrics.particleLodSkips++;
@@ -63,11 +82,27 @@ final class CriticalFX {
         Tessellator tessellator = Tessellator.instance;
         tessellator.startDrawingQuads();
         tessellator.setBrightness(0x00f000f0);
-        if ("v2_solar".equals(sunSlug)) {
-            renderSolar(sun, loom, base, phase, seconds, lod, visible, sunSlug, loomSlug, baseSlug, tessellator);
+        if ("design".equals(CriticalDesignFX.profile(sun.meta, sunSlug))) {
+            CriticalDesignFX.sample(
+                new JsonObject[] { base.meta, loom.meta, sun.meta },
+                new JsonObject[] { base.animations, loom.animations, sun.animations },
+                new String[] { baseSlug, loomSlug, sunSlug },
+                phase,
+                seconds,
+                mode,
+                lod,
+                visible,
+                (family, source, index, point, color, alpha, glowAlpha, size) -> {
+                    if (!CriticalFXBudget.claim()) return;
+                    solarCube(tessellator, point, color, alpha * .62, size);
+                    solarCube(tessellator, point, color, glowAlpha * .95, size * .56);
+                    solarCube(tessellator, point, color, glowAlpha * .16, size * 2);
+                });
+        } else if (isSolar(sun.meta, sunSlug)) {
+            renderSolar(sun, loom, base, phase, seconds, lod, visible, sunSlug, loomSlug, baseSlug, mode, tessellator);
         } else {
             CriticalSunFX
-                .render(sun, loom, base, phase, seconds, lod, visible, sunSlug, loomSlug, baseSlug, tessellator);
+                .render(sun, loom, base, phase, seconds, lod, visible, sunSlug, loomSlug, baseSlug, mode, tessellator);
         }
         tessellator.draw();
         GL11.glEnable(GL11.GL_TEXTURE_2D);
@@ -75,9 +110,14 @@ final class CriticalFX {
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
     }
 
+    static boolean isSolar(JsonObject meta, String slug) {
+        // Historical v25/v27/v30 resources carry solarFX too; never key this on one exact current slug.
+        return "solar".equals(CriticalDesignFX.profile(meta, slug));
+    }
+
     private static void renderSolar(CriticalGeometry.Model solar, CriticalGeometry.Model loom,
         CriticalGeometry.Model base, double phase, double seconds, int lod, java.util.Set<String> visible,
-        String solarSlug, String loomSlug, String baseSlug, Tessellator tessellator) {
+        String solarSlug, String loomSlug, String baseSlug, String mode, Tessellator tessellator) {
         long before = CriticalRenderMetrics.particlesDrawn;
         CriticalSolarFX.sample(
             new JsonObject[] { base.meta, loom.meta, solar.meta },
@@ -85,6 +125,7 @@ final class CriticalFX {
             new String[] { baseSlug, loomSlug, solarSlug },
             phase,
             seconds,
+            mode,
             lod,
             visible,
             (family, index, point, color, alpha, glow, glowAlpha, size) -> {
@@ -97,7 +138,7 @@ final class CriticalFX {
         CriticalRenderMetrics.lastSolarLod = lod;
     }
 
-    private static void solarCube(Tessellator tessellator, double[] point, double[] color, double alpha, double size) {
+    static void solarCube(Tessellator tessellator, double[] point, double[] color, double alpha, double size) {
         tessellator.setColorRGBA_F((float) color[0], (float) color[1], (float) color[2], (float) alpha);
         for (double[][] face : FACES) for (double[] vertex : face) tessellator.addVertex(
             point[0] + .5 + vertex[0] * size,

@@ -4,6 +4,7 @@ import java.nio.DoubleBuffer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,17 +47,18 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     private final CriticalMeshCache nativeMeshes = new CriticalMeshCache();
     private final Map<TileEntityCriticalRenderAnchor, CriticalLightCache> lightCaches = new WeakHashMap<>();
     private final Map<TileEntityCriticalRenderAnchor, VisualClock> clocks = new WeakHashMap<>();
+    private final Map<TileEntityCriticalRenderAnchor, CriticalContinuousMotion.FrameClock> loomClocks = new WeakHashMap<>();
+    private final Map<TileEntityCriticalRenderAnchor, CriticalContinuousMotion.Context> motionClocks = new WeakHashMap<>();
     private final List<CriticalMeshCache.Mesh> nativeBlended = new ArrayList<>();
     private CriticalMachineState renderingController;
     private CriticalLightCache currentLight;
     private int anchorLight;
     private final DoubleBuffer matrix = BufferUtils.createDoubleBuffer(16);
     private final Map<TileEntityCriticalRenderAnchor, CriticalGroupVisibility> visibility = new WeakHashMap<>();
-    private final Map<JsonObject, double[]> groupMatrices = new IdentityHashMap<>();
+    private final Map<JsonObject, CachedPose> groupMatrices = new IdentityHashMap<>();
     private Set<String> activeGroups;
-    private double posePhase = Double.NaN, poseSeconds = Double.NaN;
-    private String poseMode = "";
     private double constructionPhase;
+    private double constructionSeconds;
     private String constructionMode = "idle";
     private double cameraX, cameraY, cameraZ;
     private static final double[] IDENTITY = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
@@ -83,6 +85,10 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         lightCaches.clear();
         visibility.clear();
         groupMatrices.clear();
+        for (VisualClock clock : clocks.values()) {
+            clock.signature = "";
+            clock.motionFrame = Long.MIN_VALUE;
+        }
         CriticalFX.clear();
     }
 
@@ -108,15 +114,28 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             Minecraft.getMinecraft().thePlayer.posY,
             Minecraft.getMinecraft().thePlayer.posZ) > 512D * 512D) return;
         activeGroups = checked.update(controller);
+        boolean geometryReady = controller.getState() != 2 || controller.isGeometryValidated();
+        boolean loomReady = anchor.isLoomVisible();
+        if (!geometryReady || !loomReady) {
+            String loomPrefix = CriticalGeometry.visualLoomSlug(controller) + ':';
+            Set<String> allowedGroups = new HashSet<>();
+            for (String group : activeGroups) {
+                boolean loomGroup = group.startsWith(loomPrefix) || group.contains(":loom_");
+                if (loomGroup ? loomReady : geometryReady) allowedGroups.add(group);
+            }
+            activeGroups = allowedGroups;
+        }
         com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility.publishVisibleGroups(anchor, activeGroups);
         boolean hasBatch = !controller.getBatchId()
             .isEmpty();
-        boolean pending = hasBatch || controller.getState() == 1 || controller.getState() == 4;
-        double seconds = clocks.computeIfAbsent(anchor, ignored -> new VisualClock())
-            .update(
-                controller.getWorldObj()
-                    .getTotalWorldTime() + partialTicks,
-                pending && !controller.isWorking());
+        double wallSeconds = System.nanoTime() / 1_000_000_000D;
+        boolean gamePaused = Minecraft.getMinecraft()
+            .isGamePaused();
+        VisualClock visualClock = clocks.computeIfAbsent(anchor, ignored -> new VisualClock());
+        double seconds = visualClock
+            .update(CriticalRenderMetrics.frameStarts, wallSeconds, gamePaused || !geometryReady);
+        constructionSeconds = loomClocks.computeIfAbsent(anchor, ignored -> new CriticalContinuousMotion.FrameClock())
+            .update(CriticalRenderMetrics.frameStarts, wallSeconds, gamePaused || !loomReady);
         double phase = hasBatch
             ? Math.min(1, controller.getVisualCycleTicks(partialTicks) / Math.max(1D, controller.getCycleDuration()))
             : 0;
@@ -155,6 +174,18 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             String slug = CriticalGeometry.visualMachineSlug(controller),
                 loomSlug = CriticalGeometry.visualLoomSlug(controller),
                 baseSlug = CriticalGeometry.visualBaseSlug(controller);
+            CriticalGeometry.Model machineModel = CriticalGeometry.getModel(slug);
+            boolean design = machineModel.meta != null && machineModel.meta.has("designFX");
+            String machineMode = design ? (geometryReady && controller.isWorking() ? "working" : "idle")
+                : hasBatch ? (slug.endsWith("solar") ? "working" : "build") : "idle";
+            CriticalContinuousMotion.Context motion = motionClocks
+                .computeIfAbsent(anchor, ignored -> new CriticalContinuousMotion.Context());
+            if (visualClock.motionFrame != CriticalRenderMetrics.frameStarts) {
+                visualClock.motionFrame = CriticalRenderMetrics.frameStarts;
+                motion.beginFrame(seconds, visualClock.groups(slug, baseSlug, loomSlug), machineMode);
+            }
+            CriticalAnimation.beginFrame(motion);
+            groupMatrices.clear();
             double buildPhase = Math.min(
                 1,
                 controller.getVisualConstructionTicks(partialTicks)
@@ -163,13 +194,14 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                 buildPhase = Math.min(1, controller.getCursor() / Math.max(1D, controller.getJobTotal()));
             constructionPhase = buildPhase;
             constructionMode = controller.getConstructionVisualMode();
-            if (anchor.isLoomVisible()) renderModel(loomSlug, buildPhase, seconds, constructionMode);
+            if (loomReady) renderModel(loomSlug, buildPhase, constructionSeconds, constructionMode);
             if (installation) {
-                renderModel(baseSlug, phase, seconds, hasBatch ? "build" : "idle");
-                renderModel(slug, phase, seconds, hasBatch ? ("v2_solar".equals(slug) ? "working" : "build") : "idle");
+                renderModel(baseSlug, phase, seconds, design ? machineMode : hasBatch ? "build" : "idle");
+                renderModel(slug, phase, seconds, machineMode);
             }
-            if (installation && controller.hasInstalledPlugins()) renderPlugins(controller, phase, seconds);
-            if (installation && complete && controller.isStructureValidated()) {
+            if (installation && geometryReady && controller.hasInstalledPlugins())
+                renderPlugins(controller, phase, seconds);
+            if (installation && complete && controller.isGeometryValidated()) {
                 double dx = cameraX - controller.getRegionSize() * .5,
                     dy = cameraY - controller.getRegionHeight() * .55, dz = cameraZ - controller.getRegionSize() * .5;
                 double distanceSquared = dx * dx + dy * dy + dz * dz;
@@ -185,7 +217,8 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                     activeGroups,
                     slug,
                     loomSlug,
-                    baseSlug);
+                    baseSlug,
+                    machineMode);
                 else CriticalFX.render(slug, CriticalGeometry.getModel(slug), phase, seconds, distanceSquared, setting);
             }
         } finally {
@@ -196,12 +229,17 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             activeGroups = null;
             renderingController = null;
             currentLight = null;
+            CriticalAnimation.endFrame();
         }
     }
 
     private void renderPlugins(CriticalMachineState controller, double phase, double seconds) {
         // V2 generic contacts are actual fixed blocks; chunk rendering owns them, never a duplicate TESR mesh.
-        if (controller.hasPhysicalPlugins()) return;
+        if (controller.hasPhysicalPlugins()) {
+            List<CriticalMeshCache.Mesh> plugins = nativeMeshes.getPlugins(controller);
+            if (!plugins.isEmpty()) renderNativeMeshes(plugins, phase, seconds, "idle");
+            return;
+        }
         String tier = controller.getTier()
             .name()
             .toLowerCase(Locale.ROOT);
@@ -289,6 +327,10 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
 
     private void renderNativeModel(String slug, double phase, double seconds, String mode) {
         List<CriticalMeshCache.Mesh> model = nativeMeshes.get(slug);
+        renderNativeMeshes(model, phase, seconds, mode);
+    }
+
+    private void renderNativeMeshes(List<CriticalMeshCache.Mesh> model, double phase, double seconds, String mode) {
         nativeBlended.clear();
         for (CriticalMeshCache.Mesh mesh : model)
             if (mesh.pass == 2 && (activeGroups == null || activeGroups.contains(mesh.visibilityKey)))
@@ -316,7 +358,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                         renderingController.getWorldObj(),
                         mesh.visibilityKey,
                         mesh.lightSamples,
-                        transform,
+                        IDENTITY,
                         renderingController.getMeshOriginX(),
                         renderingController.getOriginY(),
                         renderingController.getMeshOriginZ(),
@@ -357,11 +399,11 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
 
     private double[] nativePose(CriticalMeshCache.Mesh mesh, double phase, double seconds, String mode) {
         // V26 changes payment ownership only; transferred loom groups keep their construction clock and mode.
-        boolean transferredLoom = mesh.visibilityKey.startsWith("v2_base_t3:loom_");
+        boolean transferredLoom = mesh.visibilityKey.contains("base_t3:loom_");
         return pose(
             mesh.animation,
             transferredLoom ? constructionPhase : phase,
-            seconds,
+            transferredLoom ? constructionSeconds : seconds,
             transferredLoom ? constructionMode : mode);
     }
 
@@ -401,24 +443,21 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
 
     private double[] pose(JsonObject animation, double phase, double seconds, String mode) {
         if (idleIdentity(animation, mode)) return IDENTITY;
-        if (phase != posePhase || seconds != poseSeconds || !mode.equals(poseMode)) {
-            groupMatrices.clear();
-            posePhase = phase;
-            poseSeconds = seconds;
-            poseMode = mode;
-        }
-        double[] cached = groupMatrices.get(animation);
-        if (cached != null) return cached;
-        cached = CriticalMechanicalPose.matrix(animation, phase, seconds, mode);
-        groupMatrices.put(animation, cached);
-        return cached;
+        CachedPose cached = groupMatrices.get(animation);
+        if (cached != null && cached.phase == phase && cached.seconds == seconds && cached.mode.equals(mode))
+            return cached.matrix;
+        double[] transformed = CriticalMechanicalPose.matrix(animation, phase, seconds, mode);
+        groupMatrices.put(animation, new CachedPose(phase, seconds, mode, transformed));
+        return transformed;
     }
 
     private static boolean idleIdentity(JsonObject animation, String mode) {
         return "idle".equals(mode) && !animation.has("idleMotion")
             && !animation.has("ambientRotation")
             && !animation.has("ambientTilt")
-            && !animation.has("ambientOrbit");
+            && !animation.has("ambientOrbit")
+            && !animation.has("continuousMotion")
+            && !animation.has("levitationBob");
     }
 
     private List<Mesh> compile(String slug) {
@@ -521,15 +560,41 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         }
     }
 
-    private static final class VisualClock {
+    private static final class VisualClock extends CriticalContinuousMotion.FrameClock {
 
-        double last = Double.NaN, ticks;
+        long motionFrame = Long.MIN_VALUE;
+        String signature = "";
+        final List<JsonObject> continuousGroups = new ArrayList<>();
 
-        double update(double now, boolean paused) {
-            if (Double.isNaN(last)) ticks = now;
-            else if (!paused) ticks += Math.max(0, now - last);
-            last = now;
-            return ticks / 20D;
+        List<JsonObject> groups(String machine, String base, String loom) {
+            String key = machine + ':' + base + ':' + loom;
+            if (!key.equals(signature)) {
+                signature = key;
+                continuousGroups.clear();
+                for (String slug : new String[] { machine, base, loom })
+                    for (Map.Entry<String, com.google.gson.JsonElement> entry : CriticalGeometry
+                        .getModel(slug).animations.entrySet()) if (entry.getValue()
+                            .getAsJsonObject()
+                            .has("continuousMotion"))
+                            continuousGroups.add(
+                                entry.getValue()
+                                    .getAsJsonObject());
+            }
+            return continuousGroups;
+        }
+    }
+
+    private static final class CachedPose {
+
+        final double phase, seconds;
+        final String mode;
+        final double[] matrix;
+
+        CachedPose(double phase, double seconds, String mode, double[] matrix) {
+            this.phase = phase;
+            this.seconds = seconds;
+            this.mode = mode;
+            this.matrix = matrix;
         }
     }
 

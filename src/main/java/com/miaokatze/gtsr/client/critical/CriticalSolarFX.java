@@ -47,12 +47,28 @@ final class CriticalSolarFX {
     /** Pure production sampler; the standalone regression probe compares this to actual solar_fx.js output. */
     static int sample(JsonObject[] metas, JsonObject[] animations, String[] slugs, double phase, double seconds,
         int lod, Set<String> visible, ParticleSink sink) {
+        return sample(
+            metas,
+            animations,
+            slugs,
+            phase,
+            seconds,
+            phase > 0 && phase < 1 ? "working" : "idle",
+            lod,
+            visible,
+            sink);
+    }
+
+    static int sample(JsonObject[] metas, JsonObject[] animations, String[] slugs, double phase, double seconds,
+        String machineMode, int lod, Set<String> visible, ParticleSink sink) {
         if (lod == 0) return 0;
-        boolean work = phase > 0 && phase < 1;
+        boolean work = "working".equals(machineMode);
         int emitted = 0, familyIndex = 0;
         for (int owner = 0; owner < metas.length; owner++) {
             ModelData data = data(metas[owner], animations[owner]);
-            for (Gravity gravity : data.gravity) {
+            for (int ci = 0; ci < data.gravity.size(); ci++) {
+                if (!CriticalDesignFX.active(ci, data.gravity.size(), seconds)) continue;
+                Gravity gravity = data.gravity.get(ci);
                 double cycle = seconds * .65 + gravity.height * .07;
                 Member member = gravity.members[Math.floorMod((int) Math.floor(cycle), gravity.members.length)];
                 JsonObject group = group(animations[owner], member.group);
@@ -69,7 +85,13 @@ final class CriticalSolarFX {
                     owner == 1 || transferredLoom ? "idle" : mode(group, work),
                     MOVED);
                 double progress = wrap(cycle);
-                MOVED[1] -= .65 + 2.8 * progress;
+                MOVED[1] -= CriticalDesignFX.bottomGap(
+                    member.position,
+                    group,
+                    phase,
+                    seconds,
+                    owner == 1 || transferredLoom ? "idle" : mode(group, work),
+                    MOVED) + 2.8 * progress;
                 double alpha = (work ? .28 : .21) * Math.sin(Math.PI * progress);
                 sink.emit(
                     "gravity",
@@ -200,7 +222,14 @@ final class CriticalSolarFX {
     private static Pose pose(JsonObject animation, double phase, double seconds, String mode) {
         if (animation == null) return null;
         Pose pose = POSES.computeIfAbsent(animation, ignored -> new Pose());
-        if (pose.phase != phase || pose.seconds != seconds || !mode.equals(pose.mode)) {
+        CriticalContinuousMotion.Context context = CriticalAnimation.currentContext();
+        long frame = context == null ? -1 : context.frames();
+        if (pose.context != context || pose.frame != frame
+            || pose.phase != phase
+            || pose.seconds != seconds
+            || !mode.equals(pose.mode)) {
+            pose.context = context;
+            pose.frame = frame;
             double[] origin = CriticalAnimation.transform(new double[3], animation, phase, seconds, mode);
             for (int column = 0; column < 3; column++) {
                 double[] unit = new double[3];
@@ -232,6 +261,8 @@ final class CriticalSolarFX {
     private static final class Pose {
 
         final double[] values = new double[12];
+        CriticalContinuousMotion.Context context;
+        long frame = Long.MIN_VALUE;
         double phase = Double.NaN, seconds = Double.NaN;
         String mode = "";
     }
@@ -312,7 +343,18 @@ final class CriticalSolarFX {
 
         ModelData(JsonObject meta) {
             Map<String, List<Member>> clusters = new LinkedHashMap<>();
-            if (meta.has("gravitySources")) for (JsonElement entry : meta.getAsJsonArray("gravitySources")) {
+            if (meta.has("gravityClusters") && meta.getAsJsonArray("gravityClusters")
+                .size() > 0) {
+                for (JsonElement entry : meta.getAsJsonArray("gravityClusters")) {
+                    JsonObject cluster = entry.getAsJsonObject();
+                    List<Member> members = new ArrayList<>();
+                    String carrier = cluster.get(cluster.has("carrierGroup") ? "carrierGroup" : "group")
+                        .getAsString();
+                    for (JsonElement point : cluster.getAsJsonArray("cells"))
+                        members.add(new Member(vector(point.getAsJsonArray()), carrier));
+                    if (!members.isEmpty()) gravity.add(new Gravity(members));
+                }
+            } else if (meta.has("gravitySources")) for (JsonElement entry : meta.getAsJsonArray("gravitySources")) {
                 JsonObject source = entry.getAsJsonObject();
                 String id = source.get(source.has("clusterId") ? "clusterId" : "id")
                     .getAsString();
@@ -320,18 +362,8 @@ final class CriticalSolarFX {
                     .add(
                         new Member(
                             CriticalAnimation.vector(source, "position", new double[3]),
-                            source.get("group")
+                            source.get(source.has("carrierGroup") ? "carrierGroup" : "group")
                                 .getAsString()));
-            }
-            else if (meta.has("gravityClusters")) for (JsonElement entry : meta.getAsJsonArray("gravityClusters")) {
-                JsonObject cluster = entry.getAsJsonObject();
-                List<Member> members = new ArrayList<>();
-                for (JsonElement point : cluster.getAsJsonArray("cells")) members.add(
-                    new Member(
-                        vector(point.getAsJsonArray()),
-                        cluster.get("group")
-                            .getAsString()));
-                gravity.add(new Gravity(members));
             }
             for (List<Member> members : clusters.values()) gravity.add(new Gravity(members));
             JsonObject fx = meta.has("solarFX") ? meta.getAsJsonObject("solarFX") : new JsonObject();

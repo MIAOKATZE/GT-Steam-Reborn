@@ -28,6 +28,15 @@ final class CriticalGroupVisibility {
         if (hasInstallation(controller)) {
             add(CriticalGeometry.visualBaseSlug(controller));
             add(CriticalGeometry.visualMachineSlug(controller));
+            if (controller.hasPhysicalPlugins()) {
+                Map<String, List<CriticalGeometry.Voxel>> plugins = new LinkedHashMap<>();
+                for (CriticalGeometry.Voxel voxel : CriticalGeometry.physicalPlugins(controller))
+                    if (CriticalGeometry.isDynamic(voxel.model, voxel.group))
+                        plugins.computeIfAbsent(voxel.model + ':' + voxel.group, ignored -> new ArrayList<>())
+                            .add(voxel);
+                for (Map.Entry<String, List<CriticalGeometry.Voxel>> entry : plugins.entrySet())
+                    groups.add(new Group(entry.getKey(), entry.getValue()));
+            }
         }
     }
 
@@ -47,7 +56,13 @@ final class CriticalGroupVisibility {
             + ":"
             + controller.getOriginY()
             + ":"
-            + controller.getMeshOriginZ();
+            + controller.getMeshOriginZ()
+            + ":"
+            + controller.getParallelPlugins()
+            + ":"
+            + controller.getSpeedPlugins()
+            + ":"
+            + controller.getEfficiencyPlugins();
     }
 
     private static boolean hasInstallation(CriticalMachineState controller) {
@@ -123,6 +138,7 @@ final class CriticalGroupVisibility {
             this.loom = key.startsWith("loom:") || key.startsWith("v2_loom:")
                 || key.startsWith("v2_v25_loom:")
                 || key.startsWith("v2_v27_loom:")
+                || key.startsWith("v2_v30_loom:")
                 || key.startsWith("v2_legacy_loom:");
         }
     }

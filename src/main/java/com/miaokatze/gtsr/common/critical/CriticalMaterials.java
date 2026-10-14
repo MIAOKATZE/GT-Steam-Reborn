@@ -34,7 +34,8 @@ public final class CriticalMaterials {
         if (!STATIC.isEmpty()) return;
         palette = CriticalGeometry.readJson("materials.json");
         java.util.Set<String> loomForms = new java.util.HashSet<>();
-        for (String slug : new String[] { "loom", "v2_loom", "v2_v25_loom", "v2_v27_loom", "v2_legacy_loom" }) {
+        for (String slug : new String[] { "loom", "v2_loom", "v2_v25_loom", "v2_v27_loom", "v2_v30_loom",
+            "v2_legacy_loom" }) {
             JsonObject loomGeometry = CriticalGeometry.readJson("models/" + slug + ".geometry.json");
             for (JsonElement element : loomGeometry.getAsJsonArray("blocks")) {
                 com.google.gson.JsonArray row = element.getAsJsonArray();
@@ -165,6 +166,24 @@ public final class CriticalMaterials {
         @Override
         public float getExplosionResistance(net.minecraft.entity.Entity entity) {
             return 10000F;
+        }
+
+        @Override
+        public float getBlockHardness(net.minecraft.world.World world, int x, int y, int z) {
+            return CriticalBlockProtection.protects(world, x, y, z) ? -1F : super.getBlockHardness(world, x, y, z);
+        }
+
+        @Override
+        public float getExplosionResistance(net.minecraft.entity.Entity entity, net.minecraft.world.World world, int x,
+            int y, int z, double explosionX, double explosionY, double explosionZ) {
+            return CriticalBlockProtection.protects(world, x, y, z) ? Float.MAX_VALUE
+                : super.getExplosionResistance(entity, world, x, y, z, explosionX, explosionY, explosionZ);
+        }
+
+        @Override
+        public void onBlockExploded(net.minecraft.world.World world, int x, int y, int z,
+            net.minecraft.world.Explosion explosion) {
+            if (!CriticalBlockProtection.protects(world, x, y, z)) super.onBlockExploded(world, x, y, z, explosion);
         }
 
         @Override

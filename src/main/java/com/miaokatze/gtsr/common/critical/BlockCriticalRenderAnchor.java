@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.world.Explosion;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
@@ -21,7 +22,7 @@ public final class BlockCriticalRenderAnchor extends BlockContainer {
         super(Material.iron);
         setBlockName("criticalRenderAnchor");
         setHardness(-1);
-        setResistance(10000);
+        setResistance(Float.MAX_VALUE);
         setLightOpacity(0);
     }
 
@@ -49,6 +50,9 @@ public final class BlockCriticalRenderAnchor extends BlockContainer {
     public boolean isCollidable() {
         return false;
     }
+
+    @Override
+    public void onBlockExploded(World world, int x, int y, int z, Explosion explosion) {}
 
     @Override
     public boolean getBlocksMovement(IBlockAccess world, int x, int y, int z) {

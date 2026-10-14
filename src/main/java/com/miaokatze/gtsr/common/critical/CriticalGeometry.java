@@ -71,6 +71,7 @@ public final class CriticalGeometry {
     }
 
     public static boolean isDynamic(String slug, String group) {
+        if (slug.startsWith("v2_plugin_") && group.startsWith("decor_shell_")) return true;
         JsonObject animations = getModel(slug).animations;
         return animations.has(group) && !(animations.getAsJsonObject(group)
             .has("kind")
@@ -104,7 +105,8 @@ public final class CriticalGeometry {
     public static String visualLoomSlug(CriticalMachineState state) {
         return isV2(state) ? state.usesLegacyV2Geometry() ? "v2_legacy_loom"
             : state.getV2LayoutRevision() == 25 ? "v2_v25_loom"
-                : state.getV2LayoutRevision() <= 27 ? "v2_v27_loom" : "v2_loom"
+                : state.getV2LayoutRevision() <= 27 ? "v2_v27_loom"
+                    : state.getV2LayoutRevision() <= 30 ? "v2_v30_loom" : "v2_loom"
             : "loom";
     }
 
@@ -112,14 +114,18 @@ public final class CriticalGeometry {
         return isV2(state)
             ? state.usesLegacyV2Geometry() ? "v2_legacy_base_t3"
                 : state.getV2LayoutRevision() == 25 ? "v2_v25_base_t3"
-                    : state.getV2LayoutRevision() <= 27 ? "v2_v27_base_t3" : "v2_base_t3"
+                    : state.getV2LayoutRevision() <= 27 ? "v2_v27_base_t3"
+                        : state.getV2LayoutRevision() <= 30 ? "v2_v30_base_t3" : "v2_base_t3"
             : "base_" + state.getTier()
                 .name()
                 .toLowerCase(Locale.ROOT);
     }
 
     public static String visualMachineSlug(CriticalMachineState state) {
-        return isV2(state) ? (state.getKind() == CriticalMachineKind.SOLAR ? "v2_solar" : "v2_sun")
+        return isV2(state)
+            ? state.getV2LayoutRevision() <= 30 || state.usesLegacyV2Geometry()
+                ? state.getKind() == CriticalMachineKind.SOLAR ? "v2_v30_solar" : "v2_v30_sun"
+                : "v2_" + state.getKind().key
             : state.getKind()
                 .name()
                 .toLowerCase(Locale.ROOT);
@@ -131,14 +137,17 @@ public final class CriticalGeometry {
 
     /** Exact inverse sampling used by the frozen design's integer-world addon exporter. */
     public static List<Voxel> physicalPlugins(CriticalConfiguration config) {
-        return physicalPlugins(config, "v2_base_t3");
+        return physicalPlugins(config, "v2_base_t3", false);
     }
 
     public static List<Voxel> physicalPlugins(CriticalMachineState state) {
-        return physicalPlugins(state.getConfiguration(), visualBaseSlug(state));
+        return physicalPlugins(
+            state.getConfiguration(),
+            visualBaseSlug(state),
+            state.getV2LayoutRevision() <= 30 || state.usesLegacyV2Geometry());
     }
 
-    private static List<Voxel> physicalPlugins(CriticalConfiguration config, String baseSlug) {
+    private static List<Voxel> physicalPlugins(CriticalConfiguration config, String baseSlug, boolean frozen) {
         List<Voxel> result = new ArrayList<>();
         JsonArray mounts = getModel(baseSlug).meta.getAsJsonObject("attachmentPlacement")
             .getAsJsonArray("mounts");
@@ -146,7 +155,7 @@ public final class CriticalGeometry {
         String[] kinds = { "parallel", "speed", "efficiency" };
         int slot = 0;
         for (int kind = 0; kind < 3; kind++) for (int n = 0; n < counts[kind]; n++, slot++) {
-            String slug = "v2_plugin_" + kinds[kind];
+            String slug = (frozen ? "v2_v30_plugin_" : "v2_plugin_") + kinds[kind];
             Model model = getModel(slug);
             JsonObject mount = mounts.get(slot)
                 .getAsJsonObject();
@@ -192,10 +201,10 @@ public final class CriticalGeometry {
                                 mx + dx,
                                 my + dy,
                                 mz + dz,
-                                source.block,
+                                frozen ? source.block : CriticalMaterials.block(source.material, true),
                                 3,
                                 source.material,
-                                "static_plugin",
+                                frozen ? "static_plugin" : "decor_shell_" + slot,
                                 slug));
                     }
         }

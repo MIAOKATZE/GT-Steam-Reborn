@@ -14,6 +14,7 @@ import org.lwjgl.opengl.GL11;
 import com.google.gson.JsonObject;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry.Voxel;
+import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.CriticalMaterials;
 
 /** Immutable V2 terrain-atlas lists: one compilation, same-rigid-group CTM, native sprite ticking. */
@@ -29,6 +30,20 @@ final class CriticalMeshCache {
         return models.computeIfAbsent(slug, this::compile);
     }
 
+    List<Mesh> getPlugins(CriticalMachineState state) {
+        String base = CriticalGeometry.visualBaseSlug(state);
+        String key = base + ":plugins:"
+            + state.getParallelPlugins()
+            + ':'
+            + state.getSpeedPlugins()
+            + ':'
+            + state.getEfficiencyPlugins();
+        return models.computeIfAbsent(key, ignored -> {
+            List<Voxel> voxels = CriticalGeometry.physicalPlugins(state);
+            return compile(key, voxels, CriticalGeometry.getModel(base).animations, true);
+        });
+    }
+
     void clear() {
         for (List<Mesh> model : models.values()) for (Mesh mesh : model) {
             GL11.glDeleteLists(mesh.albedo, 1);
@@ -39,11 +54,15 @@ final class CriticalMeshCache {
 
     private List<Mesh> compile(String slug) {
         CriticalGeometry.Model model = CriticalGeometry.getModel(slug);
+        return compile(slug, model.voxels, model.animations, false);
+    }
+
+    private List<Mesh> compile(String slug, List<Voxel> voxels, JsonObject animations, boolean plugins) {
         Map<Long, Voxel> occupied = new HashMap<>();
-        for (Voxel voxel : model.voxels) occupied.put(voxel.positionKey(), voxel);
+        for (Voxel voxel : voxels) occupied.put(voxel.positionKey(), voxel);
         Map<String, List<Face>> groups = new LinkedHashMap<>();
-        for (Voxel voxel : model.voxels) {
-            if (!CriticalGeometry.isDynamic(slug, voxel.group)) continue;
+        for (Voxel voxel : voxels) {
+            if (!CriticalGeometry.isDynamic(plugins ? voxel.model : slug, voxel.group)) continue;
             // Controller markers are real GT hosts. Hatch/bus materials are decorative MaterialBlocks;
             // their fixed interface group stays in chunk rendering, never in this moving mesh.
             if (voxel.material.equals("v2_gt_controller") || voxel.material.equals("v2_loom_machine_controller"))
@@ -62,7 +81,7 @@ final class CriticalMeshCache {
                         || canonical(neighbor.material).equals(canonical(voxel.material))))
                     continue;
                 int mask = mask(voxel, side, occupied, material);
-                boolean frozen = model.animations.getAsJsonObject(voxel.group)
+                boolean frozen = animations.getAsJsonObject(voxel.group)
                     .has("materialFramePolicy");
                 IIcon color = CriticalMaterialTextures.icon(voxel.material, side, mask, false, frozen);
                 IIcon emission = material.get("emissionStrength")
@@ -82,9 +101,9 @@ final class CriticalMeshCache {
                 new Mesh(
                     albedo,
                     emission,
-                    model.animations.getAsJsonObject(first.voxel.group),
+                    animations.getAsJsonObject(first.voxel.group),
                     "blend".equals(mode) ? 2 : "cutout".equals(mode) ? 1 : 0,
-                    slug + ':' + first.voxel.group,
+                    (plugins ? first.voxel.model : slug) + ':' + first.voxel.group,
                     center(faces),
                     samples(faces)));
         }

@@ -6,11 +6,49 @@ import com.google.gson.JsonObject;
 /** Direct port of preview/viewer.js sample and VOXEL_TRANSFORM, in voxel coordinates. */
 final class CriticalAnimation {
 
+    private static CriticalContinuousMotion.Context current;
+
+    static void beginFrame(CriticalContinuousMotion.Context context) {
+        current = context;
+    }
+
+    static void endFrame() {
+        current = null;
+    }
+
+    static CriticalContinuousMotion.Context currentContext() {
+        return current;
+    }
+
     private CriticalAnimation() {}
 
     static double[] transform(double[] position, JsonObject g, double phase, double seconds, String mode) {
+        if (current == null) return transformUncached(position, g, phase, seconds, mode);
+        double[] m = current.affine(g, phase, seconds, mode);
+        return new double[] { m[0] * position[0] + m[4] * position[1] + m[8] * position[2] + m[12],
+            m[1] * position[0] + m[5] * position[1] + m[9] * position[2] + m[13],
+            m[2] * position[0] + m[6] * position[1] + m[10] * position[2] + m[14] };
+    }
+
+    static double[] affineUncached(JsonObject g, double phase, double seconds, String mode) {
+        double[] origin = transformUncached(new double[3], g, phase, seconds, mode), result = new double[16];
+        for (int column = 0; column < 3; column++) {
+            double[] unit = new double[3];
+            unit[column] = 1;
+            double[] moved = transformUncached(unit, g, phase, seconds, mode);
+            for (int row = 0; row < 3; row++) result[column * 4 + row] = moved[row] - origin[row];
+        }
+        System.arraycopy(origin, 0, result, 12, 3);
+        result[15] = 1;
+        return result;
+    }
+
+    private static double[] transformUncached(double[] position, JsonObject g, double phase, double seconds,
+        String mode) {
         double[] pivot = vector(g, "pivot", new double[3]);
         Pose pose = sample(g, phase, mode);
+        CriticalContinuousMotion.Sample continuous = current == null ? CriticalContinuousMotion.idleSample(g, seconds)
+            : current.sample(g);
         double[] q = sub(position, pivot);
         for (int i = 0; i < 3; i++) q[i] *= pose.scale;
         if (g.has("ambientRotation")) {
@@ -44,7 +82,14 @@ final class CriticalAnimation {
         }
         JsonObject idle = g.has("idleMotion") ? g.getAsJsonObject("idleMotion") : new JsonObject();
         double wave = Math.sin(seconds * Math.PI * 2 / number(idle, "periodSeconds", 12) + number(idle, "phase", 0));
+        if (idle.has("modes")) {
+            boolean enabled = false;
+            for (com.google.gson.JsonElement value : idle.getAsJsonArray("modes"))
+                if (mode.equals(value.getAsString())) enabled = true;
+            if (!enabled) wave = 0;
+        }
         q = rotate(q, axis(idle), number(idle, "angleDeg", 0) * Math.PI / 180 * wave);
+        q = rotate(q, new double[] { 0, 1, 0 }, continuous.angle);
         double[] idleOffset = vector(idle, "offset", new double[3]);
         double[] workOffset = new double[3];
         if (g.has("workMotion")) {
@@ -65,7 +110,14 @@ final class CriticalAnimation {
             workOffset = vector(work, "offset", new double[3]);
             for (int i = 0; i < 3; i++) workOffset[i] *= workWave;
         }
+        if (g.has("cycleOffsetSpace") && "local-before-continuous-rotation".equals(
+            g.get("cycleOffsetSpace")
+                .getAsString()))
+            pose.offset = rotate(pose.offset, new double[] { 0, 1, 0 }, continuous.angle);
         for (int i = 0; i < 3; i++) q[i] += pivot[i] + pose.offset[i] + idleOffset[i] * wave + workOffset[i];
+        q[0] += continuous.x;
+        q[1] += continuous.y;
+        q[2] += continuous.z;
         if (g.has("ambientOrbit")) {
             JsonObject a = g.getAsJsonObject("ambientOrbit");
             double[] center = vector(a, "pivot", pivot);
@@ -76,10 +128,18 @@ final class CriticalAnimation {
                 * number(a, "angleDeg", 360)
                 / 360
                 + (a.has("cycleAngle") && a.get("cycleAngle")
-                    .getAsBoolean() ? pose.angle : 0);
+                    .getAsBoolean() ? sample(g, phase, "build").angle : 0);
             q = add(rotate(sub(q, center), axis(a), angle), center);
         }
+        q[1] += levitationBob(g, seconds);
         return q;
+    }
+
+    static double levitationBob(JsonObject g, double seconds) {
+        if (!g.has("levitationBob")) return 0;
+        JsonObject bob = g.getAsJsonObject("levitationBob");
+        return number(bob, "amplitude", 0)
+            * Math.sin(seconds * Math.PI * 2 / number(bob, "periodSeconds", 12) + number(bob, "phase", 0));
     }
 
     private static Pose sample(JsonObject g, double phase, String mode) {

@@ -174,12 +174,12 @@
     "src/main/resources/assets/gtsr/textures/blocks/critical/violet_phase_glass__top.png": "64cda79b59478d41cb57930249333d6d25a504697abb2461a05b78167ded48a8",
     "src/main/resources/assets/gtsr/textures/blocks/critical/violet_phase_glass_emission.png": "d2bd24f31befae7fde3342396ebf7f75d1b0a705670ccc2884bfadbe2475eb87",
     "src/main/resources/assets/gtsr/textures/blocks/critical/violet_phase_glass_emission.png.mcmeta": "a4fd1db69a2c1e0416032ce4c9cd2757a70fe92738cee4f83e1f8a4bdfa2f716",
-    "src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json": "bb019c1f55a8eb29435b551f878c6c87374dbc7b95e5a5d523d179d7152a6151",
-    "src/main/resources/assets/gtsr/critical/models/v2_loom.geometry.json": "8d7333167bc46da9d83f950e8805bfb619a94099943ba4cb30ea189e40a7319d",
-    "src/main/resources/assets/gtsr/critical/models/v2_plugin_efficiency.geometry.json": "6050ebadf5f3ccf21ea1f9f0e6f3746b2fea0f2bd9f4f25ed45fa454685c246b",
-    "src/main/resources/assets/gtsr/critical/models/v2_plugin_parallel.geometry.json": "254489a790086e4406b1aeb5ec4cdb44080838116de3935733c081d481f4d74c",
-    "src/main/resources/assets/gtsr/critical/models/v2_plugin_speed.geometry.json": "1e728aedc0b620e15d3d580b443846a634c0c28be37eac609bfb1a10504be5d5",
-    "src/main/resources/assets/gtsr/critical/models/v2_sun.geometry.json": "3c7dfd80a464046437a99d420926a43c39825ca084a48d684ea4b2549716032a",
+    "src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json": "04a5336b6d3ecf444c62ab8a8b187ab5a336571668ab3ce8174180a4cd0a9c32",
+    "src/main/resources/assets/gtsr/critical/models/v2_loom.geometry.json": "d562b11f71de7ec26239ca54a2ccdc14fc320d4228c40642228ef91ecf5460d2",
+    "src/main/resources/assets/gtsr/critical/models/v2_plugin_efficiency.geometry.json": "cfd0a38d1ff0a71c76a7526b437fa3c19251ea3aeb9b96c3f10c6eae58e64536",
+    "src/main/resources/assets/gtsr/critical/models/v2_plugin_parallel.geometry.json": "8b328e55ef8d82c21944ea7f22dee7b2ec5fbf6b2a050921d633a14e31aa20bf",
+    "src/main/resources/assets/gtsr/critical/models/v2_plugin_speed.geometry.json": "e59915b0018c893558cc240247eb81edb8ef3aa1ceafa90c1608acea82f5ce7c",
+    "src/main/resources/assets/gtsr/critical/models/v2_sun.geometry.json": "c56437d62fbe62f2263bb1853a43d2815698ea5c448cd792cbda26464d483a27",
     "src/main/resources/assets/gtsr/critical/materials.json": "3ddcd1b861b59b4778fe206961a620c34b97dc150a135020351306de772da364",
     "src/main/resources/assets/gtsr/critical/v2-material-language.json": "872b0b8b298bff4c60a859953c066ba80450c3898f27f11fa5fbe4294f1dd126",
     "src/main/resources/assets/gtsr/textures/blocks/critical/v2/alloy_frame.png": "40a374953c6312768daa5d9b97ac33d800ee1cccfdabb01b9feb48c4480fd5aa",
@@ -1051,7 +1051,7 @@
     "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/violet_phase_glass/top/mask_15.png": "42e8afeadea2d8058fb7d784d8662bfabcafb46a9096a1a55dba122492bf97be",
     "src/main/resources/assets/gtsr/critical/models/v2_legacy_base_t3.geometry.json": "cd209979ddfcbd75e44bda39465e2137028554b31822acc8c04ba96a81f7427f",
     "src/main/resources/assets/gtsr/critical/models/v2_legacy_loom.geometry.json": "3089c2efc4749e181e84359ee3e5a8cd37a1d4331dc651a94ddeb00533089fa7",
-    "src/main/resources/assets/gtsr/critical/models/v2_solar.geometry.json": "a97dc343b17b53a213c17beaba5e985ab62dc416ccb0569a7219ed08fe03791e",
+    "src/main/resources/assets/gtsr/critical/models/v2_solar.geometry.json": "9ff704f8e49c4aabb0e59fbd1faebebef384fdeb21345a323e3161ffb834d684",
     "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/bottom/mask_00.png": "ccf5a51a4e79ad6e3a51da9ab21d42c4b4d708c7f1a9769cd2902b039212fa34",
     "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/bottom/mask_00_emission.png": "af49939a5078d286f46aae3c727787f889f2aa3f6851e560ee6f2583663a1adf",
     "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/bottom/mask_00_emission.png.mcmeta": "f850d35264a34566f95694159539b17bb42d669f12939e24db6d070842fea3b2",
@@ -1170,7 +1170,21 @@
     "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/top/mask_14_emission.png.mcmeta": "badd3513c2afcc783afd5d1510fe8ddac2af341f00e3bbca63d3634f6592aa55",
     "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/top/mask_15_emission.png": "e9dc5248d027dc815b44916fef3863aa1f8c3651f35a9b3dcb641b1f98923a82",
     "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/top/mask_15_emission_frozen.png": "845f1d84af8477d71680cd01413ab1b9e1db75178779170257c46b2ade636094",
-    "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/top/mask_15_emission.png.mcmeta": "badd3513c2afcc783afd5d1510fe8ddac2af341f00e3bbca63d3634f6592aa55"
+    "src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/top/mask_15_emission.png.mcmeta": "badd3513c2afcc783afd5d1510fe8ddac2af341f00e3bbca63d3634f6592aa55",
+    "src/main/resources/assets/gtsr/critical/models/v2_v30_loom.geometry.json": "8d7333167bc46da9d83f950e8805bfb619a94099943ba4cb30ea189e40a7319d",
+    "src/main/resources/assets/gtsr/critical/models/v2_v30_base_t3.geometry.json": "bb019c1f55a8eb29435b551f878c6c87374dbc7b95e5a5d523d179d7152a6151",
+    "src/main/resources/assets/gtsr/critical/models/v2_v30_sun.geometry.json": "3c7dfd80a464046437a99d420926a43c39825ca084a48d684ea4b2549716032a",
+    "src/main/resources/assets/gtsr/critical/models/v2_v30_solar.geometry.json": "a97dc343b17b53a213c17beaba5e985ab62dc416ccb0569a7219ed08fe03791e",
+    "src/main/resources/assets/gtsr/critical/models/v2_v30_plugin_parallel.geometry.json": "254489a790086e4406b1aeb5ec4cdb44080838116de3935733c081d481f4d74c",
+    "src/main/resources/assets/gtsr/critical/models/v2_v30_plugin_speed.geometry.json": "1e728aedc0b620e15d3d580b443846a634c0c28be37eac609bfb1a10504be5d5",
+    "src/main/resources/assets/gtsr/critical/models/v2_v30_plugin_efficiency.geometry.json": "6050ebadf5f3ccf21ea1f9f0e6f3746b2fea0f2bd9f4f25ed45fa454685c246b",
+    "src/main/resources/assets/gtsr/critical/models/v2_turbine.geometry.json": "401b247e34b404c5cfe351482e1653523c0e3b153c6c6848fcc9b02fb6abbb14",
+    "src/main/resources/assets/gtsr/critical/models/v2_processing.geometry.json": "9199bc42433be6d38405ef83c148ef17d7168bf6cd36f5c3531341566a22f35f",
+    "src/main/resources/assets/gtsr/critical/models/v2_entangler.geometry.json": "f426850ef69915fe19dcc5f052ba10b74f81cedfca46290d6ad100dec86503ea",
+    "src/main/resources/assets/gtsr/critical/models/v2_dimension.geometry.json": "9a0be7c9256f01a4311199fd4eedaf570e9c0c6ddafb52ef77ef8d8754c1766f",
+    "src/main/resources/assets/gtsr/critical/models/v2_battery.geometry.json": "31ac30850c4bc94494f041f433d8423122e791abd8e5dd82b0de3e214b7aed5b",
+    "src/main/resources/assets/gtsr/critical/models/v2_assembly.geometry.json": "fd7665a121edc36a9bf9586187d4ec2d405a66fc9df184654d83efdbd5bacdb6",
+    "src/main/resources/assets/gtsr/critical/models/v2_accelerator.geometry.json": "a42b79d8db341bbbd3c7567a1960b4b3b4f9c95df6c6daceeeb4c18f8d72c581"
   },
   "authorities": {
     "legacy": {
@@ -1720,7 +1734,114 @@
       },
       "runtimeAmendment": "v1.21.25 Solar: loom journal and same-row ports; main controller and supported service-shell row paid by base",
       "directionalFaceRegistration": "gravity py cold-white violet-blue ring and ny cyan-blue circular field; independent live twelve-frame terrain-atlas emission and frame-zero frozen emission; original side sprites, CTM rails, downward FX and native lightValue retained",
-      "materialAliasTransform": "v2_ prefix; service_hatch uses gt_hatch shell; solar_flux_collector follows approved R4 silver mapping; legacy aliases retain original definitions"
+      "materialAliasTransform": "v2_ prefix; service_hatch uses gt_hatch shell; solar_flux_collector follows approved R4 silver mapping; legacy aliases retain original definitions",
+      "r5Runtime": {
+        "revision": 31,
+        "source": "immutable approved-v2 R5 snapshot",
+        "importer": "tools/critical/import_r5_v31.py",
+        "models": {
+          "loom": {
+            "sourceSha256": "dca7379a0c267a2892587e3c10a0255e0eeaeec325ad9d11675dd9522ee1803f",
+            "runtimeSha256": "d562b11f71de7ec26239ca54a2ccdc14fc320d4228c40642228ef91ecf5460d2",
+            "blocks": 5926,
+            "groups": 26,
+            "overrideGroups": 0
+          },
+          "base_t3": {
+            "sourceSha256": "6688b9de86718414a9dcc1496f5df3ec5f5425bc9ab04738e02b5c7c697d54a0",
+            "runtimeSha256": "04a5336b6d3ecf444c62ab8a8b187ab5a336571668ab3ce8174180a4cd0a9c32",
+            "blocks": 24839,
+            "groups": 22,
+            "overrideGroups": 0
+          },
+          "sun": {
+            "sourceSha256": "9e1239594c58cd71e4d2729f519b57f51b85315cf604b940ce792b6da3ef800c",
+            "runtimeSha256": "c56437d62fbe62f2263bb1853a43d2815698ea5c448cd792cbda26464d483a27",
+            "blocks": 34325,
+            "groups": 23,
+            "overrideGroups": 4
+          },
+          "solar": {
+            "sourceSha256": "e87c3e4a9d62b29525917b631a674d15bf25aeee332c6402be5a547b73d1f6c6",
+            "runtimeSha256": "9ff704f8e49c4aabb0e59fbd1faebebef384fdeb21345a323e3161ffb834d684",
+            "blocks": 43118,
+            "groups": 26,
+            "overrideGroups": 12
+          },
+          "turbine": {
+            "sourceSha256": "c1fa4a6edf5e60a4fb53f282cccd19a35e2bbd3be6e01edf384141abea50f03d",
+            "runtimeSha256": "401b247e34b404c5cfe351482e1653523c0e3b153c6c6848fcc9b02fb6abbb14",
+            "blocks": 93654,
+            "groups": 23,
+            "overrideGroups": 0
+          },
+          "processing": {
+            "sourceSha256": "a0fedba00262fc12e58e449ccd968674e758ff0714f9068bee0b57e71f60429b",
+            "runtimeSha256": "9199bc42433be6d38405ef83c148ef17d7168bf6cd36f5c3531341566a22f35f",
+            "blocks": 43000,
+            "groups": 24,
+            "overrideGroups": 0
+          },
+          "entangler": {
+            "sourceSha256": "8a3fbaa16ea2d95870377158c53d957472d4726129430d5175293724fd6489ae",
+            "runtimeSha256": "f426850ef69915fe19dcc5f052ba10b74f81cedfca46290d6ad100dec86503ea",
+            "blocks": 38237,
+            "groups": 24,
+            "overrideGroups": 0
+          },
+          "dimension": {
+            "sourceSha256": "685451d7c62bed6542af35c123c8c54d6b1f1daab75f99f39ebf2a5facf42740",
+            "runtimeSha256": "9a0be7c9256f01a4311199fd4eedaf570e9c0c6ddafb52ef77ef8d8754c1766f",
+            "blocks": 24910,
+            "groups": 28,
+            "overrideGroups": 0
+          },
+          "battery": {
+            "sourceSha256": "a5145db4eb50641f1d09e4035de381ad2ffcd2b6b3a0d975689fc8c0a32762d1",
+            "runtimeSha256": "31ac30850c4bc94494f041f433d8423122e791abd8e5dd82b0de3e214b7aed5b",
+            "blocks": 77749,
+            "groups": 37,
+            "overrideGroups": 0
+          },
+          "assembly": {
+            "sourceSha256": "1e9b064af1a545dce05078160473d4196a99f17c6b12039d91abe231c059c270",
+            "runtimeSha256": "fd7665a121edc36a9bf9586187d4ec2d405a66fc9df184654d83efdbd5bacdb6",
+            "blocks": 35844,
+            "groups": 19,
+            "overrideGroups": 0
+          },
+          "accelerator": {
+            "sourceSha256": "0eed692029122a7ebafd7af84c37b008c8fd0d6a0783ba5787e7190fdd4d151e",
+            "runtimeSha256": "a42b79d8db341bbbd3c7567a1960b4b3b4f9c95df6c6daceeeb4c18f8d72c581",
+            "blocks": 50233,
+            "groups": 24,
+            "overrideGroups": 0
+          },
+          "plugin_parallel": {
+            "sourceSha256": "79610287ec0aaf8afe09fe4566cb463d6375762e1af3150ed235c9c8567ee7a5",
+            "runtimeSha256": "8b328e55ef8d82c21944ea7f22dee7b2ec5fbf6b2a050921d633a14e31aa20bf",
+            "blocks": 6,
+            "groups": 0,
+            "overrideGroups": 0
+          },
+          "plugin_speed": {
+            "sourceSha256": "1cf594df28fda373abac3869ec92cfdd092ff688a787e655ff645e8e5dd67d2b",
+            "runtimeSha256": "e59915b0018c893558cc240247eb81edb8ef3aa1ceafa90c1608acea82f5ce7c",
+            "blocks": 3,
+            "groups": 0,
+            "overrideGroups": 0
+          },
+          "plugin_efficiency": {
+            "sourceSha256": "0cc10dc77224d4f020786438c31c57dcf3faf740f64dfeb494825619e3b35353",
+            "runtimeSha256": "cfd0a38d1ff0a71c76a7526b437fa3c19251ea3aeb9b96c3f10c6eae58e64536",
+            "blocks": 3,
+            "groups": 0,
+            "overrideGroups": 0
+          }
+        },
+        "levitationOverrideSha256": "db619329fa99e4af320fd686fb7aaaed5d958556fd15b5c08be849db833dd8bc",
+        "materialNamespace": "v2_ aliases in existing materials.json; 30 registered material identities"
+      }
     }
   },
   "schema": "gtsr.runtime-asset-bindings/2",
@@ -1758,6 +1879,41 @@
       "sourceRef": "16c15ed2",
       "sha256": "1cc2c1d3d5f3500d523e992778551cd542fd348a5455b22f0e49c65a0ecdc005",
       "usage": "persisted revision 26 and 27 loom-owned jobs; exact released bytes and order"
+    },
+    "v2_v30_loom": {
+      "sourceRef": "2254676f74b277a493229740554a0724c5c6f6f5",
+      "sha256": "8d7333167bc46da9d83f950e8805bfb619a94099943ba4cb30ea189e40a7319d",
+      "usage": "exact released V30 bytes; persisted pre-31 V2 jobs retain indices and fingerprint"
+    },
+    "v2_v30_base_t3": {
+      "sourceRef": "2254676f74b277a493229740554a0724c5c6f6f5",
+      "sha256": "bb019c1f55a8eb29435b551f878c6c87374dbc7b95e5a5d523d179d7152a6151",
+      "usage": "exact released V30 bytes; persisted pre-31 V2 jobs retain indices and fingerprint"
+    },
+    "v2_v30_sun": {
+      "sourceRef": "2254676f74b277a493229740554a0724c5c6f6f5",
+      "sha256": "3c7dfd80a464046437a99d420926a43c39825ca084a48d684ea4b2549716032a",
+      "usage": "exact released V30 bytes; persisted pre-31 V2 jobs retain indices and fingerprint"
+    },
+    "v2_v30_solar": {
+      "sourceRef": "2254676f74b277a493229740554a0724c5c6f6f5",
+      "sha256": "a97dc343b17b53a213c17beaba5e985ab62dc416ccb0569a7219ed08fe03791e",
+      "usage": "exact released V30 bytes; persisted pre-31 V2 jobs retain indices and fingerprint"
+    },
+    "v2_v30_plugin_parallel": {
+      "sourceRef": "2254676f74b277a493229740554a0724c5c6f6f5",
+      "sha256": "254489a790086e4406b1aeb5ec4cdb44080838116de3935733c081d481f4d74c",
+      "usage": "exact released V30 bytes; persisted pre-31 V2 jobs retain indices and fingerprint"
+    },
+    "v2_v30_plugin_speed": {
+      "sourceRef": "2254676f74b277a493229740554a0724c5c6f6f5",
+      "sha256": "1e728aedc0b620e15d3d580b443846a634c0c28be37eac609bfb1a10504be5d5",
+      "usage": "exact released V30 bytes; persisted pre-31 V2 jobs retain indices and fingerprint"
+    },
+    "v2_v30_plugin_efficiency": {
+      "sourceRef": "2254676f74b277a493229740554a0724c5c6f6f5",
+      "sha256": "6050ebadf5f3ccf21ea1f9f0e6f3746b2fea0f2bd9f4f25ed45fa454685c246b",
+      "usage": "exact released V30 bytes; persisted pre-31 V2 jobs retain indices and fingerprint"
     }
   }
 }

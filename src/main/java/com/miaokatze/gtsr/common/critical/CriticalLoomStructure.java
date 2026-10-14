@@ -45,6 +45,7 @@ public final class CriticalLoomStructure {
         return "loom".equals(voxel.model) || "v2_loom".equals(voxel.model)
             || "v2_v25_loom".equals(voxel.model)
             || "v2_v27_loom".equals(voxel.model)
+            || "v2_v30_loom".equals(voxel.model)
             || "v2_legacy_loom".equals(voxel.model);
     }
 

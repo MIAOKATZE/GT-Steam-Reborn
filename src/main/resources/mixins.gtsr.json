@@ -9,6 +9,9 @@
   "mixins": [
     "MixinWorldCriticalTime",
     "MixinWorldCriticalClearance",
+    "MixinBlockCriticalProtection",
+    "BlockMachinesCriticalProtectionMixin",
+    "MixinEntityCriticalProtection",
     "WeaponLootingMixin",
     "WeaponLootingApplicabilityMixin",
     "MTESteamMultiBaseMixin",

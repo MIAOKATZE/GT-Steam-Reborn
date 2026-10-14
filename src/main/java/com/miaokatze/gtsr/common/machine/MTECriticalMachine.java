@@ -59,6 +59,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         presetKind = kind;
         state.setLoomController(kind == null);
         state.presetKind(kind == null ? CriticalMachineKind.SUN : kind);
+        mStartUpCheck = 200;
         registerCriticalProgress();
     }
 
@@ -67,6 +68,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         presetKind = kind;
         state.setLoomController(kind == null);
         state.presetKind(kind == null ? CriticalMachineKind.SUN : kind);
+        mStartUpCheck = 200;
         registerCriticalProgress();
     }
 
@@ -318,7 +320,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     @Override
     public void checkMachine(IGregTechTileEntity tile, ItemStack stack, List<StructureError> errors) {
-        forceLoomStructureCheck();
+        isLoomStructureValid();
         CriticalMachineState current = getCriticalState();
         if (!current.isFabricationHostValid() || current.getState() == 2 && !current.isStructureValidated())
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
@@ -370,6 +372,12 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     @Override
     public void onPostTick(IGregTechTileEntity tile, long tick) {
+        // GT205 schedules structure updates after 50 ticks and starts after 100, rather than polling
+        // on a fixed recipe interval. Double those structure delays for the fabrication loom.
+        if (tile.isServerSide() && mUpdated) {
+            if (mUpdate <= 0) mUpdate = 100;
+            mUpdated = false;
+        }
         super.onPostTick(tile, tick);
         if (!tile.isServerSide()) return;
         CriticalMachineState current = getCriticalState();
@@ -386,8 +394,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         energySpentThisTick = 0;
         energyEmittedThisTick = 0;
         hatchEnergySpent.clear();
-        chargeBattery();
         current.updateEntity();
+        chargeBattery();
         if (tick % 20 == 0)
             com.miaokatze.gtsr.common.critical.CriticalRenderAnchors.ensure(current, isLoomGeometryValid());
         if (previousJournalState != current.getState()
@@ -441,22 +449,25 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     public void stopMachine(gregtech.api.util.shutdown.ShutDownReason reason) {
         boolean allowed = getBaseMetaTileEntity() != null && getBaseMetaTileEntity().isAllowedToWork();
         super.stopMachine(reason);
-        // An intact loom must keep the journal's full target scan running after canonical damage.
-        if (allowed && loomStructureValid
-            && reason == gregtech.api.util.shutdown.ShutDownReasonRegistry.STRUCTURE_INCOMPLETE)
+        // Keep monitoring and player repair recovery alive after either loom or target damage.
+        if (allowed && reason == gregtech.api.util.shutdown.ShutDownReasonRegistry.STRUCTURE_INCOMPLETE)
             getBaseMetaTileEntity().enableWorking();
     }
 
     public boolean isLoomStructureValid() {
+        MTECriticalMachine owner = loomValidationOwner();
+        if (owner != this) return owner.isLoomStructureValid();
         IGregTechTileEntity tile = getBaseMetaTileEntity();
         if (tile == null) return false;
         long now = tile.getWorld()
             .getTotalWorldTime();
-        if (loomValidationTick == Long.MIN_VALUE || now - loomValidationTick >= 20) return forceLoomStructureCheck();
+        if (loomValidationTick == Long.MIN_VALUE || now - loomValidationTick >= 100) return forceLoomStructureCheck();
         return loomStructureValid;
     }
 
     public boolean forceLoomStructureCheck() {
+        MTECriticalMachine owner = loomValidationOwner();
+        if (owner != this) return owner.forceLoomStructureCheck();
         IGregTechTileEntity tile = getBaseMetaTileEntity();
         if (tile == null) return false;
         loomValidationTick = tile.getWorld()
@@ -469,7 +480,15 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         return loomStructureValid;
     }
 
+    private MTECriticalMachine loomValidationOwner() {
+        CriticalMachineState current = getCriticalState();
+        return current != state && current.getHost() instanceof IGregTechTileEntity tile
+            && tile.getMetaTileEntity() instanceof MTECriticalMachine machine ? machine : this;
+    }
+
     public boolean isLoomGeometryValid() {
+        MTECriticalMachine owner = loomValidationOwner();
+        if (owner != this) return owner.isLoomGeometryValid();
         isLoomStructureValid();
         return loomGeometryValid;
     }

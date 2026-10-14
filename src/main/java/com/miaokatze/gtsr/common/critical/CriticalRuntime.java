@@ -47,10 +47,20 @@ public final class CriticalRuntime {
     public static final class StructureChangeListener {
 
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onWorldUnload(net.minecraftforge.event.world.WorldEvent.Unload event) {
+            CriticalBlockProtection.unloadClientWorld(event.world);
+        }
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent(
+            priority = cpw.mods.fml.common.eventhandler.EventPriority.LOWEST)
+        public void onExplosion(net.minecraftforge.event.world.ExplosionEvent.Detonate event) {
+            CriticalBlockProtection.filterExplosion(event);
+        }
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
         public void onControllerBreak(net.minecraftforge.event.world.BlockEvent.BreakEvent event) {
             if (event.world.isRemote) return;
-            if (CriticalWorldData.get(event.world)
-                .protectsPlayerBreak(event.world, event.x, event.y, event.z)) {
+            if (CriticalBlockProtection.protects(event.world, event.x, event.y, event.z)) {
                 event.setCanceled(true);
                 return;
             }
@@ -73,9 +83,13 @@ public final class CriticalRuntime {
             if (event.world.isRemote
                 || event.action == net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR)
                 return;
+            if (!CriticalBlockProtection.protects(event.world, event.x, event.y, event.z)) return;
+            // Rotating a generated GT controller would invalidate its exact paid-voxel identity.
+            // Ordinary right-click still reaches its GUI, including the internal dismantle/repair controls.
             if (event.world.getBlock(event.x, event.y, event.z) instanceof CriticalMaterials.MaterialBlock
-                && CriticalWorldData.get(event.world)
-                    .protectsPlayerBreak(event.world, event.x, event.y, event.z))
+                || event.action == net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.LEFT_CLICK_BLOCK
+                || event.entityPlayer != null && gregtech.api.util.GTUtility
+                    .isStackInList(event.entityPlayer.getHeldItem(), gregtech.api.GregTechAPI.sWrenchList))
                 event.setCanceled(true);
         }
 

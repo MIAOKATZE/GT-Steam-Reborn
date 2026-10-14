@@ -10,8 +10,7 @@ public final class CriticalTooltips {
     private CriticalTooltips() {}
 
     public static MultiblockTooltipBuilder create(CriticalMachineKind preset) {
-        if (preset == null || preset == CriticalMachineKind.SUN || preset == CriticalMachineKind.SOLAR)
-            return v2(preset);
+        if (preset == null || CriticalMachineState.supportsV2Kind(preset)) return v2(preset);
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(tr(preset == null ? "type" : "kind." + preset.key))
             .addInfo(tr("tooltip.selection"))

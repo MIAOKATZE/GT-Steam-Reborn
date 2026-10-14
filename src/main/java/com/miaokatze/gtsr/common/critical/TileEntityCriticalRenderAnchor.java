@@ -61,8 +61,9 @@ public final class TileEntityCriticalRenderAnchor extends TileEntity {
     }
 
     public boolean isLoomVisible() {
-        return descriptor.getBoolean("loomVisible") || !descriptor.getString("structureId")
-            .isEmpty();
+        return descriptor.hasKey("loomVisible") ? descriptor.getBoolean("loomVisible")
+            : !descriptor.getString("structureId")
+                .isEmpty();
     }
 
     public CriticalMachineState getVisualState() {
@@ -94,7 +95,13 @@ public final class TileEntityCriticalRenderAnchor extends TileEntity {
         ownerX = n.getInteger("ownerX");
         ownerY = n.getInteger("ownerY");
         ownerZ = n.getInteger("ownerZ");
-        descriptor = n.getCompoundTag("visual");
+        descriptor = (NBTTagCompound) n.getCompoundTag("visual")
+            .copy();
+        // Disk snapshots are visual history, never evidence that a reloaded server structure is intact.
+        if (worldObj == null || !worldObj.isRemote) {
+            descriptor.setBoolean("valid", false);
+            descriptor.setBoolean("loomVisible", false);
+        }
         applyDescriptor();
         CriticalLoomProxyVisibility.refresh(this);
     }

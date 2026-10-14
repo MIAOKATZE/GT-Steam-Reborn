@@ -206,10 +206,18 @@ public final class CriticalStructures {
         }
 
         private ItemStack stack() {
-            return selector ? CriticalRuntime.getLoomControllerStack()
-                : kind == CriticalMachineKind.SOLAR
-                    ? com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSolar.get(1)
-                    : com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSun.get(1);
+            if (selector) return CriticalRuntime.getLoomControllerStack();
+            return switch (kind) {
+                case SOLAR -> com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSolar.get(1);
+                case TURBINE -> com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalTurbine.get(1);
+                case PROCESSING -> com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalProcessing.get(1);
+                case ENTANGLER -> com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalEntangler.get(1);
+                case SUN -> com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSun.get(1);
+                case DIMENSION -> com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalDimension.get(1);
+                case BATTERY -> com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalBattery.get(1);
+                case ASSEMBLY -> com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalAssembly.get(1);
+                case ACCELERATOR -> com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalAccelerator.get(1);
+            };
         }
 
         @Override
@@ -277,8 +285,11 @@ public final class CriticalStructures {
     public static boolean isHatchPosition(CriticalGeometry.Voxel voxel) {
         if (isOptionalWorkPort(voxel)) return true;
         if (voxel.model.startsWith("v2_")) {
-            if (isController(voxel) || voxel.model.startsWith("v2_plugin_")) return false;
-            if ("v2_loom".equals(voxel.model) || "v2_v25_loom".equals(voxel.model) || "v2_v27_loom".equals(voxel.model))
+            if (isController(voxel) || voxel.model.startsWith("v2_plugin_") || voxel.model.startsWith("v2_v30_plugin_"))
+                return false;
+            if ("v2_loom".equals(voxel.model) || "v2_v25_loom".equals(voxel.model)
+                || "v2_v27_loom".equals(voxel.model)
+                || "v2_v30_loom".equals(voxel.model))
                 return voxel.y == 4
                     && (voxel.z == 47 && (voxel.x == 50 || voxel.x == 53 || voxel.x == 59 || voxel.x == 62)
                         || "static".equals(voxel.group) && voxel.x >= 47

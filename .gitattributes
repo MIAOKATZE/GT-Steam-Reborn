@@ -57,3 +57,23 @@ src/main/resources/assets/gtsr/critical/models/v2_v25_base_t3.geometry.json -tex
 src/main/resources/assets/gtsr/critical/models/v2_v27_loom.geometry.json -text whitespace=cr-at-eol
 src/main/resources/assets/gtsr/critical/models/v2_v27_base_t3.geometry.json -text whitespace=cr-at-eol
 src/main/resources/assets/gtsr/textures/blocks/critical/v2/ctm/gravity_modulator/bottom/*.mcmeta -text whitespace=cr-at-eol
+
+# Preserve approved R5 and frozen pre-31 geometry hashes.
+src/main/resources/assets/gtsr/critical/models/v2_sun.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_turbine.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_processing.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_entangler.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_dimension.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_battery.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_assembly.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_accelerator.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_plugin_parallel.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_plugin_speed.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_plugin_efficiency.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_v30_loom.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_v30_base_t3.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_v30_sun.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_v30_solar.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_v30_plugin_parallel.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_v30_plugin_speed.geometry.json -text whitespace=cr-at-eol
+src/main/resources/assets/gtsr/critical/models/v2_v30_plugin_efficiency.geometry.json -text whitespace=cr-at-eol

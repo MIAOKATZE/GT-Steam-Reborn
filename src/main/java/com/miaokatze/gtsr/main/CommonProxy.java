@@ -75,6 +75,7 @@ public class CommonProxy {
      * 在此阶段读取配置文件，并将机器注册任务添加到 GregTech 的处理队列中。
      */
     public void preInit(FMLPreInitializationEvent event) {
+        com.miaokatze.gtsr.common.critical.CriticalChunkTicketManager.register();
         // 配置文件迁移到 config/gtsr/gtsr.cfg：新路径不存在且旧路径 (config/gtsr.cfg) 存在时复制一次（标准复制，不覆盖已存在目标），旧文件保留原位
         File newConfigFile = new File(event.getModConfigurationDirectory(), "gtsr/gtsr.cfg");
         File oldConfigFile = event.getSuggestedConfigurationFile();
