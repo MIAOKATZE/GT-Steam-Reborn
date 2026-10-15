@@ -62,6 +62,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
+import gregtech.api.util.ParallelHelper;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -111,6 +112,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
     public boolean mAirSupplyOK = true;
 
     void addPressureSteamInput(MTEHatchPressureSteamInput hatch) {
+        addIfSmartInput(hatch);
         mPressureSteamInputs.add(hatch);
     }
 
@@ -133,6 +135,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity == null) return false;
         if (aMetaTileEntity instanceof MTEHatchInput hatch) {
+            addIfSmartInput(hatch);
             hatch.mRecipeMap = getRecipeMap();
             hatch.updateTexture(aBaseCasingIndex);
             return mInputHatches.add(hatch);
@@ -152,11 +155,13 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
             dualHatch.updateTexture(aBaseCasingIndex);
             dualHatch.updateCraftingIcon(this.getMachineCraftingIcon());
             if (!mDualInputHatches.contains(dualHatch)) {
+                addIfSmartInput(aMetaTileEntity);
                 mDualInputHatches.add(dualHatch);
             }
             return true;
         }
         if (aMetaTileEntity instanceof MTEHatchInputBus hatch) {
+            addIfSmartInput(hatch);
             hatch.mRecipeMap = getRecipeMap();
             hatch.updateTexture(aBaseCasingIndex);
             return mInputBusses.add(hatch);
@@ -169,6 +174,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity == null) return false;
         if (aMetaTileEntity instanceof MTEHatchOutputBus hatch) {
+            addIfSmartInput(hatch);
             hatch.updateTexture(aBaseCasingIndex);
             return mOutputBusses.add(hatch);
         }
@@ -637,7 +643,15 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
             @Override
             protected OverclockCalculator createOverclockCalculator(GTRecipe recipe) {
                 // 无电炉只按温度缩时，不将不足一 tick 的加速转换为额外并行。
-                return super.createOverclockCalculator(recipe).setNoOverclock(true);
+                return super.createOverclockCalculator(recipe).setMaxTierSkips(Integer.MAX_VALUE)
+                    .setNoOverclock(true);
+            }
+
+            @Override
+            protected ParallelHelper createParallelHelper(GTRecipe recipe) {
+                // 纯热机没有能源仓；配方的 EU 元数据不应限制并行或触发电力门控。
+                long recipeBudget = Math.max(0L, recipe.mEUt) * Math.max(1, getMaxParallelRecipes());
+                return super.createParallelHelper(recipe).setAvailableEUt(Math.max(32L, recipeBudget));
             }
         }.setMaxParallelSupplier(this::getMaxParallelRecipes)
             .setSpeedBonusSupplier(() -> {
@@ -646,6 +660,12 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
                     .min(MAX_RECIPE_TIME_REDUCTION, overheatPercent * RECIPE_TIME_REDUCTION_PER_PERCENT);
                 return RECIPE_TIME_BASE_FACTOR * (1.0d - reduction);
             });
+    }
+
+    @Override
+    protected void setEnergyUsage(ProcessingLogic logic) {
+        super.setEnergyUsage(logic);
+        mEUt = 0;
     }
 
     @Override

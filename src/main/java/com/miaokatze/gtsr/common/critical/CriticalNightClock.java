@@ -114,7 +114,8 @@ public final class CriticalNightClock {
             this.world = world;
             this.data = data;
             if (data != null) {
-                active = data.hasLocalClock();
+                // Revalidate the live controller before enabling an override after load.
+                active = false;
                 time = data.getLocalTime();
             }
         }
@@ -147,10 +148,11 @@ public final class CriticalNightClock {
                 ignored -> new State(event.world, CriticalWorldData.get(event.world)));
             if (!state.data.hasLocalClock()) return;
             boolean previousNight = state.night;
-            state.active = true;
             state.night = state.data.validateNightOwner(event.world);
-            state.advancing = !state.night && event.world.getGameRules()
-                .getGameRuleBooleanValue("doDaylightCycle");
+            // The underlying world's natural clock kept advancing throughout the override.
+            // Releasing ownership removes our override instead of leaving a permanent local clock.
+            state.active = state.night;
+            state.advancing = false;
             long next = state.data.getLocalTime();
             if (state.night) next = Math.floorDiv(next, 24000L) * 24000L + 18000L;
             else if (state.advancing) next++;

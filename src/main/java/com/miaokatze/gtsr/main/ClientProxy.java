@@ -37,6 +37,7 @@ public class ClientProxy extends CommonProxy {
         com.miaokatze.gtsr.client.critical.CriticalMaterialRenderer.register();
         SpacetimeClient.register();
         com.miaokatze.gtsr.client.travel.SpacetimeBeaconRenderer.register();
+        com.miaokatze.gtsr.client.critical.IrradiatedDustRenderer.register();
         com.miaokatze.gtsr.client.weapons.PortableWeaponClient.register();
         com.miaokatze.gtsr.client.weapons.PortableWeaponRenderer.register();
         com.miaokatze.gtsr.client.architecture.RuinsArchitectureRenderer.registerRenderer();

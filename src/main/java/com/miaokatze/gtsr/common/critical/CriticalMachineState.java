@@ -147,6 +147,44 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     // IDLE, BUILD, READY, DISMANTLE. PAUSED is a reason, never a destructive state transition.
     private int state, stage, cursor, cycleTicks, cycleDuration;
     private long energy, batchEu, batchGenerated, pendingGenerated;
+    private NBTTagCompound energyRuntime = new NBTTagCompound();
+    private String processingMode = "";
+
+    public NBTTagCompound energyRuntimeData() {
+        return energyRuntime;
+    }
+
+    public void setRuntimeBatch(int progress, int duration, long eut, String message) {
+        cycleTicks = Math.max(0, progress);
+        cycleDuration = Math.max(0, duration);
+        batchEu = Math.max(0, eut);
+        status = message;
+        markDirty();
+    }
+
+    public int getSteamMode() {
+        return Math.floorMod(energyRuntime.getInteger("steamMode"), 6);
+    }
+
+    public boolean selectSteamMode(EntityPlayer player) {
+        if (!canUse(player) || config.kind != CriticalMachineKind.SOLAR) return false;
+        energyRuntime.setInteger("steamMode", (getSteamMode() + 1) % 6);
+        markDirty();
+        return true;
+    }
+
+    public String getProcessingMode() {
+        return processingMode;
+    }
+
+    public boolean selectProcessingMode(EntityPlayer player, String mode) {
+        if (!canUse(player) || !batchId.isEmpty() || state != 0 && state != 2) return false;
+        if (!CriticalProcessingModes.isAllowed(config.kind, mode)) return false;
+        processingMode = mode;
+        markDirty();
+        return true;
+    }
+
     private boolean enabled = true, stageFunded, refundPrepared;
     private ItemStack[] escrow = new ItemStack[0], pendingItems = new ItemStack[0];
     private FluidStack[] fluidEscrow = new FluidStack[0], pendingFluids = new FluidStack[0];
@@ -878,7 +916,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         allVoxels();
         if (jobFingerprint != modelFingerprint) return fail("结构定义与任务快照不一致");
         if (!ownsTask()) return fail("施工区任务身份不一致，请用修复按钮重核账本");
-        if (!batchId.isEmpty()) return fail("先完成或恢复当前批次");
+        if (!batchId.isEmpty() || energyRuntime.getBoolean("funded") || energyRuntime.getBoolean("uncertain"))
+            return fail("先完成或恢复当前批次");
         if (state == 1 && stageFunded) {
             int total = getJobTotal();
             List<ItemStack> unconsumed = new ArrayList<>();
@@ -951,6 +990,10 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public boolean setEnabled(EntityPlayer p, boolean value) {
         if (worldObj.isRemote || !canUse(p)) return false;
+        if (value && state == 2
+            && structureValid
+            && config.kind == CriticalMachineKind.SOLAR
+            && !data().claimNight(worldObj, structureId)) return fail("本维度已有先启动的辐照锅炉");
         enabled = value;
         if (host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt) {
             if (value) gt.enableWorking();
@@ -961,7 +1004,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return true;
     }
 
-    private boolean fail(String reason) {
+    public boolean fail(String reason) {
         if (!status.equals(reason)) {
             status = reason;
             changed();
@@ -1043,6 +1086,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public boolean canRemove() {
         if (state != 0 || !structureId.isEmpty()
+            || energyRuntime.getBoolean("funded")
+            || energyRuntime.getBoolean("uncertain")
             || !batchId.isEmpty()
             || escrow.length != 0
             || pendingItems.length != 0
@@ -1205,7 +1250,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (mte instanceof gregtech.api.metatileentity.implementations.MTEHatchInputBus)
             return !(mte instanceof gregtech.common.tileentities.machines.IDualInputHatch);
         if (mte instanceof gregtech.api.metatileentity.implementations.MTEHatchInput) return true;
-        return mte instanceof gregtech.api.metatileentity.implementations.MTEHatchOutputBus
+        return mte instanceof gregtech.api.metatileentity.implementations.MTEHatchDataAccess
+            || mte instanceof gregtech.api.metatileentity.implementations.MTEHatchBulkCatalystHousing
+            || mte instanceof gregtech.api.metatileentity.implementations.MTEHatchOutputBus
             || mte instanceof gregtech.api.metatileentity.implementations.MTEHatchOutput
             || isEnergyInputHatchMeta(mte)
             || mte instanceof gregtech.api.metatileentity.implementations.MTEHatchDynamo;
@@ -1687,7 +1734,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return machine == null ? energy >= amount : machine.canConsumeCriticalEnergy(amount);
     }
 
-    private boolean fundCriticalInputs(ItemStack[] items, FluidStack[] fluids) {
+    public boolean fundCriticalInputs(ItemStack[] items, FluidStack[] fluids) {
         if (nativeFundingUncertain) return fail("ME扣料结果待人工核验，任务已锁定");
         ItemStack[] missingItems = items;
         FluidStack[] missingFluids = fluids;
@@ -2258,18 +2305,28 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private void runBatch() {
-        if (config.kind == CriticalMachineKind.SOLAR) {
-            if (!data().claimNight(worldObj, structureId)) {
-                fail("本维度已有先启动的辐照锅炉");
-                return;
-            }
+        // A pre-upgrade batch already paid its inputs. Settle its persisted outputs and energy
+        // through the original journal before allowing the new energy backend to start a batch.
+        if (batchId.isEmpty()
+            && (config.kind == CriticalMachineKind.SOLAR || config.kind == CriticalMachineKind.TURBINE)) {
+            CriticalEnergyRuntime.tick(this, gtMachine());
+            return;
+        }
+        if (config.kind == CriticalMachineKind.SOLAR && !data().claimNight(worldObj, structureId)) {
+            fail("本维度已有先启动的辐照锅炉");
+            return;
         }
         if (batchId.isEmpty()) {
             ItemStack[] inputs = gtMachine() == null ? new ItemStack[0] : gtMachine().criticalPhysicalItemsSnapshot();
             FluidStack[] fluids = gtMachine() == null ? new FluidStack[0]
                 : gtMachine().criticalPhysicalFluidsSnapshot();
-            RecipeMatch match = CriticalRecipes.match(config, inputs, fluids);
-            if (match == null) match = matchCriticalHatchRecipe(inputs, fluids);
+            RecipeMatch match;
+            if (config.kind == CriticalMachineKind.PROCESSING || config.kind == CriticalMachineKind.ASSEMBLY)
+                match = CriticalGTRecipes.match(this, gtMachine());
+            else {
+                match = CriticalRecipes.match(config, inputs, fluids);
+                if (match == null) match = matchCriticalHatchRecipe(inputs, fluids);
+            }
             if (match == null) {
                 status = "没有完整可执行批次";
                 return;
@@ -2278,7 +2335,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 fail("发电批次容量不足，先释放储能");
                 return;
             }
-            if (!canDeliverItems(match.itemOutputs) || !canDeliverFluids(match.fluidOutputs)) {
+            if (!canDeliverBatch(match.itemOutputs, match.fluidOutputs)) {
                 fail("批次输出空间不足");
                 return;
             }
@@ -2305,14 +2362,30 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             cycleTicks++;
             status = "工作 " + cycleTicks + "/" + cycleDuration;
             markDirty();
-            return;
+            if (cycleTicks < cycleDuration) return;
         }
-        if (!canDeliverItems(pendingItems) || !canDeliverFluids(pendingFluids)) {
+        if (!canDeliverBatch(pendingItems, pendingFluids)) {
             fail("等待批次输出空间");
             return;
         }
-        deliverItems(pendingItems);
-        deliverFluids(pendingFluids);
+        if (nativeProduction()) {
+            CriticalEnergyPorts.OutputPlan output = nativeOutputs(pendingItems, pendingFluids);
+            if (output == null) return;
+            nativeFundingUncertain = true;
+            markDirty();
+            try {
+                output.commit();
+                nativeFundingUncertain = false;
+            } catch (RuntimeException uncertain) {
+                nativeFundingUncertain = true;
+                fail("批次输出提交结果待人工核验，任务已锁定");
+                markDirty();
+                return;
+            }
+        } else {
+            deliverItems(pendingItems);
+            deliverFluids(pendingFluids);
+        }
         pendingGenerated += batchGenerated;
         escrow = new ItemStack[0];
         fluidEscrow = new FluidStack[0];
@@ -2327,7 +2400,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private long capacity() {
-        return config.tier.recipeVoltage() * 4096L;
+        return CriticalTier.T3.recipeVoltage() * 4096L;
     }
 
     private void emitEnergy() {
@@ -2398,11 +2471,40 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return true;
     }
 
-    private boolean canDeliverItems(ItemStack[] items) {
+    private boolean nativeProduction() {
+        return gtMachine() != null
+            && (config.kind == CriticalMachineKind.PROCESSING || config.kind == CriticalMachineKind.ASSEMBLY);
+    }
+
+    private CriticalEnergyPorts.OutputPlan nativeOutputs(ItemStack[] items, FluidStack[] fluids) {
+        List<CriticalEnergyPorts.FluidAmount> amounts = new ArrayList<>();
+        for (FluidStack fluid : fluids) if (fluid != null && fluid.amount > 0)
+            amounts.add(new CriticalEnergyPorts.FluidAmount(fluid, java.math.BigInteger.valueOf(fluid.amount)));
+        return CriticalEnergyPorts.outputs(gtMachine(), amounts, items);
+    }
+
+    public boolean canDeliverBatch(ItemStack[] items, FluidStack[] fluids) {
+        return nativeProduction() ? nativeOutputs(items, fluids) != null
+            : canDeliverItems(items) && canDeliverFluids(fluids);
+    }
+
+    public boolean canDeliverScaledBatch(ItemStack[] items, List<CriticalEnergyPorts.FluidAmount> fluids) {
+        if (nativeProduction()) return CriticalEnergyPorts.outputs(gtMachine(), fluids, items) != null;
+        List<FluidStack> copies = new ArrayList<>();
+        for (CriticalEnergyPorts.FluidAmount amount : fluids) {
+            if (amount.amount.compareTo(java.math.BigInteger.valueOf(Integer.MAX_VALUE)) > 0) return false;
+            FluidStack copy = amount.fluid.copy();
+            copy.amount = amount.amount.intValue();
+            copies.add(copy);
+        }
+        return canDeliverBatch(items, copies.toArray(new FluidStack[0]));
+    }
+
+    public boolean canDeliverItems(ItemStack[] items) {
         return insertItems(copyItems(inventory), items);
     }
 
-    private boolean deliverItems(ItemStack[] items) {
+    public boolean deliverItems(ItemStack[] items) {
         if (!canDeliverItems(items)) return false;
         insertItems(inventory, items);
         markDirty();
@@ -2490,11 +2592,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return true;
     }
 
-    private boolean canDeliverFluids(FluidStack[] source) {
+    public boolean canDeliverFluids(FluidStack[] source) {
         return insertFluids(copyFluids(tanks), source);
     }
 
-    private void deliverFluids(FluidStack[] source) {
+    public void deliverFluids(FluidStack[] source) {
         insertFluids(tanks, source);
         markDirty();
     }
@@ -2770,6 +2872,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         n.setString("structureId", structureId);
         n.setString("jobId", jobId);
         n.setString("batchId", batchId);
+        n.setString("processingMode", processingMode);
+        n.setTag("criticalEnergyRuntime", energyRuntime);
         n.setString("status", status);
         n.setInteger("state", state);
         n.setInteger("stage", stage);
@@ -2842,6 +2946,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         structureId = n.getString("structureId");
         jobId = n.getString("jobId");
         batchId = n.getString("batchId");
+        processingMode = n.getString("processingMode");
+        energyRuntime = n.getCompoundTag("criticalEnergyRuntime");
         status = n.getString("status");
         state = n.getInteger("state");
         stage = n.getInteger("stage");
@@ -2917,6 +3023,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         n.setBoolean("constructionWorking", isConstructionWorking());
         n.setString("structureId", structureId);
         n.setString("batchId", batchId);
+        n.setString("processingMode", processingMode);
+        n.setTag("criticalEnergyRuntime", energyRuntime);
         n.setTag("protection", protectionSnapshot());
         return n;
     }
@@ -2950,6 +3058,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         clientWorking = n.getBoolean("working") && clientReason == 0;
         structureId = n.getString("structureId");
         batchId = n.getString("batchId");
+        processingMode = n.getString("processingMode");
+        energyRuntime = n.getCompoundTag("criticalEnergyRuntime");
         clientCycleAnchor = worldObj == null ? 0 : worldObj.getTotalWorldTime();
         if (worldObj != null && worldObj.isRemote) CriticalBlockProtection.readClientSnapshot(this, n);
     }

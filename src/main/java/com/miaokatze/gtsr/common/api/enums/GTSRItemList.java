@@ -59,6 +59,8 @@ public enum GTSRItemList implements IItemContainer {
     CriticalBattery,
     CriticalAssembly,
     CriticalAccelerator,
+    IrradiatedMoonDust,
+    IrradiatedStoneDust,
 
     DenseStateManipulator,
     WaterHubArray,

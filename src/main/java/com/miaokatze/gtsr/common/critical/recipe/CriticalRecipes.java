@@ -28,72 +28,6 @@ public final class CriticalRecipes {
         List<Spec> r = new ArrayList<>();
         add(
             r,
-            "solar_water",
-            CriticalMachineKind.SOLAR,
-            none(),
-            fluids(Materials.Water.getFluid(1000)),
-            none(),
-            fluids(Materials.Steam.getGas(160000)),
-            400,
-            0,
-            0);
-        add(
-            r,
-            "solar_sanzu",
-            CriticalMachineKind.SOLAR,
-            none(),
-            fluids(fluid("sanzu_residual_steam", 1000)),
-            none(),
-            fluids(Materials.Steam.getGas(192000)),
-            400,
-            0,
-            0);
-        add(
-            r,
-            "turbine_steam",
-            CriticalMachineKind.TURBINE,
-            none(),
-            fluids(Materials.Steam.getGas(64000)),
-            none(),
-            fluids(Materials.Water.getFluid(400)),
-            400,
-            0,
-            32000);
-        add(
-            r,
-            "processing_press",
-            CriticalMachineKind.PROCESSING,
-            items(ore(OrePrefixes.ingot, Materials.Steel, 16)),
-            fluids(fluid("thickgrease", 100)),
-            items(ore(OrePrefixes.plate, Materials.Steel, 16)),
-            noFluids(),
-            400,
-            8192,
-            0);
-        add(
-            r,
-            "processing_grit",
-            CriticalMachineKind.PROCESSING,
-            none(),
-            fluids(fluid("metalgrit", 10000)),
-            items(ore(OrePrefixes.dust, Materials.Iron, 4), ore(OrePrefixes.dust, Materials.Copper, 2)),
-            noFluids(),
-            400,
-            8192,
-            0);
-        add(
-            r,
-            "processing_wire",
-            CriticalMachineKind.PROCESSING,
-            items(ore(OrePrefixes.ingot, Materials.Copper, 16)),
-            noFluids(),
-            items(ore(OrePrefixes.wireGt01, Materials.Copper, 32)),
-            noFluids(),
-            400,
-            8192,
-            0);
-        add(
-            r,
             "entangler_critical",
             CriticalMachineKind.ENTANGLER,
             items(GTSRItemList.SteamEntangledSingularity.get(64)),
@@ -158,24 +92,6 @@ public final class CriticalRecipes {
             400,
             0,
             1048576);
-        add(
-            r,
-            "assembly_anchor",
-            CriticalMachineKind.ASSEMBLY,
-            items(
-                ItemList.Casing_HV.get(1),
-                ItemList.Field_Generator_HV.get(1),
-                ItemList.Sensor_HV.get(1),
-                ItemList.Emitter_HV.get(1),
-                ItemList.Circuit_Nanoprocessor.get(4),
-                ore(OrePrefixes.plate, Materials.StainlessSteel, 8),
-                GTSRItemList.SteamEntangledSingularity.get(1)),
-            fluids(Materials.SolderingAlloy.getMolten(1152)),
-            items(GTSRItemList.SpacetimeAnchorBeacon.get(1)),
-            noFluids(),
-            400,
-            32768,
-            0);
         add(
             r,
             "accelerator_uranium",

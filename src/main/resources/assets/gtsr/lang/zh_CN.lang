@@ -3612,8 +3612,8 @@ gtsr.critical.tooltip.dynamo=输出最大16A，仍受原生动力仓电压与容
 gtsr.critical.tab.status=状态
 gtsr.critical.tab.configuration=配置
 gtsr.critical.tab.inventory=输入/输出
-gtsr.critical.configuration_hint=仅未施工时可更改配置；插件总数最多8个。
-gtsr.critical.configuration.section=施工前配置 · 插件总数上限8个
+gtsr.critical.configuration_hint=未施工时可选择机器类型；成型后无未完批次时可切换工艺。
+gtsr.critical.configuration.section=机器类型与工作工艺
 gtsr.critical.loom.formed=拟态织机：结构完整
 gtsr.critical.loom.unformed=拟态织机：结构未完整
 gtsr.critical.management_hint=持机械终端右击控制器，打开配置与施工管理
@@ -3953,3 +3953,25 @@ gtsr.critical.v2.controllers=织机与后施工主控均为真实 GT 控制器�
 gtsr.critical.v2.ports=仅以下声明的施工口与业务口支持标准 GT 仓室。
 gtsr.critical.v2.loom_ports=织机 Y=4 机壳环的仓室全部可选：物品/流体输入输出仓、普通或多A能源仓；不接受动力仓，无需维护仓。物料与EU消耗仍按原规则；控制器与内部轨道不可替换。
 gtsr.critical.v2.main_ports=主控独立工作口共13个：X=50..62，Y=5，Z=34，可全部留空或放支持的GT仓室（含动力仓）；无需维护仓。下一排保留固定机壳；旧任务保留原Y=4仓口。
+
+# Critical functional energy backends
+item.IrradiatedMoonDust.name=辐照月尘
+item.IrradiatedStoneDust.name=辐照石粉
+gtsr.recipe.stellar_irradiation=恒星辐照
+gtsr.critical.mode=工艺选择
+gtsr.critical.mode.assembly_line=无序装配线（需已研究数据）
+gtsr.critical.mode.qft_base=量子力场约束熔炉（默认概率，无聚焦强化）
+gtsr.critical.functional.rules=固定400 tick · 原EU/t×实际并行÷100向上取整 · 不超频
+gtsr.critical.functional.decorative=8处T3并行模块仅装饰，无功能插件或数值分级
+gtsr.critical.functional.native_recipes=按终端所选原配方表执行；保留原物料、概率副产、催化剂与电压准入
+gtsr.critical.steam_mode=蒸汽输出形态
+gtsr.critical.nei.energy.solar=蒸馏水和冷太阳能盐独立按库存对数采热；同维戴森系数乘实际耗料
+gtsr.critical.nei.energy.turbine=全输入仓六族蒸汽 · 3200% · 全部直接冷凝 · owner团队无线网
+gtsr.critical.nei.energy.rate=每升输入产出 %s EU（整批增量入网）
+gtsr.critical.nei.energy.cycle=固定400 tick；无额外EU消耗；致密档25L水⇄4L汽
+gtsr.critical.steam_mode.0=普通蒸汽
+gtsr.critical.steam_mode.1=过热蒸汽
+gtsr.critical.steam_mode.2=超临界蒸汽
+gtsr.critical.steam_mode.3=致密普通蒸汽
+gtsr.critical.steam_mode.4=致密过热蒸汽
+gtsr.critical.steam_mode.5=致密超临界蒸汽

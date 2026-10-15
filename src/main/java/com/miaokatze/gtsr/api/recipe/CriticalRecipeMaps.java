@@ -22,6 +22,11 @@ public final class CriticalRecipeMaps {
     private static final EnumMap<CriticalMachineKind, RecipeMap<RecipeMapBackend>> MAPS = new EnumMap<>(
         CriticalMachineKind.class);
     public static final RecipeMap<RecipeMapBackend> displayRecipes = create("loom");
+    public static final RecipeMap<RecipeMapBackend> stellarIrradiation = RecipeMapBuilder
+        .of("gtsr.recipe.stellar_irradiation")
+        .maxIO(1, 1, 0, 0)
+        .minInputs(1, 0)
+        .build();
 
     static {
         for (CriticalMachineKind kind : CriticalMachineKind.values()) MAPS.put(kind, create(kind.key));
@@ -43,6 +48,19 @@ public final class CriticalRecipeMaps {
             .minInputs(0, 0)
             .neiSpecialInfoFormatter(info -> {
                 int code = info.recipe.mSpecialValue;
+                if (key.equals("solar") || key.equals("turbine")) {
+                    List<String> energy = new ArrayList<>();
+                    energy.add(StatCollector.translateToLocal("gtsr.critical.nei.energy." + key));
+                    if (key.equals("turbine")) {
+                        int[] rates = { 16, 48, 80, 16000, 48000, 80000 };
+                        energy.add(
+                            StatCollector.translateToLocalFormatted(
+                                "gtsr.critical.nei.energy.rate",
+                                rates[Math.floorMod(code, 6)]));
+                    }
+                    energy.add(StatCollector.translateToLocal("gtsr.critical.nei.energy.cycle"));
+                    return energy;
+                }
                 CriticalTier tier = CriticalTier.byId(code / 100);
                 CriticalMachineKind kind = CriticalMachineKind.byId(code % 100 / 10);
                 List<RecipeMatch> batches = CriticalRecipes.list(new CriticalConfiguration(tier, kind, 0, 0, 0));

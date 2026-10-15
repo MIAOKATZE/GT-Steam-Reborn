@@ -34,6 +34,7 @@ public final class CriticalMachineRecipes {
     public static void register() {
         if (registered) return;
         registerLoomMaterials();
+        registerEnergyRecipes();
         if (!GTModHandler.addCraftingRecipe(
             GTSRItemList.CriticalLoom.get(1),
             new Object[] { "RFR", "SCE", "RMR", 'R', ItemList.Robot_Arm_ZPM.get(1), 'F',
@@ -65,6 +66,7 @@ public final class CriticalMachineRecipes {
                 .duration(400)
                 .eut(131072)
                 .addTo(RecipeMaps.assemblerRecipes);
+            if (kind == CriticalMachineKind.SOLAR || kind == CriticalMachineKind.TURBINE) continue;
             for (CriticalTier tier : CriticalTier.values()) {
                 CriticalConfiguration cfg = new CriticalConfiguration(tier, kind, 0, 0, 0);
                 int index = 0;
@@ -76,6 +78,47 @@ public final class CriticalMachineRecipes {
             }
         }
         registered = true;
+    }
+
+    private static void registerEnergyRecipes() {
+        for (int i = 0; i < 2; i++) {
+            net.minecraft.item.ItemStack source = com.miaokatze.gtsr.common.items.IrradiatedDust.source(i == 0);
+            if (source == null) continue;
+            GTValues.RA.stdBuilder()
+                .itemInputs(source)
+                .itemOutputs((i == 0 ? GTSRItemList.IrradiatedMoonDust : GTSRItemList.IrradiatedStoneDust).get(1))
+                .duration(400)
+                .eut(0)
+                .addTo(CriticalRecipeMaps.stellarIrradiation);
+        }
+        for (int mode = 0; mode < 6; mode++) {
+            net.minecraftforge.fluids.FluidStack steam = com.miaokatze.gtsr.common.critical.CriticalEnergyRuntime
+                .steam(mode);
+            if (steam == null) continue;
+            net.minecraftforge.fluids.FluidStack shown = steam.copy();
+            shown.amount = mode < 3 ? 160 : 4;
+            GTValues.RA.stdBuilder()
+                .fluidInputs(GTModHandler.getDistilledWater(mode < 3 ? 1 : 25))
+                .fluidOutputs(shown)
+                .duration(400)
+                .eut(0)
+                .specialValue(mode)
+                .addTo(CriticalRecipeMaps.forKind(CriticalMachineKind.SOLAR));
+            GTValues.RA.stdBuilder()
+                .fluidInputs(shown)
+                .fluidOutputs(GTModHandler.getDistilledWater(mode < 3 ? 1 : 25))
+                .duration(400)
+                .eut(0)
+                .specialValue(mode)
+                .addTo(CriticalRecipeMaps.forKind(CriticalMachineKind.TURBINE));
+        }
+        GTValues.RA.stdBuilder()
+            .fluidInputs(gtPlusPlus.core.material.MaterialMisc.SOLAR_SALT_COLD.getFluidStack(1))
+            .fluidOutputs(gtPlusPlus.core.material.MaterialMisc.SOLAR_SALT_HOT.getFluidStack(1))
+            .duration(400)
+            .eut(0)
+            .specialValue(6)
+            .addTo(CriticalRecipeMaps.forKind(CriticalMachineKind.SOLAR));
     }
 
     private static void registerLoomMaterials() {

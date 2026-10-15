@@ -51,6 +51,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     private boolean hatchesDirty = true;
     private ItemStack[] meItemsSnapshot = new ItemStack[0];
     private FluidStack[] meFluidsSnapshot = new FluidStack[0];
+    private final java.util.List<gregtech.api.metatileentity.implementations.MTEHatchDataAccess> criticalDataHatches = new java.util.ArrayList<>();
+    private final java.util.List<gregtech.api.metatileentity.implementations.MTEHatchBulkCatalystHousing> criticalCatalystHatches = new java.util.ArrayList<>();
     private World previewWorld;
     private NBTTagCompound previewSelection;
 
@@ -329,6 +331,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     @Override
     public void clearHatches() {
         super.clearHatches();
+        criticalDataHatches.clear();
+        criticalCatalystHatches.clear();
         // GT structure checks can clear the lists without changing any port's TileEntity identity.
         hatchesDirty = true;
         meSnapshotTick = Long.MIN_VALUE;
@@ -361,6 +365,12 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         meSnapshotTick = Long.MIN_VALUE;
         portSnapshot.clear();
         portSnapshot.putAll(next);
+        for (TileEntity tile : next.values()) if (tile instanceof IGregTechTileEntity gt
+            && gt.getMetaTileEntity() instanceof gregtech.api.metatileentity.implementations.MTEHatchDataAccess data
+            && !criticalDataHatches.contains(data)) criticalDataHatches.add(data);
+        for (TileEntity tile : next.values()) if (tile instanceof IGregTechTileEntity gt && gt
+            .getMetaTileEntity() instanceof gregtech.api.metatileentity.implementations.MTEHatchBulkCatalystHousing catalyst
+            && !criticalCatalystHatches.contains(catalyst)) criticalCatalystHatches.add(catalyst);
         for (TileEntity tile : next.values())
             if (CriticalMachineState.isStandardHatchHost(tile) && tile instanceof IGregTechTileEntity gt)
                 if (!addMultiAmpEnergyInputToMachineList(
@@ -554,6 +564,67 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         return meFluidsSnapshot;
     }
 
+    public java.util.List<gregtech.api.metatileentity.implementations.MTEHatchInput> getCriticalInputHatches() {
+        return java.util.Collections.unmodifiableList(mInputHatches);
+    }
+
+    public java.util.List<gregtech.api.metatileentity.implementations.MTEHatchInputBus> getCriticalInputBusses() {
+        return java.util.Collections.unmodifiableList(mInputBusses);
+    }
+
+    public java.util.List<gregtech.api.metatileentity.implementations.MTEHatchOutput> getCriticalOutputHatches() {
+        return java.util.Collections.unmodifiableList(mOutputHatches);
+    }
+
+    public java.util.List<gregtech.api.metatileentity.implementations.MTEHatchOutputBus> getCriticalOutputBusses() {
+        return java.util.Collections.unmodifiableList(mOutputBusses);
+    }
+
+    public java.util.List<gregtech.api.util.GTRecipe.RecipeAssemblyLine> criticalAssemblyRecipes() {
+        java.util.Set<gregtech.api.util.GTRecipe.RecipeAssemblyLine> recipes = java.util.Collections
+            .newSetFromMap(new java.util.IdentityHashMap<>());
+        for (gregtech.api.metatileentity.implementations.MTEHatchDataAccess hatch : criticalDataHatches)
+            if (hatch.isValid()) recipes.addAll(hatch.getAssemblyLineRecipes());
+        return new java.util.ArrayList<>(recipes);
+    }
+
+    public long criticalRecipeVoltage() {
+        long voltage = 0;
+        for (MTEHatch hatch : getExoticAndNormalEnergyHatchList())
+            if (hatch.isValid()) voltage = Math.max(voltage, hatch.maxEUInput());
+        return voltage;
+    }
+
+    public long criticalRecipePower() {
+        return Math.min(
+            com.miaokatze.gtsr.common.critical.CriticalTier.T3.recipeVoltage() * 16L,
+            gregtech.api.util.GTUtility.addSafe(getBaseMetaTileEntity().getStoredEU(), availableHatchEnergyThisTick()));
+    }
+
+    public ItemStack[] criticalRecipeItemsSnapshot() {
+        java.util.List<ItemStack> items = new java.util.ArrayList<>();
+        java.util.Collections.addAll(items, criticalPhysicalItemsSnapshot());
+        java.util.Collections.addAll(items, criticalMEItemsSnapshot());
+        if (getCriticalState().getKind() == CriticalMachineKind.PROCESSING
+            && com.miaokatze.gtsr.common.critical.CriticalProcessingModes.selected(getCriticalState())
+                .equals(gregtech.api.recipe.RecipeMaps.quantumForceTransformerRecipes.unlocalizedName))
+            for (gregtech.api.metatileentity.implementations.MTEHatchBulkCatalystHousing hatch : criticalCatalystHatches)
+                if (hatch.isValid() && hatch.getItemStack() != null && hatch.getItemCount() > 0) {
+                    ItemStack catalyst = hatch.getItemStack()
+                        .copy();
+                    catalyst.stackSize = hatch.getItemCount();
+                    items.add(catalyst);
+                }
+        java.util.Set<gregtech.api.metatileentity.implementations.MTEHatchInputBus> seen = java.util.Collections
+            .newSetFromMap(new java.util.IdentityHashMap<>());
+        for (gregtech.api.metatileentity.implementations.MTEHatchInputBus bus : mInputBusses)
+            if (bus.isValid() && seen.add(bus) && bus.getCircuitSlot() >= 0) {
+                ItemStack circuit = bus.getStackInSlot(bus.getCircuitSlot());
+                if (circuit != null) items.add(circuit.copy());
+            }
+        return items.toArray(new ItemStack[0]);
+    }
+
     public ItemStack[] criticalPhysicalItemsSnapshot() {
         return com.miaokatze.gtsr.common.critical.CriticalHatchFunding.snapshotItems(mInputBusses);
     }
@@ -611,16 +682,14 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     }
 
     public boolean canConsumeCriticalEnergy(long amount) {
-        long budget = state.getTier()
-            .recipeVoltage() * 16L;
+        long budget = com.miaokatze.gtsr.common.critical.CriticalTier.T3.recipeVoltage() * 16L;
         long buffered = getBaseMetaTileEntity() == null ? 0L : getBaseMetaTileEntity().getStoredEU();
         return amount >= 0 && amount <= budget - energySpentThisTick
             && amount <= gregtech.api.util.GTUtility.addSafe(buffered, availableHatchEnergyThisTick());
     }
 
     public boolean consumeCriticalEnergy(long amount) {
-        long budget = state.getTier()
-            .recipeVoltage() * 16L;
+        long budget = com.miaokatze.gtsr.common.critical.CriticalTier.T3.recipeVoltage() * 16L;
         long buffered = getBaseMetaTileEntity().getStoredEU();
         if (amount < 0 || amount > budget - energySpentThisTick
             || amount > gregtech.api.util.GTUtility.addSafe(buffered, availableHatchEnergyThisTick())) return false;
@@ -822,6 +891,13 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     @Override
     public RecipeMap<?> getRecipeMap() {
+        if (presetKind == CriticalMachineKind.PROCESSING || presetKind == CriticalMachineKind.ASSEMBLY) {
+            String mode = com.miaokatze.gtsr.common.critical.CriticalProcessingModes.selected(getCriticalState());
+            if (com.miaokatze.gtsr.common.critical.CriticalProcessingModes.ASSEMBLY_LINE.equals(mode))
+                return gregtech.api.recipe.RecipeMaps.assemblylineVisualRecipes;
+            RecipeMap<?> map = com.miaokatze.gtsr.common.critical.CriticalProcessingModes.map(mode);
+            if (map != null) return map;
+        }
         return presetKind == null ? com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.displayRecipes
             : com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.forKind(presetKind);
     }

@@ -3616,8 +3616,8 @@ gtsr.critical.tooltip.dynamo=Output is at most 16A, limited by native dynamo vol
 gtsr.critical.tab.status=Status
 gtsr.critical.tab.configuration=Configuration
 gtsr.critical.tab.inventory=Input / output
-gtsr.critical.configuration_hint=Configuration is only editable before construction; at most eight plugins.
-gtsr.critical.configuration.section=Pre-construction settings · Maximum 8 plugins
+gtsr.critical.configuration_hint=Choose the machine type before construction; switch processes after formation when no batch is pending.
+gtsr.critical.configuration.section=Machine type and operating process
 gtsr.critical.loom.formed=Mimetic Loom: structure complete
 gtsr.critical.loom.unformed=Mimetic Loom: structure incomplete
 gtsr.critical.management_hint=Right-click the controller with a Mechanical Terminal to manage configuration and construction
@@ -3957,3 +3957,25 @@ gtsr.critical.v2.controllers=The loom and commissioned main are real GT controll
 gtsr.critical.v2.ports=Standard GT hatches fit only the declared construction and operating ports below.
 gtsr.critical.v2.loom_ports=Loom casing ring at Y=4 accepts optional item/fluid inputs and outputs, normal or multi-amp energy; no dynamo or maintenance hatch. Costs still apply; controllers and rails cannot be replaced.
 gtsr.critical.v2.main_ports=13 optional main operating ports: X=50..62, Y=5, Z=34. Leave air or install supported GT chambers, including dynamos; no maintenance hatch required. Keep the casing row below. Existing jobs retain Y=4 ports.
+
+# Critical functional energy backends
+item.IrradiatedMoonDust.name=Irradiated Moon Dust
+item.IrradiatedStoneDust.name=Irradiated Stone Dust
+gtsr.recipe.stellar_irradiation=Stellar Irradiation
+gtsr.critical.mode=Process selection
+gtsr.critical.mode.assembly_line=Unordered assembly line (researched data required)
+gtsr.critical.mode.qft_base=Quantum Force Transformer (base chances, unfocused)
+gtsr.critical.functional.rules=Fixed 400 ticks; ceil(original EU/t * parallels / 100); no overclock
+gtsr.critical.functional.decorative=Eight decorative T3 parallel modules; no functional plugins or numeric tiers
+gtsr.critical.functional.native_recipes=Executes the selected native recipe map, preserving inputs, chances, catalysts and voltage requirements
+gtsr.critical.steam_mode=Steam output mode
+gtsr.critical.nei.energy.solar=Distilled water and cold solar salt use independent logarithmic stock scaling * dimension Dyson factor
+gtsr.critical.nei.energy.turbine=All six steam families in all input hatches; 3200%; direct condensation; owner team wireless EU
+gtsr.critical.nei.energy.rate=%s EU per input litre (one whole-batch wireless increment)
+gtsr.critical.nei.energy.cycle=Fixed 400 ticks; no extra EU consumption; dense forms: 25 L water <=> 4 L steam
+gtsr.critical.steam_mode.0=Steam
+gtsr.critical.steam_mode.1=Superheated steam
+gtsr.critical.steam_mode.2=Supercritical steam
+gtsr.critical.steam_mode.3=Dense steam
+gtsr.critical.steam_mode.4=Dense superheated steam
+gtsr.critical.steam_mode.5=Dense supercritical steam

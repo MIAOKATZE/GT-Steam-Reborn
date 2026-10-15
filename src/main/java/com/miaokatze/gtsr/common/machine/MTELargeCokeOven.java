@@ -51,14 +51,13 @@ import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
-import gregtech.api.recipe.check.CheckRecipeResult;
-import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
+import gregtech.api.util.ParallelHelper;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
@@ -101,11 +100,13 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
             dualHatch.updateTexture(aBaseCasingIndex);
             dualHatch.updateCraftingIcon(this.getMachineCraftingIcon());
             if (!mDualInputHatches.contains(dualHatch)) {
+                addIfSmartInput(aMetaTileEntity);
                 mDualInputHatches.add(dualHatch);
             }
             return true;
         }
         if (aMetaTileEntity instanceof MTEHatchInputBus hatch) {
+            addIfSmartInput(hatch);
             hatch.mRecipeMap = getRecipeMap();
             hatch.updateTexture(aBaseCasingIndex);
             return mInputBusses.add(hatch);
@@ -119,6 +120,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity == null) return false;
         if (aMetaTileEntity instanceof MTEHatchOutputBus hatch) {
+            addIfSmartInput(hatch);
             hatch.updateTexture(aBaseCasingIndex);
             return mOutputBusses.add(hatch);
         }
@@ -399,24 +401,28 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
     protected ProcessingLogic createProcessingLogic() {
         return new ProcessingLogic() {
 
-            @Nonnull
-            @Override
-            protected CheckRecipeResult validateRecipe(@Nonnull GTRecipe recipe) {
-                // 焦炉配方 eut=0，无需电力检查；保留校验以兼容未来非零 eut 配方
-                if (availableVoltage < recipe.mEUt) {
-                    return CheckRecipeResultRegistry.insufficientPower(recipe.mEUt);
-                }
-                return CheckRecipeResultRegistry.SUCCESSFUL;
-            }
-
             @Override
             @Nonnull
             protected OverclockCalculator createOverclockCalculator(@Nonnull GTRecipe recipe) {
                 // 无电炉只按炉温缩时，不将不足一 tick 的加速转换为额外并行。
-                return super.createOverclockCalculator(recipe).setNoOverclock(true);
+                return super.createOverclockCalculator(recipe).setMaxTierSkips(Integer.MAX_VALUE)
+                    .setNoOverclock(true);
+            }
+
+            @Override
+            protected ParallelHelper createParallelHelper(@Nonnull GTRecipe recipe) {
+                // 纯热机没有能源仓；配方的 EU 元数据不应限制并行或触发电力门控。
+                long recipeBudget = Math.max(0L, recipe.mEUt) * Math.max(1, getMaxParallelRecipes());
+                return super.createParallelHelper(recipe).setAvailableEUt(Math.max(32L, recipeBudget));
             }
         }.setMaxParallelSupplier(this::getMaxParallelRecipes)
             .setSpeedBonusSupplier(this::getRecipeDurationMultiplier);
+    }
+
+    @Override
+    protected void setEnergyUsage(ProcessingLogic logic) {
+        super.setEnergyUsage(logic);
+        mEUt = 0;
     }
 
     /** 只供 GT5U 在配方检查时采样；已开始批次使用父类最终 mMaxProgresstime。 */

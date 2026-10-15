@@ -2,7 +2,7 @@ package com.miaokatze.gtsr.common.critical;
 
 import net.minecraft.nbt.NBTTagCompound;
 
-/** Immutable job snapshot. Plugin arithmetic acts on the original recipe values. */
+/** Immutable construction snapshot; functional plugins and tier upgrades have been retired. */
 public final class CriticalConfiguration {
 
     public final CriticalTier tier;
@@ -10,6 +10,11 @@ public final class CriticalConfiguration {
     public final int parallel, speed, economy;
 
     public CriticalConfiguration(CriticalTier tier, CriticalMachineKind kind, int parallel, int speed, int economy) {
+        this(tier, kind, parallel, speed, economy, true);
+    }
+
+    private CriticalConfiguration(CriticalTier tier, CriticalMachineKind kind, int parallel, int speed, int economy,
+        boolean newConstruction) {
         if (parallel < 0 || speed < 0
             || economy < 0
             || parallel > 8
@@ -20,23 +25,25 @@ public final class CriticalConfiguration {
             || kind == null) {
             throw new IllegalArgumentException("At most eight plugins");
         }
-        this.tier = tier;
+        // New construction uses the eight decorative T3 modules. A paid legacy geometry snapshot
+        // must remain byte-for-byte stable on load; its old fields no longer alter processing.
+        this.tier = newConstruction ? CriticalTier.T3 : tier;
         this.kind = kind;
-        this.parallel = parallel;
-        this.speed = speed;
-        this.economy = economy;
+        this.parallel = newConstruction ? 8 : parallel;
+        this.speed = newConstruction ? 0 : speed;
+        this.economy = newConstruction ? 0 : economy;
     }
 
     public int parallelMultiplier() {
-        return 1 << parallel;
+        return 1;
     }
 
     public int duration(int original) {
-        return (int) Math.max(1L, ((long) original + (1 << speed) - 1) >> speed);
+        return original;
     }
 
     public long energy(long original) {
-        return Math.max(1, original / 10 * (10 - economy) + (original % 10 * (10 - economy) + 9) / 10);
+        return original;
     }
 
     public NBTTagCompound write() {
@@ -58,6 +65,7 @@ public final class CriticalConfiguration {
             CriticalMachineKind.byId(n.getInteger("kind")),
             a,
             b,
-            c);
+            c,
+            false);
     }
 }
