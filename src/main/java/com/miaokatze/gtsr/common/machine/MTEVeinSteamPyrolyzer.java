@@ -91,6 +91,8 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
     private boolean mApplyFluidIncrease = false;
     public String mLockedFluidName = "";
     public int mChipRangeBonus = 0;
+    // MUI1 客户端没有服务端仓口列表，蒸汽类型通过专用同步通道显示。
+    private boolean mSuperheatedSteamForGui;
 
     public MTEVeinSteamPyrolyzer(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -552,6 +554,10 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
+            .widget(
+                new FakeSyncWidget.BooleanSyncer(
+                    this::hasSuperheatedSteamInHatch,
+                    val -> mSuperheatedSteamForGui = val))
             .widget(new FakeSyncWidget.StringSyncer(() -> mLockedFluidName, val -> mLockedFluidName = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mChipRangeBonus, val -> mChipRangeBonus = val))
             .widget(
@@ -564,8 +570,7 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
                 new TextWidget().setStringSupplier(
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
                         + EnumChatFormatting.YELLOW
-                        + (hasSuperheatedSteamInHatch()
-                            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+                        + (mSuperheatedSteamForGui ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
                             : StatCollector.translateToLocal("gtsr.gui.steam_type.normal"))))
             .widget(
                 new TextWidget().setStringSupplier(

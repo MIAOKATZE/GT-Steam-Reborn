@@ -9,6 +9,7 @@ import net.minecraftforge.fluids.FluidStack;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
@@ -30,6 +31,7 @@ public class MTEVeinSteamPyrolyzerGui extends MTESteamMultiBlockBaseGui {
         syncManager.syncValue("gtsr.tier", new IntSyncValue(() -> machine.mSetTier));
         syncManager.syncValue("gtsr.lockedFluidName", new StringSyncValue(() -> machine.mLockedFluidName));
         syncManager.syncValue("gtsr.chipRangeBonus", new IntSyncValue(() -> machine.mChipRangeBonus));
+        syncManager.syncValue("gtsr.superheatedSteam", new BooleanSyncValue(machine::hasSuperheatedSteamInHatch));
     }
 
     @Override
@@ -37,6 +39,8 @@ public class MTEVeinSteamPyrolyzerGui extends MTESteamMultiBlockBaseGui {
         IntSyncValue tierSyncer = syncManager.findSyncHandler("gtsr.tier", IntSyncValue.class);
         StringSyncValue lockedFluidSyncer = syncManager.findSyncHandler("gtsr.lockedFluidName", StringSyncValue.class);
         IntSyncValue chipRangeSyncer = syncManager.findSyncHandler("gtsr.chipRangeBonus", IntSyncValue.class);
+        BooleanSyncValue superheatedSyncer = syncManager
+            .findSyncHandler("gtsr.superheatedSteam", BooleanSyncValue.class);
 
         return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
             String tierText = tierSyncer.getValue() == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
@@ -49,8 +53,7 @@ public class MTEVeinSteamPyrolyzerGui extends MTESteamMultiBlockBaseGui {
             .marginBottom(2)
             .fullWidth())
             .child(IKey.dynamic(() -> {
-                boolean isSuperheated = ((com.miaokatze.gtsr.common.machine.MTEVeinSteamPyrolyzer) multiblock)
-                    .hasSuperheatedSteamInHatch();
+                boolean isSuperheated = superheatedSyncer.getValue();
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
                     + EnumChatFormatting.YELLOW
                     + (isSuperheated ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
