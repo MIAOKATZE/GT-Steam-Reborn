@@ -1,0 +1,10 @@
+[
+  {"command": "gtsrtest status", "expect": "GTSR-TESTLAB.*state=", "timeout": 30},
+  {"command": "gtsrtest list", "expect": "GTSR-TESTLAB.*id=cluster_unit_logistics", "timeout": 30},
+  {"command": "gtsrtest run does_not_exist", "expect": "GTSR-TESTLAB.*ERROR", "timeout": 30},
+  {"command": "gtsrtest regenerate steam_input_hatch_generic", "expect": "GTSR-TESTLAB.*state=COMPLETE", "timeout": 300},
+  {"command": "gtsrtest regenerate large_coke_oven", "expect": "GTSR-TESTLAB.*state=COMPLETE", "timeout": 600},
+  {"command": "gtsrtest ui all", "expect": "GTSR-TESTLAB.*state=COMPLETE", "timeout": 600},
+  {"command": "gtsrtest supply 0 65 0 steam", "expect": "GTSR-TESTLAB.*ERROR", "timeout": 30},
+  {"command": "gtsrtest supply clear", "expect": "GTSR-TESTLAB.*supply=CLEARED", "timeout": 30}
+]

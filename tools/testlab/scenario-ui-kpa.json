@@ -1,0 +1,12 @@
+[
+  {
+    "command": "gtsrtest ui all",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 600
+  },
+  {
+    "command": "gtsrtest regenerate kinetic_processing_array",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  }
+]

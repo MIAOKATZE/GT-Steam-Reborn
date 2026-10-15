@@ -1,0 +1,12 @@
+[
+  {
+    "command": "gtsrtest regenerate critical_solar",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 1200
+  },
+  {
+    "command": "gtsrtest regenerate critical_solar",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 1200
+  }
+]
