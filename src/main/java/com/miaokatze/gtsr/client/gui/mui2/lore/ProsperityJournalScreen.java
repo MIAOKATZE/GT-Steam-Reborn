@@ -15,14 +15,12 @@ import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
-import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinSite;
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.JournalCatalog;
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.JournalChapter;
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.JournalEntry;
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.JournalTab;
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreNetwork;
-import com.miaokatze.gtsr.common.gui.mui2.TerminalUiStyle;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -190,7 +188,7 @@ public final class ProsperityJournalScreen extends ModularScreen {
 
         public ModularPanel buildPanel() {
             ModularPanel panel = new ModularPanel(PANEL).size(490, 300)
-                .background(TerminalUiStyle.PANEL);
+                .background(LoreUiStyle.JOURNAL_PANEL);
             directory = new ListWidget<>().name("journal.directory")
                 .width(112)
                 .heightRel(1f)
@@ -205,21 +203,21 @@ public final class ProsperityJournalScreen extends ModularScreen {
                 .childPadding(3);
             for (JournalTab value : JournalTab.values()) tabs.child(
                 LoreWidgets
-                    .button("journal.tab." + value.id, value.titleKey(), () -> { if (tab != value) selectTab(value); })
-                    .expanded()
-                    .overlay(
-                        IKey.lang(value.titleKey())
-                            .color(() -> tab == value ? GtsrGuiPalette.TEXT_ACCENT : GtsrGuiPalette.TEXT_BODY)));
-            appendixButton = LoreWidgets.button("journal.appendix", "lore.appendix", this::toggleAppendix)
-                .width(86)
-                .overlay(
-                    IKey.lang(
-                        () -> appendix ? "lore.appendix.return"
-                            : kingUnlocked ? "lore.appendix" : "lore.appendix.locked")
-                        .color(GtsrGuiPalette.TEXT_BODY));
+                    .action(
+                        LoreUiStyle.button(IKey.lang(value.titleKey()), () -> tab == value),
+                        "journal.tab." + value.id,
+                        () -> { if (tab != value) selectTab(value); })
+                    .expanded());
+            appendixButton = LoreWidgets.button(
+                "journal.appendix",
+                IKey.lang(
+                    () -> appendix ? "lore.appendix.return" : kingUnlocked ? "lore.appendix" : "lore.appendix.locked"),
+                this::toggleAppendix)
+                .width(86);
             Flow article = Flow.col()
                 .expanded()
                 .heightRel(1f)
+                .background(LoreUiStyle.JOURNAL_PAPER)
                 .childPadding(4)
                 .child(
                     Flow.row()
@@ -228,7 +226,8 @@ public final class ProsperityJournalScreen extends ModularScreen {
                         .child(
                             IKey.lang(this::titleKey)
                                 .asWidget()
-                                .color(GtsrGuiPalette.TEXT_TITLE)
+                                .color(LoreUiStyle.JOURNAL_ARTICLE_TITLE)
+                                .shadow(false)
                                 .expanded())
                         .child(appendixButton))
                 .child(body);
@@ -253,7 +252,8 @@ public final class ProsperityJournalScreen extends ModularScreen {
                     .child(
                         IKey.lang("lore.book.title")
                             .asWidget()
-                            .color(GtsrGuiPalette.TEXT_TITLE)
+                            .color(LoreUiStyle.JOURNAL_TITLE)
+                            .shadow(false)
                             .widthRel(1f)
                             .height(18))
                     .child(tabs)
@@ -273,22 +273,30 @@ public final class ProsperityJournalScreen extends ModularScreen {
         private void refreshDirectory() {
             if (directory == null) return;
             directory.removeAll();
-            for (JournalEntry entry : JournalCatalog.entries(tab)) directory.child(
-                LoreWidgets.button("journal.entry." + entry.id, entry.titleKey(), () -> selectEntry(entry.id))
-                    .widthRel(1f)
-                    .height(27)
-                    .tooltipBuilder(t -> t.addLine(IKey.lang(entry.titleKey())))
-                    .overlay(
-                        IKey.dynamic(
-                            () -> (currentEntry().id.equals(entry.id) ? "§e● " : "")
-                                + net.minecraft.util.StatCollector.translateToLocal(entry.titleKey()))
-                            .color(GtsrGuiPalette.TEXT_BODY)));
+            List<JournalEntry> entries = JournalCatalog.entries(tab);
+            for (int index = 0; index < entries.size(); index++) {
+                JournalEntry entry = entries.get(index);
+                final int number = index + 1;
+                directory.child(
+                    LoreWidgets
+                        .action(
+                            LoreUiStyle.forestEntry(
+                                IKey.dynamic(
+                                    () -> number + " · "
+                                        + net.minecraft.util.StatCollector.translateToLocal(entry.titleKey())),
+                                () -> currentEntry().id.equals(entry.id)),
+                            "journal.entry." + entry.id,
+                            () -> selectEntry(entry.id))
+                        .widthRel(1f)
+                        .height(27)
+                        .tooltipBuilder(t -> t.addLine(IKey.lang(entry.titleKey()))));
+            }
         }
 
         private void refreshBody() {
             if (body == null) return;
             restoreBodyScroll = -1;
-            LoreWidgets.paragraphs(body, paragraphKeys());
+            LoreWidgets.paragraphs(body, paragraphKeys(), LoreUiStyle.JOURNAL_TEXT);
             body.getScrollData()
                 .scrollTo(body.getScrollArea(), 0);
             appendixButton.setEnabled(currentEntry().isGiantTree());

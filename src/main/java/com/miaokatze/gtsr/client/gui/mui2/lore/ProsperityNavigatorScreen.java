@@ -18,10 +18,8 @@ import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
-import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
 import com.miaokatze.gtsr.common.commands.RuinLocateCommand;
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.NavigatorNetwork;
-import com.miaokatze.gtsr.common.gui.mui2.TerminalUiStyle;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -163,7 +161,7 @@ public final class ProsperityNavigatorScreen extends ModularScreen {
 
         public ModularPanel buildPanel() {
             ModularPanel panel = new ModularPanel(PANEL).size(440, 330)
-                .background(TerminalUiStyle.PANEL);
+                .background(LoreUiStyle.NAVIGATOR_PANEL);
             directory = new ListWidget<>().name("navigator.directory")
                 .widthRel(1f)
                 .expanded()
@@ -171,6 +169,9 @@ public final class ProsperityNavigatorScreen extends ModularScreen {
             TextFieldWidget search = new TextFieldWidget().name("navigator.search")
                 .widthRel(1f)
                 .height(20)
+                .background(LoreUiStyle.NAVIGATOR_SEARCH)
+                .hoverBackground(LoreUiStyle.NAVIGATOR_SEARCH)
+                .setTextColor(0xFFE0E0E0)
                 .value(new StringValue.Dynamic(() -> query, this::search))
                 .setMaxLength(64)
                 .autoUpdateOnChange(true)
@@ -183,7 +184,8 @@ public final class ProsperityNavigatorScreen extends ModularScreen {
                     .child(
                         IKey.lang("gtsr.navigator.title")
                             .asWidget()
-                            .color(GtsrGuiPalette.TEXT_TITLE)
+                            .color(LoreUiStyle.NAVIGATOR_TITLE)
+                            .shadow(true)
                             .widthRel(1f)
                             .height(18))
                     .child(search)
@@ -194,7 +196,8 @@ public final class ProsperityNavigatorScreen extends ModularScreen {
                                 ? StatCollector.translateToLocalFormatted(statusKey, x, z, distance)
                                 : StatCollector.translateToLocal(statusKey))
                             .asWidget()
-                            .color(GtsrGuiPalette.TEXT_BODY)
+                            .color(LoreUiStyle.NAVIGATOR_TITLE)
+                            .shadow(false)
                             .name("navigator.status")
                             .widthRel(1f)
                             .textAlign(Alignment.TopLeft))
@@ -235,18 +238,21 @@ public final class ProsperityNavigatorScreen extends ModularScreen {
                     .contains(filter)) continue;
                 found++;
                 directory.child(
-                    LoreWidgets.button("navigator.entry." + id, "", () -> select(identity))
+                    LoreWidgets
+                        .button(
+                            "navigator.entry." + id,
+                            IKey.dynamic(
+                                () -> (selected == identity ? "§e● " : "") + RuinLocateCommand.displayName(id)),
+                            () -> select(identity))
                         .widthRel(1f)
                         .height(27)
-                        .tooltipBuilder(t -> t.addLine(IKey.dynamic(() -> RuinLocateCommand.displayName(id))))
-                        .overlay(
-                            IKey.dynamic(() -> (selected == identity ? "§e● " : "") + RuinLocateCommand.displayName(id))
-                                .color(GtsrGuiPalette.TEXT_BODY)));
+                        .tooltipBuilder(t -> t.addLine(IKey.dynamic(() -> RuinLocateCommand.displayName(id)))));
             }
             if (found == 0) directory.child(
                 IKey.lang("gtsr.navigator.no_match")
                     .asWidget()
-                    .color(GtsrGuiPalette.TEXT_MUTED)
+                    .color(LoreUiStyle.NAVIGATOR_MUTED)
+                    .shadow(true)
                     .widthRel(1f));
             directory.getScrollData()
                 .scrollTo(directory.getScrollArea(), 0);

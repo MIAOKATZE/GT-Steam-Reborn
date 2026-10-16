@@ -201,7 +201,9 @@ public final class UiGalleryBatch {
         }catch(Throwable error){serverFailure=error;request=0;}
     }
     void prepare()throws Exception {
-        call(q.serverPlayer,"closeScreen|func_71053_j");Object inv=field(q.serverPlayer,"inventory|field_71071_by");set(inv,"currentItem|field_70461_c",0);call(inv,"setInventorySlotContents|func_70299_a",0,(Object)null);
+        // Client-only visual panels have no server window: closing the default inventory can send
+        // a redundant close-window packet after the new local screen opens. Real containers still close.
+        if(!isVisual(row)||field(q.serverPlayer,"openContainer|field_71070_bA")!=field(q.serverPlayer,"inventoryContainer|field_71069_bz"))call(q.serverPlayer,"closeScreen|func_71053_j");Object inv=field(q.serverPlayer,"inventory|field_71071_by");set(inv,"currentItem|field_70461_c",0);call(inv,"setInventorySlotContents|func_70299_a",0,(Object)null);
         if(str(row,"variant","").equals("terminal")){Object terminal=call(field(type(G+"common.api.enums.GTSRItemList"),"HubTerminal"),"get",1);call(inv,"setInventorySlotContents|func_70299_a",0,terminal);}
         if(isVisual(row)&&!str(row,"visual","").equals("chest")){currentFixture=null;windowId=0;expectedValues=Collections.emptyMap();return;}
         String kind=str(row,"kind","chest");Object[] f=fixtures.get(kind);Object w=world();

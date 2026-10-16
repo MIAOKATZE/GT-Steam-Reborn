@@ -13,10 +13,8 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
-import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
 import com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStoryNetwork;
 import com.miaokatze.gtsr.common.dimension.prosperity.altar.TileSpacetimeAltarStory;
-import com.miaokatze.gtsr.common.gui.mui2.TerminalUiStyle;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -87,7 +85,7 @@ public final class SpacetimeAltarStoryScreen extends ModularScreen {
 
         public ModularPanel buildPanel() {
             ModularPanel panel = new ModularPanel(PANEL).size(420, 300)
-                .background(TerminalUiStyle.PANEL);
+                .background(LoreUiStyle.ALTAR_PANEL);
             ListWidget<IWidget, ?> text = new ListWidget<>().name("altar.paragraphs")
                 .widthRel(1f)
                 .expanded();
@@ -98,7 +96,8 @@ public final class SpacetimeAltarStoryScreen extends ModularScreen {
                     "gtsr.altar.story.2",
                     "gtsr.altar.story.3",
                     "gtsr.altar.story.4",
-                    "gtsr.altar.story.5"));
+                    "gtsr.altar.story.5"),
+                LoreUiStyle.ALTAR_TEXT);
             panel.child(
                 Flow.col()
                     .sizeRel(1f)
@@ -107,7 +106,8 @@ public final class SpacetimeAltarStoryScreen extends ModularScreen {
                     .child(
                         IKey.lang("lore.entry.structures.spacetime_altar.title")
                             .asWidget()
-                            .color(GtsrGuiPalette.TEXT_TITLE)
+                            .color(LoreUiStyle.ALTAR_TITLE)
+                            .shadow(true)
                             .widthRel(1f)
                             .height(20))
                     .child(text)

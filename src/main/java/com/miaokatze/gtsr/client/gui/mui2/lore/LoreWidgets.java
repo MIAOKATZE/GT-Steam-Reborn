@@ -7,8 +7,6 @@ import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.TextWidget;
-import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
-import com.miaokatze.gtsr.common.gui.mui2.TerminalUiStyle;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -19,8 +17,15 @@ final class LoreWidgets {
     private LoreWidgets() {}
 
     static ButtonWidget<?> button(String name, String key, Runnable action) {
-        return TerminalUiStyle.button(key)
-            .name(name)
+        return button(name, IKey.lang(key), action);
+    }
+
+    static ButtonWidget<?> button(String name, IKey label, Runnable action) {
+        return action(LoreUiStyle.button(label), name, action);
+    }
+
+    static ButtonWidget<?> action(ButtonWidget<?> widget, String name, Runnable action) {
+        return widget.name(name)
             .height(20)
             .onMousePressed(button -> {
                 if (button != 0) return false;
@@ -29,10 +34,10 @@ final class LoreWidgets {
             });
     }
 
-    static void paragraphs(ListWidget<IWidget, ?> list, Iterable<String> keys) {
+    static void paragraphs(ListWidget<IWidget, ?> list, Iterable<String> keys, int color) {
         list.removeAll();
         for (String key : keys) list.child(
-            new ParagraphText(IKey.lang(key)).color(GtsrGuiPalette.TEXT_BODY)
+            new ParagraphText(IKey.lang(key)).color(color)
                 .widthRel(1f)
                 .marginBottom(7)
                 .textAlign(Alignment.TopLeft)

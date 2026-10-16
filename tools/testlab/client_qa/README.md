@@ -100,6 +100,8 @@ python -X utf8 tools/testlab/client_qa/summarize_run.py `
 
 缓存节点编辑器绑定状态、Critical 长状态/高位读数及工具剧情本地 snapshot 均明确标注为视觉 fixture，不作为绑定、工作吞吐或物品/S2C路由验收。`gallery_report.py` 将完整清单、真实 PNG 和逐图 SHA 汇成可离线打开的 `index.html`；不可达、失败及未截图项目均保留。经审计确认字节一致的图可显式继承，实际 render 候选 SHA 与最终候选 SHA 分别记录。
 
+客户端视觉 builder 开窗前，若服务端仅持有默认 `inventoryContainer`，跳过冗余 `closeScreen`；实际打开的服务端容器仍关闭。v1.21.40 祭坛视觉项曾两次出现 `GUI=null` 超时，失败原件保留；加此 guard 后单项及同 JVM 的 Navigator→Altar 顺序对照均捕获成功。该对照支持探针关闭链修正，不代表已证实原失败的具体数据包来源，也不验证生产 wrapper 鉴权。
+
 早期 `gallery_plan.py` / `--mode gallery` 混入功能回归的方案已停止，只为本轮历史失败证据复现而保留，不作为当前截图入口。正式库存及工具剧情原计划不覆盖、不混入新的事件队列。
 
 这条路径能核对 GL 实际绘制、MUI2 hit-test/focus、文本事件、集成服务端业务与 container 生命周期。合成输入不是人工 OS/IME 测试，`LocalChannel` 不是 TCP；专用服务端、远程网络及物理输入须由对应独立证据覆盖。截图只有在实际 render pipeline 调用绘制并留存可见正文时才可作为该视觉项证据。任何 client-only 项未执行时保留 `SKIP/NOT_RUN`，不从 headless UI PASS 推断客户端画面通过。
