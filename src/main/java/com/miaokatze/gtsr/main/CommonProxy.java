@@ -88,8 +88,13 @@ public class CommonProxy {
             }
         }
         Config.synchronizeConfiguration(newConfigFile);
-        com.miaokatze.gtsr.common.dimension.testlab.TestLabDimension.register();
-        com.miaokatze.gtsr.common.dimension.testlab.TestLabRuntime.register();
+        // 调用方先守卫，关闭时不加载测试维度及 Runtime 类，也不注册监听。
+        if (Config.testLabEnabled) {
+            com.miaokatze.gtsr.common.dimension.testlab.TestLabDimension.register();
+            if (com.miaokatze.gtsr.common.dimension.testlab.TestLabDimension.enabled()) {
+                com.miaokatze.gtsr.common.dimension.testlab.TestLabRuntime.register();
+            }
+        }
         ProsperityIndustrialMaterials
             .configure(new File(event.getModConfigurationDirectory(), "gtsr/industrial-material-ids.cfg"));
         // dim1 S3：繁荣四空气材料 handler 必须在 GTSR 自身首次触碰 gregtech Materials 类之前登记
@@ -329,8 +334,10 @@ public class CommonProxy {
      * 用于注册服务器端命令。
      */
     public void serverStarting(FMLServerStartingEvent event) {
-        com.miaokatze.gtsr.common.dimension.testlab.TestLabRuntime.INSTANCE.serverStarting();
-        event.registerServerCommand(new com.miaokatze.gtsr.common.dimension.testlab.TestLabCommand());
+        if (Config.testLabEnabled && com.miaokatze.gtsr.common.dimension.testlab.TestLabDimension.enabled()) {
+            com.miaokatze.gtsr.common.dimension.testlab.TestLabRuntime.INSTANCE.serverStarting();
+            event.registerServerCommand(new com.miaokatze.gtsr.common.dimension.testlab.TestLabCommand());
+        }
         event.registerServerCommand(new GTSRCommand());
         event.registerServerCommand(new SpacetimeAuditCommand());
         event.registerServerCommand(new com.miaokatze.gtsr.common.commands.WeaponAuditCommand());

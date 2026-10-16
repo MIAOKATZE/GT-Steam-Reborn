@@ -1,0 +1,12 @@
+[
+  {
+    "command": "gtsrtest status",
+    "expect": "Unknown command|commands.generic.notFound",
+    "timeout": 180
+  },
+  {
+    "command": "list",
+    "expect": "There are .*players online|commands.players.list",
+    "timeout": 60
+  }
+]

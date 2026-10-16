@@ -62,7 +62,8 @@ public abstract class GameRegistryMixin {
         }
         ci.cancel();
         // The laboratory has no natural or mod-owned generation at all.
-        if (world.provider instanceof com.miaokatze.gtsr.common.dimension.testlab.TestLabWorldProvider) return;
+        if (com.miaokatze.gtsr.config.Config.testLabEnabled
+            && world.provider instanceof com.miaokatze.gtsr.common.dimension.testlab.TestLabWorldProvider) return;
         if (sortedGeneratorList == null) {
             computeSortedGeneratorList();
         }

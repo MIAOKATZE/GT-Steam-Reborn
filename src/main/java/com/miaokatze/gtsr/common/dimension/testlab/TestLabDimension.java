@@ -16,6 +16,7 @@ public final class TestLabDimension {
     private TestLabDimension() {}
 
     public static void register() {
+        if (!Config.testLabEnabled) return;
         definition = new GTSRDimensionDef(
             "testlab",
             "GTSR Machine Test Laboratory",

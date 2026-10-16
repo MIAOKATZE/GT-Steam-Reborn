@@ -67,6 +67,36 @@ def prepare(args) -> None:
     smoke.write_json(preparation, receipt)
 
 
+def lab_dimension_id(config: Path) -> int:
+    text = config.read_text(encoding="utf-8-sig") if config.exists() else ""
+    category = re.search(r'^\s*"?testlab"?\s*\{(.*?)^\s*\}', text, re.M | re.S)
+    value = re.search(r'^\s*I:"?dimensionId"?\s*=\s*(-?\d+)\s*$', category[1], re.M) if category else None
+    return int(value[1]) if value else 1048577
+
+
+def lab_enabled(config: Path) -> bool:
+    text = config.read_text(encoding="utf-8-sig") if config.exists() else ""
+    category = re.search(r'^\s*"?testlab"?\s*\{(.*?)^\s*\}', text, re.M | re.S)
+    value = re.search(r'^\s*B:"?enabled"?\s*=\s*(true|false)\s*$', category[1], re.M | re.I) if category else None
+    return bool(value and value[1].lower() == "true")
+
+
+def disabled_fingerprint(world: Path, dimension_id: int) -> dict:
+    """Inspect only this sandbox world's test reports and lab dimension, without writing."""
+    result = {}
+    for root in (world / "gtsr-testlab", world / f"DIM{dimension_id}"):
+        entries = [root, *sorted(root.rglob("*"))] if root.exists() else []
+        result[root.name] = {"exists": root.exists(), "entries": {}}
+        for path in entries:
+            stat = path.stat()
+            result[root.name]["entries"][str(path.relative_to(world))] = {
+                "kind": "directory" if path.is_dir() else "file",
+                "mtime_ns": stat.st_mtime_ns,
+                "sha256": smoke.sha256(path) if path.is_file() else None,
+            }
+    return result
+
+
 def run(args) -> None:
     runner_sha256 = smoke.sha256(Path(__file__))
     print("PRECHECK isolated server directory", flush=True)
@@ -103,16 +133,43 @@ def run(args) -> None:
                "forced_stop": False, "status": "RUNNING"}
     properties = (sandbox / "server.properties").read_text(encoding="utf-8-sig")
     lab_config = sandbox / "config/gtsr/gtsr.cfg"
+    dimension_id = lab_dimension_id(lab_config)
+    receipt["expect_disabled"] = args.expect_disabled
+    receipt["disabled_mode_violations"] = []
+    receipt["class_loading"] = {"enabled": args.trace_class_loading}
+    world = None
+    if args.expect_disabled:
+        level_names = re.findall(r"^level-name=(.*)$", properties, re.M)
+        world = (sandbox / (level_names[-1].strip() if level_names else "world")).resolve()
+        if world == sandbox or not world.is_relative_to(sandbox):
+            raise ValueError("Disabled-mode world must be inside this sandbox")
+        receipt["disabled_fingerprint"] = {
+            "world": str(world), "dimension_id": dimension_id,
+            "before": disabled_fingerprint(world, dimension_id),
+        }
     receipt["runtime_configuration"] = {
         "server_properties_sha256": smoke.sha256(sandbox / "server.properties"),
         "level_name": re.findall(r"^level-name=(.*)$", properties, re.M),
         "level_type": re.findall(r"^level-type=(.*)$", properties, re.M),
         "gtsr_config_sha256": smoke.sha256(lab_config) if lab_config.exists() else None,
+        "testlab_enabled": lab_enabled(lab_config),
     }
     process = None
     reader = None
     events = queue.Queue()
     started = time.monotonic()
+
+    def observe_disabled(decoded):
+        if args.expect_disabled and (
+                "[GTSR-TESTLAB]" in decoded
+                or re.search(r"\bdimension\s+testlab\b", decoded, re.I)
+                or re.search(rf"\bLoading\s+dimension\s*{dimension_id}(?:\s|$)", decoded, re.I)):
+            receipt["disabled_mode_violations"].append(decoded.strip())
+            receipt["status"] = "FAIL"
+            print("DISABLED MODE FAILED " + decoded.strip(), flush=True)
+            return True
+        return False
+
     try:
         print("CHECKING copied mod inventory", flush=True)
         for index, previous in enumerate((sandbox / "mods").rglob("*.jar"), 1):
@@ -130,7 +187,15 @@ def run(args) -> None:
         command = [java, "-Xms1G", f"-Xmx{args.xmx_gib}G", "-Djava.awt.headless=true",
                    "-Dfml.readTimeout=180", "-Duser.language=en", "@java9args.txt",
                    "-jar", "lwjgl3ify-forgePatches.jar", "nogui"]
-        receipt["java_version"] = subprocess.run([java, "-version"], capture_output=True, text=True).stderr
+        receipt["java_version"] = subprocess.run(
+            [java, "-version"], capture_output=True, text=True, timeout=30).stderr
+        if args.trace_class_loading:
+            version = re.search(r'version "(?:1\.)?(\d+)', receipt["java_version"])
+            if not version or int(version[1]) < 9:
+                raise ValueError("--trace-class-loading requires Java 9+ unified JVM logging")
+            trace_relative = (result_dir / "class-loading.log").relative_to(sandbox).as_posix()
+            command.insert(1, f"-Xlog:class+load=info:file={trace_relative}")
+            receipt["class_loading"]["file"] = str(result_dir / "class-loading.log")
         process = subprocess.Popen(command, cwd=sandbox, stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         receipt.update(pid=process.pid, command=command)
@@ -159,11 +224,18 @@ def run(args) -> None:
                     log.write(line)
                     log.flush()
                     decoded = line.decode("utf-8", "replace")
+                    if observe_disabled(decoded):
+                        stop_at = stop_at or now
                     if "GTSR-TESTLAB" in decoded or "[GTSR_TESTLAB]" in decoded:
                         print(decoded.rstrip(), flush=True)
                     if re.search(r"Done \([\d.]+s\)!", decoded):
                         receipt["vanilla_done_seen"] = True
-                        print("VANILLA INITIALIZED; awaiting first real GTSR server tick", flush=True)
+                        if args.expect_disabled:
+                            receipt["done_seen"] = True
+                            receipt["native_ready_line"] = decoded.strip()
+                            print("VANILLA READY; checking disabled testlab", flush=True)
+                        else:
+                            print("VANILLA INITIALIZED; awaiting first real GTSR server tick", flush=True)
                     if re.search(r"GTSR-TESTLAB\] state=READY(?:\s|$)", decoded):
                         receipt["done_seen"] = True
                         receipt["native_ready_line"] = decoded.strip()
@@ -242,14 +314,48 @@ def run(args) -> None:
                     line = events.get_nowait()
                     if line is not None:
                         log.write(line)
+                        observe_disabled(line.decode("utf-8", "replace"))
         receipt.update(exit_code=process.returncode if process else None,
                        elapsed_seconds=round(time.monotonic() - started, 2))
+        receipt["runtime_configuration"].update(
+            gtsr_config_sha256_after=smoke.sha256(lab_config) if lab_config.exists() else None,
+            testlab_enabled_after=lab_enabled(lab_config))
         receipt["reports"] = []
-        for report in sandbox.glob("*/gtsr-testlab/*.json"):
+        for report in ([] if args.expect_disabled else sandbox.glob("*/gtsr-testlab/*.json")):
             target = result_dir / "reports" / report.name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(report, target)
             receipt["reports"].append({"file": str(target), "sha256": smoke.sha256(target)})
+        if args.expect_disabled:
+            fingerprint = receipt["disabled_fingerprint"]
+            fingerprint["after"] = disabled_fingerprint(world, dimension_id)
+            fingerprint["unchanged"] = fingerprint["before"] == fingerprint["after"]
+            if not fingerprint["unchanged"] or receipt["disabled_mode_violations"]:
+                receipt["status"] = "FAIL"
+        if args.trace_class_loading:
+            trace = result_dir / "class-loading.log"
+            loaded = set()
+            total_loaded = 0
+            if trace.is_file():
+                with trace.open(encoding="utf-8", errors="replace") as lines:
+                    for line in lines:
+                        if re.search(r"\[class,load\s*\]\s+", line):
+                            total_loaded += 1
+                        match = re.search(
+                            r"\[class,load\s*\]\s+(com\.miaokatze\.gtsr\.common\.dimension\.testlab\.\S+)", line)
+                        if match:
+                            loaded.add(match[1])
+                receipt["class_loading"].update(log_sha256=smoke.sha256(trace), log_bytes=trace.stat().st_size)
+                if not total_loaded:
+                    receipt["class_loading"]["error"] = "JVM trace contained no class-loading records"
+                    receipt["status"] = "FAIL"
+            else:
+                receipt["class_loading"]["error"] = "JVM class-loading log was not produced"
+                receipt["status"] = "FAIL"
+            receipt["class_loading"].update(loaded_testlab_classes=sorted(loaded), loaded_testlab_count=len(loaded),
+                                            total_loaded_class_lines=total_loaded)
+            if args.expect_disabled and loaded:
+                receipt["status"] = "FAIL"
         if receipt["exit_code"] != 0 or receipt["forced_stop"] or receipt["status"] != "PASS":
             receipt["status"] = "FAIL"
         smoke.write_json(result_dir / "receipt.json", receipt)
@@ -270,6 +376,10 @@ def main():
     parser.add_argument("--xmx-gib", type=int, choices=[3, 4, 6, 8], default=3)
     parser.add_argument("--deadline", type=int, default=1800)
     parser.add_argument("--wait-memory-seconds", type=int, default=600)
+    parser.add_argument("--expect-disabled", action="store_true",
+                        help="Start scenarios at vanilla Done; require silent, inactive testlab and unchanged lab data")
+    parser.add_argument("--trace-class-loading", action="store_true",
+                        help="Java 9+ only: trace class loading in the owned JVM; disabled mode requires zero testlab classes")
     args = parser.parse_args()
     if args.action == "prepare" and args.instance is None:
         parser.error("prepare requires --instance")

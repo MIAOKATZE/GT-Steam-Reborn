@@ -12,8 +12,9 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
  */
 public class Config {
 
+    /** Opt-in at startup; changing this setting requires a restart. */
+    public static boolean testLabEnabled = false;
     /** Isolated lab IDs avoid GalaxySpace's reserved 80 and Outpost's 1048576; collisions never migrate. */
-    public static boolean testLabEnabled = true;
     public static int testLabDimId = 1048577;
     public static int testLabProviderId = 1048577;
 
@@ -373,7 +374,7 @@ public class Config {
             "破碎维度奇点频率倍增分母（破碎分支频率 = singularitySpawnFrequency/N，默认 8 = 等效 8 倍密度；范围 1-64）");
 
         testLabEnabled = configuration
-            .getBoolean("enabled", "testlab", testLabEnabled, "启用独立 OP 机器测试维度（/gtsrtest）；ID 冲突自动禁用，不抢占。");
+            .getBoolean("enabled", "testlab", false, "启用独立 OP 机器测试维度（/gtsrtest），默认 false；修改后须重启。ID 冲突自动禁用，不抢占。");
         testLabDimId = configuration.getInt(
             "dimensionId",
             "testlab",
