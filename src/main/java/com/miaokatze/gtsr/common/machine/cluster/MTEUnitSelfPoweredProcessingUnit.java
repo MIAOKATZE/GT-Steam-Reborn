@@ -4,6 +4,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static gregtech.api.enums.HatchElement.Energy;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -11,6 +12,7 @@ import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.IIconContainer;
@@ -82,10 +84,12 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private IStructureElement energyHatchElement() {
-        return buildHatchAdder(this.getClass()).anyOf(Energy)
-            .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10))
-            .hint(1)
-            .build();
+        return GTSRStructureUtility.hatchWithCandidates(
+            buildHatchAdder(this.getClass()).anyOf(Energy)
+                .descriptions(() -> Collections.singletonList("gtsr.structure.cluster.processing.energy"))
+                .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10))
+                .hint(1),
+            Energy);
     }
 
     /**
@@ -93,12 +97,17 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
      * casingFamilyTier）或 {@link #energyHatchElement()}——任意 A 机壳位可替换为能源 hatch（入
      * mEnergyHatches，成型末尾统一刷新贴图；每 A 位至多一枚，天然上限=本单元 A 位数量；重复注册
      * 由 GT5U checkStructure→clearHatches 每轮清表防双计）。与 P 位同元素（同 casingIndex/hint），
-     * 误改全部 A 位为能源仓必选不会发生——外壳分支仍为默认首选形态。
+     * A 位能源仓优先，外壳作为回退；基类只给真实 A 外壳计数，P 位始终无外壳回退。
      */
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     protected IStructureElement tieredCasingElement() {
-        return ofChain(super.tieredCasingElement(), energyHatchElement());
+        return ofChain(energyHatchElement(), super.tieredCasingElement());
+    }
+
+    @Override
+    protected int requiredCasingPorts() {
+        return Math.max(0, 1 - countUnitShapeChar('P'));
     }
 
     // ==================== 运行期 EU 真扣（r6-S6） ====================
@@ -240,10 +249,10 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
 
     /**
      * 能源仓数量区间段（T15，子类仓室群共用）：下限 1（{@link #checkMachine} 强制），上限=本单元
-     * shape 的 A 位数量+P 位（每个位置至多承载一枚能源仓，物理天然封顶，不设更紧的人为上限）。
+     * shape 的 A 位数量减去最低保留外壳再加 P 位；P 仍为纯能源位，不计入机械外壳。
      */
     protected String energyHatchCountRange() {
-        return String.format("1-%d", countUnitShapeChar('A') + countUnitShapeChar('P'));
+        return String.format("1-%d", countUnitShapeChar('A') - minimumUnitCasings() + countUnitShapeChar('P'));
     }
 
     /**

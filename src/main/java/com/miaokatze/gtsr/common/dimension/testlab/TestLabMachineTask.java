@@ -8,7 +8,6 @@ import java.util.Locale;
 
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -18,6 +17,7 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
 import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
+import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
 import com.miaokatze.gtsr.common.machine.MTESpacetimeCalibration;
 
 import gregtech.api.GregTechAPI;
@@ -63,6 +63,10 @@ final class TestLabMachineTask implements TestLabTask {
     private long inputItemCount;
     private String setup = "", expected = "", lastState = "";
     private String diagnosedProblem = "";
+    private final java.util.Map<String, Object> solarEnvironmentFixture = new java.util.LinkedHashMap<>();
+    private final java.util.Map<String, Object> thermalFixture = new java.util.LinkedHashMap<>();
+    private final List<String> beforeThermalFixtureSnapshots = new ArrayList<>();
+    private int directThermalWrites;
 
     TestLabMachineTask(MetaTileEntityID id, int variant) {
         this(id, id, variant);
@@ -121,11 +125,141 @@ final class TestLabMachineTask implements TestLabTask {
         TestLabFixtures.attach(world);
         phase = 0;
         controller = TestLabFixtures.machine(world, x + 80, y + 12, z + 48, machineId.ID);
+        prepareSolarEnvironment(world);
         if (controller.getMetaTileEntity() instanceof MTEMultiBlockBase) {
             multi = (MTEMultiBlockBase) controller.getMetaTileEntity();
             ItemStack trigger = new ItemStack(net.minecraft.init.Items.stick, variant);
             structure = new TestLabStructure(world, multi, trigger);
         }
+    }
+
+    /** Bind existing blocks, snapshot stock, then apply explicitly traced functional-test fixtures. */
+    void resumeExisting(WorldServer world, IGregTechTileEntity existing, List<IGregTechTileEntity> existingTiles)
+        throws Exception {
+        if (existing.getMetaTileID() != machineId.ID || !(existing.getMetaTileEntity() instanceof MTEMultiBlockBase))
+            throw new IllegalStateException("Existing controller identity changed for " + id());
+        controller = existing;
+        multi = (MTEMultiBlockBase) existing.getMetaTileEntity();
+        formed = TestLabStructure.checkStructure(multi, controller);
+        if (!formed) throw new IllegalStateException("Existing native checkStructure rejected " + id());
+        prepareSolarEnvironment(world);
+        for (IGregTechTileEntity port : existingTiles)
+            if (port != controller && !(port.getMetaTileEntity() instanceof MTEMultiBlockBase)) ports.add(port);
+        captureBeforeThermalFixture();
+        prepare(world);
+        focusHatchRequests();
+        java.util.Set<IGregTechTileEntity> assigned = java.util.Collections
+            .newSetFromMap(new java.util.IdentityHashMap<IGregTechTileEntity, Boolean>());
+        for (PortRequest request : requests) {
+            if (request.fluid == null) continue;
+            IGregTechTileEntity found = null;
+            for (int pass = 0; pass < 2 && found == null; pass++) for (IGregTechTileEntity port : ports) {
+                if (assigned.contains(port)) continue;
+                try {
+                    MTEBasicTank tank = TestLabSupply.inputTank(world, port);
+                    FluidStack stored = tank.getFluid();
+                    if (pass == 0 && (stored == null || !stored.isFluidEqual(request.fluid))) continue;
+                    TestLabSupply.validateFluid(world, port, request.fluid);
+                    if (stored != null && stored.amount > 0 && !stored.isFluidEqual(request.fluid)) continue;
+                    found = port;
+                    break;
+                } catch (IllegalArgumentException ignored) {
+                    // Non-input and incompatible existing ports remain untouched.
+                }
+            }
+            if (found == null) throw new IllegalStateException("Existing input hatch missing: " + request.role);
+            assigned.add(found);
+            TestLabSupply.add(world, found, request.fluid);
+        }
+        for (IGregTechTileEntity port : ports) {
+            if (targetId != machineId && port.getMetaTileID() == targetId.ID) focusedPort = port;
+            TestLabExistingLayoutTask.emptyOutput(port);
+            port.enableWorking();
+        }
+        seedInputs();
+        preheatFixture();
+        inputItemCount = countInputItems();
+        startedProcessing = 0;
+        setup += " existing_layout=true rebuild=false direct_thermal_writes=" + directThermalWrites + ";";
+        controller.enableWorking();
+        phase = 2;
+    }
+
+    /** Lab-local real weather fixture; fixed provider daylight and native ticks perform every thermal transition. */
+    private void prepareSolarEnvironment(WorldServer world) {
+        if (machineId != MetaTileEntityID.LARGE_SOLAR_OVERPRESSURE_ARRAY) return;
+        if (!(world.provider instanceof TestLabWorldProvider))
+            throw new IllegalArgumentException("Solar environment fixture requires the isolated test dimension");
+        solarEnvironmentFixture.put(
+            "scope",
+            "only this isolated lab World's four weather-strength fields; shared overworld WorldInfo and time remain unchanged");
+        solarEnvironmentFixture.put("before", solarConditions(world));
+        // These World fields are public in the patched Minecraft compile API and are remapped by normal reobfuscation.
+        // The lab provider skips updateWeather() and fixes celestial angle to zero: local strengths suffice for clear
+        // day.
+        world.prevRainingStrength = 0.0F;
+        world.rainingStrength = 0.0F;
+        world.prevThunderingStrength = 0.0F;
+        world.thunderingStrength = 0.0F;
+        solarEnvironmentFixture.put("sharedWorldInfoMutated", false);
+        solarEnvironmentFixture.put("worldTimeMutated", false);
+        solarEnvironmentFixture.put(
+            "daylightSource",
+            "existing TestLabProvider fixed celestial angle 0; cached skylight updates on the next natural world tick");
+        solarEnvironmentFixture.put("afterFixtureBeforeNaturalTick", solarConditions(world));
+        solarEnvironmentFixture.put(
+            "weatherStrengthFixture",
+            "Four real World previous/current rain/thunder strength fields reset to zero through normally reobfuscated public field access; no client-only setter or manual world/machine tick. Skylight settles on the next ordinary world tick");
+        solarEnvironmentFixture.put("thermalNbtWrites", 0);
+        solarEnvironmentFixture.put("manualMachineTicks", 0);
+        setup += " solar_environment_fixture=lab_local_clear_weather_fixed_daylight shared_WorldInfo_writes=0 thermal_nbt_writes=0;";
+    }
+
+    private java.util.Map<String, Object> solarConditions(WorldServer world) {
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("worldTime", world.getWorldTime());
+        result.put(
+            "rainingFlag",
+            world.getWorldInfo()
+                .isRaining());
+        result.put(
+            "thunderingFlag",
+            world.getWorldInfo()
+                .isThundering());
+        result.put(
+            "rainTime",
+            world.getWorldInfo()
+                .getRainTime());
+        result.put(
+            "thunderTime",
+            world.getWorldInfo()
+                .getThunderTime());
+        result.put("nativeWorldIsDaytime", world.isDaytime());
+        result.put("nativeWorldIsRaining", world.isRaining());
+        result.put("nativeWorldIsThundering", world.isThundering());
+        result.put("rainStrength", world.getRainStrength(1.0F));
+        result.put("prevRainingStrengthActual", world.prevRainingStrength);
+        result.put("rainingStrengthActual", world.rainingStrength);
+        result.put("prevThunderingStrengthActual", world.prevThunderingStrength);
+        result.put("thunderingStrengthActual", world.thunderingStrength);
+        result.put("celestialAngle", world.provider.calculateCelestialAngle(world.getWorldTime(), 0));
+        result.put("biomeRainfall", controller.getBiome().rainfall);
+        result.put(
+            "nativeClearWeatherGate",
+            !world.isRaining() && !world.isThundering() || controller.getBiome().rainfall == 0.0F);
+        if (controller.getMetaTileEntity() instanceof MTELargeSolarOverpressureArray) {
+            MTELargeSolarOverpressureArray solar = (MTELargeSolarOverpressureArray) controller.getMetaTileEntity();
+            result.put("nativeSunRatio", solar.mSunRatio);
+            result.put("nativeHeatObserved", solar.mHeat);
+        }
+        return result;
+    }
+
+    java.util.Map<String, Object> solarEnvironmentEvidence() {
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>(solarEnvironmentFixture);
+        if (!result.isEmpty())
+            result.put("currentNativeConditions", solarConditions((WorldServer) controller.getWorld()));
+        return result;
     }
 
     @Override
@@ -168,6 +302,7 @@ final class TestLabMachineTask implements TestLabTask {
                 "structure=FAIL canonical checkStructure rejected; " + structure.describe()
                     + " "
                     + structure.diagnoseFailure());
+            captureBeforeThermalFixture();
             seedInputs();
             preheatFixture();
             if (targetId == MetaTileEntityID.REDSTONE_HATCH) {
@@ -550,36 +685,84 @@ final class TestLabMachineTask implements TestLabTask {
         }
     }
 
+    private void captureBeforeThermalFixture() {
+        if (!beforeThermalFixtureSnapshots.isEmpty()) return;
+        beforeThermalFixtureSnapshots.add(TestLabFixtures.snapshot(controller));
+        for (IGregTechTileEntity port : ports) beforeThermalFixtureSnapshots.add(TestLabFixtures.snapshot(port));
+    }
+
     private void preheatFixture() {
-        String key = null;
-        double value = 1;
+        String key;
+        double before, target, readback;
         switch (machineId) {
-            case SIEMENS_MARTIN_FURNACE:
+            case SIEMENS_MARTIN_FURNACE: {
+                com.miaokatze.gtsr.common.machine.MTESiemensMartinFurnace machine = (com.miaokatze.gtsr.common.machine.MTESiemensMartinFurnace) multi;
                 key = "mFurnaceTemperature";
-                value = 1.5;
+                before = machine.mFurnaceTemperature;
+                target = Math.max(before, 1.5D);
+                machine.mFurnaceTemperature = target;
+                readback = machine.mFurnaceTemperature;
                 break;
-            case LARGE_GEOTHERMAL_STEAM_BOILER:
+            }
+            case LARGE_GEOTHERMAL_STEAM_BOILER: {
+                com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler machine = (com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler) multi;
                 key = "mHeat";
+                before = machine.mHeat;
+                target = Math.max(before, 1D);
+                machine.mHeat = target;
+                readback = machine.mHeat;
                 break;
+            }
             case STEAM_SINGULARITY_ENTANGLER:
-            case CRITICAL_SINGULARITY_COMPRESSOR:
+            case CRITICAL_SINGULARITY_COMPRESSOR: {
+                com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase machine = (com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase) multi;
                 key = "mHeat";
-                value = 0.99;
+                before = machine.mHeat;
+                target = Math.max(before, 0.99D);
+                machine.mHeat = target;
+                readback = machine.mHeat;
                 break;
-            case AMMONIA_PLANT:
+            }
+            case AMMONIA_PLANT: {
+                com.miaokatze.gtsr.common.machine.MTEAmmoniaPlant machine = (com.miaokatze.gtsr.common.machine.MTEAmmoniaPlant) multi;
                 key = "mHeatLevel";
-                value = 10000;
+                before = machine.mHeatLevel;
+                target = Math.max(before, 10000);
+                machine.mHeatLevel = (int) target;
+                readback = machine.mHeatLevel;
                 break;
+            }
             default:
-                break;
+                return;
         }
-        if (key == null) return;
-        NBTTagCompound saved = new NBTTagCompound();
-        multi.saveNBTData(saved);
-        if (machineId == MetaTileEntityID.AMMONIA_PLANT) saved.setInteger(key, (int) value);
-        else saved.setDouble(key, value);
-        multi.loadNBTData(saved);
-        preheated = true;
+        directThermalWrites++;
+        preheated = before != readback;
+        thermalFixture.put(
+            "scope",
+            "FUNCTION_TEST_PREHEAT_ACCELERATION; natural preheat and thermal save compatibility are not established");
+        thermalFixture.put(
+            "machineClass",
+            multi.getClass()
+                .getName());
+        thermalFixture.put("field", key);
+        thermalFixture.put("persistedNbtKey", key);
+        thermalFixture.put("before", before);
+        thermalFixture.put("target", target);
+        thermalFixture.put("readback", readback);
+        thermalFixture.put("valueChanged", preheated);
+        thermalFixture.put("writeMethod", "explicit public thermal field; no full machine NBT reload");
+        thermalFixture.put("afterCanonicalCheck", formed);
+        thermalFixture.put("beforeFixtureControllerAndStockSnapshots", new ArrayList<>(beforeThermalFixtureSnapshots));
+    }
+
+    java.util.Map<String, Object> thermalFixtureEvidence() {
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("thermalFixtureApplied", directThermalWrites > 0);
+        result.put("thermalNbtFixture", false);
+        result.put("thermalNbtWrites", 0);
+        result.put("directThermalWrites", directThermalWrites);
+        result.put("fixture", new java.util.LinkedHashMap<>(thermalFixture));
+        return result;
     }
 
     private String observedOutput() throws Exception {
@@ -682,10 +865,17 @@ final class TestLabMachineTask implements TestLabTask {
         for (IGregTechTileEntity port : ports) debug.append(" port{")
             .append(TestLabFixtures.snapshot(port))
             .append('}');
+        if (!solarEnvironmentFixture.isEmpty()) debug.append(" solarEnvironment=")
+            .append(solarEnvironmentEvidence());
+        if (!thermalFixture.isEmpty()) debug.append(" thermalFixture=")
+            .append(thermalFixtureEvidence());
         return debug.toString();
     }
 
     private TestLabReport.Result result(TestLabReport.Status status, String detail) {
+        java.util.Map<String, Object> evidence = new java.util.LinkedHashMap<>();
+        if (!solarEnvironmentFixture.isEmpty()) evidence.put("solarEnvironmentFixture", solarEnvironmentEvidence());
+        evidence.put("thermalFixture", thermalFixtureEvidence());
         return new TestLabReport.Result(
             status,
             detail + " setup="
@@ -699,7 +889,8 @@ final class TestLabMachineTask implements TestLabTask {
                 + " "
                 + (controller == null ? ""
                     : "controller=" + controller
-                        .getXCoord() + "," + controller.getYCoord() + "," + controller.getZCoord()));
+                        .getXCoord() + "," + controller.getYCoord() + "," + controller.getZCoord()),
+            evidence);
     }
 
     private void addInput(FluidStack fluid) {

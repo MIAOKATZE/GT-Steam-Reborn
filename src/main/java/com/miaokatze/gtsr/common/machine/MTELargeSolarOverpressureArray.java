@@ -5,6 +5,8 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.metatileentity.BaseTileEntity.TOOLTIP_DELAY;
@@ -88,6 +90,11 @@ import gregtech.common.tileentities.machines.IDualInputHatch;
 
 public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELargeSolarOverpressureArray>
     implements IConstructable, ISurvivalConstructable, IShiftRightClickDecalcifiable {
+
+    // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
+    private static final int REPLACEABLE_CASING_POSITIONS = 1306;
+    private static final int MIN_MECHANICAL_CASINGS = minimumCasings(REPLACEABLE_CASING_POSITIONS);
+    private int mMechanicalCasingCount;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 3;
@@ -392,21 +399,24 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
                 .addElement(
                     'A',
                     ofChain(
-                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        hatchWithCandidates(
+                            buildHatchAdder(MTELargeSolarOverpressureArray.class).atLeast(OutputHatch, InputHatch)
+                                .casingIndex(bronzeCasingIndex)
+                                .hint(1),
+                            OutputHatch,
+                            InputHatch),
                         onElementPass(
-                            t -> {},
-                            ofBlocksTiered(
-                                MTELargeSolarOverpressureArray::getCasingTier,
-                                ImmutableList.of(
-                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                -1,
-                                (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierCasing = tier,
-                                (MTELargeSolarOverpressureArray t) -> t.tierCasing)),
-                        buildHatchAdder(MTELargeSolarOverpressureArray.class).atLeast(OutputHatch, InputHatch)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1)
-                            .build()))
+                            t -> t.mMechanicalCasingCount++,
+                            onElementPass(
+                                t -> {},
+                                ofBlocksTiered(
+                                    MTELargeSolarOverpressureArray::getCasingTier,
+                                    ImmutableList.of(
+                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                        Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                    -1,
+                                    (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierCasing = tier,
+                                    (MTELargeSolarOverpressureArray t) -> t.tierCasing)))))
                 .addElement(
                     'B',
                     ofBlocksTiered(
@@ -474,6 +484,7 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        mMechanicalCasingCount = 0;
         mSetTier = -1;
         tierCasing = -1;
         tierGlass = -1;
@@ -484,6 +495,10 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
         needsWaterFill = false;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+            return;
+        }
+        if (mMechanicalCasingCount < MIN_MECHANICAL_CASINGS) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
 
@@ -896,6 +911,12 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
                     + ")")
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
             .beginStructureBlock(27, 7, 30, false)
+            .addCasingInfoMin(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),
+                MIN_MECHANICAL_CASINGS,
+                false)
+            .addStructureInfo(
+                StatCollector.translateToLocal("gtsr.tooltip.structure.LargeSolarOverpressureArray.hatches"))
             .addController(StatCollector.translateToLocal("gtsr.tooltip.solar_array.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.solar_array.input_hatch"), 1)
             .addOtherStructurePart(

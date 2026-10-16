@@ -3,7 +3,10 @@ package com.miaokatze.gtsr.common.machine;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
@@ -57,6 +60,10 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 
 /** Tier 2 dense steam compressor/decompressor（致密态蒸汽操控装置，就地升级自致密态操控机）。 */
 public class MTEDenseStateManipulator extends MTESingularityMachineBase implements ISurvivalConstructable {
+
+    // Only the 986 replaceable mechanical-casing positions count toward this minimum.
+    private static final int MIN_CASINGS = minimumCasings(986);
+    private int mCasingCount;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 10;
@@ -325,23 +332,28 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             .addElement(
                 'E',
                 ofChain(
-                    ofBlock(GregTechAPI.sBlockCasings8, 6),
-                    buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamInput)
-                        .casingIndex(casingIndex)
-                        .hint(1)
-                        .build(),
-                    buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamInputBus)
-                        .casingIndex(casingIndex)
-                        .hint(1)
-                        .build(),
-                    buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamOutputBus)
-                        .casingIndex(casingIndex)
-                        .hint(1)
-                        .build(),
-                    buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamOutputHatch)
-                        .casingIndex(casingIndex)
-                        .hint(2)
-                        .build()))
+                    hatchWithCandidates(
+                        buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamInput)
+                            .casingIndex(casingIndex)
+                            .hint(1),
+                        SingularityHatchElement.SteamInput),
+                    hatchWithCandidates(
+                        buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamInputBus)
+                            .casingIndex(casingIndex)
+                            .hint(1),
+                        SingularityHatchElement.SteamInputBus),
+                    hatchWithCandidates(
+                        buildHatchAdder(MTEDenseStateManipulator.class).anyOf(SingularityHatchElement.SteamOutputBus)
+                            .casingIndex(casingIndex)
+                            .hint(1),
+                        SingularityHatchElement.SteamOutputBus),
+                    hatchWithCandidates(
+                        buildHatchAdder(MTEDenseStateManipulator.class)
+                            .atLeast(SingularityHatchElement.SteamOutputHatch)
+                            .casingIndex(casingIndex)
+                            .hint(2),
+                        SingularityHatchElement.SteamOutputHatch),
+                    onElementPass(t -> t.mCasingCount++, ofBlock(GregTechAPI.sBlockCasings8, 6))))
             .addElement('F', singularityLocator)
             .addElement('-', isAir())
             .build();
@@ -376,10 +388,15 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        mCasingCount = 0;
         mPressureSteamInputs.clear();
         mTier = getRequiredTier();
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) return;
+        if (mCasingCount < MIN_CASINGS) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         if (mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty() && mDualInputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
@@ -420,6 +437,7 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
             .beginStructureBlock(30, 11, 21, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
+            .addCasingInfoMin(StatCollector.translateToLocal("gt.blockcasings8.6.name"), MIN_CASINGS, false)
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.dense_state_manipulator.steam_input_hatch"),
                 StatCollector.translateToLocal(keyPrefix + "steam_input"),
@@ -446,6 +464,7 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             .addStructureInfo(
                 EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.dense_state_manipulator.tier1_blocks_2"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.special.dense_ports"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();

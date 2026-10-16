@@ -1,0 +1,5 @@
+[
+  {"command":"gtsrtest existing-layout cluster_unit_thermocentrifuge","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":180},
+  {"command":"gtsrtest existing-layout cluster_unit_magnetic_separator","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":180},
+  {"command":"save-all","expect":"Saved the world","timeout":120}
+]

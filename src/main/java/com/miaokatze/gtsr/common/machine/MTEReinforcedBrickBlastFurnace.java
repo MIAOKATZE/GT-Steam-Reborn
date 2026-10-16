@@ -5,6 +5,8 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
@@ -70,6 +72,11 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteam
  */
 public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTEReinforcedBrickBlastFurnace>
     implements ISurvivalConstructable {
+
+    // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
+    private static final int REPLACEABLE_CASING_POSITIONS = 11;
+    private static final int MIN_MECHANICAL_CASINGS = minimumCasings(REPLACEABLE_CASING_POSITIONS);
+    private int mMechanicalCasingCount;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
 
@@ -179,26 +186,21 @@ public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTERei
         return false;
     }
 
-    /**
-     * 用于结构匹配的仓室元素。
-     * <p>
-     * 自定义 {@link IHatchElement} 以使用本机器专用的 adder，同时通过 {@link #mteBlacklist()} 避免 StructureLib 在 NEI
-     * 投影中将对应仓室渲染到每一个 'A' 位上。
-     */
+    /** Declares the same legal hatch types for world checks, NEI and native construction. */
     private enum ReinforcedBrickBlastFurnaceHatchElement implements IHatchElement<MTEReinforcedBrickBlastFurnace> {
 
         InputBus(MTEReinforcedBrickBlastFurnace::addInputBusToMachineList, MTEHatchInputBus.class) {
 
             @Override
             public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEHatchInputBus.class);
+                return ImmutableList.of();
             }
         },
         OutputBus(MTEReinforcedBrickBlastFurnace::addOutputBusToMachineList, MTEHatchOutputBus.class) {
 
             @Override
             public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEHatchOutputBus.class);
+                return ImmutableList.of();
             }
         };
 
@@ -224,7 +226,17 @@ public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTERei
 
         @Override
         public long count(MTEReinforcedBrickBlastFurnace t) {
-            return 0;
+            return this == InputBus ? t.mInputBusses.size() + t.mDualInputHatches.size() : t.mOutputBusses.size();
+        }
+
+        @Override
+        public String getDescriptionLangKey() {
+            return this == InputBus ? "GT5U.MBTT.InputBus" : "GT5U.MBTT.OutputBus";
+        }
+
+        @Override
+        public String getDisplayName() {
+            return StatCollector.translateToLocal(getDescriptionLangKey());
         }
     }
 
@@ -243,15 +255,16 @@ public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTERei
                 .addElement(
                     'A',
                     ofChain(
-                        // casing-first：NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
-                        ofBlock(GregTechAPI.sBlockCasings2, 0),
-                        buildHatchAdder(MTEReinforcedBrickBlastFurnace.class)
-                            .atLeast(
-                                ReinforcedBrickBlastFurnaceHatchElement.InputBus,
-                                ReinforcedBrickBlastFurnaceHatchElement.OutputBus)
-                            .casingIndex(casingIndex)
-                            .hint(1)
-                            .build()))
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEReinforcedBrickBlastFurnace.class)
+                                .atLeast(
+                                    ReinforcedBrickBlastFurnaceHatchElement.InputBus,
+                                    ReinforcedBrickBlastFurnaceHatchElement.OutputBus)
+                                .casingIndex(casingIndex)
+                                .hint(1),
+                            ReinforcedBrickBlastFurnaceHatchElement.InputBus,
+                            ReinforcedBrickBlastFurnaceHatchElement.OutputBus),
+                        onElementPass(t -> t.mMechanicalCasingCount++, ofBlock(GregTechAPI.sBlockCasings2, 0))))
                 .addElement('B', ofBlock(GregTechAPI.sBlockCasings3, 14))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings4, 15))
                 .addElement('X', isAir())
@@ -282,7 +295,12 @@ public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTERei
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        mMechanicalCasingCount = 0;
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+            return;
+        }
+        if (mMechanicalCasingCount < MIN_MECHANICAL_CASINGS) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
 
@@ -569,6 +587,12 @@ public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTERei
                     + StatCollector.translateToLocal("gtsr.tooltip.reinforced_brick_blast_furnace.speed_hint"))
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
             .beginStructureBlock(3, 5, 3, false)
+            .addCasingInfoMin(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),
+                MIN_MECHANICAL_CASINGS,
+                false)
+            .addStructureInfo(
+                StatCollector.translateToLocal("gtsr.tooltip.structure.ReinforcedBrickBlastFurnace.hatches"))
             .addController(StatCollector.translateToLocal("gtsr.tooltip.reinforced_brick_blast_furnace.ctrl"))
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.reinforced_brick_blast_furnace.input_bus"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.reinforced_brick_blast_furnace.output_bus"), 1)

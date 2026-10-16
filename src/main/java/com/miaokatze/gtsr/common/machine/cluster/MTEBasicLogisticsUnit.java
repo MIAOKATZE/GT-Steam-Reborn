@@ -8,6 +8,7 @@ import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -24,6 +25,7 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.cluster.MTEBasicLogisticsUnitNativeGui;
+import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -45,7 +47,7 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
  * 物流模块：集群的单点链执行器骨架（E3b 切片：四 I/O 结构 + 软锤启停 + 双 tank 语义收紧 + 独立 GUI stub）。
  * <p>
  * <b>结构（r9 权威规格 5×4×4，控制器 (2,2,0)）</b>：全矩阵 A 位四 I/O 自由化（切片 3）——'A' 元素
- * = ofChain(tiered 外壳 + hatchAdder.anyOf(输入总线/输出总线/输入仓/输出仓))，矩阵内任意 A 位皆可
+ * = ofChain(hatchAdder.anyOf(输入总线/输出总线/输入仓/输出仓), tiered 外壳)，矩阵内任意 A 位皆可
  * 承载四类 I/O hatch 之一（原 D/E/F/G 专用字符已按草稿还原为 'A'）；数量校验在 checkMachine 按
  * 真实注册列表计数（四类各 1..2，任一类 0 或 &gt;2 不成型）。B=tiered 管道
  * （{@link #tieredPipeElement()}，r9 由齿轮箱族改绑——权威规格）、C=tiered 框架
@@ -210,8 +212,8 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
 
     /**
      * 'A' 元素覆写（切片 3 四 I/O 自由化 + T14 ME 仓兼容，范式同 ClusterStructureDef A 总控仓室
-     * 元素）：tiered 外壳（默认形态，四族 casing 之一，tier 强校验语义经基类元素原样保留）或
-     * anyOf(输入总线/输出总线/输入仓/输出仓)——矩阵内任意 A 位皆可承载四类 I/O hatch 之一；
+     * 元素）：四类 I/O hatch 优先，tiered 外壳回退（tier 强校验语义经基类元素原样保留），
+     * 并显式列出四类预览候选；矩阵内任意 A 位皆可承载四类 I/O hatch 之一；
      * GT5U ME 系四类仓室（MTEHatchInputBusME/MTEHatchOutputBusME/MTEHatchInputME/MTEHatchOutputME，
      * 均为对应基类子类）经 HatchElement 继承匹配同路入列，不再单独拒绝；数量校验在
      * {@link #checkMachine} 按真实注册列表计数（各 1..2）。禁用 atLeast（GT5U atLeast 是「各元素
@@ -221,11 +223,26 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     @SuppressWarnings({ "rawtypes", "unchecked" })
     protected IStructureElement tieredCasingElement() {
         return ofChain(
-            super.tieredCasingElement(),
-            buildHatchAdder(MTEBasicLogisticsUnit.class).anyOf(InputBus, OutputBus, InputHatch, OutputHatch)
-                .casingIndex(HATCH_CASING_INDEX)
-                .hint(1)
-                .build());
+            GTSRStructureUtility.hatchWithCandidates(
+                buildHatchAdder(MTEBasicLogisticsUnit.class).anyOf(InputBus, OutputBus, InputHatch, OutputHatch)
+                    .descriptions(
+                        () -> Arrays.asList(
+                            "gtsr.structure.cluster.logistics.input_bus",
+                            "gtsr.structure.cluster.logistics.output_bus",
+                            "gtsr.structure.cluster.logistics.input_hatch",
+                            "gtsr.structure.cluster.logistics.output_hatch"))
+                    .casingIndex(HATCH_CASING_INDEX)
+                    .hint(1),
+                InputBus,
+                OutputBus,
+                InputHatch,
+                OutputHatch),
+            super.tieredCasingElement());
+    }
+
+    @Override
+    protected int requiredCasingPorts() {
+        return 4;
     }
 
     /**

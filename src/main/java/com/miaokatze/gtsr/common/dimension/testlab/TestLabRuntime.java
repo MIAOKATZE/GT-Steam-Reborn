@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import net.minecraft.command.ICommandSender;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.WorldServer;
@@ -63,6 +64,8 @@ public final class TestLabRuntime {
     private int performanceTickLimit;
     private boolean handlingTick;
     private String performanceTerminal;
+    /** Forge clears the global ticket registry on the first world unload during server shutdown. */
+    private boolean forgeTicketsUnloaded;
 
     private TestLabRuntime() {}
 
@@ -81,6 +84,7 @@ public final class TestLabRuntime {
         releaseTickets();
         releaseAnchor();
         clearManualSupply();
+        forgeTicketsUnloaded = false;
         pending.clear();
         active = null;
         report = null;
@@ -154,6 +158,23 @@ public final class TestLabRuntime {
         begin(selected, "ui:" + requested, "UI", sender);
     }
 
+    /** Existing-layout verification deliberately bypasses run/reset and never reconstructs its station. */
+    public void runExisting(String requested, ICommandSender sender) {
+        List<TestLabTask> selected = new ArrayList<>();
+        for (TestLabTask task : TestLabCatalog.tasks()) {
+            if (("all".equals(requested) || task.id()
+                .equals(requested)) && TestLabExistingLayoutTask.supports(task))
+                selected.add(new TestLabExistingLayoutTask(task));
+        }
+        if (selected.isEmpty())
+            throw new IllegalArgumentException("Unknown non-loom existing-layout task: " + requested);
+        begin(selected, "existing-layout:" + requested, "EXISTING_LAYOUT", sender);
+    }
+
+    public void runStructure(String requested, ICommandSender sender) {
+        begin(TestLabStructureContractTask.select(requested), "structure:" + requested, "STRUCTURE_CONTRACT", sender);
+    }
+
     public void runPerformance(String mode, String id, ICommandSender sender) {
         // Recover any interrupted previous report before assigning this run's instrumentation.
         initialize();
@@ -196,10 +217,13 @@ public final class TestLabRuntime {
         report.fmlVersion = Loader.instance()
             .getFMLVersionString();
         report.category = category;
-        report.executionScope = "PERFORMANCE".equals(category)
-            ? "BOUNDED_MODULE_REPRESENTATIVES_AND_SERVER_UI; NOT_EXHAUSTIVE_MACHINE_COVERAGE; BACKGROUND_NOT_STRICT_ATTRIBUTION"
-            : "UI".equals(category) ? "SERVER_UI_MODEL_AND_SYNC_PROBES; CLIENT_GL_AND_FONT_RENDER_NOT_EXECUTED"
-                : "REAL_SERVER_WORLD_TICKS";
+        report.executionScope = "EXISTING_LAYOUT".equals(category)
+            ? "EXISTING_SAVED_STATIONS_NO_REBUILD; PRE_MUTATION_STOCK_SNAPSHOT_THEN_ISOLATED_FIXTURE_RESUPPLY_AND_NATURAL_TICKS"
+            : "STRUCTURE_CONTRACT".equals(category) ? "ISOLATED_STRUCTURE_CONTRACT_FIXTURES"
+                : "PERFORMANCE".equals(category)
+                    ? "BOUNDED_MODULE_REPRESENTATIVES_AND_SERVER_UI; NOT_EXHAUSTIVE_MACHINE_COVERAGE; BACKGROUND_NOT_STRICT_ATTRIBUTION"
+                    : "UI".equals(category) ? "SERVER_UI_MODEL_AND_SYNC_PROBES; CLIENT_GL_AND_FONT_RENDER_NOT_EXECUTED"
+                        : "REAL_SERVER_WORLD_TICKS";
         report.runId = System.currentTimeMillis() + "-"
             + UUID.randomUUID()
                 .toString()
@@ -265,7 +289,7 @@ public final class TestLabRuntime {
 
     public void clearManualSupply() {
         if (world != null) TestLabSupply.clear(world);
-        for (ForgeChunkManager.Ticket ticket : manualSupplyTickets.values()) ForgeChunkManager.releaseTicket(ticket);
+        for (ForgeChunkManager.Ticket ticket : manualSupplyTickets.values()) releaseOwnedTicket(ticket);
         manualSupplyTickets.clear();
     }
 
@@ -278,7 +302,7 @@ public final class TestLabRuntime {
             Map.Entry<ChunkCoordIntPair, ForgeChunkManager.Ticket> entry = iterator.next();
             ChunkCoordIntPair chunk = entry.getKey();
             if (!TestLabSupply.hasFeedAtChunk(world, chunk.chunkXPos, chunk.chunkZPos)) {
-                ForgeChunkManager.releaseTicket(entry.getValue());
+                releaseOwnedTicket(entry.getValue());
                 iterator.remove();
             }
         }
@@ -479,7 +503,7 @@ public final class TestLabRuntime {
                 activePrepared = true;
                 if (targetChunks == 0) {
                     startActive(0, 0);
-                    announce("task=" + active.id() + " phase=RUNNING category=UI fixtureChunks=0");
+                    announce("task=" + active.id() + " phase=RUNNING category=" + report.category + " fixtureChunks=0");
                     return;
                 }
                 if (!requestTickets()) {
@@ -670,7 +694,7 @@ public final class TestLabRuntime {
     private void releaseAnchor() {
         long timing = TestLabPerformance.begin();
         try {
-            if (anchorTicket != null) ForgeChunkManager.releaseTicket(anchorTicket);
+            releaseOwnedTicket(anchorTicket);
             anchorTicket = null;
         } finally {
             TestLabPerformance.end("cleanup.anchorRelease", timing);
@@ -745,7 +769,9 @@ public final class TestLabRuntime {
         entry.name = name;
         entry.status = result.status;
         entry.detail = result.detail;
-        entry.category = id.startsWith("perf.") ? "PERFORMANCE" : id.startsWith("ui.") ? "UI" : "MACHINE";
+        entry.category = "EXISTING_LAYOUT".equals(report.category) ? "EXISTING_LAYOUT"
+            : "STRUCTURE_CONTRACT".equals(report.category) ? "STRUCTURE_CONTRACT"
+                : id.startsWith("perf.") ? "PERFORMANCE" : id.startsWith("ui.") ? "UI" : "MACHINE";
         entry.details = new java.util.LinkedHashMap<>(result.details);
         if ("UI".equals(entry.category)) {
             entry.details.put("clientGlExecuted", false);
@@ -775,11 +801,17 @@ public final class TestLabRuntime {
     private void releaseTickets() {
         long timing = TestLabPerformance.begin();
         try {
-            for (ForgeChunkManager.Ticket ticket : tickets) ForgeChunkManager.releaseTicket(ticket);
+            for (ForgeChunkManager.Ticket ticket : tickets) releaseOwnedTicket(ticket);
             tickets.clear();
         } finally {
             TestLabPerformance.end("cleanup.taskTicketRelease", timing);
         }
+    }
+
+    static void releaseOwnedTicket(ForgeChunkManager.Ticket ticket) {
+        // Do not infer ticket validity from forced chunks: a live ticket can have no chunks yet.
+        // Before Forge's shutdown teardown, release failures must still propagate to the caller.
+        if (!INSTANCE.forgeTicketsUnloaded) ForgeChunkManager.releaseTicket(ticket);
     }
 
     private boolean persist() {
@@ -925,11 +957,16 @@ public final class TestLabRuntime {
 
     @SubscribeEvent
     public void unload(WorldEvent.Unload event) {
+        // ForgeInternalHandler runs at HIGHEST and clears *all* world tickets when the server stops.
+        // Observe every server world, including when this dimension is the first world to unload.
+        if (!event.world.isRemote && !MinecraftServer.getServer()
+            .isServerRunning()) forgeTicketsUnloaded = true;
         if (event.world == world && world != null) {
             try {
                 stop("测试维度卸载/服务器关闭");
             } finally {
                 TestLabFixtures.cancelReset();
+                releaseTickets();
                 releaseAnchor();
                 clearManualSupply();
                 world = null;

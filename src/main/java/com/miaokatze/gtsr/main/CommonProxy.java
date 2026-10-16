@@ -225,11 +225,16 @@ public class CommonProxy {
         // 但通道注册仍须晚于 GT Init 末尾的 GTStructureChannels.register()，故挂 sAfterGTLoad（GTMod.java:402）。
         // gtsr 为 required-before:gregtech，自身 Init 仍早于 GT Init；preInit 直接注册会因 ItemStack.getItem()==null 使
         // gtnhlib ItemStackMap.computeIfAbsent 返回 null，在 StructureLib ChannelDescription.item 内 NPE 启动崩溃。
-        GregTechAPI.sAfterGTLoad.add(CommonProxy::registerClusterTierChannel);
+        GregTechAPI.sAfterGTLoad.add(CommonProxy::registerStructureChannels);
     }
 
-    private static void registerClusterTierChannel() {
+    private static void registerStructureChannels() {
         StructureLibAPI.registerChannelDescription("tier", "gtsr", "gtsr.structurelib.channel.tier.desc");
+        StructureLibAPI.registerChannelDescription("gear", "gtsr", "gtsr.structurelib.channel.gear.desc");
+        for (int tier = 1; tier <= 2; tier++) {
+            ItemStack indicator = new ItemStack(GregTechAPI.sBlockCasings2, 1, tier + 1);
+            if (indicator.getItem() != null) StructureLibAPI.registerChannelItem("gear", "gtsr", tier, indicator);
+        }
         java.util.List<org.apache.commons.lang3.tuple.Pair<net.minecraft.block.Block, Integer>> family = com.miaokatze.gtsr.common.machine.cluster.ClusterStructureDef
             .casingFamily();
         for (int tier = 1; tier <= 4; tier++) {

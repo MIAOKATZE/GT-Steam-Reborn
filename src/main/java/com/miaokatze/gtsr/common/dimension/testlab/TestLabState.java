@@ -45,6 +45,41 @@ public final class TestLabState {
         }
     }
 
+    static java.util.Map<String, Object> machineBaseline(WorldServer world, String id) throws IOException {
+        TestLabState state = new TestLabState(world);
+        File[] files = state.directory.listFiles(
+            (dir, name) -> name.endsWith(".json") && !name.equals("latest.json")
+                && !name.endsWith("-performance.json"));
+        TestLabReport latest = null;
+        TestLabReport.Entry found = null;
+        if (files != null) for (File file : files) {
+            try (Reader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
+                TestLabReport candidate = GSON.fromJson(reader, TestLabReport.class);
+                if (candidate == null || !"MACHINE".equals(candidate.category)
+                    || latest != null && candidate.startedAt <= latest.startedAt) continue;
+                for (TestLabReport.Entry entry : candidate.results) if (id.equals(entry.id)) {
+                    latest = candidate;
+                    found = entry;
+                    break;
+                }
+            }
+        }
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("found", found != null);
+        if (found != null) {
+            result.put("runId", latest.runId);
+            result.put("version", latest.gtsrVersion);
+            result.put("reportPath", latest.reportPath);
+            result.put("status", found.status.name());
+            result.put("detail", found.detail);
+            result.put("details", found.details);
+            result.put("originX", found.originX);
+            result.put("originY", found.originY);
+            result.put("originZ", found.originZ);
+        }
+        return result;
+    }
+
     /** Immutable payload and per-target progress: retry never re-appends results or rewrites a committed target. */
     static final class PendingWrite {
 

@@ -4,6 +4,8 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
@@ -67,11 +69,14 @@ import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
 public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMartinFurnace>
     implements ISurvivalConstructable {
+
+    // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
+    private static final int REPLACEABLE_CASING_POSITIONS = 318;
+    private static final int MIN_MECHANICAL_CASINGS = minimumCasings(REPLACEABLE_CASING_POSITIONS);
+    private int mMechanicalCasingCount;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 7;
@@ -181,28 +186,20 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
         return false;
     }
 
-    /**
-     * Custom hatch elements for the Siemens-Martin Furnace.
-     * <p>
-     * Each element exposes the machine-specific adder while overriding {@code mteBlacklist()}
-     * so that NEI does not render the corresponding hatch over every casing position.
-     */
+    /** Declares the same legal hatch types for world checks, NEI and native construction. */
     private enum SiemensMartinHatchElement implements IHatchElement<MTESiemensMartinFurnace> {
 
         InputBus(MTESiemensMartinFurnace::addInputBusToMachineList, MTEHatchInputBus.class) {
 
             @Override
             public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEHatchSteamBusInput.class);
+                return ImmutableList.of();
             }
         },
         InputHatch(MTESiemensMartinFurnace::addInputHatchToMachineList, MTEHatchInput.class) {
 
             @Override
             public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                // v1.10.8：移除自黑——原黑名单按精确类名过滤会隐藏普通输入仓本身
-                // （子类如 MTEHatchInputME/MTEMegaAirInputHatch 仍显示，行为不一致）；
-                // 该位接受 MTEHatchInput 及其全部子类（含 ME 输入仓），NEI 应如实显示。
                 return ImmutableList.of();
             }
         },
@@ -210,15 +207,13 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
 
             @Override
             public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEHatchSteamBusOutput.class);
+                return ImmutableList.of();
             }
         },
         PressureSteamInput(MTESiemensMartinFurnace::addPressureSteamToMachineList, MTEHatchPressureSteamInput.class) {
 
             @Override
             public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                // v1.10.8：移除自黑——原黑名单使耐压蒸汽仓在 NEI 预览完全不可见（无子类可替代显示），
-                // 玩家无法按 NEI 构建。
                 return ImmutableList.of();
             }
         };
@@ -245,7 +240,27 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
 
         @Override
         public long count(MTESiemensMartinFurnace t) {
-            return 0;
+            return switch (this) {
+                case InputBus -> t.mInputBusses.size() + t.mDualInputHatches.size();
+                case InputHatch -> t.mInputHatches.size();
+                case OutputBus -> t.mOutputBusses.size();
+                case PressureSteamInput -> t.mPressureSteamInputs.size();
+            };
+        }
+
+        @Override
+        public String getDescriptionLangKey() {
+            return switch (this) {
+                case InputBus -> "GT5U.MBTT.InputBus";
+                case InputHatch -> "GT5U.MBTT.InputHatch";
+                case OutputBus -> "GT5U.MBTT.OutputBus";
+                case PressureSteamInput -> "GTSR.HatchElement.PressureSteamInput";
+            };
+        }
+
+        @Override
+        public String getDisplayName() {
+            return StatCollector.translateToLocal(getDescriptionLangKey());
         }
     }
 
@@ -368,25 +383,28 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
                 .addElement(
                     'B',
                     ofChain(
-                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
-                        ofBlock(GregTechAPI.sBlockCasings2, 0),
-                        buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.InputBus)
-                            .casingIndex(casingIndex)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.InputHatch)
-                            .casingIndex(casingIndex)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.OutputBus)
-                            .casingIndex(casingIndex)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTESiemensMartinFurnace.class)
-                            .atLeast(SiemensMartinHatchElement.PressureSteamInput)
-                            .casingIndex(casingIndex)
-                            .hint(1)
-                            .build()))
+                        hatchWithCandidates(
+                            buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.InputBus)
+                                .casingIndex(casingIndex)
+                                .hint(1),
+                            SiemensMartinHatchElement.InputBus),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTESiemensMartinFurnace.class).anyOf(SiemensMartinHatchElement.InputHatch)
+                                .casingIndex(casingIndex)
+                                .hint(1),
+                            SiemensMartinHatchElement.InputHatch),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.OutputBus)
+                                .casingIndex(casingIndex)
+                                .hint(1),
+                            SiemensMartinHatchElement.OutputBus),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTESiemensMartinFurnace.class)
+                                .anyOf(SiemensMartinHatchElement.PressureSteamInput)
+                                .casingIndex(casingIndex)
+                                .hint(1),
+                            SiemensMartinHatchElement.PressureSteamInput),
+                        onElementPass(t -> t.mMechanicalCasingCount++, ofBlock(GregTechAPI.sBlockCasings2, 0))))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
                 .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))
                 .addElement('E', ofBlock(GregTechAPI.sBlockCasings3, 14))
@@ -419,9 +437,14 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        mMechanicalCasingCount = 0;
         mPressureSteamInputs.clear();
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+            return;
+        }
+        if (mMechanicalCasingCount < MIN_MECHANICAL_CASINGS) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
 
@@ -1033,6 +1056,11 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.air_preheat"))
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
             .beginStructureBlock(14, 19, 12, false)
+            .addCasingInfoMin(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),
+                MIN_MECHANICAL_CASINGS,
+                false)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.SiemensMartinFurnace.hatches"))
             .addController(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.steam_input_hatch"),

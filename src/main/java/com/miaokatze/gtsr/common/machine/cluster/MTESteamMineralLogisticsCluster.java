@@ -33,6 +33,7 @@ import com.miaokatze.gtsr.common.gui.cluster.MTESteamMineralLogisticsClusterNati
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTESteamInputHatchGeneric;
+import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalData;
 import com.miaokatze.gtsr.common.terminal.TerminalNet;
 import com.miaokatze.gtsr.common.terminal.TerminalUiType;
@@ -49,6 +50,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.structure.error.TranslatableText;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.misc.GTStructureChannels;
 import io.netty.buffer.Unpooled;
@@ -204,6 +206,13 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     // 由结构元素 setter 写入；每次 checkMachine 前复位 -1，未成型即 -1
     protected int mCasingTier = -1, mPipeTier = -1, mFrameTier = -1, mFireboxTier = -1;
 
+    /** 当前完整段内的实际 A 外壳数；失败延伸段的部分计数会回滚。 */
+    private int actualCasingCount;
+
+    void onCasingAdded() {
+        actualCasingCount++;
+    }
+
     public MTESteamMineralLogisticsCluster(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
         registerProgressEntries();
@@ -341,6 +350,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         topology.clear();
         occupiedSlots.clear();
         extensionCount = 0;
+        actualCasingCount = 0;
         pressureSteamHatches.clear();
         logisticsPowerLatch.clear();
         ClusterParticleFx.clearClusterAirCandidates(this);
@@ -364,12 +374,14 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         // 边界外失配误伤。断层检测：失配段之后仍可识别延伸结构（下一延伸段底框采样非空气）→
         // 断层错误上报 + 断裂段登记，结构不成型（E1a 遗留收尾）
         for (int k = 0; k < ClusterTopology.MAX_EXTENSION_SEGMENTS; k++) {
+            int previousCasingCount = actualCasingCount;
             if (!checkPiece(
                 ClusterStructureDef.PIECE_EXT,
                 ClusterStructureDef.extOffsetA(k),
                 ClusterStructureDef.extOffsetB(),
                 ClusterStructureDef.extOffsetC(k),
                 null)) {
+                actualCasingCount = previousCasingCount;
                 if (hasStructureBehind(k)) {
                     errors.add(ClusterStructureError.extensionBreak(k + 1));
                     failFormation("延伸段断层@" + (k + 1), wasFormed, prevSegments, prevUnits);
@@ -379,6 +391,18 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 break;
             }
             extensionCount = k + 1;
+        }
+
+        int minimumCasings = GTSRStructureUtility.minimumCasings(ClusterStructureDef.casingSlots(extensionCount), 1);
+        if (actualCasingCount < minimumCasings) {
+            errors.add(
+                new ClusterStructureError(
+                    TranslatableText.lang(
+                        "gtsr.gui.cluster.structure.minimum_casings",
+                        TranslatableText.literal(minimumCasings),
+                        TranslatableText.literal(actualCasingCount))));
+            failFormation("实际机械外壳不足@" + actualCasingCount + "/" + minimumCasings, wasFormed, prevSegments, prevUnits);
+            return;
         }
 
         // 4) 四族同级
@@ -1734,6 +1758,10 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
             .beginStructureBlock(29, 15, ClusterParams.SEGMENT_DEPTH_MAIN, false)
             .addController(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.cluster.ctrl"))
+            .addCasingInfoMin(
+                StatCollector.translateToLocal("gtsr.structure.cluster.casing"),
+                GTSRStructureUtility.minimumCasings(ClusterStructureDef.casingSlots(0), 1),
+                true)
             .addStructureInfo(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.cluster.hatches"))
             .addStructureInfo(

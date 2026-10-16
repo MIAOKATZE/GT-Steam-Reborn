@@ -1,0 +1,12 @@
+[
+  {"command":"gtsrtest structure singularity_drilling_hub","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":300},
+  {"command":"gtsrtest structure tcds_controller","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":300},
+  {"command":"gtsrtest structure critical_singularity_compressor","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":400},
+  {"command":"gtsrtest structure dense_state_manipulator","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":400},
+  {"command":"gtsrtest structure steam_singularity_entangler","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":400},
+  {"command":"gtsrtest structure large_solar_overpressure_array","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":300},
+  {"command":"gtsrtest structure tcds_controller","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":300},
+  {"command":"gtsrtest structure large_solar_overpressure_array","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":300},
+  {"command":"gtsrtest structure tcds_controller","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":300},
+  {"command":"save-all","expect":"Saved the world","timeout":120}
+]

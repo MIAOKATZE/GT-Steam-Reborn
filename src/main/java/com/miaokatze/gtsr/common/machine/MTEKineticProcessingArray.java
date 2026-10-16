@@ -4,8 +4,12 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.withChannel;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hasMinimumCasings;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.Energy;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
@@ -36,6 +40,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
+import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -71,6 +76,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEBasicMachine;
 import gregtech.api.metatileentity.implementations.MTEBasicMachineWithRecipe;
+import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
@@ -83,11 +89,14 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.HatchElementBuilder;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
 import gregtech.api.util.ParallelHelper;
+import gregtech.common.blocks.ItemMachines;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.misc.GTStructureChannels;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 import gregtech.common.tileentities.machines.basic.MTEBoxinator;
 import gregtech.common.tileentities.machines.basic.MTEPotionBrewer;
@@ -123,12 +132,28 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
     private final List<MTEPressureSteamCoolingHatch> mPressureCoolingHatches = new ArrayList<>();
 
+    private static HatchElementBuilder<MTEKineticProcessingArray> ioConstructionHatches() {
+        HatchElementBuilder<MTEKineticProcessingArray> builder = buildHatchAdder(MTEKineticProcessingArray.class)
+            .anyOf(SteamInputBus, InputHatch, SteamOutputBus, OutputHatch, Energy)
+            .casingIndex(SOLID_STEEL_CASING_INDEX)
+            .hint(1);
+        var nativeFilter = builder.getHatchItemFilter();
+        return builder.hatchItemFilter((controller, trigger) -> {
+            int selectedTier = trigger == null ? 1 : ChannelDataAccessor.getChannelData(trigger, "casing");
+            int casingTier = Math.max(1, Math.min(12, selectedTier));
+            return nativeFilter.apply(controller, trigger)
+                .and(stack -> {
+                    IMetaTileEntity mte = ItemMachines.getMetaTileEntity(stack);
+                    return !(mte instanceof MTEHatchEnergy energy) || energy.getInputTier() <= casingTier;
+                });
+        });
+    }
+
     /**
      * Local hatch elements for pressure steam input and cooling hatches.
      * <p>
      * These elements use custom adders to populate machine-specific hatch lists.
-     * {@code mteBlacklist()} excludes the specific hatch classes from the NEI hatch item filter,
-     * preventing StructureLib from rendering those hatches over every matching structure position.
+     * Candidate classes, descriptions and counters match the custom registration lists.
      */
     private enum KineticProcessingArrayHatchElement implements IHatchElement<MTEKineticProcessingArray> {
 
@@ -139,11 +164,6 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             public long count(MTEKineticProcessingArray t) {
                 return t.mPressureSteamInputs.size();
             }
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEHatchPressureSteamInput.class);
-            }
         },
 
         PressureSteamCooling("GTSR.HatchElement.PressureSteamCooling",
@@ -152,11 +172,6 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             @Override
             public long count(MTEKineticProcessingArray t) {
                 return t.mPressureCoolingHatches.size();
-            }
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEPressureSteamCoolingHatch.class);
             }
         };
 
@@ -268,34 +283,39 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                 .addElement(
                     'B',
                     ofChain(
-                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEKineticProcessingArray.class)
+                                .anyOf(KineticProcessingArrayHatchElement.PressureSteamInput)
+                                .casingIndex(SOLID_STEEL_CASING_INDEX)
+                                .hint(2),
+                            KineticProcessingArrayHatchElement.PressureSteamInput),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEKineticProcessingArray.class)
+                                .anyOf(KineticProcessingArrayHatchElement.PressureSteamCooling)
+                                .casingIndex(SOLID_STEEL_CASING_INDEX)
+                                .hint(3),
+                            KineticProcessingArrayHatchElement.PressureSteamCooling),
+                        hatchWithCandidates(
+                            ioConstructionHatches(),
+                            SteamInputBus,
+                            InputHatch,
+                            SteamOutputBus,
+                            OutputHatch,
+                            Energy),
                         onElementPass(
                             MTEKineticProcessingArray::onCasingAdded,
-                            ofBlocksTiered(
-                                MTEKineticProcessingArray::getCasingTier,
-                                getAllowedCasings(),
-                                -1,
-                                (t, tier) -> t.mCasingTier = tier,
-                                t -> t.mCasingTier)),
-                        buildHatchAdder(MTEKineticProcessingArray.class)
-                            .atLeast(SteamInputBus, InputHatch, SteamOutputBus, OutputHatch, Energy)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTEKineticProcessingArray.class)
-                            .atLeast(KineticProcessingArrayHatchElement.PressureSteamInput)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(2)
-                            .build(),
-                        buildHatchAdder(MTEKineticProcessingArray.class)
-                            .atLeast(KineticProcessingArrayHatchElement.PressureSteamCooling)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(3)
-                            .build()))
+                            withChannel(
+                                "casing",
+                                ofBlocksTiered(
+                                    MTEKineticProcessingArray::getCasingTier,
+                                    getAllowedCasings(),
+                                    -1,
+                                    (t, tier) -> t.mCasingTier = tier,
+                                    t -> t.mCasingTier)))))
                 .addElement(
                     'C',
-                    onElementPass(
-                        MTEKineticProcessingArray::onCasingAdded,
+                    withChannel(
+                        "pipe",
                         ofBlocksTiered(
                             MTEKineticProcessingArray::getPipeTier,
                             PIPE_CASINGS,
@@ -304,8 +324,8 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                             t -> t.mPipeTier)))
                 .addElement(
                     'D',
-                    onElementPass(
-                        MTEKineticProcessingArray::onCasingAdded,
+                    withChannel(
+                        "gear",
                         ofBlocksTiered(
                             MTEKineticProcessingArray::getGearTier,
                             GEAR_CASINGS,
@@ -314,8 +334,8 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                             t -> t.mGearTier)))
                 .addElement(
                     'E',
-                    onElementPass(
-                        MTEKineticProcessingArray::onCasingAdded,
+                    withChannel(
+                        "casing",
                         ofBlocksTiered(
                             MTEKineticProcessingArray::getFrameTier,
                             getFrameCasings(),
@@ -503,7 +523,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
             return;
         }
-        if (mCasingTier <= 0 || mCasingTier > 12) {
+        if (mCasingTier <= 0 || mCasingTier > 12 || !hasMinimumCasings(mCasingAmount, 93)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -1263,7 +1283,10 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             .addStructureInfo("")
             .addStructureInfo(
                 EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.tier_system"))
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 93, false)
+            .addCasingInfoMin(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), minimumCasings(93), true)
+            .addSubChannel(GTStructureChannels.TIER_CASING)
+            .addSubChannel(GTStructureChannels.PIPE_CASING)
+            .addStructureHint("gtsr.structurelib.channel.gear.usage")
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 15, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 8, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 12, false)

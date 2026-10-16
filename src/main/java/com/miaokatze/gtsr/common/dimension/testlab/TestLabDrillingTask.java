@@ -37,6 +37,10 @@ final class TestLabDrillingTask implements TestLabTask {
     private int phase, originX, originY, originZ;
     private long initialDeposit;
     private boolean oreSeeded;
+    private boolean existingLayout;
+    private boolean savedBindingPresent;
+    private int existingPipesAdded;
+    private int bindingSingularitiesConsumed;
 
     TestLabDrillingTask(MetaTileEntityID target) {
         this.target = target;
@@ -67,6 +71,93 @@ final class TestLabDrillingTask implements TestLabTask {
         tile = TestLabFixtures.machine(world, x + 80, y + 12, z + 48, MetaTileEntityID.SINGULARITY_DRILLING_HUB.ID);
         hub = (MTESingularityDrillingHub) tile.getMetaTileEntity();
         structure = new TestLabStructure(world, hub, new ItemStack(net.minecraft.init.Items.stick));
+    }
+
+    /** Resume an already-built drilling hub and fluid node, keeping every saved world block in place. */
+    void resumeExisting(WorldServer world, IGregTechTileEntity existing,
+        java.util.List<IGregTechTileEntity> existingTiles) throws Exception {
+        if (!fluid) throw new IllegalStateException(
+            "The one-shot mined-ore scene cannot reseed ore without modifying blocks; use the saved drilling-node host scene");
+        tile = existing;
+        hub = (MTESingularityDrillingHub) existing.getMetaTileEntity();
+        existingLayout = true;
+        if (hub.mInputHatches.isEmpty() || hub.mOutputBusses.isEmpty() || hub.mOutputHatches.isEmpty())
+            throw new IllegalStateException("Saved drilling hub ports are incomplete");
+        steamInput = hub.mInputHatches.get(0)
+            .getBaseMetaTileEntity();
+        itemOutput = hub.mOutputBusses.get(0)
+            .getBaseMetaTileEntity();
+        fluidOutput = hub.mOutputHatches.get(0)
+            .getBaseMetaTileEntity();
+        for (IGregTechTileEntity candidate : existingTiles)
+            if (candidate.getMetaTileID() == MetaTileEntityID.SINGULARITY_DRILLING_NODE.ID) node = candidate;
+        if (node == null) throw new IllegalStateException("Saved drilling fluid node is missing");
+        if (world.getBlock(node.getXCoord(), node.getYCoord() - 1, node.getZCoord()) != Blocks.bedrock)
+            throw new IllegalStateException("Saved drilling fixture bedrock is absent; refusing to rebuild it");
+        NBTTagCompound nodeState = new NBTTagCompound();
+        node.getMetaTileEntity()
+            .saveNBTData(nodeState);
+        savedBindingPresent = nodeState.hasKey("gtsr.hubPos");
+        if (!savedBindingPresent) {
+            // The old task's stop explicitly unbinds nodes. Re-run its real item binding transaction on the existing
+            // tile.
+            FakePlayer player = FakePlayerFactory.get(world, new GameProfile(TestLabFixtures.OWNER, "GTSR Test Lab"));
+            player.setPosition(tile.getXCoord(), tile.getYCoord(), tile.getZCoord() - 2);
+            player.inventory.currentItem = 0;
+            player.inventory.mainInventory[0] = GregTechAPI.METATILEENTITIES[MetaTileEntityID.SINGULARITY_DRILLING_NODE.ID]
+                .getStackForm(1);
+            player.inventory.mainInventory[1] = GTSRItemList.SteamEntangledSingularity.get(1);
+            try {
+                if (!hub.tryHandleNodeBindClick(tile, player, true))
+                    throw new IllegalStateException("Existing drilling hub rejected real binding item transaction");
+                ItemStack bound = player.getHeldItem();
+                if (bound == null || !bound.hasTagCompound()
+                    || !bound.getTagCompound()
+                        .hasKey("gtsr.hubPos"))
+                    throw new IllegalStateException("Real drilling binding item has no target");
+                nodeState.setTag(
+                    "gtsr.hubPos",
+                    bound.getTagCompound()
+                        .getCompoundTag("gtsr.hubPos")
+                        .copy());
+                node.getMetaTileEntity()
+                    .loadNBTData(nodeState);
+                ItemStack remaining = player.inventory.mainInventory[1];
+                bindingSingularitiesConsumed = 1 - (remaining == null ? 0 : remaining.stackSize);
+            } finally {
+                player.inventory.mainInventory[0] = null;
+                player.inventory.mainInventory[1] = null;
+            }
+        }
+        ItemStack pipes = ((IInventory) node).getStackInSlot(0);
+        if (pipes == null) {
+            pipes = GTModHandler.getIC2Item("miningPipe", 16);
+            if (pipes == null) throw new IllegalStateException("Missing registered IC2 mining pipe item");
+            ((IInventory) node).setInventorySlotContents(0, pipes);
+            existingPipesAdded = pipes.stackSize;
+        }
+        for (IGregTechTileEntity port : existingTiles) TestLabExistingLayoutTask.emptyOutput(port);
+        deposit = new TestLabUnderground(world, node.getXCoord() >> 4, node.getZCoord() >> 4);
+        initialDeposit = deposit.amount();
+        TestLabSupply.add(world, steamInput, FluidRegistry.getFluidStack("ic2superheatedsteam", 1));
+        tile.enableWorking();
+        node.enableWorking();
+        phase = 4;
+    }
+
+    java.util.Map<String, Object> existingFixtureEvidence() {
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("hostMetaTileId", MetaTileEntityID.SINGULARITY_DRILLING_HUB.ID);
+        result.put("hostClass", MTESingularityDrillingHub.class.getName());
+        result.put("oldStopExplicitlyUnboundNode", !savedBindingPresent);
+        result.put("savedBindingPresentBeforeResume", savedBindingPresent);
+        result.put("newBindingViaRealItemTransaction", !savedBindingPresent);
+        result.put("bindingFixtureSingularitiesConsumed", bindingSingularitiesConsumed);
+        result.put("miningPipesAdded", existingPipesAdded);
+        result.put("isolatedGtDepositInitialAmount", initialDeposit);
+        result.put("bindingConservationEstablished", savedBindingPresent);
+        result.put("worldBlockWrites", 0);
+        return result;
     }
 
     @Override
@@ -118,7 +209,19 @@ final class TestLabDrillingTask implements TestLabTask {
                         .getName()
                     + "="
                     + output.amount
-                    + " steamConsumed=true");
+                    + " steamConsumed=true existingLayout="
+                    + existingLayout
+                    + " savedBindingPresent="
+                    + savedBindingPresent
+                    + " bindingFixture="
+                    + (existingLayout && !savedBindingPresent ? "real_item_rebind_after_old_task_explicit_unbind"
+                        : "unchanged")
+                    + " depositFixture=isolated_GT_chunk_resource_no_worldblock_writes initialAmount="
+                    + initialDeposit
+                    + " miningPipesAdded="
+                    + existingPipesAdded
+                    + " bindingSingularitiesConsumed="
+                    + bindingSingularitiesConsumed);
         } else {
             IInventory inventory = (IInventory) itemOutput;
             for (int slot = 0; slot < inventory.getSizeInventory(); slot++) {

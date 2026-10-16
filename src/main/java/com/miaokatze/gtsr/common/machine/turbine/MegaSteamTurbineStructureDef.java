@@ -4,8 +4,9 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static gregtech.api.enums.HatchElement.Dynamo;
-import static gregtech.api.enums.HatchElement.InputBus;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.withChannel;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -107,46 +108,55 @@ public final class MegaSteamTurbineStructureDef {
                 .addElement(
                     'B',
                     ofChain(
-                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                                .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.PressureSteamInput)
+                                .casingIndex(SOLID_STEEL_CASING_INDEX)
+                                .hint(1),
+                            MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.PressureSteamInput),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                                .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.OverpressureInput)
+                                .casingIndex(SOLID_STEEL_CASING_INDEX)
+                                .hint(1),
+                            MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.OverpressureInput),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                                .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.CoolingHatch)
+                                .casingIndex(SOLID_STEEL_CASING_INDEX)
+                                .hint(2),
+                            MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.CoolingHatch),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEMegaSteamTurbineArray.class).anyOf(InputHatch, OutputHatch)
+                                .casingIndex(SOLID_STEEL_CASING_INDEX)
+                                .hint(1),
+                            InputHatch,
+                            OutputHatch),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEMegaSteamTurbineArray.class).anyOf(SteamInputBus)
+                                .casingIndex(SOLID_STEEL_CASING_INDEX)
+                                .hint(1),
+                            SteamInputBus),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                                .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.DynamoOutput)
+                                .casingIndex(SOLID_STEEL_CASING_INDEX)
+                                .hint(1),
+                            MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.DynamoOutput),
                         onElementPass(
                             MTEMegaSteamTurbineArray::onCasingAdded,
-                            ofBlocksTiered(
-                                MegaSteamTurbineStructureDef::casingTier,
-                                allowedCasings(),
-                                -1,
-                                (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
-                                t -> t.mCasingTier)),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.PressureSteamInput)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.OverpressureInput)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.CoolingHatch)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(2)
-                            .build(),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(InputHatch, OutputHatch)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(InputBus)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(Dynamo)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(1)
-                            .build()))
+                            withChannel(
+                                "casing",
+                                ofBlocksTiered(
+                                    MegaSteamTurbineStructureDef::casingTier,
+                                    allowedCasings(),
+                                    -1,
+                                    (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
+                                    t -> t.mCasingTier)))))
                 .addElement(
                     'C',
-                    onElementPass(
-                        MTEMegaSteamTurbineArray::onCasingAdded,
+                    withChannel(
+                        "pipe",
                         ofBlocksTiered(
                             MegaSteamTurbineStructureDef::pipeTier,
                             PIPE_CASINGS,
@@ -155,8 +165,8 @@ public final class MegaSteamTurbineStructureDef {
                             t -> t.mPipeTier)))
                 .addElement(
                     'D',
-                    onElementPass(
-                        MTEMegaSteamTurbineArray::onCasingAdded,
+                    withChannel(
+                        "gear",
                         ofBlocksTiered(
                             MegaSteamTurbineStructureDef::gearTier,
                             GEAR_CASINGS,
@@ -165,8 +175,8 @@ public final class MegaSteamTurbineStructureDef {
                             t -> t.mGearTier)))
                 .addElement(
                     'E',
-                    onElementPass(
-                        MTEMegaSteamTurbineArray::onCasingAdded,
+                    withChannel(
+                        "casing",
                         ofBlocksTiered(
                             MegaSteamTurbineStructureDef::frameTier,
                             frameCasings(),

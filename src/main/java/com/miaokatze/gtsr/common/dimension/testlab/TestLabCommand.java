@@ -36,7 +36,7 @@ public final class TestLabCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/gtsrtest enter|return|list|run <all|id>|ui <all|id|list|status|stop>|perf <quick|all|machine id|ui id|status|stop>|status|report|stop|reset|regenerate [all|id]|supply <x y z fluidName|list|clear|off x y z>";
+        return "/gtsrtest enter|return|list|run <all|id>|existing-layout <all|id>|structure <all|id>|ui <all|id|list|status|stop>|perf <quick|all|machine id|ui id|status|stop>|status|report|stop|reset|regenerate [all|id]|supply <x y z fluidName|list|clear|off x y z>";
     }
 
     @Override
@@ -60,7 +60,9 @@ public final class TestLabCommand extends CommandBase {
                 ui(sender, args);
                 return;
             }
-            int max = "run".equals(command) || "regenerate".equals(command) ? 2 : 1;
+            int max = "run".equals(command) || "regenerate".equals(command)
+                || "existing-layout".equals(command)
+                || "structure".equals(command) ? 2 : 1;
             if (args.length > max) throw new IllegalArgumentException("参数过多；" + getCommandUsage(sender));
             switch (command) {
                 case "enter":
@@ -85,6 +87,15 @@ public final class TestLabCommand extends CommandBase {
                 case "run":
                     if (args.length != 2) throw new IllegalArgumentException("用法：/gtsrtest run <all|id>");
                     TestLabRuntime.INSTANCE.run(args[1], sender);
+                    break;
+                case "existing-layout":
+                    if (args.length != 2)
+                        throw new IllegalArgumentException("Usage: gtsrtest existing-layout <all|id>");
+                    TestLabRuntime.INSTANCE.runExisting(args[1], sender);
+                    break;
+                case "structure":
+                    if (args.length != 2) throw new IllegalArgumentException("Usage: gtsrtest structure <all|id>");
+                    TestLabRuntime.INSTANCE.runStructure(args[1], sender);
                     break;
                 case "status":
                 case "report":
@@ -280,6 +291,8 @@ public final class TestLabCommand extends CommandBase {
             "return",
             "list",
             "run",
+            "existing-layout",
+            "structure",
             "ui",
             "perf",
             "status",
@@ -302,7 +315,8 @@ public final class TestLabCommand extends CommandBase {
             for (TestLabTask task : TestLabUiProbes.tasks()) ids.add(task.id());
             return getListOfStringsMatchingLastWord(args, ids.toArray(new String[0]));
         }
-        if (args.length == 2 && ("run".equals(args[0]) || "regenerate".equals(args[0]))) {
+        if (args.length == 2
+            && ("run".equals(args[0]) || "regenerate".equals(args[0]) || "existing-layout".equals(args[0]))) {
             List<String> ids = new ArrayList<>();
             ids.add("all");
             for (TestLabTask task : TestLabCatalog.tasks()) ids.add(task.id());

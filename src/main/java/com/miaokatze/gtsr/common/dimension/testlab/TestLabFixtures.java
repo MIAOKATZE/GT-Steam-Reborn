@@ -508,6 +508,27 @@ public final class TestLabFixtures {
         return ((long) x & 0x3ffffffL) << 38 | ((long) z & 0x3ffffffL) << 12 | y;
     }
 
+    /** Read the persisted authorization journal, without placing or rebuilding any fixture blocks. */
+    static java.util.List<int[]> existingPositions(WorldServer world, int originX, int originZ) {
+        if (!(world.provider instanceof TestLabWorldProvider))
+            throw new IllegalArgumentException("Not a GTSR test world");
+        Journal saved = (Journal) world.perWorldStorage.loadData(Journal.class, "gtsr_testlab_fixtures");
+        if (saved == null) throw new IllegalStateException("Existing-layout probe requires a saved fixture journal");
+        java.util.List<int[]> result = new java.util.ArrayList<>();
+        for (long position : saved.positions) {
+            int x = (int) (position >> 38);
+            int y = (int) (position & 0xfffL);
+            int z = (int) (position << 26 >> 38);
+            if (x >= originX && x < originX + 208 && z >= originZ && z < originZ + 208)
+                result.add(new int[] { x, y, z });
+        }
+        result.sort(
+            java.util.Comparator.comparingInt((int[] p) -> p[0])
+                .thenComparingInt(p -> p[1])
+                .thenComparingInt(p -> p[2]));
+        return result;
+    }
+
     public static final class Journal extends WorldSavedData {
 
         // Monotonic authorization history, not an inventory of currently occupied blocks.

@@ -3,7 +3,10 @@ package com.miaokatze.gtsr.common.machine;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -111,6 +114,10 @@ import gregtech.common.ores.OreManager;
  * getUpdateData/onValueUpdate 字节通道同步（bit0=工作，bit1-6 恒 63）。
  */
 public class MTECrustMatterAggregator extends MTESingularityMachineBase implements ISurvivalConstructable {
+
+    // Only the 569 replaceable mechanical-casing positions count toward this minimum.
+    private static final int MIN_CASINGS = minimumCasings(569);
+    private int mCasingCount;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     // 控制器形状偏移 (列 2, 层 2, 行 2)
@@ -439,28 +446,31 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
         return StructureDefinition.<MTECrustMatterAggregator>builder()
             .addShape(STRUCTURE_PIECE_MAIN, transpose(SHAPE_MAIN))
-            // A = 仓室位（固体钢机械外壳）：casing-first，NEI 投影优先渲染外壳；
-            // 真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder（流体输入/耐压蒸汽/输入总线可选，输出总线必填）
+            // A = 仓室优先，真实固体钢机械外壳回退；可选流体/物品输入，输出总线必需。
             .addElement(
                 'A',
                 ofChain(
-                    ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 0),
-                    // 流体输入仓（MTEHatchInput 含 ME 输入仓 + 耐压蒸汽输入仓；shouldReject 防重复），可选
-                    buildHatchAdder(MTECrustMatterAggregator.class).atLeast(SingularityHatchElement.SteamInput)
-                        .casingIndex(casingIndex)
-                        .hint(1)
-                        .shouldReject(t -> !t.mInputHatches.isEmpty() && !t.mPressureSteamInputs.isEmpty())
-                        .build(),
+                    // 流体输入仓（含 ME 输入仓、耐压蒸汽输入仓），可选
+                    hatchWithCandidates(
+                        buildHatchAdder(MTECrustMatterAggregator.class).anyOf(SingularityHatchElement.SteamInput)
+                            .casingIndex(casingIndex)
+                            .hint(1),
+                        SingularityHatchElement.SteamInput),
                     // 物品输入总线 = 奇点燃料仓（蒸汽纠缠/临界蒸汽纠缠奇点），可选
-                    buildHatchAdder(MTECrustMatterAggregator.class).atLeast(SingularityHatchElement.SteamInputBus)
-                        .casingIndex(casingIndex)
-                        .hint(1)
-                        .build(),
+                    hatchWithCandidates(
+                        buildHatchAdder(MTECrustMatterAggregator.class).anyOf(SingularityHatchElement.SteamInputBus)
+                            .casingIndex(casingIndex)
+                            .hint(1),
+                        SingularityHatchElement.SteamInputBus),
                     // 输出总线 = 矿石输出（必填）
-                    buildHatchAdder(MTECrustMatterAggregator.class).atLeast(SingularityHatchElement.SteamOutputBus)
-                        .casingIndex(casingIndex)
-                        .hint(1)
-                        .build()))
+                    hatchWithCandidates(
+                        buildHatchAdder(MTECrustMatterAggregator.class).atLeast(SingularityHatchElement.SteamOutputBus)
+                            .casingIndex(casingIndex)
+                            .hint(1),
+                        SingularityHatchElement.SteamOutputBus),
+                    onElementPass(
+                        t -> t.mCasingCount++,
+                        ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 0))))
             // B = 纯钢齿轮箱外壳
             .addElement('B', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 3))
             .addElement('C', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 13))
@@ -507,10 +517,15 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        mCasingCount = 0;
         mPressureSteamInputs.clear();
         mTier = getRequiredTier();
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) return;
+        if (mCasingCount < MIN_CASINGS) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         // 结构要求：输出总线 ≥1 必填；流体输入仓/耐压蒸汽仓/物品输入总线（奇点燃料）全部可选
         if (mOutputBusses.isEmpty()) {
@@ -1678,6 +1693,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
             .beginStructureBlock(26, 8, 26, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
+            .addCasingInfoMin(StatCollector.translateToLocal("gt.blockcasings2.0.name"), MIN_CASINGS, false)
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.crust_matter_agg.steam_input_hatch"),
                 StatCollector.translateToLocal(keyPrefix + "steam_input"),
@@ -1687,6 +1703,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             .addStructureInfo("")
             .addStructureInfo(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal(keyPrefix + "desc6"))
             .addStructureInfo(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc7"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.special.crust_ports"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint(keyPrefix + "hint_dimension")
             .addInfo(GTSRUtils.getAddedByLine())

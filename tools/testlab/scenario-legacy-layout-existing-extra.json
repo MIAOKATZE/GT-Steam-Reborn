@@ -1,0 +1,9 @@
+[
+  {"command":"gtsrtest existing-layout singularity_drilling_node","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":300},
+  {"command":"gtsrtest existing-layout cluster_booster_parallel","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":500},
+  {"command":"gtsrtest existing-layout cluster_booster_speed","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":500},
+  {"command":"gtsrtest existing-layout cluster_booster_primary","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":500},
+  {"command":"gtsrtest existing-layout cluster_booster_secondary","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":500},
+  {"command":"gtsrtest existing-layout cluster_booster_steam_saver","expect":"GTSR-TESTLAB.*state=COMPLETE","timeout":500},
+  {"command":"save-all","expect":"Saved the world","timeout":120}
+]

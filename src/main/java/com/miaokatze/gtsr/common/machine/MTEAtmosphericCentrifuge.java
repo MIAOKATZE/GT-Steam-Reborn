@@ -8,6 +8,8 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -67,6 +69,11 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteam
 
 public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphericCentrifuge>
     implements ISurvivalConstructable {
+
+    // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
+    private static final int REPLACEABLE_CASING_POSITIONS = 89;
+    private static final int MIN_MECHANICAL_CASINGS = minimumCasings(REPLACEABLE_CASING_POSITIONS);
+    private int mMechanicalCasingCount;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 3;
@@ -193,39 +200,40 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                 .addElement(
                     'B',
                     ofChain(
-                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(PressureSteamInputHatch)
+                                .casingIndex(bronzeCasingIndex)
+                                .hint(1)
+                                .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty()),
+                            PressureSteamInputHatch),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(InputHatch, OutputHatch)
+                                .casingIndex(bronzeCasingIndex)
+                                .hint(1),
+                            InputHatch,
+                            OutputHatch),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEAtmosphericCentrifuge.class)
+                                .anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
+                                .casingIndex(bronzeCasingIndex)
+                                .hint(1),
+                            SteamCoolingHatch,
+                            PressureSteamCoolingHatch),
                         onElementPass(
-                            MTEAtmosphericCentrifuge::onCasingAdded,
-                            ofBlocksTiered(
-                                MTEAtmosphericCentrifuge::getCasingTier,
-                                ImmutableList.of(
-                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                -1,
-                                // v1.10.8：B 元素改 max 语义（原绝对赋值——混合等级非法结构下
-                                // 最后一个被遍历的 B 决定等级，钢框架+单个青铜外壳会静默降级/升级）
-                                (MTEAtmosphericCentrifuge t, Integer tier) -> {
-                                    if (tier > t.mSetTier) t.mSetTier = tier;
-                                },
-                                (MTEAtmosphericCentrifuge t) -> t.mSetTier)),
-                        // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
-                        // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
-                        buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(PressureSteamInputHatch)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1)
-                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
-                            .build(),
-                        buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(InputHatch, OutputHatch)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1)
-                            .build(),
-                        // v1.9.40 新增：冷却仓元素（可选）。蒸汽消耗的冷却产物（普通→蒸馏水 160:1、
-                        // 过热→蒸汽 1:1）由 mixin 推入对应冷却仓，此前结构无此元素导致产物滞留/丢失。
-                        buildHatchAdder(MTEAtmosphericCentrifuge.class)
-                            .atLeast(SteamCoolingHatch, PressureSteamCoolingHatch)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1)
-                            .build()))
+                            t -> t.mMechanicalCasingCount++,
+                            onElementPass(
+                                MTEAtmosphericCentrifuge::onCasingAdded,
+                                ofBlocksTiered(
+                                    MTEAtmosphericCentrifuge::getCasingTier,
+                                    ImmutableList.of(
+                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                        Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                    -1,
+
+                                    (MTEAtmosphericCentrifuge t, Integer tier) -> {
+                                        if (tier > t.mSetTier) t.mSetTier = tier;
+                                    },
+                                    (MTEAtmosphericCentrifuge t) -> t.mSetTier)))))
                 .addElement(
                     'C',
                     onElementPass(
@@ -286,10 +294,15 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        mMechanicalCasingCount = 0;
         mSetTier = -1;
         mCasingCount = 0;
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
             mSetTier = -1;
+            return;
+        }
+        if (mMechanicalCasingCount < MIN_MECHANICAL_CASINGS) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
         if (mSetTier <= 0) {
@@ -460,6 +473,11 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(7, 4, 7, false)
+            .addCasingInfoMin(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),
+                MIN_MECHANICAL_CASINGS,
+                false)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.AtmosphericCentrifuge.hatches"))
             .addController(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.input_hatch"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.output_hatch"), 1)

@@ -3,7 +3,10 @@ package com.miaokatze.gtsr.common.machine;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.List;
@@ -52,6 +55,10 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 
 /** Tier 2 steam entanglement machine. */
 public class MTECriticalSingularityCompressor extends MTESingularityMachineBase implements ISurvivalConstructable {
+
+    // Only the 1325 replaceable mechanical-casing positions count toward this minimum.
+    private static final int MIN_CASINGS = minimumCasings(1325);
+    private int mCasingCount;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 13;
@@ -558,26 +565,31 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
             .addElement(
                 'G',
                 ofChain(
-                    ofBlock(GregTechAPI.sBlockCasings8, 6),
-                    buildHatchAdder(MTECriticalSingularityCompressor.class).atLeast(SingularityHatchElement.SteamInput)
-                        .casingIndex(casingIndex)
-                        .hint(1)
-                        .build(),
-                    buildHatchAdder(MTECriticalSingularityCompressor.class)
-                        .atLeast(SingularityHatchElement.SteamInputBus)
-                        .casingIndex(casingIndex)
-                        .hint(1)
-                        .build(),
-                    buildHatchAdder(MTECriticalSingularityCompressor.class)
-                        .atLeast(SingularityHatchElement.SteamOutputBus)
-                        .casingIndex(casingIndex)
-                        .hint(1)
-                        .build(),
-                    buildHatchAdder(MTECriticalSingularityCompressor.class)
-                        .atLeast(SingularityHatchElement.SteamOutputHatch)
-                        .casingIndex(casingIndex)
-                        .hint(2)
-                        .build()))
+                    hatchWithCandidates(
+                        buildHatchAdder(MTECriticalSingularityCompressor.class)
+                            .atLeast(SingularityHatchElement.SteamInput)
+                            .casingIndex(casingIndex)
+                            .hint(1),
+                        SingularityHatchElement.SteamInput),
+                    hatchWithCandidates(
+                        buildHatchAdder(MTECriticalSingularityCompressor.class)
+                            .anyOf(SingularityHatchElement.SteamInputBus)
+                            .casingIndex(casingIndex)
+                            .hint(1),
+                        SingularityHatchElement.SteamInputBus),
+                    hatchWithCandidates(
+                        buildHatchAdder(MTECriticalSingularityCompressor.class)
+                            .atLeast(SingularityHatchElement.SteamOutputBus)
+                            .casingIndex(casingIndex)
+                            .hint(1),
+                        SingularityHatchElement.SteamOutputBus),
+                    hatchWithCandidates(
+                        buildHatchAdder(MTECriticalSingularityCompressor.class)
+                            .anyOf(SingularityHatchElement.SteamOutputHatch)
+                            .casingIndex(casingIndex)
+                            .hint(2),
+                        SingularityHatchElement.SteamOutputHatch),
+                    onElementPass(t -> t.mCasingCount++, ofBlock(GregTechAPI.sBlockCasings8, 6))))
             .addElement('H', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockframes"), 70))
             .addElement('I', singularityLocator)
             .build();
@@ -612,10 +624,15 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        mCasingCount = 0;
         mPressureSteamInputs.clear();
         mTier = getRequiredTier();
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) return;
+        if (mCasingCount < MIN_CASINGS) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         if ((mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty() && mDualInputHatches.isEmpty())
             || mOutputBusses.isEmpty()) {
@@ -666,6 +683,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
             .beginStructureBlock(27, 21, 27, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
+            .addCasingInfoMin(StatCollector.translateToLocal("gt.blockcasings8.6.name"), MIN_CASINGS, false)
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.critical_singularity_compressor.steam_input_hatch"),
                 StatCollector.translateToLocal(keyPrefix + "steam_input"),
@@ -676,6 +694,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
             .addStructureInfo(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal(keyPrefix + "desc6"))
             .addStructureInfo(
                 EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "tier1_blocks"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.special.singularity_ports"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();

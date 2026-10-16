@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.common.machine.base;
 
 import static com.miaokatze.gtsr.common.structure.GTSRStructureChecks.require;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hasMinimumCasings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -1217,6 +1218,13 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
     /** 结构成形后给族 hatch 换装当前 tier 外壳。 */
     protected abstract void updateHatchTextures(int tierCasingIndex);
 
+    /** Counts only mechanical casing at hatch/storage replacement positions. */
+    protected abstract int getMechanicalCasingCount();
+
+    protected abstract int getMechanicalCasingSlots();
+
+    protected abstract void restoreMechanicalCasingCount(int count);
+
     private void resetCommonStructureState() {
         mSetTier = -1;
         mCasingTier = -1;
@@ -1228,7 +1236,11 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
     private void probeStackLayers() {
         for (int i = 0; i < 30; i++) {
             int bOffset = 1 + i;
-            if (!checkPiece(STRUCTURE_PIECE_STACK, horizontalOffset(), bOffset, depthOffset())) break;
+            int casingsBeforeLayer = getMechanicalCasingCount();
+            if (!checkPiece(STRUCTURE_PIECE_STACK, horizontalOffset(), bOffset, depthOffset())) {
+                restoreMechanicalCasingCount(casingsBeforeLayer);
+                break;
+            }
             mStackCount++;
         }
     }
@@ -1257,6 +1269,11 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         }
 
         if (!checkCapPiece(errors)) {
+            getBaseMetaTileEntity().issueTileUpdate();
+            return;
+        }
+
+        if (!require(hasMinimumCasings(getMechanicalCasingCount(), getMechanicalCasingSlots()), errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }

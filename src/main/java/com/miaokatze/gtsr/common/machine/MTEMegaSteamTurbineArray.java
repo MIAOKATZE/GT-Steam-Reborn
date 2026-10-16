@@ -6,6 +6,8 @@ import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructur
 import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.STRUCTURE_PIECE_BASE;
 import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.STRUCTURE_PIECE_CAP;
 import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.STRUCTURE_PIECE_STACK;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hasMinimumCasings;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -28,6 +30,7 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
+import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -152,8 +155,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     /**
      * Local hatch elements for the mega steam turbine array.
      * <p>
-     * {@code mteBlacklist()} excludes the specific hatch classes from the NEI hatch item filter,
-     * so the generic input/output/dynamo hatch placeholders are shown instead of these custom hatches.
+     * Candidate classes, descriptions and counters match the custom registration lists.
      */
     public enum MegaSteamTurbineArrayHatchElement implements IHatchElement<MTEMegaSteamTurbineArray> {
 
@@ -164,11 +166,6 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             public long count(MTEMegaSteamTurbineArray t) {
                 return t.mPressureSteamInputs.size();
             }
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEHatchPressureSteamInput.class);
-            }
         },
 
         OverpressureInput("GTSR.HatchElement.OverpressureInput",
@@ -178,10 +175,14 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             public long count(MTEMegaSteamTurbineArray t) {
                 return t.mOverpressureInputs.size();
             }
+        },
+
+        DynamoOutput("GT5U.MBTT.DynamoHatch", MTEMegaSteamTurbineArray::addDynamoToMachineList, MTEHatchDynamo.class,
+            MTEHatchDynamoMulti.class) {
 
             @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEOverpressureTurbineInputHatch.class);
+            public long count(MTEMegaSteamTurbineArray t) {
+                return t.mDynamoHatches.size() + t.eDynamoMulti.size();
             }
         },
 
@@ -191,11 +192,6 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             @Override
             public long count(MTEMegaSteamTurbineArray t) {
                 return t.mSteamCoolingHatches.size() + t.mPressureCoolingHatches.size();
-            }
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEPressureSteamCoolingHatch.class, MTESteamCoolingHatch.class);
             }
         };
 
@@ -610,7 +606,11 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
         for (int i = 0; i < 4; i++) {
             int bOffset = 9 + i * 4;
-            if (!checkPiece(STRUCTURE_PIECE_STACK, 6, bOffset, 0)) break;
+            int casingsBeforeLayer = mCasingAmount;
+            if (!checkPiece(STRUCTURE_PIECE_STACK, 6, bOffset, 0)) {
+                mCasingAmount = casingsBeforeLayer;
+                break;
+            }
             mStackCount++;
         }
 
@@ -621,6 +621,11 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
         int capB = 7 + mStackCount * 4;
         if (!checkPiece(STRUCTURE_PIECE_CAP, 6, capB, 0, errors)) {
+            return;
+        }
+
+        if (!hasMinimumCasings(mCasingAmount, 641 + 249 * mStackCount)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
 
@@ -1356,9 +1361,9 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     }
 
     private static int getConstructExtraStackCount(ItemStack stackSize) {
-        int totalHeight = Math.max(
-            BASE_TOTAL_HEIGHT,
-            GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, BASE_TOTAL_HEIGHT, 25));
+        // Keep the native one-based height selection and old unconfigured trigger fallback.
+        int selection = stackSize == null ? 1 : ChannelDataAccessor.getChannelData(stackSize, "height");
+        int totalHeight = (int) Math.max(BASE_TOTAL_HEIGHT, Math.min(25L, (long) selection + BASE_TOTAL_HEIGHT - 1));
         return Math.min(MAX_EXTRA_STACKS, (totalHeight - BASE_TOTAL_HEIGHT) / STACK_LAYER_HEIGHT);
     }
 
@@ -1485,10 +1490,13 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             // 截面 13×13（三件套 shape 13 行×13 字符，buildPiece 中心锚 6），旧参首位 5 为 beta-2 时代误值，本次一并修正。
             .beginVariableStructureBlock(13, 13, 9, 25, 13, 13, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.ctrl"))
+            .addCasingInfoMin(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), minimumCasings(641), true)
+            .addSubChannel(GTStructureChannels.TIER_CASING)
+            .addSubChannel(GTStructureChannels.PIPE_CASING)
+            .addSubChannel(GTStructureChannels.STRUCTURE_HEIGHT)
+            .addStructureHint("gtsr.structurelib.channel.gear.usage")
+            .addStructureHint("gtsr.structurelib.channel.turbine_height.usage")
             .addStructureInfo("")
-            // beta-1 兼容：GTStructureChannels.STRUCTURE_HEIGHT 与 MultiblockTooltipBuilder.addSubChannel
-            // 均为 GT5U 5.09.54（beta-2）新增，beta-1 (5.09.52) 仅有 addSubChannelUsage 且无此通道。
-            // 此行原用于 tooltip 显示高度堆叠通道，删去不影响功能（下方 extra_stack_layers 文本已说明）。
             .addStructureInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.multi_tier"))
             .addOtherStructurePart(

@@ -97,6 +97,36 @@ final class TestLabHubTask implements TestLabTask {
         builder = new TestLabStructure(world, machine, new ItemStack(net.minecraft.init.Items.stick, tier));
     }
 
+    boolean supportsExisting() {
+        return !isNodeTarget();
+    }
+
+    void resumeExisting(WorldServer world, IGregTechTileEntity existing,
+        java.util.List<IGregTechTileEntity> existingTiles) {
+        tile = existing;
+        machine = (MTEHubArrayBase<?>) tile.getMetaTileEntity();
+        hub = (IHubController) machine;
+        if (!TestLabStructure.checkStructure(machine, tile))
+            throw new IllegalStateException("Existing hub native structure rejected");
+        int inputId = (water ? MetaTileEntityID.WATER_HUB_INPUT_HATCH : MetaTileEntityID.STEAM_HUB_INPUT_HATCH).ID;
+        int outputId = (water ? MetaTileEntityID.WATER_HUB_OUTPUT_HATCH : MetaTileEntityID.STEAM_HUB_OUTPUT_HATCH).ID;
+        for (IGregTechTileEntity candidate : existingTiles) {
+            if (candidate.getMetaTileID() == inputId) input = candidate;
+            if (candidate.getMetaTileID() == outputId) output = candidate;
+        }
+        if (input == null || output == null) throw new IllegalStateException("Existing hub ports missing");
+        FluidStack resource = water ? Materials.Water.getFluid(100000) : Materials.Steam.getGas(100000);
+        inserted = ((MTEBasicTank) input.getMetaTileEntity()).fill(resource, true);
+        FluidStack extracted = ((MTEBasicTank) output.getMetaTileEntity()).drain((int) inserted, true);
+        drained = extracted == null ? 0 : extracted.amount;
+        if (inserted != 100000 || drained != inserted || !resource.isFluidEqual(extracted))
+            throw new IllegalStateException(
+                "Existing hub storage/port roundtrip failed inserted=" + inserted + " drained=" + drained);
+        tile.enableWorking();
+        supplyPath = "existing_ports_only_no_rebuild";
+        phase = 4;
+    }
+
     @Override
     public TestLabReport.Result tick(WorldServer world, int elapsedTicks) throws Exception {
         if (phase == 0) {

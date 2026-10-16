@@ -1,0 +1,22 @@
+[
+  {
+    "command": "gtsrtest existing-layout siemens_martin_furnace",
+    "expect": "GTSR-TESTLAB.*task=siemens_martin_furnace phase=RUNNING",
+    "timeout": 180
+  },
+  {
+    "command": "gtsrtest stop",
+    "expect": "GTSR-TESTLAB.*state=STOPPED",
+    "timeout": 60
+  },
+  {
+    "command": "gtsrtest existing-layout siemens_martin_furnace",
+    "expect": "GTSR-TESTLAB.*task=siemens_martin_furnace phase=RUNNING",
+    "timeout": 180
+  },
+  {
+    "command": "stop",
+    "expect": "Stopping server",
+    "timeout": 60
+  }
+]

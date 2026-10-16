@@ -7,6 +7,8 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -65,6 +67,11 @@ import gregtech.common.blocks.BlockCasings2;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
 public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDrill> implements ISurvivalConstructable {
+
+    // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
+    private static final int REPLACEABLE_CASING_POSITIONS = 11;
+    private static final int MIN_MECHANICAL_CASINGS = minimumCasings(REPLACEABLE_CASING_POSITIONS);
+    private int mMechanicalCasingCount;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 2;
@@ -210,35 +217,36 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
                 .addElement(
                     'B',
                     ofChain(
-                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        hatchWithCandidates(
+                            buildHatchAdder(MTESteamFluidDrill.class).atLeast(PressureSteamInputHatch)
+                                .casingIndex(bronzeCasingIndex)
+                                .hint(1)
+                                .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty()),
+                            PressureSteamInputHatch),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTESteamFluidDrill.class).atLeast(OutputHatch)
+                                .casingIndex(bronzeCasingIndex)
+                                .hint(1),
+                            OutputHatch),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTESteamFluidDrill.class)
+                                .anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
+                                .casingIndex(bronzeCasingIndex)
+                                .hint(1),
+                            SteamCoolingHatch,
+                            PressureSteamCoolingHatch),
                         onElementPass(
-                            MTESteamFluidDrill::onCasingAdded,
-                            ofBlocksTiered(
-                                MTESteamFluidDrill::getCasingTier,
-                                ImmutableList.of(
-                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                -1,
-                                (MTESteamFluidDrill t, Integer tier) -> t.mSetTier = tier,
-                                (MTESteamFluidDrill t) -> t.mSetTier)),
-                        // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
-                        // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
-                        buildHatchAdder(MTESteamFluidDrill.class).atLeast(PressureSteamInputHatch)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1)
-                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
-                            .build(),
-                        buildHatchAdder(MTESteamFluidDrill.class).atLeast(OutputHatch)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1)
-                            .build(),
-                        // v1.20.23 新增：冷却仓元素（可选）。冷却产物的实际注册经上方 PressureSteamInputHatch
-                        // 组的 addToMachineList 拦截完成（冷却仓优先命中该拦截），本组仅用于 NEI 提示可见性
-                        // （与地壳蒸汽钻机 v1.9.40 同款）。
-                        buildHatchAdder(MTESteamFluidDrill.class).atLeast(SteamCoolingHatch, PressureSteamCoolingHatch)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1)
-                            .build()))
+                            t -> t.mMechanicalCasingCount++,
+                            onElementPass(
+                                MTESteamFluidDrill::onCasingAdded,
+                                ofBlocksTiered(
+                                    MTESteamFluidDrill::getCasingTier,
+                                    ImmutableList.of(
+                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                        Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                    -1,
+                                    (MTESteamFluidDrill t, Integer tier) -> t.mSetTier = tier,
+                                    (MTESteamFluidDrill t) -> t.mSetTier)))))
                 .addElement(
                     'C',
                     onElementPass(
@@ -304,11 +312,16 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        mMechanicalCasingCount = 0;
         mCountCasing = 0;
         mSetTier = -1;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
             mSetTier = -1;
+            return;
+        }
+        if (mMechanicalCasingCount < MIN_MECHANICAL_CASINGS) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
 
@@ -524,6 +537,11 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(5, 6, 5, false)
+            .addCasingInfoMin(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),
+                MIN_MECHANICAL_CASINGS,
+                false)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.SteamFluidDrill.hatches"))
             .addController(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.steam_input"),

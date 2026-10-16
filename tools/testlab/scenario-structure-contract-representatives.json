@@ -1,0 +1,27 @@
+[
+  {
+    "command": "gtsrtest structure air_compressor",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 240
+  },
+  {
+    "command": "gtsrtest structure kinetic_processing_array",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 600
+  },
+  {
+    "command": "gtsrtest structure mega_steam_turbine_array",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest structure steam_hub_array",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 300
+  },
+  {
+    "command": "gtsrtest structure water_hub_array",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 300
+  }
+]
