@@ -75,6 +75,7 @@ public class CommonProxy {
      * 在此阶段读取配置文件，并将机器注册任务添加到 GregTech 的处理队列中。
      */
     public void preInit(FMLPreInitializationEvent event) {
+        com.miaokatze.gtsr.common.critical.CriticalChunkTicketManager.register();
         // 配置文件迁移到 config/gtsr/gtsr.cfg：新路径不存在且旧路径 (config/gtsr.cfg) 存在时复制一次（标准复制，不覆盖已存在目标），旧文件保留原位
         File newConfigFile = new File(event.getModConfigurationDirectory(), "gtsr/gtsr.cfg");
         File oldConfigFile = event.getSuggestedConfigurationFile();
@@ -87,6 +88,13 @@ public class CommonProxy {
             }
         }
         Config.synchronizeConfiguration(newConfigFile);
+        // 调用方先守卫，关闭时不加载测试维度及 Runtime 类，也不注册监听。
+        if (Config.testLabEnabled) {
+            com.miaokatze.gtsr.common.dimension.testlab.TestLabDimension.register();
+            if (com.miaokatze.gtsr.common.dimension.testlab.TestLabDimension.enabled()) {
+                com.miaokatze.gtsr.common.dimension.testlab.TestLabRuntime.register();
+            }
+        }
         ProsperityIndustrialMaterials
             .configure(new File(event.getModConfigurationDirectory(), "gtsr/industrial-material-ids.cfg"));
         // dim1 S3：繁荣四空气材料 handler 必须在 GTSR 自身首次触碰 gregtech Materials 类之前登记
@@ -217,11 +225,16 @@ public class CommonProxy {
         // 但通道注册仍须晚于 GT Init 末尾的 GTStructureChannels.register()，故挂 sAfterGTLoad（GTMod.java:402）。
         // gtsr 为 required-before:gregtech，自身 Init 仍早于 GT Init；preInit 直接注册会因 ItemStack.getItem()==null 使
         // gtnhlib ItemStackMap.computeIfAbsent 返回 null，在 StructureLib ChannelDescription.item 内 NPE 启动崩溃。
-        GregTechAPI.sAfterGTLoad.add(CommonProxy::registerClusterTierChannel);
+        GregTechAPI.sAfterGTLoad.add(CommonProxy::registerStructureChannels);
     }
 
-    private static void registerClusterTierChannel() {
+    private static void registerStructureChannels() {
         StructureLibAPI.registerChannelDescription("tier", "gtsr", "gtsr.structurelib.channel.tier.desc");
+        StructureLibAPI.registerChannelDescription("gear", "gtsr", "gtsr.structurelib.channel.gear.desc");
+        for (int tier = 1; tier <= 2; tier++) {
+            ItemStack indicator = new ItemStack(GregTechAPI.sBlockCasings2, 1, tier + 1);
+            if (indicator.getItem() != null) StructureLibAPI.registerChannelItem("gear", "gtsr", tier, indicator);
+        }
         java.util.List<org.apache.commons.lang3.tuple.Pair<net.minecraft.block.Block, Integer>> family = com.miaokatze.gtsr.common.machine.cluster.ClusterStructureDef
             .casingFamily();
         for (int tier = 1; tier <= 4; tier++) {
@@ -265,6 +278,7 @@ public class CommonProxy {
         // 注册 FML 原生 IGuiHandler：聚合器终端配置界面双端 openGui 配对（terminal-native-ui M7，
         // 手持枢纽终端右击打开；服务端 Container + 客户端 Gui 经 main/ClientProxy 静态委托）
         NetworkRegistry.INSTANCE.registerGuiHandler(AggregatorGuiHandler.modInstance(), new AggregatorGuiHandler());
+        com.miaokatze.gtsr.common.critical.CriticalRuntime.register();
         com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreNetwork.register();
         // 注：钻井/蒸汽/蓄水三个枢纽状态界面已迁 terminal-native-ui 轨 A
         // （TerminalNet.sendOpen + 客户端 displayGuiScreen），对应 MUI2 factory 注册已随旧轨删除；
@@ -307,6 +321,7 @@ public class CommonProxy {
         GTSteamReborn.LOG.info("[3/3] 开始注册 GTSR 配方...");
         try {
             new GTSRRecipeLoader().run();
+            com.miaokatze.gtsr.common.critical.CriticalRuntime.registerRecipes();
             GTSteamReborn.LOG.info("[3/3] GTSR 配方注册完成。");
             // 注入蒸汽纠缠奇点到村庄/地牢/矿井/要塞箱子战利品（~2% 抽取概率，每次 1 个）
             LootInjectionRunawaySingularity.init();
@@ -324,6 +339,10 @@ public class CommonProxy {
      * 用于注册服务器端命令。
      */
     public void serverStarting(FMLServerStartingEvent event) {
+        if (Config.testLabEnabled && com.miaokatze.gtsr.common.dimension.testlab.TestLabDimension.enabled()) {
+            com.miaokatze.gtsr.common.dimension.testlab.TestLabRuntime.INSTANCE.serverStarting();
+            event.registerServerCommand(new com.miaokatze.gtsr.common.dimension.testlab.TestLabCommand());
+        }
         event.registerServerCommand(new GTSRCommand());
         event.registerServerCommand(new SpacetimeAuditCommand());
         event.registerServerCommand(new com.miaokatze.gtsr.common.commands.WeaponAuditCommand());

@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 import net.minecraft.util.StatCollector;
 
 import com.google.common.collect.ImmutableList;
+import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 
 import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -15,6 +16,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.util.IGTHatchAdder;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
@@ -53,11 +55,11 @@ public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
         // 对 MTESteamMultiBlockBase 也走 addInputBusToMachineList，而非 mixin 改造后的 addToMachineList。
         // mixin 的 addToMachineList 不处理标准 MTEHatchInputBus，会返回 false 导致结构检测失败。
         return t.addInputBusToMachineList(te, idx);
-    }, () -> ImmutableList.of(MTEHatchInputBus.class)) {
+    }, () -> ImmutableList.of(MTEHatchInputBus.class, IDualInputHatch.class)) {
 
         @Override
         public long count(MTEMultiBlockBase t) {
-            return t.mInputBusses.size();
+            return t.mInputBusses.size() + t.mDualInputHatches.size();
         }
 
         @Override
@@ -117,12 +119,11 @@ public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
 
         @Override
         public long count(MTEMultiBlockBase t) {
-            return 0;
-        }
-
-        @Override
-        public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-            return ImmutableList.of(STEAM_COOLING_HATCH_CLASS, PRESSURE_STEAM_COOLING_HATCH_CLASS);
+            return t instanceof ICoolingHatchHolder holder ? holder.gtsr$getCoolingHatches()
+                .size()
+                + holder.gtsr$getPressureHatches()
+                    .size()
+                : 0;
         }
     },
 
@@ -135,12 +136,8 @@ public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
 
         @Override
         public long count(MTEMultiBlockBase t) {
-            return 0;
-        }
-
-        @Override
-        public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-            return ImmutableList.of(PRESSURE_STEAM_COOLING_HATCH_CLASS);
+            return t instanceof ICoolingHatchHolder holder ? holder.gtsr$getPressureHatches()
+                .size() : 0;
         }
     },
 
@@ -153,13 +150,13 @@ public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
 
         @Override
         public long count(MTEMultiBlockBase t) {
-            return 0;
-        }
-
-        @Override
-        public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-            // v1.10.4：开放 MTEHatchInput（含 ME 输入仓）作为蒸汽输入来源，NEI 同步显示
-            return ImmutableList.of(PRESSURE_STEAM_INPUT_HATCH_CLASS, MTEHatchInput.class);
+            long count = t.mInputHatches.size();
+            if (t instanceof MTESteamMultiBlockBase<?>steamBase) {
+                count += steamBase.mSteamInputFluids.stream()
+                    .filter(pressureSteamInputHatchClass()::isInstance)
+                    .count();
+            }
+            return count;
         }
     };
 

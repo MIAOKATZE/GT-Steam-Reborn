@@ -3,8 +3,10 @@ package com.miaokatze.gtsr.common.machine.tcds;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static gregtech.api.enums.HatchElement.InputHatch;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.Maintenance;
 import static gregtech.api.enums.HatchElement.Muffler;
 import static gregtech.api.enums.HatchElement.OutputHatch;
@@ -55,22 +57,28 @@ import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings4;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.tileentities.machines.IDualInputHatch;
+import gregtech.common.tileentities.machines.MTEHatchCraftingInputSlave;
 
 /**
  * 热化学致密蒸汽发生系统（TCDS）：燃气/燃油双族连续流体多方块，无 RecipeMap。
@@ -103,6 +111,8 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     implements IConstructable, ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
+    private static final int MIN_CASINGS = minimumCasings(1191);
+    private int mCasingCount;
     private static final int HORIZONTAL_OFF_SET = 4;
     private static final int VERTICAL_OFF_SET = 5;
     private static final int DEPTH_OFF_SET = 0;
@@ -392,17 +402,20 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
             final int casingIndex = getCasingTextureID();
             STRUCTURE_DEFINITION = StructureDefinition.<MTEThermoChemicalDenseSteamGenerator>builder()
                 .addShape(STRUCTURE_PIECE_MAIN, transpose(SHAPE_MAIN))
-                // 'A' 双态位（集群 casingOrControllerInputSlot 双态范式）：casing-first（NEI 投影优先渲染
-                // 外壳，真实 hatch 坐标 casing 匹配失败后继续匹配仓室 adder）；四类仓室各 atLeast(1)
+                // 仓室优先，只有真实洁净不锈钢机械方块计入最低外壳数。
                 .addElement(
                     'A',
                     ofChain(
-                        ofBlock(GregTechAPI.sBlockCasings4, 1),
-                        buildHatchAdder(MTEThermoChemicalDenseSteamGenerator.class)
-                            .atLeast(Maintenance, Muffler, InputHatch, OutputHatch)
-                            .casingIndex(casingIndex)
-                            .hint(1)
-                            .build()))
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEThermoChemicalDenseSteamGenerator.class)
+                                .anyOf(Maintenance, Muffler, TcdsHatchElement.FluidInput, OutputHatch)
+                                .casingIndex(casingIndex)
+                                .hint(1),
+                            Maintenance,
+                            Muffler,
+                            TcdsHatchElement.FluidInput,
+                            OutputHatch),
+                        onElementPass(t -> t.mCasingCount++, ofBlock(GregTechAPI.sBlockCasings4, 1))))
                 // 'B' 不锈钢框架：gt.blockframes meta 306
                 .addElement('B', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockframes"), 306))
                 // 'e' 蒸汽粒子动画位：结构上是空气，偏移在惰性扫描时收集供客户端喷粒
@@ -415,8 +428,44 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
-        // 四类仓室 atLeast(1) 的校验由 buildHatchAdder 在 checkPiece 内完成（缺任一类即不成型）
-        checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors);
+        mCasingCount = 0;
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) return;
+        // 保留现行缺仓接受集合；四类仓室没有独立的全局数量断言。
+        if (mCasingCount < MIN_CASINGS) errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+    }
+
+    /** Matches the existing standard fluid-input adder without narrowing its world acceptance. */
+    private enum TcdsHatchElement implements IHatchElement<MTEThermoChemicalDenseSteamGenerator> {
+
+        FluidInput;
+
+        @Override
+        public IGTHatchAdder<MTEThermoChemicalDenseSteamGenerator> adder() {
+            return MTEThermoChemicalDenseSteamGenerator::addInputHatchToMachineList;
+        }
+
+        @Override
+        public List<Class<? extends IMetaTileEntity>> mteClasses() {
+            return java.util.Arrays.asList(MTEHatchInput.class, MTEHatchCraftingInputSlave.class);
+        }
+
+        @Override
+        public boolean matchesHatch(IMetaTileEntity mte) {
+            return mte instanceof MTEHatchInput || mte instanceof IDualInputHatch dual
+                && (dual.supportsFluids() || mte instanceof MTEHatchCraftingInputSlave);
+        }
+
+        @Override
+        public long count(MTEThermoChemicalDenseSteamGenerator machine) {
+            return machine.mInputHatches.size() + machine.mDualInputHatches.stream()
+                .filter(hatch -> hatch.supportsFluids() || hatch instanceof MTEHatchCraftingInputSlave)
+                .count();
+        }
+
+        @Override
+        public String getDescriptionLangKey() {
+            return "GT5U.MBTT.InputHatch";
+        }
     }
 
     // NEI/投影：单 piece（无档位通道，集群 construct/survivalConstruct 简化版）
@@ -1133,12 +1182,13 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参按 beta-3 语义排列
             .beginStructureBlock(12, 11, 28, false)
             .addController(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.tcds.ctrl"))
-            .addMaintenanceHatch(StatCollector.translateToLocal("gtsr.tooltip.tcds.maintenance"))
-            .addMufflerHatch(StatCollector.translateToLocal("gtsr.tooltip.tcds.muffler"))
-            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.tcds.input_hatch"), 1)
-            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.tcds.output_hatch"), 1)
+            .addMaintenanceHatch(StatCollector.translateToLocal("gtsr.tooltip.structure.special.tcds_maintenance"))
+            .addMufflerHatch(StatCollector.translateToLocal("gtsr.tooltip.structure.special.tcds_muffler"))
+            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.structure.special.tcds_input"), 1)
+            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.structure.special.tcds_output"), 1)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.special.tcds_ports"))
             .addStructureInfo("")
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.tcds.casing"), 1191, false)
+            .addCasingInfoMin(StatCollector.translateToLocal("gtsr.tooltip.tcds.casing"), MIN_CASINGS, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.tcds.frame"), 218, false)
             .addInfo(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.tcds.chip_desc"))
             .addSeparator()

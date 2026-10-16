@@ -61,6 +61,9 @@ public abstract class GameRegistryMixin {
             return; // 非 GTSR 维度：放行原方法（行为零漂移）
         }
         ci.cancel();
+        // The laboratory has no natural or mod-owned generation at all.
+        if (com.miaokatze.gtsr.config.Config.testLabEnabled
+            && world.provider instanceof com.miaokatze.gtsr.common.dimension.testlab.TestLabWorldProvider) return;
         if (sortedGeneratorList == null) {
             computeSortedGeneratorList();
         }

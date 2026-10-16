@@ -1,0 +1,12 @@
+[
+  {
+    "command": "gtsrtest perf quick",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 300
+  },
+  {
+    "command": "gtsrtest perf status",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 15
+  }
+]

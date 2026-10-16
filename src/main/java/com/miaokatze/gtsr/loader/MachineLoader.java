@@ -3,9 +3,11 @@ package com.miaokatze.gtsr.loader;
 import com.miaokatze.gtsr.common.api.enums.GTSRHatchElement;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
+import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.machine.MTEAirCompressor;
 import com.miaokatze.gtsr.common.machine.MTEAmmoniaPlant;
 import com.miaokatze.gtsr.common.machine.MTEAtmosphericCentrifuge;
+import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 import com.miaokatze.gtsr.common.machine.MTECriticalSingularityCompressor;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
 import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
@@ -87,6 +89,62 @@ public class MachineLoader {
     }
 
     private static void registerAllMachines() {
+        GTSRItemList.CriticalLoom
+            .set(new MTECriticalMachine(MetaTileEntityID.CRITICAL_LOOM.ID, "gtsr.critical.loom", "Mimetic Loom", null));
+        GTSRItemList.CriticalSolar.set(
+            new MTECriticalMachine(
+                MetaTileEntityID.CRITICAL_SOLAR.ID,
+                "gtsr.critical.solar",
+                "Dimensional Irradiance Coupling Boiler",
+                CriticalMachineKind.SOLAR));
+        GTSRItemList.CriticalTurbine.set(
+            new MTECriticalMachine(
+                MetaTileEntityID.CRITICAL_TURBINE.ID,
+                "gtsr.critical.turbine",
+                "Supercritical Steam Pulse Power Core",
+                CriticalMachineKind.TURBINE));
+        GTSRItemList.CriticalProcessing.set(
+            new MTECriticalMachine(
+                MetaTileEntityID.CRITICAL_PROCESSING.ID,
+                "gtsr.critical.processing",
+                "Hyperstructural Processing Matrix",
+                CriticalMachineKind.PROCESSING));
+        GTSRItemList.CriticalEntangler.set(
+            new MTECriticalMachine(
+                MetaTileEntityID.CRITICAL_ENTANGLER.ID,
+                "gtsr.critical.entangler",
+                "Dual Singularity Coherence Coupler",
+                CriticalMachineKind.ENTANGLER));
+        GTSRItemList.CriticalSun.set(
+            new MTECriticalMachine(
+                MetaTileEntityID.CRITICAL_SUN.ID,
+                "gtsr.critical.sun",
+                "Artificial Stellar Confinement Core",
+                CriticalMachineKind.SUN));
+        GTSRItemList.CriticalDimension.set(
+            new MTECriticalMachine(
+                MetaTileEntityID.CRITICAL_DIMENSION.ID,
+                "gtsr.critical.dimension",
+                "Metric Phase Mapper",
+                CriticalMachineKind.DIMENSION));
+        GTSRItemList.CriticalBattery.set(
+            new MTECriticalMachine(
+                MetaTileEntityID.CRITICAL_BATTERY.ID,
+                "gtsr.critical.battery",
+                "Multiphase Chemical Energy Matrix",
+                CriticalMachineKind.BATTERY));
+        GTSRItemList.CriticalAssembly.set(
+            new MTECriticalMachine(
+                MetaTileEntityID.CRITICAL_ASSEMBLY.ID,
+                "gtsr.critical.assembly",
+                "Nonsequential Matter Compiler",
+                CriticalMachineKind.ASSEMBLY));
+        GTSRItemList.CriticalAccelerator.set(
+            new MTECriticalMachine(
+                MetaTileEntityID.CRITICAL_ACCELERATOR.ID,
+                "gtsr.critical.accelerator",
+                "Neutron Flux Pulse Energy Emitter",
+                CriticalMachineKind.ACCELERATOR));
         // --- 单方块机器 ---
         GTSRItemList.SteamCacheNode.set(
             new MTESteamCacheNode(MetaTileEntityID.STEAM_CACHE_NODE.ID, "gtsr.steam.cache.node", "Steam Cache Node"));
@@ -499,6 +557,17 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.RedstoneHatch.get(1));
         // --- 新增奇点机器 (43-44) ---
         CreativeTabManager.addItemToTab(GTSRItemList.CriticalSingularityCompressor.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalLoom.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalSolar.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalTurbine.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalProcessing.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalEntangler.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalSun.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalDimension.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalBattery.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalAssembly.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalAccelerator.get(1));
+
         CreativeTabManager.addItemToTab(GTSRItemList.SpacetimeCalibration.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.DenseStateManipulator.get(1));
         // --- 集群家族：总控、七工作单元、五增幅器与物流单元（顺序与注册一致） ---

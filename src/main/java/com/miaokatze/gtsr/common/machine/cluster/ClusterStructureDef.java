@@ -4,6 +4,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputHatch;
@@ -11,6 +12,7 @@ import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -34,6 +36,7 @@ import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
+import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -389,6 +392,11 @@ public final class ClusterStructureDef {
         return extOffsetC(0);
     }
 
+    public static int casingSlots(int extensionCount) {
+        return GTSRStructureUtility.countShape(SHAPE_MAIN, 'A')
+            + extensionCount * GTSRStructureUtility.countShape(SHAPE_EXT, 'A');
+    }
+
     /**
      * 集群级 FX 粒子候选位（粒子动画精准施加 'e' 标记位，r9）：主段 55 格 + 每延伸段 15 格
      * 'e' 空气位，返回控制器相对 ABC 偏移（客户端按同步到的延伸段数一次性注册到
@@ -469,8 +477,8 @@ public final class ClusterStructureDef {
     }
 
     /**
-     * A 总控仓室自由化元素：tiered 外壳（默认形态，四族 casing 之一）或 anyOf(标准输入仓 /
-     * 蒸汽输入仓 / 耐压蒸汽输入仓)——矩阵内任意 A 位皆可承载输入仓（原 P 专用位已恢复草稿字面，
+     * A 总控仓室自由化元素：anyOf(标准输入仓 / 蒸汽输入仓 / 耐压蒸汽输入仓) 优先，
+     * tiered 外壳回退且仅真壳计数；显式提供三类候选与数量说明。任意 A 位皆可承载输入仓（原 P 专用位已恢复草稿字面，
      * 由本元素统一承载；'P' 字符删除）。禁用 atLeast（GT5U atLeast 是“各元素至少一个”语义，
      * 此处不适用）。自定义 adder：标准输入仓走 {@code addInputHatchToMachineList} 纳入
      * mInputHatches；耐压蒸汽输入仓在本 Enhanced 基座上无标准注册通道（其类不是 MTEHatchInput），
@@ -481,18 +489,27 @@ public final class ClusterStructureDef {
      */
     private static IStructureElement<MTESteamMineralLogisticsCluster> casingOrControllerInputSlot() {
         return ofChain(
-            ofBlocksTiered(
-                ClusterStructureDef::getCasingTier,
-                CASING_FAMILY,
-                -1,
-                (t, tier) -> t.mCasingTier = tier,
-                t -> t.mCasingTier),
-            buildHatchAdder(MTESteamMineralLogisticsCluster.class)
-                .anyOf(InputHatch, SteamInputHatch, PressureSteamInputHatch)
-                .adder(ClusterStructureDef::addControllerInputHatch)
-                .casingIndex(BRONZE_CASING_TEXTURE_ID)
-                .hint(1)
-                .build());
+            GTSRStructureUtility.hatchWithCandidates(
+                buildHatchAdder(MTESteamMineralLogisticsCluster.class)
+                    .anyOf(InputHatch, SteamInputHatch, PressureSteamInputHatch)
+                    .adder(ClusterStructureDef::addControllerInputHatch)
+                    .descriptions(
+                        () -> Arrays.asList(
+                            "gtsr.structure.cluster.controller.input_hatch",
+                            "gtsr.structure.cluster.controller.steam_hatches"))
+                    .casingIndex(BRONZE_CASING_TEXTURE_ID)
+                    .hint(1),
+                InputHatch,
+                SteamInputHatch,
+                PressureSteamInputHatch),
+            onElementPass(
+                MTESteamMineralLogisticsCluster::onCasingAdded,
+                ofBlocksTiered(
+                    ClusterStructureDef::getCasingTier,
+                    CASING_FAMILY,
+                    -1,
+                    (t, tier) -> t.mCasingTier = tier,
+                    t -> t.mCasingTier)));
     }
 
     /** A 位（外壳/输入仓两态）注册 adder：见 {@link #casingOrControllerInputSlot()}。casingIndex 可能为 null（不请求贴图）。 */

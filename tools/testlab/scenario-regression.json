@@ -1,0 +1,97 @@
+[
+  {
+    "command": "gtsrtest ui all",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 600
+  },
+  {
+    "command": "gtsrtest regenerate singularity_steam_output_compartment",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest regenerate singularity_fluid_output_compartment",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest regenerate large_steam_furnace",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest regenerate large_steam_furnace_tier2",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest regenerate kinetic_processing_array",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest regenerate tcds_controller",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest regenerate mega_steam_turbine_array",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest regenerate overpressure_turbine_input_hatch",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest regenerate spacetime_calibration",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest regenerate critical_solar",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 1200
+  },
+  {
+    "command": "gtsrtest regenerate redstone_hatch",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest regenerate cluster_unit_thermocentrifuge",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest regenerate cluster_unit_magnetic_separator",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest supply 736 77 576 water",
+    "expect": "GTSR-TESTLAB.*supply=ON",
+    "timeout": 30
+  },
+  {
+    "command": "gtsrtest supply list",
+    "expect": "GTSR-TESTLAB.*736,77,576=water",
+    "timeout": 30
+  },
+  {
+    "command": "gtsrtest supply off 736 77 576",
+    "expect": "GTSR-TESTLAB.*supply=OFF",
+    "timeout": 30
+  },
+  {
+    "command": "gtsrtest supply 992 77 576 water",
+    "expect": "GTSR-TESTLAB.*ERROR",
+    "timeout": 30
+  },
+  {
+    "command": "gtsrtest supply clear",
+    "expect": "GTSR-TESTLAB.*supply=CLEARED",
+    "timeout": 30
+  }
+]

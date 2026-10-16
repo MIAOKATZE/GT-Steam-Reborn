@@ -66,6 +66,9 @@ dependencies {
     // Optional at runtime: if Botania is not loaded, the recipe is silently skipped.
     compileOnly("com.github.GTNewHorizons:Botania:1.13.36-GTNH:dev") { transitive = false }
 
+    // Optional client compatibility; never adds Angelica to the runtime mod requirements.
+    compileOnly("com.github.GTNewHorizons:Angelica:2.2.28:dev") { transitive = false }
+
     // Waila API：节点自定义名显示在 WAILA tooltip 头部（GTSRWailaCompat/GTSRNodeWailaProvider）。
     // 版本对齐 GTNH 2.9.0 beta1-3 & RC1-2 基线（beta1-3 & RC1-2 未变更 waila，仍取 1.19.34；API 面与 1.19.30 逐字节相同已核对）；运行时缺失 Waila 时 IMC 不激活，兼容层不生效。
     compileOnly("com.github.GTNewHorizons:waila:1.19.34:dev") { transitive = false }

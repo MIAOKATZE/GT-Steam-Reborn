@@ -4,7 +4,10 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.withChannel;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureChecks.require;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
@@ -32,6 +35,7 @@ import net.minecraftforge.fluids.IFluidHandler;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -63,8 +67,10 @@ import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.structure.error.StructureError;
+import gregtech.api.util.HatchElementBuilder;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.blocks.ItemMachines;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
 
@@ -100,55 +106,58 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
             .addElement(
                 'A',
                 ofChain(
-                    // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                    hatchWithCandidates(
+                        storageConstructionHatches(),
+                        SteamHubStorageElement.PressureUnit,
+                        SteamHubStorageElement.ReinforcedUnit,
+                        SteamHubStorageElement.OverpressureUnit),
                     onElementPass(
                         MTESteamHubArray::onCasingAdded,
-                        ofBlocksTiered(
-                            MTESteamHubArray::getCasingTier,
-                            ImmutableList.of(
-                                Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                Pair.of(GregTechAPI.sBlockCasings2, 0),
-                                Pair.of(GregTechAPI.sBlockCasings4, 0)),
-                            -1,
-                            (MTESteamHubArray t, Integer tier) -> t.mCasingTier = tier,
-                            (MTESteamHubArray t) -> t.mCasingTier)),
-                    buildHatchAdder(MTESteamHubArray.class)
-                        .atLeast(
-                            SteamHubStorageElement.PressureUnit,
-                            SteamHubStorageElement.ReinforcedUnit,
-                            SteamHubStorageElement.OverpressureUnit)
-                        .casingIndex(CASING_INDEX)
-                        .hint(2)
-                        .build()))
+                        withChannel(
+                            "casing",
+                            ofBlocksTiered(
+                                MTESteamHubArray::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0),
+                                    Pair.of(GregTechAPI.sBlockCasings4, 0)),
+                                -1,
+                                (MTESteamHubArray t, Integer tier) -> t.mCasingTier = tier,
+                                (MTESteamHubArray t) -> t.mCasingTier)))))
             .addElement(
                 'C',
                 ofChain(
-                    // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
-                    onElementPass(
-                        MTESteamHubArray::onCasingAdded,
-                        ofBlocksTiered(
-                            MTESteamHubArray::getCasingTier,
-                            ImmutableList.of(
-                                Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                Pair.of(GregTechAPI.sBlockCasings2, 0),
-                                Pair.of(GregTechAPI.sBlockCasings4, 0)),
-                            -1,
-                            (MTESteamHubArray t, Integer tier) -> t.mCasingTier = tier,
-                            (MTESteamHubArray t) -> t.mCasingTier)),
-                    buildHatchAdder(MTESteamHubArray.class).atLeast(
-                        // S1：奇点仓两枚举在前——更具体的 adder 先认领，防止后续泛化 adder 的
-                        // instanceof 误收（枚举间 adder 按声明顺序短路）
+                    hatchWithCandidates(
+                        buildHatchAdder(MTESteamHubArray.class).anyOf(
+                            // S1：奇点仓两枚举在前——更具体的 adder 先认领，防止后续泛化 adder 的
+                            // instanceof 误收（枚举间 adder 按声明顺序短路）
+                            SteamHubHatchElement.SingularitySteamCompartment,
+                            SteamHubHatchElement.SingularitySteamOutputCompartment,
+                            SteamHubHatchElement.SteamInput,
+                            SteamHubHatchElement.SteamOutput)
+                            .casingIndex(CASING_INDEX)
+                            .hint(1),
                         SteamHubHatchElement.SingularitySteamCompartment,
                         SteamHubHatchElement.SingularitySteamOutputCompartment,
                         SteamHubHatchElement.SteamInput,
-                        SteamHubHatchElement.SteamOutput)
-                        .casingIndex(CASING_INDEX)
-                        .hint(1)
-                        .build()))
+                        SteamHubHatchElement.SteamOutput),
+                    onElementPass(
+                        MTESteamHubArray::onCasingAdded,
+                        withChannel(
+                            "casing",
+                            ofBlocksTiered(
+                                MTESteamHubArray::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0),
+                                    Pair.of(GregTechAPI.sBlockCasings4, 0)),
+                                -1,
+                                (MTESteamHubArray t, Integer tier) -> t.mCasingTier = tier,
+                                (MTESteamHubArray t) -> t.mCasingTier)))))
             .addElement(
                 'D',
-                onElementPass(
-                    MTESteamHubArray::onCasingAdded,
+                withChannel(
+                    "casing",
                     ofBlocksTiered(
                         MTESteamHubArray::getPipeTier,
                         ImmutableList.of(
@@ -160,8 +169,8 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
                         (MTESteamHubArray t) -> t.mPipeTier)))
             .addElement(
                 'E',
-                onElementPass(
-                    MTESteamHubArray::onCasingAdded,
+                withChannel(
+                    "casing",
                     ofBlocksTiered(
                         MTESteamHubArray::getGearTier,
                         ImmutableList.of(
@@ -173,8 +182,8 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
                         (MTESteamHubArray t) -> t.mGearTier)))
             .addElement(
                 'F',
-                onElementPass(
-                    MTESteamHubArray::onCasingAdded,
+                withChannel(
+                    "casing",
                     ofBlocksTiered(
                         MTESteamHubArray::getFrameTier,
                         ImmutableList.of(
@@ -219,39 +228,39 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         return null;
     }
 
+    private static HatchElementBuilder<MTESteamHubArray> storageConstructionHatches() {
+        HatchElementBuilder<MTESteamHubArray> builder = buildHatchAdder(MTESteamHubArray.class)
+            .anyOf(
+                SteamHubStorageElement.PressureUnit,
+                SteamHubStorageElement.ReinforcedUnit,
+                SteamHubStorageElement.OverpressureUnit)
+            .casingIndex(CASING_INDEX)
+            .hint(2);
+        var nativeFilter = builder.getHatchItemFilter();
+        return builder.hatchItemFilter((controller, trigger) -> {
+            int selectedTier = trigger == null ? 1 : ChannelDataAccessor.getChannelData(trigger, "casing");
+            int casingTier = Math.max(1, Math.min(3, selectedTier));
+            return nativeFilter.apply(controller, trigger)
+                .and(stack -> {
+                    IMetaTileEntity mte = ItemMachines.getMetaTileEntity(stack);
+                    return switch (casingTier) {
+                        case 1 -> mte instanceof MTEHubStorageUnit;
+                        case 2 -> mte instanceof MTEReinforcedHubStorageUnit;
+                        default -> mte instanceof MTEOverpressureHubStorageUnit;
+                    };
+                });
+        });
+    }
+
     private enum SteamHubHatchElement implements IHatchElement<MTESteamHubArray> {
 
-        // S1：奇点仓两枚举（结构接纳，问题 2）；声明顺序 = atLeast adder 认领顺序（具体在前）
+        // S1：奇点仓两枚举（结构接纳，问题 2）；声明顺序 = anyOf adder 认领顺序（具体在前）
         SingularitySteamCompartment(MTESteamHubArray::addSingularitySteamCompartmentToMachineList,
-            MTESingularitySteamCompartment.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTESingularitySteamCompartment.class);
-            }
-        },
+            MTESingularitySteamCompartment.class),
         SingularitySteamOutputCompartment(MTESteamHubArray::addSingularitySteamOutputCompartmentToMachineList,
-            MTESingularitySteamOutputCompartment.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTESingularitySteamOutputCompartment.class);
-            }
-        },
-        SteamInput(MTESteamHubArray::addSteamInputToMachineList, MTESteamHubInputHatch.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTESteamHubInputHatch.class);
-            }
-        },
-        SteamOutput(MTESteamHubArray::addSteamOutputToMachineList, MTESteamHubOutputHatch.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTESteamHubOutputHatch.class);
-            }
-        };
+            MTESingularitySteamOutputCompartment.class),
+        SteamInput(MTESteamHubArray::addSteamInputToMachineList, MTESteamHubInputHatch.class),
+        SteamOutput(MTESteamHubArray::addSteamOutputToMachineList, MTESteamHubOutputHatch.class);
 
         private final List<Class<? extends IMetaTileEntity>> mteClasses;
         private final IGTHatchAdder<MTESteamHubArray> adder;
@@ -273,6 +282,16 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         }
 
         @Override
+        public String getDescriptionLangKey() {
+            return "gtsr.hatch_element." + name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return StatCollector.translateToLocal(getDescriptionLangKey());
+        }
+
+        @Override
         public long count(MTESteamHubArray t) {
             if (this == SteamInput) return t.mSteamInputHatches.size();
             if (this == SteamOutput) return t.mSteamOutputHatches.size();
@@ -283,27 +302,9 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
 
     private enum SteamHubStorageElement implements IHatchElement<MTESteamHubArray> {
 
-        PressureUnit(MTESteamHubArray::addPressureUnitToMachineList, MTEHubStorageUnit.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEHubStorageUnit.class);
-            }
-        },
-        ReinforcedUnit(MTESteamHubArray::addReinforcedUnitToMachineList, MTEReinforcedHubStorageUnit.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEReinforcedHubStorageUnit.class);
-            }
-        },
-        OverpressureUnit(MTESteamHubArray::addOverpressureUnitToMachineList, MTEOverpressureHubStorageUnit.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEOverpressureHubStorageUnit.class);
-            }
-        };
+        PressureUnit(MTESteamHubArray::addPressureUnitToMachineList, MTEHubStorageUnit.class),
+        ReinforcedUnit(MTESteamHubArray::addReinforcedUnitToMachineList, MTEReinforcedHubStorageUnit.class),
+        OverpressureUnit(MTESteamHubArray::addOverpressureUnitToMachineList, MTEOverpressureHubStorageUnit.class);
 
         private final List<Class<? extends IMetaTileEntity>> mteClasses;
         private final IGTHatchAdder<MTESteamHubArray> adder;
@@ -322,6 +323,16 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         @Override
         public IGTHatchAdder<? super MTESteamHubArray> adder() {
             return adder;
+        }
+
+        @Override
+        public String getDescriptionLangKey() {
+            return "gtsr.hatch_element." + name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return StatCollector.translateToLocal(getDescriptionLangKey());
         }
 
         @Override
@@ -644,11 +655,31 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         return new FluidStack(mStoredFluidType.getFluid(), amount);
     }
 
+    private static int getConstructTotalHeight(ItemStack trigger) {
+        int selection = trigger == null ? 1 : ChannelDataAccessor.getChannelData(trigger, "height");
+        return (int) Math.max(3, Math.min(32L, (long) selection + 2));
+    }
+
+    @Override
+    protected int getMechanicalCasingCount() {
+        return mCasingAmount;
+    }
+
+    @Override
+    protected void restoreMechanicalCasingCount(int count) {
+        mCasingAmount = count;
+    }
+
+    @Override
+    protected int getMechanicalCasingSlots() {
+        return 70 + 25 * mStackCount;
+    }
+
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
         buildPiece(STRUCTURE_PIECE_CAP, stackSize, hintsOnly, HORIZONTAL_OFF_SET, -1, DEPTH_OFF_SET);
         buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
-        int tTotalHeight = Math.max(3, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 3, 32));
+        int tTotalHeight = getConstructTotalHeight(stackSize);
         int stackCount = tTotalHeight - 2;
         for (int i = 0; i < stackCount; i++) {
             int bOffset = 1 + i;
@@ -681,7 +712,7 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
             false,
             true);
         if (built >= 0) return built;
-        int tTotalHeight = Math.max(3, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 3, 32));
+        int tTotalHeight = getConstructTotalHeight(stackSize);
         int stackCount = tTotalHeight - 2;
         for (int i = 0; i < stackCount; i++) {
             int bOffset = 1 + i;
@@ -702,9 +733,9 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { EnumChatFormatting.AQUA + "Structure:", "1. CAP (1 layer): Base foundation (bottom)",
-            "2. BASE (1 layer): Controller layer", "3. STACK (1 layer): Repeatable storage unit layer (1~30)",
-            "4. Total height: 3~32 layers (9x9x3 to 9x9x32)", "5. At least 1 Input Hatch and 1 Output Hatch required" };
+        return new String[] { StatCollector.translateToLocal("gtsr.structurelib.channel.steam_hub_height.usage"),
+            StatCollector.translateToLocal("gtsr.structurelib.hub_storage_rule"),
+            StatCollector.translateToLocal("gtsr.structurelib.hub_ports_optional") };
     }
 
     @Override
@@ -992,7 +1023,10 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
 
     @Override
     protected void addFamilyStructureInfo(MultiblockTooltipBuilder tt) {
-        tt.addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 70, false)
+        tt.addCasingInfoMin(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), minimumCasings(95), true)
+            .addSubChannel(GTStructureChannels.TIER_CASING)
+            .addSubChannel(GTStructureChannels.STRUCTURE_HEIGHT)
+            .addStructureHint("gtsr.structurelib.channel.steam_hub_height.usage")
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 7, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 24, false);

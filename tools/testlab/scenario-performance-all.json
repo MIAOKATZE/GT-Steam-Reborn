@@ -1,0 +1,7 @@
+[
+  {
+    "command": "gtsrtest perf all",
+    "expect": "GTSR-TESTLAB.*state=(?:COMPLETE|STOPPED)",
+    "timeout": 600
+  }
+]

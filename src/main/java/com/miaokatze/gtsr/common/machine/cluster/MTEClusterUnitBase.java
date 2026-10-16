@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.machine.cluster;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +32,7 @@ import com.gtnewhorizons.modularui.common.fluid.FluidStackTank;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.gui.cluster.MTEClusterUnitNativeGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
+import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
@@ -43,6 +45,7 @@ import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.TranslatableText;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 
@@ -179,6 +182,9 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     /** 单元自身多方块验证后的 tier（分族同级校验通过才落值）；客户端经 byte 通道镜像用于贴图。 */
     private int unitStructureTier = -1;
 
+    /** 本轮仅统计实际 A 外壳；仓、固定构件与空气均不计入。 */
+    private int actualCasingCount;
+
     /** 所在总控 F 垫位；未收集时为 -1。 */
     protected int padId = -1;
 
@@ -219,6 +225,7 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
 
     /** checkMachine 开头调用：全部 tier 分族与派生 unitStructureTier 复位 -1，杜绝上次扫描残留。 */
     protected void resetTierFamilies() {
+        actualCasingCount = 0;
         casingFamilyTier = -1;
         gearboxFamilyTier = -1;
         pipeFamilyTier = -1;
@@ -232,12 +239,26 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     /** A 外壳族 tier 元素（青铜/钢/钛/钨钢四档）：匹配写 casingFamilyTier，提示读该族当前 tier。 */
     @SuppressWarnings({ "rawtypes", "unchecked" })
     protected IStructureElement tieredCasingElement() {
-        return ofBlocksTiered(
-            MTEClusterUnitBase::getCasingTier,
-            CASING_FAMILY,
-            -1,
-            (MTEClusterUnitBase t, Integer tier) -> t.casingFamilyTier = tier,
-            (MTEClusterUnitBase t) -> t.casingFamilyTier);
+        return onElementPass(
+            (MTEClusterUnitBase t) -> t.actualCasingCount++,
+            ofBlocksTiered(
+                MTEClusterUnitBase::getCasingTier,
+                CASING_FAMILY,
+                -1,
+                (MTEClusterUnitBase t, Integer tier) -> t.casingFamilyTier = tier,
+                (MTEClusterUnitBase t) -> t.casingFamilyTier));
+    }
+
+    /** 仅有 A 仓替换位的族需要额外下限；纯加工单元的 A 本来就必须全为外壳。 */
+    protected int requiredCasingPorts() {
+        return -1;
+    }
+
+    protected final int minimumUnitCasings() {
+        int slots = countUnitShapeChar('A');
+        // 纯加工族允许最多四个红石控制仓替代结构位；tooltip 下限按它们全部替代 A 位计算。
+        return requiredCasingPorts() < 0 ? Math.max(0, slots - 4)
+            : GTSRStructureUtility.minimumCasings(slots, requiredCasingPorts());
     }
 
     /**
@@ -421,6 +442,16 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
             getStructureOffsetB(),
             getStructureOffsetC(),
             errors)) return;
+        int minimumCasings = minimumUnitCasings();
+        if (requiredCasingPorts() >= 0 && actualCasingCount < minimumCasings) {
+            errors.add(
+                new ClusterStructureError(
+                    TranslatableText.lang(
+                        "gtsr.gui.cluster.structure.minimum_casings",
+                        TranslatableText.literal(minimumCasings),
+                        TranslatableText.literal(actualCasingCount))));
+            return;
+        }
         int resolved = resolveUnitStructureTier();
         if (resolved == -1) {
             errors.add(gregtech.api.structure.error.StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
@@ -913,7 +944,14 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal(UNIT_DESC_2_KEY));
         addUnitTooltipInfo(tt);
         tt.beginStructureBlock(getUnitSizeX(), getUnitSizeY(), getUnitSizeZ(), false)
-            .addController(EnumChatFormatting.YELLOW + StatCollector.translateToLocal(UNIT_CTRL_KEY));
+            .addController(EnumChatFormatting.YELLOW + StatCollector.translateToLocal(UNIT_CTRL_KEY))
+            .addCasingInfoMin(
+                StatCollector.translateToLocal("gtsr.structure.cluster.casing"),
+                minimumUnitCasings(),
+                true);
+        if (requiredCasingPorts() < 0) {
+            tt.addStructureInfo(StatCollector.translateToLocal("gtsr.structure.cluster.pure_casing_redstone"));
+        }
         addUnitStructureTooltipInfo(tt);
         tt.addStructureHint(UNIT_PAD_HINT_KEY)
             .addInfo(GTSRUtils.getAddedByLine())

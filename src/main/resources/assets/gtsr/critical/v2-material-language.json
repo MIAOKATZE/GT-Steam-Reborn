@@ -1,0 +1,770 @@
+{
+  "tile.critical_v2_alloy_frame.name": {
+    "zh_CN": "超构承载框架",
+    "en_US": "Hyperstructure Load-Bearing Frame"
+  },
+  "tile.critical_proxy_v2_alloy_frame.name": {
+    "zh_CN": "超构承载框架",
+    "en_US": "Hyperstructure Load-Bearing Frame"
+  },
+  "tile.critical_loom_v2_alloy_frame.name": {
+    "zh_CN": "超构承载框架",
+    "en_US": "Hyperstructure Load-Bearing Frame"
+  },
+  "tile.critical_loom_proxy_v2_alloy_frame.name": {
+    "zh_CN": "超构承载框架",
+    "en_US": "Hyperstructure Load-Bearing Frame"
+  },
+  "tile.gtsr.critical_v2.alloy_frame.tooltip.1": {
+    "zh_CN": "支撑基座边梁、织机轨架与恒星约束结构。",
+    "en_US": "Supports foundation beams, loom gantries and stellar confinement structures."
+  },
+  "tile.gtsr.critical_v2.alloy_frame.tooltip.2": {
+    "zh_CN": "保持承重连接完整；合金框架在作业中固定不动。",
+    "en_US": "Keep load-bearing connections intact; the frame remains fixed during operation."
+  },
+  "tile.critical_v2_reinforced_panel.name": {
+    "zh_CN": "超构加固机壳",
+    "en_US": "Hyperstructure Reinforced Casing"
+  },
+  "tile.critical_proxy_v2_reinforced_panel.name": {
+    "zh_CN": "超构加固机壳",
+    "en_US": "Hyperstructure Reinforced Casing"
+  },
+  "tile.critical_loom_v2_reinforced_panel.name": {
+    "zh_CN": "超构加固机壳",
+    "en_US": "Hyperstructure Reinforced Casing"
+  },
+  "tile.critical_loom_proxy_v2_reinforced_panel.name": {
+    "zh_CN": "超构加固机壳",
+    "en_US": "Hyperstructure Reinforced Casing"
+  },
+  "tile.gtsr.critical_v2.reinforced_panel.tooltip.1": {
+    "zh_CN": "为大型机器提供加固蒙皮与检修外板。",
+    "en_US": "Provides reinforced cladding and service panels for large machines."
+  },
+  "tile.gtsr.critical_v2.reinforced_panel.tooltip.2": {
+    "zh_CN": "按结构定义组成外壳；拉丝钛板保持静态。",
+    "en_US": "Forms the casing defined by the structure; brushed titanium panels remain static."
+  },
+  "tile.critical_v2_ceramic_armor.name": {
+    "zh_CN": "恒星隔热屏蔽板",
+    "en_US": "Stellar Thermal Shielding Plate"
+  },
+  "tile.critical_proxy_v2_ceramic_armor.name": {
+    "zh_CN": "恒星隔热屏蔽板",
+    "en_US": "Stellar Thermal Shielding Plate"
+  },
+  "tile.critical_loom_v2_ceramic_armor.name": {
+    "zh_CN": "恒星隔热屏蔽板",
+    "en_US": "Stellar Thermal Shielding Plate"
+  },
+  "tile.critical_loom_proxy_v2_ceramic_armor.name": {
+    "zh_CN": "恒星隔热屏蔽板",
+    "en_US": "Stellar Thermal Shielding Plate"
+  },
+  "tile.gtsr.critical_v2.ceramic_armor.tooltip.1": {
+    "zh_CN": "划分恒星腔隔热层与基座绝缘环。",
+    "en_US": "Defines stellar chamber thermal shielding and foundation insulation rings."
+  },
+  "tile.gtsr.critical_v2.ceramic_armor.tooltip.2": {
+    "zh_CN": "白陶瓷分区必须连续；以完整结构检查为准。",
+    "en_US": "Keep white ceramic sections continuous; validity follows the full structure check."
+  },
+  "tile.critical_v2_ceramic_dark.name": {
+    "zh_CN": "高能绝缘隔块",
+    "en_US": "High-Energy Insulation Spacer"
+  },
+  "tile.critical_proxy_v2_ceramic_dark.name": {
+    "zh_CN": "高能绝缘隔块",
+    "en_US": "High-Energy Insulation Spacer"
+  },
+  "tile.critical_loom_v2_ceramic_dark.name": {
+    "zh_CN": "高能绝缘隔块",
+    "en_US": "High-Energy Insulation Spacer"
+  },
+  "tile.critical_loom_proxy_v2_ceramic_dark.name": {
+    "zh_CN": "高能绝缘隔块",
+    "en_US": "High-Energy Insulation Spacer"
+  },
+  "tile.gtsr.critical_v2.ceramic_dark.tooltip.1": {
+    "zh_CN": "隔开线圈托座、镜框与相邻承重构件。",
+    "en_US": "Separates coil supports, lens frames and adjacent load-bearing parts."
+  },
+  "tile.gtsr.critical_v2.ceramic_dark.tooltip.2": {
+    "zh_CN": "深灰陶瓷用于固定绝缘接缝，不显示运行读数。",
+    "en_US": "Dark ceramic forms fixed insulating joints and carries no operational readout."
+  },
+  "tile.critical_v2_carbon_frame.name": {
+    "zh_CN": "耐热碳复合支架",
+    "en_US": "Heat-Resistant Carbon Composite Frame"
+  },
+  "tile.critical_proxy_v2_carbon_frame.name": {
+    "zh_CN": "耐热碳复合支架",
+    "en_US": "Heat-Resistant Carbon Composite Frame"
+  },
+  "tile.critical_loom_v2_carbon_frame.name": {
+    "zh_CN": "耐热碳复合支架",
+    "en_US": "Heat-Resistant Carbon Composite Frame"
+  },
+  "tile.critical_loom_proxy_v2_carbon_frame.name": {
+    "zh_CN": "耐热碳复合支架",
+    "en_US": "Heat-Resistant Carbon Composite Frame"
+  },
+  "tile.gtsr.critical_v2.carbon_frame.tooltip.1": {
+    "zh_CN": "构成人造恒星内腔与大型构件的深色承载筋。",
+    "en_US": "Forms dark support ribs for the artificial star chamber and large components."
+  },
+  "tile.gtsr.critical_v2.carbon_frame.tooltip.2": {
+    "zh_CN": "按承重节点连接受力结构，保持支架连接完整。",
+    "en_US": "Connect load-bearing structures at their support nodes and keep frame connections intact."
+  },
+  "tile.critical_v2_copper_busbar.name": {
+    "zh_CN": "能流输送母线",
+    "en_US": "Energy Flux Transfer Busbar"
+  },
+  "tile.critical_proxy_v2_copper_busbar.name": {
+    "zh_CN": "能流输送母线",
+    "en_US": "Energy Flux Transfer Busbar"
+  },
+  "tile.critical_loom_v2_copper_busbar.name": {
+    "zh_CN": "能流输送母线",
+    "en_US": "Energy Flux Transfer Busbar"
+  },
+  "tile.critical_loom_proxy_v2_copper_busbar.name": {
+    "zh_CN": "能流输送母线",
+    "en_US": "Energy Flux Transfer Busbar"
+  },
+  "tile.gtsr.critical_v2.copper_busbar.tooltip.1": {
+    "zh_CN": "沿供能路径连接端口、线圈与耦合节点。",
+    "en_US": "Links ports, coils and coupling nodes along the power route."
+  },
+  "tile.gtsr.critical_v2.copper_busbar.tooltip.2": {
+    "zh_CN": "暖铜纹理标识导电路径；母线本体固定、不闪烁。",
+    "en_US": "Warm copper marks conductive paths; the busbar body remains fixed without flashing."
+  },
+  "tile.critical_v2_superconducting_contact.name": {
+    "zh_CN": "超导磁通耦合接点",
+    "en_US": "Superconducting Flux Coupling Contact"
+  },
+  "tile.critical_proxy_v2_superconducting_contact.name": {
+    "zh_CN": "超导磁通耦合接点",
+    "en_US": "Superconducting Flux Coupling Contact"
+  },
+  "tile.critical_loom_v2_superconducting_contact.name": {
+    "zh_CN": "超导磁通耦合接点",
+    "en_US": "Superconducting Flux Coupling Contact"
+  },
+  "tile.critical_loom_proxy_v2_superconducting_contact.name": {
+    "zh_CN": "超导磁通耦合接点",
+    "en_US": "Superconducting Flux Coupling Contact"
+  },
+  "tile.gtsr.critical_v2.superconducting_contact.tooltip.1": {
+    "zh_CN": "连接约束线圈段与冷却接口。",
+    "en_US": "Couples confinement coil sections to cooling interfaces."
+  },
+  "tile.gtsr.critical_v2.superconducting_contact.tooltip.2": {
+    "zh_CN": "接点与托座须完整，灰钢外框保持固定。",
+    "en_US": "Keep contacts and supports intact; the steel rim remains fixed."
+  },
+  "tile.gtsr.critical_v2.superconducting_contact.tooltip.3": {
+    "zh_CN": "工作时蓝紫电子接点依次点亮，停机回到静态表面。",
+    "en_US": "Blue-violet electronic contacts light in sequence while working and return to a static surface when inactive."
+  },
+  "tile.critical_v2_magnetic_coil.name": {
+    "zh_CN": "高能磁通约束线圈",
+    "en_US": "High-Energy Flux Confinement Coil"
+  },
+  "tile.critical_proxy_v2_magnetic_coil.name": {
+    "zh_CN": "高能磁通约束线圈",
+    "en_US": "High-Energy Flux Confinement Coil"
+  },
+  "tile.critical_loom_v2_magnetic_coil.name": {
+    "zh_CN": "高能磁通约束线圈",
+    "en_US": "High-Energy Flux Confinement Coil"
+  },
+  "tile.critical_loom_proxy_v2_magnetic_coil.name": {
+    "zh_CN": "高能磁通约束线圈",
+    "en_US": "High-Energy Flux Confinement Coil"
+  },
+  "tile.gtsr.critical_v2.magnetic_coil.tooltip.1": {
+    "zh_CN": "构成恒星磁约束环与基座磁悬段。",
+    "en_US": "Forms stellar confinement rings and magnetic foundation sections."
+  },
+  "tile.gtsr.critical_v2.magnetic_coil.tooltip.2": {
+    "zh_CN": "按结构定义连接线圈、托座与供能路径。",
+    "en_US": "Connect coils, supports and power routes as defined by the structure."
+  },
+  "tile.gtsr.critical_v2.magnetic_coil.tooltip.3": {
+    "zh_CN": "局部蓝色接点指示工作节奏，线圈壳体不变色。",
+    "en_US": "Local blue contacts indicate the work rhythm while the coil casing keeps its colour."
+  },
+  "tile.critical_v2_blue_field_glass.name": {
+    "zh_CN": "场域观察玻璃",
+    "en_US": "Field Observation Glass"
+  },
+  "tile.critical_proxy_v2_blue_field_glass.name": {
+    "zh_CN": "场域观察玻璃",
+    "en_US": "Field Observation Glass"
+  },
+  "tile.critical_loom_v2_blue_field_glass.name": {
+    "zh_CN": "场域观察玻璃",
+    "en_US": "Field Observation Glass"
+  },
+  "tile.critical_loom_proxy_v2_blue_field_glass.name": {
+    "zh_CN": "场域观察玻璃",
+    "en_US": "Field Observation Glass"
+  },
+  "tile.gtsr.critical_v2.blue_field_glass.tooltip.1": {
+    "zh_CN": "为约束结构与内部机构提供冷蓝观察窗。",
+    "en_US": "Provides cold-blue viewing windows into confinement structures and internal mechanisms."
+  },
+  "tile.gtsr.critical_v2.blue_field_glass.tooltip.2": {
+    "zh_CN": "只用于结构定义的观察窗位；金属窗框保持完整。",
+    "en_US": "Use only at defined windows and keep the metal frame intact."
+  },
+  "tile.critical_v2_violet_phase_glass.name": {
+    "zh_CN": "悬相观察玻璃",
+    "en_US": "Phase Suspension Observation Glass"
+  },
+  "tile.critical_proxy_v2_violet_phase_glass.name": {
+    "zh_CN": "悬相观察玻璃",
+    "en_US": "Phase Suspension Observation Glass"
+  },
+  "tile.critical_loom_v2_violet_phase_glass.name": {
+    "zh_CN": "悬相观察玻璃",
+    "en_US": "Phase Suspension Observation Glass"
+  },
+  "tile.critical_loom_proxy_v2_violet_phase_glass.name": {
+    "zh_CN": "悬相观察玻璃",
+    "en_US": "Phase Suspension Observation Glass"
+  },
+  "tile.gtsr.critical_v2.violet_phase_glass.tooltip.1": {
+    "zh_CN": "为高阶基座悬相腔提供紫灰观察窗。",
+    "en_US": "Provides muted-violet viewing windows into advanced foundation phase chambers."
+  },
+  "tile.gtsr.critical_v2.violet_phase_glass.tooltip.2": {
+    "zh_CN": "保持窗口与框架完整；玻璃本体不发光。",
+    "en_US": "Keep windows and frames intact; the glass itself emits no light."
+  },
+  "tile.critical_v2_luminous_rail.name": {
+    "zh_CN": "物质构造定位标轨",
+    "en_US": "Matter Construction Alignment Rail"
+  },
+  "tile.critical_proxy_v2_luminous_rail.name": {
+    "zh_CN": "物质构造定位标轨",
+    "en_US": "Matter Construction Alignment Rail"
+  },
+  "tile.critical_loom_v2_luminous_rail.name": {
+    "zh_CN": "物质构造定位标轨",
+    "en_US": "Matter Construction Alignment Rail"
+  },
+  "tile.critical_loom_proxy_v2_luminous_rail.name": {
+    "zh_CN": "物质构造定位标轨",
+    "en_US": "Matter Construction Alignment Rail"
+  },
+  "tile.gtsr.critical_v2.luminous_rail.tooltip.1": {
+    "zh_CN": "为织机轨架标示施工定位与导向路径。",
+    "en_US": "Marks construction alignment and guide paths on the loom gantry."
+  },
+  "tile.gtsr.critical_v2.luminous_rail.tooltip.2": {
+    "zh_CN": "工作时青色定位点沿槽移动，轨架本体保持固定。",
+    "en_US": "Teal alignment markers travel along the channel while the rail body remains fixed."
+  },
+  "tile.critical_v2_fuel_socket.name": {
+    "zh_CN": "恒星燃料耦合座",
+    "en_US": "Stellar Fuel Coupling Mount"
+  },
+  "tile.critical_proxy_v2_fuel_socket.name": {
+    "zh_CN": "恒星燃料耦合座",
+    "en_US": "Stellar Fuel Coupling Mount"
+  },
+  "tile.critical_loom_v2_fuel_socket.name": {
+    "zh_CN": "恒星燃料耦合座",
+    "en_US": "Stellar Fuel Coupling Mount"
+  },
+  "tile.critical_loom_proxy_v2_fuel_socket.name": {
+    "zh_CN": "恒星燃料耦合座",
+    "en_US": "Stellar Fuel Coupling Mount"
+  },
+  "tile.gtsr.critical_v2.fuel_socket.tooltip.1": {
+    "zh_CN": "标识恒星燃料输送结构的耦合节点。",
+    "en_US": "Marks coupling nodes in the stellar fuel delivery structure."
+  },
+  "tile.gtsr.critical_v2.fuel_socket.tooltip.2": {
+    "zh_CN": "燃料供给由对应输入舱接入；耦合座沿燃料输送节点连接。",
+    "en_US": "Supply fuel through the corresponding input hatch and connect the mount along fuel delivery nodes."
+  },
+  "tile.critical_v2_heat_grille.name": {
+    "zh_CN": "临界散热格栅",
+    "en_US": "Critical Heat Dissipation Grille"
+  },
+  "tile.critical_proxy_v2_heat_grille.name": {
+    "zh_CN": "临界散热格栅",
+    "en_US": "Critical Heat Dissipation Grille"
+  },
+  "tile.critical_loom_v2_heat_grille.name": {
+    "zh_CN": "临界散热格栅",
+    "en_US": "Critical Heat Dissipation Grille"
+  },
+  "tile.critical_loom_proxy_v2_heat_grille.name": {
+    "zh_CN": "临界散热格栅",
+    "en_US": "Critical Heat Dissipation Grille"
+  },
+  "tile.gtsr.critical_v2.heat_grille.tooltip.1": {
+    "zh_CN": "构成机壳下部与维护区的金属通风分区。",
+    "en_US": "Forms metal ventilation sections beneath the casing and around service areas."
+  },
+  "tile.gtsr.critical_v2.heat_grille.tooltip.2": {
+    "zh_CN": "格栅保持静态；按结构定义留出维护通道。",
+    "en_US": "The grille remains static; preserve the defined service routes."
+  },
+  "tile.critical_v2_hazard_stripe.name": {
+    "zh_CN": "高能作业警戒板",
+    "en_US": "High-Energy Work Warning Panel"
+  },
+  "tile.critical_proxy_v2_hazard_stripe.name": {
+    "zh_CN": "高能作业警戒板",
+    "en_US": "High-Energy Work Warning Panel"
+  },
+  "tile.critical_loom_v2_hazard_stripe.name": {
+    "zh_CN": "高能作业警戒板",
+    "en_US": "High-Energy Work Warning Panel"
+  },
+  "tile.critical_loom_proxy_v2_hazard_stripe.name": {
+    "zh_CN": "高能作业警戒板",
+    "en_US": "High-Energy Work Warning Panel"
+  },
+  "tile.gtsr.critical_v2.hazard_stripe.tooltip.1": {
+    "zh_CN": "以黄黑条纹标识高能腔口与作业接口边界。",
+    "en_US": "Marks high-energy chamber openings and work interface boundaries with yellow-black stripes."
+  },
+  "tile.gtsr.critical_v2.hazard_stripe.tooltip.2": {
+    "zh_CN": "警戒标识保持静态，运行状态请查看主结构控制器。",
+    "en_US": "Warning marks remain static; inspect the main structure controller for operating status."
+  },
+  "tile.critical_v2_rubber.name": {
+    "zh_CN": "柔性接口密封垫",
+    "en_US": "Flexible Interface Seal"
+  },
+  "tile.critical_proxy_v2_rubber.name": {
+    "zh_CN": "柔性接口密封垫",
+    "en_US": "Flexible Interface Seal"
+  },
+  "tile.critical_loom_v2_rubber.name": {
+    "zh_CN": "柔性接口密封垫",
+    "en_US": "Flexible Interface Seal"
+  },
+  "tile.critical_loom_proxy_v2_rubber.name": {
+    "zh_CN": "柔性接口密封垫",
+    "en_US": "Flexible Interface Seal"
+  },
+  "tile.gtsr.critical_v2.rubber.tooltip.1": {
+    "zh_CN": "分隔端口密封面与活动机构边界。",
+    "en_US": "Separates port sealing surfaces from moving mechanism boundaries."
+  },
+  "tile.gtsr.critical_v2.rubber.tooltip.2": {
+    "zh_CN": "按接口轮廓连接，深色密封纹理不参与工作动画。",
+    "en_US": "Fit to the interface outline; dark sealing textures remain static."
+  },
+  "tile.critical_v2_loom_spool.name": {
+    "zh_CN": "拟态物料供给卷轴",
+    "en_US": "Mimetic Material Feed Spool"
+  },
+  "tile.critical_proxy_v2_loom_spool.name": {
+    "zh_CN": "拟态物料供给卷轴",
+    "en_US": "Mimetic Material Feed Spool"
+  },
+  "tile.critical_loom_v2_loom_spool.name": {
+    "zh_CN": "拟态物料供给卷轴",
+    "en_US": "Mimetic Material Feed Spool"
+  },
+  "tile.critical_loom_proxy_v2_loom_spool.name": {
+    "zh_CN": "拟态物料供给卷轴",
+    "en_US": "Mimetic Material Feed Spool"
+  },
+  "tile.gtsr.critical_v2.loom_spool.tooltip.1": {
+    "zh_CN": "构成拟态织机的物料送料滚筒。",
+    "en_US": "Forms the material feed rollers of the mimetic loom."
+  },
+  "tile.gtsr.critical_v2.loom_spool.tooltip.2": {
+    "zh_CN": "施工材料通过物品总线供给，卷轴负责表现送料机构。",
+    "en_US": "Supply construction materials through item buses; the spool represents the feed mechanism."
+  },
+  "tile.gtsr.critical_v2.loom_spool.tooltip.3": {
+    "zh_CN": "施工时铜色脊纹离散移动，卷轴不发光。",
+    "en_US": "Copper ridges move in discrete steps during construction; the spool emits no light."
+  },
+  "tile.critical_v2_loom_guide.name": {
+    "zh_CN": "物质重构导向轨",
+    "en_US": "Matter Reconstruction Guide Rail"
+  },
+  "tile.critical_proxy_v2_loom_guide.name": {
+    "zh_CN": "物质重构导向轨",
+    "en_US": "Matter Reconstruction Guide Rail"
+  },
+  "tile.critical_loom_v2_loom_guide.name": {
+    "zh_CN": "物质重构导向轨",
+    "en_US": "Matter Reconstruction Guide Rail"
+  },
+  "tile.critical_loom_proxy_v2_loom_guide.name": {
+    "zh_CN": "物质重构导向轨",
+    "en_US": "Matter Reconstruction Guide Rail"
+  },
+  "tile.gtsr.critical_v2.loom_guide.tooltip.1": {
+    "zh_CN": "连接施工头与织机轨架的定位导向结构。",
+    "en_US": "Connects the construction head to the loom gantry alignment structure."
+  },
+  "tile.gtsr.critical_v2.loom_guide.tooltip.2": {
+    "zh_CN": "保持导轨完整，青色定位标只在导向槽内移动。",
+    "en_US": "Keep the guide rail intact; teal alignment markers move only inside the guide channel."
+  },
+  "tile.critical_v2_loom_controller.name": {
+    "zh_CN": "拟态织机驱动监测屏",
+    "en_US": "Mimetic Loom Drive Monitor"
+  },
+  "tile.critical_proxy_v2_loom_controller.name": {
+    "zh_CN": "拟态织机驱动监测屏",
+    "en_US": "Mimetic Loom Drive Monitor"
+  },
+  "tile.critical_loom_v2_loom_controller.name": {
+    "zh_CN": "拟态织机驱动监测屏",
+    "en_US": "Mimetic Loom Drive Monitor"
+  },
+  "tile.critical_loom_proxy_v2_loom_controller.name": {
+    "zh_CN": "拟态织机驱动监测屏",
+    "en_US": "Mimetic Loom Drive Monitor"
+  },
+  "tile.gtsr.critical_v2.loom_controller.tooltip.1": {
+    "zh_CN": "显示织机施工状态与驱动节奏。",
+    "en_US": "Displays loom construction status and drive rhythm."
+  },
+  "tile.gtsr.critical_v2.loom_controller.tooltip.2": {
+    "zh_CN": "织机施工由本机控制器操作，结构配置在主结构控制器查询。",
+    "en_US": "Operate loom construction at its machine controller and inspect structure configuration at the main structure controller."
+  },
+  "tile.gtsr.critical_v2.loom_controller.tooltip.3": {
+    "zh_CN": "工作时小屏局部扫描，冷银框与方向标保持固定。",
+    "en_US": "Local screen pixels scan during work; the cold-silver frame and direction marks remain fixed."
+  },
+  "tile.critical_v2_plugin_socket.name": {
+    "zh_CN": "磁悬装甲耦合挂载面",
+    "en_US": "Magnetic Armour Coupling Mount"
+  },
+  "tile.critical_proxy_v2_plugin_socket.name": {
+    "zh_CN": "磁悬装甲耦合挂载面",
+    "en_US": "Magnetic Armour Coupling Mount"
+  },
+  "tile.critical_loom_v2_plugin_socket.name": {
+    "zh_CN": "磁悬装甲耦合挂载面",
+    "en_US": "Magnetic Armour Coupling Mount"
+  },
+  "tile.critical_loom_proxy_v2_plugin_socket.name": {
+    "zh_CN": "磁悬装甲耦合挂载面",
+    "en_US": "Magnetic Armour Coupling Mount"
+  },
+  "tile.gtsr.critical_v2.plugin_socket.tooltip.1": {
+    "zh_CN": "为外挂磁悬装甲插件提供贴合与耦合节点。",
+    "en_US": "Provides attachment and coupling nodes for external magnetic armour modules."
+  },
+  "tile.gtsr.critical_v2.plugin_socket.tooltip.2": {
+    "zh_CN": "插件沿基座外缘挂载，闭合贴合面不表示空插槽。",
+    "en_US": "Modules attach along the foundation rim; the closed coupling pad is not an empty socket."
+  },
+  "tile.gtsr.critical_v2.plugin_socket.tooltip.3": {
+    "zh_CN": "工作时只点亮小型接点，装甲板体保持柔和灰钢色。",
+    "en_US": "Only small contacts light while working; armour panels retain their muted steel finish."
+  },
+  "tile.critical_v2_foundation_status_tile.name": {
+    "zh_CN": "超构承载状态板",
+    "en_US": "Hyperstructure Load Status Panel"
+  },
+  "tile.critical_proxy_v2_foundation_status_tile.name": {
+    "zh_CN": "超构承载状态板",
+    "en_US": "Hyperstructure Load Status Panel"
+  },
+  "tile.critical_loom_v2_foundation_status_tile.name": {
+    "zh_CN": "超构承载状态板",
+    "en_US": "Hyperstructure Load Status Panel"
+  },
+  "tile.critical_loom_proxy_v2_foundation_status_tile.name": {
+    "zh_CN": "超构承载状态板",
+    "en_US": "Hyperstructure Load Status Panel"
+  },
+  "tile.gtsr.critical_v2.foundation_status_tile.tooltip.1": {
+    "zh_CN": "显示基座承载区域的局部状态。",
+    "en_US": "Displays local status around the foundation load-bearing sections."
+  },
+  "tile.gtsr.critical_v2.foundation_status_tile.tooltip.2": {
+    "zh_CN": "完整结构与插件配置在主结构控制器查询。",
+    "en_US": "Inspect the full structure and module configuration at the main structure controller."
+  },
+  "tile.gtsr.critical_v2.foundation_status_tile.tooltip.3": {
+    "zh_CN": "暗底蓝紫读数局部变化，基座外壳不随之闪烁。",
+    "en_US": "Blue-violet readouts change locally on a dark screen without flashing the foundation casing."
+  },
+  "tile.critical_v2_stellar_lens.name": {
+    "zh_CN": "恒星聚束透镜阵列",
+    "en_US": "Stellar Beam Focusing Lens Array"
+  },
+  "tile.critical_proxy_v2_stellar_lens.name": {
+    "zh_CN": "恒星聚束透镜阵列",
+    "en_US": "Stellar Beam Focusing Lens Array"
+  },
+  "tile.critical_loom_v2_stellar_lens.name": {
+    "zh_CN": "恒星聚束透镜阵列",
+    "en_US": "Stellar Beam Focusing Lens Array"
+  },
+  "tile.critical_loom_proxy_v2_stellar_lens.name": {
+    "zh_CN": "恒星聚束透镜阵列",
+    "en_US": "Stellar Beam Focusing Lens Array"
+  },
+  "tile.gtsr.critical_v2.stellar_lens.tooltip.1": {
+    "zh_CN": "构成人造恒星能量导出结构的分层聚束节点。",
+    "en_US": "Forms layered focusing nodes in the artificial star energy routing structure."
+  },
+  "tile.gtsr.critical_v2.stellar_lens.tooltip.2": {
+    "zh_CN": "钢环、金色夹座与观察镜面必须完整。",
+    "en_US": "Keep steel rings, gold-toned mounts and optical surfaces intact."
+  },
+  "tile.gtsr.critical_v2.stellar_lens.tooltip.3": {
+    "zh_CN": "聚束金环保持暖辉与稳定照明，同类镜阵六面连接，镜面细部保留。",
+    "en_US": "The focusing gold ring provides warm radiance and steady illumination; matching lens arrays join on all six faces while retaining optical detail."
+  },
+  "tile.critical_v2_stellar_plasma_skin.name": {
+    "zh_CN": "人造恒星反应核心",
+    "en_US": "Artificial Star Reaction Core"
+  },
+  "tile.critical_proxy_v2_stellar_plasma_skin.name": {
+    "zh_CN": "人造恒星反应核心",
+    "en_US": "Artificial Star Reaction Core"
+  },
+  "tile.critical_loom_v2_stellar_plasma_skin.name": {
+    "zh_CN": "人造恒星反应核心",
+    "en_US": "Artificial Star Reaction Core"
+  },
+  "tile.critical_loom_proxy_v2_stellar_plasma_skin.name": {
+    "zh_CN": "人造恒星反应核心",
+    "en_US": "Artificial Star Reaction Core"
+  },
+  "tile.gtsr.critical_v2.stellar_plasma_skin.tooltip.1": {
+    "zh_CN": "构成磁约束腔内部的恒星核心表面。",
+    "en_US": "Forms the stellar core surface inside the magnetic confinement chamber."
+  },
+  "tile.gtsr.critical_v2.stellar_plasma_skin.tooltip.2": {
+    "zh_CN": "限定于核心内腔，外围由约束环与隔热结构包围。",
+    "en_US": "Confined to the inner core and surrounded by confinement rings and thermal shielding."
+  },
+  "tile.gtsr.critical_v2.stellar_plasma_skin.tooltip.3": {
+    "zh_CN": "核心保持稳定暖辉并照亮约束腔，热纹随作业演化；同类核心六面连续。",
+    "en_US": "The core maintains steady warm radiance and illuminates the confinement chamber; thermal patterns evolve during work and matching core blocks join on all six faces."
+  },
+  "tile.critical_v2_coolant_channel.name": {
+    "zh_CN": "约束场冷却导管",
+    "en_US": "Confinement Field Cooling Channel"
+  },
+  "tile.critical_proxy_v2_coolant_channel.name": {
+    "zh_CN": "约束场冷却导管",
+    "en_US": "Confinement Field Cooling Channel"
+  },
+  "tile.critical_loom_v2_coolant_channel.name": {
+    "zh_CN": "约束场冷却导管",
+    "en_US": "Confinement Field Cooling Channel"
+  },
+  "tile.critical_loom_proxy_v2_coolant_channel.name": {
+    "zh_CN": "约束场冷却导管",
+    "en_US": "Confinement Field Cooling Channel"
+  },
+  "tile.gtsr.critical_v2.coolant_channel.tooltip.1": {
+    "zh_CN": "连接约束环与外挂插件的冷却路径。",
+    "en_US": "Links cooling routes around confinement rings and external modules."
+  },
+  "tile.gtsr.critical_v2.coolant_channel.tooltip.2": {
+    "zh_CN": "工作时冷蓝流标在狭窄管槽内移动，导管保持固定。",
+    "en_US": "Cold-blue flow markers move inside the narrow channel while its body remains fixed."
+  },
+  "tile.critical_v2_gt_controller.name": {
+    "zh_CN": "主结构控制器",
+    "en_US": "Main Structure Controller"
+  },
+  "tile.critical_proxy_v2_gt_controller.name": {
+    "zh_CN": "主结构控制器",
+    "en_US": "Main Structure Controller"
+  },
+  "tile.critical_loom_v2_gt_controller.name": {
+    "zh_CN": "主结构控制器",
+    "en_US": "Main Structure Controller"
+  },
+  "tile.critical_loom_proxy_v2_gt_controller.name": {
+    "zh_CN": "主结构控制器",
+    "en_US": "Main Structure Controller"
+  },
+  "tile.gtsr.critical_v2.gt_controller.tooltip.1": {
+    "zh_CN": "管理绑定的基座与上层机器结构。",
+    "en_US": "Manages the bound foundation and upper machine structure."
+  },
+  "tile.gtsr.critical_v2.gt_controller.tooltip.2": {
+    "zh_CN": "右键查看整机类型、结构配置与运行状态。",
+    "en_US": "Right-click to inspect machine type, structure configuration and operating status."
+  },
+  "tile.gtsr.critical_v2.gt_controller.tooltip.3": {
+    "zh_CN": "深蓝紫总控徽记面朝南，与织机本机控制器同高对望。",
+    "en_US": "The deep blue-violet command emblem faces south, opposite the loom machine controller at the same height."
+  },
+  "tile.critical_v2_gt_hatch.name": {
+    "zh_CN": "临界结构供给舱",
+    "en_US": "Critical Structure Supply Hatch"
+  },
+  "tile.critical_proxy_v2_gt_hatch.name": {
+    "zh_CN": "临界结构供给舱",
+    "en_US": "Critical Structure Supply Hatch"
+  },
+  "tile.critical_loom_v2_gt_hatch.name": {
+    "zh_CN": "临界结构供给舱",
+    "en_US": "Critical Structure Supply Hatch"
+  },
+  "tile.critical_loom_proxy_v2_gt_hatch.name": {
+    "zh_CN": "临界结构供给舱",
+    "en_US": "Critical Structure Supply Hatch"
+  },
+  "tile.gtsr.critical_v2.gt_hatch.tooltip.1": {
+    "zh_CN": "为绑定结构提供流体或能源供给接口。",
+    "en_US": "Provides a fluid or power supply interface for the bound structure."
+  },
+  "tile.gtsr.critical_v2.gt_hatch.tooltip.2": {
+    "zh_CN": "按对应 GT 舱类型接入供给，并保持舱口位置有效。",
+    "en_US": "Connect supplies for the corresponding GT hatch type and keep the hatch at a valid position."
+  },
+  "tile.critical_v2_gt_bus.name": {
+    "zh_CN": "临界结构物料总线",
+    "en_US": "Critical Structure Material Bus"
+  },
+  "tile.critical_proxy_v2_gt_bus.name": {
+    "zh_CN": "临界结构物料总线",
+    "en_US": "Critical Structure Material Bus"
+  },
+  "tile.critical_loom_v2_gt_bus.name": {
+    "zh_CN": "临界结构物料总线",
+    "en_US": "Critical Structure Material Bus"
+  },
+  "tile.critical_loom_proxy_v2_gt_bus.name": {
+    "zh_CN": "临界结构物料总线",
+    "en_US": "Critical Structure Material Bus"
+  },
+  "tile.gtsr.critical_v2.gt_bus.tooltip.1": {
+    "zh_CN": "为织机施工与机器作业提供物品接口。",
+    "en_US": "Provides item interfaces for loom construction and machine operation."
+  },
+  "tile.gtsr.critical_v2.gt_bus.tooltip.2": {
+    "zh_CN": "通过对应 GT 总线管理物料；织机供需状态在本机控制器查询。",
+    "en_US": "Manage materials through the corresponding GT bus and inspect loom supply requirements at its machine controller."
+  },
+  "tile.critical_v2_maintenance_grate.name": {
+    "zh_CN": "超构检修走道格栅",
+    "en_US": "Hyperstructure Service Walkway Grating"
+  },
+  "tile.critical_proxy_v2_maintenance_grate.name": {
+    "zh_CN": "超构检修走道格栅",
+    "en_US": "Hyperstructure Service Walkway Grating"
+  },
+  "tile.critical_loom_v2_maintenance_grate.name": {
+    "zh_CN": "超构检修走道格栅",
+    "en_US": "Hyperstructure Service Walkway Grating"
+  },
+  "tile.critical_loom_proxy_v2_maintenance_grate.name": {
+    "zh_CN": "超构检修走道格栅",
+    "en_US": "Hyperstructure Service Walkway Grating"
+  },
+  "tile.gtsr.critical_v2.maintenance_grate.tooltip.1": {
+    "zh_CN": "构成基座内的金属检修走道与维护分区。",
+    "en_US": "Forms metal service walkways and maintenance sections inside the foundation."
+  },
+  "tile.gtsr.critical_v2.maintenance_grate.tooltip.2": {
+    "zh_CN": "保持检修通道畅通；走道格栅固定、不发光。",
+    "en_US": "Keep service routes clear; walkway grating remains fixed and unlit."
+  },
+  "tile.critical_v2_gravity_modulator.name": {
+    "zh_CN": "引力调制器",
+    "en_US": "Gravity Modulator"
+  },
+  "tile.critical_proxy_v2_gravity_modulator.name": {
+    "zh_CN": "引力调制器",
+    "en_US": "Gravity Modulator"
+  },
+  "tile.critical_loom_v2_gravity_modulator.name": {
+    "zh_CN": "引力调制器",
+    "en_US": "Gravity Modulator"
+  },
+  "tile.critical_loom_proxy_v2_gravity_modulator.name": {
+    "zh_CN": "引力调制器",
+    "en_US": "Gravity Modulator"
+  },
+  "tile.gtsr.critical_v2.gravity_modulator.tooltip.1": {
+    "zh_CN": "构成承载与悬浮组件的下向引力场调制节点。",
+    "en_US": "Forms downward-acting gravity field modulation nodes for load-bearing and suspension components."
+  },
+  "tile.gtsr.critical_v2.gravity_modulator.tooltip.2": {
+    "zh_CN": "下向扇形窗以淡蓝紫局部发光标示作用方向。",
+    "en_US": "A pale blue-violet fan window marks the downward action with local light."
+  },
+  "tile.gtsr.critical_v2.gravity_modulator.tooltip.3": {
+    "zh_CN": "向下释放调制场流，维持悬浮组件的支撑；模块与所属组件同步。",
+    "en_US": "Releases modulated field flow downward to support suspended components; the module moves with its parent component."
+  },
+  "tile.critical_v2_thermal_confinement_coil.name": {
+    "zh_CN": "恒星热场耦合线圈",
+    "en_US": "Stellar Thermal Field Coupling Coil"
+  },
+  "tile.critical_proxy_v2_thermal_confinement_coil.name": {
+    "zh_CN": "恒星热场耦合线圈",
+    "en_US": "Stellar Thermal Field Coupling Coil"
+  },
+  "tile.critical_loom_v2_thermal_confinement_coil.name": {
+    "zh_CN": "恒星热场耦合线圈",
+    "en_US": "Stellar Thermal Field Coupling Coil"
+  },
+  "tile.critical_loom_proxy_v2_thermal_confinement_coil.name": {
+    "zh_CN": "恒星热场耦合线圈",
+    "en_US": "Stellar Thermal Field Coupling Coil"
+  },
+  "tile.gtsr.critical_v2.thermal_confinement_coil.tooltip.1": {
+    "zh_CN": "构成人造恒星内腔的热场耦合环。",
+    "en_US": "Forms thermal field coupling rings inside the artificial star chamber."
+  },
+  "tile.gtsr.critical_v2.thermal_confinement_coil.tooltip.2": {
+    "zh_CN": "暖色热场线圈与外层冷色电磁供能接点分区。",
+    "en_US": "Warm thermal coils are separated from the outer cool-coloured electromagnetic power contacts."
+  },
+  "tile.gtsr.critical_v2.thermal_confinement_coil.tooltip.3": {
+    "zh_CN": "工作时细部维持稳定暖辉，模块与所属组件同步。",
+    "en_US": "Fine details maintain a steady warm radiance during work; the module moves with its parent component."
+  },
+  "tile.critical_v2_loom_machine_controller.name": {
+    "zh_CN": "拟态织机本机控制器",
+    "en_US": "Mimetic Loom Machine Controller"
+  },
+  "tile.critical_proxy_v2_loom_machine_controller.name": {
+    "zh_CN": "拟态织机本机控制器",
+    "en_US": "Mimetic Loom Machine Controller"
+  },
+  "tile.critical_loom_v2_loom_machine_controller.name": {
+    "zh_CN": "拟态织机本机控制器",
+    "en_US": "Mimetic Loom Machine Controller"
+  },
+  "tile.critical_loom_proxy_v2_loom_machine_controller.name": {
+    "zh_CN": "拟态织机本机控制器",
+    "en_US": "Mimetic Loom Machine Controller"
+  },
+  "tile.gtsr.critical_v2.loom_machine_controller.tooltip.1": {
+    "zh_CN": "显示并管理拟态织机本机的供料与施工状态。",
+    "en_US": "Displays and manages the mimetic loom's material supply and construction state."
+  },
+  "tile.gtsr.critical_v2.loom_machine_controller.tooltip.2": {
+    "zh_CN": "右键本机控制器操作施工；整机类型与基座设置由主结构控制器管理。",
+    "en_US": "Right-click this controller to operate construction; machine type and foundation settings are managed by the main structure controller."
+  },
+  "tile.gtsr.critical_v2.loom_machine_controller.tooltip.3": {
+    "zh_CN": "冷蓝织线徽记面朝北，与主结构控制器同高对望。",
+    "en_US": "The cold-blue woven emblem faces north, opposite the main structure controller at the same height."
+  }
+}

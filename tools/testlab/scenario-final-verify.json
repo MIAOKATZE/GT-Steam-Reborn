@@ -1,0 +1,33 @@
+[
+  {
+    "command": "gtsrtest status",
+    "expect": "GTSR-TESTLAB.*state=",
+    "timeout": 30
+  },
+  {
+    "command": "gtsrtest ui all",
+    "expect": "GTSR-TESTLAB.*task=ui.steam_cache_node phase=RUNNING",
+    "failOn": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 300
+  },
+  {
+    "command": "gtsrtest stop",
+    "expect": "GTSR-TESTLAB.*state=STOPPED",
+    "timeout": 60
+  },
+  {
+    "command": "gtsrtest reset",
+    "expect": "GTSR-TESTLAB.*state=RESET_COMPLETE",
+    "timeout": 900
+  },
+  {
+    "command": "gtsrtest regenerate steam_input_hatch_generic",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 300
+  },
+  {
+    "command": "gtsrtest supply clear",
+    "expect": "GTSR-TESTLAB.*supply=CLEARED",
+    "timeout": 30
+  }
+]

@@ -5,6 +5,8 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL;
@@ -78,6 +80,11 @@ import gregtech.common.tileentities.machines.IDualInputHatch;
 public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCompressor>
     implements IConstructable, ISurvivalConstructable {
 
+    // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
+    private static final int REPLACEABLE_CASING_POSITIONS = 99;
+    private static final int MIN_MECHANICAL_CASINGS = minimumCasings(REPLACEABLE_CASING_POSITIONS);
+    private int mMechanicalCasingCount;
+
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 4;
     private static final int VERTICAL_OFF_SET = 3;
@@ -117,12 +124,7 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
     private final List<MTESteamCoolingHatch> mSteamCoolingHatches = new ArrayList<>();
     private final List<MTEPressureSteamCoolingHatch> mPressureCoolingHatches = new ArrayList<>();
 
-    /**
-     * Local hatch elements for the gear steam compressor.
-     * <p>
-     * {@code mteBlacklist()} excludes the specific hatch classes from the NEI hatch item filter,
-     * so the generic input/output hatch placeholder is shown instead of these custom hatches.
-     */
+    /** Declares the same legal hatch types for world checks, NEI and native construction. */
     private enum GearSteamCompressorHatchElement implements IHatchElement<MTEGearSteamCompressor> {
 
         PressureSteamInput("GTSR.HatchElement.PressureSteamInput",
@@ -135,7 +137,7 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
 
             @Override
             public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEHatchPressureSteamInput.class);
+                return ImmutableList.of();
             }
         },
 
@@ -149,7 +151,7 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
 
             @Override
             public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEPressureSteamCoolingHatch.class, MTESteamCoolingHatch.class);
+                return ImmutableList.of();
             }
         };
 
@@ -254,29 +256,34 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
                 .addElement(
                     'B',
                     ofChain(
-                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEGearSteamCompressor.class)
+                                .anyOf(GearSteamCompressorHatchElement.PressureSteamInput)
+                                .casingIndex(BRONZE_CASING_INDEX)
+                                .hint(1),
+                            GearSteamCompressorHatchElement.PressureSteamInput),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEGearSteamCompressor.class)
+                                .anyOf(GearSteamCompressorHatchElement.CoolingHatch)
+                                .casingIndex(BRONZE_CASING_INDEX)
+                                .hint(2),
+                            GearSteamCompressorHatchElement.CoolingHatch),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTEGearSteamCompressor.class).anyOf(InputHatch, OutputHatch)
+                                .casingIndex(BRONZE_CASING_INDEX)
+                                .hint(3),
+                            InputHatch,
+                            OutputHatch),
                         onElementPass(
-                            MTEGearSteamCompressor::onCasingAdded,
-                            ofBlocksTiered(
-                                MTEGearSteamCompressor::getCasingTier,
-                                ALLOWED_CASINGS,
-                                -1,
-                                (t, tier) -> t.mCasingTier = tier,
-                                t -> t.mCasingTier)),
-                        buildHatchAdder(MTEGearSteamCompressor.class)
-                            .atLeast(GearSteamCompressorHatchElement.PressureSteamInput)
-                            .casingIndex(BRONZE_CASING_INDEX)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTEGearSteamCompressor.class)
-                            .atLeast(GearSteamCompressorHatchElement.CoolingHatch)
-                            .casingIndex(BRONZE_CASING_INDEX)
-                            .hint(2)
-                            .build(),
-                        buildHatchAdder(MTEGearSteamCompressor.class).atLeast(InputHatch, OutputHatch)
-                            .casingIndex(BRONZE_CASING_INDEX)
-                            .hint(3)
-                            .build()))
+                            t -> t.mMechanicalCasingCount++,
+                            onElementPass(
+                                MTEGearSteamCompressor::onCasingAdded,
+                                ofBlocksTiered(
+                                    MTEGearSteamCompressor::getCasingTier,
+                                    ALLOWED_CASINGS,
+                                    -1,
+                                    (t, tier) -> t.mCasingTier = tier,
+                                    t -> t.mCasingTier)))))
                 .addElement(
                     'C',
                     onElementPass(
@@ -386,6 +393,7 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        mMechanicalCasingCount = 0;
         mCasingAmount = 0;
         mCasingTier = -1;
         mPipeTier = -1;
@@ -397,6 +405,10 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
         mPressureCoolingHatches.clear();
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+            return;
+        }
+        if (mMechanicalCasingCount < MIN_MECHANICAL_CASINGS) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
 
@@ -694,6 +706,11 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
                     + EnumChatFormatting.WHITE
                     + " 120 L/s")
             .beginStructureBlock(9, 5, 7, true)
+            .addCasingInfoMin(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),
+                MIN_MECHANICAL_CASINGS,
+                false)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.GearSteamCompressor.hatches"))
             .addController(StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.steam_input"),

@@ -10,6 +10,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
+import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.register.CreativeTabManager;
@@ -18,10 +19,9 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.util.GTUtility;
 
 /**
- * 枢纽终端：手持右击任意枢纽控制器（奇点钻井/蒸汽枢纽阵列/蓄水枢纽阵列），打开对应的枢纽终端状态管理界面。
+ * 枢纽终端：手持右击枢纽或拟态织机控制器，打开对应的管理界面。
  * 取代旧的「手持蒸汽纠缠奇点右击打开状态UI」交互，奇点回归纯合成材料定位。
- * 服务端权威状态处理由 onItemUse 执行，潜行右击循环容量档，非潜行右击作为速率兜底
- * （正常非潜行速率由机器侧 onRightclick 处理）。
+ * 织机从道具优先入口发送独立终端请求；其他枢纽与缓存节点保留原有交互。
  *
  */
 public class HubTerminal extends Item {
@@ -32,14 +32,30 @@ public class HubTerminal extends Item {
         setCreativeTab(CreativeTabManager.CREATIVE_TAB);
         setTextureName("gtsr:HubTerminal");
         setMaxStackSize(1);
+        com.miaokatze.gtsr.common.gui.CriticalMachineTerminalFactory.register();
     }
 
-    /** 服务端权威处理缓存节点终端状态：潜行循环容量档，非潜行作为速率兜底。 */
+    /** 消费织机点击前明确发送请求，避免 GT 方块先打开普通机器界面。 */
+    @Override
+    public boolean onItemUseFirst(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
+        float hitX, float hitY, float hitZ) {
+        if (!(world.getTileEntity(x, y, z) instanceof IGregTechTileEntity base)
+            || !(base.getMetaTileEntity() instanceof MTECriticalMachine)) return false;
+        if (world.isRemote) com.miaokatze.gtsr.common.network.WandNet
+            .sendTerminalTarget(x, y, z, player.dimension, base.getMetaTileID(), player.inventory.currentItem);
+        else com.miaokatze.gtsr.common.gui.CriticalMachineTerminalFactory.open(player, base);
+        return true;
+    }
+
     @Override
     public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
         if (world.isRemote) return false;
         TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof IGregTechTileEntity base && base.getMetaTileEntity() instanceof MTECriticalMachine) {
+            // The first-use route owns this controller; do not open a second terminal here.
+            return true;
+        }
         if (!(te instanceof IGregTechTileEntity gte) || !(gte.getMetaTileEntity() instanceof IHubCacheNode node))
             return super.onItemUse(stack, player, world, x, y, z, side, hitX, hitY, hitZ);
         if (!node.isBoundToHub()) {
@@ -71,6 +87,7 @@ public class HubTerminal extends Item {
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.hub_terminal.desc.4"));
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.hub_terminal.desc.5"));
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.hub_terminal.desc.6"));
+        list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.hub_terminal.desc.7"));
         list.add(GTSRUtils.getAddedByLine());
     }
 }

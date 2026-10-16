@@ -3,7 +3,10 @@ package com.miaokatze.gtsr.common.machine;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
@@ -50,6 +53,10 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 
 /** Tier 1 steam entanglement machine. */
 public class MTESteamSingularityEntangler extends MTESingularityMachineBase implements ISurvivalConstructable {
+
+    // Only the 1340 replaceable mechanical-casing positions count toward this minimum.
+    private static final int MIN_CASINGS = minimumCasings(1340);
+    private int mCasingCount;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 3;
@@ -526,29 +533,36 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
             .addElement(
                 'A',
                 ofChain(
-                    ofBlocksTiered(
-                        MTESteamSingularityEntangler::getCasingTier,
-                        casingTiers,
-                        -1,
-                        (t, tier) -> t.mCasingTierA = tier,
-                        t -> t.mCasingTierA),
-                    buildHatchAdder(MTESteamSingularityEntangler.class).atLeast(SingularityHatchElement.SteamInput)
-                        .casingIndex(casingIndex)
-                        .hint(1)
-                        .build(),
-                    buildHatchAdder(MTESteamSingularityEntangler.class).atLeast(SingularityHatchElement.SteamInputBus)
-                        .casingIndex(casingIndex)
-                        .hint(1)
-                        .build(),
-                    buildHatchAdder(MTESteamSingularityEntangler.class).atLeast(SingularityHatchElement.SteamOutputBus)
-                        .casingIndex(casingIndex)
-                        .hint(1)
-                        .build(),
-                    buildHatchAdder(MTESteamSingularityEntangler.class)
-                        .atLeast(SingularityHatchElement.SteamOutputHatch)
-                        .casingIndex(casingIndex)
-                        .hint(2)
-                        .build()))
+                    hatchWithCandidates(
+                        buildHatchAdder(MTESteamSingularityEntangler.class).atLeast(SingularityHatchElement.SteamInput)
+                            .casingIndex(casingIndex)
+                            .hint(1),
+                        SingularityHatchElement.SteamInput),
+                    hatchWithCandidates(
+                        buildHatchAdder(MTESteamSingularityEntangler.class).anyOf(SingularityHatchElement.SteamInputBus)
+                            .casingIndex(casingIndex)
+                            .hint(1),
+                        SingularityHatchElement.SteamInputBus),
+                    hatchWithCandidates(
+                        buildHatchAdder(MTESteamSingularityEntangler.class)
+                            .atLeast(SingularityHatchElement.SteamOutputBus)
+                            .casingIndex(casingIndex)
+                            .hint(1),
+                        SingularityHatchElement.SteamOutputBus),
+                    hatchWithCandidates(
+                        buildHatchAdder(MTESteamSingularityEntangler.class)
+                            .anyOf(SingularityHatchElement.SteamOutputHatch)
+                            .casingIndex(casingIndex)
+                            .hint(2),
+                        SingularityHatchElement.SteamOutputHatch),
+                    onElementPass(
+                        t -> t.mCasingCount++,
+                        ofBlocksTiered(
+                            MTESteamSingularityEntangler::getCasingTier,
+                            casingTiers,
+                            -1,
+                            (t, tier) -> t.mCasingTierA = tier,
+                            t -> t.mCasingTierA))))
             .addElement(
                 'B',
                 ofBlocksTiered(
@@ -611,10 +625,15 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
         mCasingTierB = -1;
         mCasingTierC = -1;
         mCasingTierD = -1;
+        mCasingCount = 0;
         mPressureSteamInputs.clear();
         mTier = getRequiredTier();
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) return;
+        if (mCasingCount < MIN_CASINGS) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         int tier = mCasingTierA;
         if (mCasingTierB != tier || mCasingTierC != tier || mCasingTierD != tier || tier != getRequiredTier()) {
@@ -649,6 +668,7 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
             .beginStructureBlock(30, 23, 24, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
+            .addCasingInfoMin(StatCollector.translateToLocal("gt.blockcasings2.0.name"), MIN_CASINGS, false)
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.entangler.steam_input_hatch"),
                 StatCollector.translateToLocal(keyPrefix + "steam_input"),
@@ -661,6 +681,7 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
                 EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("gtsr.tooltip.entangler.desc6_2"))
             .addStructureInfo(
                 EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "tier1_blocks"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.special.singularity_ports"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();

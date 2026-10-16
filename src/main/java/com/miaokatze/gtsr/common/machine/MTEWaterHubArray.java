@@ -4,7 +4,10 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.withChannel;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureChecks.require;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
@@ -31,6 +34,7 @@ import net.minecraftforge.fluids.IFluidHandler;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -61,8 +65,10 @@ import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.structure.error.StructureError;
+import gregtech.api.util.HatchElementBuilder;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.blocks.ItemMachines;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
 
@@ -95,56 +101,59 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
             .addElement(
                 'A',
                 ofChain(
-                    // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                    hatchWithCandidates(
+                        storageConstructionHatches(),
+                        WaterHubStorageElement.HubUnit,
+                        WaterHubStorageElement.ReinforcedHubUnit,
+                        WaterHubStorageElement.OverpressureUnit),
                     onElementPass(
                         MTEWaterHubArray::onCasingAdded,
-                        ofBlocksTiered(
-                            MTEWaterHubArray::getCasingTier,
-                            ImmutableList.of(
-                                Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                Pair.of(GregTechAPI.sBlockCasings2, 0),
-                                Pair.of(GregTechAPI.sBlockCasings4, 0)),
-                            -1,
-                            (MTEWaterHubArray t, Integer tier) -> t.mCasingTier = tier,
-                            (MTEWaterHubArray t) -> t.mCasingTier)),
-                    buildHatchAdder(MTEWaterHubArray.class)
-                        .atLeast(
-                            WaterHubStorageElement.HubUnit,
-                            WaterHubStorageElement.ReinforcedHubUnit,
-                            WaterHubStorageElement.OverpressureUnit)
-                        .casingIndex(CASING_INDEX)
-                        .hint(2)
-                        .build()))
+                        withChannel(
+                            "casing",
+                            ofBlocksTiered(
+                                MTEWaterHubArray::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0),
+                                    Pair.of(GregTechAPI.sBlockCasings4, 0)),
+                                -1,
+                                (MTEWaterHubArray t, Integer tier) -> t.mCasingTier = tier,
+                                (MTEWaterHubArray t) -> t.mCasingTier)))))
             .addElement(
                 'C',
                 ofChain(
-                    // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
-                    onElementPass(
-                        MTEWaterHubArray::onCasingAdded,
-                        ofBlocksTiered(
-                            MTEWaterHubArray::getCasingTier,
-                            ImmutableList.of(
-                                Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                Pair.of(GregTechAPI.sBlockCasings2, 0),
-                                Pair.of(GregTechAPI.sBlockCasings4, 0)),
-                            -1,
-                            (MTEWaterHubArray t, Integer tier) -> t.mCasingTier = tier,
-                            (MTEWaterHubArray t) -> t.mCasingTier)),
-                    buildHatchAdder(MTEWaterHubArray.class).atLeast(
-                        // S1：奇点仓两枚举必须在前——流体输入/输出仓分别继承 MTEWaterHubInputHatch/
-                        // MTEWaterHubOutputHatch，泛化 adder 的 instanceof 会误收子类（R4），
-                        // 枚举间 adder 按声明顺序短路，具体类先认领
+                    hatchWithCandidates(
+                        buildHatchAdder(MTEWaterHubArray.class).anyOf(
+                            // S1：奇点仓两枚举必须在前——流体输入/输出仓分别继承 MTEWaterHubInputHatch/
+                            // MTEWaterHubOutputHatch，泛化 adder 的 instanceof 会误收子类（R4），
+                            // 枚举间 adder 按声明顺序短路，具体类先认领
+                            WaterHubHatchElement.SingularityFluidInputCompartment,
+                            WaterHubHatchElement.SingularityFluidOutputCompartment,
+                            WaterHubHatchElement.WaterOutput,
+                            WaterHubHatchElement.WaterInput)
+                            .casingIndex(CASING_INDEX)
+                            .hint(1),
                         WaterHubHatchElement.SingularityFluidInputCompartment,
                         WaterHubHatchElement.SingularityFluidOutputCompartment,
                         WaterHubHatchElement.WaterOutput,
-                        WaterHubHatchElement.WaterInput)
-                        .casingIndex(CASING_INDEX)
-                        .hint(1)
-                        .build()))
+                        WaterHubHatchElement.WaterInput),
+                    onElementPass(
+                        MTEWaterHubArray::onCasingAdded,
+                        withChannel(
+                            "casing",
+                            ofBlocksTiered(
+                                MTEWaterHubArray::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0),
+                                    Pair.of(GregTechAPI.sBlockCasings4, 0)),
+                                -1,
+                                (MTEWaterHubArray t, Integer tier) -> t.mCasingTier = tier,
+                                (MTEWaterHubArray t) -> t.mCasingTier)))))
             .addElement(
                 'D',
-                onElementPass(
-                    MTEWaterHubArray::onCasingAdded,
+                withChannel(
+                    "casing",
                     ofBlocksTiered(
                         MTEWaterHubArray::getPipeTier,
                         ImmutableList.of(
@@ -156,8 +165,8 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
                         (MTEWaterHubArray t) -> t.mPipeTier)))
             .addElement(
                 'E',
-                onElementPass(
-                    MTEWaterHubArray::onCasingAdded,
+                withChannel(
+                    "casing",
                     ofBlocksTiered(
                         MTEWaterHubArray::getFrameTier,
                         ImmutableList.of(
@@ -194,40 +203,40 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         return null;
     }
 
+    private static HatchElementBuilder<MTEWaterHubArray> storageConstructionHatches() {
+        HatchElementBuilder<MTEWaterHubArray> builder = buildHatchAdder(MTEWaterHubArray.class)
+            .anyOf(
+                WaterHubStorageElement.HubUnit,
+                WaterHubStorageElement.ReinforcedHubUnit,
+                WaterHubStorageElement.OverpressureUnit)
+            .casingIndex(CASING_INDEX)
+            .hint(2);
+        var nativeFilter = builder.getHatchItemFilter();
+        return builder.hatchItemFilter((controller, trigger) -> {
+            int selectedTier = trigger == null ? 1 : ChannelDataAccessor.getChannelData(trigger, "casing");
+            int casingTier = Math.max(1, Math.min(3, selectedTier));
+            return nativeFilter.apply(controller, trigger)
+                .and(stack -> {
+                    IMetaTileEntity mte = ItemMachines.getMetaTileEntity(stack);
+                    return switch (casingTier) {
+                        case 1 -> mte instanceof MTEHubStorageUnit;
+                        case 2 -> mte instanceof MTEReinforcedHubStorageUnit;
+                        default -> mte instanceof MTEOverpressureHubStorageUnit;
+                    };
+                });
+        });
+    }
+
     private enum WaterHubHatchElement implements IHatchElement<MTEWaterHubArray> {
 
-        // S1：奇点仓两枚举（结构接纳，问题 2）；声明顺序 = atLeast adder 认领顺序（具体在前，
+        // S1：奇点仓两枚举（结构接纳，问题 2）；声明顺序 = anyOf adder 认领顺序（具体在前，
         // 两仓分别是近亲输入/输出仓的子类，必须在泛化枚举之前认领）
         SingularityFluidInputCompartment(MTEWaterHubArray::addSingularityFluidInputCompartmentToMachineList,
-            MTESingularityFluidInputCompartment.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTESingularityFluidInputCompartment.class);
-            }
-        },
+            MTESingularityFluidInputCompartment.class),
         SingularityFluidOutputCompartment(MTEWaterHubArray::addSingularityFluidOutputCompartmentToMachineList,
-            MTESingularityFluidOutputCompartment.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTESingularityFluidOutputCompartment.class);
-            }
-        },
-        WaterInput(MTEWaterHubArray::addWaterInputToMachineList, MTEWaterHubInputHatch.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEWaterHubInputHatch.class);
-            }
-        },
-        WaterOutput(MTEWaterHubArray::addWaterOutputToMachineList, MTEWaterHubOutputHatch.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEWaterHubOutputHatch.class);
-            }
-        };
+            MTESingularityFluidOutputCompartment.class),
+        WaterInput(MTEWaterHubArray::addWaterInputToMachineList, MTEWaterHubInputHatch.class),
+        WaterOutput(MTEWaterHubArray::addWaterOutputToMachineList, MTEWaterHubOutputHatch.class);
 
         private final List<Class<? extends IMetaTileEntity>> mteClasses;
         private final IGTHatchAdder<MTEWaterHubArray> adder;
@@ -249,6 +258,16 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         }
 
         @Override
+        public String getDescriptionLangKey() {
+            return "gtsr.hatch_element." + name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return StatCollector.translateToLocal(getDescriptionLangKey());
+        }
+
+        @Override
         public long count(MTEWaterHubArray t) {
             if (this == WaterInput) return t.mWaterInputHatches.size();
             if (this == WaterOutput) return t.mWaterOutputHatches.size();
@@ -259,27 +278,9 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
 
     private enum WaterHubStorageElement implements IHatchElement<MTEWaterHubArray> {
 
-        HubUnit(MTEWaterHubArray::addHubUnitToMachineList, MTEHubStorageUnit.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEHubStorageUnit.class);
-            }
-        },
-        ReinforcedHubUnit(MTEWaterHubArray::addReinforcedHubUnitToMachineList, MTEReinforcedHubStorageUnit.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEReinforcedHubStorageUnit.class);
-            }
-        },
-        OverpressureUnit(MTEWaterHubArray::addOverpressureHubUnitToMachineList, MTEOverpressureHubStorageUnit.class) {
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEOverpressureHubStorageUnit.class);
-            }
-        };
+        HubUnit(MTEWaterHubArray::addHubUnitToMachineList, MTEHubStorageUnit.class),
+        ReinforcedHubUnit(MTEWaterHubArray::addReinforcedHubUnitToMachineList, MTEReinforcedHubStorageUnit.class),
+        OverpressureUnit(MTEWaterHubArray::addOverpressureHubUnitToMachineList, MTEOverpressureHubStorageUnit.class);
 
         private final List<Class<? extends IMetaTileEntity>> mteClasses;
         private final IGTHatchAdder<MTEWaterHubArray> adder;
@@ -298,6 +299,16 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         @Override
         public IGTHatchAdder<? super MTEWaterHubArray> adder() {
             return adder;
+        }
+
+        @Override
+        public String getDescriptionLangKey() {
+            return "gtsr.hatch_element." + name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return StatCollector.translateToLocal(getDescriptionLangKey());
         }
 
         @Override
@@ -633,10 +644,30 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         return tag;
     }
 
+    private static int getConstructTotalHeight(ItemStack trigger) {
+        int selection = trigger == null ? 1 : ChannelDataAccessor.getChannelData(trigger, "height");
+        return (int) Math.max(2, Math.min(31L, (long) selection + 1));
+    }
+
+    @Override
+    protected int getMechanicalCasingCount() {
+        return mCasingAmount;
+    }
+
+    @Override
+    protected void restoreMechanicalCasingCount(int count) {
+        mCasingAmount = count;
+    }
+
+    @Override
+    protected int getMechanicalCasingSlots() {
+        return 25 + 13 * mStackCount;
+    }
+
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
         buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
-        int tTotalHeight = Math.max(2, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 2, 31));
+        int tTotalHeight = getConstructTotalHeight(stackSize);
         int stackCount = tTotalHeight - 1;
         for (int i = 0; i < stackCount; i++) {
             int bOffset = 1 + i;
@@ -658,7 +689,7 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
             false,
             true);
         if (built >= 0) return built;
-        int tTotalHeight = Math.max(2, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 2, 31));
+        int tTotalHeight = getConstructTotalHeight(stackSize);
         int stackCount = tTotalHeight - 1;
         for (int i = 0; i < stackCount; i++) {
             int bOffset = 1 + i;
@@ -679,9 +710,9 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { EnumChatFormatting.AQUA + "Structure:", "1. BASE (1 layer): Controller layer (bottom)",
-            "2. STACK (1 layer): Repeatable storage unit layer (1~30, on top of BASE)",
-            "3. Total height: 2~31 layers (7x7x2 to 7x7x31)", "4. At least 1 Input Hatch and 1 Output Hatch required" };
+        return new String[] { StatCollector.translateToLocal("gtsr.structurelib.channel.water_hub_height.usage"),
+            StatCollector.translateToLocal("gtsr.structurelib.hub_storage_rule"),
+            StatCollector.translateToLocal("gtsr.structurelib.hub_ports_optional") };
     }
 
     @Override
@@ -966,7 +997,12 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
 
     @Override
     protected void addFamilyStructureInfo(MultiblockTooltipBuilder tt) {
-        tt.addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.counts"));
+        tt.addCasingInfoMin(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), minimumCasings(38), true)
+            .addSubChannel(GTStructureChannels.TIER_CASING)
+            .addSubChannel(GTStructureChannels.STRUCTURE_HEIGHT)
+            .addStructureHint("gtsr.structurelib.channel.water_hub_height.usage")
+            .addStructureHint("gtsr.structurelib.channel.hub_min_casings")
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.counts"));
     }
 
     @Override

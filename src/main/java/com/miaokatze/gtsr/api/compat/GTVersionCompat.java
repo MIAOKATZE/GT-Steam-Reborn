@@ -99,14 +99,6 @@ public class GTVersionCompat {
     private static final GTVersion GT_VERSION;
 
     /**
-     * 防爆玻璃方块实例（缓存，避免每次调用都探测）。
-     * <p>
-     * beta-1 模式下为 IC2 {@code blockAlloyGlass}；beta-2 / beta-3 模式下为 {@link GregTechAPI#sBlockGlass1}。
-     * </p>
-     */
-    private static final Block REINFORCED_GLASS_BLOCK;
-
-    /**
      * 防爆玻璃方块的 meta 值（缓存）。
      * <p>
      * beta-1 模式下为 0；beta-2 / beta-3 模式下为 10（ReinforcedGlass）。
@@ -142,12 +134,10 @@ public class GTVersionCompat {
         if (GT_VERSION == GTVersion.BETA1) {
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：正式版发布时移除本分支并切换至最新 API
             // beta-1 模式：使用 IC2 原生防爆玻璃 blockAlloyGlass meta 0
-            REINFORCED_GLASS_BLOCK = GameRegistry.findBlock("IC2", "blockAlloyGlass");
             REINFORCED_GLASS_META = 0;
         } else {
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：正式版发布时移除本分支并切换至最新 API
             // beta-2 / beta-3 模式：GT5U 改用 sBlockGlass1 meta 10（ReinforcedGlass）
-            REINFORCED_GLASS_BLOCK = GregTechAPI.sBlockGlass1;
             REINFORCED_GLASS_META = 10;
         }
     }
@@ -287,12 +277,14 @@ public class GTVersionCompat {
      * 获取当前版本下防爆玻璃的方块实例。
      * <p>
      * beta-1 返回 IC2 {@code blockAlloyGlass}；beta-2 / beta-3 返回 {@link GregTechAPI#sBlockGlass1}。
+     * 兼容层也由贴图等早期调用加载，不能在类初始化时缓存尚未注册的方块；结构定义取用时再读取。
      * </p>
      *
      * @return 防爆玻璃方块
      */
     public static Block getReinforcedGlassBlock() {
-        return REINFORCED_GLASS_BLOCK;
+        return GT_VERSION == GTVersion.BETA1 ? GameRegistry.findBlock("IC2", "blockAlloyGlass")
+            : GregTechAPI.sBlockGlass1;
     }
 
     /**

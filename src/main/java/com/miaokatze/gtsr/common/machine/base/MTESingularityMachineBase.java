@@ -200,19 +200,14 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
             public long count(MTESingularityMachineBase t) {
                 return t.mInputHatches.size() + t.mPressureSteamInputs.size();
             }
-
-            @Override
-            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEHatchPressureSteamInput.class);
-            }
         },
 
         SteamInputBus("GTSR.HatchElement.SteamInputBus", MTESingularityMachineBase::addInputBusToMachineList,
-            MTEHatchInputBus.class) {
+            MTEHatchInputBus.class, IDualInputHatch.class) {
 
             @Override
             public long count(MTESingularityMachineBase t) {
-                return t.mInputBusses.size();
+                return t.mInputBusses.size() + t.mDualInputHatches.size();
             }
 
             @Override

@@ -2,7 +2,11 @@ package com.miaokatze.gtsr.common.machine;
 
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.List;
@@ -36,16 +40,26 @@ import bartworks.system.material.WerkstoffLoader;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
+import gregtech.api.metatileentity.implementations.MTEHatchInput;
+import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
+import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
+import gregtech.api.metatileentity.implementations.MTEHatchOutput;
+import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReason;
+import gregtech.common.tileentities.machines.IDualInputHatch;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
 /** LuV utility machine. No recipe or synthetic progress timer is used to sustain its portal. */
 public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacetimeCalibration>
@@ -53,6 +67,9 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
 
     private static IStructureDefinition<MTESpacetimeCalibration> definition;
     private static final int OFFSET_X = 21, OFFSET_Y = 43, OFFSET_Z = 1;
+    // C includes the two marked utility-port positions; all remain interchangeable.
+    private static final int MIN_CASINGS = minimumCasings(824);
+    private int mCasingCount;
     private boolean corePositionKnown;
     private int coreX, coreY, coreZ;
     private int guiState;
@@ -103,10 +120,13 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
                 .addShape("main", transpose(SpacetimeGeometry.shape()))
                 .addElement(
                     'C',
-                    buildHatchAdder(MTESpacetimeCalibration.class).adder(MTESpacetimeCalibration::addUtilityHatch)
-                        .casingIndex(6)
-                        .hint(1)
-                        .buildAndChain(GregTechAPI.sBlockCasings1, 6))
+                    ofChain(
+                        hatchWithCandidates(
+                            buildHatchAdder(MTESpacetimeCalibration.class).anyOf(UtilityHatchElement.Utility)
+                                .casingIndex(6)
+                                .hint(1),
+                            UtilityHatchElement.Utility),
+                        onElementPass(t -> t.mCasingCount++, ofBlock(GregTechAPI.sBlockCasings1, 6))))
                 .addElement('Q', ofBlock(GregTechAPI.sBlockCasings1, 15))
                 .addElement(
                     'R',
@@ -133,8 +153,10 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
 
     @Override
     public void checkMachine(IGregTechTileEntity tile, ItemStack stack, List<StructureError> errors) {
+        mCasingCount = 0;
         if (!legalFacing() || !chunksLoaded()
             || !checkPiece("main", OFFSET_X, OFFSET_Y, OFFSET_Z, errors)
+            || mCasingCount < MIN_CASINGS
             || mEnergyHatches.isEmpty()
             || mMaintenanceHatches.isEmpty()
             || mEnergyHatches.stream()
@@ -284,6 +306,54 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
             || addOutputBusToMachineList(tile, casingIndex)
             || addInputHatchToMachineList(tile, casingIndex)
             || addOutputHatchToMachineList(tile, casingIndex);
+    }
+
+    /** Candidate matching mirrors the standard adders, including ME/dual inputs and steam-bus exclusions. */
+    private enum UtilityHatchElement implements IHatchElement<MTESpacetimeCalibration> {
+
+        Utility;
+
+        @Override
+        public IGTHatchAdder<MTESpacetimeCalibration> adder() {
+            return MTESpacetimeCalibration::addUtilityHatch;
+        }
+
+        @Override
+        public List<Class<? extends IMetaTileEntity>> mteClasses() {
+            return java.util.Arrays.asList(
+                MTEHatchEnergy.class,
+                MTEHatchMaintenance.class,
+                MTEHatchInputBus.class,
+                MTEHatchOutputBus.class,
+                MTEHatchInput.class,
+                MTEHatchOutput.class);
+        }
+
+        @Override
+        public boolean matchesHatch(IMetaTileEntity mte) {
+            if (mte instanceof MTEHatchEnergy energy) return energy.maxEUInput() >= 32768;
+            if (mte instanceof MTEHatchSteamBusInput || mte instanceof MTEHatchSteamBusOutput) return false;
+            return mte instanceof MTEHatchMaintenance || mte instanceof MTEHatchInputBus
+                || mte instanceof IDualInputHatch
+                || mte instanceof MTEHatchOutputBus
+                || mte instanceof MTEHatchInput
+                || mte instanceof MTEHatchOutput;
+        }
+
+        @Override
+        public long count(MTESpacetimeCalibration machine) {
+            return machine.mEnergyHatches.size() + machine.mMaintenanceHatches.size()
+                + machine.mInputBusses.size()
+                + machine.mDualInputHatches.size()
+                + machine.mOutputBusses.size()
+                + machine.mInputHatches.size()
+                + machine.mOutputHatches.size();
+        }
+
+        @Override
+        public String getDescriptionLangKey() {
+            return "gtsr.tooltip.structure.special.spacetime_ports";
+        }
     }
 
     private static IStructureElement<MTESpacetimeCalibration> coreElement() {
@@ -471,6 +541,7 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
             .addSeparator()
             .beginStructureBlock(43, 46, 9, false)
             .addController(StatCollector.translateToLocal("gtsr.spacetime.controller"))
+            .addCasingInfoMin(StatCollector.translateToLocal("gt.blockcasings.6.name"), MIN_CASINGS, false)
             .addEnergyHatch(StatCollector.translateToLocal("gtsr.spacetime.energy"), 1)
             .addMaintenanceHatch(StatCollector.translateToLocal("gtsr.spacetime.maintenance"), 1)
             .addStructureInfo(StatCollector.translateToLocal("gtsr.spacetime.materials"))

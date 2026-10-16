@@ -62,6 +62,12 @@ public class MTESteamHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
         // 存储单元/蒸汽缓冲/总容量数值行已迁移至 GTSRProgressBar 词条系统；等级/芯片/状态为文本行保留
         ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        HubStorageGuiHelper.appendWarningRows(
+            list,
+            mSetTierSync::getValue,
+            mPressureUnitCountSync::getValue,
+            mReinforcedUnitCountSync::getValue,
+            mOverpressureUnitCountSync::getValue);
         list.child(IKey.dynamic(() -> {
             String tierText;
             if (mSetTierSync.getValue() >= 3) {

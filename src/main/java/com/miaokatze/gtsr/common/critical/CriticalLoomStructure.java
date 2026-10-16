@@ -1,0 +1,196 @@
+package com.miaokatze.gtsr.common.critical;
+
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.minecraft.block.Block;
+import net.minecraft.item.ItemStack;
+import net.minecraft.world.World;
+
+import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
+import com.gtnewhorizon.structurelib.structure.IStructureElement;
+import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
+import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
+
+import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+
+/** The permanent, player-built fabrication multiblock; never owned by a target construction journal. */
+public final class CriticalLoomStructure {
+
+    public static final String PIECE = "critical_loom";
+    private static IStructureDefinition<MTECriticalMachine> definition;
+    private static final Map<String, IStructureDefinition<MTECriticalMachine>> v2Definitions = new HashMap<>();
+
+    private CriticalLoomStructure() {}
+
+    public static List<CriticalGeometry.Voxel> voxels() {
+        List<CriticalGeometry.Voxel> result = new ArrayList<>(CriticalGeometry.getLoom());
+        result.removeIf(v -> v.x == 40 && v.y == 0 && v.z == CriticalStructures.CONTROLLER_Z);
+        return Collections.unmodifiableList(result);
+    }
+
+    public static List<CriticalGeometry.Voxel> voxels(CriticalMachineState state) {
+        return CriticalGeometry.isV2(state) ? CriticalGeometry.getLoom(state) : voxels();
+    }
+
+    public static boolean isLoomVoxel(CriticalGeometry.Voxel voxel) {
+        return "loom".equals(voxel.model) || "v2_loom".equals(voxel.model)
+            || "v2_v25_loom".equals(voxel.model)
+            || "v2_v27_loom".equals(voxel.model)
+            || "v2_v30_loom".equals(voxel.model)
+            || "v2_legacy_loom".equals(voxel.model);
+    }
+
+    private static int top(CriticalMachineState state) {
+        int top = 0;
+        for (CriticalGeometry.Voxel voxel : voxels(state)) top = Math.max(top, voxel.y);
+        return top;
+    }
+
+    public static List<CriticalGeometry.Voxel> hatchPorts() {
+        List<CriticalGeometry.Voxel> result = new ArrayList<>(voxels());
+        result.removeIf(v -> !CriticalStructures.isHatchPosition(v));
+        return Collections.unmodifiableList(result);
+    }
+
+    public static boolean matchesVoxel(World world, int originX, int originY, int originZ,
+        CriticalGeometry.Voxel voxel) {
+        return matchesVoxel(world, originX, originY, originZ, voxel, CriticalMachineKind.SUN);
+    }
+
+    public static boolean matchesVoxel(World world, int originX, int originY, int originZ, CriticalGeometry.Voxel voxel,
+        CriticalMachineKind kind) {
+        int x = originX + voxel.x, y = originY + voxel.y, z = originZ + voxel.z;
+        if (!world.getChunkProvider()
+            .chunkExists(x >> 4, z >> 4)) return false;
+        if (CriticalStructures.isController(voxel))
+            return new CriticalStructures.ControllerElement(voxel.z == 47, kind).check(null, world, x, y, z);
+        if (CriticalStructures.isHatchPosition(voxel)
+            && CriticalMachineState.isLoomHatchHost(world.getTileEntity(x, y, z))) return true;
+        return CriticalMaterials.matchesLoomVoxel(world.getBlock(x, y, z), world.getBlockMetadata(x, y, z), voxel);
+    }
+
+    public static boolean matchesVoxel(CriticalMachineState state, CriticalGeometry.Voxel voxel) {
+        World world = state.getWorldObj();
+        int x = state.blockWorldX(voxel), y = state.blockWorldY(voxel.y), z = state.blockWorldZ(voxel);
+        if (world == null || !world.getChunkProvider()
+            .chunkExists(x >> 4, z >> 4)) return false;
+        if (CriticalStructures.isController(voxel))
+            return new CriticalStructures.ControllerElement(voxel.z == 47, state.getKind(), state.getStructureFacing())
+                .check(null, world, x, y, z);
+        if (CriticalStructures.isHatchPosition(voxel)
+            && CriticalMachineState.isLoomHatchHost(world.getTileEntity(x, y, z))) return true;
+        return CriticalMaterials.matchesLoomVoxel(world.getBlock(x, y, z), world.getBlockMetadata(x, y, z), voxel);
+    }
+
+    public static Block shell(CriticalGeometry.Voxel voxel) {
+        return CriticalMaterials.loomBlock(voxel.material, ((CriticalMaterials.MaterialBlock) voxel.block).proxy);
+    }
+
+    public static synchronized IStructureDefinition<MTECriticalMachine> definition() {
+        if (definition != null) return definition;
+        StructureDefinition.Builder<MTECriticalMachine> builder = StructureDefinition.builder();
+        Map<String, Character> characters = new HashMap<>();
+        // NORTH axes are WEST, DOWN, SOUTH. Include the controller immediately before the cylinder.
+        char[][][] grid = new char[16][36][15];
+        for (char[][] slice : grid) for (char[] row : slice) java.util.Arrays.fill(row, ' ');
+        for (CriticalGeometry.Voxel voxel : voxels()) {
+            boolean port = CriticalStructures.isHatchPosition(voxel);
+            String key = voxel.material + ':' + ((CriticalMaterials.MaterialBlock) voxel.block).proxy + ':' + port;
+            Character symbol = characters.get(key);
+            if (symbol == null) {
+                symbol = (char) (0x100 + characters.size());
+                characters.put(key, symbol);
+                IStructureElement<MTECriticalMachine> material = materialElement(voxel);
+                builder.addElement(symbol, port ? CriticalStructures.loomHatchElement(shell(voxel)) : material);
+            }
+            grid[voxel.z - 32][35 - voxel.y][47 - voxel.x] = symbol;
+        }
+        grid[1][35][7] = '~';
+        String[][] shape = new String[16][36];
+        for (int z = 0; z < 16; z++) for (int y = 0; y < 36; y++) shape[z][y] = new String(grid[z][y]);
+        IStructureDefinition<MTECriticalMachine> result = builder.addShape(PIECE, shape)
+            .build();
+        return definition = result;
+    }
+
+    public static synchronized IStructureDefinition<MTECriticalMachine> definition(MTECriticalMachine host) {
+        CriticalMachineState state = host.getCriticalState();
+        return CriticalGeometry.isV2(state) ? v2Definitions.computeIfAbsent(
+            CriticalGeometry.visualLoomSlug(state) + ':' + host.isKindSelector() + ':' + state.getKind(),
+            ignored -> CriticalStructures.createV2(state, true, host.isKindSelector())) : definition();
+    }
+
+    public static boolean validate(MTECriticalMachine host) {
+        return validateGeometry(host) && validateInterfaces(host);
+    }
+
+    /** Geometry forms independently of recipe and construction resource availability. */
+    public static boolean validateGeometry(MTECriticalMachine host) {
+        IGregTechTileEntity tile = host.getBaseMetaTileEntity();
+        if (tile == null) return false;
+        World world = tile.getWorld();
+        CriticalMachineState local = host.getCriticalState();
+        if (CriticalGeometry.isV2(local) && tile.getFrontFacing() != local.getControllerFacing(host.isKindSelector()))
+            return false;
+        for (CriticalGeometry.Voxel voxel : voxels(local)) if (!matchesVoxel(local, voxel)) return false;
+        int top = CriticalGeometry.isV2(local) ? top(local) : 35;
+        if (!definition(host).check(
+            host,
+            PIECE,
+            world,
+            host.getExtendedFacing(),
+            tile.getXCoord(),
+            tile.getYCoord(),
+            tile.getZCoord(),
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerA(host.isKindSelector()) : 7,
+            top - local.getControllerY(),
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerC(host.isKindSelector()) : 1,
+            false)) return false;
+        return true;
+    }
+
+    public static boolean validateInterfaces(MTECriticalMachine host) {
+        // Chambers are optional for formation; each operation still pays through the journal.
+        return true;
+    }
+
+    public static void construct(MTECriticalMachine host, ItemStack trigger, boolean hintsOnly) {
+        IGregTechTileEntity tile = host.getBaseMetaTileEntity();
+        if (tile == null) return;
+        CriticalMachineState local = host.getCriticalState();
+        host.buildCriticalPiece(
+            PIECE,
+            trigger,
+            hintsOnly,
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerA(host.isKindSelector()) : 7,
+            CriticalGeometry.isV2(local) ? top(local) - local.getControllerY() : 35,
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerC(host.isKindSelector()) : 1);
+    }
+
+    public static int survivalConstruct(MTECriticalMachine host, ItemStack trigger, int budget,
+        ISurvivalBuildEnvironment env) {
+        IGregTechTileEntity tile = host.getBaseMetaTileEntity();
+        if (tile == null) return -1;
+        CriticalMachineState local = host.getCriticalState();
+        return host.survivalBuildCriticalPiece(
+            PIECE,
+            trigger,
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerA(host.isKindSelector()) : 7,
+            CriticalGeometry.isV2(local) ? top(local) - local.getControllerY() : 35,
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerC(host.isKindSelector()) : 1,
+            budget,
+            env);
+    }
+
+    /** Native elements remain visible to StructureLib-aware construction tools. */
+    static IStructureElement<MTECriticalMachine> materialElement(CriticalGeometry.Voxel voxel) {
+        return ofBlock(shell(voxel), 0);
+    }
+}

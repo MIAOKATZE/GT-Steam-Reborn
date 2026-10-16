@@ -9,6 +9,8 @@ import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteam
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.List;
@@ -67,6 +69,11 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteam
 
 public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFurnace>
     implements ISurvivalConstructable {
+
+    // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
+    private static final int REPLACEABLE_CASING_POSITIONS = 41;
+    private static final int MIN_MECHANICAL_CASINGS = minimumCasings(REPLACEABLE_CASING_POSITIONS);
+    private int mMechanicalCasingCount;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 2;
@@ -214,35 +221,37 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                 .addElement(
                     'B',
                     ofChain(
-                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        hatchWithCandidates(
+                            buildHatchAdder(MTELargeSteamFurnace.class).atLeast(PressureSteamInputHatch)
+                                .casingIndex(bronzeCasingIndex)
+                                .hint(1)
+                                .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty()),
+                            PressureSteamInputHatch),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTELargeSteamFurnace.class).atLeast(SteamInputBus, SteamOutputBus)
+                                .casingIndex(bronzeCasingIndex)
+                                .hint(1),
+                            SteamInputBus,
+                            SteamOutputBus),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTELargeSteamFurnace.class)
+                                .anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
+                                .casingIndex(bronzeCasingIndex)
+                                .hint(1),
+                            SteamCoolingHatch,
+                            PressureSteamCoolingHatch),
                         onElementPass(
-                            MTELargeSteamFurnace::onCasingAdded,
-                            ofBlocksTiered(
-                                MTELargeSteamFurnace::getCasingTier,
-                                ImmutableList.of(
-                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                -1,
-                                (MTELargeSteamFurnace t, Integer tier) -> t.mSetTier = tier,
-                                (MTELargeSteamFurnace t) -> t.mSetTier)),
-                        // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
-                        // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
-                        buildHatchAdder(MTELargeSteamFurnace.class).atLeast(PressureSteamInputHatch)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1)
-                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
-                            .build(),
-                        buildHatchAdder(MTELargeSteamFurnace.class).atLeast(SteamInputBus, SteamOutputBus)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1)
-                            .build(),
-                        // v1.9.40 新增：冷却仓元素（可选）。蒸汽消耗的冷却产物（普通→蒸馏水 160:1、
-                        // 过热→蒸汽 1:1）由 mixin 推入对应冷却仓，此前结构无此元素导致产物滞留/丢失。
-                        buildHatchAdder(MTELargeSteamFurnace.class)
-                            .atLeast(SteamCoolingHatch, PressureSteamCoolingHatch)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1)
-                            .build()))
+                            t -> t.mMechanicalCasingCount++,
+                            onElementPass(
+                                MTELargeSteamFurnace::onCasingAdded,
+                                ofBlocksTiered(
+                                    MTELargeSteamFurnace::getCasingTier,
+                                    ImmutableList.of(
+                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                        Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                    -1,
+                                    (MTELargeSteamFurnace t, Integer tier) -> t.mSetTier = tier,
+                                    (MTELargeSteamFurnace t) -> t.mSetTier)))))
                 .addElement(
                     'C',
                     onElementPass(
@@ -297,10 +306,15 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        mMechanicalCasingCount = 0;
         mSetTier = -1;
         mCasingCount = 0;
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
             mSetTier = -1;
+            return;
+        }
+        if (mMechanicalCasingCount < MIN_MECHANICAL_CASINGS) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
         if (mSetTier <= 0) {
@@ -429,6 +443,11 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                     + " "
                     + StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.recipe_based"))
             .beginStructureBlock(5, 5, 5, false)
+            .addCasingInfoMin(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),
+                MIN_MECHANICAL_CASINGS,
+                false)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.LargeSteamFurnace.hatches"))
             .addController(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.ctrl"))
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.input_bus"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.output_bus"), 1)

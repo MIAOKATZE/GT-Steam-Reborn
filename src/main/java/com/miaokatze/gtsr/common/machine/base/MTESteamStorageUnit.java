@@ -4,10 +4,12 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTETieredMachineBlock;
+import gregtech.api.render.TextureFactory;
 
 public abstract class MTESteamStorageUnit extends MTETieredMachineBlock {
 
@@ -64,5 +66,17 @@ public abstract class MTESteamStorageUnit extends MTETieredMachineBlock {
 
     public long getCapacityPerUnit() {
         return capacityPerUnit;
+    }
+
+    /** Passive GT tank markings: inspection gauge on the front and a reinforced top cover. */
+    protected ITexture[] storageTextures(int casingIndex, ForgeDirection side, ForgeDirection facing) {
+        ITexture casing = Textures.BlockIcons.getCasingTextureForId(casingIndex);
+        if (side == facing) {
+            return new ITexture[] { casing, TextureFactory.of(Textures.BlockIcons.OVERLAY_SIDE_FLUIDTANK) };
+        }
+        if (side == ForgeDirection.UP || side == ForgeDirection.DOWN) {
+            return new ITexture[] { casing, TextureFactory.of(Textures.BlockIcons.OVERLAY_TOP_FLUIDTANK) };
+        }
+        return new ITexture[] { casing };
     }
 }

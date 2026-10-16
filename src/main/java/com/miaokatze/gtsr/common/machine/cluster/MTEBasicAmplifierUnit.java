@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.machine.cluster;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
+import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -13,6 +14,7 @@ import net.minecraftforge.fluids.FluidStack;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 
 import bartworks.system.material.Werkstoff;
 import bartworks.system.material.WerkstoffLoader;
@@ -27,7 +29,7 @@ import gregtech.api.util.GTUtility;
 /**
  * 增幅模块基类：集群五类增幅（并行/速度/主产物/副产物/蒸汽效率）的公共骨架。
  * <p>
- * 正面 {@code (0,3,0)} 为输入仓位（r9 起 'A' 元素 = ofChain(tiered 外壳, InputHatch)——输入仓可置
+ * 正面 {@code (0,3,0)} 为输入仓位（'A' 元素先尝试 InputHatch，再回退 tiered 外壳——输入仓可置
  * 任意 A 位，至少一个否则不成型），开批经济结算（v1.20.16 L/矿口径）经 {@link #tryConsumeForBatch}
  * 按批预检实扣（提交点一次扣 batch×单价），预检失败零扣、该模块本批无增益无惩罚。
  * <p>
@@ -76,8 +78,8 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     }
 
     /**
-     * 'A' 元素覆写（r9，范式同物流四 I/O 与 ClusterStructureDef A 总控仓室元素）：tiered 外壳
-     * （默认形态，四族 casing 之一）或 anyOf(标准输入仓)——输入仓可置于矩阵任意 A 位；数量校验在
+     * 'A' 元素覆写：输入仓优先、tiered 外壳回退，仓候选显式提供给结构预览；输入仓可置于任意 A 位。
+     * 基类仅统计实际外壳并保留宽裕下限；输入仓数量校验在
      * {@link #checkMachine}（mInputHatches ≥ 1）。禁用 atLeast（GT5U atLeast 是「各元素至少一个」
      * 语义，此处不适用）；casingIndex+hint 齐备（静态青铜 hint 口径保留）。
      */
@@ -85,11 +87,18 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     @SuppressWarnings({ "rawtypes", "unchecked" })
     protected IStructureElement tieredCasingElement() {
         return StructureUtility.ofChain(
-            super.tieredCasingElement(),
-            buildHatchAdder(MTEBasicAmplifierUnit.class).anyOf(InputHatch)
-                .casingIndex(HATCH_HINT_CASING_INDEX)
-                .hint(1)
-                .build());
+            GTSRStructureUtility.hatchWithCandidates(
+                buildHatchAdder(MTEBasicAmplifierUnit.class).anyOf(InputHatch)
+                    .descriptions(() -> Collections.singletonList("gtsr.structure.cluster.amplifier.input_hatch"))
+                    .casingIndex(HATCH_HINT_CASING_INDEX)
+                    .hint(1),
+                InputHatch),
+            super.tieredCasingElement());
+    }
+
+    @Override
+    protected int requiredCasingPorts() {
+        return 1;
     }
 
     /**

@@ -32,6 +32,10 @@ public class ItemLoader {
         registerAmmoniaCatalysts();
         registerSteamEntangledSingularity();
         registerCriticalSteamEntangledSingularity();
+        GTSRItemList.IrradiatedMoonDust
+            .setAndRegister(new com.miaokatze.gtsr.common.items.IrradiatedDust(true), "IrradiatedMoonDust", true);
+        GTSRItemList.IrradiatedStoneDust
+            .setAndRegister(new com.miaokatze.gtsr.common.items.IrradiatedDust(false), "IrradiatedStoneDust", true);
         registerHubTerminal();
         registerSingularityTuningWand();
         GTSRItemList.SpacetimeAnchorBeacon.setAndRegister(new SpacetimeAnchorBeacon(), "SpacetimeAnchorBeacon", true);

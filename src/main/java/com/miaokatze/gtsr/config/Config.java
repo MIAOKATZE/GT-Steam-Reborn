@@ -12,6 +12,12 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
  */
 public class Config {
 
+    /** Opt-in at startup; changing this setting requires a restart. */
+    public static boolean testLabEnabled = false;
+    /** Isolated lab IDs avoid GalaxySpace's reserved 80 and Outpost's 1048576; collisions never migrate. */
+    public static int testLabDimId = 1048577;
+    public static int testLabProviderId = 1048577;
+
     // GregTech 元机器实体 (MTE) ID 分配的偏移量。
     // 由 MetaTileEntityID.java 统一管理（新段 BASE=14700）；v1.11.34 起旧 ID 段已退役，偏移量仅作用于现行 ID 分配。
     public static int metaIdOffset = 0;
@@ -366,6 +372,18 @@ public class Config {
             1,
             64,
             "破碎维度奇点频率倍增分母（破碎分支频率 = singularitySpawnFrequency/N，默认 8 = 等效 8 倍密度；范围 1-64）");
+
+        testLabEnabled = configuration
+            .getBoolean("enabled", "testlab", false, "启用独立 OP 机器测试维度（/gtsrtest），默认 false；修改后须重启。ID 冲突自动禁用，不抢占。");
+        testLabDimId = configuration.getInt(
+            "dimensionId",
+            "testlab",
+            testLabDimId,
+            2,
+            2000000,
+            "持久测试维度 ID，默认 1048577；避开 GalaxySpace 静态火星轨道预留 ID 80 与 Outpost 测试 ID 1048576。");
+        testLabProviderId = configuration
+            .getInt("providerId", "testlab", testLabProviderId, 2, 2000000, "测试 Provider ID，默认 1048577。");
 
         planDimension.prosperityDimension = configuration.getBoolean(
             "planDimension.prosperityDimension",

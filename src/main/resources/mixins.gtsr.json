@@ -5,7 +5,13 @@
   "target": "@env(DEFAULT)",
   "compatibilityLevel": "JAVA_8",
   "refmap": "mixins.gtsr.refmap.json",
+  "plugin": "com.miaokatze.gtsr.mixin.GTSRMixinPlugin",
   "mixins": [
+    "MixinWorldCriticalTime",
+    "MixinWorldCriticalClearance",
+    "MixinBlockCriticalProtection",
+    "BlockMachinesCriticalProtectionMixin",
+    "MixinEntityCriticalProtection",
     "WeaponLootingMixin",
     "WeaponLootingApplicabilityMixin",
     "MTESteamMultiBaseMixin",
@@ -25,6 +31,14 @@
     "EncounterReachMixin",
     "gtnl/SteamMultiMachineBaseGTNLMixin"
   ],
-  "client": ["EncounterMouseOverMixin", "ModelBipedWeaponPoseMixin", "RendererLivingWeaponYawMixin", "WeaponCreativeBooksMixin"],
+  "client": [
+    "EncounterMouseOverMixin",
+    "ModelBipedWeaponPoseMixin",
+    "RendererLivingWeaponYawMixin",
+    "WeaponCreativeBooksMixin",
+    "angelica.CriticalMeshingTaskMixin",
+    "angelica.CriticalChunkBuildContextMixin",
+    "angelica.CriticalMaterialFaceMixin"
+  ],
   "server": []
 }

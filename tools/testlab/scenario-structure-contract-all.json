@@ -1,0 +1,12 @@
+[
+  {
+    "command": "gtsrtest structure all",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 1800
+  },
+  {
+    "command": "save-all",
+    "expect": "Saved the world",
+    "timeout": 120
+  }
+]

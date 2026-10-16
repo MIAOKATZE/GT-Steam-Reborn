@@ -33,8 +33,11 @@ public class ClientProxy extends CommonProxy {
     public void init(FMLInitializationEvent event) {
         // 调用父类的 init 方法，确保通用逻辑正常执行
         super.init(event);
+        com.miaokatze.gtsr.client.critical.CriticalControllerRenderer.register();
+        com.miaokatze.gtsr.client.critical.CriticalMaterialRenderer.register();
         SpacetimeClient.register();
         com.miaokatze.gtsr.client.travel.SpacetimeBeaconRenderer.register();
+        com.miaokatze.gtsr.client.critical.IrradiatedDustRenderer.register();
         com.miaokatze.gtsr.client.weapons.PortableWeaponClient.register();
         com.miaokatze.gtsr.client.weapons.PortableWeaponRenderer.register();
         com.miaokatze.gtsr.client.architecture.RuinsArchitectureRenderer.registerRenderer();

@@ -1,0 +1,12 @@
+[
+  {
+    "command": "gtsrtest regenerate steam_input_hatch_generic",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 300
+  },
+  {
+    "command": "gtsrtest ui steam_cache_node",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 180
+  }
+]

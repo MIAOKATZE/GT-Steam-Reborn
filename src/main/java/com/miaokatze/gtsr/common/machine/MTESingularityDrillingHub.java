@@ -7,6 +7,8 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -77,6 +79,11 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteam
 
 public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingularityDrillingHub>
     implements ISurvivalConstructable, IHubArray {
+
+    // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
+    private static final int REPLACEABLE_CASING_POSITIONS = 381;
+    private static final int MIN_MECHANICAL_CASINGS = minimumCasings(REPLACEABLE_CASING_POSITIONS);
+    private int mMechanicalCasingCount;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 9;
@@ -257,29 +264,32 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                 .addElement(
                     'B',
                     ofChain(
-                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
-                        onElementPass(MTESingularityDrillingHub::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 0)),
-                        // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
-                        // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
-                        buildHatchAdder(MTESingularityDrillingHub.class).atLeast(PressureSteamInputHatch)
-                            .casingIndex(casingIndex)
-                            .hint(1)
-                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
-                            .build(),
-                        buildHatchAdder(MTESingularityDrillingHub.class).atLeast(SteamOutputBus)
-                            .casingIndex(casingIndex)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTESingularityDrillingHub.class).atLeast(OutputHatch)
-                            .casingIndex(casingIndex)
-                            .hint(1)
-                            .build(),
-                        // Use atLeast(SteamCoolingHatch) instead of hatchClass(...). Its mteBlacklist()
-                        // excludes MTESteamCoolingHatch.class and MTEPressureSteamCoolingHatch.class.
-                        buildHatchAdder(MTESingularityDrillingHub.class).atLeast(SteamCoolingHatch)
-                            .casingIndex(casingIndex)
-                            .hint(2)
-                            .build()))
+                        hatchWithCandidates(
+                            buildHatchAdder(MTESingularityDrillingHub.class).atLeast(PressureSteamInputHatch)
+                                .casingIndex(casingIndex)
+                                .hint(1)
+                                .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty()),
+                            PressureSteamInputHatch),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTESingularityDrillingHub.class).atLeast(SteamOutputBus)
+                                .casingIndex(casingIndex)
+                                .hint(1),
+                            SteamOutputBus),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTESingularityDrillingHub.class).atLeast(OutputHatch)
+                                .casingIndex(casingIndex)
+                                .hint(1),
+                            OutputHatch),
+                        hatchWithCandidates(
+                            buildHatchAdder(MTESingularityDrillingHub.class).anyOf(SteamCoolingHatch)
+                                .casingIndex(casingIndex)
+                                .hint(2),
+                            SteamCoolingHatch),
+                        onElementPass(
+                            t -> t.mMechanicalCasingCount++,
+                            onElementPass(
+                                MTESingularityDrillingHub::onCasingAdded,
+                                ofBlock(GregTechAPI.sBlockCasings2, 0)))))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
                 .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))
                 .addElement('E', ofBlock(GregTechAPI.sBlockCasings3, 14))
@@ -319,9 +329,14 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        mMechanicalCasingCount = 0;
         mCasingCount = 0;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+            return;
+        }
+        if (mMechanicalCasingCount < MIN_MECHANICAL_CASINGS) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
 
@@ -1216,6 +1231,11 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                 EnumChatFormatting.RED
                     + StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.superheated_required"))
             .beginStructureBlock(12, 12, 12, false)
+            .addCasingInfoMin(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),
+                MIN_MECHANICAL_CASINGS,
+                false)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.SingularityDrillingHub.hatches"))
             .addController(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.steam_input_hatch"),

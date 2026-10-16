@@ -1,0 +1,10 @@
+[
+  {"command": "gtsrtest status", "expect": "GTSR-TESTLAB.*state=", "timeout": 30},
+  {"command": "gtsrtest list", "expect": "GTSR-TESTLAB.*id=cluster_unit_logistics", "timeout": 30},
+  {"command": "gtsrtest run does_not_exist", "expect": "GTSR-TESTLAB.*ERROR", "timeout": 30},
+  {"command": "gtsrtest ui all", "expect": "GTSR-TESTLAB.*state=COMPLETE", "timeout": 600},
+  {"command": "gtsrtest run critical_solar", "expect": "GTSR-TESTLAB.*task=critical_solar phase=RUNNING", "failOn": "GTSR-TESTLAB.*(?:result=FAIL|state=COMPLETE)", "timeout": 300},
+  {"command": "gtsrtest stop", "expect": "GTSR-TESTLAB.*state=STOPPED", "timeout": 30},
+  {"command": "gtsrtest regenerate all", "expect": "GTSR-TESTLAB.*state=COMPLETE", "timeout": 14400},
+  {"command": "gtsrtest supply clear", "expect": "GTSR-TESTLAB.*supply", "timeout": 30}
+]

@@ -3,9 +3,10 @@ package com.miaokatze.gtsr.common.machine;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static gregtech.api.enums.HatchElement.InputBus;
-import static gregtech.api.enums.HatchElement.OutputBus;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -42,6 +43,7 @@ import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -51,14 +53,14 @@ import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
-import gregtech.api.recipe.check.CheckRecipeResult;
-import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTRecipe;
+import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
+import gregtech.api.util.ParallelHelper;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
@@ -101,11 +103,13 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
             dualHatch.updateTexture(aBaseCasingIndex);
             dualHatch.updateCraftingIcon(this.getMachineCraftingIcon());
             if (!mDualInputHatches.contains(dualHatch)) {
+                addIfSmartInput(aMetaTileEntity);
                 mDualInputHatches.add(dualHatch);
             }
             return true;
         }
         if (aMetaTileEntity instanceof MTEHatchInputBus hatch) {
+            addIfSmartInput(hatch);
             hatch.mRecipeMap = getRecipeMap();
             hatch.updateTexture(aBaseCasingIndex);
             return mInputBusses.add(hatch);
@@ -119,11 +123,58 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity == null) return false;
         if (aMetaTileEntity instanceof MTEHatchOutputBus hatch) {
+            addIfSmartInput(hatch);
             hatch.updateTexture(aBaseCasingIndex);
             return mOutputBusses.add(hatch);
         }
         return false;
     }
+
+    /** The local adders also accept steam buses, unlike the standard GT bus elements. */
+    private enum CokeOvenHatchElement implements IHatchElement<MTELargeCokeOven> {
+
+        InputBus(MTELargeCokeOven::addInputBusToMachineList, MTEHatchInputBus.class),
+        OutputBus(MTELargeCokeOven::addOutputBusToMachineList, MTEHatchOutputBus.class);
+
+        private final IGTHatchAdder<MTELargeCokeOven> adder;
+        private final List<Class<? extends IMetaTileEntity>> classes;
+
+        @SafeVarargs
+        CokeOvenHatchElement(IGTHatchAdder<MTELargeCokeOven> adder, Class<? extends IMetaTileEntity>... classes) {
+            this.adder = adder;
+            this.classes = ImmutableList.copyOf(classes);
+        }
+
+        @Override
+        public IGTHatchAdder<? super MTELargeCokeOven> adder() {
+            return adder;
+        }
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return classes;
+        }
+
+        @Override
+        public long count(MTELargeCokeOven t) {
+            return this == InputBus ? t.mInputBusses.size() + t.mDualInputHatches.size() : t.mOutputBusses.size();
+        }
+
+        @Override
+        public String getDescriptionLangKey() {
+            return this == InputBus ? "GT5U.MBTT.InputBus" : "GT5U.MBTT.OutputBus";
+        }
+
+        @Override
+        public String getDisplayName() {
+            return StatCollector.translateToLocal(getDescriptionLangKey());
+        }
+    }
+
+    // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
+    private static final int REPLACEABLE_CASING_POSITIONS = 39;
+    private static final int MIN_MECHANICAL_CASINGS = minimumCasings(REPLACEABLE_CASING_POSITIONS);
+    private int mMechanicalCasingCount;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 1;
@@ -239,22 +290,27 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
             .addElement(
                 'B',
                 ofChain(
-                    // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
-                    ofBlocksTiered(
-                        MTELargeCokeOven::getCasingTier,
-                        ImmutableList
-                            .of(Pair.of(GregTechAPI.sBlockCasings1, 10), Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                        -1,
-                        (MTELargeCokeOven t, Integer tier) -> t.mTier = tier,
-                        (MTELargeCokeOven t) -> t.mTier),
-                    buildHatchAdder(MTELargeCokeOven.class).atLeast(InputBus, OutputBus)
-                        .casingIndex(bronzeCasingIndex)
-                        .hint(1)
-                        .build(),
-                    buildHatchAdder(MTELargeCokeOven.class).atLeast(OutputHatch)
-                        .casingIndex(bronzeCasingIndex)
-                        .hint(1)
-                        .build()))
+                    hatchWithCandidates(
+                        buildHatchAdder(MTELargeCokeOven.class)
+                            .atLeast(CokeOvenHatchElement.InputBus, CokeOvenHatchElement.OutputBus)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1),
+                        CokeOvenHatchElement.InputBus,
+                        CokeOvenHatchElement.OutputBus),
+                    hatchWithCandidates(
+                        buildHatchAdder(MTELargeCokeOven.class).anyOf(OutputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1),
+                        OutputHatch),
+                    onElementPass(
+                        t -> t.mMechanicalCasingCount++,
+                        ofBlocksTiered(
+                            MTELargeCokeOven::getCasingTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings1, 10), Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                            -1,
+                            (MTELargeCokeOven t, Integer tier) -> t.mTier = tier,
+                            (MTELargeCokeOven t) -> t.mTier))))
             .addElement(
                 'C',
                 ofBlocksTiered(
@@ -320,6 +376,11 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.coke_oven.accel"))
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
             .beginStructureBlock(7, 7, 3, true)
+            .addCasingInfoMin(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),
+                MIN_MECHANICAL_CASINGS,
+                false)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.LargeCokeOven.hatches"))
             .addController(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.ctrl"))
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.input_bus"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.output_bus"), 1)
@@ -363,6 +424,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        mMechanicalCasingCount = 0;
         // Note: checkStructure() already calls clearHatches() before calling checkMachine(),
         // so we must NOT call clearHatches() here again, otherwise checkPiece()-registered
         // hatches will be cleared before we can count them.
@@ -370,6 +432,10 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
             mTier = -1;
+            return;
+        }
+        if (mMechanicalCasingCount < MIN_MECHANICAL_CASINGS) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
 
@@ -399,24 +465,28 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
     protected ProcessingLogic createProcessingLogic() {
         return new ProcessingLogic() {
 
-            @Nonnull
-            @Override
-            protected CheckRecipeResult validateRecipe(@Nonnull GTRecipe recipe) {
-                // 焦炉配方 eut=0，无需电力检查；保留校验以兼容未来非零 eut 配方
-                if (availableVoltage < recipe.mEUt) {
-                    return CheckRecipeResultRegistry.insufficientPower(recipe.mEUt);
-                }
-                return CheckRecipeResultRegistry.SUCCESSFUL;
-            }
-
             @Override
             @Nonnull
             protected OverclockCalculator createOverclockCalculator(@Nonnull GTRecipe recipe) {
                 // 无电炉只按炉温缩时，不将不足一 tick 的加速转换为额外并行。
-                return super.createOverclockCalculator(recipe).setNoOverclock(true);
+                return super.createOverclockCalculator(recipe).setMaxTierSkips(Integer.MAX_VALUE)
+                    .setNoOverclock(true);
+            }
+
+            @Override
+            protected ParallelHelper createParallelHelper(@Nonnull GTRecipe recipe) {
+                // 纯热机没有能源仓；配方的 EU 元数据不应限制并行或触发电力门控。
+                long recipeBudget = Math.max(0L, recipe.mEUt) * Math.max(1, getMaxParallelRecipes());
+                return super.createParallelHelper(recipe).setAvailableEUt(Math.max(32L, recipeBudget));
             }
         }.setMaxParallelSupplier(this::getMaxParallelRecipes)
             .setSpeedBonusSupplier(this::getRecipeDurationMultiplier);
+    }
+
+    @Override
+    protected void setEnergyUsage(ProcessingLogic logic) {
+        super.setEnergyUsage(logic);
+        mEUt = 0;
     }
 
     /** 只供 GT5U 在配方检查时采样；已开始批次使用父类最终 mMaxProgresstime。 */
