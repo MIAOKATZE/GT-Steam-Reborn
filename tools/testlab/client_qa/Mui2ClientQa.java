@@ -15,6 +15,7 @@ import java.util.*;
 public final class Mui2ClientQa {
     final JsonObject receipt=new JsonObject(); final JsonArray checks=new JsonArray(),heapSamples=new JsonArray();
     TicketRestartQa ticketRestart;
+    UiGalleryBatch galleryBatch;
     volatile Object host,machine,serverPlayer; volatile int request; volatile Throwable serverFailure;
     Object mc,screen,gui,panel,input,apply,session; int ticks,phase,wait,stable; boolean done,gate,lifecycleSeeded; volatile int stopRunnableExecutions; int hoverFrames,tooltipPostDraws; String pendingShot;
     UiQaScript script; UiQaWireCounter wire; long closedPackets; int actionBefore,flowBefore; Object initialPanel,pendingTooltip; long renderStart; final Map<Integer,List<Long>> frameTimes=new TreeMap<Integer,List<Long>>(); long started=System.currentTimeMillis();
@@ -56,7 +57,7 @@ public final class Mui2ClientQa {
         java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?ms)^\\s*testlab\\s*\\{(.*?)^\\s*\\}").matcher(text);
         gate=m.find()&&java.util.regex.Pattern.compile("(?m)^\\s*B:enabled\\s*=\\s*true\\s*$").matcher(m.group(1)).find();
     }
-    @Mod.EventHandler public void init(FMLInitializationEvent e){if(gate){Object listener=this;if("ticket-restart".equals(System.getProperty("gtsr.uiqa.mode"))){ticketRestart=new TicketRestartQa(this);listener=ticketRestart;}FMLCommonHandler.instance().bus().register(listener);net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(listener);}}
+    @Mod.EventHandler public void init(FMLInitializationEvent e)throws Exception {if(gate){Object listener=this;if("ticket-restart".equals(System.getProperty("gtsr.uiqa.mode"))){ticketRestart=new TicketRestartQa(this);listener=ticketRestart;}else if("gallery-batch".equals(System.getProperty("gtsr.uiqa.mode"))){galleryBatch=new UiGalleryBatch(this);listener=galleryBatch;}FMLCommonHandler.instance().bus().register(listener);net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(listener);}}
     @SubscribeEvent(priority=EventPriority.HIGHEST)
     public void syntheticHover(net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent.Pre event) {
         if(done||pendingTooltip==null)return;
@@ -67,6 +68,7 @@ public final class Mui2ClientQa {
         try{JsonObject paint=new JsonObject();paint.addProperty("x",event.getX());paint.addProperty("y",event.getY());paint.addProperty("text",String.valueOf(call(event.getTooltip(),"getAsStrings")));receipt.add("actualTooltipPostText",paint);}catch(Throwable failure){receipt.addProperty("tooltipPaintMetadataFailure",failure.toString());}
     }
     @Mod.EventHandler public void stopping(FMLServerStoppingEvent event) {
+        if(galleryBatch!=null){galleryBatch.stopping();return;}
         if(ticketRestart!=null){ticketRestart.stopping();return;}
         if(!gate||lifecycleSeeded)return;lifecycleSeeded=true;
         try {
@@ -79,6 +81,7 @@ public final class Mui2ClientQa {
         }catch(Throwable t){receipt.addProperty("lifecycleSeedFailure",t.toString());}
     }
     @Mod.EventHandler public void stopped(FMLServerStoppedEvent event) {
+        if(galleryBatch!=null){galleryBatch.stopped();return;}
         if(ticketRestart!=null){ticketRestart.stopped();return;}
         if(!gate||!lifecycleSeeded)return;
         try {
@@ -139,7 +142,7 @@ public final class Mui2ClientQa {
             }
             if(phase==1){if(player==null||number(field(player,"ticksExisted|field_70173_aa"))<60)return;request=1;next(2);return;}
             if(player==null)throw new AssertionError("Client disconnected phase="+phase);
-            if(phase==2){if(request!=0)return;Object world=field(mc,"theWorld|field_71441_e"),ch=call(world,"getTileEntity|func_147438_o",8,70,8);if(ch==null||call(ch,"getMetaTileEntity")==null||++stable<20)return;if(wire==null)wire=UiQaWireCounter.install(this,player);request=2;next(3);return;}
+            if(phase==2){if(request!=0)return;Object world=field(mc,"theWorld|field_71441_e"),ch=call(world,"getTileEntity|func_147438_o",8,70,8);if(ch==null||call(ch,"getMetaTileEntity")==null||++stable<20)return;if(wire==null)wire=UiQaWireCounter.install(this,player);if("gallery".equals(System.getProperty("gtsr.uiqa.mode"))){script=new UiQaScript(this,Paths.get(System.getProperty("gtsr.uiqa.plan")));script.gallery.track(call(host,"getWorld|func_145831_w"),8,70,8,host);next(1000);return;}request=2;next(3);return;}
             if(phase==3||phase==20){
                 if(request!=0||!captureScreen())return;if(field(session,"snapshot")==null)return;if(++wait<25)return;
                 check(phase==3?"route.real-MUI2-screen":"lifecycle.reopen-real-MUI2-screen",String.valueOf(call(panel,"getName")).equals("tcds_terminal"),"screen="+screen.getClass().getName()+" gui="+gui.getClass().getName()+" panel="+call(panel,"getName"));

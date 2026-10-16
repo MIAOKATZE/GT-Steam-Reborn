@@ -35,7 +35,7 @@ def main():
     jar = fixture / "mods/gtsr-mui2-qa-owned-only.jar"
     artifacts = sorted(classes.rglob("*.class"))
     # Only this helper's output is packaged; stale unrelated classes are not included.
-    artifacts = [p for p in artifacts if p.relative_to(classes).as_posix().startswith(("audit/Mui2ClientQa", "audit/UiQaWireCounter", "audit/UiQaScript", "audit/TicketRestartQa"))]
+    artifacts = [p for p in artifacts if p.relative_to(classes).as_posix().startswith(("audit/Mui2ClientQa", "audit/UiQaWireCounter", "audit/UiQaScript", "audit/UiQaGallery", "audit/UiGalleryBatch", "audit/TicketRestartQa"))]
     with zipfile.ZipFile(jar, "w") as archive:
         for path in artifacts:
             info = zipfile.ZipInfo(path.relative_to(classes).as_posix(), date_time=(1980, 1, 1, 0, 0, 0))

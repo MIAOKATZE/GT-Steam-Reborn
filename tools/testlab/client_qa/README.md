@@ -50,11 +50,11 @@ python -X utf8 tools/testlab/client_qa/run.py `
   --language zh_CN `
   --width 427 --height 240 --scale 2 `
   --render-distance 3 `
-  --heap-gib 6 --reserve-gib 4 `
+  --heap-gib 5 --reserve-gib 4 `
   --deadline 1800
 ```
 
-实际验收时按目标窗口与计划调整语言、分辨率、scale 和 run 名。runner 默认预留 4 GiB；`--reserve-gib` 最低 1 GiB。推荐 `--heap-gib 6 --reserve-gib 4`，为 6 GiB Java heap 预留客户端/native 开销，启动前要求至少 10 GiB 可用，低于门槛时只写 preflight 并拒绝启动。R8 的一次 6 GiB 配置观测到 RSS 峰值 9.45 GiB、private bytes 10.67 GiB；heap 不代表进程总物理占用，也不能跨不同 heap 配置直接比较。
+实际验收时按目标窗口与计划调整语言、分辨率、scale 和 run 名。runner 默认预留 4 GiB；`--reserve-gib` 最低 1 GiB。推荐 `--heap-gib 5 --reserve-gib 4`，为 6 GiB Java heap 预留客户端/native 开销，启动前要求至少 10 GiB 可用，低于门槛时只写 preflight 并拒绝启动。R8 的一次 6 GiB 配置观测到 RSS 峰值 9.45 GiB、private bytes 10.67 GiB；heap 不代表进程总物理占用，也不能跨不同 heap 配置直接比较。
 
 一次只运行一项 owned client QA。runner 建立共享 `.gtsr-native-server.lease`，超时处理只会终止它自己启动的客户端子进程；不要手动结束其它实例或 launcher 进程。
 
@@ -93,5 +93,13 @@ python -X utf8 tools/testlab/client_qa/summarize_run.py `
 本轮 UI 阶段已归档关闭。最终客户端索引为 `plan/implementation/mui2-migration/verification/client/index.md`，manifest 为同目录 `evidence-manifest.json`；其中收录11轮、338文件、211张原始PNG，并保留历史 FAIL 与 NOT_RUN。R11 仅重跑371步/4组文字 focused 门，完整787步/6组 `tools-lore.json` 只是静态组合，未作为整套suite运行。专服直接回归仅覆盖R7候选；R7→R8逐entry字节一致证明支持有限范围继承，不代表R8专服实机运行。物理鼠标/键盘/IME、remote TCP及专服的5个client-only窗口仍为NOT_RUN/SKIP。
 
 ## 证据范围
+
+### 离线全 UI 图库
+
+当前采集入口为独立的 `run.py --mode gallery-batch --plan <冻结事件队列> --keep-open`，见 [专用事件图库](BATCH_GALLERY.md)。`gallery_batch_plan.py` 按现行目录生成独立截图事件；没有库存交易、付费升级、Wand 保存或祭坛替换等业务回归。一次启动后可通过 run 目录 `batch-control.json` 热触发后续队列，按实际 window/PSM/snapshot 就绪及连续真实渲染帧截图，分别记录启动、热批和 PNG IO 时间。
+
+缓存节点编辑器绑定状态、Critical 长状态/高位读数及工具剧情本地 snapshot 均明确标注为视觉 fixture，不作为绑定、工作吞吐或物品/S2C路由验收。`gallery_report.py` 将完整清单、真实 PNG 和逐图 SHA 汇成可离线打开的 `index.html`；不可达、失败及未截图项目均保留。经审计确认字节一致的图可显式继承，实际 render 候选 SHA 与最终候选 SHA 分别记录。
+
+早期 `gallery_plan.py` / `--mode gallery` 混入功能回归的方案已停止，只为本轮历史失败证据复现而保留，不作为当前截图入口。正式库存及工具剧情原计划不覆盖、不混入新的事件队列。
 
 这条路径能核对 GL 实际绘制、MUI2 hit-test/focus、文本事件、集成服务端业务与 container 生命周期。合成输入不是人工 OS/IME 测试，`LocalChannel` 不是 TCP；专用服务端、远程网络及物理输入须由对应独立证据覆盖。截图只有在实际 render pipeline 调用绘制并留存可见正文时才可作为该视觉项证据。任何 client-only 项未执行时保留 `SKIP/NOT_RUN`，不从 headless UI PASS 推断客户端画面通过。

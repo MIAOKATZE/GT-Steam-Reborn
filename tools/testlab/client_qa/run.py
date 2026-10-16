@@ -24,17 +24,19 @@ def process_memory(proc):
 
 def main():
     global OUT, FIXTURE
-    p=argparse.ArgumentParser();p.add_argument('--workspace',type=Path,default=OUT);p.add_argument('--client-sandbox',type=Path,default=FIXTURE);p.add_argument('--plan',type=Path);p.add_argument('--mode',choices=['ui','ticket-restart'],default='ui');p.add_argument('--jar',type=Path,required=True);p.add_argument('--run',required=True);p.add_argument('--language',default='en_US');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=720);p.add_argument('--scale',type=int,default=2);p.add_argument('--heap-gib',type=int,default=6);p.add_argument('--reserve-gib',type=float,default=4);p.add_argument('--render-distance',type=int,default=3);p.add_argument('--deadline',type=int,default=900);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--workspace',type=Path,default=OUT);p.add_argument('--client-sandbox',type=Path,default=FIXTURE);p.add_argument('--plan',type=Path);p.add_argument('--mode',choices=['ui','gallery','gallery-batch','ticket-restart'],default='ui');p.add_argument('--keep-open',action='store_true');p.add_argument('--jar',type=Path,required=True);p.add_argument('--run',required=True);p.add_argument('--language',default='en_US');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=720);p.add_argument('--scale',type=int,default=2);p.add_argument('--heap-gib',type=int,default=5);p.add_argument('--reserve-gib',type=float,default=4);p.add_argument('--render-distance',type=int,default=3);p.add_argument('--deadline',type=int,default=900);a=p.parse_args()
+    if a.heap_gib>5:raise ValueError('User limit: client Java heap must not exceed 5GiB')
     OUT=a.workspace.resolve();FIXTURE=a.client_sandbox.resolve()
     if OUT.parent!=ROOT/'build' or FIXTURE.parent!=ROOT/'build' or not FIXTURE.name.startswith('client-testlab-'):raise ValueError('Use direct owned build children only')
-    if a.mode!='ui' and a.plan:raise ValueError('ticket-restart is independent of UI plans')
+    if a.mode=='ticket-restart' and a.plan:raise ValueError('ticket-restart is independent of UI plans')
+    if a.mode in ('gallery','gallery-batch') and not a.plan:raise ValueError('gallery requires an explicit frozen visual plan')
     if not re.fullmatch(r'[a-z]{2}_[A-Z]{2}',a.language):raise ValueError('Invalid language code')
     if not re.fullmatch(r'[a-zA-Z0-9_-]+',a.run):raise ValueError('Unsafe run name')
     assert FIXTURE.resolve()==FIXTURE and FIXTURE.parent==ROOT/'build'
     result=OUT/'client-runs'/a.run;result.mkdir(parents=True,exist_ok=False)
     spec=json.loads((OUT/'client-launch.json').read_text());compile_receipt=json.loads((OUT/'qa-compile-receipt.json').read_text())
     helper=FIXTURE/'mods/gtsr-mui2-qa-owned-only.jar';assert sha(helper)==compile_receipt['jarSHA256']
-    if a.heap_gib<3 or a.reserve_gib<1 or not 2<=a.render_distance<=16:raise ValueError('Require heap>=3GiB, explicit reserve>=1GiB and render distance2..16')
+    if a.heap_gib<3 or a.reserve_gib<1 or not 2<=a.render_distance<=16:raise ValueError('Require heap3..5GiB, explicit reserve>=1GiB and render distance2..16')
     available=free_memory();required=(a.heap_gib+a.reserve_gib)*1024**3
     preflight=dict(availableBytes=available,requiredBytes=required,heapGiB=a.heap_gib,reserveGiB=a.reserve_gib,renderDistance=a.render_distance,leaseExists=LEASE.exists(),state='PRECHECK')
     (result/'preflight.json').write_text(json.dumps(preflight,indent=2))
@@ -47,7 +49,7 @@ def main():
         (FIXTURE/'options.txt').write_text(f'fullscreen:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\nguiScale:{a.scale}\nlang:{a.language}\nrenderDistance:{a.render_distance}\n',encoding='utf-8')
         cmd=[x.replace('-Xmx6G',f'-Xmx{a.heap_gib}G') for x in spec['command']]
         cmd=[x for x in cmd if not x.startswith('-Dgtsr.uiqa.receipt=')]
-        cmd[1:1]=['-Dgtsr.uiqa.mode='+a.mode,'-Dgtsr.uiqa.timeoutMillis='+str(max(60,a.deadline-30)*1000),'-Dgtsr.uiqa.language='+a.language,'-Dgtsr.uiqa.receipt='+str(result/'checks.json'),'-Dgtsr.uiqa.world=Mui2Audit-'+a.run]
+        cmd[1:1]=['-Dgtsr.uiqa.mode='+a.mode,'-Dgtsr.uiqa.batch.keepOpen='+str(a.keep_open).lower(),'-Dgtsr.uiqa.launchEpochMillis='+str(int(time.time()*1000)),'-Dgtsr.uiqa.timeoutMillis='+str(max(60,a.deadline-30)*1000),'-Dgtsr.uiqa.language='+a.language,'-Dgtsr.uiqa.receipt='+str(result/'checks.json'),'-Dgtsr.uiqa.world=Mui2Audit-'+a.run]
         if a.plan:cmd.insert(1,'-Dgtsr.uiqa.plan='+str(a.plan.resolve(strict=True)))
         shutil.copy2(helper,result/'helper.jar')
         shutil.copy2(OUT/'qa-compile-receipt.json',result/'helper-compile-receipt.json')
@@ -60,7 +62,7 @@ def main():
                 if frozen['sha256']!=sha(a.plan):raise RuntimeError('Plan manifest SHA mismatch')
                 shutil.copy2(manifest,result/'plan-manifest.json')
         cmd[cmd.index('--width')+1]=str(a.width);cmd[cmd.index('--height')+1]=str(a.height)
-        receipt.update(command=cmd,javaVersion=subprocess.run([cmd[0],'-version'],capture_output=True,text=True,encoding='utf-8',errors='replace').stderr,language=a.language,resolution=[a.width,a.height],guiScale=a.scale,heapGiB=a.heap_gib,reserveGiB=a.reserve_gib,renderDistance=a.render_distance)
+        receipt.update(command=cmd,workingDirectory=str(FIXTURE),javaVersion=subprocess.run([cmd[0],'-version'],capture_output=True,text=True,encoding='utf-8',errors='replace').stderr,language=a.language,resolution=[a.width,a.height],guiScale=a.scale,heapGiB=a.heap_gib,reserveGiB=a.reserve_gib,renderDistance=a.render_distance)
         (result/'launch.json').write_text(json.dumps(receipt,indent=2),encoding='utf-8')
         started=time.monotonic()
         with (result/'stdout.log').open('wb') as log:

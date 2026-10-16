@@ -16,6 +16,7 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
+import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
@@ -45,6 +46,20 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
     }
 
     @Override
+    protected IWidget createInventoryRow(ModularPanel panel, PanelSyncManager manager) {
+        return Flow.row()
+            .fullWidth()
+            .height(76)
+            .childIf(
+                multiblock.doesBindPlayerInventory(),
+                () -> SlotGroupWidget.playerInventory(
+                    (index, slot) -> slot.background(CriticalGuiStyle.SLOT)
+                        .hoverBackground(CriticalGuiStyle.SLOT))
+                    .marginLeft(4))
+            .child(createButtonColumn(panel, manager));
+    }
+
+    @Override
     protected Flow createButtonColumn(ModularPanel panel, PanelSyncManager manager) {
         // The loom has no controller storage slot: all material supply belongs to real hatches/buses.
         return Flow.column()
@@ -52,7 +67,7 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
             .leftRel(1, -2, 1)
             .mainAxisAlignment(MainAxis.END)
             .reverseLayout(true)
-            .child(createPowerSwitchButton())
+            .child(createPowerSwitchButton().name("critical_native_power"))
             .child(createStructureUpdateButton(manager));
     }
 
@@ -144,8 +159,8 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
 
     private static void line(ListWidget<IWidget, ?> list, java.util.function.Supplier<String> text) {
         list.child(
-            IKey.dynamic(text)
-                .asWidget()
+            CriticalGuiStyle.text(IKey.dynamic(text))
+                .color(CriticalGuiStyle.TEXT_BODY)
                 .fullWidth()
                 .marginBottom(2));
     }

@@ -13,6 +13,7 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.miaokatze.gtsr.common.gui.mui2.BoundedTerminalScreen;
 import com.miaokatze.gtsr.common.items.HubTerminal;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
@@ -89,7 +90,7 @@ public final class CriticalMachineTerminalFactory implements UIFactory<PosGuiDat
     @SideOnly(Side.CLIENT)
     @Override
     public ModularScreen createScreen(PosGuiData data, ModularPanel panel) {
-        return new ModularScreen("gtsr", panel);
+        return new BoundedTerminalScreen("gtsr", panel, 475, 350);
     }
 
     @Override

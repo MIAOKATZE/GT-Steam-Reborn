@@ -13,12 +13,14 @@ final class UiQaScript {
     final Map<String,Object> variables=new HashMap<String,Object>();
     final Map<String,JsonObject> inventories=new HashMap<String,JsonObject>();
     final JsonArray events=new JsonArray();
+    final UiQaGallery gallery;
     int index,wait;
     volatile JsonObject pending;
     volatile Throwable failure;
     boolean dispatched; String group="pilot"; int recovery;
     UiQaScript(Mui2ClientQa owner,Path plan)throws Exception {
         q=owner;
+        gallery=new UiQaGallery(this);
         steps=new JsonParser().parse(new String(Files.readAllBytes(plan),StandardCharsets.UTF_8)).getAsJsonArray();
         q.receipt.addProperty("scriptPlan",plan.toString());
         q.receipt.add("scriptEvents",events);
@@ -49,6 +51,7 @@ final class UiQaScript {
             complete(step);return;
         }
         if(string(step,"op","").equals("expectGuiClass")){Object current=Mui2ClientQa.field(q.mc,"currentScreen|field_71462_r");String name=current==null?"null":current.getClass().getName();String expected=string(step,"class",string(step,"contains",""));if(current==null||!name.contains(expected)){if(++wait>stepTimeout(step))throw new AssertionError("Expected legacy GUI class "+expected+" actual="+name);return;}}
+        if(string(step,"op","").equals("galleryExpect")&&!gallery.ready()){if(++wait>stepTimeout(step))throw new AssertionError("No real game GUI opened for "+step);return;}
         if(string(step,"op","").equals("expectScreen")){
             if(!capture()||!string(step,"panel","").equals(String.valueOf(Mui2ClientQa.call(q.panel,"getName")))){
                 if(++wait>stepTimeout(step))throw new AssertionError("Expected panel "+step+" current="+q.gui);
@@ -120,6 +123,7 @@ final class UiQaScript {
     void execute(JsonObject s)throws Exception {
         String op=string(s,"op","");Object result=null;
         if(op.equals("group")){group=s.get("name").getAsString();}
+        else if(op.startsWith("gallery")){gallery.execute(s);}
         else if(op.equals("record")){JsonObject record=new JsonObject();record.addProperty("name",s.get("name").getAsString());record.addProperty("value",String.valueOf(eval(s.get("value"))));events.add(record);}
         else if(op.equals("geometry")){capture();Object widget=q.find(q.panel,s.get("widget").getAsString());if(widget==null)throw new AssertionError("Geometry widget missing");JsonObject event=new JsonObject();event.addProperty("geometry",s.get("name").getAsString());JsonObject tree=geometry(widget,s.has("depth")?s.get("depth").getAsInt():2);event.add("tree",tree);Object parent=Mui2ClientQa.call(widget,"getParent");if(parent!=null)event.add("parent",geometry(parent,0));events.add(event);if(s.has("assertTextFit")&&s.get("assertTextFit").getAsBoolean())verifyTextGeometry(tree,s.get("name").getAsString(),s.has("assertLastVisible")&&s.get("assertLastVisible").getAsBoolean());}
         else if(op.equals("wandAir")){Object player=target("player"),movement=Mui2ClientQa.field(player,"movementInput|field_71158_b"),old=Mui2ClientQa.field(q.mc,"objectMouseOver|field_71476_x");boolean sneak=(Boolean)Mui2ClientQa.field(movement,"sneak|field_78899_d");try{Mui2ClientQa.set(movement,"sneak|field_78899_d",true);Mui2ClientQa.set(q.mc,"objectMouseOver|field_71476_x",null);Object held=Mui2ClientQa.call(player,"getHeldItem|func_70694_bm");q.check("fixture.actual-client-wand-held",held!=null&&Mui2ClientQa.call(held,"getItem|func_77973_b").getClass().getName().endsWith("SingularityTuningWand"),"Actual client held="+(held==null?"null":Mui2ClientQa.call(held,"getItem|func_77973_b").getClass().getName()));q.check("fixture.actual-client-sneaking",Boolean.TRUE.equals(Mui2ClientQa.call(player,"isSneaking|func_70093_af")),"Actual client movement/sneak readback before normal Item.onItemRightClick");Mui2ClientQa.call(Mui2ClientQa.call(held,"getItem|func_77973_b"),"onItemRightClick|func_77659_a",held,target("clientWorld"),player);}finally{Mui2ClientQa.set(movement,"sneak|field_78899_d",sneak);Mui2ClientQa.set(q.mc,"objectMouseOver|field_71476_x",old);}}
@@ -143,7 +147,7 @@ final class UiQaScript {
         else if(op.equals("evaluate"))result=eval(s.get("value"));
         else if(op.equals("stack"))result=makeStack(s);
         else if(op.equals("clearPlayer")){Object inv=Mui2ClientQa.field(q.serverPlayer,"inventory|field_71071_by");for(int i=0;i<((Number)Mui2ClientQa.call(inv,"getSizeInventory|func_70302_i_")).intValue();i++)Mui2ClientQa.call(inv,"setInventorySlotContents|func_70299_a",i,null);Mui2ClientQa.call(inv,"setItemStack|func_70437_b",(Object)null);}
-        else if(op.equals("placeBlock")){Object world=target("world"),block=eval(s.get("block"));int x=s.get("x").getAsInt(),y=s.get("y").getAsInt(),z=s.get("z").getAsInt();Mui2ClientQa.call(Mui2ClientQa.call(world,"getChunkProvider|func_72863_F"),"loadChunk|func_73158_c",x>>4,z>>4);if(!(Boolean)Mui2ClientQa.call(world,"isAirBlock|func_147437_c",x,y,z))throw new AssertionError("Fixture target not air");Mui2ClientQa.call(world,"setBlock|func_147465_d",x,y,z,block,0,3);Mui2ClientQa.call(q.serverPlayer,"setPositionAndUpdate|func_70634_a",x+.5,y+1d,z+2.5);result=Mui2ClientQa.call(world,"getTileEntity|func_147438_o",x,y,z);}
+        else if(op.equals("placeBlock")){Object world=target("world"),block=eval(s.get("block"));int x=s.get("x").getAsInt(),y=s.get("y").getAsInt(),z=s.get("z").getAsInt();Mui2ClientQa.call(Mui2ClientQa.call(world,"getChunkProvider|func_72863_F"),"loadChunk|func_73158_c",x>>4,z>>4);if(!(Boolean)Mui2ClientQa.call(world,"isAirBlock|func_147437_c",x,y,z))throw new AssertionError("Fixture target not air");Mui2ClientQa.call(world,"setBlock|func_147465_d",x,y,z,block,0,3);Mui2ClientQa.call(q.serverPlayer,"setPositionAndUpdate|func_70634_a",x+.5,y+1d,z+2.5);result=Mui2ClientQa.call(world,"getTileEntity|func_147438_o",x,y,z);gallery.track(world,x,y,z,result);}
         else if(op.equals("setField")){Mui2ClientQa.set(eval(s.get("target")),s.get("field").getAsString(),eval(s.get("value")));}
         else if(op.equals("placeGt"))result=placeGt(s);
         else if(op.equals("findItem")){Object registry=Mui2ClientQa.field(Mui2ClientQa.type("net.minecraft.item.Item"),"itemRegistry|field_150901_e");for(Object item:(Iterable<?>)registry)if(item.getClass().getName().equals(s.get("class").getAsString())){result=item;break;}if(result==null)throw new AssertionError("Missing registered item class "+s);}
@@ -211,7 +215,7 @@ final class UiQaScript {
         Object stone=Mui2ClientQa.field(Mui2ClientQa.type("net.minecraft.init.Blocks"),"stone|field_150348_b");for(int px=x-1;px<=x+2;px++)for(int pz=z-1;pz<=z+4;pz++)Mui2ClientQa.call(world,"setBlock|func_147465_d",px,y-1,pz,stone,0,3);
         Mui2ClientQa.call(player,"setPositionAndUpdate|func_70634_a",x+.5,y+1d,z+2.5);Object stack=Mui2ClientQa.call(prototype,"getStackForm",1L);
         if(!(Boolean)Mui2ClientQa.call(Mui2ClientQa.call(stack,"getItem|func_77973_b"),"placeBlockAt",stack,player,world,x,y,z,1,.5f,.5f,.5f,0))throw new AssertionError("GT placement refused "+s);
-        Object host=Mui2ClientQa.call(world,"getTileEntity|func_147438_o",x,y,z),machine=Mui2ClientQa.call(host,"getMetaTileEntity");String name=s.get("name").getAsString();variables.put(name+"Host",host);variables.put(name,machine);return machine;
+        Object host=Mui2ClientQa.call(world,"getTileEntity|func_147438_o",x,y,z),machine=Mui2ClientQa.call(host,"getMetaTileEntity");String name=s.get("name").getAsString();variables.put(name+"Host",host);variables.put(name,machine);gallery.track(world,x,y,z,host);return machine;
     }
     JsonObject geometry(Object widget,int depth)throws Exception {
         JsonObject snapshot=new JsonObject();snapshot.addProperty("name",String.valueOf(Mui2ClientQa.call(widget,"getName")));snapshot.addProperty("class",widget.getClass().getName());Object area=Mui2ClientQa.call(widget,"getArea");

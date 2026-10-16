@@ -6,7 +6,7 @@
 
 ```powershell
 python -X utf8 tools/testlab/client_qa/compile.py --workspace build/mui2-v12138 --client-sandbox build/client-testlab-mui2-v12138
-python -X utf8 tools/testlab/client_qa/run.py --workspace build/mui2-v12138 --client-sandbox build/client-testlab-mui2-v12138 --jar build/mui2-v12138/migration-candidate-r9.jar --mode ticket-restart --run ticket-restart-unique --language zh_CN --heap-gib 6 --reserve-gib 4 --render-distance 3 --deadline 900
+python -X utf8 tools/testlab/client_qa/run.py --workspace build/mui2-v12138 --client-sandbox build/client-testlab-mui2-v12138 --jar build/mui2-v12138/migration-candidate-r9.jar --mode ticket-restart --run ticket-restart-unique --language zh_CN --heap-gib 5 --reserve-gib 4 --render-distance 3 --deadline 900
 ```
 
 每次使用新 run 名，runner 拒绝覆盖原证据。该 run 自建一个 owned save，**同一 JVM 内两次进入同一个 save**，两次服务器对象与线程必须不同。真实注册 GT 方块产生 BaseMetaTileEntity，生产 `CriticalChunkLoading.ensureAllStructureChunks` 申请并强制一个真实 chunk；同时在主世界通过真实 manager API 建立一个无 loader 的原生票。正常进入 TestLab 维度后再申请生产票，不伪造 World 或 Ticket，不改配额与权限门。
