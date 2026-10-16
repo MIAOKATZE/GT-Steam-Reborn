@@ -56,6 +56,10 @@ public final class TestLabFixtures {
 
     private TestLabFixtures() {}
 
+    static boolean hasResetTicket() {
+        return resetTicket != null;
+    }
+
     static void attach(WorldServer world) {
         if (!(world.provider instanceof TestLabWorldProvider))
             throw new IllegalArgumentException("Not a GTSR test world");

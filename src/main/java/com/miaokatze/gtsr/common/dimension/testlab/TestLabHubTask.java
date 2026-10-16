@@ -127,7 +127,7 @@ final class TestLabHubTask implements TestLabTask {
             ((IInventory) tile).setInventorySlotContents(
                 1,
                 (tier == 3 ? GTSRItemList.ReinforcedHubSingularityChip : GTSRItemList.HubSingularityChip).get(1));
-            if (!machine.checkStructure(true, tile)) return result(
+            if (!TestLabStructure.checkStructure(machine, tile)) return result(
                 TestLabReport.Status.FAIL,
                 "structure=FAIL native hub check rejected " + builder.describe() + " " + builder.diagnoseFailure());
             // Probe actual input delegation into storage and actual output delegation out of the same storage.

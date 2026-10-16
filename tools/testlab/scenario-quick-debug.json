@@ -1,0 +1,27 @@
+[
+  {
+    "command": "gtsrtest perf all",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 600
+  },
+  {
+    "command": "gtsrtest regenerate steam_hub_array",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 180
+  },
+  {
+    "command": "gtsrtest regenerate water_hub_array",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 180
+  },
+  {
+    "command": "gtsrtest regenerate singularity_fluid_output_compartment",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 180
+  },
+  {
+    "command": "gtsrtest supply clear",
+    "expect": "GTSR-TESTLAB.*supply=CLEARED",
+    "timeout": 15
+  }
+]

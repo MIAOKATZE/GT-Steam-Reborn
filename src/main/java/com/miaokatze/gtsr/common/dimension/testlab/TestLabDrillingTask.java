@@ -96,7 +96,7 @@ final class TestLabDrillingTask implements TestLabTask {
                     .getItemDamage());
             if (steamInput == null || itemOutput == null || fluidOutput == null)
                 return result(TestLabReport.Status.FAIL, "structure=FAIL native-compatible hub ports not found");
-            if (!hub.checkStructure(true, tile)) return result(
+            if (!TestLabStructure.checkStructure(hub, tile)) return result(
                 TestLabReport.Status.FAIL,
                 "structure=FAIL native checkStructure rejected " + structure.diagnoseFailure());
             TestLabSupply.add(world, steamInput, FluidRegistry.getFluidStack("ic2superheatedsteam", 1));

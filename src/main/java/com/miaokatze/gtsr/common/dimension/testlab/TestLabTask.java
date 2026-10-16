@@ -16,6 +16,11 @@ public interface TestLabTask {
         return true;
     }
 
+    /** Describes direct server-thread work, never the asynchronous machine's entire tick cost. */
+    default String performancePhase() {
+        return id().startsWith("ui.") ? "ui.probe" : "machine.execute";
+    }
+
     void start(WorldServer world, int x, int y, int z) throws Exception;
 
     TestLabReport.Result tick(WorldServer world, int elapsedTicks) throws Exception;

@@ -1048,6 +1048,12 @@ gtsr.gui.water_hub.water_buffer=水缓冲:
 gtsr.gui.water_hub.stored_fluid_type=存储种类: 
 gtsr.gui.water_hub.total_capacity=总容量: 
 gtsr.gui.hub.stored_fluid_none=无
+gtsr.gui.hub.storage_missing=未检测到存储单元
+gtsr.gui.hub.storage_missing_normal=缺少普通存储单元
+gtsr.gui.hub.storage_missing_reinforced=缺少强化存储单元
+gtsr.gui.hub.storage_missing_overpressure=缺少超压存储单元
+gtsr.gui.hub.storage_no_capacity=无缓存容量，枢纽无法成形
+gtsr.gui.hub.storage_cannot_form=存储单元等级不符，无法成形
 
 # 16. Vein Steam Pyrolyzer - missing hint
 gtsr.tooltip.vein_pyrolyzer.hint_bronze=支持裂解器芯片：T1(+1区块)、T2(+3区块)、T3(+7区块)

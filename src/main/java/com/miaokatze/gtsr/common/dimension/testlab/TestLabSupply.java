@@ -21,6 +21,12 @@ public final class TestLabSupply {
 
     private TestLabSupply() {}
 
+    static int feedCount(WorldServer world) {
+        int count = 0;
+        for (Feed feed : FEEDS) if (feed.world == world) count++;
+        return count;
+    }
+
     public static void add(WorldServer world, IGregTechTileEntity tile, FluidStack fluid) {
         validateFluid(world, tile, fluid);
         remove(tile);

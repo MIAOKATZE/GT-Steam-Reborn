@@ -1,0 +1,14 @@
+[
+  {
+    "command": "gtsrtest ui steam_hub_array",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "failOn": "GTSR-TESTLAB.*result=(?:FAIL|UNSUPPORTED|BLOCKED)",
+    "timeout": 90
+  },
+  {
+    "command": "gtsrtest ui water_hub_array",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "failOn": "GTSR-TESTLAB.*result=(?:FAIL|UNSUPPORTED|BLOCKED)",
+    "timeout": 90
+  }
+]

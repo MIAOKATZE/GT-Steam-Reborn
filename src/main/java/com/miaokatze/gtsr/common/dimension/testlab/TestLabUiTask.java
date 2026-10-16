@@ -157,20 +157,37 @@ final class TestLabUiTask implements TestLabTask {
                 "uiSettings",
                 "Native server UISettings(RecipeViewerSettings.DUMMY), same as ModularUI2 GuiManager.open");
             details.put("probePhase", "productionMui2Builder");
-            ModularPanel panel = terminal
-                ? new MTECriticalMachineTerminalGui((MTECriticalMachine) machine)
-                    .build(new PosGuiData(player, x, y, z), manager, settings)
-                : machine.buildUI(new PosGuiData(player, x, y, z), manager, settings);
+            long builderTiming = TestLabPerformance.begin();
+            ModularPanel panel;
+            try {
+                panel = terminal
+                    ? new MTECriticalMachineTerminalGui((MTECriticalMachine) machine)
+                        .build(new PosGuiData(player, x, y, z), manager, settings)
+                    : machine.buildUI(new PosGuiData(player, x, y, z), manager, settings);
+            } finally {
+                TestLabPerformance.end("ui.mui2ProductionBuilder", builderTiming);
+            }
             if (panel == null) failures.add("Production MUI2 builder returned null");
             else {
                 details.put(
                     "productionBuilderEvidence",
                     "PASS: actual registered machine production builder returned real ModularPanel");
-                TestLabUiSnapshot.inspect(panel, manager, machine, details, failures);
+                long inspectTiming = TestLabPerformance.begin();
+                try {
+                    TestLabUiSnapshot.inspect(panel, manager, machine, details, failures);
+                } finally {
+                    TestLabPerformance.end("ui.mui2TreeSyncCallbacks", inspectTiming);
+                }
             }
         } else {
             details.put("probePhase", "productionMui1Builder");
-            ModularWindow window = ((CommonBaseMetaTileEntity) tile).createWindow(new UIBuildContext(player));
+            long builderTiming = TestLabPerformance.begin();
+            ModularWindow window;
+            try {
+                window = ((CommonBaseMetaTileEntity) tile).createWindow(new UIBuildContext(player));
+            } finally {
+                TestLabPerformance.end("ui.mui1ProductionBuilder", builderTiming);
+            }
             if (window == null) {
                 details.put("framework", "NO_MODULAR_WINDOW");
                 result = new TestLabReport.Result(
@@ -179,7 +196,12 @@ final class TestLabUiTask implements TestLabTask {
                     details);
                 return;
             }
-            TestLabUiSnapshot.inspectLegacy(window, details, failures);
+            long inspectTiming = TestLabPerformance.begin();
+            try {
+                TestLabUiSnapshot.inspectLegacy(window, details, failures);
+            } finally {
+                TestLabPerformance.end("ui.mui1TreeCallbacks", inspectTiming);
+            }
         }
         details.put("probePhase", "complete");
         details.put("failures", failures);

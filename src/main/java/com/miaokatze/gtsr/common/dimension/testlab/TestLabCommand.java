@@ -36,7 +36,7 @@ public final class TestLabCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/gtsrtest enter|return|list|run <all|id>|ui <all|id|list|status|stop>|status|report|stop|reset|regenerate [all|id]|supply <x y z fluidName|list|clear|off x y z>";
+        return "/gtsrtest enter|return|list|run <all|id>|ui <all|id|list|status|stop>|perf <quick|all|machine id|ui id|status|stop>|status|report|stop|reset|regenerate [all|id]|supply <x y z fluidName|list|clear|off x y z>";
     }
 
     @Override
@@ -48,6 +48,10 @@ public final class TestLabCommand extends CommandBase {
         try {
             if (args.length == 0) throw new IllegalArgumentException(getCommandUsage(sender));
             String command = args[0];
+            if ("perf".equals(command)) {
+                performance(sender, args);
+                return;
+            }
             if ("supply".equals(command)) {
                 supply(sender, args);
                 return;
@@ -149,6 +153,28 @@ public final class TestLabCommand extends CommandBase {
                 TestLabRuntime.INSTANCE.runUi(args[1], sender);
                 break;
         }
+    }
+
+    private static void performance(ICommandSender sender, String[] args) {
+        if (args.length == 2 && ("status".equals(args[1]) || "report".equals(args[1]))) {
+            reply(sender, TestLabRuntime.INSTANCE.status());
+            return;
+        }
+        if (args.length == 2 && "stop".equals(args[1])) {
+            TestLabRuntime.INSTANCE.stop("操作员停止性能/机器/UI任务");
+            reply(sender, "state=STOPPED");
+            return;
+        }
+        if (args.length == 2 && ("quick".equals(args[1]) || "all".equals(args[1]))) {
+            TestLabRuntime.INSTANCE.runPerformance(args[1], null, sender);
+            return;
+        }
+        if (args.length == 3 && ("machine".equals(args[1]) || "ui".equals(args[1]))) {
+            TestLabRuntime.INSTANCE.runPerformance(args[1], args[2], sender);
+            return;
+        }
+        throw new IllegalArgumentException(
+            "用法：/gtsrtest perf <quick|all|machine id|ui id|status|stop>；all为模块代表覆盖，不是全部机器功能覆盖");
     }
 
     private static void supply(ICommandSender sender, String[] args) {
@@ -255,12 +281,21 @@ public final class TestLabCommand extends CommandBase {
             "list",
             "run",
             "ui",
+            "perf",
             "status",
             "report",
             "stop",
             "reset",
             "regenerate",
             "supply");
+        if (args.length == 2 && "perf".equals(args[0]))
+            return getListOfStringsMatchingLastWord(args, "quick", "all", "machine", "ui", "status", "stop");
+        if (args.length == 3 && "perf".equals(args[0])) {
+            List<String> ids = new ArrayList<>();
+            if ("machine".equals(args[1])) for (TestLabTask task : TestLabCatalog.tasks()) ids.add(task.id());
+            if ("ui".equals(args[1])) for (TestLabTask task : TestLabUiProbes.tasks()) ids.add(task.id());
+            return getListOfStringsMatchingLastWord(args, ids.toArray(new String[0]));
+        }
         if (args.length == 2 && "ui".equals(args[0])) {
             List<String> ids = new ArrayList<>();
             java.util.Collections.addAll(ids, "all", "list", "status", "stop");

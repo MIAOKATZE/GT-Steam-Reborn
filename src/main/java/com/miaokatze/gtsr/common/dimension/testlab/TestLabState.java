@@ -62,19 +62,43 @@ public final class TestLabState {
     }
 
     PendingWrite prepare(TestLabReport report) {
-        report.reportPath = reportFile(report.runId).getAbsolutePath();
-        return new PendingWrite(reportFile(report.runId), new File(directory, "latest.json"), GSON.toJson(report));
+        long timing = TestLabPerformance.begin();
+        try {
+            report.reportPath = reportFile(report.runId).getAbsolutePath();
+            return new PendingWrite(reportFile(report.runId), new File(directory, "latest.json"), GSON.toJson(report));
+        } finally {
+            TestLabPerformance.end("report.serialize", timing);
+        }
+    }
+
+    String performanceReceiptPath(String runId) {
+        return new File(directory, runId + "-performance.json").getAbsolutePath();
+    }
+
+    /** One final receipt includes terminal main-report IO; its own IO is explicitly outside the observation. */
+    void savePerformance(TestLabReport report, java.util.Map<String, Object> performance) throws IOException {
+        java.util.Map<String, Object> receipt = new java.util.LinkedHashMap<>();
+        receipt.put("runId", report.runId);
+        receipt.put("state", report.state);
+        receipt.put("mainReportPath", report.reportPath);
+        receipt.put("performance", performance);
+        write(new File(performanceReceiptPath(report.runId)), GSON.toJson(receipt));
     }
 
     void save(PendingWrite pending) throws IOException {
-        Files.createDirectories(directory.toPath());
-        if (!pending.reportSaved) {
-            write(pending.reportFile, pending.json);
-            pending.reportSaved = true;
-        }
-        if (!pending.latestSaved) {
-            write(pending.latestFile, pending.json);
-            pending.latestSaved = true;
+        long timing = TestLabPerformance.begin();
+        try {
+            Files.createDirectories(directory.toPath());
+            if (!pending.reportSaved) {
+                write(pending.reportFile, pending.json);
+                pending.reportSaved = true;
+            }
+            if (!pending.latestSaved) {
+                write(pending.latestFile, pending.json);
+                pending.latestSaved = true;
+            }
+        } finally {
+            TestLabPerformance.end("report.writeBothTargets", timing);
         }
     }
 

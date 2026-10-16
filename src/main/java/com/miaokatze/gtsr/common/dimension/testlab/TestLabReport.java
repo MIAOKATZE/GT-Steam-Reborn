@@ -65,6 +65,9 @@ public final class TestLabReport {
     public int activeTicks;
     public String activeDebug;
     public String reportPath;
+    /** Present only for explicitly requested performance runs. */
+    public Map<String, Object> performance;
+    public String performanceReceiptPath;
     public final List<String> plannedTasks = new ArrayList<>();
     public final List<Entry> results = new ArrayList<>();
 }

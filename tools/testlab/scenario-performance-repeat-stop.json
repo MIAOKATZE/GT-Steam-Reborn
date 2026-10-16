@@ -1,0 +1,42 @@
+[
+  {
+    "command": "gtsrtest perf quick",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 300
+  },
+  {
+    "command": "gtsrtest perf quick",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 300
+  },
+  {
+    "command": "gtsrtest perf all",
+    "expect": "GTSR-TESTLAB.*state=RUNNING",
+    "timeout": 30
+  },
+  {
+    "command": "gtsrtest perf stop",
+    "expect": "GTSR-TESTLAB.*state=STOPPED",
+    "timeout": 30
+  },
+  {
+    "command": "gtsrtest perf ui steam_cache_node",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 90
+  },
+  {
+    "command": "gtsrtest perf ui steam_hub_array",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 90
+  },
+  {
+    "command": "gtsrtest perf ui water_hub_array",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 90
+  },
+  {
+    "command": "gtsrtest perf machine steam_input_hatch_generic",
+    "expect": "GTSR-TESTLAB.*state=COMPLETE",
+    "timeout": 180
+  }
+]

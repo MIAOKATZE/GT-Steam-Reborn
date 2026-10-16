@@ -45,6 +45,15 @@ final class TestLabStructure {
     private int placed;
     private int failed;
 
+    static boolean checkStructure(MTEMultiBlockBase machine, IGregTechTileEntity tile) {
+        long timing = TestLabPerformance.begin();
+        try {
+            return machine.checkStructure(true, tile);
+        } finally {
+            TestLabPerformance.end("structure.canonicalCheck", timing);
+        }
+    }
+
     TestLabStructure(WorldServer world, MTEMultiBlockBase controller, ItemStack trigger) throws Exception {
         this.world = world;
         this.controller = controller;
@@ -101,6 +110,15 @@ final class TestLabStructure {
     }
 
     void piece(String name, int a, int b, int c) throws Exception {
+        long timing = TestLabPerformance.begin();
+        try {
+            pieceInternal(name, a, b, c);
+        } finally {
+            TestLabPerformance.end("structure.definitionScan", timing);
+        }
+    }
+
+    private void pieceInternal(String name, int a, int b, int c) throws Exception {
         IStructureDefinition definition = (IStructureDefinition) controller.getClass()
             .getMethod("getStructureDefinition")
             .invoke(controller);
@@ -129,6 +147,15 @@ final class TestLabStructure {
     }
 
     boolean buildTick() {
+        long timing = TestLabPerformance.begin();
+        try {
+            return buildTickInternal();
+        } finally {
+            TestLabPerformance.end("structure.placeBatch", timing);
+        }
+    }
+
+    private boolean buildTickInternal() {
         for (int budget = 0; budget < 128 && cursor < cells.size(); budget++, cursor++) {
             Cell cell = cells.get(cursor);
             TestLabFixtures.track(world, cell.x, cell.y, cell.z);
@@ -140,6 +167,15 @@ final class TestLabStructure {
 
     /** Locate a real compatible port by asking the canonical element to attach the actual hatch. */
     IGregTechTileEntity install(int metaId) throws Exception {
+        long timing = TestLabPerformance.begin();
+        try {
+            return installInternal(metaId);
+        } finally {
+            TestLabPerformance.end("structure.hatchInstall", timing);
+        }
+    }
+
+    private IGregTechTileEntity installInternal(int metaId) throws Exception {
         for (IStructureElement element : elementOrder) {
             List<Cell> group = elementGroups.get(element);
             // All cells sharing this immutable element have the same port acceptance; skip air / existing tiles.
@@ -158,7 +194,7 @@ final class TestLabStructure {
             if (hatch.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.base.MTEGTSRRedstoneHatch) {
                 // Redstone compatibility belongs to StructureCheckerMixin.visit, not to element.check or
                 // the controller's hatch lists. Ask the real complete checker to form and bind it.
-                accepted = controller.checkStructure(true, tile)
+                accepted = TestLabStructure.checkStructure(controller, tile)
                     && ((com.miaokatze.gtsr.common.machine.base.MTEGTSRRedstoneHatch) hatch.getMetaTileEntity())
                         .getController() == controller;
             } else {
@@ -265,7 +301,7 @@ final class TestLabStructure {
         } finally {
             try {
                 result.append(" restoredNativeFormation=")
-                    .append(controller.checkStructure(true, tile));
+                    .append(TestLabStructure.checkStructure(controller, tile));
             } catch (RuntimeException | LinkageError failure) {
                 result.append(" nativeRestoreException=")
                     .append(

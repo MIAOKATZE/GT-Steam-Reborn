@@ -153,7 +153,8 @@ public final class TestLabClusterTask implements TestLabTask {
             if (!building.buildTick()) return null;
             current.geometry = building.describe();
             configurePorts(world, current);
-            if (current.machine instanceof MTEClusterUnitBase && !current.machine.checkStructure(true, current.tile))
+            if (current.machine instanceof MTEClusterUnitBase
+                && !TestLabStructure.checkStructure(current.machine, current.tile))
                 return result(
                     TestLabReport.Status.FAIL,
                     "单元原生checkStructure未成型：" + current.id + "; " + building.diagnoseFailure());
@@ -165,7 +166,7 @@ public final class TestLabClusterTask implements TestLabTask {
                 building = new TestLabStructure(world, current.machine, trigger());
                 return null;
             }
-            if (!cluster.checkStructure(true, cluster.getBaseMetaTileEntity()))
+            if (!TestLabStructure.checkStructure(cluster, cluster.getBaseMetaTileEntity()))
                 return result(TestLabReport.Status.FAIL, "总控原生checkStructure未成型");
             for (Node node : nodes) if (node.machine instanceof MTEClusterUnitBase) {
                 MTEClusterUnitBase unit = (MTEClusterUnitBase) node.machine;

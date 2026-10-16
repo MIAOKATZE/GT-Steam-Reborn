@@ -129,6 +129,12 @@ final class TestLabMachineTask implements TestLabTask {
     }
 
     @Override
+    public String performancePhase() {
+        if (multi == null) return "machine.singleBlock";
+        return phase == 0 ? "structure.buildAndPrepare" : phase == 1 ? "structure.portsAndValidate" : "machine.execute";
+    }
+
+    @Override
     public TestLabReport.Result tick(WorldServer world, int elapsedTicks) throws Exception {
         if (multi == null) return singleBlock(world, elapsedTicks);
         if (phase == 0) {
@@ -156,7 +162,7 @@ final class TestLabMachineTask implements TestLabTask {
                 }
                 return null;
             }
-            formed = multi.checkStructure(true, controller);
+            formed = TestLabStructure.checkStructure(multi, controller);
             if (!formed) return result(
                 TestLabReport.Status.FAIL,
                 "structure=FAIL canonical checkStructure rejected; " + structure.describe()

@@ -1050,6 +1050,12 @@ gtsr.gui.water_hub.water_buffer=Water Buffer:
 gtsr.gui.water_hub.stored_fluid_type=Stored Type: 
 gtsr.gui.water_hub.total_capacity=Total Capacity: 
 gtsr.gui.hub.stored_fluid_none=None
+gtsr.gui.hub.storage_missing=No storage unit detected
+gtsr.gui.hub.storage_missing_normal=Missing normal storage unit
+gtsr.gui.hub.storage_missing_reinforced=Missing reinforced storage unit
+gtsr.gui.hub.storage_missing_overpressure=Missing overpressure storage unit
+gtsr.gui.hub.storage_no_capacity=No buffer capacity; cannot form
+gtsr.gui.hub.storage_cannot_form=Wrong storage tier; cannot form
 
 # 16. Vein Steam Pyrolyzer - missing hint
 gtsr.tooltip.vein_pyrolyzer.hint_bronze=Supports Pyrolyzer Chips: T1(+1 chunk), T2(+3 chunks), T3(+7 chunks)

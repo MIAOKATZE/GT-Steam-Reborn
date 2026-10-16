@@ -59,6 +59,10 @@ public final class TestLabRuntime {
     private String terminalAnnouncement;
     private String deferredStopReason;
     private boolean stopping;
+    private int performanceTicks;
+    private int performanceTickLimit;
+    private boolean handlingTick;
+    private String performanceTerminal;
 
     private TestLabRuntime() {}
 
@@ -70,6 +74,9 @@ public final class TestLabRuntime {
     }
 
     public void serverStarting() {
+        TestLabPerformance.current = null;
+        handlingTick = false;
+        performanceTerminal = null;
         TestLabFixtures.cancelReset();
         releaseTickets();
         releaseAnchor();
@@ -147,10 +154,34 @@ public final class TestLabRuntime {
         begin(selected, "ui:" + requested, "UI", sender);
     }
 
+    public void runPerformance(String mode, String id, ICommandSender sender) {
+        // Recover any interrupted previous report before assigning this run's instrumentation.
+        initialize();
+        if (busy()) throw new IllegalStateException("已有任务/重生成在运行；性能场景共用同一队列");
+        if (!manualSupplyTickets.isEmpty() || world != null && TestLabSupply.feedCount(world) != 0)
+            throw new IllegalStateException("存在手动/既有供液；先保存证据并 supply clear，再执行性能场景");
+        List<TestLabTask> selected = TestLabPerformanceTasks.select(mode, id);
+        TestLabPerformance.current = new TestLabPerformance();
+        performanceTicks = 0;
+        performanceTickLimit = "all".equals(mode) ? 7200 : 3600;
+        TestLabPerformance.current.plan(mode, performanceTickLimit, selected);
+        try {
+            begin(selected, "perf:" + mode + (id == null ? "" : ":" + id), "PERFORMANCE", sender);
+        } catch (RuntimeException | LinkageError failure) {
+            TestLabPerformance.current = null;
+            throw failure;
+        }
+    }
+
     private void begin(List<TestLabTask> selected, String requested, String category, ICommandSender sender) {
         initialize();
         if (busy()) throw new IllegalStateException("已有任务/重生成在运行；使用 status 或 stop");
-        world = TestLabDimension.world();
+        long dimensionTiming = TestLabPerformance.begin();
+        try {
+            world = TestLabDimension.world();
+        } finally {
+            TestLabPerformance.end("dimension.createOrReuse", dimensionTiming);
+        }
         persistenceError = false;
         report = new TestLabReport();
         report.gtsrVersion = Tags.VERSION;
@@ -165,9 +196,10 @@ public final class TestLabRuntime {
         report.fmlVersion = Loader.instance()
             .getFMLVersionString();
         report.category = category;
-        report.executionScope = "UI".equals(category)
-            ? "SERVER_UI_MODEL_AND_SYNC_PROBES; CLIENT_GL_AND_FONT_RENDER_NOT_EXECUTED"
-            : "REAL_SERVER_WORLD_TICKS";
+        report.executionScope = "PERFORMANCE".equals(category)
+            ? "BOUNDED_MODULE_REPRESENTATIVES_AND_SERVER_UI; NOT_EXHAUSTIVE_MACHINE_COVERAGE; BACKGROUND_NOT_STRICT_ATTRIBUTION"
+            : "UI".equals(category) ? "SERVER_UI_MODEL_AND_SYNC_PROBES; CLIENT_GL_AND_FONT_RENDER_NOT_EXECUTED"
+                : "REAL_SERVER_WORLD_TICKS";
         report.runId = System.currentTimeMillis() + "-"
             + UUID.randomUUID()
                 .toString()
@@ -176,6 +208,8 @@ public final class TestLabRuntime {
         report.requested = requested;
         report.dimension = TestLabDimension.id();
         report.startedAt = System.currentTimeMillis();
+        if (TestLabPerformance.current != null)
+            report.performanceReceiptPath = state.performanceReceiptPath(report.runId);
         for (TestLabTask task : selected) report.plannedTasks.add(task.id());
         listener = sender;
         ticks = 0;
@@ -336,8 +370,47 @@ public final class TestLabRuntime {
     }
 
     @SubscribeEvent
+    public void worldTick(TickEvent.WorldTickEvent event) {
+        TestLabPerformance performance = TestLabPerformance.current;
+        if (performance == null || event.side != cpw.mods.fml.relauncher.Side.SERVER || event.world != world) return;
+        if (event.phase == TickEvent.Phase.START) performance.worldStart(performancePhase());
+        else {
+            boolean sample = performance.sampleWorldCounts();
+            performance
+                .worldEnd(sample ? world.loadedTileEntityList.size() : -1, sample ? world.loadedEntityList.size() : -1);
+        }
+    }
+
+    private String performancePhase() {
+        return active == null ? "queue"
+            : active.id() + "." + (loadIndex < targetChunks ? "chunk.loading" : active.performancePhase());
+    }
+
+    @SubscribeEvent
     public void tick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
+        TestLabPerformance performance = TestLabPerformance.current;
+        if (event.phase == TickEvent.Phase.START) {
+            if (performance != null) performance.serverStart();
+            return;
+        }
+        long timing = TestLabPerformance.begin();
+        String eventPhase = performance == null ? null : performancePhase();
+        handlingTick = true;
+        try {
+            if (performance != null && ++performanceTicks > performanceTickLimit && pendingWrite == null) {
+                stop("性能场景达到总真实tick预算；未执行项SKIP，未完成项BLOCKED");
+                return;
+            }
+            tickEnd();
+        } finally {
+            TestLabPerformance.end("runtime.endTick", timing);
+            if (TestLabPerformance.current == performance && performance != null) performance.serverEnd(eventPhase);
+            handlingTick = false;
+            if (performanceTerminal != null) announcePerformanceTerminal();
+        }
+    }
+
+    private void tickEnd() {
         if (DimensionManager.getWorld(0) == null) return;
         if (!initialized) {
             try {
@@ -368,7 +441,14 @@ public final class TestLabRuntime {
         }
         if (world == null) return;
         try {
-            TestLabSupply.tick(world);
+            long supplyTiming = TestLabPerformance.begin();
+            try {
+                if (TestLabPerformance.current != null)
+                    TestLabPerformance.current.supply(TestLabSupply.feedCount(world));
+                TestLabSupply.tick(world);
+            } finally {
+                TestLabPerformance.end("supply.refill", supplyTiming);
+            }
             pruneManualSupply();
             if (resetting) {
                 if (++watchdog > 20000) throw new IllegalStateException("清场超时");
@@ -398,7 +478,7 @@ public final class TestLabRuntime {
             if (active != null && !activePrepared) {
                 activePrepared = true;
                 if (targetChunks == 0) {
-                    active.start(world, 0, 65, 0);
+                    startActive(0, 0);
                     announce("task=" + active.id() + " phase=RUNNING category=UI fixtureChunks=0");
                     return;
                 }
@@ -432,10 +512,15 @@ public final class TestLabRuntime {
                     ForgeChunkManager.forceChunk(ticket, chunk);
                     if (!ticket.getChunkList()
                         .contains(chunk)) throw new IllegalStateException("强载区块配额不足");
-                    TestLabFixtures.requireChunk(world, chunk.chunkXPos, chunk.chunkZPos);
+                    long chunkTiming = TestLabPerformance.begin();
+                    try {
+                        TestLabFixtures.requireChunk(world, chunk.chunkXPos, chunk.chunkZPos);
+                    } finally {
+                        TestLabPerformance.end("chunk.require", chunkTiming);
+                    }
                 }
                 if (loadIndex == targetChunks) {
-                    active.start(world, originX, 65, originZ);
+                    startActive(originX, originZ);
                     announce("task=" + active.id() + " phase=RUNNING");
                 }
                 return;
@@ -445,7 +530,14 @@ public final class TestLabRuntime {
             if (ticks > Math.min(72000, Math.max(20, active.timeoutTicks()))) {
                 complete(new TestLabReport.Result(TestLabReport.Status.FAIL, "任务超过有限 tick 预算；" + active.debug(world)));
             } else {
-                TestLabReport.Result result = active.tick(world, ticks);
+                long taskTiming = TestLabPerformance.begin();
+                String phase = TestLabPerformance.current == null ? null : active.performancePhase();
+                TestLabReport.Result result;
+                try {
+                    result = active.tick(world, ticks);
+                } finally {
+                    if (taskTiming != 0) TestLabPerformance.end("direct." + phase, taskTiming);
+                }
                 if (result != null) complete(result);
             }
             if (active != null && ticks % 200 == 0) {
@@ -502,11 +594,24 @@ public final class TestLabRuntime {
                 releaseTickets();
                 releaseAnchor();
                 if (report != null) report.state = "ERROR";
+                if (TestLabPerformance.current != null) performanceTerminal = "state=ERROR cause=INFRASTRUCTURE";
                 announce("state=ERROR detail=" + infrastructureFailure.getMessage());
             }
         } finally {
             // Includes early return after ticket denial and start/tick exceptions.
             settleRun();
+        }
+    }
+
+    private void startActive(int x, int z) throws Exception {
+        long timing = TestLabPerformance.begin();
+        try {
+            active.start(world, x, 65, z);
+        } finally {
+            TestLabPerformance.end(
+                active.id()
+                    .startsWith("ui.") ? "ui.start" : "task.fixtureStart",
+                timing);
         }
     }
 
@@ -522,12 +627,22 @@ public final class TestLabRuntime {
             } catch (RuntimeException | LinkageError failure) {
                 report.state = "ERROR";
                 releaseAnchor();
+                if (TestLabPerformance.current != null) performanceTerminal = "state=ERROR cause=FINAL_REPORT";
                 GTSteamReborn.LOG.error(PREFIX + "最终报告写入失败", failure);
             }
         }
     }
 
     private void ensureAnchor() {
+        long timing = TestLabPerformance.begin();
+        try {
+            ensureAnchorInternal();
+        } finally {
+            TestLabPerformance.end("chunk.anchorAcquire", timing);
+        }
+    }
+
+    private void ensureAnchorInternal() {
         if (anchorTicket != null) return;
         Object mod = Loader.instance()
             .getIndexedModList()
@@ -553,11 +668,25 @@ public final class TestLabRuntime {
     }
 
     private void releaseAnchor() {
-        if (anchorTicket != null) ForgeChunkManager.releaseTicket(anchorTicket);
-        anchorTicket = null;
+        long timing = TestLabPerformance.begin();
+        try {
+            if (anchorTicket != null) ForgeChunkManager.releaseTicket(anchorTicket);
+            anchorTicket = null;
+        } finally {
+            TestLabPerformance.end("cleanup.anchorRelease", timing);
+        }
     }
 
     private boolean requestTickets() {
+        long timing = TestLabPerformance.begin();
+        try {
+            return requestTicketsInternal();
+        } finally {
+            TestLabPerformance.end("chunk.taskTicketAcquire", timing);
+        }
+    }
+
+    private boolean requestTicketsInternal() {
         Object mod = Loader.instance()
             .getIndexedModList()
             .get(GTSteamReborn.MODID)
@@ -587,6 +716,7 @@ public final class TestLabRuntime {
     private void complete(TestLabReport.Result result) {
         TestLabTask task = active;
         if (task == null) return;
+        long cleanupTiming = TestLabPerformance.begin();
         try {
             task.stop(world);
         } catch (Exception | LinkageError e) {
@@ -594,6 +724,8 @@ public final class TestLabRuntime {
                 TestLabReport.Status.FAIL,
                 result.detail + "; cleanup=" + e,
                 result.details);
+        } finally {
+            TestLabPerformance.end("cleanup.taskStop", cleanupTiming);
         }
         append(task.id(), task.displayName(), result, ticks);
         String brief = result.detail.replace('\n', ' ')
@@ -613,7 +745,7 @@ public final class TestLabRuntime {
         entry.name = name;
         entry.status = result.status;
         entry.detail = result.detail;
-        entry.category = id.startsWith("ui.") ? "UI" : "MACHINE";
+        entry.category = id.startsWith("perf.") ? "PERFORMANCE" : id.startsWith("ui.") ? "UI" : "MACHINE";
         entry.details = new java.util.LinkedHashMap<>(result.details);
         if ("UI".equals(entry.category)) {
             entry.details.put("clientGlExecuted", false);
@@ -641,13 +773,19 @@ public final class TestLabRuntime {
     }
 
     private void releaseTickets() {
-        for (ForgeChunkManager.Ticket ticket : tickets) ForgeChunkManager.releaseTicket(ticket);
-        tickets.clear();
+        long timing = TestLabPerformance.begin();
+        try {
+            for (ForgeChunkManager.Ticket ticket : tickets) ForgeChunkManager.releaseTicket(ticket);
+            tickets.clear();
+        } finally {
+            TestLabPerformance.end("cleanup.taskTicketRelease", timing);
+        }
     }
 
     private boolean persist() {
         if (pendingWrite != null) return false;
         try {
+            if (TestLabPerformance.current != null) report.performance = TestLabPerformance.current.snapshot(false);
             pendingWrite = state.prepare(report);
             persistenceTicks = 0;
             persistenceAttempts = 1;
@@ -684,7 +822,52 @@ public final class TestLabRuntime {
         String message = terminalAnnouncement;
         terminalAnnouncement = null;
         releaseAnchor();
-        announce(message);
+        if (TestLabPerformance.current == null) announce(message);
+        else {
+            performanceTerminal = message;
+            if (!handlingTick) announcePerformanceTerminal();
+        }
+    }
+
+    private void announcePerformanceTerminal() {
+        String message = performanceTerminal;
+        performanceTerminal = null;
+        if (finishPerformance()) announce(message);
+        else {
+            report.state = "ERROR";
+            // Finite best effort error correction, without recursive measurement/receipt writes.
+            persist();
+            announce("runId=" + report.runId + " state=ERROR cause=PERFORMANCE_RECEIPT report=" + report.reportPath);
+        }
+    }
+
+    private boolean finishPerformance() {
+        TestLabPerformance performance = TestLabPerformance.current;
+        if (performance == null) return true;
+        try {
+            boolean uiPlanned = false;
+            for (String id : report.plannedTasks) if (id.startsWith("ui.")) uiPlanned = true;
+            Boolean uiEmpty = !uiPlanned ? null
+                : world != null && world.isAirBlock(0, 65, 0) && world.getTileEntity(0, 65, 0) == null;
+            performance.cleanup(
+                tickets.size(),
+                manualSupplyTickets.size(),
+                anchorTicket != null,
+                world == null ? 0 : TestLabSupply.feedCount(world),
+                TestLabFixtures.hasResetTicket(),
+                uiEmpty);
+            report.performance = performance.snapshot(true);
+            state.savePerformance(report, report.performance);
+            announce("performanceReceipt=" + report.performanceReceiptPath);
+            return true;
+        } catch (Exception | LinkageError failure) {
+            GTSteamReborn.LOG.error(PREFIX + "最终性能收据写入失败（主报告仍保留先前快照）", failure);
+            announce("performanceReceipt=ERROR detail=" + failure.getMessage());
+            if (report.performance != null) report.performance.put("receiptError", failure.toString());
+            return false;
+        } finally {
+            TestLabPerformance.current = null;
+        }
     }
 
     private void failPersistence(Throwable failure) {
@@ -717,6 +900,12 @@ public final class TestLabRuntime {
                 state.save(state.prepare(report));
             } catch (Exception | LinkageError receiptFailure) {
                 GTSteamReborn.LOG.error(PREFIX + "基础设施 ERROR 报告仍无法落盘", receiptFailure);
+            }
+            if (TestLabPerformance.current != null) {
+                performanceTerminal = "runId=" + report.runId
+                    + " state=ERROR cause=REPORT_IO report="
+                    + report.reportPath;
+                if (!handlingTick) announcePerformanceTerminal();
             }
             announce(
                 "runId=" + report.runId

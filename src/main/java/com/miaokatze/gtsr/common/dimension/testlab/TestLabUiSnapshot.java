@@ -137,6 +137,8 @@ final class TestLabUiSnapshot {
         if (machine instanceof MTEMultiBlockBase)
             progressSamples((MTEMultiBlockBase) machine, manager, states, failures);
         details.put("stateSamples", states);
+        details.put("probePhase", "hubStorageWarningsAndTextures");
+        TestLabHubUiProbe.inspect(widgets, manager, machine, details, failures);
         details.put("probePhase", "safeCallbackPackets");
         safeActions(manager, machine, details, failures);
     }
