@@ -223,6 +223,42 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     }
 
     @Override
+    public com.miaokatze.gtsr.common.gui.mui2.worker.WorkerUiSnapshot getWorkerUiSnapshot() {
+        String status = switch (mStatus) {
+            case STATUS_OK -> "ok";
+            case STATUS_NO_PIPE -> "no_pipe";
+            case STATUS_NO_HUB -> "no_hub";
+            case STATUS_HUB_OFF -> "hub_off";
+            case STATUS_BEDROCK -> "bedrock";
+            case STATUS_SOFT_DISABLED -> "soft_disabled";
+            case STATUS_UNMINABLE -> "unminable";
+            case STATUS_OUTPUT_BLOCKED -> "output_blocked";
+            default -> "unknown";
+        };
+        return new com.miaokatze.gtsr.common.gui.mui2.worker.WorkerUiSnapshot(
+            true,
+            "gtsr.node.status." + status,
+            mTipDepth,
+            mRetractDone,
+            mMinerTier,
+            mCrushedMode,
+            0,
+            0,
+            "",
+            getCustomName());
+    }
+
+    @Override
+    public ItemStack getWorkerUpgradeItem(int targetTier) {
+        return getDrillItemForTier(targetTier);
+    }
+
+    @Override
+    public int getWorkerUpgradeCost(int targetTier) {
+        return targetTier > 0 && targetTier < SINGULARITY_COST.length ? SINGULARITY_COST[targetTier] : 0;
+    }
+
+    @Override
     protected void addDisplayTexts(ModularWindow.Builder builder) {
         builder.widget(new TextWidget().setStringSupplier(() -> {
             switch (mStatus) {

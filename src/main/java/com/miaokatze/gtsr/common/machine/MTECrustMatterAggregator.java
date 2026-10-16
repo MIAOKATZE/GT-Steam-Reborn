@@ -51,6 +51,8 @@ import com.miaokatze.gtsr.common.api.gui.OreEntryInfo;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.MTECrustMatterAggregatorGui;
+import com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes;
+import com.miaokatze.gtsr.common.gui.mui2.inventory.AggregatorConfigFactory;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
 import com.miaokatze.gtsr.common.terminal.AggregatorGuiHandler;
@@ -1735,15 +1737,17 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     }
 
     /**
-     * 服务端调用：为玩家打开终端配置界面（terminal-native-ui M5，FML openGui 原生轨双端配对）。
-     * 守卫照旧 MUI2 工厂 open 语义（EntityPlayerMP / 非 FakePlayer / 基 TE 判空）；
-     * 双端分派由 {@link AggregatorGuiHandler} 承载（服务端 ContainerAggregatorConfig、
-     * 客户端经 ClientProxy 委托构造 GuiAggregatorConfigScreen），windowId 由 FML 分配。
+     * 服务端调用：默认通过 MUI2 factory 打开同源61格配置窗口；独立route关闭时保留
+     * {@link AggregatorGuiHandler} 的FML原生窗口回退，不迁移或复制机器库存。
      */
     public void openConfigGui(EntityPlayer player) {
         if (!(player instanceof EntityPlayerMP) || player instanceof FakePlayer) return;
         IGregTechTileEntity base = this.getBaseMetaTileEntity();
         if (base == null) return;
+        if (Mui2TerminalRoutes.aggregatorConfig) {
+            AggregatorConfigFactory.open(player, base);
+            return;
+        }
         player.openGui(
             AggregatorGuiHandler.modInstance(),
             AggregatorGuiHandler.ID_AGGREGATOR,

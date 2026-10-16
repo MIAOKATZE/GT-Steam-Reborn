@@ -13,6 +13,7 @@ import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartedEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
+import cpw.mods.fml.common.event.FMLServerStoppedEvent;
 
 /**
  * 模组主类
@@ -80,6 +81,13 @@ public class GTSteamReborn {
     @Mod.EventHandler
     public void serverStarted(FMLServerStartedEvent event) {
         proxy.serverStarted(event);
+    }
+
+    /** Release only MUI2 session references after the final server tick, including integrated-server restarts. */
+    @Mod.EventHandler
+    public void serverStopped(FMLServerStoppedEvent event) {
+        com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions.clear();
+        com.miaokatze.gtsr.common.terminal.ClusterTerminalData.clearSessions();
     }
 
     /**

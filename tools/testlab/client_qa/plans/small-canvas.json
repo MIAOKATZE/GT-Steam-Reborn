@@ -1,0 +1,880 @@
+[
+  {
+    "op": "group",
+    "name": "p0-small-canvas-tcds"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "resize",
+    "width": 854,
+    "height": 480,
+    "scale": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      {
+        "target": {
+          "target": {
+            "ref": "@com.miaokatze.gtsr.common.api.enums.GTSRItemList"
+          },
+          "field": "HubTerminal"
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p0Smalltcds",
+    "class": "com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator",
+    "x": 960,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p0Smalltcds"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p0SmalltcdsHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p0-small-scale2-tcds",
+    "panel": "tcds_terminal"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p0-small-scale2-tcds"
+  },
+  {
+    "op": "bounds",
+    "soft": true
+  },
+  {
+    "op": "scroll",
+    "widget": "tcds_body_viewport",
+    "notches": 12
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "assert",
+    "name": "p0.tcds.actual-native-wheel-scroll-positive",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "tcds_body_viewport"
+          },
+          "call": "getScrollArea",
+          "args": []
+        },
+        "call": "getScrollY",
+        "args": []
+      },
+      "call": "getScroll",
+      "args": []
+    },
+    "expected": 0,
+    "relation": ">"
+  },
+  {
+    "op": "screenshot",
+    "name": "p0-small-scale2-tcds-scrolled-bottom"
+  },
+  {
+    "op": "scroll",
+    "widget": "tcds_body_viewport",
+    "direction": "UP",
+    "notches": 12
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "assert",
+    "name": "p0.tcds.actual-native-wheel-return-top",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "tcds_body_viewport"
+          },
+          "call": "getScrollArea",
+          "args": []
+        },
+        "call": "getScrollY",
+        "args": []
+      },
+      "call": "getScroll",
+      "args": []
+    },
+    "expected": 0
+  },
+  {
+    "op": "text",
+    "widget": "tcds_flow_input",
+    "text": "12345"
+  },
+  {
+    "op": "click",
+    "widget": "tcds_apply"
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "assert",
+    "name": "p0.tcds.native-input-after-scroll-roundtrip",
+    "side": "server",
+    "actual": {
+      "target": {
+        "ref": "p0Smalltcds"
+      },
+      "call": "getFlow",
+      "args": []
+    },
+    "expected": 12345
+  },
+  {
+    "op": "screenshot",
+    "name": "p0-small-scale2-tcds-formulas",
+    "hover": "tcds_formula_help"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "resize",
+    "width": 1280,
+    "height": 720,
+    "scale": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "group",
+    "name": "p0-small-canvas-hub"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "resize",
+    "width": 854,
+    "height": 480,
+    "scale": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      {
+        "target": {
+          "target": {
+            "ref": "@com.miaokatze.gtsr.common.api.enums.GTSRItemList"
+          },
+          "field": "HubTerminal"
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p0Smallhub",
+    "class": "com.miaokatze.gtsr.common.machine.MTESteamHubArray",
+    "x": 976,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p0Smallhub"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p0SmallhubHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p0-small-scale2-hub",
+    "panel": "hub_terminal"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p0-small-scale2-hub"
+  },
+  {
+    "op": "bounds",
+    "soft": true
+  },
+  {
+    "op": "scroll",
+    "widget": "hub_viewport",
+    "notches": 12
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "assert",
+    "name": "p0.hub.actual-native-wheel-scroll-positive",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "hub_viewport"
+          },
+          "call": "getScrollArea",
+          "args": []
+        },
+        "call": "getScrollY",
+        "args": []
+      },
+      "call": "getScroll",
+      "args": []
+    },
+    "expected": 0,
+    "relation": ">"
+  },
+  {
+    "op": "screenshot",
+    "name": "p0-small-scale2-hub-scrolled-bottom"
+  },
+  {
+    "op": "scroll",
+    "widget": "hub_viewport",
+    "direction": "UP",
+    "notches": 12
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "assert",
+    "name": "p0.hub.actual-native-wheel-return-top",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "hub_viewport"
+          },
+          "call": "getScrollArea",
+          "args": []
+        },
+        "call": "getScrollY",
+        "args": []
+      },
+      "call": "getScroll",
+      "args": []
+    },
+    "expected": 0
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "resize",
+    "width": 1280,
+    "height": 720,
+    "scale": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "group",
+    "name": "p0-small-canvas-cluster"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "resize",
+    "width": 854,
+    "height": 480,
+    "scale": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      {
+        "target": {
+          "target": {
+            "ref": "@com.miaokatze.gtsr.common.api.enums.GTSRItemList"
+          },
+          "field": "HubTerminal"
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p0Smallcluster",
+    "class": "com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster",
+    "x": 992,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "@com.miaokatze.gtsr.common.gui.mui2.cluster.ClusterTerminalFactory"
+    },
+    "method": "open",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "ref": "p0SmallclusterHost"
+      },
+      0
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p0-small-scale2-cluster",
+    "panel": "cluster_terminal"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p0-small-scale2-cluster"
+  },
+  {
+    "op": "bounds",
+    "soft": true
+  },
+  {
+    "op": "scroll",
+    "widget": "cluster_viewport",
+    "notches": 12
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "assert",
+    "name": "p0.cluster.actual-native-wheel-scroll-positive",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "cluster_viewport"
+          },
+          "call": "getScrollArea",
+          "args": []
+        },
+        "call": "getScrollY",
+        "args": []
+      },
+      "call": "getScroll",
+      "args": []
+    },
+    "expected": 0,
+    "relation": ">"
+  },
+  {
+    "op": "screenshot",
+    "name": "p0-small-scale2-cluster-scrolled-bottom"
+  },
+  {
+    "op": "click",
+    "widget": "cluster_tab_4"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "p0.cluster.native-tab-after-viewport-scroll",
+    "actual": {
+      "target": {
+        "widget": "cluster_pages"
+      },
+      "call": "getCurrentPageIndex",
+      "args": []
+    },
+    "expected": 4
+  },
+  {
+    "op": "screenshot",
+    "name": "p0-small-scale2-cluster-performance-after-scroll"
+  },
+  {
+    "op": "drag",
+    "widget": "cluster_viewport",
+    "fromX": 0.1,
+    "fromY": 0.991,
+    "toX": 0.97,
+    "toY": 0.991
+  },
+  {
+    "op": "wait",
+    "ticks": 5
+  },
+  {
+    "op": "assert",
+    "name": "p0.cluster.native-horizontal-scrollbar-drag",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "cluster_viewport"
+          },
+          "call": "getScrollArea",
+          "args": []
+        },
+        "call": "getScrollX",
+        "args": []
+      },
+      "call": "getScroll",
+      "args": []
+    },
+    "expected": 0,
+    "relation": ">"
+  },
+  {
+    "op": "screenshot",
+    "name": "p0-small-scale2-cluster-performance-right"
+  },
+  {
+    "op": "drag",
+    "widget": "cluster_viewport",
+    "fromX": 0.9,
+    "fromY": 0.991,
+    "toX": 0.01,
+    "toY": 0.991
+  },
+  {
+    "op": "wait",
+    "ticks": 5
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "resize",
+    "width": 1280,
+    "height": 720,
+    "scale": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  }
+]

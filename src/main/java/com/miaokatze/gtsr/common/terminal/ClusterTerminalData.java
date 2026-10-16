@@ -256,8 +256,37 @@ public final class ClusterTerminalData {
 
     /** 每玩家集群终端组装会话（玩家同时至多打开一个终端 GUI；主线程排水后访问，无需并发容器）。 */
     private static final Map<UUID, ClusterSession> SESSIONS = new HashMap<UUID, ClusterSession>();
+    private static final Map<UUID, Object> SESSION_OWNERS = new HashMap<UUID, Object>();
 
     private ClusterTerminalData() {}
+
+    /** Server-stop cleanup only; never execute actions against a stopped world. */
+    public static void clearSessions() {
+        SESSIONS.clear();
+        SESSION_OWNERS.clear();
+    }
+
+    /** A new MUI2 consumer must receive all keys even when reopened within forty ticks. */
+    public static void resetSession(UUID playerId) {
+        SESSIONS.remove(playerId);
+        SESSION_OWNERS.remove(playerId);
+    }
+
+    /** Main-thread ownership prevents a delayed close from clearing a successor's delta baseline. */
+    public static void beginSession(UUID playerId, Object owner) {
+        resetSession(playerId);
+        SESSION_OWNERS.put(playerId, owner);
+    }
+
+    /** Called on final disposal only; temporary client screens retain their session. */
+    public static void releaseSession(UUID playerId) {
+        SESSIONS.remove(playerId);
+        SESSION_OWNERS.remove(playerId);
+    }
+
+    public static void releaseSession(UUID playerId, Object owner) {
+        if (SESSION_OWNERS.get(playerId) == owner) releaseSession(playerId);
+    }
 
     // ==================== 服务端快照组装 ====================
 

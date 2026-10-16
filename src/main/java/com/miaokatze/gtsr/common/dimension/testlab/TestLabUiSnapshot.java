@@ -138,9 +138,13 @@ final class TestLabUiSnapshot {
             progressSamples((MTEMultiBlockBase) machine, manager, states, failures);
         details.put("stateSamples", states);
         details.put("probePhase", "hubStorageWarningsAndTextures");
-        TestLabHubUiProbe.inspect(widgets, manager, machine, details, failures);
+        if (!details.containsKey("catalogEntry"))
+            TestLabHubUiProbe.inspect(widgets, manager, machine, details, failures);
+        else details.put(
+            "machineBodyWarningEvidence",
+            "NOT_APPLICABLE: independent terminal panel; HubStorageGuiHelper warning/source/cache probes run on the registered machine body UI");
         details.put("probePhase", "safeCallbackPackets");
-        safeActions(manager, machine, details, failures);
+        if (machine != null) safeActions(manager, machine, details, failures);
     }
 
     private static final class Evidence {
@@ -350,6 +354,7 @@ final class TestLabUiSnapshot {
         Map<String, Object> row = new LinkedHashMap<>();
         Area area = widget.getArea();
         row.put("path", path);
+        row.put("name", widget.getName());
         row.put(
             "type",
             widget.getClass()
@@ -472,6 +477,8 @@ final class TestLabUiSnapshot {
         SyncHandler<?> max = manager.handlers.get("maxProgressTime:0");
         if (!(progress instanceof IntSyncValue) || !(max instanceof IntSyncValue)) return;
         int oldProgress = machine.mProgresstime, oldMax = machine.mMaxProgresstime;
+        int oldProgressCache = ((IntSyncValue) progress).getIntValue();
+        int oldMaxCache = ((IntSyncValue) max).getIntValue();
         try {
             for (int tick : new int[] { 0, 1, 300, 599, 600 }) {
                 machine.mProgresstime = tick;
@@ -500,6 +507,8 @@ final class TestLabUiSnapshot {
         } finally {
             machine.mProgresstime = oldProgress;
             machine.mMaxProgresstime = oldMax;
+            ((IntSyncValue) progress).setIntValue(oldProgressCache, false, false);
+            ((IntSyncValue) max).setIntValue(oldMaxCache, false, false);
         }
     }
 

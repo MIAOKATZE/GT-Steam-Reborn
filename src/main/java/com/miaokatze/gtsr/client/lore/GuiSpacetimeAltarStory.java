@@ -24,6 +24,7 @@ public final class GuiSpacetimeAltarStory extends GuiScreen {
 
     private final SpacetimeAltarStoryNetwork.Reading reading;
     private final WorldClient world;
+    private final TileEntity board;
     private final List<String> lines = new ArrayList<>();
     private int left, top, panelWidth, panelHeight, firstLine, visibleLines;
     private boolean submitted;
@@ -31,6 +32,7 @@ public final class GuiSpacetimeAltarStory extends GuiScreen {
     private GuiSpacetimeAltarStory(SpacetimeAltarStoryNetwork.Reading reading, WorldClient world) {
         this.reading = reading;
         this.world = world;
+        this.board = world.getTileEntity(reading.x, reading.y, reading.z);
     }
 
     public static void receive(SpacetimeAltarStoryNetwork.Reading reading) {
@@ -47,7 +49,9 @@ public final class GuiSpacetimeAltarStory extends GuiScreen {
             if (!(actual instanceof TileSpacetimeAltarStory)
                 || !reading.instance.equals(((TileSpacetimeAltarStory) actual).instanceId())
                 || mc.thePlayer.getDistanceSq(reading.x + .5, reading.y + .5, reading.z + .5) > 64) return;
-            mc.displayGuiScreen(new GuiSpacetimeAltarStory(reading, receivingWorld));
+            if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.storyScreens)
+                com.miaokatze.gtsr.client.gui.mui2.lore.SpacetimeAltarStoryScreen.open(reading, receivingWorld);
+            else mc.displayGuiScreen(new GuiSpacetimeAltarStory(reading, receivingWorld));
         });
     }
 
@@ -109,6 +113,9 @@ public final class GuiSpacetimeAltarStory extends GuiScreen {
     public void updateScreen() {
         if (mc.theWorld != world || mc.thePlayer == null
             || mc.thePlayer.dimension != reading.dimension
+            || world.getTileEntity(reading.x, reading.y, reading.z) != board
+            || !(board instanceof TileSpacetimeAltarStory)
+            || !reading.instance.equals(((TileSpacetimeAltarStory) board).instanceId())
             || mc.thePlayer.getDistanceSq(reading.x + .5, reading.y + .5, reading.z + .5) > 64)
             mc.displayGuiScreen(null);
     }

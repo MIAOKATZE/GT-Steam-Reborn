@@ -35,7 +35,12 @@ public final class SpacetimeAltarStoryNetwork {
     }
 
     public static void show(EntityPlayerMP player, TileSpacetimeAltarStory board, UUID nonce) {
-        if (player.playerNetServerHandler != null) NETWORK.sendTo(new Reading(player, board, nonce), player);
+        if (player.playerNetServerHandler != null) {
+            // The console's block factory creates a generic node on the client. Deliver the native
+            // authoritative TE description before Reading is allowed to inspect its type/instance.
+            player.playerNetServerHandler.sendPacket(board.getDescriptionPacket());
+            NETWORK.sendTo(new Reading(player, board, nonce), player);
+        }
     }
 
     public static void activate(UUID nonce) {

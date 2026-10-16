@@ -885,6 +885,10 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         if (!(player instanceof EntityPlayerMP playerMP) || player instanceof FakePlayer) return;
         IGregTechTileEntity base = this.getBaseMetaTileEntity();
         if (base == null) return;
+        if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.cacheHubTerminal) {
+            com.miaokatze.gtsr.common.gui.mui2.hub.HubTerminalFactory.open(TerminalUiType.STEAM_HUB, player, base);
+            return;
+        }
         TerminalNet
             .sendOpen(TerminalUiType.STEAM_HUB, playerMP, base.getXCoord(), base.getYCoord(), base.getZCoord(), 0);
     }

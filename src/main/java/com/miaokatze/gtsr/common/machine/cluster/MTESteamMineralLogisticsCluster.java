@@ -1882,6 +1882,10 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * （EntityPlayerMP/FakePlayer，原服务端 open 守卫同口径）。
      */
     public static void openClusterTerminal(EntityPlayer player, IGregTechTileEntity te, int initialPage) {
+        if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.clusterTerminal) {
+            com.miaokatze.gtsr.common.gui.mui2.cluster.ClusterTerminalFactory.open(player, te, initialPage);
+            return;
+        }
         if (!(player instanceof EntityPlayerMP playerMP) || player instanceof FakePlayer) return;
         if (te == null) return;
         IMetaTileEntity mte = te.getMetaTileEntity();

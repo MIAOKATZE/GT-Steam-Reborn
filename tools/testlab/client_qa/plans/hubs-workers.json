@@ -1,0 +1,3945 @@
+[
+  {
+    "op": "group",
+    "name": "p3SteamHubEmpty"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "new": "net.minecraft.nbt.NBTTagList"
+    },
+    "save": "p3SteamHubEmptyInvNBT"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "writeToNBT|func_70442_a",
+    "args": [
+      {
+        "ref": "p3SteamHubEmptyInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "field": "currentItem|field_70461_c"
+    },
+    "save": "p3SteamHubEmptySlot"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      {
+        "target": {
+          "target": {
+            "ref": "@com.miaokatze.gtsr.common.api.enums.GTSRItemList"
+          },
+          "field": "HubTerminal"
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p3SteamHub",
+    "class": "com.miaokatze.gtsr.common.machine.MTESteamHubArray",
+    "x": 640,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SteamHub"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3SteamHubHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3SteamHubInitial",
+    "panel": "hub_terminal",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3SteamHubInitial"
+  },
+  {
+    "op": "record",
+    "side": "client",
+    "name": "p3SteamHub.actual-empty-list.raw-formatted-text",
+    "value": {
+      "target": {
+        "target": {
+          "widget": "hub_page"
+        },
+        "call": "getKey",
+        "args": []
+      },
+      "call": "getFormatted",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3SteamHub.actual-empty-list",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "hub_page"
+          },
+          "call": "getKey",
+          "args": []
+        },
+        "call": "getFormatted",
+        "args": []
+      },
+      "call": "replaceAll",
+      "args": [
+        "§.",
+        ""
+      ]
+    },
+    "expected": "1 / 1  (0 / 0)",
+    "side": "client"
+  },
+  {
+    "op": "text",
+    "widget": "hub_search",
+    "text": "p3-no-matching-node"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "click",
+    "widget": "hub_sort"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3SteamHubFiltered",
+    "panel": "hub_terminal",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3SteamHubFiltered"
+  },
+  {
+    "op": "assert",
+    "name": "p3SteamHub.filter-sort-keep-pool",
+    "actual": {
+      "ref": "p3SteamHubInitialWidgetCount"
+    },
+    "expected": {
+      "ref": "p3SteamHubFilteredWidgetCount"
+    },
+    "side": "client"
+  },
+  {
+    "op": "record",
+    "side": "client",
+    "name": "p3SteamHub.empty-filter-remains-empty.raw-formatted-text",
+    "value": {
+      "target": {
+        "target": {
+          "widget": "hub_page"
+        },
+        "call": "getKey",
+        "args": []
+      },
+      "call": "getFormatted",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3SteamHub.empty-filter-remains-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "hub_page"
+          },
+          "call": "getKey",
+          "args": []
+        },
+        "call": "getFormatted",
+        "args": []
+      },
+      "call": "replaceAll",
+      "args": [
+        "§.",
+        ""
+      ]
+    },
+    "expected": "1 / 1  (0 / 0)",
+    "side": "client"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SteamHub"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3SteamHubHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3SteamHubReopened",
+    "panel": "hub_terminal",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3SteamHubReopened"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "readFromNBT|func_70443_b",
+    "args": [
+      {
+        "ref": "p3SteamHubEmptyInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": {
+      "ref": "p3SteamHubEmptySlot"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "group",
+    "name": "p3WaterHubEmpty"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "new": "net.minecraft.nbt.NBTTagList"
+    },
+    "save": "p3WaterHubEmptyInvNBT"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "writeToNBT|func_70442_a",
+    "args": [
+      {
+        "ref": "p3WaterHubEmptyInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "field": "currentItem|field_70461_c"
+    },
+    "save": "p3WaterHubEmptySlot"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      {
+        "target": {
+          "target": {
+            "ref": "@com.miaokatze.gtsr.common.api.enums.GTSRItemList"
+          },
+          "field": "HubTerminal"
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p3WaterHub",
+    "class": "com.miaokatze.gtsr.common.machine.MTEWaterHubArray",
+    "x": 656,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3WaterHub"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3WaterHubHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3WaterHubInitial",
+    "panel": "hub_terminal",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3WaterHubInitial"
+  },
+  {
+    "op": "record",
+    "side": "client",
+    "name": "p3WaterHub.actual-empty-list.raw-formatted-text",
+    "value": {
+      "target": {
+        "target": {
+          "widget": "hub_page"
+        },
+        "call": "getKey",
+        "args": []
+      },
+      "call": "getFormatted",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3WaterHub.actual-empty-list",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "hub_page"
+          },
+          "call": "getKey",
+          "args": []
+        },
+        "call": "getFormatted",
+        "args": []
+      },
+      "call": "replaceAll",
+      "args": [
+        "§.",
+        ""
+      ]
+    },
+    "expected": "1 / 1  (0 / 0)",
+    "side": "client"
+  },
+  {
+    "op": "text",
+    "widget": "hub_search",
+    "text": "p3-no-matching-node"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "click",
+    "widget": "hub_sort"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3WaterHubFiltered",
+    "panel": "hub_terminal",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3WaterHubFiltered"
+  },
+  {
+    "op": "assert",
+    "name": "p3WaterHub.filter-sort-keep-pool",
+    "actual": {
+      "ref": "p3WaterHubInitialWidgetCount"
+    },
+    "expected": {
+      "ref": "p3WaterHubFilteredWidgetCount"
+    },
+    "side": "client"
+  },
+  {
+    "op": "record",
+    "side": "client",
+    "name": "p3WaterHub.empty-filter-remains-empty.raw-formatted-text",
+    "value": {
+      "target": {
+        "target": {
+          "widget": "hub_page"
+        },
+        "call": "getKey",
+        "args": []
+      },
+      "call": "getFormatted",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3WaterHub.empty-filter-remains-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "hub_page"
+          },
+          "call": "getKey",
+          "args": []
+        },
+        "call": "getFormatted",
+        "args": []
+      },
+      "call": "replaceAll",
+      "args": [
+        "§.",
+        ""
+      ]
+    },
+    "expected": "1 / 1  (0 / 0)",
+    "side": "client"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3WaterHub"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3WaterHubHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3WaterHubReopened",
+    "panel": "hub_terminal",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3WaterHubReopened"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "readFromNBT|func_70443_b",
+    "args": [
+      {
+        "ref": "p3WaterHubEmptyInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": {
+      "ref": "p3WaterHubEmptySlot"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "group",
+    "name": "p3DrillingHubEmpty"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "new": "net.minecraft.nbt.NBTTagList"
+    },
+    "save": "p3DrillingHubEmptyInvNBT"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "writeToNBT|func_70442_a",
+    "args": [
+      {
+        "ref": "p3DrillingHubEmptyInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "field": "currentItem|field_70461_c"
+    },
+    "save": "p3DrillingHubEmptySlot"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      {
+        "target": {
+          "target": {
+            "ref": "@com.miaokatze.gtsr.common.api.enums.GTSRItemList"
+          },
+          "field": "HubTerminal"
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p3DrillingHub",
+    "class": "com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub",
+    "x": 672,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3DrillingHub"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3DrillingHubHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3DrillingHubInitial",
+    "panel": "hub_terminal",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3DrillingHubInitial"
+  },
+  {
+    "op": "record",
+    "side": "client",
+    "name": "p3DrillingHub.actual-empty-list.raw-formatted-text",
+    "value": {
+      "target": {
+        "target": {
+          "widget": "hub_page"
+        },
+        "call": "getKey",
+        "args": []
+      },
+      "call": "getFormatted",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3DrillingHub.actual-empty-list",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "hub_page"
+          },
+          "call": "getKey",
+          "args": []
+        },
+        "call": "getFormatted",
+        "args": []
+      },
+      "call": "replaceAll",
+      "args": [
+        "§.",
+        ""
+      ]
+    },
+    "expected": "1 / 1  (0 / 0)",
+    "side": "client"
+  },
+  {
+    "op": "text",
+    "widget": "hub_search",
+    "text": "p3-no-matching-node"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "click",
+    "widget": "hub_sort"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3DrillingHubFiltered",
+    "panel": "hub_terminal",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3DrillingHubFiltered"
+  },
+  {
+    "op": "assert",
+    "name": "p3DrillingHub.filter-sort-keep-pool",
+    "actual": {
+      "ref": "p3DrillingHubInitialWidgetCount"
+    },
+    "expected": {
+      "ref": "p3DrillingHubFilteredWidgetCount"
+    },
+    "side": "client"
+  },
+  {
+    "op": "record",
+    "side": "client",
+    "name": "p3DrillingHub.empty-filter-remains-empty.raw-formatted-text",
+    "value": {
+      "target": {
+        "target": {
+          "widget": "hub_page"
+        },
+        "call": "getKey",
+        "args": []
+      },
+      "call": "getFormatted",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3DrillingHub.empty-filter-remains-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "hub_page"
+          },
+          "call": "getKey",
+          "args": []
+        },
+        "call": "getFormatted",
+        "args": []
+      },
+      "call": "replaceAll",
+      "args": [
+        "§.",
+        ""
+      ]
+    },
+    "expected": "1 / 1  (0 / 0)",
+    "side": "client"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3DrillingHub"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3DrillingHubHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3DrillingHubReopened",
+    "panel": "hub_terminal",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3DrillingHubReopened"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "readFromNBT|func_70443_b",
+    "args": [
+      {
+        "ref": "p3DrillingHubEmptyInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": {
+      "ref": "p3DrillingHubEmptySlot"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "group",
+    "name": "p3Nearby"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "new": "net.minecraft.nbt.NBTTagList"
+    },
+    "save": "p3NearbyInvNBT"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "writeToNBT|func_70442_a",
+    "args": [
+      {
+        "ref": "p3NearbyInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "field": "currentItem|field_70461_c"
+    },
+    "save": "p3NearbySlot"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p3BindingHub",
+    "class": "com.miaokatze.gtsr.common.machine.MTESteamHubArray",
+    "x": 720,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "@com.miaokatze.gtsr.common.api.enums.GTSRItemList"
+        },
+        "field": "HubSingularityChip"
+      },
+      "call": "get",
+      "args": [
+        1
+      ]
+    },
+    "save": "p3BindingChip"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3BindingHub"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      {
+        "target": {
+          "ref": "p3BindingHub"
+        },
+        "call": "getControllerSlotIndex",
+        "args": []
+      },
+      {
+        "ref": "p3BindingChip"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "@com.miaokatze.gtsr.common.api.enums.GTSRItemList"
+        },
+        "field": "SteamCacheNode"
+      },
+      "call": "get",
+      "args": [
+        1
+      ]
+    },
+    "save": "p3UnboundNodeStack"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      {
+        "ref": "p3UnboundNodeStack"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3BindingHub"
+    },
+    "method": "tryHandleNodeBindClick",
+    "args": [
+      {
+        "ref": "p3BindingHubHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      true
+    ],
+    "save": "p3BindingHandled"
+  },
+  {
+    "op": "assert",
+    "name": "p3.binding-business-click-handled",
+    "actual": {
+      "ref": "p3BindingHandled"
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "call": "getHeldItem|func_70694_bm",
+      "args": []
+    },
+    "save": "p3BoundNodeStack"
+  },
+  {
+    "op": "assert",
+    "name": "p3.binding-produced-hub-tag",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p3BoundNodeStack"
+        },
+        "call": "getTagCompound|func_77978_p",
+        "args": []
+      },
+      "call": "hasKey|func_74764_b",
+      "args": [
+        "gtsr.hubPos"
+      ]
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "world"
+      },
+      "call": "getChunkProvider|func_72863_F",
+      "args": []
+    },
+    "method": "loadChunk|func_73158_c",
+    "args": [
+      45,
+      1
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      724,
+      69,
+      16,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "setPositionAndUpdate|func_70634_a",
+    "args": [
+      {
+        "double": 724.5
+      },
+      {
+        "double": 71
+      },
+      {
+        "double": 18.5
+      }
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "p3BoundNodeStack"
+      },
+      "call": "getItem|func_77973_b",
+      "args": []
+    },
+    "method": "placeBlockAt",
+    "args": [
+      {
+        "ref": "p3BoundNodeStack"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "ref": "world"
+      },
+      724,
+      70,
+      16,
+      1,
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      0
+    ],
+    "save": "p3BoundNodePlaced"
+  },
+  {
+    "op": "assert",
+    "name": "p3.bound-node-actual-GT-item-placement",
+    "actual": {
+      "ref": "p3BoundNodePlaced"
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "world"
+      },
+      "call": "getTileEntity|func_147438_o",
+      "args": [
+        724,
+        70,
+        16
+      ]
+    },
+    "save": "p3BoundNodeHost"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3BoundNodeHost"
+      },
+      "call": "getMetaTileEntity",
+      "args": []
+    },
+    "save": "p3BoundNode"
+  },
+  {
+    "op": "wait",
+    "ticks": 40
+  },
+  {
+    "op": "assert",
+    "name": "p3.bound-node-loaded-binding",
+    "actual": {
+      "target": {
+        "ref": "p3BoundNode"
+      },
+      "call": "isBoundToHub",
+      "args": []
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3.bound-node-registers-with-real-hub",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p3BindingHub"
+        },
+        "call": "getCacheNodeListTag",
+        "args": []
+      },
+      "call": "tagCount|func_74745_c",
+      "args": []
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      {
+        "target": {
+          "target": {
+            "ref": "@com.miaokatze.gtsr.common.api.enums.GTSRItemList"
+          },
+          "field": "HubTerminal"
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "call": "getHeldItem|func_70694_bm",
+      "args": []
+    },
+    "save": "p3NearbyTerminal"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "p3NearbyTerminal"
+      },
+      "call": "getItem|func_77973_b",
+      "args": []
+    },
+    "method": "onItemUse|func_77648_a",
+    "args": [
+      {
+        "ref": "p3NearbyTerminal"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "ref": "world"
+      },
+      724,
+      70,
+      16,
+      1,
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ],
+    "save": "p3NearbyUse"
+  },
+  {
+    "op": "assert",
+    "name": "p3.nearby-held-terminal-use-route",
+    "actual": {
+      "ref": "p3NearbyUse"
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3NearbyInitial",
+    "panel": "cache_node_editor",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3NearbyInitial"
+  },
+  {
+    "op": "text",
+    "widget": "hub_name",
+    "text": "p3-near-node"
+  },
+  {
+    "op": "click",
+    "widget": "hub_rename"
+  },
+  {
+    "op": "wait",
+    "ticks": 30
+  },
+  {
+    "op": "assert",
+    "name": "p3.nearby-real-rename-reaches-node",
+    "actual": {
+      "target": {
+        "ref": "p3BoundNode"
+      },
+      "call": "getCustomName",
+      "args": []
+    },
+    "expected": "p3-near-node",
+    "side": "server"
+  },
+  {
+    "op": "click",
+    "widget": "hub_rate"
+  },
+  {
+    "op": "wait",
+    "ticks": 3
+  },
+  {
+    "op": "text",
+    "widget": "hub_numeric_input",
+    "text": "123"
+  },
+  {
+    "op": "click",
+    "widget": "hub_numeric_apply"
+  },
+  {
+    "op": "wait",
+    "ticks": 30
+  },
+  {
+    "op": "assert",
+    "name": "p3.nearby-real-rate-reaches-node",
+    "actual": {
+      "target": {
+        "ref": "p3BoundNode"
+      },
+      "call": "getEffectiveHubTransferRate",
+      "args": []
+    },
+    "expected": {
+      "long": 123
+    },
+    "side": "server"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "setPositionAndUpdate|func_70634_a",
+    "args": [
+      {
+        "double": 733.5
+      },
+      {
+        "double": 71
+      },
+      {
+        "double": 18.5
+      }
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "assert",
+    "name": "p3.nearby-far-distance-gate",
+    "actual": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.terminal.CacheNodeTerminalData"
+      },
+      "call": "canUse",
+      "args": [
+        {
+          "ref": "serverPlayer"
+        },
+        {
+          "ref": "p3BoundNodeHost"
+        }
+      ]
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "@com.miaokatze.gtsr.common.items.HubTerminal"
+    },
+    "method": "openNodeEditor",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "ref": "p3BoundNodeHost"
+      }
+    ],
+    "save": "p3FarOpen"
+  },
+  {
+    "op": "assert",
+    "name": "p3.nearby-far-open-rejected",
+    "actual": {
+      "ref": "p3FarOpen"
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3.nearby-far-open-no-server-container",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "openContainer|field_71070_bA"
+    },
+    "expected": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3.nearby-far-open-no-client-screen",
+    "actual": {
+      "target": {
+        "ref": "mc"
+      },
+      "field": "currentScreen|field_71462_r"
+    },
+    "expected": null,
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "setPositionAndUpdate|func_70634_a",
+    "args": [
+      {
+        "double": 720.5
+      },
+      {
+        "double": 71
+      },
+      {
+        "double": 18.5
+      }
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3BindingHub"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3BindingHubHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3BindingHubOneLiveNode",
+    "panel": "hub_terminal",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3BindingHubOneLiveNode"
+  },
+  {
+    "op": "click",
+    "widget": "hub_row_0"
+  },
+  {
+    "op": "click",
+    "widget": "hub_mode"
+  },
+  {
+    "op": "wait",
+    "ticks": 30
+  },
+  {
+    "op": "assert",
+    "name": "p3.hub-real-mode-reaches-bound-node",
+    "actual": {
+      "target": {
+        "ref": "p3BoundNode"
+      },
+      "call": "isOutputMode",
+      "args": []
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "readFromNBT|func_70443_b",
+    "args": [
+      {
+        "ref": "p3NearbyInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": {
+      "ref": "p3NearbySlot"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "group",
+    "name": "p3MinerSlots"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "new": "net.minecraft.nbt.NBTTagList"
+    },
+    "save": "p3MinerSlotsInvNBT"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "writeToNBT|func_70442_a",
+    "args": [
+      {
+        "ref": "p3MinerSlotsInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "field": "currentItem|field_70461_c"
+    },
+    "save": "p3MinerSlotsSlot"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "@gregtech.api.util.GTModHandler"
+      },
+      "call": "getIC2Item",
+      "args": [
+        "miningPipe",
+        {
+          "long": 1
+        }
+      ]
+    },
+    "save": "p3PipeTypep3Miner"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3MinerPipes",
+    "count": 32,
+    "mark": "v1.21.38-owned-p3MinerPipes",
+    "item": {
+      "target": {
+        "ref": "p3PipeTypep3Miner"
+      },
+      "call": "getItem|func_77973_b",
+      "args": []
+    }
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3MinerStored",
+    "count": 7,
+    "mark": "v1.21.38-owned-p3MinerStored",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3MinerHotbar",
+    "count": 4,
+    "mark": "v1.21.38-owned-p3MinerHotbar",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      9,
+      {
+        "ref": "p3MinerPipes"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      2,
+      {
+        "ref": "p3MinerHotbar"
+      }
+    ]
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p3Miner",
+    "class": "com.miaokatze.gtsr.common.machine.MTESingularityMinerNode",
+    "x": 768,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3MinerHost"
+    },
+    "method": "disableWorking",
+    "args": []
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3Miner"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      2,
+      {
+        "ref": "p3MinerStored"
+      }
+    ]
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "p3MinerStored"
+    },
+    "method": "func_77955_b|writeToNBT",
+    "save": "p3MinerExpectedStoredNBT"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "p3MinerHost"
+    },
+    "save": "p3MinerSaved",
+    "method": "func_145841_b|writeToNBT"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3MinerHost"
+    },
+    "method": "func_145839_a|readFromNBT",
+    "args": [
+      {
+        "ref": "p3MinerSaved"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3MinerHost"
+      },
+      "call": "getMetaTileEntity",
+      "args": []
+    },
+    "save": "p3Miner"
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "p3Miner"
+      },
+      "call": "getStackInSlot|func_70301_a",
+      "args": [
+        2
+      ]
+    },
+    "method": "func_77955_b|writeToNBT",
+    "save": "p3MinerReloadedStoredNBT"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "p3Miner.save-load-preserves-machine-item-full-NBT",
+    "actual": {
+      "ref": "p3MinerReloadedStoredNBT"
+    },
+    "expected": {
+      "ref": "p3MinerExpectedStoredNBT"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3Miner"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3MinerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3MinerInitial",
+    "panel": "remote_worker_node",
+    "slots": 39
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3MinerInitial"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "ref": "container"
+    },
+    "save": "p3MinerContainer"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3MinerBefore",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "windowClick",
+    "slot": 3,
+    "button": 0,
+    "mode": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3MinerShift",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Miner.native-shift-conserves-NBT-and-cursor",
+    "before": "p3MinerBefore",
+    "after": "p3MinerShift"
+  },
+  {
+    "op": "assert",
+    "name": "p3Miner.shift-target-real-slot0",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            0
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 32,
+    "side": "server"
+  },
+  {
+    "op": "click",
+    "widget": "worker_pipe_0"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3MinerCursor",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Miner.GUI-hit-test-pickup-conserves-NBT-and-cursor",
+    "before": "p3MinerShift",
+    "after": "p3MinerCursor"
+  },
+  {
+    "op": "assert",
+    "name": "p3Miner.native-pickup-server-cursor",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 32,
+    "side": "server"
+  },
+  {
+    "op": "click",
+    "widget": "worker_pipe_1"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3MinerPut",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Miner.GUI-hit-test-put-conserves-NBT-and-cursor",
+    "before": "p3MinerBefore",
+    "after": "p3MinerPut"
+  },
+  {
+    "op": "windowClick",
+    "slot": 1,
+    "button": 2,
+    "mode": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3MinerSwap",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Miner.native-number-key-swap-conserves-NBT-and-cursor",
+    "before": "p3MinerBefore",
+    "after": "p3MinerSwap"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3Miner.native-number-key-machine1-raw-diagnostic",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "func_75139_a|getSlot",
+        "args": [
+          1
+        ]
+      },
+      "call": "func_75211_c|getStack",
+      "args": []
+    }
+  },
+  {
+    "op": "windowClick",
+    "slot": 2,
+    "button": 0,
+    "mode": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3MinerShiftOut",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Miner.native-shift-out-conserves-NBT-and-cursor",
+    "before": "p3MinerBefore",
+    "after": "p3MinerShiftOut"
+  },
+  {
+    "op": "click",
+    "widget": "slot_0"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "click",
+    "widget": "worker_pipe_1"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3MinerNonPipeDirectPut",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Miner.direct-nonpipe-put-full-NBT-cursor-conserved",
+    "before": "p3MinerBefore",
+    "after": "p3MinerNonPipeDirectPut"
+  },
+  {
+    "op": "assert",
+    "side": "server",
+    "name": "p3Miner.legacy-GUI-non-pipe-direct-put-accepted",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "func_75139_a|getSlot",
+          "args": [
+            1
+          ]
+        },
+        "call": "func_75211_c|getStack",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 4
+  },
+  {
+    "op": "click",
+    "widget": "worker_pipe_1"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3MinerClosingCursor",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "assert",
+    "side": "server",
+    "name": "p3Miner.actual-close-holds-4-item-cursor",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "func_70445_o|getItemStack",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 4
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3MinerClosed",
+    "target": {
+      "ref": "p3MinerContainer"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Miner.close-held-stack-conserves-NBT-and-cursor",
+    "before": "p3MinerClosingCursor",
+    "after": "p3MinerClosed"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "p3MinerHost"
+    },
+    "save": "p3MinerSaved",
+    "method": "func_145841_b|writeToNBT"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3MinerHost"
+    },
+    "method": "func_145839_a|readFromNBT",
+    "args": [
+      {
+        "ref": "p3MinerSaved"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3MinerHost"
+      },
+      "call": "getMetaTileEntity",
+      "args": []
+    },
+    "save": "p3Miner"
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3Miner"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3MinerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3MinerReopened",
+    "panel": "remote_worker_node",
+    "slots": 39
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3MinerReopened"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3MinerReopenedInventory",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Miner.reopen-save-load-total-conserved",
+    "before": "p3MinerBefore",
+    "after": "p3MinerReopenedInventory"
+  },
+  {
+    "op": "assert",
+    "name": "p3Miner.first-upgrade-cost-shares-production-fact",
+    "actual": {
+      "target": {
+        "ref": "p3Miner"
+      },
+      "call": "getWorkerUpgradeCost",
+      "args": [
+        1
+      ]
+    },
+    "expected": 16,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3Miner.last-upgrade-cost-shares-production-fact",
+    "actual": {
+      "target": {
+        "ref": "p3Miner"
+      },
+      "call": "getWorkerUpgradeCost",
+      "args": [
+        4
+      ]
+    },
+    "expected": 256,
+    "side": "server"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "readFromNBT|func_70443_b",
+    "args": [
+      {
+        "ref": "p3MinerSlotsInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": {
+      "ref": "p3MinerSlotsSlot"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "group",
+    "name": "p3DrillerSlots"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "new": "net.minecraft.nbt.NBTTagList"
+    },
+    "save": "p3DrillerSlotsInvNBT"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "writeToNBT|func_70442_a",
+    "args": [
+      {
+        "ref": "p3DrillerSlotsInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "field": "currentItem|field_70461_c"
+    },
+    "save": "p3DrillerSlotsSlot"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "@gregtech.api.util.GTModHandler"
+      },
+      "call": "getIC2Item",
+      "args": [
+        "miningPipe",
+        {
+          "long": 1
+        }
+      ]
+    },
+    "save": "p3PipeTypep3Driller"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3DrillerPipes",
+    "count": 32,
+    "mark": "v1.21.38-owned-p3DrillerPipes",
+    "item": {
+      "target": {
+        "ref": "p3PipeTypep3Driller"
+      },
+      "call": "getItem|func_77973_b",
+      "args": []
+    }
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3DrillerStored",
+    "count": 7,
+    "mark": "v1.21.38-owned-p3DrillerStored",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3DrillerHotbar",
+    "count": 4,
+    "mark": "v1.21.38-owned-p3DrillerHotbar",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      9,
+      {
+        "ref": "p3DrillerPipes"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      2,
+      {
+        "ref": "p3DrillerHotbar"
+      }
+    ]
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p3Driller",
+    "class": "com.miaokatze.gtsr.common.machine.MTESingularityDrillingNode",
+    "x": 784,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3DrillerHost"
+    },
+    "method": "disableWorking",
+    "args": []
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3Driller"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      2,
+      {
+        "ref": "p3DrillerStored"
+      }
+    ]
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "p3DrillerStored"
+    },
+    "method": "func_77955_b|writeToNBT",
+    "save": "p3DrillerExpectedStoredNBT"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "p3DrillerHost"
+    },
+    "save": "p3DrillerSaved",
+    "method": "func_145841_b|writeToNBT"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3DrillerHost"
+    },
+    "method": "func_145839_a|readFromNBT",
+    "args": [
+      {
+        "ref": "p3DrillerSaved"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3DrillerHost"
+      },
+      "call": "getMetaTileEntity",
+      "args": []
+    },
+    "save": "p3Driller"
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "p3Driller"
+      },
+      "call": "getStackInSlot|func_70301_a",
+      "args": [
+        2
+      ]
+    },
+    "method": "func_77955_b|writeToNBT",
+    "save": "p3DrillerReloadedStoredNBT"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "p3Driller.save-load-preserves-machine-item-full-NBT",
+    "actual": {
+      "ref": "p3DrillerReloadedStoredNBT"
+    },
+    "expected": {
+      "ref": "p3DrillerExpectedStoredNBT"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3Driller"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3DrillerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3DrillerInitial",
+    "panel": "remote_worker_node",
+    "slots": 39
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3DrillerInitial"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "ref": "container"
+    },
+    "save": "p3DrillerContainer"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3DrillerBefore",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "windowClick",
+    "slot": 3,
+    "button": 0,
+    "mode": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3DrillerShift",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Driller.native-shift-conserves-NBT-and-cursor",
+    "before": "p3DrillerBefore",
+    "after": "p3DrillerShift"
+  },
+  {
+    "op": "assert",
+    "name": "p3Driller.shift-target-real-slot0",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            0
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 32,
+    "side": "server"
+  },
+  {
+    "op": "click",
+    "widget": "worker_pipe_0"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3DrillerCursor",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Driller.GUI-hit-test-pickup-conserves-NBT-and-cursor",
+    "before": "p3DrillerShift",
+    "after": "p3DrillerCursor"
+  },
+  {
+    "op": "assert",
+    "name": "p3Driller.native-pickup-server-cursor",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 32,
+    "side": "server"
+  },
+  {
+    "op": "click",
+    "widget": "worker_pipe_1"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3DrillerPut",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Driller.GUI-hit-test-put-conserves-NBT-and-cursor",
+    "before": "p3DrillerBefore",
+    "after": "p3DrillerPut"
+  },
+  {
+    "op": "windowClick",
+    "slot": 1,
+    "button": 2,
+    "mode": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3DrillerSwap",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Driller.native-number-key-swap-conserves-NBT-and-cursor",
+    "before": "p3DrillerBefore",
+    "after": "p3DrillerSwap"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3Driller.native-number-key-machine1-raw-diagnostic",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "func_75139_a|getSlot",
+        "args": [
+          1
+        ]
+      },
+      "call": "func_75211_c|getStack",
+      "args": []
+    }
+  },
+  {
+    "op": "windowClick",
+    "slot": 2,
+    "button": 0,
+    "mode": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3DrillerShiftOut",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Driller.native-shift-out-conserves-NBT-and-cursor",
+    "before": "p3DrillerBefore",
+    "after": "p3DrillerShiftOut"
+  },
+  {
+    "op": "click",
+    "widget": "slot_0"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "click",
+    "widget": "worker_pipe_1"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3DrillerNonPipeDirectPut",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Driller.direct-nonpipe-put-full-NBT-cursor-conserved",
+    "before": "p3DrillerBefore",
+    "after": "p3DrillerNonPipeDirectPut"
+  },
+  {
+    "op": "assert",
+    "side": "server",
+    "name": "p3Driller.legacy-GUI-non-pipe-direct-put-accepted",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "func_75139_a|getSlot",
+          "args": [
+            1
+          ]
+        },
+        "call": "func_75211_c|getStack",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 4
+  },
+  {
+    "op": "click",
+    "widget": "worker_pipe_1"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3DrillerClosingCursor",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "assert",
+    "side": "server",
+    "name": "p3Driller.actual-close-holds-4-item-cursor",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "func_70445_o|getItemStack",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 4
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3DrillerClosed",
+    "target": {
+      "ref": "p3DrillerContainer"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Driller.close-held-stack-conserves-NBT-and-cursor",
+    "before": "p3DrillerClosingCursor",
+    "after": "p3DrillerClosed"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "p3DrillerHost"
+    },
+    "save": "p3DrillerSaved",
+    "method": "func_145841_b|writeToNBT"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3DrillerHost"
+    },
+    "method": "func_145839_a|readFromNBT",
+    "args": [
+      {
+        "ref": "p3DrillerSaved"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3DrillerHost"
+      },
+      "call": "getMetaTileEntity",
+      "args": []
+    },
+    "save": "p3Driller"
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3Driller"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3DrillerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3DrillerReopened",
+    "panel": "remote_worker_node",
+    "slots": 39
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3DrillerReopened"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3DrillerReopenedInventory",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3Driller.reopen-save-load-total-conserved",
+    "before": "p3DrillerBefore",
+    "after": "p3DrillerReopenedInventory"
+  },
+  {
+    "op": "assert",
+    "name": "p3Driller.first-upgrade-cost-shares-production-fact",
+    "actual": {
+      "target": {
+        "ref": "p3Driller"
+      },
+      "call": "getWorkerUpgradeCost",
+      "args": [
+        1
+      ]
+    },
+    "expected": 16,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3Driller.last-upgrade-cost-shares-production-fact",
+    "actual": {
+      "target": {
+        "ref": "p3Driller"
+      },
+      "call": "getWorkerUpgradeCost",
+      "args": [
+        3
+      ]
+    },
+    "expected": 64,
+    "side": "server"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "readFromNBT|func_70443_b",
+    "args": [
+      {
+        "ref": "p3DrillerSlotsInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": {
+      "ref": "p3DrillerSlotsSlot"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  }
+]

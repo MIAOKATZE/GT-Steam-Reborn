@@ -7,7 +7,9 @@ import net.minecraft.entity.player.EntityPlayer;
 
 import org.lwjgl.input.Keyboard;
 
+import com.miaokatze.gtsr.client.gui.mui2.tools.WandMenuScreens;
 import com.miaokatze.gtsr.client.gui.wand.GuiMachineDebugSelector;
+import com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes;
 import com.miaokatze.gtsr.common.items.SingularityTuningWand;
 import com.miaokatze.gtsr.common.network.WandNet;
 
@@ -64,7 +66,10 @@ public final class WandClient {
                 .equals(message.family)) continue;
             var schema = adapter.options(base.getMetaTileEntity());
             if (schema.length != message.values.length) continue;
-            mc.displayGuiScreen(new GuiMachineDebugSelector(message.token, adapter.family(), schema, message.values));
+            if (Mui2TerminalRoutes.toolMenus)
+                WandMenuScreens.openProfile(message.token, adapter.family(), schema, message.values, false);
+            else mc
+                .displayGuiScreen(new GuiMachineDebugSelector(message.token, adapter.family(), schema, message.values));
         }
     }
 }

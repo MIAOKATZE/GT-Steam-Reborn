@@ -569,7 +569,36 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
 
     @Override
     protected boolean useMui2() {
-        return false;
+        return com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.remoteWorkerNodes;
+    }
+
+    @Override
+    public com.cleanroommc.modularui.screen.ModularPanel buildUI(com.cleanroommc.modularui.factory.PosGuiData data,
+        com.cleanroommc.modularui.value.sync.PanelSyncManager syncManager,
+        com.cleanroommc.modularui.screen.UISettings settings) {
+        return com.miaokatze.gtsr.common.gui.mui2.worker.RemoteWorkerNodePanel.build(this, data, syncManager, settings);
+    }
+
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    @Override
+    public com.cleanroommc.modularui.screen.ModularScreen createScreen(
+        com.cleanroommc.modularui.factory.PosGuiData data, com.cleanroommc.modularui.screen.ModularPanel mainPanel) {
+        return new com.miaokatze.gtsr.common.gui.mui2.BoundedTerminalScreen("gregtech", mainPanel, 240, 274)
+            .useTheme(getGuiTheme().getId());
+    }
+
+    /** Read-only UI data; implementations expose their private display fields without changing persisted state. */
+    public com.miaokatze.gtsr.common.gui.mui2.worker.WorkerUiSnapshot getWorkerUiSnapshot() {
+        return null;
+    }
+
+    /** Shared upgrade facts for a tooltip; the actual transaction remains tryUpgrade. */
+    public ItemStack getWorkerUpgradeItem(int targetTier) {
+        return null;
+    }
+
+    public int getWorkerUpgradeCost(int targetTier) {
+        return 0;
     }
 
     @Override

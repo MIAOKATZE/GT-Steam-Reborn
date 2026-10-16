@@ -837,6 +837,11 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         if (!(player instanceof EntityPlayerMP playerMP) || player instanceof FakePlayer) return;
         IGregTechTileEntity base = this.getBaseMetaTileEntity();
         if (base == null) return;
+        if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.singularityHubTerminal) {
+            com.miaokatze.gtsr.common.gui.mui2.hub.HubTerminalFactory
+                .open(TerminalUiType.SINGULARITY_HUB, player, base);
+            return;
+        }
         TerminalNet.sendOpen(
             TerminalUiType.SINGULARITY_HUB,
             playerMP,

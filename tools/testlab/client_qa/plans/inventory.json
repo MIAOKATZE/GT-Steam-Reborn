@@ -1,0 +1,5111 @@
+[
+  {
+    "op": "group",
+    "name": "inventory-strict-aggregator61-shift-drag-cursor-reload"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "save": "inventoryFragmentOriginalPlayer",
+    "method": "writeToNBT|func_70014_b"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "findItem",
+    "side": "server",
+    "class": "gtneioreplugin.plugin.item.ItemDimensionDisplay",
+    "save": "inventoryDimensionItem"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "inventoryDimensions",
+    "count": 30,
+    "mark": "v1.21.38-owned-inventoryDimensions",
+    "item": {
+      "ref": "inventoryDimensionItem"
+    }
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "inventoryInvalid",
+    "count": 16,
+    "mark": "v1.21.38-owned-inventoryInvalid",
+    "id": "minecraft:dirt"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      9,
+      {
+        "ref": "inventoryDimensions"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      10,
+      {
+        "ref": "inventoryInvalid"
+      }
+    ]
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "inventoryAggregator",
+    "class": "com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator",
+    "x": 224,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryAggregator"
+    },
+    "method": "openConfigGui",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "inventory-aggregator61-initial",
+    "panel": "aggregator_config",
+    "slots": 61
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "inventory-aggregator61-initial"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "ref": "container"
+    },
+    "save": "inventoryAggregatorContainer"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.server-slot-count",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "field": "inventorySlots|field_75151_b"
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 61,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.mapping.25",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          25
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 9,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.mapping.51",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          51
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 35,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.mapping.52",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          52
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 0,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.mapping.60",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          60
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 8,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.server-cursor-initially-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "strictAggregatorBefore",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "windowClick",
+    "slot": 25,
+    "button": 0,
+    "mode": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "strictAggregatorShift",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "aggregator61.shift-full-NBT-ground-cursor-conserved",
+    "before": "strictAggregatorBefore",
+    "after": "strictAggregatorShift"
+  },
+  {
+    "op": "inventoryLimits",
+    "side": "server",
+    "name": "aggregator61.all25-limit1",
+    "snapshot": "strictAggregatorShift",
+    "from": 0,
+    "to": 24,
+    "maximum": 1
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-0-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            0
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-1-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            1
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-2-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            2
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-3-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            3
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-4-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            4
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-5-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            5
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-6-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            6
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-7-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            7
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-8-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            8
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-9-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            9
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-10-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            10
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-11-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            11
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-12-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            12
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-13-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            13
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-14-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            14
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-15-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            15
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-16-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            16
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-17-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            17
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-18-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            18
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-19-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            19
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-20-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            20
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-21-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            21
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-22-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            22
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-23-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            23
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-slot-24-exactly1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            24
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.plugin-priority-then-controller-remainder5",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            25
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 5,
+    "side": "server"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "aggregator61.plugin-complete-tag",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            1
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "inventoryDimensions"
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    }
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "aggregator61.controller-complete-tag",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            0
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "inventoryDimensions"
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    }
+  },
+  {
+    "op": "windowClick",
+    "slot": 26,
+    "button": 0,
+    "mode": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.invalid-shift-refused",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            26
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 16,
+    "side": "server"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "strictAggregatorInvalid",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "aggregator61.invalid-item-conserved",
+    "before": "strictAggregatorBefore",
+    "after": "strictAggregatorInvalid"
+  },
+  {
+    "op": "windowClick",
+    "slot": 0,
+    "button": 2,
+    "mode": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.numberkey-controller-to-hotbar2",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getStackInSlot|func_70301_a",
+        "args": [
+          2
+        ]
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.controller-now-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          0
+        ]
+      },
+      "call": "getStack|func_75211_c",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "windowClick",
+    "slot": 1,
+    "button": 0,
+    "mode": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.machine-shift-merges-existing-NBT-hotbar2-before-empty8",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getStackInSlot|func_70301_a",
+        "args": [
+          2
+        ]
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 2,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.plugin-does-not-transfer-to-controller",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          0
+        ]
+      },
+      "call": "getStack|func_75211_c",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "windowClick",
+    "slot": 25,
+    "button": 0,
+    "mode": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.drag-source-cursor5",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 5,
+    "side": "server"
+  },
+  {
+    "op": "windowClick",
+    "slot": -999,
+    "button": 4,
+    "mode": 5
+  },
+  {
+    "op": "windowClick",
+    "slot": 0,
+    "button": 5,
+    "mode": 5
+  },
+  {
+    "op": "windowClick",
+    "slot": 1,
+    "button": 5,
+    "mode": 5
+  },
+  {
+    "op": "windowClick",
+    "slot": -999,
+    "button": 6,
+    "mode": 5
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.right-drag-controller-limit1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            0
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.right-drag-plugin-limit1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            1
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.right-drag-remainder3",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 3,
+    "side": "server"
+  },
+  {
+    "op": "windowClick",
+    "slot": 25,
+    "button": 0,
+    "mode": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.drag-cursor-returned",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "strictAggregatorDrag",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "aggregator61.hotbar-drag-full-NBT-conserved",
+    "before": "strictAggregatorBefore",
+    "after": "strictAggregatorDrag"
+  },
+  {
+    "op": "click",
+    "widget": "aggregator_ore_mode"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "click",
+    "widget": "aggregator_refresh"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "click",
+    "widget": "aggregator_sort_name"
+  },
+  {
+    "op": "wait",
+    "ticks": 8
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "strictAggregatorActions",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "aggregator61.config-sort-refresh-do-not-consume-items",
+    "before": "strictAggregatorBefore",
+    "after": "strictAggregatorActions"
+  },
+  {
+    "op": "windowClick",
+    "slot": 2,
+    "button": 0,
+    "mode": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.close-holds-known-nonempty-plugin2",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.picked-plugin2-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          2
+        ]
+      },
+      "call": "getStack|func_75211_c",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.cursor-precondition-positive",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 0,
+    "side": "server",
+    "relation": ">"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "save": "aggregator61CursorNbt",
+    "method": "writeToNBT|func_77955_b"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "aggregator61CursorBefore",
+    "target": {
+      "ref": "inventoryAggregatorContainer"
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "aggregator61.actual-window-before-Escape",
+    "value": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 3
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "aggregator61.actual-window-after-two-Escape-and-settle",
+    "value": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "aggregator61.actual-cursor-after-two-Escape-and-settle",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    }
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "aggregator61AfterClose",
+    "target": {
+      "ref": "inventoryAggregatorContainer"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.server-window-closed",
+    "actual": {
+      "ref": "container"
+    },
+    "expected": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.client-screen-closed",
+    "actual": {
+      "target": {
+        "ref": "mc"
+      },
+      "field": "currentScreen|field_71462_r"
+    },
+    "expected": null,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.cursor-cleared-after-verified-server-close",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "aggregator61.close-cursor-inventory-and-same-world-ground-full-NBT-conserved",
+    "before": "aggregator61CursorBefore",
+    "after": "aggregator61AfterClose"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "aggregator61.preclose-held-item-complete-NBT",
+    "value": {
+      "ref": "aggregator61CursorNbt"
+    }
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "inventoryAggregatorHost"
+    },
+    "save": "inventoryAggregatorSaved"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryAggregatorHost"
+    },
+    "method": "readFromNBT|func_145839_a",
+    "args": [
+      {
+        "ref": "inventoryAggregatorSaved"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "inventoryAggregatorHost"
+      },
+      "call": "getMetaTileEntity",
+      "args": []
+    },
+    "save": "inventoryAggregator"
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryAggregator"
+    },
+    "method": "openConfigGui",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "inventory-aggregator61-after-host-NBT-reload",
+    "panel": "aggregator_config",
+    "slots": 61
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "inventory-aggregator61-after-host-NBT-reload"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "strictAggregatorReload",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "aggregator61.host-NBT-reload-items-cursor-ground-conserved",
+    "before": "aggregator61AfterClose",
+    "after": "strictAggregatorReload"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.reload-extracted-plugin2-stays-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          2
+        ]
+      },
+      "call": "getStack|func_75211_c",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.reload-slot-0-keeps1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            0
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "aggregator61.reload-slot-0-tag",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            0
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "inventoryDimensions"
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.reload-slot-1-keeps1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            1
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "aggregator61.reload-slot-1-tag",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            1
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "inventoryDimensions"
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.reload-slot-3-keeps1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            3
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "aggregator61.reload-slot-3-tag",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            3
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "inventoryDimensions"
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "name": "aggregator61.reload-slot-24-keeps1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            24
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "aggregator61.reload-slot-24-tag",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            24
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "inventoryDimensions"
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    }
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "group",
+    "name": "inventory-strict-old27-chest90-hotbar-drag-viewer-cursor"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "theItemInWorldManager|field_71134_c"
+      },
+      "call": "getGameType|func_73081_b",
+      "args": []
+    },
+    "save": "inventoryChestOriginalGameType"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "method": "writeCapabilitiesToNBT|func_75091_a",
+    "save": "inventoryChestOriginalCapsNBT"
+  },
+  {
+    "op": "record",
+    "name": "chest90.actual-original-game-type",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "theItemInWorldManager|field_71134_c"
+      },
+      "call": "getGameType|func_73081_b",
+      "args": []
+    }
+  },
+  {
+    "op": "record",
+    "name": "chest90.actual-original-capabilities",
+    "side": "server",
+    "value": {
+      "ref": "inventoryChestOriginalCapsNBT"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      239,
+      69,
+      16,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      239,
+      69,
+      17,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      239,
+      69,
+      18,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      239,
+      69,
+      19,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      239,
+      69,
+      20,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      240,
+      69,
+      16,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      240,
+      69,
+      17,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      240,
+      69,
+      18,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      240,
+      69,
+      19,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      240,
+      69,
+      20,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      241,
+      69,
+      16,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      241,
+      69,
+      17,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      241,
+      69,
+      18,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      241,
+      69,
+      19,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      241,
+      69,
+      20,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      242,
+      69,
+      16,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      242,
+      69,
+      17,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      242,
+      69,
+      18,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      242,
+      69,
+      19,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "name": "chest90.owned-fixture-drop-floor",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      242,
+      69,
+      20,
+      {
+        "target": {
+          "ref": "@net.minecraft.init.Blocks"
+        },
+        "field": "stone|field_150348_b"
+      },
+      0,
+      3
+    ]
+  },
+  {
+    "op": "placeBlock",
+    "side": "server",
+    "block": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterRegistry"
+      },
+      "field": "unsealedChest"
+    },
+    "x": 240,
+    "y": 70,
+    "z": 16,
+    "save": "inventoryChest"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "theItemInWorldManager|field_71134_c"
+    },
+    "method": "setGameType|func_73076_a",
+    "args": [
+      {
+        "enum": "net.minecraft.world.WorldSettings$GameType",
+        "name": "SURVIVAL"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "allowFlying|field_75101_c",
+    "value": false
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": false
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "assert",
+    "name": "chest90.actual-survival-gametype-before-legacy-reward-test",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "theItemInWorldManager|field_71134_c"
+      },
+      "call": "getGameType|func_73081_b",
+      "args": []
+    },
+    "expected": {
+      "enum": "net.minecraft.world.WorldSettings$GameType",
+      "name": "SURVIVAL"
+    },
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.actual-server-not-creative-before-legacy-reward-test",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "capabilities|field_71075_bZ"
+      },
+      "field": "isCreativeMode|field_75098_d"
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.actual-client-not-creative-before-legacy-reward-test",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "player"
+        },
+        "field": "capabilities|field_71075_bZ"
+      },
+      "field": "isCreativeMode|field_75098_d"
+    },
+    "expected": false,
+    "side": "client"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "method": "writeCapabilitiesToNBT|func_75091_a",
+    "save": "inventoryChestSurvivalCapsNBT"
+  },
+  {
+    "op": "record",
+    "name": "chest90.actual-survival-capabilities",
+    "side": "server",
+    "value": {
+      "ref": "inventoryChestSurvivalCapsNBT"
+    }
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "inventoryOldChest0",
+    "count": 12,
+    "mark": "v1.21.38-owned-inventoryOldChest0",
+    "id": "minecraft:diamond"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "inventoryOldChest26",
+    "count": 6,
+    "mark": "v1.21.38-owned-inventoryOldChest26",
+    "id": "minecraft:gold_ingot"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "inventoryOldChest13",
+    "count": 9,
+    "mark": "v1.21.38-owned-inventoryOldChest13",
+    "id": "minecraft:iron_ingot"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryChest"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      {
+        "ref": "inventoryOldChest0"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryChest"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      26,
+      {
+        "ref": "inventoryOldChest26"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryChest"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      13,
+      {
+        "ref": "inventoryOldChest13"
+      }
+    ]
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "inventoryChest"
+    },
+    "save": "inventoryLegacy27Chest",
+    "method": "writeToNBT|func_145841_b"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryLegacy27Chest"
+    },
+    "method": "removeTag|func_82580_o",
+    "args": [
+      "rewardGenerated"
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryLegacy27Chest"
+    },
+    "method": "removeTag|func_82580_o",
+    "args": [
+      "rewardTier"
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryLegacy27Chest"
+    },
+    "method": "removeTag|func_82580_o",
+    "args": [
+      "storyOrigin"
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryLegacy27Chest"
+    },
+    "method": "removeTag|func_82580_o",
+    "args": [
+      "storyEvent"
+    ]
+  },
+  {
+    "op": "assert",
+    "name": "chest27.legacy-schema-omits-reward-generated",
+    "actual": {
+      "target": {
+        "ref": "inventoryLegacy27Chest"
+      },
+      "call": "hasKey|func_74764_b",
+      "args": [
+        "rewardGenerated"
+      ]
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest27.legacy-items-list-has-only-three-0to26-entries",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "inventoryLegacy27Chest"
+        },
+        "call": "getTagList|func_150295_c",
+        "args": [
+          "Items",
+          10
+        ]
+      },
+      "call": "tagCount|func_74745_c",
+      "args": []
+    },
+    "expected": 3,
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryChest"
+    },
+    "method": "readFromNBT|func_145839_a",
+    "args": [
+      {
+        "ref": "inventoryLegacy27Chest"
+      }
+    ]
+  },
+  {
+    "op": "assert",
+    "name": "chest27.loads54-slots",
+    "actual": {
+      "target": {
+        "ref": "inventoryChest"
+      },
+      "call": "getSizeInventory|func_70302_i_",
+      "args": []
+    },
+    "expected": 54,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest27.slot53-empty",
+    "actual": {
+      "target": {
+        "ref": "inventoryChest"
+      },
+      "call": "getStackInSlot|func_70301_a",
+      "args": [
+        53
+      ]
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest27.old-reward-must-never-generate-again",
+    "actual": {
+      "target": {
+        "ref": "inventoryChest"
+      },
+      "call": "canBeginReward",
+      "args": []
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryChest"
+    },
+    "method": "beginReward",
+    "args": [
+      2
+    ],
+    "save": "inventoryChestRewardRetried"
+  },
+  {
+    "op": "assert",
+    "name": "chest27.reward-retry-refused",
+    "actual": {
+      "ref": "inventoryChestRewardRetried"
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "inventoryChest"
+    },
+    "save": "inventoryLegacyLoaded",
+    "method": "writeToNBT|func_145841_b"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "chest27.loaded-items-canonical-full-NBT",
+    "actual": {
+      "target": {
+        "ref": "inventoryLegacyLoaded"
+      },
+      "call": "getTag|func_74781_a",
+      "args": [
+        "Items"
+      ]
+    },
+    "expected": {
+      "target": {
+        "ref": "inventoryLegacy27Chest"
+      },
+      "call": "getTag|func_74781_a",
+      "args": [
+        "Items"
+      ]
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "@com.miaokatze.gtsr.common.gui.mui2.inventory.UnsealedChestFactory"
+    },
+    "method": "open",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "ref": "inventoryChest"
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "inventory-chest90-legacy27-loaded",
+    "panel": "unsealed_chest",
+    "slots": 90
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "inventory-chest90-legacy27-loaded"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "ref": "container"
+    },
+    "save": "inventoryChestContainer"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.server-slot-count",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "field": "inventorySlots|field_75151_b"
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 90,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.mapping.54",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          54
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 9,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.mapping.80",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          80
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 35,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.mapping.81",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          81
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 0,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.mapping.89",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          89
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 8,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.server-cursor-initially-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.viewer-open-exactly1",
+    "actual": {
+      "target": {
+        "ref": "inventoryChest"
+      },
+      "call": "getViewerCount",
+      "args": []
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 205
+  },
+  {
+    "op": "assert",
+    "name": "chest90.viewer-survives-200tick-recount",
+    "actual": {
+      "target": {
+        "ref": "inventoryChest"
+      },
+      "call": "getViewerCount",
+      "args": []
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "strictChestBefore",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "windowClick",
+    "slot": 0,
+    "button": 0,
+    "mode": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "chest90.shift-hotbar8-first-count12",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getStackInSlot|func_70301_a",
+        "args": [
+          8
+        ]
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 12,
+    "side": "server"
+  },
+  {
+    "op": "windowClick",
+    "slot": 26,
+    "button": 2,
+    "mode": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "chest90.hotbar2-swap-count6",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getStackInSlot|func_70301_a",
+        "args": [
+          2
+        ]
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 6,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.swapped-slot26-is-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          26
+        ]
+      },
+      "call": "getStack|func_75211_c",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "windowClick",
+    "slot": 89,
+    "button": 0,
+    "mode": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "assert",
+    "name": "chest90.drag-source-cursor12",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 12,
+    "side": "server"
+  },
+  {
+    "op": "windowClick",
+    "slot": -999,
+    "button": 0,
+    "mode": 5
+  },
+  {
+    "op": "windowClick",
+    "slot": 0,
+    "button": 1,
+    "mode": 5
+  },
+  {
+    "op": "windowClick",
+    "slot": 1,
+    "button": 1,
+    "mode": 5
+  },
+  {
+    "op": "windowClick",
+    "slot": 2,
+    "button": 1,
+    "mode": 5
+  },
+  {
+    "op": "windowClick",
+    "slot": -999,
+    "button": 2,
+    "mode": 5
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "chest90.left-drag-slot-0-count4",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            0
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 4,
+    "side": "server"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "chest90.drag-slot-0-full-NBT",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            0
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "inventoryOldChest0"
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "name": "chest90.left-drag-slot-1-count4",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            1
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 4,
+    "side": "server"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "chest90.drag-slot-1-full-NBT",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            1
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "inventoryOldChest0"
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "name": "chest90.left-drag-slot-2-count4",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            2
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 4,
+    "side": "server"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "chest90.drag-slot-2-full-NBT",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            2
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "inventoryOldChest0"
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "name": "chest90.left-drag-consumed-cursor",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "strictChestDrag",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "chest90.shift-swap-drag-full-NBT-conserved",
+    "before": "strictChestBefore",
+    "after": "strictChestDrag"
+  },
+  {
+    "op": "windowClick",
+    "slot": 0,
+    "button": 0,
+    "mode": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "assert",
+    "name": "chest90.reload-held-source-is-nonempty-slot0",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 4,
+    "side": "server"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "save": "inventoryChestCursorBeforeReload",
+    "method": "writeToNBT|func_77955_b"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "strictChestCursorBeforeReload",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "inventoryChest"
+    },
+    "save": "inventoryChestReloadSaved",
+    "method": "writeToNBT|func_145841_b"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryChest"
+    },
+    "method": "readFromNBT|func_145839_a",
+    "args": [
+      {
+        "ref": "inventoryChestReloadSaved"
+      }
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "inventoryChest"
+    },
+    "save": "inventoryChestReloadActual",
+    "method": "writeToNBT|func_145841_b"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "save": "inventoryChestCursorAfterReload",
+    "method": "writeToNBT|func_77955_b"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "chest90.NBT-reload-canonical-complete-tile",
+    "actual": {
+      "ref": "inventoryChestReloadActual"
+    },
+    "expected": {
+      "ref": "inventoryChestReloadSaved"
+    }
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "chest90.NBT-reload-preserves-live-cursor",
+    "actual": {
+      "ref": "inventoryChestCursorAfterReload"
+    },
+    "expected": {
+      "ref": "inventoryChestCursorBeforeReload"
+    }
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "strictChestCursorAfterReload",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "chest90.NBT-reload-inventory-plus-cursor-conserved",
+    "before": "strictChestCursorBeforeReload",
+    "after": "strictChestCursorAfterReload"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.cursor-precondition-positive",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 0,
+    "side": "server",
+    "relation": ">"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "save": "chest90CursorNbt",
+    "method": "writeToNBT|func_77955_b"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "chest90CursorBefore",
+    "target": {
+      "ref": "inventoryChestContainer"
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "chest90.actual-window-before-Escape",
+    "value": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 3
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "chest90.actual-window-after-two-Escape-and-settle",
+    "value": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "chest90.actual-cursor-after-two-Escape-and-settle",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    }
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "chest90AfterClose",
+    "target": {
+      "ref": "inventoryChestContainer"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "chest90.server-window-closed",
+    "actual": {
+      "ref": "container"
+    },
+    "expected": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.client-screen-closed",
+    "actual": {
+      "target": {
+        "ref": "mc"
+      },
+      "field": "currentScreen|field_71462_r"
+    },
+    "expected": null,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.cursor-cleared-after-verified-server-close",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "chest90.close-cursor-inventory-and-same-world-ground-full-NBT-conserved",
+    "before": "chest90CursorBefore",
+    "after": "chest90AfterClose"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "chest90.preclose-held-item-complete-NBT",
+    "value": {
+      "ref": "chest90CursorNbt"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "chest90.viewer-after-close0",
+    "actual": {
+      "target": {
+        "ref": "inventoryChest"
+      },
+      "call": "getViewerCount",
+      "args": []
+    },
+    "expected": 0,
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryChestContainer"
+    },
+    "method": "onModularContainerClosed",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 5
+  },
+  {
+    "op": "assert",
+    "name": "chest90.duplicate-close-hook-stays0",
+    "actual": {
+      "target": {
+        "ref": "inventoryChest"
+      },
+      "call": "getViewerCount",
+      "args": []
+    },
+    "expected": 0,
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "@com.miaokatze.gtsr.common.gui.mui2.inventory.UnsealedChestFactory"
+    },
+    "method": "open",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "ref": "inventoryChest"
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "inventory-chest90-reopened",
+    "panel": "unsealed_chest",
+    "slots": 90
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "inventory-chest90-reopened"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.viewer-reopen1",
+    "actual": {
+      "target": {
+        "ref": "inventoryChest"
+      },
+      "call": "getViewerCount",
+      "args": []
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "setPositionAndUpdate|func_70634_a",
+    "args": [
+      {
+        "double": 272.5
+      },
+      {
+        "double": 72.0
+      },
+      {
+        "double": 16.5
+      }
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "assert",
+    "name": "chest90.out-of-range-closes-viewer0",
+    "actual": {
+      "target": {
+        "ref": "inventoryChest"
+      },
+      "call": "getViewerCount",
+      "args": []
+    },
+    "expected": 0,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "chest90.out-of-range-server-window-closed",
+    "actual": {
+      "ref": "container"
+    },
+    "expected": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "side": "server"
+  },
+  {
+    "op": "group",
+    "name": "inventory-chest-restore-actual-mode-capabilities"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "theItemInWorldManager|field_71134_c"
+    },
+    "method": "setGameType|func_73076_a",
+    "args": [
+      {
+        "ref": "inventoryChestOriginalGameType"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "method": "readCapabilitiesFromNBT|func_75095_b",
+    "args": [
+      {
+        "ref": "inventoryChestOriginalCapsNBT"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "assert",
+    "name": "chest90.restored-original-game-type",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "theItemInWorldManager|field_71134_c"
+      },
+      "call": "getGameType|func_73081_b",
+      "args": []
+    },
+    "expected": {
+      "ref": "inventoryChestOriginalGameType"
+    },
+    "side": "server"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "method": "writeCapabilitiesToNBT|func_75091_a",
+    "save": "inventoryChestRestoredCapsNBT"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "chest90.restored-complete-original-capabilities",
+    "actual": {
+      "ref": "inventoryChestRestoredCapsNBT"
+    },
+    "expected": {
+      "ref": "inventoryChestOriginalCapsNBT"
+    }
+  },
+  {
+    "op": "group",
+    "name": "inventory-strict-inventoryMiner39-native-shift-cursor-reload"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "inventoryMinerPipes",
+    "count": 32,
+    "mark": "v1.21.38-owned-inventoryMinerPipes",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      9,
+      {
+        "ref": "inventoryMinerPipes"
+      }
+    ]
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "inventoryMiner",
+    "class": "com.miaokatze.gtsr.common.machine.MTESingularityMinerNode",
+    "x": 256,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryMiner"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "inventoryMinerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "inventoryMiner-production39",
+    "panel": "remote_worker_node",
+    "slots": 39
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "inventoryMiner-production39"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "ref": "container"
+    },
+    "save": "inventoryMinerContainer"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryMiner39.server-slot-count",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "field": "inventorySlots|field_75151_b"
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 39,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryMiner39.mapping.3",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          3
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 9,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryMiner39.mapping.29",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          29
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 35,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryMiner39.mapping.30",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          30
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 0,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryMiner39.mapping.38",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          38
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 8,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryMiner39.server-cursor-initially-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "inventoryMinerBefore",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "windowClick",
+    "slot": 3,
+    "button": 0,
+    "mode": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "inventoryMiner.pipe0-actually-filled32",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            0
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 32,
+    "side": "server"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "inventoryMinerShift",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "inventoryMiner.native-shift-full-NBT-conserved",
+    "before": "inventoryMinerBefore",
+    "after": "inventoryMinerShift"
+  },
+  {
+    "op": "windowClick",
+    "slot": 0,
+    "button": 0,
+    "mode": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "assert",
+    "name": "inventoryMiner.close-actually-holds32",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 32,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryMiner.cursor-precondition-positive",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 0,
+    "side": "server",
+    "relation": ">"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "save": "inventoryMinerCursorNbt",
+    "method": "writeToNBT|func_77955_b"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "inventoryMinerCursorBefore",
+    "target": {
+      "ref": "inventoryMinerContainer"
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "inventoryMiner.actual-window-before-Escape",
+    "value": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 3
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "inventoryMiner.actual-window-after-two-Escape-and-settle",
+    "value": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "inventoryMiner.actual-cursor-after-two-Escape-and-settle",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    }
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "inventoryMinerAfterClose",
+    "target": {
+      "ref": "inventoryMinerContainer"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "inventoryMiner.server-window-closed",
+    "actual": {
+      "ref": "container"
+    },
+    "expected": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryMiner.client-screen-closed",
+    "actual": {
+      "target": {
+        "ref": "mc"
+      },
+      "field": "currentScreen|field_71462_r"
+    },
+    "expected": null,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryMiner.cursor-cleared-after-verified-server-close",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "inventoryMiner.close-cursor-inventory-and-same-world-ground-full-NBT-conserved",
+    "before": "inventoryMinerCursorBefore",
+    "after": "inventoryMinerAfterClose"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "inventoryMiner.preclose-held-item-complete-NBT",
+    "value": {
+      "ref": "inventoryMinerCursorNbt"
+    }
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "inventoryMinerHost"
+    },
+    "save": "inventoryMinerSaved"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryMinerHost"
+    },
+    "method": "readFromNBT|func_145839_a",
+    "args": [
+      {
+        "ref": "inventoryMinerSaved"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "inventoryMinerHost"
+      },
+      "call": "getMetaTileEntity",
+      "args": []
+    },
+    "save": "inventoryMiner"
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryMiner"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "inventoryMinerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "inventoryMiner-after-host-NBT-reload",
+    "panel": "remote_worker_node",
+    "slots": 39
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "inventoryMiner-after-host-NBT-reload"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "inventoryMinerReload",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "inventoryMiner.host-NBT-reload-ground-cursor-inventory-conserved",
+    "before": "inventoryMinerAfterClose",
+    "after": "inventoryMinerReload"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryMiner.reloaded-pipe0-extracted-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          0
+        ]
+      },
+      "call": "getStack|func_75211_c",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "group",
+    "name": "inventory-strict-inventoryDriller39-native-shift-cursor-reload"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "inventoryDrillerPipes",
+    "count": 32,
+    "mark": "v1.21.38-owned-inventoryDrillerPipes",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      9,
+      {
+        "ref": "inventoryDrillerPipes"
+      }
+    ]
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "inventoryDriller",
+    "class": "com.miaokatze.gtsr.common.machine.MTESingularityDrillingNode",
+    "x": 272,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryDriller"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "inventoryDrillerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "inventoryDriller-production39",
+    "panel": "remote_worker_node",
+    "slots": 39
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "inventoryDriller-production39"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "ref": "container"
+    },
+    "save": "inventoryDrillerContainer"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryDriller39.server-slot-count",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "field": "inventorySlots|field_75151_b"
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 39,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryDriller39.mapping.3",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          3
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 9,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryDriller39.mapping.29",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          29
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 35,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryDriller39.mapping.30",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          30
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 0,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryDriller39.mapping.38",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          38
+        ]
+      },
+      "call": "getSlotIndex",
+      "args": []
+    },
+    "expected": 8,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryDriller39.server-cursor-initially-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "inventoryDrillerBefore",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "windowClick",
+    "slot": 3,
+    "button": 0,
+    "mode": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "inventoryDriller.pipe0-actually-filled32",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSlot|func_75139_a",
+          "args": [
+            0
+          ]
+        },
+        "call": "getStack|func_75211_c",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 32,
+    "side": "server"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "inventoryDrillerShift",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "inventoryDriller.native-shift-full-NBT-conserved",
+    "before": "inventoryDrillerBefore",
+    "after": "inventoryDrillerShift"
+  },
+  {
+    "op": "windowClick",
+    "slot": 0,
+    "button": 0,
+    "mode": 0
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "assert",
+    "name": "inventoryDriller.close-actually-holds32",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 32,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryDriller.cursor-precondition-positive",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 0,
+    "side": "server",
+    "relation": ">"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "save": "inventoryDrillerCursorNbt",
+    "method": "writeToNBT|func_77955_b"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "inventoryDrillerCursorBefore",
+    "target": {
+      "ref": "inventoryDrillerContainer"
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "inventoryDriller.actual-window-before-Escape",
+    "value": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 3
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "inventoryDriller.actual-window-after-two-Escape-and-settle",
+    "value": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "inventoryDriller.actual-cursor-after-two-Escape-and-settle",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    }
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "inventoryDrillerAfterClose",
+    "target": {
+      "ref": "inventoryDrillerContainer"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "inventoryDriller.server-window-closed",
+    "actual": {
+      "ref": "container"
+    },
+    "expected": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryDriller.client-screen-closed",
+    "actual": {
+      "target": {
+        "ref": "mc"
+      },
+      "field": "currentScreen|field_71462_r"
+    },
+    "expected": null,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryDriller.cursor-cleared-after-verified-server-close",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "inventoryDriller.close-cursor-inventory-and-same-world-ground-full-NBT-conserved",
+    "before": "inventoryDrillerCursorBefore",
+    "after": "inventoryDrillerAfterClose"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "inventoryDriller.preclose-held-item-complete-NBT",
+    "value": {
+      "ref": "inventoryDrillerCursorNbt"
+    }
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "inventoryDrillerHost"
+    },
+    "save": "inventoryDrillerSaved"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryDrillerHost"
+    },
+    "method": "readFromNBT|func_145839_a",
+    "args": [
+      {
+        "ref": "inventoryDrillerSaved"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "inventoryDrillerHost"
+      },
+      "call": "getMetaTileEntity",
+      "args": []
+    },
+    "save": "inventoryDriller"
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "inventoryDriller"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "inventoryDrillerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "inventoryDriller-after-host-NBT-reload",
+    "panel": "remote_worker_node",
+    "slots": 39
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "inventoryDriller-after-host-NBT-reload"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "inventoryDrillerReload",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "inventoryDriller.host-NBT-reload-ground-cursor-inventory-conserved",
+    "before": "inventoryDrillerAfterClose",
+    "after": "inventoryDrillerReload"
+  },
+  {
+    "op": "assert",
+    "name": "inventoryDriller.reloaded-pipe0-extracted-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          0
+        ]
+      },
+      "call": "getStack|func_75211_c",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  }
+]

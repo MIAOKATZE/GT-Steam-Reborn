@@ -1,0 +1,1068 @@
+[
+  {
+    "op": "group",
+    "name": "p4SmallCanvasAggregatorNativeViewportHit"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "client",
+    "value": {
+      "target": {
+        "ref": "mc"
+      },
+      "field": "displayWidth|field_71443_c"
+    },
+    "save": "p4SmallOriginalWidth"
+  },
+  {
+    "op": "evaluate",
+    "side": "client",
+    "value": {
+      "target": {
+        "ref": "mc"
+      },
+      "field": "displayHeight|field_71440_d"
+    },
+    "save": "p4SmallOriginalHeight"
+  },
+  {
+    "op": "evaluate",
+    "side": "client",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "mc"
+        },
+        "field": "gameSettings|field_71474_y"
+      },
+      "field": "guiScale|field_74335_Z"
+    },
+    "save": "p4SmallOriginalScale"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "new": "net.minecraft.nbt.NBTTagList",
+      "args": []
+    },
+    "save": "p4SmallOriginalInventory"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "writeToNBT|func_70442_a",
+    "args": [
+      {
+        "ref": "p4SmallOriginalInventory"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "field": "currentItem|field_70461_c"
+    },
+    "save": "p4SmallOriginalHeldIndex"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "method": "writeCapabilitiesToNBT|func_75091_a",
+    "save": "p4SmallOriginalCaps"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.fixture-original-cursor-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "findItem",
+    "side": "server",
+    "class": "gtneioreplugin.plugin.item.ItemDimensionDisplay",
+    "save": "p4SmallDimensionItem"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p4SmallDimension",
+    "count": 1,
+    "mark": "v1.21.38-owned-p4SmallDimension",
+    "item": {
+      "ref": "p4SmallDimensionItem"
+    }
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p4SmallBackground",
+    "count": 7,
+    "mark": "v1.21.38-owned-p4SmallBackground",
+    "id": "minecraft:dirt"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      10,
+      {
+        "ref": "p4SmallBackground"
+      }
+    ]
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p4SmallAggregator",
+    "class": "com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator",
+    "x": 1008,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "p4SmallAggregatorHost"
+    },
+    "save": "p4SmallBlankMachine"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "p4SmallAggregator"
+      },
+      "call": "getPluginSlotInventory",
+      "args": []
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      3,
+      {
+        "ref": "p4SmallDimension"
+      }
+    ]
+  },
+  {
+    "op": "resize",
+    "width": 854,
+    "height": 480,
+    "scale": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p4SmallAggregator"
+    },
+    "method": "openConfigGui",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p4small-aggregator-initial-427x240",
+    "panel": "aggregator_config",
+    "slots": 61
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p4small-aggregator-initial-427x240"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "ref": "container"
+    },
+    "save": "p4SmallContainer"
+  },
+  {
+    "op": "bounds"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.actual-canvas-width427",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "screen"
+          },
+          "call": "getContext",
+          "args": []
+        },
+        "call": "getScreenArea",
+        "args": []
+      },
+      "field": "width"
+    },
+    "expected": 427,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.actual-canvas-height240",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "screen"
+          },
+          "call": "getContext",
+          "args": []
+        },
+        "call": "getScreenArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": 240,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.bounded-root-width415",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "panel"
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "width"
+    },
+    "expected": 415,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.bounded-root-height228",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "panel"
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": 228,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.fixed-canvas-width475",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "aggregator_canvas"
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "width"
+    },
+    "expected": 475,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.fixed-canvas-height350",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "aggregator_canvas"
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": 350,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.initial-native-scroll-x0",
+    "actual": {
+      "target": {
+        "widget": "aggregator_viewport"
+      },
+      "call": "getScrollX",
+      "args": []
+    },
+    "expected": 0,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.initial-native-scroll-y0",
+    "actual": {
+      "target": {
+        "widget": "aggregator_viewport"
+      },
+      "call": "getScrollY",
+      "args": []
+    },
+    "expected": 0,
+    "side": "client"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p4SmallBeforeScroll",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "drag",
+    "widget": "aggregator_viewport",
+    "fromX": 0.1,
+    "fromY": 0.99,
+    "toX": 0.9,
+    "toY": 0.99
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "p4small.native-horizontal-scrollbar-actually-moved",
+    "actual": {
+      "target": {
+        "widget": "aggregator_viewport"
+      },
+      "call": "getScrollX",
+      "args": []
+    },
+    "expected": 0,
+    "side": "client",
+    "relation": ">"
+  },
+  {
+    "op": "scroll",
+    "widget": "aggregator_viewport",
+    "direction": "DOWN",
+    "notches": 12
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "p4small.actual-wheel-moves-native-vertical-viewport",
+    "actual": {
+      "target": {
+        "widget": "aggregator_viewport"
+      },
+      "call": "getScrollY",
+      "args": []
+    },
+    "expected": 0,
+    "side": "client",
+    "relation": ">"
+  },
+  {
+    "op": "drag",
+    "widget": "aggregator_viewport",
+    "fromX": 0.995,
+    "fromY": 0.85,
+    "toX": 0.995,
+    "toY": 0.02
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "p4small.native-vertical-bar-reaches-top",
+    "actual": {
+      "target": {
+        "widget": "aggregator_viewport"
+      },
+      "call": "getScrollY",
+      "args": []
+    },
+    "expected": 0,
+    "side": "client"
+  },
+  {
+    "op": "screenshot",
+    "name": "p4small-native-horizontal-right-machine-visible"
+  },
+  {
+    "op": "click",
+    "widget": "aggregator_slot_4"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "p4small.real-visible-machine-slot-pickup",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.machine-slot4-is-actually-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "call": "getSlot|func_75139_a",
+        "args": [
+          4
+        ]
+      },
+      "call": "getStack|func_75211_c",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "p4small.pickup-full-item-tag",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "p4SmallDimension"
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    }
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p4SmallAfterVisiblePickup",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p4small.visible-machine-hit-full-NBT-cursor-ledger",
+    "before": "p4SmallBeforeScroll",
+    "after": "p4SmallAfterVisiblePickup"
+  },
+  {
+    "op": "drag",
+    "widget": "aggregator_viewport",
+    "fromX": 0.995,
+    "fromY": 0.05,
+    "toX": 0.995,
+    "toY": 0.95
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "p4small.native-vertical-bar-reaches-player-region",
+    "actual": {
+      "target": {
+        "widget": "aggregator_viewport"
+      },
+      "call": "getScrollY",
+      "args": []
+    },
+    "expected": 0,
+    "side": "client",
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.scrolling-keeps-held-cursor1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getItemStack|func_70445_o",
+        "args": []
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "click",
+    "widget": "slot_9"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "p4small.real-visible-player-slot-receives1",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getStackInSlot|func_70301_a",
+        "args": [
+          9
+        ]
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.visible-player-placement-clears-cursor",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "p4small.visible-player-slot-full-item-tag",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getStackInSlot|func_70301_a",
+        "args": [
+          9
+        ]
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "p4SmallDimension"
+      },
+      "call": "getTagCompound|func_77978_p",
+      "args": []
+    }
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p4SmallAfterVisiblePlacement",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p4small.native-scroll-player-hit-full-NBT-cursor-ledger",
+    "before": "p4SmallBeforeScroll",
+    "after": "p4SmallAfterVisiblePlacement"
+  },
+  {
+    "op": "bounds"
+  },
+  {
+    "op": "screenshot",
+    "name": "p4small-native-bottom-right-player-visible"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 3
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "assert",
+    "name": "p4small.actual-server-window-closed",
+    "actual": {
+      "ref": "container"
+    },
+    "expected": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.actual-close-cursor-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getItemStack|func_70445_o",
+      "args": []
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p4SmallAfterClose",
+    "target": {
+      "ref": "p4SmallContainer"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p4small.close-preserves-complete-ledger",
+    "before": "p4SmallBeforeScroll",
+    "after": "p4SmallAfterClose"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p4SmallAggregatorHost"
+    },
+    "method": "readFromNBT|func_145839_a",
+    "args": [
+      {
+        "ref": "p4SmallBlankMachine"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "readFromNBT|func_70443_b",
+    "args": [
+      {
+        "ref": "p4SmallOriginalInventory"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": {
+      "ref": "p4SmallOriginalHeldIndex"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "method": "readCapabilitiesFromNBT|func_75095_b",
+    "args": [
+      {
+        "ref": "p4SmallOriginalCaps"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "new": "net.minecraft.nbt.NBTTagList",
+      "args": []
+    },
+    "save": "p4SmallRestoredInventory"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "writeToNBT|func_70442_a",
+    "args": [
+      {
+        "ref": "p4SmallRestoredInventory"
+      }
+    ]
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "p4small.complete-original-inventory-restored",
+    "actual": {
+      "ref": "p4SmallRestoredInventory"
+    },
+    "expected": {
+      "ref": "p4SmallOriginalInventory"
+    }
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "method": "writeCapabilitiesToNBT|func_75091_a",
+    "save": "p4SmallRestoredCaps"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "p4small.complete-original-capabilities-restored",
+    "actual": {
+      "ref": "p4SmallRestoredCaps"
+    },
+    "expected": {
+      "ref": "p4SmallOriginalCaps"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p4small.original-held-slot-restored",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "field": "currentItem|field_70461_c"
+    },
+    "expected": {
+      "ref": "p4SmallOriginalHeldIndex"
+    },
+    "side": "server"
+  },
+  {
+    "op": "setField",
+    "side": "client",
+    "target": {
+      "target": {
+        "ref": "mc"
+      },
+      "field": "gameSettings|field_71474_y"
+    },
+    "field": "guiScale|field_74335_Z",
+    "value": {
+      "ref": "p4SmallOriginalScale"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "client",
+    "target": {
+      "ref": "mc"
+    },
+    "method": "resize|func_71370_a",
+    "args": [
+      {
+        "ref": "p4SmallOriginalWidth"
+      },
+      {
+        "ref": "p4SmallOriginalHeight"
+      }
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "assert",
+    "name": "p4small.original-display-width-restored",
+    "actual": {
+      "target": {
+        "ref": "mc"
+      },
+      "field": "displayWidth|field_71443_c"
+    },
+    "expected": {
+      "ref": "p4SmallOriginalWidth"
+    },
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.original-display-height-restored",
+    "actual": {
+      "target": {
+        "ref": "mc"
+      },
+      "field": "displayHeight|field_71440_d"
+    },
+    "expected": {
+      "ref": "p4SmallOriginalHeight"
+    },
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p4small.original-gui-scale-restored",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "mc"
+        },
+        "field": "gameSettings|field_71474_y"
+      },
+      "field": "guiScale|field_74335_Z"
+    },
+    "expected": {
+      "ref": "p4SmallOriginalScale"
+    },
+    "side": "client"
+  }
+]

@@ -1,0 +1,1768 @@
+[
+  {
+    "op": "group",
+    "name": "p5-cluster-real-factory-five-pages-and-safe-actions"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "closeScreen|func_71053_j",
+    "args": [],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "p5.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "capabilities|field_71075_bZ"
+      },
+      "field": "isFlying|field_75100_b"
+    },
+    "save": "p5PriorFlying",
+    "side": "server"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "field": "currentItem|field_70461_c"
+    },
+    "save": "p5PriorHotbar",
+    "side": "server"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getStackInSlot|func_70301_a",
+      "args": [
+        0
+      ]
+    },
+    "save": "p5PriorStack",
+    "side": "server"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": [],
+    "side": "server"
+  },
+  {
+    "op": "findItem",
+    "side": "server",
+    "class": "com.miaokatze.gtsr.common.items.HubTerminal",
+    "save": "p5TerminalItem"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "item": {
+      "ref": "p5TerminalItem"
+    },
+    "count": 1,
+    "mark": "p5-owned-cluster-terminal",
+    "save": "p5TerminalStack"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      {
+        "ref": "p5TerminalStack"
+      }
+    ],
+    "side": "server"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": 0
+  },
+  {
+    "op": "resize",
+    "width": 1280,
+    "height": 720,
+    "scale": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p5Cluster",
+    "class": "com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster",
+    "x": 560,
+    "y": 90,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "ref": "p5Cluster"
+      },
+      "call": "isMachineEnabled",
+      "args": []
+    },
+    "save": "p5PriorEnabled",
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5Cluster"
+    },
+    "method": "setMachineEnabled",
+    "args": [
+      false
+    ],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "@com.miaokatze.gtsr.common.gui.mui2.cluster.ClusterTerminalFactory"
+    },
+    "method": "open",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "ref": "p5ClusterHost"
+      },
+      0
+    ],
+    "side": "server",
+    "save": "p5Opened"
+  },
+  {
+    "op": "assert",
+    "name": "p5.factory.open.accepted",
+    "actual": {
+      "ref": "p5Opened"
+    },
+    "expected": true,
+    "side": "server",
+    "relation": "="
+  },
+  {
+    "op": "expectScreen",
+    "name": "p5-cluster-topology",
+    "panel": "cluster_terminal"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "screen"
+          },
+          "call": "getSyncManager",
+          "args": []
+        },
+        "call": "getMainPSM",
+        "args": []
+      },
+      "call": "findSyncHandlerNullable",
+      "args": [
+        "cluster_session",
+        0
+      ]
+    },
+    "save": "p5Session",
+    "side": "client"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSyncManager",
+          "args": []
+        },
+        "call": "getMainPSM",
+        "args": []
+      },
+      "call": "findSyncHandlerNullable",
+      "args": [
+        "cluster_session",
+        0
+      ]
+    },
+    "save": "p5ServerSession",
+    "side": "server"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "call": "snapshot",
+      "args": []
+    },
+    "save": "p5FirstSnapshot",
+    "side": "client"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p5Session"
+        },
+        "field": "data"
+      },
+      "field": "epoch"
+    },
+    "save": "p5FirstEpoch",
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p5.explicit-single-handler-key",
+    "actual": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "call": "getKey",
+      "args": []
+    },
+    "expected": "cluster_session:0",
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.real-unformed-controller-no-synthetic-formation",
+    "actual": {
+      "target": {
+        "ref": "p5Cluster"
+      },
+      "call": "getStructureTierIndex",
+      "args": []
+    },
+    "expected": -1,
+    "side": "server",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.initial-full-32-key-mask",
+    "actual": {
+      "target": {
+        "ref": "p5FirstSnapshot"
+      },
+      "field": "changedMask"
+    },
+    "expected": -1,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.global-snapshot-version-positive",
+    "actual": {
+      "target": {
+        "ref": "p5FirstSnapshot"
+      },
+      "field": "version"
+    },
+    "expected": 0,
+    "side": "client",
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "name": "p5.bit31-key-present-even-empty",
+    "actual": {
+      "target": {
+        "ref": "p5FirstSnapshot"
+      },
+      "call": "getStr",
+      "args": [
+        "cl.le.chains",
+        "MISSING"
+      ]
+    },
+    "expected": "",
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.topology-first-slot-type-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p5FirstSnapshot"
+        },
+        "call": "getBytes",
+        "args": [
+          "cl.topo"
+        ]
+      },
+      "index": 0
+    },
+    "expected": 0,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.topology-first-slot-link-sentinel",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p5FirstSnapshot"
+        },
+        "call": "getBytes",
+        "args": [
+          "cl.topo"
+        ]
+      },
+      "index": 4
+    },
+    "expected": -1,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "record",
+    "name": "p5.topology-slot59-byte299-readable",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p5FirstSnapshot"
+        },
+        "call": "getBytes",
+        "args": [
+          "cl.topo"
+        ]
+      },
+      "index": 299
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p5.run-slot59-empty-sentinel",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p5FirstSnapshot"
+        },
+        "call": "getBytes",
+        "args": [
+          "cl.run"
+        ]
+      },
+      "index": 59
+    },
+    "expected": -1,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.native-page-initial-zero",
+    "actual": {
+      "target": {
+        "widget": "cluster_pages"
+      },
+      "call": "getCurrentPageIndex",
+      "args": []
+    },
+    "expected": 0,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "screenshot",
+    "name": "p5-topology-native"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "ref": "panel"
+      },
+      "call": "hashCode",
+      "args": []
+    },
+    "save": "p5SamePanel",
+    "side": "client"
+  },
+  {
+    "op": "click",
+    "widget": "cluster_tab_1"
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "p5.native-page-1",
+    "actual": {
+      "target": {
+        "widget": "cluster_pages"
+      },
+      "call": "getCurrentPageIndex",
+      "args": []
+    },
+    "expected": 1,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.same-panel-page-1",
+    "actual": {
+      "target": {
+        "ref": "panel"
+      },
+      "call": "hashCode",
+      "args": []
+    },
+    "expected": {
+      "ref": "p5SamePanel"
+    },
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "screenshot",
+    "name": "p5-native-page-1"
+  },
+  {
+    "op": "click",
+    "widget": "cluster_tab_2"
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "p5.native-page-2",
+    "actual": {
+      "target": {
+        "widget": "cluster_pages"
+      },
+      "call": "getCurrentPageIndex",
+      "args": []
+    },
+    "expected": 2,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.same-panel-page-2",
+    "actual": {
+      "target": {
+        "ref": "panel"
+      },
+      "call": "hashCode",
+      "args": []
+    },
+    "expected": {
+      "ref": "p5SamePanel"
+    },
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "screenshot",
+    "name": "p5-native-page-2"
+  },
+  {
+    "op": "click",
+    "widget": "cluster_tab_3"
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "p5.native-page-3",
+    "actual": {
+      "target": {
+        "widget": "cluster_pages"
+      },
+      "call": "getCurrentPageIndex",
+      "args": []
+    },
+    "expected": 3,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.same-panel-page-3",
+    "actual": {
+      "target": {
+        "ref": "panel"
+      },
+      "call": "hashCode",
+      "args": []
+    },
+    "expected": {
+      "ref": "p5SamePanel"
+    },
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "screenshot",
+    "name": "p5-native-page-3"
+  },
+  {
+    "op": "click",
+    "widget": "cluster_tab_4"
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "p5.native-page-4",
+    "actual": {
+      "target": {
+        "widget": "cluster_pages"
+      },
+      "call": "getCurrentPageIndex",
+      "args": []
+    },
+    "expected": 4,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.same-panel-page-4",
+    "actual": {
+      "target": {
+        "ref": "panel"
+      },
+      "call": "hashCode",
+      "args": []
+    },
+    "expected": {
+      "ref": "p5SamePanel"
+    },
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "screenshot",
+    "name": "p5-native-page-4"
+  },
+  {
+    "op": "click",
+    "widget": "cluster_tab_1"
+  },
+  {
+    "op": "wait",
+    "ticks": 5
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "field": "commandSequence"
+    },
+    "save": "p5BeforeInvalidSave",
+    "side": "client"
+  },
+  {
+    "op": "click",
+    "widget": "cluster_chain_save"
+  },
+  {
+    "op": "wait",
+    "ticks": 8
+  },
+  {
+    "op": "assert",
+    "name": "p5.no-unit-save-rejected-locally-no-C2S",
+    "actual": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "field": "commandSequence"
+    },
+    "expected": {
+      "ref": "p5BeforeInvalidSave"
+    },
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.no-unit-draft-is-null",
+    "actual": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "call": "draft",
+      "args": []
+    },
+    "expected": null,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.save-rejection-feedback",
+    "actual": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "call": "receipt",
+      "args": []
+    },
+    "expected": "gtsr.cluster.mui2.rejected",
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "click",
+    "widget": "cluster_chain_clear"
+  },
+  {
+    "op": "click",
+    "widget": "cluster_chain_revert"
+  },
+  {
+    "op": "assert",
+    "name": "p5.clear-revert-without-target-do-not-send",
+    "actual": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "field": "commandSequence"
+    },
+    "expected": {
+      "ref": "p5BeforeInvalidSave"
+    },
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5Session"
+    },
+    "method": "submit",
+    "args": [
+      {
+        "enum": "com.miaokatze.gtsr.common.terminal.ClusterTerminalActions",
+        "name": "APPEND_LINK"
+      },
+      -1,
+      {
+        "target": {
+          "ref": "p5FirstSnapshot"
+        },
+        "call": "getBytes",
+        "args": [
+          "cl.run"
+        ]
+      }
+    ],
+    "side": "client"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "p5.placeholder-action-rejected-on-server",
+    "actual": {
+      "target": {
+        "ref": "p5ServerSession"
+      },
+      "field": "lastResultStatus"
+    },
+    "expected": 1,
+    "side": "server",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.placeholder-does-not-change-power",
+    "actual": {
+      "target": {
+        "ref": "p5Cluster"
+      },
+      "call": "isMachineEnabled",
+      "args": []
+    },
+    "expected": false,
+    "side": "server",
+    "relation": "="
+  },
+  {
+    "op": "click",
+    "widget": "cluster_power"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "p5.native-power-one-server-transaction",
+    "actual": {
+      "target": {
+        "ref": "p5Cluster"
+      },
+      "call": "isMachineEnabled",
+      "args": []
+    },
+    "expected": true,
+    "side": "server",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.native-power-authoritative-return",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p5Session"
+        },
+        "call": "snapshot",
+        "args": []
+      },
+      "call": "getBool",
+      "args": [
+        "cl.enabled",
+        false
+      ]
+    },
+    "expected": true,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "click",
+    "widget": "cluster_power"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "p5.native-power-roundtrip-restored",
+    "actual": {
+      "target": {
+        "ref": "p5Cluster"
+      },
+      "call": "isMachineEnabled",
+      "args": []
+    },
+    "expected": false,
+    "side": "server",
+    "relation": "="
+  },
+  {
+    "op": "click",
+    "widget": "cluster_tab_3"
+  },
+  {
+    "op": "wait",
+    "ticks": 5
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "field": "commandSequence"
+    },
+    "save": "p5BeforeStatsArm",
+    "side": "client"
+  },
+  {
+    "op": "click",
+    "widget": "cluster_clear_stats"
+  },
+  {
+    "op": "assert",
+    "name": "p5.first-clear-click-only-arms",
+    "actual": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "call": "clearArmed",
+      "args": []
+    },
+    "expected": true,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.first-clear-click-no-C2S",
+    "actual": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "field": "commandSequence"
+    },
+    "expected": {
+      "ref": "p5BeforeStatsArm"
+    },
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "click",
+    "widget": "cluster_clear_stats"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "p5.second-clear-click-disarms",
+    "actual": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "call": "clearArmed",
+      "args": []
+    },
+    "expected": false,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.second-clear-click-sends-command",
+    "actual": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "field": "commandSequence"
+    },
+    "expected": {
+      "ref": "p5BeforeStatsArm"
+    },
+    "side": "client",
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "name": "p5.clear-server-result-accepted",
+    "actual": {
+      "target": {
+        "ref": "p5ServerSession"
+      },
+      "field": "lastResultStatus"
+    },
+    "expected": 0,
+    "side": "server",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.empty-owned-three-ledgers-stay-empty",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p5Session"
+        },
+        "call": "snapshot",
+        "args": []
+      },
+      "call": "getStats",
+      "args": [
+        "MISSING"
+      ]
+    },
+    "expected": "||",
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "field": "commandSequence"
+    },
+    "save": "p5BeforeStatsTimeout",
+    "side": "client"
+  },
+  {
+    "op": "click",
+    "widget": "cluster_clear_stats"
+  },
+  {
+    "op": "click",
+    "widget": "cluster_tab_4"
+  },
+  {
+    "op": "wait",
+    "ticks": 80
+  },
+  {
+    "op": "assert",
+    "name": "p5.clear-arm-expires-while-page-hidden",
+    "actual": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "call": "clearArmed",
+      "args": []
+    },
+    "expected": false,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.arm-timeout-never-sends-clear",
+    "actual": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "field": "commandSequence"
+    },
+    "expected": {
+      "ref": "p5BeforeStatsTimeout"
+    },
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "scroll",
+    "widget": "cluster_perf_list_0",
+    "amount": 10000
+  },
+  {
+    "op": "wait",
+    "ticks": 5
+  },
+  {
+    "op": "screenshot",
+    "name": "p5-performance-scroll-native"
+  },
+  {
+    "op": "record",
+    "name": "p5.production-legal-SAVE_CHAIN-status",
+    "value": "NOT_RUN: this real placed controller is unformed and has no registered logistics unit; no formed/output fields were fabricated. The standalone common fixture already covers 18 codec/draft assertions."
+  },
+  {
+    "op": "group",
+    "name": "p5-isolated-local-draft-boundaries-no-world-writes"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "new": "com.miaokatze.gtsr.common.gui.mui2.cluster.ClusterDraftState",
+      "args": []
+    },
+    "save": "p5LocalDraft",
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      9
+    ],
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p5.local-only-single-furnace-terminal-valid",
+    "actual": {
+      "target": {
+        "ref": "p5LocalDraft"
+      },
+      "call": "valid",
+      "args": []
+    },
+    "expected": true,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "clear",
+    "args": [],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "append",
+    "args": [
+      0
+    ],
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p5.local-only-17-appends-limited-to16",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p5LocalDraft"
+        },
+        "field": "ordinals"
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 16,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "peak",
+    "args": [
+      15
+    ],
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "remove",
+    "args": [
+      15
+    ],
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p5.local-only-delete-clamps-peak",
+    "actual": {
+      "target": {
+        "ref": "p5LocalDraft"
+      },
+      "field": "peak"
+    },
+    "expected": 14,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.local-only-delete-length",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p5LocalDraft"
+        },
+        "field": "ordinals"
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 15,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "move",
+    "args": [
+      0,
+      -1
+    ],
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p5.local-only-out-of-range-move-no-loss",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p5LocalDraft"
+        },
+        "field": "ordinals"
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 15,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5LocalDraft"
+    },
+    "method": "clear",
+    "args": [],
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p5.local-only-empty-chain-invalid",
+    "actual": {
+      "target": {
+        "ref": "p5LocalDraft"
+      },
+      "call": "valid",
+      "args": []
+    },
+    "expected": false,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "group",
+    "name": "p5-short-close-reopen-full-snapshot-and-final-release"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "closeScreen|func_71053_j",
+    "args": [],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 4
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "@com.miaokatze.gtsr.common.gui.mui2.cluster.ClusterTerminalFactory"
+    },
+    "method": "open",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "ref": "p5ClusterHost"
+      },
+      1
+    ],
+    "side": "server"
+  },
+  {
+    "op": "expectScreen",
+    "name": "p5-cluster-quick-reopen-page1",
+    "panel": "cluster_terminal"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "screen"
+          },
+          "call": "getSyncManager",
+          "args": []
+        },
+        "call": "getMainPSM",
+        "args": []
+      },
+      "call": "findSyncHandlerNullable",
+      "args": [
+        "cluster_session",
+        0
+      ]
+    },
+    "save": "p5ReopenedSession",
+    "side": "client"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSyncManager",
+          "args": []
+        },
+        "call": "getMainPSM",
+        "args": []
+      },
+      "call": "findSyncHandlerNullable",
+      "args": [
+        "cluster_session",
+        0
+      ]
+    },
+    "save": "p5ReopenedServerSession",
+    "side": "server"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p5ReopenedSession"
+        },
+        "field": "data"
+      },
+      "field": "epoch"
+    },
+    "save": "p5ReopenedEpoch",
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p5.reopen-new-epoch",
+    "actual": {
+      "ref": "p5ReopenedEpoch"
+    },
+    "expected": {
+      "ref": "p5FirstEpoch"
+    },
+    "side": "client",
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "name": "p5.reopen-initial-page1",
+    "actual": {
+      "target": {
+        "widget": "cluster_pages"
+      },
+      "call": "getCurrentPageIndex",
+      "args": []
+    },
+    "expected": 1,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.reopen-first-full32-within40ticks",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p5ReopenedSession"
+        },
+        "call": "snapshot",
+        "args": []
+      },
+      "field": "changedMask"
+    },
+    "expected": -1,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.reopen-old-client-handler-disposed",
+    "actual": {
+      "target": {
+        "ref": "p5Session"
+      },
+      "call": "isValid",
+      "args": []
+    },
+    "expected": false,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.reopen-old-server-handler-disposed",
+    "actual": {
+      "target": {
+        "ref": "p5ServerSession"
+      },
+      "call": "isValid",
+      "args": []
+    },
+    "expected": false,
+    "side": "server",
+    "relation": "="
+  },
+  {
+    "op": "screenshot",
+    "name": "p5-quick-reopen-native-links"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "closeScreen|func_71053_j",
+    "args": [],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 8
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "ref": "p5ReopenedServerSession"
+      },
+      "field": "lastPoll"
+    },
+    "save": "p5FinalLastPoll",
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 30
+  },
+  {
+    "op": "assert",
+    "name": "p5.final-close-client-handler-disposed",
+    "actual": {
+      "target": {
+        "ref": "p5ReopenedSession"
+      },
+      "call": "isValid",
+      "args": []
+    },
+    "expected": false,
+    "side": "client",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.final-close-server-handler-disposed",
+    "actual": {
+      "target": {
+        "ref": "p5ReopenedServerSession"
+      },
+      "call": "isValid",
+      "args": []
+    },
+    "expected": false,
+    "side": "server",
+    "relation": "="
+  },
+  {
+    "op": "assert",
+    "name": "p5.final-close-no-more-session-sampling",
+    "actual": {
+      "target": {
+        "ref": "p5ReopenedServerSession"
+      },
+      "field": "lastPoll"
+    },
+    "expected": {
+      "ref": "p5FinalLastPoll"
+    },
+    "side": "server",
+    "relation": "="
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p5Cluster"
+    },
+    "method": "setMachineEnabled",
+    "args": [
+      {
+        "ref": "p5PriorEnabled"
+      }
+    ],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      {
+        "ref": "p5PriorStack"
+      }
+    ],
+    "side": "server"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": {
+      "ref": "p5PriorHotbar"
+    }
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": {
+      "ref": "p5PriorFlying"
+    }
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": [],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlockToAir|func_147468_f",
+    "args": [
+      560,
+      90,
+      16
+    ],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  }
+]

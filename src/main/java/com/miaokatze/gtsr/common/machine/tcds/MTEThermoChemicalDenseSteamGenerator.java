@@ -963,11 +963,11 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         mFlow = flow >= 1 ? flow : FLOW_DEFAULT;
     }
 
-    // ===== 右击分发（手持机器终端 → TCDS 流量终端，轨 A 原生自绘）=====
+    // ===== 右击分发（手持机器终端 → TCDS 流量终端，MUI2 / 局部旧屏回退）=====
 
     /**
-     * 手持机器终端右击：打开 TCDS 流量终端（TerminalNet open → 客户端 GuiTcdsTerminalScreen
-     * 轮询/动作），不占用空手右键（空手仍打开 MUI 主 GUI）。守卫语义照抄
+     * 手持机器终端右击：默认走独立 MUI2 factory；局部开关关闭时保留 TerminalNet 旧屏。
+     * 不占用空手右键（空手仍打开 GT 主 GUI）。守卫语义照抄
      * MTEHubArrayBase.onRightclick（:628-639，与钻井枢纽同款）。
      * 注：GT BaseMetaTileEntity 潜行时拦截右击，潜行 + 持终端同样打开（枢纽族既定方案）。
      */
@@ -985,13 +985,16 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     }
 
     /**
-     * 服务端：通知客户端打开 TCDS 流量终端（MTESteamHubArray.openHubStatusGui 同构；
-     * FakePlayer 拒发；TE 存活/距离/机器类复核由 TerminalNet C2S 链主线程重做）。
+     * 服务端选择一次开窗路由；MUI2 持续检查会话，旧屏沿用 TerminalNet 的主线程复验。
      */
     private void openTcdsTerminalGui(EntityPlayer player) {
         if (!(player instanceof EntityPlayerMP playerMP) || player instanceof FakePlayer) return;
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null) return;
+        if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.tcdsTerminal) {
+            com.miaokatze.gtsr.common.gui.mui2.TcdsTerminalFactory.open(player, base);
+            return;
+        }
         TerminalNet.sendOpen(TerminalUiType.TCDS, playerMP, base.getXCoord(), base.getYCoord(), base.getZCoord(), 0);
     }
 

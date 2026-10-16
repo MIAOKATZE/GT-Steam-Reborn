@@ -279,12 +279,14 @@ public class CommonProxy {
         // 手持枢纽终端右击打开；服务端 Container + 客户端 Gui 经 main/ClientProxy 静态委托）
         NetworkRegistry.INSTANCE.registerGuiHandler(AggregatorGuiHandler.modInstance(), new AggregatorGuiHandler());
         com.miaokatze.gtsr.common.critical.CriticalRuntime.register();
+        com.miaokatze.gtsr.common.gui.mui2.TcdsTerminalFactory.register();
+        com.miaokatze.gtsr.common.gui.mui2.hub.HubTerminalFactory.register();
+        com.miaokatze.gtsr.common.gui.mui2.hub.CacheNodeEditorFactory.register();
+        com.miaokatze.gtsr.common.gui.mui2.inventory.AggregatorConfigFactory.register();
+        com.miaokatze.gtsr.common.gui.mui2.inventory.UnsealedChestFactory.register();
+        com.miaokatze.gtsr.common.gui.mui2.cluster.ClusterTerminalFactory.register();
         com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreNetwork.register();
-        // 注：钻井/蒸汽/蓄水三个枢纽状态界面已迁 terminal-native-ui 轨 A
-        // （TerminalNet.sendOpen + 客户端 displayGuiScreen），对应 MUI2 factory 注册已随旧轨删除；
-        // 聚合器终端配置界面已迁 FML 原生 IGuiHandler 轨 B（AggregatorGuiHandler），MUI2 factory 注册已删除；
-        // 集群终端界面已迁轨 A（MTESteamMineralLogisticsCluster.openClusterTerminal → TerminalNet.sendOpen），
-        // MUI2 factory 注册已删除。
+        // Each entry chooses its local MUI2 route; legacy terminal/FML registrations remain for fallback.
 
         // 注册自然生成：失控奇点 nature 词条（主世界+下界，频率见配置 singularitySpawnFrequency）
         GameRegistry.registerWorldGenerator(new WorldGenRunawaySingularity(), 0);

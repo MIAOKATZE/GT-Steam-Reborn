@@ -723,6 +723,8 @@ public class Config {
             100,
             "渣脊猎手基权（敌对档，plan §7.1 生物裁决保留；0 = 该档整档退出）。口径同齿轮鸽");
 
+        com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.load(configuration);
+
         if (configuration.hasChanged()) {
             configuration.save();
         }

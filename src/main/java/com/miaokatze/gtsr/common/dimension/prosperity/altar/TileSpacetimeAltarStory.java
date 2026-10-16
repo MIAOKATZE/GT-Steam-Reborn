@@ -42,6 +42,7 @@ public final class TileSpacetimeAltarStory extends TileEntity {
 
     @Override
     public void onDataPacket(NetworkManager manager, S35PacketUpdateTileEntity packet) {
+        if (SpacetimeAltarStorySync.restoreDescriptionType(this, packet)) return;
         readFromNBT(packet.func_148857_g());
     }
 }
