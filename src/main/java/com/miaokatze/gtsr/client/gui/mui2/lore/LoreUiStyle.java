@@ -6,9 +6,10 @@ import net.minecraft.client.gui.Gui;
 
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
-import com.cleanroommc.modularui.drawable.GuiTextures;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
+import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
+import com.miaokatze.gtsr.common.gui.mui2.TerminalUiStyle;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -26,9 +27,9 @@ final class LoreUiStyle {
     static final int ALTAR_TITLE = 0xFFC5EEFF;
     static final int ALTAR_TEXT = 0xFFE0E7EB;
 
-    private static final IDrawable BUTTON = GuiTextures.MC_BUTTON.withColorOverride(0xFFFFFFFF);
-    private static final IDrawable BUTTON_HOVERED = GuiTextures.MC_BUTTON_HOVERED.withColorOverride(0xFFFFFFFF);
-    private static final IDrawable BUTTON_DISABLED = GuiTextures.MC_BUTTON_DISABLED.withColorOverride(0xFFFFFFFF);
+    private static final IDrawable BUTTON = TerminalUiStyle.BUTTON.withColorOverride(0xFFFFFFFF);
+    private static final IDrawable BUTTON_HOVERED = TerminalUiStyle.HOVER.withColorOverride(0xFFFFFFFF);
+    private static final IDrawable BUTTON_DISABLED = TerminalUiStyle.DISABLED.withColorOverride(0xFFFFFFFF);
 
     static final IDrawable JOURNAL_PANEL = (context, x, y, width, height, theme) -> {
         Gui.drawRect(x - 2, y - 2, x + width + 2, y + height + 2, 0xFF192826);
@@ -62,8 +63,8 @@ final class LoreUiStyle {
     static ButtonWidget<?> button(IKey label, BooleanSupplier selectedTab) {
         ButtonWidget<?> button = new ButtonWidget<>();
         IDrawable background = (context, x, y, width, height, theme) -> {
-            IDrawable texture = !button.isEnabled() || selectedTab.getAsBoolean() ? BUTTON_DISABLED
-                : button.isHovering() ? BUTTON_HOVERED : BUTTON;
+            IDrawable texture = !button.isEnabled() ? BUTTON_DISABLED
+                : selectedTab.getAsBoolean() || button.isHovering() ? BUTTON_HOVERED : BUTTON;
             texture.draw(context, x, y, width, height, theme);
         };
         return button.background(background)
@@ -71,24 +72,23 @@ final class LoreUiStyle {
             .overlay(
                 label
                     .color(
-                        () -> !button.isEnabled() || selectedTab.getAsBoolean() ? 0xFFA0A0A0
-                            : button.isHovering() ? 0xFFFFFFA0 : 0xFFE0E0E0)
-                    .shadow(true));
+                        () -> !button.isEnabled() ? GtsrGuiPalette.TEXT_MUTED
+                            : selectedTab.getAsBoolean() ? GtsrGuiPalette.TEXT_ACCENT : GtsrGuiPalette.TEXT_BODY)
+                    .shadow(false));
     }
 
     static ButtonWidget<?> forestEntry(IKey label, BooleanSupplier selected) {
         ButtonWidget<?> button = new ButtonWidget<>();
-        IDrawable background = (context, x, y, width, height, theme) -> Gui.drawRect(
-            x,
-            y,
-            x + width,
-            y + height,
-            selected.getAsBoolean() ? 0xFF657860 : button.isHovering() ? 0xFF384B3F : 0xFF252E29);
+        IDrawable background = (context, x, y, width, height, theme) -> {
+            IDrawable texture = !button.isEnabled() ? BUTTON_DISABLED
+                : selected.getAsBoolean() || button.isHovering() ? BUTTON_HOVERED : BUTTON;
+            texture.draw(context, x, y, width, height, theme);
+        };
         return button.background(background)
             .hoverBackground(background)
             .padding(4)
             .overlay(
-                label.color(JOURNAL_ENTRY_TEXT)
+                label.color(() -> selected.getAsBoolean() ? GtsrGuiPalette.TEXT_ACCENT : GtsrGuiPalette.TEXT_BODY)
                     .alignment(Alignment.CenterLeft)
                     .shadow(false));
     }

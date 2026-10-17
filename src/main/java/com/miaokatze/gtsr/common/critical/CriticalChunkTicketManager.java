@@ -36,7 +36,7 @@ public final class CriticalChunkTicketManager implements ForgeChunkManager.Order
             .get(GTSteamReborn.MODID)
             .getMod();
         configureDefaults(ForgeChunkManager.getConfig());
-        ForgeChunkManager.setForcedChunkLoadingCallback(mod, INSTANCE);
+        com.miaokatze.gtsr.common.machine.base.RemoteWorkerChunkTickets.register(mod, INSTANCE);
     }
 
     static void configureDefaults(Configuration config) {
