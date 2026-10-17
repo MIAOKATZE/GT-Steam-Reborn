@@ -160,7 +160,7 @@ public final class HubTerminalFactory implements UIFactory<PosGuiData> {
     @SideOnly(Side.CLIENT)
     @Override
     public ModularScreen createScreen(PosGuiData data, ModularPanel panel) {
-        return new BoundedTerminalScreen("gtsr", panel, 400, type == TerminalUiType.CACHE_NODE ? 238 : 312);
+        return new BoundedTerminalScreen("gtsr", panel, 400, 240);
     }
 
     @Override
