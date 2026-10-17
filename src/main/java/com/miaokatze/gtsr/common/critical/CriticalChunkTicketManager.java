@@ -36,7 +36,7 @@ public final class CriticalChunkTicketManager implements ForgeChunkManager.Order
             .get(GTSteamReborn.MODID)
             .getMod();
         configureDefaults(ForgeChunkManager.getConfig());
-        ForgeChunkManager.setForcedChunkLoadingCallback(mod, INSTANCE);
+        com.miaokatze.gtsr.common.machine.base.RemoteWorkerChunkTickets.register(mod, INSTANCE);
     }
 
     static void configureDefaults(Configuration config) {
@@ -87,9 +87,11 @@ public final class CriticalChunkTicketManager implements ForgeChunkManager.Order
         if (ticket != null) ForgeChunkManager.releaseTicket(ticket);
     }
 
-    static void releaseWorld(World world) {
+    static void releaseWorld(World world, boolean forgeTicketsUnloaded) {
         for (TileEntity owner : new ArrayList<>(REGISTERED.keySet())) {
-            if (owner.getWorldObj() == world) releaseTicket(owner);
+            if (owner.getWorldObj() != world) continue;
+            if (forgeTicketsUnloaded) REGISTERED.remove(owner);
+            else releaseTicket(owner);
         }
     }
 

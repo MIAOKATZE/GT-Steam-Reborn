@@ -6,6 +6,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.FakePlayer;
 
+import com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes;
 import com.miaokatze.gtsr.common.gui.terminal.ContainerAggregatorConfig;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
 import com.miaokatze.gtsr.main.ClientProxy;
@@ -76,7 +77,7 @@ public class AggregatorGuiHandler implements IGuiHandler {
      */
     @Override
     public Object getServerGuiElement(int id, EntityPlayer player, World world, int x, int y, int z) {
-        if (id != ID_AGGREGATOR) {
+        if (id != ID_AGGREGATOR || Mui2TerminalRoutes.aggregatorConfig) {
             return null;
         }
         if (!(player instanceof EntityPlayerMP) || player instanceof FakePlayer) {

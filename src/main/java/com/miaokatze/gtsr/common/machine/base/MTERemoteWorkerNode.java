@@ -25,13 +25,13 @@ import com.miaokatze.gtsr.common.util.HubBindingUtil;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.GTValues;
 import gregtech.api.enums.HarvestTool;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.modularui.IAddUIWidgets;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.objects.GTChunkManager;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
 import io.netty.buffer.ByteBuf;
@@ -116,6 +116,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     protected boolean mWorkChunksRequested = false;
     private int mSelfChunkRequestRetryTicks = 0;
     private int mWorkChunkRequestRetryTicks = 0;
+    private int mHubChunkRefreshTicks = 0;
 
     public MTERemoteWorkerNode(int aID, String aName, String aNameRegional, int aInvSlotCount) {
         super(aID, aName, aNameRegional, aInvSlotCount);
@@ -309,6 +310,12 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         super.onRemoval();
     }
 
+    @Override
+    public void onUnload() {
+        releaseAllChunks();
+        super.onUnload();
+    }
+
     /**
      * 区块加载维护（服务端每 tick 调用）：已绑定的节点始终加载自身所在区块，
      * 保证枢纽终端可以跨维度解析；允许工作时再额外申请工作范围区块，
@@ -316,6 +323,10 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
      * 注意：子类若覆写 onPostTick 且不调用 super.onPostTick，需自行调用本方法。
      */
     protected void updateChunkLoading(IGregTechTileEntity aBaseMetaTileEntity) {
+        if (!GTValues.enableChunkloaders) {
+            releaseAllChunks();
+            return;
+        }
         if (mSelfChunkRequestRetryTicks > 0) {
             mSelfChunkRequestRetryTicks--;
         }
@@ -324,11 +335,28 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         }
 
         if (isBound()) {
-            // 只要节点仍绑定，就始终加载自身所在区块，保证枢纽终端可以跨维度解析
+            // A hub drives the node. Keep both ends of the control chain alive, resolving only
+            mSelfChunkRequested = RemoteWorkerChunkTickets.hasSelf((TileEntity) aBaseMetaTileEntity);
             if (!mSelfChunkRequested && mSelfChunkRequestRetryTicks == 0) {
                 requestSelfChunk();
             }
-
+            // existing loaded worlds/chunks; the normal registration retry may reconnect later.
+            if (mSelfChunkRequested && mHubChunkRefreshTicks-- <= 0) {
+                World hubWorld = DimensionManager.getWorld(mHubDim);
+                // Only normal node ticks may reopen the bound controller chunk in an existing
+                // world. Never initialize a dimension from serialized binding or a Forge callback.
+                if (hubWorld != null && !hubWorld.blockExists(mHubX, mHubY, mHubZ)) {
+                    hubWorld.getChunkProvider()
+                        .loadChunk(mHubX >> 4, mHubZ >> 4);
+                }
+                TileEntity hub = hubWorld != null && hubWorld.blockExists(mHubX, mHubY, mHubZ)
+                    ? hubWorld.getTileEntity(mHubX, mHubY, mHubZ)
+                    : null;
+                if (!(hub instanceof IGregTechTileEntity gt) || !(gt.getMetaTileEntity() instanceof IHubArray))
+                    hub = null;
+                RemoteWorkerChunkTickets.bindHub((TileEntity) aBaseMetaTileEntity, hub);
+                mHubChunkRefreshTicks = CHUNK_REQUEST_RETRY_DELAY;
+            }
             // 允许工作时再额外加载工作范围区块
             if (aBaseMetaTileEntity.isAllowedToWork()) {
                 if (!mWorkChunksRequested && mWorkChunkRequestRetryTicks == 0) {
@@ -338,7 +366,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
                 // 停止工作时仅释放工作范围区块，保留自身区块加载
                 releaseWorkChunks();
             }
-        } else if (mSelfChunkRequested || mWorkChunksRequested) {
+        } else {
             // 完全解绑或移除时释放全部 ticket
             releaseAllChunks();
         }
@@ -354,7 +382,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null) return;
         ChunkCoordIntPair selfChunk = new ChunkCoordIntPair(base.getXCoord() >> 4, base.getZCoord() >> 4);
-        if (GTChunkManager.requestChunkLoad((TileEntity) base, selfChunk)) {
+        if (RemoteWorkerChunkTickets.ensure((TileEntity) base, java.util.Collections.singletonList(selfChunk))) {
             mSelfChunkRequested = true;
             mSelfChunkRequestRetryTicks = 0;
         } else {
@@ -371,13 +399,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         if (base == null) return;
         List<ChunkCoordIntPair> chunks = new ArrayList<>();
         collectWorkChunks(chunks);
-        TileEntity te = (TileEntity) base;
-        boolean allLoaded = true;
-        for (ChunkCoordIntPair chunk : chunks) {
-            if (!GTChunkManager.requestChunkLoad(te, chunk)) {
-                allLoaded = false;
-            }
-        }
+        boolean allLoaded = RemoteWorkerChunkTickets.ensure((TileEntity) base, chunks);
         if (allLoaded) {
             mWorkChunksRequested = true;
             mWorkChunkRequestRetryTicks = 0;
@@ -396,19 +418,9 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
             mWorkChunksRequested = false;
             return;
         }
-        List<ChunkCoordIntPair> chunks = new ArrayList<>();
-        collectWorkChunks(chunks);
-
         TileEntity te = (TileEntity) base;
-        int selfChunkX = te.xCoord >> 4;
-        int selfChunkZ = te.zCoord >> 4;
-
-        for (ChunkCoordIntPair chunk : chunks) {
-            // 不释放自身区块，避免目标维度被卸载
-            if (chunk.chunkXPos != selfChunkX || chunk.chunkZPos != selfChunkZ) {
-                GTChunkManager.releaseChunk(te, chunk);
-            }
-        }
+        RemoteWorkerChunkTickets
+            .ensure(te, java.util.Collections.singletonList(new ChunkCoordIntPair(te.xCoord >> 4, te.zCoord >> 4)));
         mWorkChunksRequested = false;
         mWorkChunkRequestRetryTicks = 0;
     }
@@ -447,12 +459,13 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     public void releaseAllChunks() {
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base != null) {
-            GTChunkManager.releaseTicket((TileEntity) base);
+            RemoteWorkerChunkTickets.release((TileEntity) base);
         }
         mSelfChunkRequested = false;
         mWorkChunksRequested = false;
         mSelfChunkRequestRetryTicks = 0;
         mWorkChunkRequestRetryTicks = 0;
+        mHubChunkRefreshTicks = 0;
     }
 
     /**
@@ -569,7 +582,36 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
 
     @Override
     protected boolean useMui2() {
-        return false;
+        return com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.remoteWorkerNodes;
+    }
+
+    @Override
+    public com.cleanroommc.modularui.screen.ModularPanel buildUI(com.cleanroommc.modularui.factory.PosGuiData data,
+        com.cleanroommc.modularui.value.sync.PanelSyncManager syncManager,
+        com.cleanroommc.modularui.screen.UISettings settings) {
+        return com.miaokatze.gtsr.common.gui.mui2.worker.RemoteWorkerNodePanel.build(this, data, syncManager, settings);
+    }
+
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    @Override
+    public com.cleanroommc.modularui.screen.ModularScreen createScreen(
+        com.cleanroommc.modularui.factory.PosGuiData data, com.cleanroommc.modularui.screen.ModularPanel mainPanel) {
+        return new com.miaokatze.gtsr.common.gui.mui2.BoundedTerminalScreen("gregtech", mainPanel, 240, 274)
+            .useTheme(getGuiTheme().getId());
+    }
+
+    /** Read-only UI data; implementations expose their private display fields without changing persisted state. */
+    public com.miaokatze.gtsr.common.gui.mui2.worker.WorkerUiSnapshot getWorkerUiSnapshot() {
+        return null;
+    }
+
+    /** Shared upgrade facts for a tooltip; the actual transaction remains tryUpgrade. */
+    public ItemStack getWorkerUpgradeItem(int targetTier) {
+        return null;
+    }
+
+    public int getWorkerUpgradeCost(int targetTier) {
+        return 0;
     }
 
     @Override

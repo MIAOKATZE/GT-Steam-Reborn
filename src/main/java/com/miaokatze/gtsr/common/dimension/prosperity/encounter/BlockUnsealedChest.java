@@ -17,6 +17,9 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
+import com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes;
+import com.miaokatze.gtsr.common.gui.mui2.inventory.UnsealedChestFactory;
+
 /** Breakable reward vessel. Every removal spills contents, and never drops the vessel itself. */
 public final class BlockUnsealedChest extends BlockContainer {
 
@@ -77,7 +80,11 @@ public final class BlockUnsealedChest extends BlockContainer {
             TileEntity tile = world.getTileEntity(x, y, z);
             if (tile instanceof TileEntityUnsealedChest) {
                 ((TileEntityUnsealedChest) tile).recordStory(player);
-                player.displayGUIChest((TileEntityUnsealedChest) tile);
+                if (Mui2TerminalRoutes.unsealedChest) {
+                    UnsealedChestFactory.open(player, (TileEntityUnsealedChest) tile);
+                } else {
+                    player.displayGUIChest((TileEntityUnsealedChest) tile);
+                }
             }
         }
         return true;

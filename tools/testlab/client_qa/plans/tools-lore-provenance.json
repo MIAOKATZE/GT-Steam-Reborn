@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "status": "STATIC_PREPARED_NOT_RUN_AS_A_COMBINED_FINAL_SUITE",
+  "fullSuite": {
+    "path": "tools/testlab/client_qa/plans/tools-lore.json",
+    "steps": 787,
+    "groups": [
+      "p6-wand-real-air-profile-save-load",
+      "p6-journal-real-authorized-starter",
+      "p6-journal-local-full-permission-long-text-visual",
+      "p6-navigator-real-compass-dimension78-gate",
+      "p6-altar-real-owner-board-reading-close-no-activation",
+      "p6-altar-owned-fixture-cleanup"
+    ],
+    "sha256": "05380d74a12ed19b43eb32d3e362ac88ee366701a6c713cf9126accc48b9eb4a"
+  },
+  "textFocusedSuite": {
+    "path": "tools/testlab/client_qa/plans/tools-lore-text-focused.json",
+    "steps": 371,
+    "sha256": "b3e11a74c074de1e1c48de6f94a6fa215c65ff0833bf337b90befe5d640b778e",
+    "copiedExactlyFrom371StepSource": true,
+    "immutableR11RunPlanPath": "build/mui2-v12138/migration-r8-text-focused-r11-plan.json",
+    "immutableR11RunPlanSHA256": "6b77fef33fd5e549474409d6763f24f59efb4c4b9f46313efdae423679184bf5",
+    "runFileNotModified": true
+  },
+  "canonicalGroupHashFormat": "UTF-8 JSON ensure_ascii=false, sort_keys=true, separators=(comma,colon)",
+  "groupProvenance": [
+    {
+      "group": "p6-wand-real-air-profile-save-load",
+      "sourceFile": "build/mui2-v12138/client-runs/migration-r6-focused-r9/plan.json",
+      "sourceFileSHA256": "c0d6e15533a14c7d1ff96901ffd18aed964986a98a288e0c0df27244dcea8eab",
+      "sourceSliceStartInclusive": 207,
+      "sourceSliceEndExclusive": 352,
+      "sourceGroupCanonicalSHA256": "aa19c9afc03162ab62475437fb6d67834a2aeaeaee6c9d3e6ad9cf055ed0545b",
+      "preparedGroupCanonicalSHA256": "aa19c9afc03162ab62475437fb6d67834a2aeaeaee6c9d3e6ad9cf055ed0545b",
+      "sourceSteps": 145,
+      "preparedSteps": 145,
+      "semanticallyExactSourceGroup": true,
+      "changes": [],
+      "caseEvidence": "Wand/Nav case groups passed in R9; Altar lifecycle/cleanup case groups passed in R10; overall runs contain independent failures. Latest combined suite has NOT been re-run."
+    },
+    {
+      "group": "p6-journal-real-authorized-starter",
+      "sourceFile": "build/mui2-v12138/client-runs/migration-r7-focused-r10/plan.json",
+      "sourceFileSHA256": "70c4566e2afe670ded33734868fb90caea0e0f6b7700627fdf9afc45ac69eba6",
+      "sourceSliceStartInclusive": 105,
+      "sourceSliceEndExclusive": 174,
+      "sourceGroupCanonicalSHA256": "0a0233f81a4791b66e19e8a2a1ad49f91bf93d388a1633bcc71da7a1c49fc550",
+      "preparedGroupCanonicalSHA256": "110081a73b64252c154738b995549d66dbe6643628764db8155f57bb0dd95f15",
+      "sourceSteps": 69,
+      "preparedSteps": 78,
+      "semanticallyExactSourceGroup": false,
+      "changes": [
+        "Keep R10 four-tab rectangle/visibility/native click cases and viewport bounds.",
+        "Replace paragraph geometry and append latest focused native-final-width/font-wrap/overlap assertions.",
+        "Correct scrollBy(+1) end predicate to true: clamp changed the intermediate out-of-bounds value; no production behavior changed."
+      ],
+      "caseEvidence": "R10 four-tab/viewport cases passed; latest font checks originate focused source prepared for R11. Final text outcome belongs to the immutable focused run receipt, not this static synthesis."
+    },
+    {
+      "group": "p6-journal-local-full-permission-long-text-visual",
+      "sourceFile": "build/mui2-v12138/client-runs/migration-r7-focused-r10/plan.json",
+      "sourceFileSHA256": "70c4566e2afe670ded33734868fb90caea0e0f6b7700627fdf9afc45ac69eba6",
+      "sourceSliceStartInclusive": 174,
+      "sourceSliceEndExclusive": 396,
+      "sourceGroupCanonicalSHA256": "28654203a8b36aa59cc240326d96f88c23c88834100888520667ebbe4b1c3cf7",
+      "preparedGroupCanonicalSHA256": "09b8ac6bf61a7ef66ced1ecec9431f2f0ae02162f86818406295f2b7d037545a",
+      "sourceSteps": 222,
+      "preparedSteps": 306,
+      "semanticallyExactSourceGroup": false,
+      "changes": [
+        "Keep R10 four-tab rectangle/visibility/native click cases and viewport bounds.",
+        "Replace paragraph geometry and append latest focused native-final-width/font-wrap/overlap assertions.",
+        "Correct scrollBy(+1) end predicate to true: clamp changed the intermediate out-of-bounds value; no production behavior changed."
+      ],
+      "caseEvidence": "R10 four-tab/viewport cases passed; latest font checks originate focused source prepared for R11. Final text outcome belongs to the immutable focused run receipt, not this static synthesis."
+    },
+    {
+      "group": "p6-navigator-real-compass-dimension78-gate",
+      "sourceFile": "build/mui2-v12138/client-runs/migration-r6-focused-r9/plan.json",
+      "sourceFileSHA256": "c0d6e15533a14c7d1ff96901ffd18aed964986a98a288e0c0df27244dcea8eab",
+      "sourceSliceStartInclusive": 458,
+      "sourceSliceEndExclusive": 518,
+      "sourceGroupCanonicalSHA256": "95e37cd45f1195ff3991a989e7baaf23d2a89e81dcaecef5e7c4965801cdf8b5",
+      "preparedGroupCanonicalSHA256": "95e37cd45f1195ff3991a989e7baaf23d2a89e81dcaecef5e7c4965801cdf8b5",
+      "sourceSteps": 60,
+      "preparedSteps": 60,
+      "semanticallyExactSourceGroup": true,
+      "changes": [],
+      "caseEvidence": "Wand/Nav case groups passed in R9; Altar lifecycle/cleanup case groups passed in R10; overall runs contain independent failures. Latest combined suite has NOT been re-run."
+    },
+    {
+      "group": "p6-altar-real-owner-board-reading-close-no-activation",
+      "sourceFile": "build/mui2-v12138/client-runs/migration-r7-focused-r10/plan.json",
+      "sourceFileSHA256": "70c4566e2afe670ded33734868fb90caea0e0f6b7700627fdf9afc45ac69eba6",
+      "sourceSliceStartInclusive": 396,
+      "sourceSliceEndExclusive": 573,
+      "sourceGroupCanonicalSHA256": "e102c5a554c19fb663d74ff2478da842b5e9cb418e9f75c36ba93cb588a8a5e8",
+      "preparedGroupCanonicalSHA256": "e102c5a554c19fb663d74ff2478da842b5e9cb418e9f75c36ba93cb588a8a5e8",
+      "sourceSteps": 177,
+      "preparedSteps": 177,
+      "semanticallyExactSourceGroup": true,
+      "changes": [],
+      "caseEvidence": "Wand/Nav case groups passed in R9; Altar lifecycle/cleanup case groups passed in R10; overall runs contain independent failures. Latest combined suite has NOT been re-run."
+    },
+    {
+      "group": "p6-altar-owned-fixture-cleanup",
+      "sourceFile": "build/mui2-v12138/client-runs/migration-r7-focused-r10/plan.json",
+      "sourceFileSHA256": "70c4566e2afe670ded33734868fb90caea0e0f6b7700627fdf9afc45ac69eba6",
+      "sourceSliceStartInclusive": 573,
+      "sourceSliceEndExclusive": 594,
+      "sourceGroupCanonicalSHA256": "f88a43028971440a97a40d1a7219bcd735355d0af8bb62ae40697091e4c200c3",
+      "preparedGroupCanonicalSHA256": "f88a43028971440a97a40d1a7219bcd735355d0af8bb62ae40697091e4c200c3",
+      "sourceSteps": 21,
+      "preparedSteps": 21,
+      "semanticallyExactSourceGroup": true,
+      "changes": [],
+      "caseEvidence": "Wand/Nav case groups passed in R9; Altar lifecycle/cleanup case groups passed in R10; overall runs contain independent failures. Latest combined suite has NOT been re-run."
+    }
+  ],
+  "validation": {
+    "validJSON": true,
+    "uniqueSixGroups": true,
+    "allRefsDefinedBeforeUse": true,
+    "savedVarsPrefix": "p6",
+    "wrongSneakField78901cAbsent": true,
+    "exactWandNavAndAltarSourceGroups": true,
+    "noProductionBuildGitGameOrPriorRunArtifactsChanged": true
+  },
+  "executionBoundary": "This restores reusable full coverage. Do not describe the newly combined suite as a fresh full final-candidate PASS; cite its individual immutable R9/R10/focused receipts and candidate hashes."
+}

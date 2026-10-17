@@ -61,7 +61,9 @@ public class SingularityTuningWand extends Item {
         // A canceled block interaction can fall through to tryUseItem; it is not an air click.
         if (mc.objectMouseOver != null
             && mc.objectMouseOver.typeOfHit == net.minecraft.util.MovingObjectPosition.MovingObjectType.BLOCK) return;
-        mc.displayGuiScreen(new com.miaokatze.gtsr.client.gui.wand.GuiTuningWandSelector());
+        if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.toolMenus)
+            com.miaokatze.gtsr.client.gui.mui2.tools.WandMenuScreens.openFamilies();
+        else mc.displayGuiScreen(new com.miaokatze.gtsr.client.gui.wand.GuiTuningWandSelector());
     }
 
     /** 读词条游标（0..2；无键/越界回退 0=超限） */

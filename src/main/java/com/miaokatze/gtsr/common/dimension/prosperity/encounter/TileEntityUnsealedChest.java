@@ -1,5 +1,9 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.encounter;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.ContainerChest;
 import net.minecraft.inventory.IInventory;
@@ -9,11 +13,15 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 
-/** Independent 54-slot chest: vanilla ContainerChest and hopper contract, never joins neighbours. */
+import com.miaokatze.gtsr.common.gui.mui2.inventory.UnsealedChestModularContainer;
+
+/** Independent 54-slot chest: MUI/vanilla viewers and the same persistent hopper inventory. */
 public final class TileEntityUnsealedChest extends TileEntity implements IInventory {
 
     private ItemStack[] contents = new ItemStack[54];
-    private int viewers, ticks;
+    private int viewers, legacyViewers, ticks;
+    private final Set<UnsealedChestModularContainer> modularViewers = Collections
+        .newSetFromMap(new IdentityHashMap<>());
     private int rewardTier;
     private boolean rewardGenerated;
     private String storyOrigin = "";
@@ -129,16 +137,40 @@ public final class TileEntityUnsealedChest extends TileEntity implements IInvent
 
     public void openInventory() {
         if (!worldObj.isRemote) {
-            viewers++;
-            syncViewers();
+            legacyViewers++;
+            updateViewerCount();
         }
     }
 
     public void closeInventory() {
         if (!worldObj.isRemote) {
-            viewers = Math.max(0, viewers - 1);
-            syncViewers();
+            legacyViewers = Math.max(0, legacyViewers - 1);
+            updateViewerCount();
         }
+    }
+
+    /** Main-thread identity tokens make repeated close hooks and 200t recount races harmless. */
+    public void openModularInventory(UnsealedChestModularContainer container) {
+        if (worldObj != null && !worldObj.isRemote && container.isViewing(this) && modularViewers.add(container))
+            updateViewerCount();
+    }
+
+    public void closeModularInventory(UnsealedChestModularContainer container) {
+        if (worldObj != null && !worldObj.isRemote && modularViewers.remove(container)) updateViewerCount();
+    }
+
+    private boolean updateViewerCount() {
+        int count = legacyViewers + modularViewers.size();
+        if (viewers != count) {
+            viewers = count;
+            syncViewers();
+            return true;
+        }
+        return false;
+    }
+
+    public int getViewerCount() {
+        return viewers;
     }
 
     public boolean receiveClientEvent(int id, int value) {
@@ -151,15 +183,19 @@ public final class TileEntityUnsealedChest extends TileEntity implements IInvent
 
     public void updateEntity() {
         if (!worldObj.isRemote && ++ticks % 200 == 0) {
-            viewers = 0;
+            legacyViewers = 0;
+            modularViewers.clear();
             for (Object obj : worldObj.getEntitiesWithinAABB(
                 EntityPlayer.class,
-                AxisAlignedBB.getBoundingBox(xCoord - 5, yCoord - 5, zCoord - 5, xCoord + 6, yCoord + 6, zCoord + 6))) {
+                AxisAlignedBB.getBoundingBox(xCoord - 8, yCoord - 8, zCoord - 8, xCoord + 9, yCoord + 9, zCoord + 9))) {
                 EntityPlayer player = (EntityPlayer) obj;
+                if (!player.isEntityAlive() || player.worldObj != worldObj || !isUseableByPlayer(player)) continue;
                 if (player.openContainer instanceof ContainerChest
-                    && ((ContainerChest) player.openContainer).getLowerChestInventory() == this) viewers++;
+                    && ((ContainerChest) player.openContainer).getLowerChestInventory() == this) legacyViewers++;
+                else if (player.openContainer instanceof UnsealedChestModularContainer container
+                    && container.isViewing(this)) modularViewers.add(container);
             }
-            syncViewers();
+            if (!updateViewerCount()) syncViewers();
         }
         prevLidAngle = lidAngle;
         lidAngle = Math.max(0, Math.min(1, lidAngle + (viewers > 0 ? .1F : -.1F)));

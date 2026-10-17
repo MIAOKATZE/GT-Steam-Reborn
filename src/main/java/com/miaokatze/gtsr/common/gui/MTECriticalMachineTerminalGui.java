@@ -26,13 +26,14 @@ import com.cleanroommc.modularui.value.sync.LongSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widget.ParentWidget;
+import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.PagedWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.menu.DropdownWidget;
-import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
+import com.cleanroommc.modularui.widgets.menu.Menu;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
@@ -40,10 +41,12 @@ import com.miaokatze.gtsr.common.critical.CriticalProcessingModes;
 import com.miaokatze.gtsr.common.critical.CriticalTier;
 import com.miaokatze.gtsr.common.critical.recipe.CriticalRecipes;
 import com.miaokatze.gtsr.common.critical.recipe.RecipeMatch;
+import com.miaokatze.gtsr.common.gui.mui2.TerminalViewport;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
 import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.modularui2.factory.GTBaseGuiBuilder;
 import gregtech.common.modularui2.widget.GTProgressWidget;
 
 /** Handheld terminal only; GT's native container lifecycle owns inventory and NEI integration. */
@@ -76,7 +79,20 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     public ModularPanel build(PosGuiData data, PanelSyncManager manager, UISettings settings) {
         // Sync-value constructors evaluate their getters before the modular container is bound.
         viewer = data.getPlayer();
-        return super.build(data, manager, settings).background(CriticalGuiStyle.PANEL);
+        return super.build(data, manager, settings);
+    }
+
+    @Override
+    protected ModularPanel getBasePanel(PosGuiData data, PanelSyncManager manager, UISettings settings) {
+        // The industrial terminal already has its title inside statusHeader. GT's external
+        // title tab extends above the panel and is clipped on a 640 x 360 logical canvas.
+        return new GTBaseGuiBuilder(multiblock, data, manager, settings).setWidth(getBasePanelWidth())
+            .setHeight(getBasePanelHeight())
+            .doesAddTitle(false)
+            .doesAddGregTechLogo(false)
+            .doesBindPlayerInventory(false)
+            .build()
+            .background(CriticalGuiStyle.PANEL);
     }
 
     @Override
@@ -197,7 +213,8 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
 
     @Override
     public Flow createMainColumn(ModularPanel panel, PanelSyncManager manager) {
-        PagedWidget<?> pages = new PagedWidget<>().size(463, 202);
+        PagedWidget<?> pages = new PagedWidget<>().name("critical_pages")
+            .size(463, 202);
         pages.addPage(statusPage(panel, manager));
         pages.addPage(configurationPage(manager));
         pages.addPage(inventoryPage(manager));
@@ -209,14 +226,16 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         for (int i = 0; i < labels.length; i++) {
             final int page = i;
             tabs.child(
-                new ButtonWidget<>().size(112, 18)
+                new ButtonWidget<>().name("critical_tab_" + page)
+                    .size(112, 18)
                     .background(
                         new DynamicDrawable(
                             () -> selectedPage == page ? CriticalGuiStyle.SELECTED_TAB : CriticalGuiStyle.TAB))
-                    .hoverBackground(CriticalGuiStyle.SELECTED_TAB)
+                    .hoverBackground(CriticalGuiStyle.HOVER)
                     .overlay(
                         IKey.dynamic(() -> tr(labels[page]))
-                            .color(() -> selectedPage == page ? GtsrGuiPalette.TEXT_ACCENT : GtsrGuiPalette.TEXT_BODY))
+                            .color(
+                                () -> selectedPage == page ? CriticalGuiStyle.TEXT_ACCENT : CriticalGuiStyle.TEXT_BODY))
                     .onMousePressed(button -> {
                         if (button != 0) return false;
                         pages.setPage(page);
@@ -224,53 +243,63 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                         return true;
                     }));
         }
-        return Flow.column()
+        Flow content = Flow.column()
+            .pos(0, 0)
+            .size(475, 350)
             .padding(6)
             .child(statusHeader())
             .child(tabs)
             .child(pages)
             .child(
-                SlotGroupWidget.playerInventory(false)
+                SlotGroupWidget.playerInventory(
+                    (index, slot) -> slot.background(CriticalGuiStyle.SLOT)
+                        .hoverBackground(CriticalGuiStyle.SLOT))
                     .marginTop(4)
                     .alignX(0.5f));
+        return Flow.column()
+            .child(
+                TerminalViewport.wrap("critical_terminal_viewport", content, 475, 350)
+                    .sizeRel(1f));
     }
 
     private IWidget statusHeader() {
-        ParentWidget<?> header = new ParentWidget<>().size(463, 32);
+        ParentWidget<?> header = new ParentWidget<>().name("critical_status_header")
+            .size(463, 32)
+            .background(CriticalGuiStyle.CARD);
         header.child(
             IKey.dynamic(() -> tr("machine." + configuration().kind.key))
-                .color(GtsrGuiPalette.TEXT_TITLE)
+                .color(CriticalGuiStyle.TEXT_TITLE)
                 .asWidget()
                 .pos(4, 2)
                 .size(393, 12));
         header.child(
             IKey.dynamic(() -> configuration().tier.name())
-                .color(GtsrGuiPalette.TEXT_ACCENT)
+                .color(CriticalGuiStyle.TEXT_ACCENT)
                 .asWidget()
                 .background(CriticalGuiStyle.CHIP)
                 .pos(405, 0)
                 .size(54, 16));
         header.child(
             IKey.dynamic(() -> tr(loomValid.getValue() ? "ui.loom_valid" : "ui.loom_invalid"))
-                .color(() -> loomValid.getValue() ? GtsrGuiPalette.STATE_ONLINE : GtsrGuiPalette.STATE_OFFLINE)
+                .color(() -> loomValid.getValue() ? CriticalGuiStyle.STATE_ONLINE : CriticalGuiStyle.STATE_OFFLINE)
                 .asWidget()
                 .pos(4, 18)
                 .size(140, 12));
         header.child(
-            IKey.dynamic(
+            textViewport(
+                "critical_status_detail",
                 () -> detail.getValue()
-                    .equals("\u5f85\u914d\u7f6e") ? tr("status.0") : detail.getValue())
-                .color(GtsrGuiPalette.TEXT_BODY)
-                .asWidget()
-                .pos(148, 18)
-                .size(311, 12)
-                .tooltipBuilder(t -> t.add(detail.getValue()))
-                .tooltipAutoUpdate(true));
+                    .equals("\u5f85\u914d\u7f6e") ? tr("status.0") : detail.getValue(),
+                311,
+                12).pos(148, 18)
+                    .tooltipBuilder(t -> t.add(detail.getValue()))
+                    .tooltipAutoUpdate(true));
         return header;
     }
 
     private IWidget statusPage(ModularPanel panel, PanelSyncManager manager) {
-        ParentWidget<?> page = new ParentWidget<>().size(463, 202);
+        ParentWidget<?> page = new ParentWidget<>().name("critical_page_status")
+            .size(463, 202);
         page.child(
             metric(
                 "ui.energy",
@@ -302,36 +331,33 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         ParentWidget<?> summary = new ParentWidget<>().pos(0, 96)
             .size(463, 48)
             .background(CriticalGuiStyle.CARD);
-        summary.child(
-            IKey.dynamic(
-                () -> tr("construction") + " "
-                    + Math.min(5, stage.getValue() + 1)
-                    + " / 5 | "
-                    + tr("construction.round")
-                    + " "
-                    + (constructionRounds.getValue() == 0 ? 0
-                        : Math.min(constructionRounds.getValue(), constructionRound.getValue() + 1))
-                    + " / "
-                    + constructionRounds.getValue()
-                    + " | "
-                    + tr(roundFunded.getValue() ? "construction.funded" : "construction.unfunded"))
-                .color(GtsrGuiPalette.TEXT_BODY)
-                .asWidget()
-                .pos(8, 6)
-                .size(447, 12));
-        summary.child(
-            IKey.dynamic(
-                () -> tr("construction_power") + " "
-                    + configuration().tier.constructionVoltage()
-                    + " EU/t | "
-                    + tr("ui.batch_power")
-                    + " "
-                    + euPerTick.getValue()
-                    + " EU/t")
-                .color(GtsrGuiPalette.TEXT_LABEL)
-                .asWidget()
-                .pos(8, 23)
-                .size(411, 12));
+        ListWidget<IWidget, ?> summaryText = new ListWidget<>().name("critical_status_summary")
+            .pos(8, 5)
+            .size(419, 38)
+            .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
+        constructionLine(
+            summaryText,
+            () -> tr("construction") + " "
+                + Math.min(5, stage.getValue() + 1)
+                + " / 5 | "
+                + tr("construction.round")
+                + " "
+                + (constructionRounds.getValue() == 0 ? 0
+                    : Math.min(constructionRounds.getValue(), constructionRound.getValue() + 1))
+                + " / "
+                + constructionRounds.getValue()
+                + " | "
+                + tr(roundFunded.getValue() ? "construction.funded" : "construction.unfunded"));
+        constructionLine(
+            summaryText,
+            () -> tr("construction_power") + " "
+                + configuration().tier.constructionVoltage()
+                + " EU/t | "
+                + tr("ui.batch_power")
+                + " "
+                + euPerTick.getValue()
+                + " EU/t");
+        summary.child(summaryText);
         summary.child(
             new GTProgressWidget().neiTransferRect(multiblock.getRecipeMap())
                 .texture(GTGuiTextures.PROGRESSBAR_ARROW_STANDARD, 20)
@@ -359,29 +385,37 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             action(manager, "power", player -> state.setEnabled(player, !state.isEnabled()))
                 .overlay(
                     IKey.dynamic(() -> tr(enabled.getValue() ? "stop" : "start"))
-                        .color(GtsrGuiPalette.TEXT_BODY))
+                        .color(CriticalGuiStyle.TEXT_CONTROL))
                 .pos(351, 150)
                 .size(112, 20)
                 .setEnabledIf(w -> permitted.getValue() && (enabled.getValue() || loomValid.getValue())));
-        page.child(
-            IKey.dynamic(
-                () -> actionName.getValue()
-                    .isEmpty()
-                        ? tr("ui.supply_short")
-                        : tr(actionName.getValue()) + " | "
-                            + tr(actionAccepted.getValue() ? "action.accepted" : "action.refused"))
+        ListWidget<IWidget, ?> feedback = new ListWidget<>().name("critical_action_feedback")
+            .pos(0, 176)
+            .size(463, 26)
+            .padding(4)
+            .background(CriticalGuiStyle.CARD)
+            .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
+        feedback.child(
+            CriticalGuiStyle.text(
+                IKey.dynamic(
+                    () -> actionName.getValue()
+                        .isEmpty()
+                            ? tr("ui.supply_short")
+                            : tr(actionName.getValue()) + " | "
+                                + tr(actionAccepted.getValue() ? "action.accepted" : "action.refused")))
                 .color(
                     () -> actionName.getValue()
-                        .isEmpty() ? GtsrGuiPalette.TEXT_MUTED
-                            : actionAccepted.getValue() ? GtsrGuiPalette.STATE_ONLINE : GtsrGuiPalette.STATE_OFFLINE)
-                .asWidget()
-                .pos(4, 178)
-                .size(455, 18)
+                        .isEmpty()
+                            ? CriticalGuiStyle.TEXT_MUTED
+                            : actionAccepted.getValue() ? CriticalGuiStyle.STATE_ONLINE
+                                : CriticalGuiStyle.STATE_OFFLINE)
+                .fullWidth()
                 .tooltipBuilder(
                     t -> t.add(
                         actionDetail.getValue()
                             .equals(key("action.permission")) ? tr("action.permission") : actionDetail.getValue()))
                 .tooltipAutoUpdate(true));
+        page.child(feedback);
         return page;
     }
 
@@ -400,16 +434,14 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             .background(CriticalGuiStyle.CARD)
             .child(
                 IKey.lang(key(label))
-                    .color(GtsrGuiPalette.TEXT_MUTED)
+                    .color(CriticalGuiStyle.TEXT_MUTED)
                     .asWidget()
                     .pos(8, 5)
                     .size(212, 10))
             .child(
-                IKey.dynamic(value)
-                    .color(GtsrGuiPalette.TEXT_BODY)
-                    .asWidget()
-                    .pos(8, 17)
-                    .size(212, 12))
+                textViewport("critical_metric_" + label, value, 212, 14).pos(8, 16)
+                    .tooltipBuilder(t -> t.add(value.get()))
+                    .tooltipAutoUpdate(true))
             .child(
                 new ParentWidget<>().background(new CriticalProgressBar(progress))
                     .pos(8, 32)
@@ -421,43 +453,44 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         ListWidget<IWidget, ?> list = new ListWidget<>();
         list.child(
             IKey.dynamic(() -> "EU " + energy.getValue() + " / " + capacity.getValue())
-                .color(GtsrGuiPalette.TEXT_BODY)
+                .color(CriticalGuiStyle.TEXT_BODY)
                 .asWidget()
                 .fullWidth()
                 .marginBottom(3));
         list.child(
             IKey.dynamic(
                 () -> tr("construction") + " " + stage.getValue() + " · " + job.getValue() + " / " + total.getValue())
-                .color(GtsrGuiPalette.TEXT_BODY)
+                .color(CriticalGuiStyle.TEXT_BODY)
                 .asWidget()
                 .fullWidth()
                 .marginBottom(3));
         list.child(
             IKey.dynamic(() -> tr("batch") + " " + batch.getValue() + " / " + duration.getValue() + " t")
-                .color(GtsrGuiPalette.TEXT_BODY)
+                .color(CriticalGuiStyle.TEXT_BODY)
                 .asWidget()
                 .fullWidth()
                 .marginBottom(3));
         list.child(
             IKey.dynamic(() -> euPerTick.getValue() + " EU/t")
-                .color(GtsrGuiPalette.TEXT_BODY)
+                .color(CriticalGuiStyle.TEXT_BODY)
                 .asWidget()
                 .fullWidth()
                 .marginBottom(3));
         list.child(
             IKey.dynamic(() -> tr("construction_power") + " " + configuration().tier.constructionVoltage() + " EU/t")
-                .color(GtsrGuiPalette.TEXT_BODY)
+                .color(CriticalGuiStyle.TEXT_BODY)
                 .asWidget()
                 .fullWidth());
         return list;
     }
 
     private IWidget configurationPage(PanelSyncManager manager) {
-        ParentWidget<?> page = new ParentWidget<>().size(463, 202)
+        ParentWidget<?> page = new ParentWidget<>().name("critical_page_configuration")
+            .size(463, 202)
             .background(CriticalGuiStyle.CARD);
         page.child(
             IKey.lang(key("configuration.section"))
-                .color(GtsrGuiPalette.TEXT_BODY)
+                .color(CriticalGuiStyle.TEXT_BODY)
                 .asWidget()
                 .pos(8, 8)
                 .size(447, 14));
@@ -465,7 +498,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             action(manager, "tier", player -> change(player, 0, 1))
                 .overlay(
                     IKey.dynamic(() -> configuration().tier.name())
-                        .color(GtsrGuiPalette.TEXT_BODY))
+                        .color(CriticalGuiStyle.TEXT_CONTROL))
                 .pos(8, 30)
                 .size(88, 20)
                 .setEnabledIf(w -> false)
@@ -474,43 +507,39 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             action(manager, "kind", player -> change(player, 1, 1))
                 .overlay(
                     IKey.dynamic(() -> tr("machine." + configuration().kind.key))
-                        .color(GtsrGuiPalette.TEXT_BODY))
+                        .color(CriticalGuiStyle.TEXT_CONTROL))
                 .pos(102, 30)
                 .size(353, 20)
                 .setEnabledIf(w -> editable() && multiblock.isKindSelector())
                 .tooltipBuilder(t -> t.add(IKey.lang(key("configuration_hint")))));
-        page.child(
-            IKey.dynamic(
-                () -> configuration().kind == CriticalMachineKind.PROCESSING
-                    || configuration().kind == CriticalMachineKind.ASSEMBLY
-                        ? tr("mode") + ": " + CriticalProcessingModes.display(selectedMode.getValue())
-                        : tr("functional.rules"))
-                .color(GtsrGuiPalette.TEXT_BODY)
-                .asWidget()
-                .pos(8, 64)
-                .size(447, 26)
-                .tooltipBuilder(t -> t.add(IKey.lang(key("functional.rules")))));
-        page.child(
-            IKey.lang(key("functional.decorative"))
-                .color(GtsrGuiPalette.TEXT_BODY)
-                .asWidget()
-                .pos(8, 94)
-                .size(447, 20));
+        ListWidget<IWidget, ?> rules = new ListWidget<>().name("critical_configuration_rules")
+            .pos(8, 60)
+            .size(447, 54)
+            .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
+        constructionLine(
+            rules,
+            () -> configuration().kind == CriticalMachineKind.PROCESSING
+                || configuration().kind == CriticalMachineKind.ASSEMBLY
+                    ? tr("mode") + ": " + CriticalProcessingModes.display(selectedMode.getValue())
+                    : tr("functional.rules"));
+        constructionLine(rules, () -> tr("functional.decorative"));
+        page.child(rules);
         page.child(processingModeDropdown(manager));
         page.child(
             action(manager, "steam_mode", state::selectSteamMode)
                 .overlay(
                     IKey.dynamic(() -> tr("steam_mode." + steamMode.getValue()))
-                        .color(GtsrGuiPalette.TEXT_BODY))
+                        .color(CriticalGuiStyle.TEXT_CONTROL))
                 .pos(125, 158)
                 .size(330, 20)
                 .setEnabledIf(w -> permitted.getValue() && configuration().kind == CriticalMachineKind.SOLAR));
         page.child(
-            new ButtonWidget<>().background(CriticalGuiStyle.BUTTON)
+            new ButtonWidget<>().name("critical_recipe_preview")
+                .background(CriticalGuiStyle.BUTTON)
                 .hoverBackground(CriticalGuiStyle.HOVER)
                 .overlay(
                     IKey.lang(key("recipes"))
-                        .color(GtsrGuiPalette.TEXT_BODY))
+                        .color(CriticalGuiStyle.TEXT_CONTROL))
                 .pos(8, 158)
                 .size(112, 20)
                 .onMousePressed(button -> {
@@ -538,7 +567,9 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         }));
         // The dropdown has a local value only. Each option sends its existing guarded server
         // command; selectedMode remains authoritative S2C telemetry, including after rejection.
-        DropdownWidget<String, ?> dropdown = new DropdownWidget<>("criticalProcessingModes", String.class)
+        DropdownWidget<String, ?> dropdown = new IndustrialModeDropdown().name("critical_processing_modes")
+            .background(CriticalGuiStyle.BUTTON)
+            .hoverBackground(CriticalGuiStyle.HOVER)
             .value(new StringValue.Dynamic(selectedMode::getValue, mode -> {
                 InteractionSyncHandler command = commands.get(mode);
                 if (command != null) command.onMousePressed(0);
@@ -547,7 +578,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             .optionToWidget(
                 (mode, selected) -> IKey
                     .dynamic(() -> CriticalProcessingModes.display(selected ? selectedMode.getValue() : mode))
-                    .color(GtsrGuiPalette.TEXT_BODY)
+                    .color(CriticalGuiStyle.TEXT_CONTROL)
                     .asWidget())
             .maxVerticalMenuSize(132)
             .pos(8, 122)
@@ -566,13 +597,37 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         return dropdown;
     }
 
+    private static final class IndustrialModeDropdown extends DropdownWidget<String, IndustrialModeDropdown> {
+
+        private IndustrialModeDropdown() {
+            super("criticalProcessingModes", String.class);
+        }
+
+        @Override
+        protected Menu<?> createMenu() {
+            Menu<?> menu = super.createMenu();
+            menu.background(CriticalGuiStyle.CARD);
+            for (IWidget list : menu.getChildren()) {
+                for (IWidget option : list.getChildren()) {
+                    if (option instanceof ButtonWidget<?>button) {
+                        button.background(CriticalGuiStyle.BUTTON)
+                            .hoverBackground(CriticalGuiStyle.HOVER);
+                    }
+                }
+            }
+            return menu;
+        }
+    }
+
     private boolean editable() {
         return permitted.getValue() && status.getValue() == 0;
     }
 
     private IWidget constructionPage() {
-        ListWidget<IWidget, ?> list = new ListWidget<>().size(451, 190)
-            .pos(6, 6);
+        ListWidget<IWidget, ?> list = new ListWidget<>().name("critical_construction_requirements")
+            .size(451, 190)
+            .pos(6, 6)
+            .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
         constructionLine(list, () -> tr("machine." + configuration().kind.key) + " · " + configuration().tier.name());
         constructionLine(list, () -> tr(loomValid.getValue() ? "loom.ready" : "loom.incomplete"));
         for (String suffix : new String[] { "loom.dimensions", "loom.hatches", "loom.orientation", "loom.area",
@@ -629,16 +684,16 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 .isEmpty()
                 && missingConstructionFluids.getValue()
                     .isEmpty() ? tr("construction.supplied") : "");
-        return new ParentWidget<>().size(463, 202)
+        return new ParentWidget<>().name("critical_page_requirements")
+            .size(463, 202)
             .background(CriticalGuiStyle.CARD)
             .child(list);
     }
 
     private static void constructionLine(ListWidget<IWidget, ?> list, java.util.function.Supplier<String> text) {
         list.child(
-            IKey.dynamic(() -> text.get())
-                .color(GtsrGuiPalette.TEXT_BODY)
-                .asWidget()
+            CriticalGuiStyle.text(IKey.dynamic(text))
+                .color(CriticalGuiStyle.TEXT_BODY)
                 .fullWidth()
                 .marginBottom(3)
                 .setEnabledIf(
@@ -690,12 +745,13 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
 
     private ButtonWidget<?> action(PanelSyncManager manager, String name,
         java.util.function.Predicate<EntityPlayer> command) {
-        return new ButtonWidget<>().background(CriticalGuiStyle.BUTTON)
+        return new ButtonWidget<>().name("critical_action_" + name)
+            .background(CriticalGuiStyle.BUTTON)
             .hoverBackground(CriticalGuiStyle.HOVER)
             .syncHandler(interaction(manager, name, command))
             .overlay(
                 IKey.lang(key(name))
-                    .color(GtsrGuiPalette.TEXT_BODY));
+                    .color(CriticalGuiStyle.TEXT_CONTROL));
     }
 
     private InteractionSyncHandler interaction(PanelSyncManager manager, String name,
@@ -724,7 +780,8 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     }
 
     private IWidget inventoryPage(PanelSyncManager manager) {
-        ParentWidget<?> page = new ParentWidget<>().size(463, 202);
+        ParentWidget<?> page = new ParentWidget<>().name("critical_page_inventory")
+            .size(463, 202);
         StringSyncValue[] summaries = { inputOverview, outputOverview };
         for (int side = 0; side < 2; side++) {
             final int index = side;
@@ -733,23 +790,32 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 .background(CriticalGuiStyle.CARD);
             card.child(
                 IKey.lang(key(side == 0 ? "input" : "output"))
-                    .color(GtsrGuiPalette.TEXT_BODY)
+                    .color(CriticalGuiStyle.TEXT_BODY)
                     .asWidget()
                     .pos(8, 8)
                     .size(212, 14));
-            ListWidget<IWidget, ?> contents = new ListWidget<>().pos(8, 28)
-                .size(212, 130);
+            ListWidget<IWidget, ?> contents = new ListWidget<>().name("critical_inventory_" + side)
+                .pos(8, 28)
+                .size(212, 130)
+                .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
             constructionLine(contents, () -> summaries[index].getValue());
             card.child(contents);
             page.child(card);
         }
         page.child(
-            IKey.lang(key("hatch_overview_hint"))
-                .color(GtsrGuiPalette.TEXT_BODY)
-                .asWidget()
-                .pos(8, 174)
-                .size(447, 22));
+            textViewport("critical_inventory_hint", () -> tr("hatch_overview_hint"), 447, 24)
+                .background(CriticalGuiStyle.CARD)
+                .pos(8, 172));
         return page;
+    }
+
+    private static ListWidget<IWidget, ?> textViewport(String name, java.util.function.Supplier<String> text, int width,
+        int height) {
+        ListWidget<IWidget, ?> list = new ListWidget<>().name(name)
+            .size(width, height)
+            .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
+        constructionLine(list, text);
+        return list;
     }
 
     private CriticalConfiguration configuration() {

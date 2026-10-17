@@ -1,0 +1,6987 @@
+[
+  {
+    "op": "group",
+    "name": "p6-journal-real-authorized-starter",
+    "dimension": 1048577,
+    "cleanup": "Restore p6JournalPlayerNBT; journal opening has no C2S progression grants."
+  },
+  {
+    "op": "invoke",
+    "side": "client",
+    "target": {
+      "ref": "@com.cleanroommc.modularui.factory.ClientGUI"
+    },
+    "method": "close",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "record",
+    "name": "p6-journal-real-authorized-starter.scope",
+    "value": "Owned isolated QA fixture; expected dimension 1048577; Restore p6JournalPlayerNBT; journal opening has no C2S progression grants."
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 45
+  },
+  {
+    "op": "assert",
+    "name": "p6.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p6.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "writeEntityToNBT|func_70014_b",
+    "save": "p6JournalPlayerNBT"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "item": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry"
+      },
+      "field": "journal"
+    },
+    "count": 1,
+    "mark": "v1.21.38-owned-p6Journal",
+    "save": "p6Journal"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      {
+        "ref": "p6Journal"
+      }
+    ],
+    "side": "server"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": 0
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": [],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "assert",
+    "name": "p6.route.story-default",
+    "actual": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes"
+      },
+      "field": "storyScreens"
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p6-journal-starter-progress",
+    "actual": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.lore.HistoryProgress"
+      },
+      "call": "snapshot",
+      "args": [
+        {
+          "ref": "serverPlayer"
+        }
+      ]
+    },
+    "expected": 0,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p6-journal-starter-king",
+    "actual": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry"
+      },
+      "call": "kingChapterUnlocked",
+      "args": [
+        {
+          "ref": "serverPlayer"
+        }
+      ]
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "p6Journal"
+      },
+      "call": "getItem|func_77973_b",
+      "args": []
+    },
+    "method": "onItemRightClick|func_77659_a",
+    "args": [
+      {
+        "ref": "p6Journal"
+      },
+      {
+        "ref": "world"
+      },
+      {
+        "ref": "serverPlayer"
+      }
+    ],
+    "side": "server"
+  },
+  {
+    "op": "expectScreen",
+    "name": "p6-journal-real-S2C-starter",
+    "panel": "prosperity_journal"
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "p6-journal-real-S2C-starter.pause-false",
+    "actual": {
+      "target": {
+        "ref": "screen"
+      },
+      "call": "doesPauseGame",
+      "args": []
+    },
+    "expected": false,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-real-S2C-starter.paragraphs.geometry.usable-viewport-height",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": 150,
+    "relation": ">"
+  },
+  {
+    "op": "geometry",
+    "widget": "journal.paragraphs",
+    "name": "p6-journal-real-S2C-starter.paragraphs.geometry",
+    "depth": 3,
+    "assertTextFit": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-real-S2C-starter.paragraphs.geometry.native-wrap-regression.paragraph-count",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getChildren",
+        "args": []
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 3
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-real-S2C-starter.paragraphs.geometry.native-wrap-regression.paragraph-0.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-real-S2C-starter.paragraphs.geometry.native-wrap-regression.paragraph-0.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          0
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-real-S2C-starter.paragraphs.geometry.native-wrap-regression.paragraph-1.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-real-S2C-starter.paragraphs.geometry.native-wrap-regression.paragraph-1.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-real-S2C-starter.paragraphs.geometry.native-wrap-regression.paragraph-1.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-real-S2C-starter.paragraphs.geometry.native-wrap-regression.paragraph-2.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-real-S2C-starter.paragraphs.geometry.native-wrap-regression.paragraph-2.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          2
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-real-S2C-starter.paragraphs.geometry.native-wrap-regression.paragraph-2.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "geometry",
+    "widget": "journal.directory",
+    "name": "p6-journal-real-S2C-starter.directory.geometry",
+    "depth": 1
+  },
+  {
+    "op": "screenshot",
+    "name": "p6-journal-real-S2C-starter"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "ref": "screen"
+      },
+      "call": "model",
+      "args": []
+    },
+    "save": "p6StarterJournalModel",
+    "side": "client"
+  },
+  {
+    "op": "record",
+    "name": "p6-journal-starter-ordered-keys",
+    "value": {
+      "target": {
+        "ref": "p6StarterJournalModel"
+      },
+      "call": "paragraphKeys",
+      "args": []
+    }
+  },
+  {
+    "op": "wait",
+    "ticks": 8
+  },
+  {
+    "op": "wait",
+    "ticks": 8
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "screen"
+    },
+    "method": "close",
+    "args": [],
+    "side": "client"
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "readEntityFromNBT|func_70037_a",
+    "args": [
+      {
+        "ref": "p6JournalPlayerNBT"
+      }
+    ],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": [],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": [],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "group",
+    "name": "p6-journal-local-full-permission-long-text-visual",
+    "dimension": 1048577,
+    "cleanup": "Local Model only; no server permissions changed. Close screen; restore 1280x720 scale2 after small-canvas inspection."
+  },
+  {
+    "op": "invoke",
+    "side": "client",
+    "target": {
+      "ref": "@com.cleanroommc.modularui.factory.ClientGUI"
+    },
+    "method": "close",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "record",
+    "name": "p6-journal-local-full-permission-long-text-visual.scope",
+    "value": "Owned isolated QA fixture; expected dimension 1048577; Local Model only; no server permissions changed. Close screen; restore 1280x720 scale2 after small-canvas inspection."
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 45
+  },
+  {
+    "op": "assert",
+    "name": "p6.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p6.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "new": "com.miaokatze.gtsr.client.gui.mui2.lore.ProsperityJournalScreen$Model",
+      "args": [
+        true,
+        2147483647,
+        2147483647,
+        2147483647
+      ]
+    },
+    "save": "p6FullJournalModel",
+    "side": "client"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "new": "com.miaokatze.gtsr.client.gui.mui2.lore.ProsperityJournalScreen",
+      "args": [
+        {
+          "ref": "p6FullJournalModel"
+        }
+      ]
+    },
+    "save": "p6FullJournalScreen",
+    "side": "client"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "@com.cleanroommc.modularui.factory.ClientGUI"
+    },
+    "method": "open",
+    "args": [
+      {
+        "ref": "p6FullJournalScreen"
+      }
+    ],
+    "side": "client"
+  },
+  {
+    "op": "expectScreen",
+    "name": "p6-journal-local-unlocked-visual-only",
+    "panel": "prosperity_journal"
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "p6-journal-local-unlocked-visual-only.pause-false",
+    "actual": {
+      "target": {
+        "ref": "screen"
+      },
+      "call": "doesPauseGame",
+      "args": []
+    },
+    "expected": false,
+    "side": "client"
+  },
+  {
+    "op": "screenshot",
+    "name": "p6-journal-local-unlocked-visual-only"
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p6FullJournalModel"
+    },
+    "method": "selectEntry",
+    "args": [
+      "hanging_great_tree"
+    ],
+    "side": "client"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "assert",
+    "name": "p6-journal-giant-complete-paragraph-count",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p6FullJournalModel"
+        },
+        "call": "paragraphKeys",
+        "args": []
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 5,
+    "side": "client"
+  },
+  {
+    "op": "record",
+    "name": "p6-journal-giant-complete-ordered-keys",
+    "value": {
+      "target": {
+        "ref": "p6FullJournalModel"
+      },
+      "call": "paragraphKeys",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.usable-viewport-height",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": 150,
+    "relation": ">"
+  },
+  {
+    "op": "geometry",
+    "widget": "journal.paragraphs",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry",
+    "depth": 3,
+    "assertTextFit": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-count",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getChildren",
+        "args": []
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 5
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-0.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-0.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          0
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-1.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-1.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-1.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-2.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-2.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          2
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-2.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-3.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-3.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          3
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-3.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-4.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-4.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          4
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-top.paragraphs.geometry.native-wrap-regression.paragraph-4.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "geometry",
+    "widget": "journal.directory",
+    "name": "p6-journal-giant-long-top.directory.geometry",
+    "depth": 1
+  },
+  {
+    "op": "screenshot",
+    "name": "p6-journal-giant-long-top"
+  },
+  {
+    "op": "scroll",
+    "widget": "journal.paragraphs",
+    "direction": "DOWN",
+    "notches": 100
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "record",
+    "name": "p6-journal-giant-long-bottom.wheel-position-after-real-MUI-dispatch",
+    "value": {
+      "target": {
+        "widget": "journal.paragraphs"
+      },
+      "call": "getScrollY",
+      "args": []
+    }
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "widget": "journal.paragraphs"
+      },
+      "call": "getScrollData",
+      "args": []
+    },
+    "method": "scrollTo",
+    "args": [
+      {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getScrollArea",
+        "args": []
+      },
+      2147483647
+    ],
+    "side": "client"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "record",
+    "name": "p6-journal-giant-long-bottom.native-scrollTo-is-visual-fixture-not-wheel-PASS",
+    "value": {
+      "target": {
+        "widget": "journal.paragraphs"
+      },
+      "call": "getScrollY",
+      "args": []
+    }
+  },
+  {
+    "op": "screenshot",
+    "name": "p6-journal-giant-long-bottom"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.native-scrollBy-plus1-clamped-at-content-end",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getScrollData",
+        "args": []
+      },
+      "call": "scrollBy",
+      "args": [
+        {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getScrollArea",
+          "args": []
+        },
+        1
+      ]
+    },
+    "expected": true
+  },
+  {
+    "op": "geometry",
+    "widget": "journal.paragraphs",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end",
+    "depth": 2,
+    "assertTextFit": true,
+    "assertLastVisible": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-count",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getChildren",
+        "args": []
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 5
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-0.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-0.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          0
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-1.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-1.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-1.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-2.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-2.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          2
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-2.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-3.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-3.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          3
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-3.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-4.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-4.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          4
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-giant-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-4.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "click",
+    "widget": "journal.appendix"
+  },
+  {
+    "op": "wait",
+    "ticks": 8
+  },
+  {
+    "op": "assert",
+    "name": "p6-journal-appendix-complete-paragraph-count",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p6FullJournalModel"
+        },
+        "call": "paragraphKeys",
+        "args": []
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 4,
+    "side": "client"
+  },
+  {
+    "op": "wait",
+    "ticks": 8
+  },
+  {
+    "op": "record",
+    "name": "p6-journal-appendix-complete-ordered-keys",
+    "value": {
+      "target": {
+        "ref": "p6FullJournalModel"
+      },
+      "call": "paragraphKeys",
+      "args": []
+    }
+  },
+  {
+    "op": "scroll",
+    "widget": "journal.paragraphs",
+    "direction": "DOWN",
+    "notches": 100
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "record",
+    "name": "p6-journal-appendix-long-bottom.wheel-position-after-real-MUI-dispatch",
+    "value": {
+      "target": {
+        "widget": "journal.paragraphs"
+      },
+      "call": "getScrollY",
+      "args": []
+    }
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "widget": "journal.paragraphs"
+      },
+      "call": "getScrollData",
+      "args": []
+    },
+    "method": "scrollTo",
+    "args": [
+      {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getScrollArea",
+        "args": []
+      },
+      2147483647
+    ],
+    "side": "client"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "record",
+    "name": "p6-journal-appendix-long-bottom.native-scrollTo-is-visual-fixture-not-wheel-PASS",
+    "value": {
+      "target": {
+        "widget": "journal.paragraphs"
+      },
+      "call": "getScrollY",
+      "args": []
+    }
+  },
+  {
+    "op": "screenshot",
+    "name": "p6-journal-appendix-long-bottom"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-appendix-long-bottom.native-scrollBy-plus1-clamped-at-content-end",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getScrollData",
+        "args": []
+      },
+      "call": "scrollBy",
+      "args": [
+        {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getScrollArea",
+          "args": []
+        },
+        1
+      ]
+    },
+    "expected": true
+  },
+  {
+    "op": "geometry",
+    "widget": "journal.paragraphs",
+    "name": "p6-journal-appendix-long-bottom.full-child-layout-at-content-end",
+    "depth": 2,
+    "assertTextFit": true,
+    "assertLastVisible": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-appendix-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-count",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getChildren",
+        "args": []
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 4
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-appendix-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-0.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-appendix-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-0.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          0
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-appendix-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-1.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-appendix-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-1.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-appendix-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-1.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-appendix-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-2.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-appendix-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-2.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          2
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-appendix-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-2.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-appendix-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-3.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-appendix-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-3.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          3
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-appendix-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-3.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "reloadResources"
+  },
+  {
+    "op": "wait",
+    "ticks": 35
+  },
+  {
+    "op": "expectScreen",
+    "name": "p6-journal-after-resource-reload",
+    "panel": "prosperity_journal"
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry.usable-viewport-height",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": 150,
+    "relation": ">"
+  },
+  {
+    "op": "geometry",
+    "widget": "journal.paragraphs",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry",
+    "depth": 3,
+    "assertTextFit": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry.native-wrap-regression.paragraph-count",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getChildren",
+        "args": []
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 4
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry.native-wrap-regression.paragraph-0.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry.native-wrap-regression.paragraph-0.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          0
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry.native-wrap-regression.paragraph-1.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry.native-wrap-regression.paragraph-1.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry.native-wrap-regression.paragraph-1.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry.native-wrap-regression.paragraph-2.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry.native-wrap-regression.paragraph-2.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          2
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry.native-wrap-regression.paragraph-2.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry.native-wrap-regression.paragraph-3.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry.native-wrap-regression.paragraph-3.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          3
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-after-resource-reload.paragraphs.geometry.native-wrap-regression.paragraph-3.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "geometry",
+    "widget": "journal.directory",
+    "name": "p6-journal-after-resource-reload.directory.geometry",
+    "depth": 1
+  },
+  {
+    "op": "screenshot",
+    "name": "p6-journal-after-resource-reload"
+  },
+  {
+    "op": "click",
+    "widget": "journal.appendix"
+  },
+  {
+    "op": "wait",
+    "ticks": 8
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "assert",
+    "name": "p6-journal-after-reload-original-five-paragraphs",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p6FullJournalModel"
+        },
+        "call": "paragraphKeys",
+        "args": []
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 5,
+    "side": "client"
+  },
+  {
+    "op": "resize",
+    "width": 854,
+    "height": 480,
+    "scale": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "expectScreen",
+    "panel": "prosperity_journal",
+    "name": "p6-journal-427x240"
+  },
+  {
+    "op": "scroll",
+    "widget": "journal.paragraphs",
+    "direction": "DOWN",
+    "notches": 100
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "record",
+    "name": "p6-journal-small-long-bottom.wheel-position-after-real-MUI-dispatch",
+    "value": {
+      "target": {
+        "widget": "journal.paragraphs"
+      },
+      "call": "getScrollY",
+      "args": []
+    }
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "widget": "journal.paragraphs"
+      },
+      "call": "getScrollData",
+      "args": []
+    },
+    "method": "scrollTo",
+    "args": [
+      {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getScrollArea",
+        "args": []
+      },
+      2147483647
+    ],
+    "side": "client"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "record",
+    "name": "p6-journal-small-long-bottom.native-scrollTo-is-visual-fixture-not-wheel-PASS",
+    "value": {
+      "target": {
+        "widget": "journal.paragraphs"
+      },
+      "call": "getScrollY",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.usable-viewport-height",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": 90,
+    "relation": ">"
+  },
+  {
+    "op": "geometry",
+    "widget": "journal.paragraphs",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry",
+    "depth": 3,
+    "assertTextFit": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-count",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getChildren",
+        "args": []
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 5
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-0.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-0.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          0
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-1.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-1.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-1.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-2.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-2.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          2
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-2.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-3.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-3.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          3
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-3.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-4.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-4.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          4
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.paragraphs.geometry.native-wrap-regression.paragraph-4.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "geometry",
+    "widget": "journal.directory",
+    "name": "p6-journal-small-long-bottom.directory.geometry",
+    "depth": 1
+  },
+  {
+    "op": "screenshot",
+    "name": "p6-journal-small-long-bottom"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.native-scrollBy-plus1-clamped-at-content-end",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getScrollData",
+        "args": []
+      },
+      "call": "scrollBy",
+      "args": [
+        {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getScrollArea",
+          "args": []
+        },
+        1
+      ]
+    },
+    "expected": true
+  },
+  {
+    "op": "geometry",
+    "widget": "journal.paragraphs",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end",
+    "depth": 2,
+    "assertTextFit": true,
+    "assertLastVisible": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-count",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "journal.paragraphs"
+        },
+        "call": "getChildren",
+        "args": []
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 5
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-0.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-0.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          0
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-1.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-1.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-1.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-2.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-2.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          2
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-2.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-3.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-3.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          3
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-3.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-4.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-4.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "journal.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          4
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-long-bottom.full-child-layout-at-content-end.native-wrap-regression.paragraph-4.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "journal.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-journal-small-overflow-actually-scrolled",
+    "actual": {
+      "target": {
+        "widget": "journal.paragraphs"
+      },
+      "call": "getScrollY",
+      "args": []
+    },
+    "expected": 0,
+    "relation": ">"
+  },
+  {
+    "op": "click",
+    "widget": "journal.close"
+  },
+  {
+    "op": "wait",
+    "ticks": 8
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "resize",
+    "width": 1280,
+    "height": 720,
+    "scale": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "record",
+    "name": "p6-journal-visual-boundary",
+    "value": "Full-permission Model is local presentation evidence only. Ordered paragraph keys plus first/last actual GL captures; no achievement/unlock claimed. Physical IME and every catalog entry at every resolution NOT_RUN."
+  },
+  {
+    "op": "group",
+    "name": "p6-altar-normal-reading-shared-text-regression",
+    "dimension": 0,
+    "cleanup": "Only normal authenticated server board read plus one native paragraph-layout screenshot; no activation/reload/Node replacement/reopen transactions. Separate cleanup restores own support cell/index/player data and returns TestLab."
+  },
+  {
+    "op": "invoke",
+    "side": "client",
+    "target": {
+      "ref": "@com.cleanroommc.modularui.factory.ClientGUI"
+    },
+    "method": "close",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-real-owner-board-reading-close-no-activation.scope",
+    "value": "Owned isolated QA fixture; expected dimension 0; Transfer to0; only verified-air cells (4096,240,4096) and(4094,235,4093) used; snapshot/restore index and player NBT, remove own session and cells, then return TestLab. No paid activation."
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 45
+  },
+  {
+    "op": "assert",
+    "name": "p6.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p6.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "ref": "world"
+    },
+    "save": "p6AltarReturnWorld",
+    "side": "server"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "ref": "@net.minecraftforge.common.DimensionManager"
+      },
+      "call": "getWorld",
+      "args": [
+        0
+      ]
+    },
+    "save": "p6Overworld",
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "@com.miaokatze.gtsr.common.dimension.testlab.TestLabCommand"
+    },
+    "method": "transfer",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "ref": "p6Overworld"
+      },
+      {
+        "double": 0.5
+      },
+      {
+        "double": 260.0
+      },
+      {
+        "double": 0.5
+      },
+      {
+        "float": 0
+      },
+      {
+        "float": 0
+      }
+    ],
+    "side": "server",
+    "timeoutTicks": 1200
+  },
+  {
+    "op": "wait",
+    "ticks": 55
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "writeEntityToNBT|func_70014_b",
+    "save": "p6AltarPlayerNBT"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": [],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarIndex"
+      },
+      "call": "get",
+      "args": [
+        {
+          "ref": "world"
+        }
+      ]
+    },
+    "save": "p6AltarIndex",
+    "side": "server"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "p6AltarIndex"
+    },
+    "save": "p6AltarIndexBefore",
+    "method": "writeToNBT|func_76187_b"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "world"
+      },
+      "call": "getBlock|func_147439_a",
+      "args": [
+        4094,
+        235,
+        4095
+      ]
+    },
+    "save": "p6AltarSupportOriginalBlock"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "world"
+      },
+      "call": "getBlockMetadata|func_72805_g",
+      "args": [
+        4094,
+        235,
+        4095
+      ]
+    },
+    "save": "p6AltarSupportOriginalMeta"
+  },
+  {
+    "op": "assert",
+    "side": "server",
+    "name": "p6-altar-platform-original-cell-is-air",
+    "actual": {
+      "target": {
+        "ref": "world"
+      },
+      "call": "isAirBlock|func_147437_c",
+      "args": [
+        4094,
+        235,
+        4095
+      ]
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "name": "p6-altar-unique-index-id",
+    "actual": {
+      "target": {
+        "ref": "p6AltarIndex"
+      },
+      "call": "find",
+      "args": [
+        "uiqa:p6:altar:r3"
+      ]
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "placeBlock",
+    "side": "server",
+    "block": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarBlocks"
+      },
+      "field": "core"
+    },
+    "x": 4096,
+    "y": 240,
+    "z": 4096,
+    "save": "p6AltarCore"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p6AltarCore"
+    },
+    "method": "bind",
+    "args": [
+      "uiqa:p6:altar:r3"
+    ],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p6AltarIndex"
+    },
+    "method": "add",
+    "args": [
+      "uiqa:p6:altar:r3",
+      4096,
+      240,
+      4096
+    ],
+    "side": "server"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterBlocks"
+      },
+      "call": "get",
+      "args": [
+        "gtsr:draft_pressure_console"
+      ]
+    },
+    "save": "p6AltarBoardBlock",
+    "side": "server"
+  },
+  {
+    "op": "placeBlock",
+    "side": "server",
+    "block": {
+      "ref": "p6AltarBoardBlock"
+    },
+    "x": 4094,
+    "y": 235,
+    "z": 4093,
+    "save": "p6AltarInitialTile"
+  },
+  {
+    "op": "evaluate",
+    "value": {
+      "new": "com.miaokatze.gtsr.common.dimension.prosperity.altar.TileSpacetimeAltarStory",
+      "args": []
+    },
+    "save": "p6AltarBoard",
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setTileEntity|func_147455_a",
+    "args": [
+      4094,
+      235,
+      4093,
+      {
+        "ref": "p6AltarBoard"
+      }
+    ],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p6AltarBoard"
+    },
+    "method": "bind",
+    "args": [
+      "uiqa:p6:altar:r3"
+    ],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "@com.miaokatze.gtsr.common.dimension.testlab.TestLabCommand"
+    },
+    "method": "transfer",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "ref": "p6AltarReturnWorld"
+      },
+      {
+        "double": 0.5
+      },
+      {
+        "double": 260.0
+      },
+      {
+        "double": 0.5
+      },
+      {
+        "float": 0
+      },
+      {
+        "float": 0
+      }
+    ],
+    "timeoutTicks": 1200
+  },
+  {
+    "op": "wait",
+    "ticks": 55
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "@com.miaokatze.gtsr.common.dimension.testlab.TestLabCommand"
+    },
+    "method": "transfer",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "ref": "p6Overworld"
+      },
+      {
+        "double": 4094.5
+      },
+      {
+        "double": 236.0
+      },
+      {
+        "double": 4095.5
+      },
+      {
+        "float": 0
+      },
+      {
+        "float": 0
+      }
+    ],
+    "timeoutTicks": 1200
+  },
+  {
+    "op": "wait",
+    "ticks": 55
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-fixture-client-chunk-reload",
+    "value": "Entered TestLab then returned0 after authentic board TE installation, so vanilla full chunk TE data supplies the real client board class; no client TE injection."
+  },
+  {
+    "op": "evaluate",
+    "side": "client",
+    "value": {
+      "target": {
+        "ref": "clientWorld"
+      },
+      "call": "getTileEntity|func_147438_o",
+      "args": [
+        4094,
+        235,
+        4093
+      ]
+    },
+    "save": "p6AltarClientBoard"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-real-client-board-type-observed",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p6AltarClientBoard"
+        },
+        "call": "getClass",
+        "args": []
+      },
+      "call": "getName",
+      "args": []
+    }
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "p6AltarBoard"
+    },
+    "save": "p6AltarServerBoardNBT"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p6AltarBoard"
+      },
+      "call": "getDescriptionPacket|func_145844_m",
+      "args": []
+    },
+    "save": "p6AltarNativeDescriptionPacket"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p6AltarNativeDescriptionPacket"
+      },
+      "call": "func_148857_g",
+      "args": []
+    },
+    "save": "p6AltarNativeDescriptionNBT"
+  },
+  {
+    "op": "assert",
+    "side": "server",
+    "name": "p6-altar-description-is-registered-story-board-NBT",
+    "actual": {
+      "target": {
+        "ref": "p6AltarNativeDescriptionNBT"
+      },
+      "call": "getString|func_74779_i",
+      "args": [
+        "id"
+      ]
+    },
+    "expected": "gtsr.spacetimeAltarStory"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "client",
+    "target": {
+      "ref": "p6AltarClientBoard"
+    },
+    "save": "p6AltarObservedClientBoardNBT"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-client-native-TE-serialized-id",
+    "value": {
+      "target": {
+        "ref": "p6AltarObservedClientBoardNBT"
+      },
+      "call": "getString|func_74779_i",
+      "args": [
+        "id"
+      ]
+    }
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-client-native-TE-serialized-instance",
+    "value": {
+      "target": {
+        "ref": "p6AltarObservedClientBoardNBT"
+      },
+      "call": "getString|func_74779_i",
+      "args": [
+        "altarInstance"
+      ]
+    }
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-source-boundary",
+    "value": "No client TE injection. R8 server/native/client NBT confirmed gtsr.spacetimeAltarStory and matching instance after real S35. Normal server read was not reached because validBoard rejected; capture actor/world/range/live-TE/owner gates before and after bounded owned-fixture stabilization below. Do not infer normal reading PASS from class restoration."
+  },
+  {
+    "op": "wait",
+    "ticks": 35
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "ref": "p6AltarBoard"
+    },
+    "save": "p6AltarOriginalArgumentBoard"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.actor-type",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "call": "getClass",
+        "args": []
+      },
+      "call": "getName",
+      "args": []
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.actor-alive",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "call": "isEntityAlive|func_70089_S",
+      "args": []
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.actor-dimension",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.server-world-remote",
+    "value": {
+      "target": {
+        "ref": "world"
+      },
+      "field": "isRemote|field_72995_K"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.server-world-dimension",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "world"
+        },
+        "field": "provider|field_73011_w"
+      },
+      "field": "dimensionId|field_76574_g"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.actor-pos-x",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "posX|field_70165_t"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.actor-pos-y",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "posY|field_70163_u"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.actor-pos-z",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "posZ|field_70161_v"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.actor-flight",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "capabilities|field_71075_bZ"
+      },
+      "field": "isFlying|field_75100_b"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.distanceSq-to-board-center",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "call": "getDistanceSq|func_70092_e",
+      "args": [
+        {
+          "double": 4094.5
+        },
+        {
+          "double": 235.5
+        },
+        {
+          "double": 4093.5
+        }
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.argument-board-type",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p6AltarOriginalArgumentBoard"
+        },
+        "call": "getClass",
+        "args": []
+      },
+      "call": "getName",
+      "args": []
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.board-instance",
+    "value": {
+      "target": {
+        "ref": "p6AltarOriginalArgumentBoard"
+      },
+      "call": "instanceId",
+      "args": []
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.board-world-is-player-world",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p6AltarOriginalArgumentBoard"
+        },
+        "call": "getWorldObj|func_145831_w",
+        "args": []
+      },
+      "call": "equals",
+      "args": [
+        {
+          "ref": "world"
+        }
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.board-is-exact-current-world-TE",
+    "value": {
+      "target": {
+        "ref": "p6AltarOriginalArgumentBoard"
+      },
+      "call": "equals",
+      "args": [
+        {
+          "target": {
+            "ref": "world"
+          },
+          "call": "getTileEntity|func_147438_o",
+          "args": [
+            4094,
+            235,
+            4093
+          ]
+        }
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.actual-board-block",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "world"
+        },
+        "call": "getBlock|func_147439_a",
+        "args": [
+          4094,
+          235,
+          4093
+        ]
+      },
+      "call": "getUnlocalizedName|func_149739_a",
+      "args": []
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.board-block-is-real-console",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "world"
+        },
+        "call": "getBlock|func_147439_a",
+        "args": [
+          4094,
+          235,
+          4093
+        ]
+      },
+      "call": "equals",
+      "args": [
+        {
+          "ref": "p6AltarBoardBlock"
+        }
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.index-entry-valid",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p6AltarIndex"
+        },
+        "call": "find",
+        "args": [
+          "uiqa:p6:altar:r3"
+        ]
+      },
+      "field": "valid"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.index-core-x",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p6AltarIndex"
+        },
+        "call": "find",
+        "args": [
+          "uiqa:p6:altar:r3"
+        ]
+      },
+      "field": "x"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.index-core-y",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p6AltarIndex"
+        },
+        "call": "find",
+        "args": [
+          "uiqa:p6:altar:r3"
+        ]
+      },
+      "field": "y"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.index-core-z",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p6AltarIndex"
+        },
+        "call": "find",
+        "args": [
+          "uiqa:p6:altar:r3"
+        ]
+      },
+      "field": "z"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.core-chunk-loaded",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "world"
+        },
+        "call": "getChunkProvider|func_72863_F",
+        "args": []
+      },
+      "call": "chunkExists|func_73149_a",
+      "args": [
+        256,
+        256
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.actual-core-block-is-real-core",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "world"
+        },
+        "call": "getBlock|func_147439_a",
+        "args": [
+          4096,
+          240,
+          4096
+        ]
+      },
+      "call": "equals",
+      "args": [
+        {
+          "target": {
+            "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarBlocks"
+          },
+          "field": "core"
+        }
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.actual-core-TE",
+    "value": {
+      "target": {
+        "ref": "world"
+      },
+      "call": "getTileEntity|func_147438_o",
+      "args": [
+        4096,
+        240,
+        4096
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.resolved-owner",
+    "value": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory"
+      },
+      "call": "owner",
+      "args": [
+        {
+          "ref": "world"
+        },
+        "uiqa:p6:altar:r3"
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-before-fixture-stabilize.complete-original-validBoard-result",
+    "value": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory"
+      },
+      "call": "validBoard",
+      "args": [
+        {
+          "ref": "serverPlayer"
+        },
+        {
+          "ref": "p6AltarOriginalArgumentBoard"
+        }
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-fixture-correction-boundary",
+    "value": "R9 actually measured actor y4/distSq53596.25 and stale argument-TE reference, while owner/index/core/console were valid. Stabilize only this owned fixture on one verified-air stone support cell(4094,235,4095), record/restore its original block/meta, reposition normally, reacquire authoritative live server TE; keep all production owner/range/identity gates unchanged. Flight is recorded, never required.",
+    "side": "server"
+  },
+  {
+    "op": "placeBlock",
+    "side": "server",
+    "block": {
+      "target": {
+        "ref": "@net.minecraft.init.Blocks"
+      },
+      "field": "stone|field_150348_b"
+    },
+    "x": 4094,
+    "y": 235,
+    "z": 4095,
+    "save": "p6AltarSupportTile"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "setPositionAndUpdate|func_70634_a",
+    "args": [
+      {
+        "double": 4094.5
+      },
+      {
+        "double": 236.0
+      },
+      {
+        "double": 4095.5
+      }
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "world"
+      },
+      "call": "getTileEntity|func_147438_o",
+      "args": [
+        4094,
+        235,
+        4093
+      ]
+    },
+    "save": "p6AltarBoard"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "world"
+      },
+      "call": "getTileEntity|func_147438_o",
+      "args": [
+        4096,
+        240,
+        4096
+      ]
+    },
+    "save": "p6AltarCore"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-reacquired-live-board-equals-original-argument",
+    "value": {
+      "target": {
+        "ref": "p6AltarBoard"
+      },
+      "call": "equals",
+      "args": [
+        {
+          "ref": "p6AltarOriginalArgumentBoard"
+        }
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.actor-type",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "call": "getClass",
+        "args": []
+      },
+      "call": "getName",
+      "args": []
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.actor-alive",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "call": "isEntityAlive|func_70089_S",
+      "args": []
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.actor-dimension",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.server-world-remote",
+    "value": {
+      "target": {
+        "ref": "world"
+      },
+      "field": "isRemote|field_72995_K"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.server-world-dimension",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "world"
+        },
+        "field": "provider|field_73011_w"
+      },
+      "field": "dimensionId|field_76574_g"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.actor-pos-x",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "posX|field_70165_t"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.actor-pos-y",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "posY|field_70163_u"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.actor-pos-z",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "posZ|field_70161_v"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.actor-flight",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "capabilities|field_71075_bZ"
+      },
+      "field": "isFlying|field_75100_b"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.distanceSq-to-board-center",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "call": "getDistanceSq|func_70092_e",
+      "args": [
+        {
+          "double": 4094.5
+        },
+        {
+          "double": 235.5
+        },
+        {
+          "double": 4093.5
+        }
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.argument-board-type",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p6AltarBoard"
+        },
+        "call": "getClass",
+        "args": []
+      },
+      "call": "getName",
+      "args": []
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.board-instance",
+    "value": {
+      "target": {
+        "ref": "p6AltarBoard"
+      },
+      "call": "instanceId",
+      "args": []
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.board-world-is-player-world",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p6AltarBoard"
+        },
+        "call": "getWorldObj|func_145831_w",
+        "args": []
+      },
+      "call": "equals",
+      "args": [
+        {
+          "ref": "world"
+        }
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.board-is-exact-current-world-TE",
+    "value": {
+      "target": {
+        "ref": "p6AltarBoard"
+      },
+      "call": "equals",
+      "args": [
+        {
+          "target": {
+            "ref": "world"
+          },
+          "call": "getTileEntity|func_147438_o",
+          "args": [
+            4094,
+            235,
+            4093
+          ]
+        }
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.actual-board-block",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "world"
+        },
+        "call": "getBlock|func_147439_a",
+        "args": [
+          4094,
+          235,
+          4093
+        ]
+      },
+      "call": "getUnlocalizedName|func_149739_a",
+      "args": []
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.board-block-is-real-console",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "world"
+        },
+        "call": "getBlock|func_147439_a",
+        "args": [
+          4094,
+          235,
+          4093
+        ]
+      },
+      "call": "equals",
+      "args": [
+        {
+          "ref": "p6AltarBoardBlock"
+        }
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.index-entry-valid",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p6AltarIndex"
+        },
+        "call": "find",
+        "args": [
+          "uiqa:p6:altar:r3"
+        ]
+      },
+      "field": "valid"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.index-core-x",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p6AltarIndex"
+        },
+        "call": "find",
+        "args": [
+          "uiqa:p6:altar:r3"
+        ]
+      },
+      "field": "x"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.index-core-y",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p6AltarIndex"
+        },
+        "call": "find",
+        "args": [
+          "uiqa:p6:altar:r3"
+        ]
+      },
+      "field": "y"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.index-core-z",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p6AltarIndex"
+        },
+        "call": "find",
+        "args": [
+          "uiqa:p6:altar:r3"
+        ]
+      },
+      "field": "z"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.core-chunk-loaded",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "world"
+        },
+        "call": "getChunkProvider|func_72863_F",
+        "args": []
+      },
+      "call": "chunkExists|func_73149_a",
+      "args": [
+        256,
+        256
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.actual-core-block-is-real-core",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "world"
+        },
+        "call": "getBlock|func_147439_a",
+        "args": [
+          4096,
+          240,
+          4096
+        ]
+      },
+      "call": "equals",
+      "args": [
+        {
+          "target": {
+            "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarBlocks"
+          },
+          "field": "core"
+        }
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.actual-core-TE",
+    "value": {
+      "target": {
+        "ref": "world"
+      },
+      "call": "getTileEntity|func_147438_o",
+      "args": [
+        4096,
+        240,
+        4096
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.resolved-owner",
+    "value": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory"
+      },
+      "call": "owner",
+      "args": [
+        {
+          "ref": "world"
+        },
+        "uiqa:p6:altar:r3"
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-after-fixture-stabilize.complete-original-validBoard-result",
+    "value": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory"
+      },
+      "call": "validBoard",
+      "args": [
+        {
+          "ref": "serverPlayer"
+        },
+        {
+          "ref": "p6AltarBoard"
+        }
+      ]
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p6-altar-supported-actor-actual-onGround",
+    "value": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "onGround|field_70122_E"
+    }
+  },
+  {
+    "op": "assert",
+    "side": "server",
+    "name": "p6-altar-platform-real-stone-under-actor",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "world"
+        },
+        "call": "getBlock|func_147439_a",
+        "args": [
+          4094,
+          235,
+          4095
+        ]
+      },
+      "call": "equals",
+      "args": [
+        {
+          "target": {
+            "ref": "@net.minecraft.init.Blocks"
+          },
+          "field": "stone|field_150348_b"
+        }
+      ]
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "server",
+    "name": "p6-altar-supported-actor-actually-onGround",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "onGround|field_70122_E"
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "server",
+    "name": "p6-altar-fixture-actual-distanceSq-below64",
+    "actual": 64,
+    "expected": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "call": "getDistanceSq|func_70092_e",
+      "args": [
+        {
+          "double": 4094.5
+        },
+        {
+          "double": 235.5
+        },
+        {
+          "double": 4093.5
+        }
+      ]
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "server",
+    "name": "p6-altar-fixture-board-is-exact-live-server-instance",
+    "actual": {
+      "target": {
+        "ref": "p6AltarBoard"
+      },
+      "call": "equals",
+      "args": [
+        {
+          "target": {
+            "ref": "world"
+          },
+          "call": "getTileEntity|func_147438_o",
+          "args": [
+            4094,
+            235,
+            4093
+          ]
+        }
+      ]
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "name": "p6-altar-real-board-owner-valid",
+    "actual": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory"
+      },
+      "call": "validBoard",
+      "args": [
+        {
+          "ref": "serverPlayer"
+        },
+        {
+          "ref": "p6AltarBoard"
+        }
+      ]
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p6-altar-core-unpaid-before-read",
+    "actual": {
+      "target": {
+        "ref": "p6AltarCore"
+      },
+      "call": "isPaid",
+      "args": []
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "ref": "p6AltarCore"
+    },
+    "save": "p6AltarCoreBeforeRead"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory"
+    },
+    "method": "read",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "ref": "p6AltarBoard"
+      }
+    ],
+    "side": "server",
+    "save": "p6AltarReadAccepted"
+  },
+  {
+    "op": "assert",
+    "name": "p6-altar-real-server-read-accepted",
+    "actual": {
+      "ref": "p6AltarReadAccepted"
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "expectScreen",
+    "name": "p6-altar-authenticated-reading",
+    "panel": "spacetime_altar_story"
+  },
+  {
+    "op": "wait",
+    "ticks": 12
+  },
+  {
+    "op": "assert",
+    "name": "p6-altar-authenticated-reading.pause-false",
+    "actual": {
+      "target": {
+        "ref": "screen"
+      },
+      "call": "doesPauseGame",
+      "args": []
+    },
+    "expected": false,
+    "side": "client"
+  },
+  {
+    "op": "screenshot",
+    "name": "p6-altar-authenticated-reading"
+  },
+  {
+    "op": "geometry",
+    "widget": "altar.paragraphs",
+    "name": "p6-altar-normal-reading.native-text-layout",
+    "depth": 2,
+    "assertTextFit": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-count",
+    "actual": {
+      "target": {
+        "target": {
+          "widget": "altar.paragraphs"
+        },
+        "call": "getChildren",
+        "args": []
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 5
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-0.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-0.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "altar.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          0
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-1.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-1.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "altar.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          1
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-1.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            0
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-2.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-2.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "altar.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          2
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-2.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            1
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-3.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-3.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "altar.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          3
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-3.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            2
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-4.actual-width-resolved",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "resizer",
+        "args": []
+      },
+      "call": "isWidthCalculated",
+      "args": []
+    },
+    "expected": true
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-4.height-equals-native-final-width-measure",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "field": "height"
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "widget": "altar.paragraphs"
+          },
+          "call": "getChildren",
+          "args": []
+        },
+        "call": "get",
+        "args": [
+          4
+        ]
+      },
+      "call": "getDefaultHeight",
+      "args": []
+    }
+  },
+  {
+    "op": "assert",
+    "side": "client",
+    "name": "p6-altar-normal-reading.native-wrap-regression.paragraph-4.does-not-overlap-preceding-paragraph",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            4
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMinY",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "widget": "altar.paragraphs"
+            },
+            "call": "getChildren",
+            "args": []
+          },
+          "call": "get",
+          "args": [
+            3
+          ]
+        },
+        "call": "getArea",
+        "args": []
+      },
+      "call": "getMaxY",
+      "args": []
+    },
+    "relation": ">"
+  },
+  {
+    "op": "invoke",
+    "side": "client",
+    "target": {
+      "ref": "@com.cleanroommc.modularui.factory.ClientGUI"
+    },
+    "method": "close",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-text-only-regression-boundary",
+    "value": "Normal server-authorized S2C reading, one GL capture and native paragraph rectangle measurements only. R10 paid/nonce unchanged and Node replacement/reopen/close-resource transactions already PASS; not re-run here."
+  },
+  {
+    "op": "group",
+    "name": "p6-altar-owned-fixture-cleanup",
+    "dimension": 0,
+    "cleanup": "Separate post-route cleanup: remove own board/core/session, restore index/player NBT, return TestLab. Runs even if preceding normal client board route fails after setup. Restore the single support cell original block/meta at4094,235,4095."
+  },
+  {
+    "op": "invoke",
+    "side": "client",
+    "target": {
+      "ref": "@com.cleanroommc.modularui.factory.ClientGUI"
+    },
+    "method": "close",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "assert",
+    "side": "server",
+    "name": "p6-altar-cleanup-still-overworld",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 0
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "@com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory"
+      },
+      "field": "SESSIONS"
+    },
+    "method": "remove",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      }
+    ],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlockToAir|func_147468_f",
+    "args": [
+      4094,
+      235,
+      4093
+    ],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlockToAir|func_147468_f",
+    "args": [
+      4096,
+      240,
+      4096
+    ],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "world"
+    },
+    "method": "setBlock|func_147465_d",
+    "args": [
+      4094,
+      235,
+      4095,
+      {
+        "ref": "p6AltarSupportOriginalBlock"
+      },
+      {
+        "ref": "p6AltarSupportOriginalMeta"
+      },
+      3
+    ]
+  },
+  {
+    "op": "assert",
+    "side": "server",
+    "name": "p6-altar-support-cell-original-air-restored",
+    "actual": {
+      "target": {
+        "ref": "world"
+      },
+      "call": "isAirBlock|func_147437_c",
+      "args": [
+        4094,
+        235,
+        4095
+      ]
+    },
+    "expected": true
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p6AltarIndex"
+    },
+    "method": "readFromNBT|func_76184_a",
+    "args": [
+      {
+        "ref": "p6AltarIndexBefore"
+      }
+    ],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "p6AltarIndex"
+    },
+    "method": "markDirty|func_76185_a",
+    "args": [],
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p6-altar-owned-index-entry-removed",
+    "actual": {
+      "target": {
+        "ref": "p6AltarIndex"
+      },
+      "call": "find",
+      "args": [
+        "uiqa:p6:altar:r3"
+      ]
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p6-altar-owned-board-cell-air",
+    "actual": {
+      "target": {
+        "ref": "world"
+      },
+      "call": "isAirBlock|func_147437_c",
+      "args": [
+        4094,
+        235,
+        4093
+      ]
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p6-altar-owned-core-cell-air",
+    "actual": {
+      "target": {
+        "ref": "world"
+      },
+      "call": "isAirBlock|func_147437_c",
+      "args": [
+        4096,
+        240,
+        4096
+      ]
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "readEntityFromNBT|func_70037_a",
+    "args": [
+      {
+        "ref": "p6AltarPlayerNBT"
+      }
+    ],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": [],
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": [],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "@com.miaokatze.gtsr.common.dimension.testlab.TestLabCommand"
+    },
+    "method": "transfer",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "ref": "p6AltarReturnWorld"
+      },
+      {
+        "double": 0.5
+      },
+      {
+        "double": 260.0
+      },
+      {
+        "double": 0.5
+      },
+      {
+        "float": 0
+      },
+      {
+        "float": 0
+      }
+    ],
+    "side": "server",
+    "timeoutTicks": 1200
+  },
+  {
+    "op": "wait",
+    "ticks": 55
+  },
+  {
+    "op": "record",
+    "name": "p6-altar-cleanup-and-uncovered",
+    "value": "Own core/board/session removed, altar index and player data NBT restored, returned TestLab. Genuine read evidence exists only if the preceding normal read/S2C checks passed; a rejected validBoard never counts as a read. Paid activation/Vis deductions/nonce replay/1200t expiry NOT_RUN. Any awarded player-stat achievement remains only in the disposable QA world."
+  }
+]

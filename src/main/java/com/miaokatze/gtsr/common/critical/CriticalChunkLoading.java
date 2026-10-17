@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
@@ -251,7 +252,17 @@ public final class CriticalChunkLoading {
 
     /** Broken loom, dismantling, invalidation and removal stop both supervision and this owner's ticket. */
     public void release() {
-        releaseTicket();
+        release(false);
+    }
+
+    private void release(boolean forgeTicketsUnloaded) {
+        if (forgeTicketsUnloaded) {
+            // ForgeInternalHandler (HIGHEST) has already cleared every native ticket on shutdown.
+            // Only discard our references: releaseTicket would dereference Forge's missing world map.
+            nativeTicket = null;
+            current.clear();
+            pendingLoad = null;
+        } else releaseTicket();
         LOADERS.remove(this);
         owner = null;
         needed.clear();
@@ -335,10 +346,14 @@ public final class CriticalChunkLoading {
 
         @SubscribeEvent
         public void unload(WorldEvent.Unload event) {
+            if (event.world.isRemote) return;
+            boolean forgeTicketsUnloaded = !MinecraftServer.getServer()
+                .isServerRunning();
             for (CriticalChunkLoading loader : new ArrayList<>(LOADERS)) {
-                if (loader.owner != null && loader.owner.getWorldObj() == event.world) loader.release();
+                if (loader.owner != null && loader.owner.getWorldObj() == event.world)
+                    loader.release(forgeTicketsUnloaded);
             }
-            CriticalChunkTicketManager.releaseWorld(event.world);
+            CriticalChunkTicketManager.releaseWorld(event.world, forgeTicketsUnloaded);
         }
     }
 }

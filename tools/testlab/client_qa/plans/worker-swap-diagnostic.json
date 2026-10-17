@@ -1,0 +1,2133 @@
+[
+  {
+    "op": "group",
+    "name": "p3SwapMinerOldNewNumberKeyDiagnosis"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "@gregtech.api.modularui2.GTGuis"
+      },
+      "field": "GLOBAL_SWITCH_MUI2"
+    },
+    "save": "p3SwapOriginalGlobal"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "new": "net.minecraft.nbt.NBTTagList"
+    },
+    "save": "p3SwapOriginalInvNBT"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "writeToNBT|func_70442_a",
+    "args": [
+      {
+        "ref": "p3SwapOriginalInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "field": "currentItem|field_70461_c"
+    },
+    "save": "p3SwapOriginalSlot"
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p3SwapMiner",
+    "class": "com.miaokatze.gtsr.common.machine.MTESingularityMinerNode",
+    "x": 960,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapMinerHost"
+    },
+    "method": "disableWorking",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "@gregtech.api.util.GTModHandler"
+      },
+      "call": "getIC2Item",
+      "args": [
+        "miningPipe",
+        {
+          "long": 1
+        }
+      ]
+    },
+    "save": "p3SwapMinerPipeType"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3SwapMinerPipes",
+    "count": 32,
+    "mark": "v1.21.38-owned-p3SwapMinerPipes",
+    "item": {
+      "target": {
+        "ref": "p3SwapMinerPipeType"
+      },
+      "call": "getItem|func_77973_b",
+      "args": []
+    }
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3SwapMinerHotbar",
+    "count": 4,
+    "mark": "v1.21.38-owned-p3SwapMinerHotbar",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3SwapMinerStored",
+    "count": 7,
+    "mark": "v1.21.38-owned-p3SwapMinerStored",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      2,
+      {
+        "ref": "p3SwapMinerHotbar"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapMiner"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      null
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapMiner"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      1,
+      {
+        "ref": "p3SwapMinerPipes"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapMiner"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      2,
+      {
+        "ref": "p3SwapMinerStored"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "ref": "@gregtech.api.modularui2.GTGuis"
+    },
+    "field": "GLOBAL_SWITCH_MUI2",
+    "value": false
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapMiner"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3SwapMinerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectGuiClass",
+    "name": "p3SwapMinerActualOldMui1",
+    "contains": "com.gtnewhorizons.modularui",
+    "timeoutTicks": 200
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapMiner.old-real39slots",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "field": "inventorySlots|field_75151_b"
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 39,
+    "side": "server"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "container"
+      },
+      "call": "func_75139_a|getSlot",
+      "args": [
+        37
+      ]
+    },
+    "save": "p3SwapMinerOldSlot"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapMiner.Old.actual-machine-slot-index1",
+    "actual": {
+      "target": {
+        "ref": "p3SwapMinerOldSlot"
+      },
+      "field": "slotIndex|field_75225_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapMiner.Old.original-handler-identity",
+    "actual": {
+      "target": {
+        "ref": "p3SwapMinerOldSlot"
+      },
+      "call": "getItemHandler",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "p3SwapMiner"
+      },
+      "field": "inventoryHandler"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapMiner.Old.slot-inventory-is-player",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p3SwapMinerOldSlot"
+        },
+        "field": "inventory|field_75224_c"
+      },
+      "call": "equals",
+      "args": [
+        {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        }
+      ]
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapMiner.Old.handler-accepts-nonpipe",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p3SwapMiner"
+        },
+        "field": "inventoryHandler"
+      },
+      "call": "isItemValid",
+      "args": [
+        1,
+        {
+          "target": {
+            "target": {
+              "ref": "serverPlayer"
+            },
+            "field": "inventory|field_71071_by"
+          },
+          "call": "func_70301_a|getStackInSlot",
+          "args": [
+            2
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapMiner.Old.slot-accepts-nonpipe",
+    "value": {
+      "target": {
+        "ref": "p3SwapMinerOldSlot"
+      },
+      "call": "func_75214_a|isItemValid",
+      "args": [
+        {
+          "target": {
+            "target": {
+              "ref": "serverPlayer"
+            },
+            "field": "inventory|field_71071_by"
+          },
+          "call": "func_70301_a|getStackInSlot",
+          "args": [
+            2
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3SwapMinerOldBefore",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "windowClick",
+    "slot": 37,
+    "button": 2,
+    "mode": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3SwapMinerOldAfter",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3SwapMiner.Old.number-key-full-ledger",
+    "before": "p3SwapMinerOldBefore",
+    "after": "p3SwapMinerOldAfter"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3SwapMiner"
+      },
+      "call": "func_70301_a|getStackInSlot",
+      "args": [
+        1
+      ]
+    },
+    "save": "p3SwapMinerOldMachine1"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapMiner.Old.post-Machine1",
+    "value": {
+      "ref": "p3SwapMinerOldMachine1"
+    }
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "func_70301_a|getStackInSlot",
+      "args": [
+        2
+      ]
+    },
+    "save": "p3SwapMinerOldHotbar2"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapMiner.Old.post-Hotbar2",
+    "value": {
+      "ref": "p3SwapMinerOldHotbar2"
+    }
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "func_70301_a|getStackInSlot",
+      "args": [
+        0
+      ]
+    },
+    "save": "p3SwapMinerOldPlayer0"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapMiner.Old.post-Player0",
+    "value": {
+      "ref": "p3SwapMinerOldPlayer0"
+    }
+  },
+  {
+    "op": "legacyKey",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3SwapMinerPipes",
+    "count": 32,
+    "mark": "v1.21.38-owned-p3SwapMinerPipes",
+    "item": {
+      "target": {
+        "ref": "p3SwapMinerPipeType"
+      },
+      "call": "getItem|func_77973_b",
+      "args": []
+    }
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3SwapMinerHotbar",
+    "count": 4,
+    "mark": "v1.21.38-owned-p3SwapMinerHotbar",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3SwapMinerStored",
+    "count": 7,
+    "mark": "v1.21.38-owned-p3SwapMinerStored",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      2,
+      {
+        "ref": "p3SwapMinerHotbar"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapMiner"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      null
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapMiner"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      1,
+      {
+        "ref": "p3SwapMinerPipes"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapMiner"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      2,
+      {
+        "ref": "p3SwapMinerStored"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "ref": "@gregtech.api.modularui2.GTGuis"
+    },
+    "field": "GLOBAL_SWITCH_MUI2",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapMiner"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3SwapMinerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3SwapMinerActualNewMui2",
+    "panel": "remote_worker_node",
+    "slots": 39
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3SwapMinerActualNewMui2"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "container"
+      },
+      "call": "func_75139_a|getSlot",
+      "args": [
+        1
+      ]
+    },
+    "save": "p3SwapMinerNewSlot"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapMiner.New.actual-machine-slot-index1",
+    "actual": {
+      "target": {
+        "ref": "p3SwapMinerNewSlot"
+      },
+      "field": "slotIndex|field_75225_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapMiner.New.original-handler-identity",
+    "actual": {
+      "target": {
+        "ref": "p3SwapMinerNewSlot"
+      },
+      "call": "getItemHandler",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "p3SwapMiner"
+      },
+      "field": "inventoryHandler"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapMiner.New.slot-inventory-is-player",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p3SwapMinerNewSlot"
+        },
+        "field": "inventory|field_75224_c"
+      },
+      "call": "equals",
+      "args": [
+        {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        }
+      ]
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapMiner.New.handler-accepts-nonpipe",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p3SwapMiner"
+        },
+        "field": "inventoryHandler"
+      },
+      "call": "isItemValid",
+      "args": [
+        1,
+        {
+          "target": {
+            "target": {
+              "ref": "serverPlayer"
+            },
+            "field": "inventory|field_71071_by"
+          },
+          "call": "func_70301_a|getStackInSlot",
+          "args": [
+            2
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapMiner.New.slot-accepts-nonpipe",
+    "value": {
+      "target": {
+        "ref": "p3SwapMinerNewSlot"
+      },
+      "call": "func_75214_a|isItemValid",
+      "args": [
+        {
+          "target": {
+            "target": {
+              "ref": "serverPlayer"
+            },
+            "field": "inventory|field_71071_by"
+          },
+          "call": "func_70301_a|getStackInSlot",
+          "args": [
+            2
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3SwapMinerNewBefore",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3SwapMiner.identical-old-new-source-ledger",
+    "before": "p3SwapMinerOldBefore",
+    "after": "p3SwapMinerNewBefore"
+  },
+  {
+    "op": "windowClick",
+    "slot": 1,
+    "button": 2,
+    "mode": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3SwapMinerNewAfter",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3SwapMiner.New.number-key-full-ledger",
+    "before": "p3SwapMinerNewBefore",
+    "after": "p3SwapMinerNewAfter"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3SwapMiner"
+      },
+      "call": "func_70301_a|getStackInSlot",
+      "args": [
+        1
+      ]
+    },
+    "save": "p3SwapMinerNewMachine1"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapMiner.New.post-Machine1",
+    "value": {
+      "ref": "p3SwapMinerNewMachine1"
+    }
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "func_70301_a|getStackInSlot",
+      "args": [
+        2
+      ]
+    },
+    "save": "p3SwapMinerNewHotbar2"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapMiner.New.post-Hotbar2",
+    "value": {
+      "ref": "p3SwapMinerNewHotbar2"
+    }
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "func_70301_a|getStackInSlot",
+      "args": [
+        0
+      ]
+    },
+    "save": "p3SwapMinerNewPlayer0"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapMiner.New.post-Player0",
+    "value": {
+      "ref": "p3SwapMinerNewPlayer0"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3SwapMiner.old-new-number-key-result-ledger-equal",
+    "before": "p3SwapMinerOldAfter",
+    "after": "p3SwapMinerNewAfter"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapMiner.old-new-post-placement-Machine1",
+    "actual": {
+      "ref": "p3SwapMinerNewMachine1"
+    },
+    "expected": {
+      "ref": "p3SwapMinerOldMachine1"
+    },
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapMiner.old-new-post-placement-Hotbar2",
+    "actual": {
+      "ref": "p3SwapMinerNewHotbar2"
+    },
+    "expected": {
+      "ref": "p3SwapMinerOldHotbar2"
+    },
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapMiner.old-new-post-placement-Player0",
+    "actual": {
+      "ref": "p3SwapMinerNewPlayer0"
+    },
+    "expected": {
+      "ref": "p3SwapMinerOldPlayer0"
+    },
+    "side": "server"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "group",
+    "name": "p3SwapDrillerOldNewNumberKeyDiagnosis"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p3SwapDriller",
+    "class": "com.miaokatze.gtsr.common.machine.MTESingularityDrillingNode",
+    "x": 976,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapDrillerHost"
+    },
+    "method": "disableWorking",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "@gregtech.api.util.GTModHandler"
+      },
+      "call": "getIC2Item",
+      "args": [
+        "miningPipe",
+        {
+          "long": 1
+        }
+      ]
+    },
+    "save": "p3SwapDrillerPipeType"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3SwapDrillerPipes",
+    "count": 32,
+    "mark": "v1.21.38-owned-p3SwapDrillerPipes",
+    "item": {
+      "target": {
+        "ref": "p3SwapDrillerPipeType"
+      },
+      "call": "getItem|func_77973_b",
+      "args": []
+    }
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3SwapDrillerHotbar",
+    "count": 4,
+    "mark": "v1.21.38-owned-p3SwapDrillerHotbar",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3SwapDrillerStored",
+    "count": 7,
+    "mark": "v1.21.38-owned-p3SwapDrillerStored",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      2,
+      {
+        "ref": "p3SwapDrillerHotbar"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapDriller"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      null
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapDriller"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      1,
+      {
+        "ref": "p3SwapDrillerPipes"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapDriller"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      2,
+      {
+        "ref": "p3SwapDrillerStored"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "ref": "@gregtech.api.modularui2.GTGuis"
+    },
+    "field": "GLOBAL_SWITCH_MUI2",
+    "value": false
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapDriller"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3SwapDrillerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectGuiClass",
+    "name": "p3SwapDrillerActualOldMui1",
+    "contains": "com.gtnewhorizons.modularui",
+    "timeoutTicks": 200
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapDriller.old-real39slots",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "container"
+        },
+        "field": "inventorySlots|field_75151_b"
+      },
+      "call": "size",
+      "args": []
+    },
+    "expected": 39,
+    "side": "server"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "container"
+      },
+      "call": "func_75139_a|getSlot",
+      "args": [
+        37
+      ]
+    },
+    "save": "p3SwapDrillerOldSlot"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapDriller.Old.actual-machine-slot-index1",
+    "actual": {
+      "target": {
+        "ref": "p3SwapDrillerOldSlot"
+      },
+      "field": "slotIndex|field_75225_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapDriller.Old.original-handler-identity",
+    "actual": {
+      "target": {
+        "ref": "p3SwapDrillerOldSlot"
+      },
+      "call": "getItemHandler",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "p3SwapDriller"
+      },
+      "field": "inventoryHandler"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapDriller.Old.slot-inventory-is-player",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p3SwapDrillerOldSlot"
+        },
+        "field": "inventory|field_75224_c"
+      },
+      "call": "equals",
+      "args": [
+        {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        }
+      ]
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapDriller.Old.handler-accepts-nonpipe",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p3SwapDriller"
+        },
+        "field": "inventoryHandler"
+      },
+      "call": "isItemValid",
+      "args": [
+        1,
+        {
+          "target": {
+            "target": {
+              "ref": "serverPlayer"
+            },
+            "field": "inventory|field_71071_by"
+          },
+          "call": "func_70301_a|getStackInSlot",
+          "args": [
+            2
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapDriller.Old.slot-accepts-nonpipe",
+    "value": {
+      "target": {
+        "ref": "p3SwapDrillerOldSlot"
+      },
+      "call": "func_75214_a|isItemValid",
+      "args": [
+        {
+          "target": {
+            "target": {
+              "ref": "serverPlayer"
+            },
+            "field": "inventory|field_71071_by"
+          },
+          "call": "func_70301_a|getStackInSlot",
+          "args": [
+            2
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3SwapDrillerOldBefore",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "windowClick",
+    "slot": 37,
+    "button": 2,
+    "mode": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3SwapDrillerOldAfter",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3SwapDriller.Old.number-key-full-ledger",
+    "before": "p3SwapDrillerOldBefore",
+    "after": "p3SwapDrillerOldAfter"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3SwapDriller"
+      },
+      "call": "func_70301_a|getStackInSlot",
+      "args": [
+        1
+      ]
+    },
+    "save": "p3SwapDrillerOldMachine1"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapDriller.Old.post-Machine1",
+    "value": {
+      "ref": "p3SwapDrillerOldMachine1"
+    }
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "func_70301_a|getStackInSlot",
+      "args": [
+        2
+      ]
+    },
+    "save": "p3SwapDrillerOldHotbar2"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapDriller.Old.post-Hotbar2",
+    "value": {
+      "ref": "p3SwapDrillerOldHotbar2"
+    }
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "func_70301_a|getStackInSlot",
+      "args": [
+        0
+      ]
+    },
+    "save": "p3SwapDrillerOldPlayer0"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapDriller.Old.post-Player0",
+    "value": {
+      "ref": "p3SwapDrillerOldPlayer0"
+    }
+  },
+  {
+    "op": "legacyKey",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3SwapDrillerPipes",
+    "count": 32,
+    "mark": "v1.21.38-owned-p3SwapDrillerPipes",
+    "item": {
+      "target": {
+        "ref": "p3SwapDrillerPipeType"
+      },
+      "call": "getItem|func_77973_b",
+      "args": []
+    }
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3SwapDrillerHotbar",
+    "count": 4,
+    "mark": "v1.21.38-owned-p3SwapDrillerHotbar",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3SwapDrillerStored",
+    "count": 7,
+    "mark": "v1.21.38-owned-p3SwapDrillerStored",
+    "id": "minecraft:cobblestone"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      2,
+      {
+        "ref": "p3SwapDrillerHotbar"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapDriller"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      0,
+      null
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapDriller"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      1,
+      {
+        "ref": "p3SwapDrillerPipes"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapDriller"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      2,
+      {
+        "ref": "p3SwapDrillerStored"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "ref": "@gregtech.api.modularui2.GTGuis"
+    },
+    "field": "GLOBAL_SWITCH_MUI2",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3SwapDriller"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3SwapDrillerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3SwapDrillerActualNewMui2",
+    "panel": "remote_worker_node",
+    "slots": 39
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3SwapDrillerActualNewMui2"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "container"
+      },
+      "call": "func_75139_a|getSlot",
+      "args": [
+        1
+      ]
+    },
+    "save": "p3SwapDrillerNewSlot"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapDriller.New.actual-machine-slot-index1",
+    "actual": {
+      "target": {
+        "ref": "p3SwapDrillerNewSlot"
+      },
+      "field": "slotIndex|field_75225_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapDriller.New.original-handler-identity",
+    "actual": {
+      "target": {
+        "ref": "p3SwapDrillerNewSlot"
+      },
+      "call": "getItemHandler",
+      "args": []
+    },
+    "expected": {
+      "target": {
+        "ref": "p3SwapDriller"
+      },
+      "field": "inventoryHandler"
+    },
+    "side": "server"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapDriller.New.slot-inventory-is-player",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p3SwapDrillerNewSlot"
+        },
+        "field": "inventory|field_75224_c"
+      },
+      "call": "equals",
+      "args": [
+        {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        }
+      ]
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapDriller.New.handler-accepts-nonpipe",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "p3SwapDriller"
+        },
+        "field": "inventoryHandler"
+      },
+      "call": "isItemValid",
+      "args": [
+        1,
+        {
+          "target": {
+            "target": {
+              "ref": "serverPlayer"
+            },
+            "field": "inventory|field_71071_by"
+          },
+          "call": "func_70301_a|getStackInSlot",
+          "args": [
+            2
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapDriller.New.slot-accepts-nonpipe",
+    "value": {
+      "target": {
+        "ref": "p3SwapDrillerNewSlot"
+      },
+      "call": "func_75214_a|isItemValid",
+      "args": [
+        {
+          "target": {
+            "target": {
+              "ref": "serverPlayer"
+            },
+            "field": "inventory|field_71071_by"
+          },
+          "call": "func_70301_a|getStackInSlot",
+          "args": [
+            2
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3SwapDrillerNewBefore",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3SwapDriller.identical-old-new-source-ledger",
+    "before": "p3SwapDrillerOldBefore",
+    "after": "p3SwapDrillerNewBefore"
+  },
+  {
+    "op": "windowClick",
+    "slot": 1,
+    "button": 2,
+    "mode": 2
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3SwapDrillerNewAfter",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3SwapDriller.New.number-key-full-ledger",
+    "before": "p3SwapDrillerNewBefore",
+    "after": "p3SwapDrillerNewAfter"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3SwapDriller"
+      },
+      "call": "func_70301_a|getStackInSlot",
+      "args": [
+        1
+      ]
+    },
+    "save": "p3SwapDrillerNewMachine1"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapDriller.New.post-Machine1",
+    "value": {
+      "ref": "p3SwapDrillerNewMachine1"
+    }
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "func_70301_a|getStackInSlot",
+      "args": [
+        2
+      ]
+    },
+    "save": "p3SwapDrillerNewHotbar2"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapDriller.New.post-Hotbar2",
+    "value": {
+      "ref": "p3SwapDrillerNewHotbar2"
+    }
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "func_70301_a|getStackInSlot",
+      "args": [
+        0
+      ]
+    },
+    "save": "p3SwapDrillerNewPlayer0"
+  },
+  {
+    "op": "record",
+    "side": "server",
+    "name": "p3SwapDriller.New.post-Player0",
+    "value": {
+      "ref": "p3SwapDrillerNewPlayer0"
+    }
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3SwapDriller.old-new-number-key-result-ledger-equal",
+    "before": "p3SwapDrillerOldAfter",
+    "after": "p3SwapDrillerNewAfter"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapDriller.old-new-post-placement-Machine1",
+    "actual": {
+      "ref": "p3SwapDrillerNewMachine1"
+    },
+    "expected": {
+      "ref": "p3SwapDrillerOldMachine1"
+    },
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapDriller.old-new-post-placement-Hotbar2",
+    "actual": {
+      "ref": "p3SwapDrillerNewHotbar2"
+    },
+    "expected": {
+      "ref": "p3SwapDrillerOldHotbar2"
+    },
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3SwapDriller.old-new-post-placement-Player0",
+    "actual": {
+      "ref": "p3SwapDrillerNewPlayer0"
+    },
+    "expected": {
+      "ref": "p3SwapDrillerOldPlayer0"
+    },
+    "side": "server"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "group",
+    "name": "p3SwapFinallyRestoreOwnedFlagsAndInventory"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "invoke",
+    "side": "client",
+    "target": {
+      "ref": "player"
+    },
+    "method": "closeScreen|func_71053_j",
+    "args": []
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "closeScreen|func_71053_j",
+    "args": []
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "ref": "@gregtech.api.modularui2.GTGuis"
+    },
+    "field": "GLOBAL_SWITCH_MUI2",
+    "value": {
+      "ref": "p3SwapOriginalGlobal"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "readFromNBT|func_70443_b",
+    "args": [
+      {
+        "ref": "p3SwapOriginalInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": {
+      "ref": "p3SwapOriginalSlot"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "assert",
+    "name": "p3Swap.finally-original-global-restored",
+    "actual": {
+      "target": {
+        "ref": "@gregtech.api.modularui2.GTGuis"
+      },
+      "field": "GLOBAL_SWITCH_MUI2"
+    },
+    "expected": {
+      "ref": "p3SwapOriginalGlobal"
+    },
+    "side": "server"
+  }
+]

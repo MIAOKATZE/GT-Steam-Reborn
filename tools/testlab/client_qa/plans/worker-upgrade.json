@@ -1,0 +1,2252 @@
+[
+  {
+    "op": "group",
+    "name": "p3UpgradeMinerActualTransaction"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "theItemInWorldManager|field_71134_c"
+      },
+      "call": "getGameType|func_73081_b",
+      "args": []
+    },
+    "save": "p3UpgradeMinerOriginalGameType"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "method": "func_75091_a|writeCapabilitiesToNBT",
+    "save": "p3UpgradeMinerOriginalCapsNBT"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "new": "net.minecraft.nbt.NBTTagList"
+    },
+    "save": "p3UpgradeMinerOriginalInvNBT"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "writeToNBT|func_70442_a",
+    "args": [
+      {
+        "ref": "p3UpgradeMinerOriginalInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "field": "currentItem|field_70461_c"
+    },
+    "save": "p3UpgradeMinerOriginalSlot"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p3UpgradeMiner",
+    "class": "com.miaokatze.gtsr.common.machine.MTESingularityMinerNode",
+    "x": 832,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "theItemInWorldManager|field_71134_c"
+    },
+    "method": "setGameType|func_73076_a",
+    "args": [
+      {
+        "enum": "net.minecraft.world.WorldSettings$GameType",
+        "name": "SURVIVAL"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "allowFlying|field_75101_c",
+    "value": false
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": false
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.actual-survival-gametype",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "theItemInWorldManager|field_71134_c"
+      },
+      "call": "getGameType|func_73081_b",
+      "args": []
+    },
+    "expected": {
+      "enum": "net.minecraft.world.WorldSettings$GameType",
+      "name": "SURVIVAL"
+    },
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.server-creative-false-before-fee",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "capabilities|field_71075_bZ"
+      },
+      "field": "isCreativeMode|field_75098_d"
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.client-creative-false-before-fee",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "player"
+        },
+        "field": "capabilities|field_71075_bZ"
+      },
+      "field": "isCreativeMode|field_75098_d"
+    },
+    "expected": false,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.standing-on-real-GT-placement-floor",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "onGround|field_70122_E"
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3UpgradeMinerHost"
+    },
+    "method": "disableWorking",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3UpgradeMiner"
+      },
+      "call": "getWorkerUpgradeItem",
+      "args": [
+        1
+      ]
+    },
+    "save": "p3UpgradeMinerUpgradeItem"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3UpgradeMiner"
+      },
+      "call": "getWorkerUpgradeCost",
+      "args": [
+        1
+      ]
+    },
+    "save": "p3UpgradeMinerFee"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.authoritative-positive-fee",
+    "actual": {
+      "ref": "p3UpgradeMinerFee"
+    },
+    "expected": 0,
+    "side": "server",
+    "relation": ">"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "@com.miaokatze.gtsr.common.api.enums.GTSRItemList"
+        },
+        "field": "SteamEntangledSingularity"
+      },
+      "call": "get",
+      "args": [
+        {
+          "ref": "p3UpgradeMinerFee"
+        }
+      ]
+    },
+    "save": "p3UpgradeMinerFeeStack"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "@com.miaokatze.gtsr.common.api.enums.GTSRItemList"
+        },
+        "field": "SteamEntangledSingularity"
+      },
+      "call": "get",
+      "args": [
+        3
+      ]
+    },
+    "save": "p3UpgradeMinerSpareSingularities"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3UpgradeMinerSentinel",
+    "count": 7,
+    "mark": "v1.21.38-owned-p3UpgradeMinerSentinel",
+    "id": "minecraft:diamond"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      11,
+      {
+        "ref": "p3UpgradeMinerSpareSingularities"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      12,
+      {
+        "ref": "p3UpgradeMinerSentinel"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3UpgradeMiner"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3UpgradeMinerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3UpgradeMinerInitial",
+    "panel": "remote_worker_node",
+    "slots": 39
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3UpgradeMinerInitial"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSyncManager",
+          "args": []
+        },
+        "call": "getMainPSM",
+        "args": []
+      },
+      "call": "findSyncHandlerNullable",
+      "args": [
+        "worker_session",
+        0
+      ]
+    },
+    "save": "p3UpgradeMinerServerSession"
+  },
+  {
+    "op": "evaluate",
+    "side": "client",
+    "value": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "ref": "screen"
+            },
+            "call": "getContainer",
+            "args": []
+          },
+          "call": "getSyncManager",
+          "args": []
+        },
+        "call": "getMainPSM",
+        "args": []
+      },
+      "call": "findSyncHandlerNullable",
+      "args": [
+        "worker_session",
+        0
+      ]
+    },
+    "save": "p3UpgradeMinerClientSession"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.initial-authoritative-tier0",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p3UpgradeMiner"
+        },
+        "call": "getWorkerUiSnapshot",
+        "args": []
+      },
+      "field": "tier"
+    },
+    "expected": 0,
+    "side": "server"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeMinerExactExpectedRemainder",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      9,
+      {
+        "ref": "p3UpgradeMinerUpgradeItem"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      10,
+      {
+        "ref": "p3UpgradeMinerFeeStack"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeMinerBeforeUpgrade",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.fixture-one-upgrade-machine",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getStackInSlot|func_70301_a",
+        "args": [
+          9
+        ]
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.fixture-authoritative-fee-stack",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getStackInSlot|func_70301_a",
+        "args": [
+          10
+        ]
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": {
+      "ref": "p3UpgradeMinerFee"
+    },
+    "side": "server"
+  },
+  {
+    "op": "click",
+    "widget": "worker_upgrade"
+  },
+  {
+    "op": "wait",
+    "ticks": 35
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeMinerAfterUpgrade",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.real-END-transaction-tier1",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p3UpgradeMiner"
+        },
+        "call": "getWorkerUiSnapshot",
+        "args": []
+      },
+      "field": "tier"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.server-first-sequence-only",
+    "actual": {
+      "target": {
+        "ref": "p3UpgradeMinerServerSession"
+      },
+      "field": "handledSequence"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.server-original-tryUpgrade-accepted",
+    "actual": {
+      "target": {
+        "ref": "p3UpgradeMinerServerSession"
+      },
+      "field": "handledResult"
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.client-authoritative-tier1",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p3UpgradeMinerClientSession"
+        },
+        "field": "snapshot"
+      },
+      "field": "tier"
+    },
+    "expected": 1,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.client-positive-receipt",
+    "actual": {
+      "target": {
+        "ref": "p3UpgradeMinerClientSession"
+      },
+      "field": "receiptKey"
+    },
+    "expected": "gtsr.mui2.worker.upgraded",
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.upgrade-machine-consumed-once",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getStackInSlot|func_70301_a",
+      "args": [
+        9
+      ]
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.whole-authoritative-fee-consumed",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getStackInSlot|func_70301_a",
+      "args": [
+        10
+      ]
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.spare-singularities-not-consumed",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getStackInSlot|func_70301_a",
+        "args": [
+          11
+        ]
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 3,
+    "side": "server"
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3UpgradeMiner.exact-material-and-fee-delta-full-NBT-cursor",
+    "before": "p3UpgradeMinerExactExpectedRemainder",
+    "after": "p3UpgradeMinerAfterUpgrade"
+  },
+  {
+    "op": "screenshot",
+    "name": "p3UpgradeMinerActualUpgradeTier1",
+    "hover": "worker_upgrade"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeMinerBeforeMissingMachine",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "click",
+    "widget": "worker_upgrade"
+  },
+  {
+    "op": "wait",
+    "ticks": 30
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeMinerAfterMissingMachine",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.missing-machine-rejects",
+    "actual": {
+      "target": {
+        "ref": "p3UpgradeMinerServerSession"
+      },
+      "field": "handledResult"
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.missing-machine-keeps-tier1",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p3UpgradeMiner"
+        },
+        "call": "getWorkerUiSnapshot",
+        "args": []
+      },
+      "field": "tier"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3UpgradeMiner.missing-machine-zero-cost-full-NBT-cursor",
+    "before": "p3UpgradeMinerBeforeMissingMachine",
+    "after": "p3UpgradeMinerAfterMissingMachine"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3UpgradeMiner"
+      },
+      "call": "getWorkerUpgradeItem",
+      "args": [
+        2
+      ]
+    },
+    "save": "p3UpgradeMinerNextUpgradeItem"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3UpgradeMiner"
+      },
+      "call": "getWorkerUpgradeCost",
+      "args": [
+        2
+      ]
+    },
+    "save": "p3UpgradeMinerNextFee"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.owned-spare-below-authoritative-next-fee",
+    "actual": {
+      "ref": "p3UpgradeMinerNextFee"
+    },
+    "expected": 3,
+    "side": "server",
+    "relation": ">"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      9,
+      {
+        "ref": "p3UpgradeMinerNextUpgradeItem"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeMinerBeforeInsufficientFee",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "click",
+    "widget": "worker_upgrade"
+  },
+  {
+    "op": "wait",
+    "ticks": 30
+  },
+  {
+    "op": "click",
+    "widget": "worker_upgrade"
+  },
+  {
+    "op": "wait",
+    "ticks": 30
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeMinerAfterInsufficientFee",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.repeated-insufficient-fee-rejects",
+    "actual": {
+      "target": {
+        "ref": "p3UpgradeMinerServerSession"
+      },
+      "field": "handledResult"
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.repeated-insufficient-fee-keeps-tier1",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p3UpgradeMiner"
+        },
+        "call": "getWorkerUiSnapshot",
+        "args": []
+      },
+      "field": "tier"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.client-negative-receipt",
+    "actual": {
+      "target": {
+        "ref": "p3UpgradeMinerClientSession"
+      },
+      "field": "receiptKey"
+    },
+    "expected": "gtsr.mui2.hub.rejected",
+    "side": "client"
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3UpgradeMiner.repeated-insufficient-fee-zero-cost-full-NBT-cursor",
+    "before": "p3UpgradeMinerBeforeInsufficientFee",
+    "after": "p3UpgradeMinerAfterInsufficientFee"
+  },
+  {
+    "op": "screenshot",
+    "name": "p3UpgradeMinerMissingFeeRejected"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "readFromNBT|func_70443_b",
+    "args": [
+      {
+        "ref": "p3UpgradeMinerOriginalInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": {
+      "ref": "p3UpgradeMinerOriginalSlot"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "theItemInWorldManager|field_71134_c"
+    },
+    "method": "setGameType|func_73076_a",
+    "args": [
+      {
+        "ref": "p3UpgradeMinerOriginalGameType"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "method": "func_75095_b|readNBT|readCapabilitiesFromNBT",
+    "args": [
+      {
+        "ref": "p3UpgradeMinerOriginalCapsNBT"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeMiner.restore-original-gametype",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "theItemInWorldManager|field_71134_c"
+      },
+      "call": "getGameType|func_73081_b",
+      "args": []
+    },
+    "expected": {
+      "ref": "p3UpgradeMinerOriginalGameType"
+    },
+    "side": "server"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "method": "func_75091_a|writeCapabilitiesToNBT",
+    "save": "p3UpgradeMinerRestoredCapsNBT"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "p3UpgradeMiner.restore-all-original-capabilities",
+    "actual": {
+      "ref": "p3UpgradeMinerRestoredCapsNBT"
+    },
+    "expected": {
+      "ref": "p3UpgradeMinerOriginalCapsNBT"
+    }
+  },
+  {
+    "op": "group",
+    "name": "p3UpgradeDrillerActualTransaction"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ]
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-server-dimension",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "fixture.actual-TestLab-client-dimension",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "theItemInWorldManager|field_71134_c"
+      },
+      "call": "getGameType|func_73081_b",
+      "args": []
+    },
+    "save": "p3UpgradeDrillerOriginalGameType"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "method": "func_75091_a|writeCapabilitiesToNBT",
+    "save": "p3UpgradeDrillerOriginalCapsNBT"
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": true
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "new": "net.minecraft.nbt.NBTTagList"
+    },
+    "save": "p3UpgradeDrillerOriginalInvNBT"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "writeToNBT|func_70442_a",
+    "args": [
+      {
+        "ref": "p3UpgradeDrillerOriginalInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "field": "currentItem|field_70461_c"
+    },
+    "save": "p3UpgradeDrillerOriginalSlot"
+  },
+  {
+    "op": "clearPlayer",
+    "side": "server"
+  },
+  {
+    "op": "placeGt",
+    "side": "server",
+    "name": "p3UpgradeDriller",
+    "class": "com.miaokatze.gtsr.common.machine.MTESingularityDrillingNode",
+    "x": 848,
+    "y": 70,
+    "z": 16
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "theItemInWorldManager|field_71134_c"
+    },
+    "method": "setGameType|func_73076_a",
+    "args": [
+      {
+        "enum": "net.minecraft.world.WorldSettings$GameType",
+        "name": "SURVIVAL"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "allowFlying|field_75101_c",
+    "value": false
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "field": "isFlying|field_75100_b",
+    "value": false
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.actual-survival-gametype",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "theItemInWorldManager|field_71134_c"
+      },
+      "call": "getGameType|func_73081_b",
+      "args": []
+    },
+    "expected": {
+      "enum": "net.minecraft.world.WorldSettings$GameType",
+      "name": "SURVIVAL"
+    },
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.server-creative-false-before-fee",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "capabilities|field_71075_bZ"
+      },
+      "field": "isCreativeMode|field_75098_d"
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.client-creative-false-before-fee",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "player"
+        },
+        "field": "capabilities|field_71075_bZ"
+      },
+      "field": "isCreativeMode|field_75098_d"
+    },
+    "expected": false,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.standing-on-real-GT-placement-floor",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "onGround|field_70122_E"
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3UpgradeDrillerHost"
+    },
+    "method": "disableWorking",
+    "args": []
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3UpgradeDriller"
+      },
+      "call": "getWorkerUpgradeItem",
+      "args": [
+        1
+      ]
+    },
+    "save": "p3UpgradeDrillerUpgradeItem"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3UpgradeDriller"
+      },
+      "call": "getWorkerUpgradeCost",
+      "args": [
+        1
+      ]
+    },
+    "save": "p3UpgradeDrillerFee"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.authoritative-positive-fee",
+    "actual": {
+      "ref": "p3UpgradeDrillerFee"
+    },
+    "expected": 0,
+    "side": "server",
+    "relation": ">"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "@com.miaokatze.gtsr.common.api.enums.GTSRItemList"
+        },
+        "field": "SteamEntangledSingularity"
+      },
+      "call": "get",
+      "args": [
+        {
+          "ref": "p3UpgradeDrillerFee"
+        }
+      ]
+    },
+    "save": "p3UpgradeDrillerFeeStack"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "ref": "@com.miaokatze.gtsr.common.api.enums.GTSRItemList"
+        },
+        "field": "SteamEntangledSingularity"
+      },
+      "call": "get",
+      "args": [
+        3
+      ]
+    },
+    "save": "p3UpgradeDrillerSpareSingularities"
+  },
+  {
+    "op": "stack",
+    "side": "server",
+    "save": "p3UpgradeDrillerSentinel",
+    "count": 7,
+    "mark": "v1.21.38-owned-p3UpgradeDrillerSentinel",
+    "id": "minecraft:diamond"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      11,
+      {
+        "ref": "p3UpgradeDrillerSpareSingularities"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      12,
+      {
+        "ref": "p3UpgradeDrillerSentinel"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "p3UpgradeDriller"
+    },
+    "method": "onRightclick",
+    "args": [
+      {
+        "ref": "p3UpgradeDrillerHost"
+      },
+      {
+        "ref": "serverPlayer"
+      },
+      {
+        "enum": "net.minecraftforge.common.util.ForgeDirection",
+        "name": "UP"
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      },
+      {
+        "float": 0.5
+      }
+    ]
+  },
+  {
+    "op": "expectScreen",
+    "name": "p3UpgradeDrillerInitial",
+    "panel": "remote_worker_node",
+    "slots": 39
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "screenshot",
+    "name": "p3UpgradeDrillerInitial"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "container"
+          },
+          "call": "getSyncManager",
+          "args": []
+        },
+        "call": "getMainPSM",
+        "args": []
+      },
+      "call": "findSyncHandlerNullable",
+      "args": [
+        "worker_session",
+        0
+      ]
+    },
+    "save": "p3UpgradeDrillerServerSession"
+  },
+  {
+    "op": "evaluate",
+    "side": "client",
+    "value": {
+      "target": {
+        "target": {
+          "target": {
+            "target": {
+              "ref": "screen"
+            },
+            "call": "getContainer",
+            "args": []
+          },
+          "call": "getSyncManager",
+          "args": []
+        },
+        "call": "getMainPSM",
+        "args": []
+      },
+      "call": "findSyncHandlerNullable",
+      "args": [
+        "worker_session",
+        0
+      ]
+    },
+    "save": "p3UpgradeDrillerClientSession"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.initial-authoritative-tier0",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p3UpgradeDriller"
+        },
+        "call": "getWorkerUiSnapshot",
+        "args": []
+      },
+      "field": "tier"
+    },
+    "expected": 0,
+    "side": "server"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeDrillerExactExpectedRemainder",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      9,
+      {
+        "ref": "p3UpgradeDrillerUpgradeItem"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      10,
+      {
+        "ref": "p3UpgradeDrillerFeeStack"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeDrillerBeforeUpgrade",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.fixture-one-upgrade-machine",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getStackInSlot|func_70301_a",
+        "args": [
+          9
+        ]
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.fixture-authoritative-fee-stack",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getStackInSlot|func_70301_a",
+        "args": [
+          10
+        ]
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": {
+      "ref": "p3UpgradeDrillerFee"
+    },
+    "side": "server"
+  },
+  {
+    "op": "click",
+    "widget": "worker_upgrade"
+  },
+  {
+    "op": "wait",
+    "ticks": 35
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeDrillerAfterUpgrade",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.real-END-transaction-tier1",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p3UpgradeDriller"
+        },
+        "call": "getWorkerUiSnapshot",
+        "args": []
+      },
+      "field": "tier"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.server-first-sequence-only",
+    "actual": {
+      "target": {
+        "ref": "p3UpgradeDrillerServerSession"
+      },
+      "field": "handledSequence"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.server-original-tryUpgrade-accepted",
+    "actual": {
+      "target": {
+        "ref": "p3UpgradeDrillerServerSession"
+      },
+      "field": "handledResult"
+    },
+    "expected": true,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.client-authoritative-tier1",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p3UpgradeDrillerClientSession"
+        },
+        "field": "snapshot"
+      },
+      "field": "tier"
+    },
+    "expected": 1,
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.client-positive-receipt",
+    "actual": {
+      "target": {
+        "ref": "p3UpgradeDrillerClientSession"
+      },
+      "field": "receiptKey"
+    },
+    "expected": "gtsr.mui2.worker.upgraded",
+    "side": "client"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.upgrade-machine-consumed-once",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getStackInSlot|func_70301_a",
+      "args": [
+        9
+      ]
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.whole-authoritative-fee-consumed",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "inventory|field_71071_by"
+      },
+      "call": "getStackInSlot|func_70301_a",
+      "args": [
+        10
+      ]
+    },
+    "expected": null,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.spare-singularities-not-consumed",
+    "actual": {
+      "target": {
+        "target": {
+          "target": {
+            "ref": "serverPlayer"
+          },
+          "field": "inventory|field_71071_by"
+        },
+        "call": "getStackInSlot|func_70301_a",
+        "args": [
+          11
+        ]
+      },
+      "field": "stackSize|field_77994_a"
+    },
+    "expected": 3,
+    "side": "server"
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3UpgradeDriller.exact-material-and-fee-delta-full-NBT-cursor",
+    "before": "p3UpgradeDrillerExactExpectedRemainder",
+    "after": "p3UpgradeDrillerAfterUpgrade"
+  },
+  {
+    "op": "screenshot",
+    "name": "p3UpgradeDrillerActualUpgradeTier1",
+    "hover": "worker_upgrade"
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeDrillerBeforeMissingMachine",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "click",
+    "widget": "worker_upgrade"
+  },
+  {
+    "op": "wait",
+    "ticks": 30
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeDrillerAfterMissingMachine",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.missing-machine-rejects",
+    "actual": {
+      "target": {
+        "ref": "p3UpgradeDrillerServerSession"
+      },
+      "field": "handledResult"
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.missing-machine-keeps-tier1",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p3UpgradeDriller"
+        },
+        "call": "getWorkerUiSnapshot",
+        "args": []
+      },
+      "field": "tier"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3UpgradeDriller.missing-machine-zero-cost-full-NBT-cursor",
+    "before": "p3UpgradeDrillerBeforeMissingMachine",
+    "after": "p3UpgradeDrillerAfterMissingMachine"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3UpgradeDriller"
+      },
+      "call": "getWorkerUpgradeItem",
+      "args": [
+        2
+      ]
+    },
+    "save": "p3UpgradeDrillerNextUpgradeItem"
+  },
+  {
+    "op": "evaluate",
+    "side": "server",
+    "value": {
+      "target": {
+        "ref": "p3UpgradeDriller"
+      },
+      "call": "getWorkerUpgradeCost",
+      "args": [
+        2
+      ]
+    },
+    "save": "p3UpgradeDrillerNextFee"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.owned-spare-below-authoritative-next-fee",
+    "actual": {
+      "ref": "p3UpgradeDrillerNextFee"
+    },
+    "expected": 3,
+    "side": "server",
+    "relation": ">"
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "setInventorySlotContents|func_70299_a",
+    "args": [
+      9,
+      {
+        "ref": "p3UpgradeDrillerNextUpgradeItem"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeDrillerBeforeInsufficientFee",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "click",
+    "widget": "worker_upgrade"
+  },
+  {
+    "op": "wait",
+    "ticks": 30
+  },
+  {
+    "op": "click",
+    "widget": "worker_upgrade"
+  },
+  {
+    "op": "wait",
+    "ticks": 30
+  },
+  {
+    "op": "inventorySnapshot",
+    "side": "server",
+    "name": "p3UpgradeDrillerAfterInsufficientFee",
+    "target": {
+      "ref": "container"
+    }
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.repeated-insufficient-fee-rejects",
+    "actual": {
+      "target": {
+        "ref": "p3UpgradeDrillerServerSession"
+      },
+      "field": "handledResult"
+    },
+    "expected": false,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.repeated-insufficient-fee-keeps-tier1",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "p3UpgradeDriller"
+        },
+        "call": "getWorkerUiSnapshot",
+        "args": []
+      },
+      "field": "tier"
+    },
+    "expected": 1,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.client-negative-receipt",
+    "actual": {
+      "target": {
+        "ref": "p3UpgradeDrillerClientSession"
+      },
+      "field": "receiptKey"
+    },
+    "expected": "gtsr.mui2.hub.rejected",
+    "side": "client"
+  },
+  {
+    "op": "inventoryConserved",
+    "side": "server",
+    "name": "p3UpgradeDriller.repeated-insufficient-fee-zero-cost-full-NBT-cursor",
+    "before": "p3UpgradeDrillerBeforeInsufficientFee",
+    "after": "p3UpgradeDrillerAfterInsufficientFee"
+  },
+  {
+    "op": "screenshot",
+    "name": "p3UpgradeDrillerMissingFeeRejected"
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 2
+  },
+  {
+    "op": "key",
+    "code": 1
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "method": "readFromNBT|func_70443_b",
+    "args": [
+      {
+        "ref": "p3UpgradeDrillerOriginalInvNBT"
+      }
+    ]
+  },
+  {
+    "op": "setField",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventory|field_71071_by"
+    },
+    "field": "currentItem|field_70461_c",
+    "value": {
+      "ref": "p3UpgradeDrillerOriginalSlot"
+    }
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "inventoryContainer|field_71069_bz"
+    },
+    "method": "detectAndSendChanges|func_75142_b",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "theItemInWorldManager|field_71134_c"
+    },
+    "method": "setGameType|func_73076_a",
+    "args": [
+      {
+        "ref": "p3UpgradeDrillerOriginalGameType"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "method": "func_75095_b|readNBT|readCapabilitiesFromNBT",
+    "args": [
+      {
+        "ref": "p3UpgradeDrillerOriginalCapsNBT"
+      }
+    ]
+  },
+  {
+    "op": "invoke",
+    "side": "server",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "sendPlayerAbilities|func_71016_p",
+    "args": []
+  },
+  {
+    "op": "wait",
+    "ticks": 25
+  },
+  {
+    "op": "assert",
+    "name": "p3UpgradeDriller.restore-original-gametype",
+    "actual": {
+      "target": {
+        "target": {
+          "ref": "serverPlayer"
+        },
+        "field": "theItemInWorldManager|field_71134_c"
+      },
+      "call": "getGameType|func_73081_b",
+      "args": []
+    },
+    "expected": {
+      "ref": "p3UpgradeDrillerOriginalGameType"
+    },
+    "side": "server"
+  },
+  {
+    "op": "snapshotNbt",
+    "side": "server",
+    "target": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "capabilities|field_71075_bZ"
+    },
+    "method": "func_75091_a|writeCapabilitiesToNBT",
+    "save": "p3UpgradeDrillerRestoredCapsNBT"
+  },
+  {
+    "op": "assertNbtEqual",
+    "side": "server",
+    "name": "p3UpgradeDriller.restore-all-original-capabilities",
+    "actual": {
+      "ref": "p3UpgradeDrillerRestoredCapsNBT"
+    },
+    "expected": {
+      "ref": "p3UpgradeDrillerOriginalCapsNBT"
+    }
+  }
+]

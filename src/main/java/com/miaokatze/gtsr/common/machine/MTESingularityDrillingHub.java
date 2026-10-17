@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
+import static com.gtnewhorizon.structurelib.structure.IStructureWalker.ignoreBlockUnloaded;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -13,6 +14,8 @@ import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import net.minecraft.client.renderer.texture.IIconRegister;
@@ -24,6 +27,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.FakePlayer;
@@ -34,6 +38,7 @@ import net.minecraftforge.fluids.FluidStack;
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
+import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
@@ -95,6 +100,44 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     private static final int[] MINER_NODE_STEAM_COST = { 5_000, 10_000, 20_000, 80_000, 240_000 };
 
     private static IStructureDefinition<MTESingularityDrillingHub> STRUCTURE_DEFINITION = null;
+    private List<ChunkCoordIntPair> chunkLoadingFootprint;
+    private ExtendedFacing chunkLoadingFacing;
+    private int chunkLoadingX, chunkLoadingY, chunkLoadingZ;
+
+    /** Canonical structure cells, including unloaded chunks; no block reads or world mutation. */
+    public List<ChunkCoordIntPair> getChunkLoadingFootprint() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null) return Collections.emptyList();
+        ExtendedFacing facing = getExtendedFacing();
+        int x = base.getXCoord(), y = base.getYCoord(), z = base.getZCoord();
+        if (chunkLoadingFootprint == null || chunkLoadingFacing != facing
+            || chunkLoadingX != x
+            || chunkLoadingY != y
+            || chunkLoadingZ != z) {
+            LinkedHashSet<ChunkCoordIntPair> chunks = new LinkedHashSet<>();
+            chunks.add(new ChunkCoordIntPair(x >> 4, z >> 4));
+            getStructureDefinition().iterate(
+                STRUCTURE_PIECE_MAIN,
+                base.getWorld(),
+                facing,
+                x,
+                y,
+                z,
+                HORIZONTAL_OFF_SET,
+                VERTICAL_OFF_SET,
+                DEPTH_OFF_SET,
+                ignoreBlockUnloaded((element, world, cellX, cellY, cellZ, a, b, c) -> {
+                    chunks.add(new ChunkCoordIntPair(cellX >> 4, cellZ >> 4));
+                    return true;
+                }));
+            chunkLoadingFootprint = Collections.unmodifiableList(new ArrayList<>(chunks));
+            chunkLoadingFacing = facing;
+            chunkLoadingX = x;
+            chunkLoadingY = y;
+            chunkLoadingZ = z;
+        }
+        return chunkLoadingFootprint;
+    }
 
     private static class BoundDrillNode {
 
@@ -837,6 +880,11 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         if (!(player instanceof EntityPlayerMP playerMP) || player instanceof FakePlayer) return;
         IGregTechTileEntity base = this.getBaseMetaTileEntity();
         if (base == null) return;
+        if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.singularityHubTerminal) {
+            com.miaokatze.gtsr.common.gui.mui2.hub.HubTerminalFactory
+                .open(TerminalUiType.SINGULARITY_HUB, player, base);
+            return;
+        }
         TerminalNet.sendOpen(
             TerminalUiType.SINGULARITY_HUB,
             playerMP,

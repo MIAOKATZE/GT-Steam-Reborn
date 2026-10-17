@@ -878,6 +878,10 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         if (!(player instanceof EntityPlayerMP playerMP) || player instanceof FakePlayer) return;
         IGregTechTileEntity base = this.getBaseMetaTileEntity();
         if (base == null) return;
+        if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.cacheHubTerminal) {
+            com.miaokatze.gtsr.common.gui.mui2.hub.HubTerminalFactory.open(TerminalUiType.WATER_HUB, player, base);
+            return;
+        }
         TerminalNet
             .sendOpen(TerminalUiType.WATER_HUB, playerMP, base.getXCoord(), base.getYCoord(), base.getZCoord(), 0);
     }

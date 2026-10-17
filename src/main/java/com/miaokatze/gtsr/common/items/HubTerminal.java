@@ -69,6 +69,9 @@ public class HubTerminal extends Item {
     public static boolean openNodeEditor(EntityPlayer player, IGregTechTileEntity base) {
         if (!(player instanceof net.minecraft.entity.player.EntityPlayerMP serverPlayer)
             || !com.miaokatze.gtsr.common.terminal.CacheNodeTerminalData.canUse(player, base)) return false;
+        if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.cacheNodeEditor) {
+            return com.miaokatze.gtsr.common.gui.mui2.hub.CacheNodeEditorFactory.open(player, base);
+        }
         com.miaokatze.gtsr.common.terminal.TerminalNet.sendOpen(
             com.miaokatze.gtsr.common.terminal.TerminalUiType.CACHE_NODE,
             serverPlayer,

@@ -20,6 +20,7 @@ public final class TestLabUiProbes {
                 tasks.add(new TestLabUiTask(id, true));
             }
         }
+        TestLabUiTerminalCatalog.addTasks(tasks);
         return Collections.unmodifiableList(tasks);
     }
 }

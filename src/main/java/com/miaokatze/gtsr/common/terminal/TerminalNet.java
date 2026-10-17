@@ -75,6 +75,11 @@ public class TerminalNet {
      */
     private static int SNAPSHOT_VERSION_SEQ;
 
+    /** Global snapshot envelope version; only call from the server thread, including MUI2 session sampling. */
+    public static int nextSnapshotVersion() {
+        return ++SNAPSHOT_VERSION_SEQ;
+    }
+
     /**
      * 注册全部终端包与 C2S 排水监听。需在 {@code GTSRFXNet.init()} 尾部调用一次
      * （双端执行；注册顺序即 discriminator 编号，勿调整已占用编号）。
@@ -175,7 +180,7 @@ public class TerminalNet {
             msg.getY(),
             msg.getZ(),
             true,
-            ++SNAPSHOT_VERSION_SEQ,
+            nextSnapshotVersion(),
             payload);
     }
 
@@ -229,6 +234,9 @@ public class TerminalNet {
             case WATER_HUB:
                 return CacheHubTerminalData.assembleSnapshot(uiType, base.getMetaTileEntity());
             case CLUSTER_TERMINAL:
+                // Cluster sampling consumes the player's delta cursor. The active MUI2 session
+                // must be its only sampler, including when a client fabricates a legacy request.
+                if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.clusterTerminal) return null;
                 if (base.getMetaTileEntity() instanceof MTESteamMineralLogisticsCluster cluster) {
                     return ClusterTerminalData.assembleSnapshot(cluster, player.getUniqueID());
                 }
@@ -263,28 +271,36 @@ public class TerminalNet {
         int actionCode, byte[] payload) {
         switch (uiType) {
             case SINGULARITY_HUB:
+                if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.singularityHubTerminal) break;
                 if (base.getMetaTileEntity() instanceof MTESingularityDrillingHub hub) {
                     SingularityHubTerminalData.executeAction(hub, player, actionCode, payload);
                 }
                 break; // 机器类不符：静默拒绝
             case STEAM_HUB:
             case WATER_HUB:
+                if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.cacheHubTerminal) break;
                 CacheHubTerminalData.executeAction(uiType, base.getMetaTileEntity(), player, actionCode, payload);
                 break; // 两薄壳委托表（N31）
             case CLUSTER_TERMINAL:
+                if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.clusterTerminal) break;
                 if (base.getMetaTileEntity() instanceof MTESteamMineralLogisticsCluster cluster) {
                     ClusterTerminalData.executeAction(cluster, actionCode, payload);
                 }
                 break; // 机器类不符：静默拒绝
             case AGGREGATOR:
+                if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.aggregatorConfig) break;
                 if (base.getMetaTileEntity() instanceof MTECrustMatterAggregator aggregator) {
                     AggregatorTerminalData.executeAction(aggregator, player, actionCode, payload);
                 }
                 break; // 机器类不符：静默拒绝
             case CACHE_NODE:
+                if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.cacheNodeEditor) break;
                 CacheNodeTerminalData.executeAction(player, base, actionCode, payload);
                 break;
             case TCDS:
+                // The MUI2 session owns writes while its route is enabled. The legacy wire remains
+                // available for the explicit local fallback, rather than bypassing its session checks.
+                if (com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes.tcdsTerminal) break;
                 if (base.getMetaTileEntity() instanceof MTEThermoChemicalDenseSteamGenerator generator) {
                     TcdsTerminalData.executeAction(generator, actionCode, payload);
                 }

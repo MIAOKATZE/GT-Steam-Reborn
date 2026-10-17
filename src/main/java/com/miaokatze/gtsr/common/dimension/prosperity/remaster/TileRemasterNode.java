@@ -82,6 +82,8 @@ public final class TileRemasterNode extends TileEntity {
 
     @Override
     public void onDataPacket(NetworkManager manager, S35PacketUpdateTileEntity packet) {
+        if (com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStorySync
+            .restoreDescriptionType(this, packet)) return;
         readFromNBT(packet.func_148857_g());
         if (worldObj != null) {
             worldObj.func_147451_t(xCoord, yCoord, zCoord);

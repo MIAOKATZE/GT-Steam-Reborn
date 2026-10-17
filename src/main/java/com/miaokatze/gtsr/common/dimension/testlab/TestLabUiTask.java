@@ -24,12 +24,14 @@ import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.CommonBaseMetaTileEntity;
 import gregtech.api.metatileentity.CommonMetaTileEntity;
+import gregtech.api.modularui2.GTGuis;
 
 /** One actual controller, no structure, no running recipe, and no player connection or GL context. */
 final class TestLabUiTask implements TestLabTask {
 
     private final MetaTileEntityID type;
     private final boolean terminal;
+    private final TestLabUiTerminalCatalog.Entry entry;
     private TestLabReport.Result result;
     private IGregTechTileEntity tile;
     private final Map<String, Object> observations = new LinkedHashMap<>();
@@ -37,16 +39,25 @@ final class TestLabUiTask implements TestLabTask {
     TestLabUiTask(MetaTileEntityID type, boolean terminal) {
         this.type = type;
         this.terminal = terminal;
+        this.entry = null;
+    }
+
+    TestLabUiTask(TestLabUiTerminalCatalog.Entry entry) {
+        this.type = entry.machine;
+        this.terminal = false;
+        this.entry = entry;
     }
 
     @Override
     public String id() {
+        if (entry != null) return "ui.terminal." + entry.id;
         return "ui." + type.name()
             .toLowerCase(Locale.ROOT) + (terminal ? ".terminal" : "");
     }
 
     @Override
     public String displayName() {
+        if (entry != null) return entry.id + " production terminal panel";
         return type.name() + (terminal ? " terminal UI" : " controller UI");
     }
 
@@ -63,6 +74,7 @@ final class TestLabUiTask implements TestLabTask {
     @Override
     public void start(WorldServer world, int x, int y, int z) throws Exception {
         observations.clear();
+        result = null;
         observations.put("probeCategory", "UI_SERVER");
         observations.put("probePhase", "fixture");
         try {
@@ -143,12 +155,28 @@ final class TestLabUiTask implements TestLabTask {
             "renderEvidence",
             "NOT_RUN: client font metrics, OpenGL, textures, full client lifecycle, network transport and final visual acceptance");
         details.put("playerContext", "Forge FakePlayer, no connected player or packets sent");
+        details.put("actualOpenEvidence", "NOT_RUN: builder probe never invokes factory.open or bypasses permissions");
+        details.put("slotTransactionEvidence", "NOT_RUN: no actual ModularContainer/player window transaction");
+        if (entry != null) {
+            details.put("catalogEntry", entry.id);
+            details.put("productionFactory", entry.factory);
+            details.put("expectedPanelName", entry.panel);
+        }
         details.put(
             "lifecycleBoundary",
             "Production builder and server sync registration; no actual container open, dynamic subpanel open, client global-mode initialization or client screen lifecycle");
         List<String> failures = new ArrayList<>();
         CommonMetaTileEntity machine = (CommonMetaTileEntity) tile.getMetaTileEntity();
-        if (terminal || machine.hasMui2Gui()) {
+        details.put("gtGlobalMui2SwitchObserved", GTGuis.GLOBAL_SWITCH_MUI2);
+        details.put("hasMui2Builder", machine.hasMui2Gui());
+        details.put("builderSelectionEvidence", "hasMui2Gui selects a builder only; actual GT open route NOT_RUN");
+        if (type == MetaTileEntityID.HUB_STORAGE_UNIT || type == MetaTileEntityID.REINFORCED_HUB_STORAGE_UNIT
+            || type == MetaTileEntityID.OVERPRESSURE_HUB_STORAGE_UNIT) {
+            details.put(
+                "windowReachability",
+                "NO_PLAYER_WINDOW: inherited builder inspected only; not a reachable production window");
+        }
+        if (entry != null || terminal || machine.hasMui2Gui()) {
             TestLabUiSnapshot.Manager manager = new TestLabUiSnapshot.Manager(player);
             // Match GuiManager.open's actual dedicated-server path. The no-arg constructor
             // instantiates client-only RecipeViewerSettingsImpl before the GUI can be built.
@@ -160,21 +188,26 @@ final class TestLabUiTask implements TestLabTask {
             long builderTiming = TestLabPerformance.begin();
             ModularPanel panel;
             try {
-                panel = terminal
-                    ? new MTECriticalMachineTerminalGui((MTECriticalMachine) machine)
-                        .build(new PosGuiData(player, x, y, z), manager, settings)
-                    : machine.buildUI(new PosGuiData(player, x, y, z), manager, settings);
+                panel = entry != null ? entry.build(new PosGuiData(player, x, y, z), machine, manager, settings)
+                    : terminal
+                        ? new MTECriticalMachineTerminalGui((MTECriticalMachine) machine)
+                            .build(new PosGuiData(player, x, y, z), manager, settings)
+                        : machine.buildUI(new PosGuiData(player, x, y, z), manager, settings);
             } finally {
                 TestLabPerformance.end("ui.mui2ProductionBuilder", builderTiming);
             }
             if (panel == null) failures.add("Production MUI2 builder returned null");
             else {
+                details.put("actualPanelName", panel.getName());
+                if (entry != null && !entry.panel.equals(panel.getName()))
+                    failures.add("Production panel name mismatch: " + panel.getName() + " expected " + entry.panel);
                 details.put(
                     "productionBuilderEvidence",
                     "PASS: actual registered machine production builder returned real ModularPanel");
                 long inspectTiming = TestLabPerformance.begin();
                 try {
                     TestLabUiSnapshot.inspect(panel, manager, machine, details, failures);
+                    if (entry != null) entry.inspect(panel, manager, machine, details, failures);
                 } finally {
                     TestLabPerformance.end("ui.mui2TreeSyncCallbacks", inspectTiming);
                 }
