@@ -13,6 +13,7 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.SyncHandler;
 import com.cleanroommc.modularui.widgets.TextWidget;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.gui.mui2.TcdsTerminalPanel;
 import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
 import com.miaokatze.gtsr.common.terminal.TcdsTerminalData;
@@ -102,7 +103,9 @@ final class TestLabUiTcdsProbe {
                     : flow.getKey()
                         .getFormatted();
                 String display = rawDisplay == null ? null : rawDisplay.replaceAll("(?i)§[0-9A-FK-OR]", "");
-                boolean displayed = flow != null && display.equals(machine.getFlow() + " L/t");
+                // The retained terminal uses GTNH's configured locale/grouping for this readout.
+                String expectedDisplay = NumberFormatUtil.formatNumber(machine.getFlow()) + " L/t";
+                boolean displayed = flow != null && display.equals(expectedDisplay);
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("state", index == 9 ? "recovered_stopped" : "flow_fuel_state_" + index);
                 row.put("flow", machine.getFlow());
@@ -112,6 +115,7 @@ final class TestLabUiTcdsProbe {
                 row.put("decodedProductionSessionEqual", equal);
                 row.put("productionFlowText", rawDisplay);
                 row.put("productionFlowPlainText", display);
+                row.put("expectedFlowPlainText", expectedDisplay);
                 row.put("displayEqual", displayed);
                 row.put("samePanelAndWidgets", before.equals(widgets(panel)));
                 row.put("sameSyncHandlers", beforeHandlers.equals(manager.handlers));

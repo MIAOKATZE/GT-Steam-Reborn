@@ -34,6 +34,7 @@ import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.menu.DropdownWidget;
 import com.cleanroommc.modularui.widgets.menu.Menu;
+import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
@@ -231,7 +232,8 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                     .background(
                         new DynamicDrawable(
                             () -> selectedPage == page ? CriticalGuiStyle.SELECTED_TAB : CriticalGuiStyle.TAB))
-                    .hoverBackground(CriticalGuiStyle.HOVER)
+                    .hoverBackground(CriticalGuiStyle.SELECTED_TAB)
+                    .tooltipBuilder(t -> t.add(IKey.lang(key(labels[page]))))
                     .overlay(
                         IKey.dynamic(() -> tr(labels[page]))
                             .color(
@@ -258,7 +260,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                     .alignX(0.5f));
         return Flow.column()
             .child(
-                TerminalViewport.wrap("critical_terminal_viewport", content, 475, 350)
+                TerminalViewport.wrapExact("critical_terminal_viewport", content, 475, 350)
                     .sizeRel(1f));
     }
 
@@ -267,34 +269,50 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             .size(463, 32)
             .background(CriticalGuiStyle.CARD);
         header.child(
-            IKey.dynamic(() -> tr("machine." + configuration().kind.key))
+            IKey.dynamic(this::terminalTitle)
                 .color(CriticalGuiStyle.TEXT_TITLE)
                 .asWidget()
-                .pos(4, 2)
-                .size(393, 12));
+                .pos(8, 4)
+                .size(389, 12)
+                .tooltipBuilder(t -> t.add(terminalTitle()))
+                .tooltipAutoUpdate(true));
         header.child(
             IKey.dynamic(() -> configuration().tier.name())
                 .color(CriticalGuiStyle.TEXT_ACCENT)
                 .asWidget()
                 .background(CriticalGuiStyle.CHIP)
-                .pos(405, 0)
-                .size(54, 16));
+                .pos(405, 3)
+                .size(50, 14));
         header.child(
             IKey.dynamic(() -> tr(loomValid.getValue() ? "ui.loom_valid" : "ui.loom_invalid"))
                 .color(() -> loomValid.getValue() ? CriticalGuiStyle.STATE_ONLINE : CriticalGuiStyle.STATE_OFFLINE)
                 .asWidget()
-                .pos(4, 18)
-                .size(140, 12));
+                .pos(8, 19)
+                .size(136, 10));
         header.child(
             textViewport(
                 "critical_status_detail",
                 () -> detail.getValue()
                     .equals("\u5f85\u914d\u7f6e") ? tr("status.0") : detail.getValue(),
-                311,
-                12).pos(148, 18)
+                307,
+                10,
+                this::statusColor).pos(148, 19)
                     .tooltipBuilder(t -> t.add(detail.getValue()))
                     .tooltipAutoUpdate(true));
         return header;
+    }
+
+    private String terminalTitle() {
+        // A loom's selected target defaults to SUN; it is not the identity of the opened controller.
+        return multiblock.isKindSelector() ? StatCollector.translateToLocal("gt.blockmachines.gtsr.critical.loom.name")
+            : tr("machine." + multiblock.getPresetKind().key);
+    }
+
+    private int statusColor() {
+        int cause = reason.getValue();
+        if (cause != 0 && cause != 7) return CriticalGuiStyle.STATE_OFFLINE;
+        if (cause == 7 || status.getValue() == 0) return GtsrGuiPalette.STATE_IDLE;
+        return status.getValue() == 2 ? CriticalGuiStyle.STATE_ONLINE : CriticalGuiStyle.TEXT_ACCENT;
     }
 
     private IWidget statusPage(ModularPanel panel, PanelSyncManager manager) {
@@ -347,7 +365,8 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 + " / "
                 + constructionRounds.getValue()
                 + " | "
-                + tr(roundFunded.getValue() ? "construction.funded" : "construction.unfunded"));
+                + tr(roundFunded.getValue() ? "construction.funded" : "construction.unfunded"),
+            () -> roundFunded.getValue() ? CriticalGuiStyle.TEXT_BODY : CriticalGuiStyle.TEXT_ACCENT);
         constructionLine(
             summaryText,
             () -> tr("construction_power") + " "
@@ -356,7 +375,8 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 + tr("ui.batch_power")
                 + " "
                 + euPerTick.getValue()
-                + " EU/t");
+                + " EU/t",
+            () -> GtsrGuiPalette.TEXT_LABEL);
         summary.child(summaryText);
         summary.child(
             new GTProgressWidget().neiTransferRect(multiblock.getRecipeMap())
@@ -490,7 +510,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             .background(CriticalGuiStyle.CARD);
         page.child(
             IKey.lang(key("configuration.section"))
-                .color(CriticalGuiStyle.TEXT_BODY)
+                .color(CriticalGuiStyle.TEXT_ACCENT)
                 .asWidget()
                 .pos(8, 8)
                 .size(447, 14));
@@ -578,8 +598,16 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             .optionToWidget(
                 (mode, selected) -> IKey
                     .dynamic(() -> CriticalProcessingModes.display(selected ? selectedMode.getValue() : mode))
-                    .color(CriticalGuiStyle.TEXT_CONTROL)
-                    .asWidget())
+                    .color(
+                        () -> mode.equals(selectedMode.getValue()) || selected ? CriticalGuiStyle.TEXT_ACCENT
+                            : CriticalGuiStyle.TEXT_CONTROL)
+                    .asWidget()
+                    .margin(8, 8, 5, 5)
+                    .tooltipBuilder(
+                        t -> t.add(CriticalProcessingModes.display(selected ? selectedMode.getValue() : mode)))
+                    .tooltipAutoUpdate(true))
+            .tooltipBuilder(t -> t.add(CriticalProcessingModes.display(selectedMode.getValue())))
+            .tooltipAutoUpdate(true)
             .maxVerticalMenuSize(132)
             .pos(8, 122)
             .size(447, 24)
@@ -628,8 +656,13 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             .size(451, 190)
             .pos(6, 6)
             .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
-        constructionLine(list, () -> tr("machine." + configuration().kind.key) + " · " + configuration().tier.name());
-        constructionLine(list, () -> tr(loomValid.getValue() ? "loom.ready" : "loom.incomplete"));
+        constructionHeading(
+            list,
+            () -> tr("machine." + configuration().kind.key) + " · " + configuration().tier.name());
+        constructionLine(
+            list,
+            () -> tr(loomValid.getValue() ? "loom.ready" : "loom.incomplete"),
+            () -> loomValid.getValue() ? CriticalGuiStyle.STATE_ONLINE : CriticalGuiStyle.STATE_OFFLINE);
         for (String suffix : new String[] { "loom.dimensions", "loom.hatches", "loom.orientation", "loom.area",
             "loom.supply", "loom.clock" }) constructionLine(list, () -> tr(suffix));
         constructionLine(
@@ -661,39 +694,49 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         constructionLine(
             list,
             () -> tr("construction_power") + " " + configuration().tier.constructionVoltage() + " EU/t");
-        constructionLine(list, () -> tr("construction.stage_cost"));
+        constructionHeading(list, () -> tr("construction.stage_cost"));
         constructionLine(list, () -> itemCostLines(constructionCosts));
-        constructionLine(list, () -> tr("construction.stage_fluid_cost"));
+        constructionHeading(list, () -> tr("construction.stage_fluid_cost"));
         constructionLine(
             list,
             () -> stageConstructionFluids.getValue()
                 .isEmpty() ? tr("construction.no_stage_fluid") : fluidCostLine(stageConstructionFluids));
         constructionLine(list, () -> tr("construction.solder_hint"));
-        constructionLine(list, () -> tr("construction.next_cost"));
+        constructionHeading(list, () -> tr("construction.next_cost"));
         constructionLine(list, () -> itemCostLines(nextConstructionCosts));
         constructionLine(
             list,
             () -> nextConstructionFluids.getValue()
                 .isEmpty() ? tr("construction.no_round_fluid") : fluidCostLine(nextConstructionFluids));
-        constructionLine(list, () -> tr("construction.missing"));
-        constructionLine(list, () -> itemCostLines(missingConstructionCosts));
-        constructionLine(list, () -> fluidCostLine(missingConstructionFluids));
+        constructionHeading(list, () -> tr("construction.missing"));
+        constructionLine(list, () -> itemCostLines(missingConstructionCosts), () -> CriticalGuiStyle.STATE_OFFLINE);
+        constructionLine(list, () -> fluidCostLine(missingConstructionFluids), () -> CriticalGuiStyle.STATE_OFFLINE);
         constructionLine(
             list,
             () -> missingConstructionCosts.getValue()
                 .isEmpty()
                 && missingConstructionFluids.getValue()
-                    .isEmpty() ? tr("construction.supplied") : "");
+                    .isEmpty() ? tr("construction.supplied") : "",
+            () -> CriticalGuiStyle.STATE_ONLINE);
         return new ParentWidget<>().name("critical_page_requirements")
             .size(463, 202)
             .background(CriticalGuiStyle.CARD)
             .child(list);
     }
 
+    private static void constructionHeading(ListWidget<IWidget, ?> list, java.util.function.Supplier<String> text) {
+        constructionLine(list, text, () -> CriticalGuiStyle.TEXT_ACCENT);
+    }
+
     private static void constructionLine(ListWidget<IWidget, ?> list, java.util.function.Supplier<String> text) {
+        constructionLine(list, text, () -> CriticalGuiStyle.TEXT_BODY);
+    }
+
+    private static void constructionLine(ListWidget<IWidget, ?> list, java.util.function.Supplier<String> text,
+        java.util.function.IntSupplier color) {
         list.child(
             CriticalGuiStyle.text(IKey.dynamic(text))
-                .color(CriticalGuiStyle.TEXT_BODY)
+                .color(color)
                 .fullWidth()
                 .marginBottom(3)
                 .setEnabledIf(
@@ -790,7 +833,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 .background(CriticalGuiStyle.CARD);
             card.child(
                 IKey.lang(key(side == 0 ? "input" : "output"))
-                    .color(CriticalGuiStyle.TEXT_BODY)
+                    .color(CriticalGuiStyle.TEXT_ACCENT)
                     .asWidget()
                     .pos(8, 8)
                     .size(212, 14));
@@ -811,11 +854,18 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
 
     private static ListWidget<IWidget, ?> textViewport(String name, java.util.function.Supplier<String> text, int width,
         int height) {
-        ListWidget<IWidget, ?> list = new ListWidget<>().name(name)
+        return textViewport(name, text, width, height, () -> CriticalGuiStyle.TEXT_BODY);
+    }
+
+    private static ListWidget<IWidget, ?> textViewport(String name, java.util.function.Supplier<String> text, int width,
+        int height, java.util.function.IntSupplier color) {
+        return new ListWidget<>().name(name)
             .size(width, height)
-            .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
-        constructionLine(list, text);
-        return list;
+            .scrollDirection(new VerticalScrollData().cancelScrollEdge(false))
+            .child(
+                CriticalGuiStyle.text(IKey.dynamic(text))
+                    .color(color)
+                    .fullWidth());
     }
 
     private CriticalConfiguration configuration() {

@@ -50,7 +50,7 @@ public final class HubClientText {
             : item.getDisplayName();
     }
 
-    private static ItemStack icon(String type) {
+    static ItemStack icon(String type) {
         switch (type) {
             case "steam":
                 return GTSRItemList.SteamCacheNode.get(1);
