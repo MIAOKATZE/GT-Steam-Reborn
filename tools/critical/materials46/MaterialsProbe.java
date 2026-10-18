@@ -38,7 +38,7 @@ public final class MaterialsProbe {
                 earlyNulls.add(new JsonPrimitive(b.materialId+":"+side));
         }
         int exposed=0, missing=0, iconChecks=0;
-        Set<String> exposedNames=new TreeSet<>(), expectedNames=new TreeSet<>();
+        Set<String> exposedNames=new TreeSet<>(), expectedNames=new TreeSet<>(), registeredNames=new TreeSet<>();
         JsonObject currentLoom=CriticalGeometry.readJson("models/v2_loom.geometry.json");
         for(JsonElement element:currentLoom.getAsJsonArray("blocks")) {
             JsonArray voxel=element.getAsJsonArray();
@@ -52,6 +52,7 @@ public final class MaterialsProbe {
             exposed+=variants.size();
             for(ItemStack variant:variants) exposedNames.add(Item.itemRegistry.getNameForObject(variant.getItem()));
             JsonObject row=new JsonObject();row.addProperty("registry",Block.blockRegistry.getNameForObject(b));
+            registeredNames.add(Block.blockRegistry.getNameForObject(b));
             row.addProperty("numericBlockId",Block.getIdFromBlock(b));row.addProperty("numericItemId",Item.getIdFromItem(item));
             row.addProperty("id",b.materialId);row.addProperty("proxy",b.proxy);row.addProperty("loom",b.loom);
             row.addProperty("key",new ItemStack(b).getUnlocalizedName()+".name");
@@ -84,25 +85,33 @@ public final class MaterialsProbe {
         check(missing==0,"all V2 exposed face/mask/frozen albedos resolve after complete stitch");
         Set<String> creativeNames=new TreeSet<>();
         for(ItemStack stack:com.miaokatze.gtsr.register.CreativeTabManager.getItemsToAdd()) creativeNames.add(Item.itemRegistry.getNameForObject(stack.getItem()));
-        boolean whitelist=exposed==22&&exposedNames.equals(expectedNames)&&creativeBefore==22&&creativeNames.equals(expectedNames);
+        boolean allVisible=exposed==registered&&exposedNames.equals(registeredNames);
+        boolean creativeValid=creativeBefore==22&&creativeNames.equals(expectedNames);
         for(Map.Entry<String,JsonElement> entry:CriticalGeometry.readJson("materials.json").entrySet()) for(boolean dynamic:new boolean[]{false,true})
             check(CriticalMaterials.block(entry.getKey(),dynamic)==CriticalMaterials.block(entry.getValue().getAsJsonObject().get("id").getAsString(),dynamic),"canonical alias identity "+entry.getKey()+":"+dynamic);
         check(gregtech.api.enums.Textures.BlockIcons.getCasingTextureForId(15872)!=null&&gregtech.api.enums.Textures.BlockIcons.getCasingTextureForId(15873)!=null,"legacy and V2 controller casing texture slots initialize");
         try { com.miaokatze.gtsr.client.critical.CriticalMaterialRenderer.class.getMethod("hideInternalItems").invoke(null); }
-        catch(NoSuchMethodException baseline) { /* preserved pre-fix product has no explicit NEI filtering */ }
+        catch(NoSuchMethodException allMaterialsVisible) { /* No material visibility filter is required. */ }
         Method permutations=codechicken.nei.ItemListLoader.class.getDeclaredMethod("getPermutations",Item.class);permutations.setAccessible(true);
         Set<String> neiNames=new TreeSet<>();int neiCount=0;
         for(CriticalMaterials.MaterialBlock b:materials) {
             List<ItemStack> stacks=(List<ItemStack>)permutations.invoke(null,Item.getItemFromBlock(b));neiCount+=stacks.size();
             for(ItemStack stack:stacks)neiNames.add(Item.itemRegistry.getNameForObject(stack.getItem()));
         }
-        boolean neiWhitelist=neiCount==22&&neiNames.equals(expectedNames);
-        JsonObject result=new JsonObject();result.addProperty("status",mismatches.size()==0&&whitelist&&neiWhitelist?"PASS":"REPRODUCED");
+        boolean neiAllVisible=neiCount==registered&&neiNames.equals(registeredNames);
+        JsonArray missingCanonical=new JsonArray();
+        Set<String> canonicalIds=new TreeSet<>();
+        for(Map.Entry<String,JsonElement> entry:CriticalGeometry.readJson("materials.json").entrySet())
+            canonicalIds.add(entry.getValue().getAsJsonObject().get("id").getAsString());
+        for(String canonical:canonicalIds) if(!neiNames.contains("gtsr:critical_"+canonical)) missingCanonical.add(new JsonPrimitive(canonical));
+        JsonObject result=new JsonObject();result.addProperty("status",mismatches.size()==0&&allVisible&&creativeValid&&neiAllVisible&&missingCanonical.size()==0?"PASS":"REPRODUCED");
         result.addProperty("registered",registered);result.addProperty("enumerated",exposed);result.addProperty("creative",com.miaokatze.gtsr.register.CreativeTabManager.getItemsToAdd().size());
         result.addProperty("iconChecks",iconChecks);result.addProperty("checks",checks);result.addProperty("product",source(CriticalMaterials.class));result.addProperty("textures",source(CriticalMaterialTextures.class));
         result.add("blocks",blocks);result.add("iconMismatches",mismatches);result.add("transientRegistrationNulls",earlyNulls);
-        result.addProperty("exactCurrentLoomWhitelist",whitelist);
-        result.addProperty("neiEnumerated",neiCount);result.addProperty("exactNeiWhitelist",neiWhitelist);result.addProperty("NEI",source(codechicken.nei.ItemListLoader.class));
+        result.addProperty("allRegisteredMaterialsVisible",allVisible);
+        result.addProperty("creativeCurrentLoomForms",creativeValid);
+        result.addProperty("neiEnumerated",neiCount);result.addProperty("allRegisteredMaterialsVisibleInNei",neiAllVisible);result.addProperty("NEI",source(codechicken.nei.ItemListLoader.class));
+        result.add("missingCanonicalNeiMaterials",missingCanonical);
         result.addProperty("boundary","Actual Forge GameRegistry + native ItemBlock.getSubItems + NEI 2.8.145 ItemListLoader.getPermutations (damageSearch and hidden filters) and production icon lookup; mock named IIcons, FML/StructureLib seams. No complete client atlas/GL or screenshot.");
         Files.write(Paths.get(args[0]),new GsonBuilder().setPrettyPrinting().create().toJson(result).getBytes("UTF-8"));
     }

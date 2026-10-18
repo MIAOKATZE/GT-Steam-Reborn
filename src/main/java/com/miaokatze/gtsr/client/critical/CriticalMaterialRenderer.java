@@ -22,20 +22,6 @@ public final class CriticalMaterialRenderer implements ISimpleBlockRenderingHand
         CriticalAngelicaCompat.register();
         CriticalMaterials.renderId = RenderingRegistry.getNextAvailableRenderId();
         RenderingRegistry.registerBlockHandler(new CriticalMaterialRenderer());
-        hideInternalItems();
-    }
-
-    public static void hideInternalItems() {
-        // NEI damage-searches items whose creative enumeration is empty, so getSubBlocks alone cannot hide them.
-        for (Object registered : Block.blockRegistry) {
-            if (registered instanceof CriticalMaterials.MaterialBlock material && !material.isCurrentLoomForm()) {
-                codechicken.nei.api.API.hideItem(
-                    new net.minecraft.item.ItemStack(
-                        material,
-                        1,
-                        net.minecraftforge.oredict.OreDictionary.WILDCARD_VALUE));
-            }
-        }
     }
 
     @Override

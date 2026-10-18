@@ -102,8 +102,10 @@ def main():
                 'names':{lang:names['tile.critical_loom_'+('proxy_' if dynamic else '')+identifier+'.name'] for lang,names in languages.items()}} for dynamic in [False,True] if (identifier,dynamic) in current_forms],
             'constructionBlocksInternal':True,'faces':faces,'alphaMode':p['alphaMode'],'emissive':p['emissionStrength']>0})
     for lang,names in languages.items():
-        visible = [names['tile.critical_loom_'+('proxy_' if dynamic else '')+identifier+'.name'] for identifier,dynamic in current_forms]
-        if len(visible) != len(set(visible)): failures.append('ambiguous visible loom names '+lang)
+        for identifier,dynamic in current_forms:
+            key='tile.critical_loom_'+('proxy_' if dynamic else '')+identifier+'.name'
+            if names.get(key)!=names.get('tile.critical_'+identifier+'.name'):
+                failures.append('variant name differs from material '+lang+':'+key)
     animated = 0
     for sprite in sorted(sprites):
         domain,path=sprite.split(':',1)

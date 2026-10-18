@@ -170,16 +170,6 @@ public final class CriticalMaterials {
         }
 
         @Override
-        @SideOnly(Side.CLIENT)
-        @SuppressWarnings({ "rawtypes", "unchecked" })
-        public void getSubBlocks(net.minecraft.item.Item item, net.minecraft.creativetab.CreativeTabs tab,
-            java.util.List items) {
-            // Keep all old registry identities for placed structures and saves. Only today's hand-built loom
-            // components belong in item browsers; paid construction proxies and historical forms stay internal.
-            if (isCurrentLoomForm()) super.getSubBlocks(item, tab, items);
-        }
-
-        @Override
         public boolean canPlaceBlockAt(net.minecraft.world.World world, int x, int y, int z) {
             return loom && super.canPlaceBlockAt(world, x, y, z);
         }
