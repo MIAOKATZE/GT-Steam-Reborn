@@ -6,9 +6,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
-import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputHatch;
-import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
@@ -23,6 +20,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IChatComponent;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -36,12 +34,16 @@ import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
+import com.miaokatze.gtsr.common.machine.base.MTESteamInputHatchGeneric;
 import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 
 import gregtech.api.GregTechAPI;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.IGTHatchAdder;
 
 /**
  * 蒸汽动力矿物处理物流工程集群结构定义：20 深主段 + 8 深可重复延伸段（最多 19 段，总段数 20）、
@@ -79,8 +81,9 @@ import gregtech.api.util.GTUtility;
  * 各一组。等级 1 全息即完整 20 深基础层（含挂点）。
  *
  * <h2>A 总控仓室自由化（外壳/输入仓两态）</h2>
- * 矩阵内任意 A 位可为四族 tiered 外壳（默认形态）或 anyOf(标准输入仓 / 蒸汽输入仓 / 耐压蒸汽
- * 输入仓) 三者之一（禁用 atLeast；原 P 专用字符已删除）。数量校验在总控 checkMachine：通用
+ * 矩阵内任意 A 位可为四族 tiered 外壳（默认形态），或标准输入仓 / 蒸汽输入仓 / 耐压蒸汽
+ * 输入仓三者之一（原 P 专用字符已删除）。原生 atLeast 只约束自动建造各族的默认配额，
+ * 不限制世界校验的多仓准入。数量校验在总控 checkMachine：通用
  * 输入仓 1..10、蒸汽仓类合计 0..10。B/C/D/E 字符仍为纯结构方块。
  *
  * <h2>四族 tier（0-3）</h2>
@@ -477,31 +480,29 @@ public final class ClusterStructureDef {
     }
 
     /**
-     * A 总控仓室自由化元素：anyOf(标准输入仓 / 蒸汽输入仓 / 耐压蒸汽输入仓) 优先，
+     * A 总控仓室自由化元素：标准输入仓 / 蒸汽输入仓 / 耐压蒸汽输入仓优先，
      * tiered 外壳回退且仅真壳计数；显式提供三类候选与数量说明。任意 A 位皆可承载输入仓（原 P 专用位已恢复草稿字面，
-     * 由本元素统一承载；'P' 字符删除）。禁用 atLeast（GT5U atLeast 是“各元素至少一个”语义，
-     * 此处不适用）。自定义 adder：标准输入仓走 {@code addInputHatchToMachineList} 纳入
+     * 由本元素统一承载；'P' 字符删除）。原生 atLeast 自动建造每族默认放一个后回退外壳，
+     * 世界校验仍由原 adder 接受多仓。标准输入仓走 {@code addInputHatchToMachineList} 纳入
      * mInputHatches；耐压蒸汽输入仓在本 Enhanced 基座上无标准注册通道（其类不是 MTEHatchInput），
      * updateTexture 接受成型后经 {@code registerPressureSteamHatch} 直收总控
      * pressureSteamHatches 列表（终验反馈 FA：取代旧硬编码偏移枚举收集；checkMachine 复位段先清
-     * 列表、失配延伸段由总控 prune 剔除）。数量上限由总控 checkMachine 校验（通用输入仓 1..10、
+     * 列表、失配延伸段由总控清理后重扫已接受结构段剔除）。数量上限由总控 checkMachine 校验（通用输入仓 1..10、
      * 蒸汽仓类合计 0..10）。
      */
     private static IStructureElement<MTESteamMineralLogisticsCluster> casingOrControllerInputSlot() {
         return ofChain(
-            GTSRStructureUtility.hatchWithCandidates(
-                buildHatchAdder(MTESteamMineralLogisticsCluster.class)
-                    .anyOf(InputHatch, SteamInputHatch, PressureSteamInputHatch)
-                    .adder(ClusterStructureDef::addControllerInputHatch)
-                    .descriptions(
-                        () -> Arrays.asList(
-                            "gtsr.structure.cluster.controller.input_hatch",
-                            "gtsr.structure.cluster.controller.steam_hatches"))
-                    .casingIndex(BRONZE_CASING_TEXTURE_ID)
-                    .hint(1),
-                InputHatch,
-                SteamInputHatch,
-                PressureSteamInputHatch),
+            ClusterInputHatchPolicy
+                .rejectUnsupportedDualInput(
+                    buildHatchAdder(MTESteamMineralLogisticsCluster.class).atLeast(ControllerInputHatchElement.values())
+                        .adder(ClusterStructureDef::addControllerInputHatch)
+                        .descriptions(
+                            () -> Arrays.asList(
+                                "gtsr.structure.cluster.controller.input_hatch",
+                                "gtsr.structure.cluster.controller.steam_hatches"))
+                        .casingIndex(BRONZE_CASING_TEXTURE_ID)
+                        .hint(1))
+                .build(),
             onElementPass(
                 MTESteamMineralLogisticsCluster::onCasingAdded,
                 ofBlocksTiered(
@@ -510,6 +511,69 @@ public final class ClusterStructureDef {
                     -1,
                     (t, tier) -> t.mCasingTier = tier,
                     t -> t.mCasingTier)));
+    }
+
+    /** Disjoint native construction families follow the actual input registration lists. */
+    private enum ControllerInputHatchElement implements IHatchElement<MTESteamMineralLogisticsCluster> {
+
+        FluidInput("GT5U.MBTT.InputHatch", MTEHatchInput.class) {
+
+            @Override
+            public boolean matchesHatch(IMetaTileEntity hatch) {
+                return hatch instanceof MTEHatchInput && !(hatch instanceof MTESteamInputHatchGeneric);
+            }
+
+            @Override
+            public long count(MTESteamMineralLogisticsCluster controller) {
+                return controller.mInputHatches.stream()
+                    .filter(hatch -> !(hatch instanceof MTESteamInputHatchGeneric))
+                    .count();
+            }
+        },
+        SteamInput("GTSR.HatchElement.SteamInputHatch", MTESteamInputHatchGeneric.class) {
+
+            @Override
+            public long count(MTESteamMineralLogisticsCluster controller) {
+                return controller.mInputHatches.stream()
+                    .filter(MTESteamInputHatchGeneric.class::isInstance)
+                    .count();
+            }
+        },
+        PressureSteamInput("GTSR.HatchElement.PressureSteamInputHatch", MTEHatchPressureSteamInput.class) {
+
+            @Override
+            public long count(MTESteamMineralLogisticsCluster controller) {
+                return controller.pressureSteamHatchCount();
+            }
+        };
+
+        private final String descriptionKey;
+        private final List<Class<? extends IMetaTileEntity>> classes;
+
+        ControllerInputHatchElement(String descriptionKey, Class<? extends IMetaTileEntity> hatchClass) {
+            this.descriptionKey = descriptionKey;
+            this.classes = ImmutableList.of(hatchClass);
+        }
+
+        @Override
+        public List<Class<? extends IMetaTileEntity>> mteClasses() {
+            return classes;
+        }
+
+        @Override
+        public IGTHatchAdder<MTESteamMineralLogisticsCluster> adder() {
+            return ClusterStructureDef::addControllerInputHatch;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return StatCollector.translateToLocal(descriptionKey);
+        }
+
+        @Override
+        public String getDescriptionLangKey() {
+            return descriptionKey;
+        }
     }
 
     /** A 位（外壳/输入仓两态）注册 adder：见 {@link #casingOrControllerInputSlot()}。casingIndex 可能为 null（不请求贴图）。 */
@@ -595,7 +659,7 @@ public final class ClusterStructureDef {
      * {@code [13+8k, 20+8k]} is {@code k+1}. This is the inverse of {@link #extOffsetC(int)}
      * {@code -13-8k} (formula itself unchanged; only MAIN_DEPTH grew 12→20, so both boundaries
      * shifted by 8 automatically).
-     * 包私有：总控 prune 未成型延伸段耐压仓时复用（FA）。
+     * 包私有：结构域内的段号反解使用。
      */
     static int segmentOfWorldPos(MTESteamMineralLogisticsCluster t, int x, int y, int z) {
         IGregTechTileEntity base = t.getBaseMetaTileEntity();

@@ -5,7 +5,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -332,27 +331,26 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             .addElement(
                 'E',
                 ofChain(
-                    hatchWithCandidates(
-                        buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamInput)
-                            .casingIndex(casingIndex)
-                            .hint(1),
-                        SingularityHatchElement.SteamInput),
-                    hatchWithCandidates(
-                        buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamInputBus)
-                            .casingIndex(casingIndex)
-                            .hint(1),
-                        SingularityHatchElement.SteamInputBus),
-                    hatchWithCandidates(
-                        buildHatchAdder(MTEDenseStateManipulator.class).anyOf(SingularityHatchElement.SteamOutputBus)
-                            .casingIndex(casingIndex)
-                            .hint(1),
-                        SingularityHatchElement.SteamOutputBus),
-                    hatchWithCandidates(
-                        buildHatchAdder(MTEDenseStateManipulator.class)
-                            .atLeast(SingularityHatchElement.SteamOutputHatch)
-                            .casingIndex(casingIndex)
-                            .hint(2),
-                        SingularityHatchElement.SteamOutputHatch),
+                    buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamInput)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.FuelInputBus)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamInputBus)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamOutputBus)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamOutputHatch)
+                        .casingIndex(casingIndex)
+                        .hint(2)
+                        .build(),
                     onElementPass(t -> t.mCasingCount++, ofBlock(GregTechAPI.sBlockCasings8, 6))))
             .addElement('F', singularityLocator)
             .addElement('-', isAir())
@@ -398,11 +396,11 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             return;
         }
 
-        if (mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty() && mDualInputHatches.isEmpty()) {
+        if (mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        if (requiresInputBus() && mInputBusses.isEmpty() && mDualInputHatches.isEmpty()) {
+        if (requiresInputBus() && mInputBusses.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

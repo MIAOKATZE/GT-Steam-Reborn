@@ -5,7 +5,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -39,6 +38,7 @@ import com.miaokatze.gtsr.common.util.GTSRUtils;
 import bartworks.system.material.WerkstoffLoader;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.HatchElement;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
@@ -121,11 +121,10 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
                 .addElement(
                     'C',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTESpacetimeCalibration.class).anyOf(UtilityHatchElement.Utility)
-                                .casingIndex(6)
-                                .hint(1),
-                            UtilityHatchElement.Utility),
+                        buildHatchAdder(MTESpacetimeCalibration.class).atLeast(UtilityHatchElement.values())
+                            .casingIndex(6)
+                            .hint(1)
+                            .build(),
                         onElementPass(t -> t.mCasingCount++, ofBlock(GregTechAPI.sBlockCasings1, 6))))
                 .addElement('Q', ofBlock(GregTechAPI.sBlockCasings1, 15))
                 .addElement(
@@ -311,7 +310,18 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
     /** Candidate matching mirrors the standard adders, including ME/dual inputs and steam-bus exclusions. */
     private enum UtilityHatchElement implements IHatchElement<MTESpacetimeCalibration> {
 
-        Utility;
+        Energy(HatchElement.Energy),
+        Maintenance(HatchElement.Maintenance),
+        InputBus(HatchElement.InputBus),
+        OutputBus(HatchElement.OutputBus),
+        InputHatch(HatchElement.InputHatch),
+        OutputHatch(HatchElement.OutputHatch);
+
+        private final HatchElement nativeHint;
+
+        UtilityHatchElement(HatchElement nativeHint) {
+            this.nativeHint = nativeHint;
+        }
 
         @Override
         public IGTHatchAdder<MTESpacetimeCalibration> adder() {
@@ -320,39 +330,47 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
 
         @Override
         public List<Class<? extends IMetaTileEntity>> mteClasses() {
-            return java.util.Arrays.asList(
-                MTEHatchEnergy.class,
-                MTEHatchMaintenance.class,
-                MTEHatchInputBus.class,
-                MTEHatchOutputBus.class,
-                MTEHatchInput.class,
-                MTEHatchOutput.class);
+            return switch (this) {
+                case Energy -> java.util.Arrays.asList(MTEHatchEnergy.class);
+                case Maintenance -> java.util.Arrays.asList(MTEHatchMaintenance.class);
+                case InputBus -> java.util.Arrays.asList(MTEHatchInputBus.class, IDualInputHatch.class);
+                case OutputBus -> java.util.Arrays.asList(MTEHatchOutputBus.class);
+                case InputHatch -> java.util.Arrays.asList(MTEHatchInput.class);
+                case OutputHatch -> java.util.Arrays.asList(MTEHatchOutput.class);
+            };
         }
 
         @Override
         public boolean matchesHatch(IMetaTileEntity mte) {
-            if (mte instanceof MTEHatchEnergy energy) return energy.maxEUInput() >= 32768;
+            if (mte instanceof MTEHatchEnergy energy) return this == Energy && energy.maxEUInput() >= 32768;
+            if (mte instanceof MTEHatchMaintenance) return this == Maintenance;
             if (mte instanceof MTEHatchSteamBusInput || mte instanceof MTEHatchSteamBusOutput) return false;
-            return mte instanceof MTEHatchMaintenance || mte instanceof MTEHatchInputBus
-                || mte instanceof IDualInputHatch
-                || mte instanceof MTEHatchOutputBus
-                || mte instanceof MTEHatchInput
-                || mte instanceof MTEHatchOutput;
+            if (mte instanceof IDualInputHatch || mte instanceof MTEHatchInputBus) return this == InputBus;
+            if (mte instanceof MTEHatchOutputBus) return this == OutputBus;
+            if (mte instanceof MTEHatchInput) return this == InputHatch;
+            return this == OutputHatch && mte instanceof MTEHatchOutput;
         }
 
         @Override
         public long count(MTESpacetimeCalibration machine) {
-            return machine.mEnergyHatches.size() + machine.mMaintenanceHatches.size()
-                + machine.mInputBusses.size()
-                + machine.mDualInputHatches.size()
-                + machine.mOutputBusses.size()
-                + machine.mInputHatches.size()
-                + machine.mOutputHatches.size();
+            return switch (this) {
+                case Energy -> machine.mEnergyHatches.size();
+                case Maintenance -> machine.mMaintenanceHatches.size();
+                case InputBus -> machine.mInputBusses.size() + machine.mDualInputHatches.size();
+                case OutputBus -> machine.mOutputBusses.size();
+                case InputHatch -> machine.mInputHatches.size();
+                case OutputHatch -> machine.mOutputHatches.size();
+            };
         }
 
         @Override
         public String getDescriptionLangKey() {
-            return "gtsr.tooltip.structure.special.spacetime_ports";
+            return nativeHint.getDescriptionLangKey();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return nativeHint.getDisplayName();
         }
     }
 

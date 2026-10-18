@@ -14,7 +14,6 @@ import net.minecraftforge.fluids.FluidStack;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
-import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 
 import bartworks.system.material.Werkstoff;
 import bartworks.system.material.WerkstoffLoader;
@@ -80,20 +79,23 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     /**
      * 'A' 元素覆写：输入仓优先、tiered 外壳回退，仓候选显式提供给结构预览；输入仓可置于任意 A 位。
      * 基类仅统计实际外壳并保留宽裕下限；输入仓数量校验在
-     * {@link #checkMachine}（mInputHatches ≥ 1）。禁用 atLeast（GT5U atLeast 是「各元素至少一个」
-     * 语义，此处不适用）；casingIndex+hint 齐备（静态青铜 hint 口径保留）。
+     * {@link #checkMachine}（mInputHatches ≥ 1）。原生 atLeast 使自动建造默认放一个后回退外壳，
+     * 不限制世界校验的多仓准入；casingIndex+hint 保留静态青铜口径。
      */
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     protected IStructureElement tieredCasingElement() {
-        return StructureUtility.ofChain(
-            GTSRStructureUtility.hatchWithCandidates(
-                buildHatchAdder(MTEBasicAmplifierUnit.class).anyOf(InputHatch)
-                    .descriptions(() -> Collections.singletonList("gtsr.structure.cluster.amplifier.input_hatch"))
-                    .casingIndex(HATCH_HINT_CASING_INDEX)
-                    .hint(1),
-                InputHatch),
-            super.tieredCasingElement());
+        return StructureUtility
+            .ofChain(
+                ClusterInputHatchPolicy
+                    .rejectUnsupportedDualInput(
+                        buildHatchAdder(MTEBasicAmplifierUnit.class).atLeast(InputHatch)
+                            .descriptions(
+                                () -> Collections.singletonList("gtsr.structure.cluster.amplifier.input_hatch"))
+                            .casingIndex(HATCH_HINT_CASING_INDEX)
+                            .hint(1))
+                    .build(),
+                super.tieredCasingElement());
     }
 
     @Override

@@ -90,7 +90,7 @@ public final class CriticalMachineTerminalFactory implements UIFactory<PosGuiDat
     @SideOnly(Side.CLIENT)
     @Override
     public ModularScreen createScreen(PosGuiData data, ModularPanel panel) {
-        return new BoundedTerminalScreen("gtsr", panel, 475, 350);
+        return new BoundedTerminalScreen("gtsr", panel, 475, 350, 5);
     }
 
     @Override

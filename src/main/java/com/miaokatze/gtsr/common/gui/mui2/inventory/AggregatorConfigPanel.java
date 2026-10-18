@@ -10,7 +10,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
 
 import com.cleanroommc.modularui.api.GuiAxis;
+import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.drawable.DynamicDrawable;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
@@ -26,6 +28,7 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ItemDisplayWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
+import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
@@ -59,31 +62,37 @@ public final class AggregatorConfigPanel {
         manager.registerSlotGroup(new SlotGroup("aggregator_dimensions", 5).setAllowSorting(false));
         View view = new View(session);
         ModularPanel window = ModularPanel.defaultPanel(AggregatorConfigFactory.PANEL_NAME, 475, 350)
-            .background(TerminalUiStyle.PANEL);
+            .background(IDrawable.EMPTY);
         ParentWidget<?> panel = new ParentWidget<>().name("aggregator_canvas")
             .pos(0, 0)
-            .size(475, 350);
+            .size(475, 350)
+            .background(TerminalUiStyle.AGGREGATOR_PANEL);
         panel.child(
             IKey.lang(PREFIX + "title")
                 .asWidget()
                 .name("aggregator_title")
-                .pos(12, 5)
+                .pos(8, 6)
                 .size(450, 14)
                 .color(GtsrGuiPalette.TEXT_TITLE));
         panel.child(
-            action("aggregator_ore_mode", view::modeLabel, session, 1).pos(18, 22)
-                .size(102, 18)
+            action("aggregator_ore_mode", view::modeLabel, session, 1).pos(8, 22)
+                .size(104, 18)
                 .addTooltipLine(IKey.lang(PREFIX + "ore_mode.tip")));
         panel.child(
-            action("aggregator_fortune", view::fortuneLabel, session, 2).pos(126, 22)
-                .size(106, 18)
-                .setEnabledIf(w -> session.snapshot() != null && session.snapshot().oreMode != 0)
+            action("aggregator_fortune", view::fortuneLabel, session, 2).pos(116, 22)
+                .size(104, 18)
                 .addTooltipLine(IKey.lang(PREFIX + "fortune.tip"))
                 .addTooltipLine(IKey.lang(PREFIX + "fortune.gate")));
         panel.child(
-            text("aggregator_steam", view::steamLabel).pos(240, 22)
-                .size(230, 18)
+            text("aggregator_steam", view::steamLabel).pos(224, 22)
+                .size(246, 10)
+                .color(GtsrGuiPalette.TEXT_WHITE)
                 .addTooltipLine(IKey.lang(PREFIX + "steam_formula"))
+                .addTooltipLine(IKey.dynamic(view::steamDetail)));
+        panel.child(
+            text("aggregator_steam_formula", view::steamFormula).pos(224, 32)
+                .size(246, 10)
+                .scale(.8f)
                 .addTooltipLine(IKey.dynamic(view::steamDetail)));
         panel.child(
             IKey.lang(PREFIX + "slots_title")
@@ -92,9 +101,13 @@ public final class AggregatorConfigPanel {
                 .size(92, 14)
                 .color(GtsrGuiPalette.TEXT_BODY));
         panel.child(
-            action("aggregator_refresh", () -> tr("refresh"), session, 4).pos(110, 43)
-                .size(66, 16)
+            action("aggregator_refresh", () -> tr("refresh"), session, 4).pos(50, 44)
+                .size(26, 16)
                 .addTooltipLine(IKey.lang(PREFIX + "refresh.tip")));
+        panel.child(
+            text("aggregator_dimension_increase", () -> "\u00a7l" + view.increase(false)).pos(80, 45)
+                .size(96, 12)
+                .color(GtsrGuiPalette.TEXT_WHITE));
         panel.child(
             Flow.row()
                 .pos(18, 58)
@@ -116,30 +129,40 @@ public final class AggregatorConfigPanel {
             manager.itemSlot("aggregator_dimension", n, slot);
             ItemSlot widget = new ItemSlot().syncHandler("aggregator_dimension", n)
                 .name("aggregator_slot_" + n)
+                .background(TerminalUiStyle.SLOT_FRAME)
                 .pos(24 + n % 5 * 32, 63 + n / 5 * 20);
             if (n == 0) widget.addTooltipLine(IKey.lang(PREFIX + "slot1_hint"));
             panel.child(widget);
         }
         InventorySlots.registerPlayer(manager, data.getPlayer());
         panel.child(
-            InventorySlots.playerWidgets()
+            SlotGroupWidget.playerInventory((index, slot) -> slot.background(TerminalUiStyle.SLOT_FRAME))
                 .name("aggregator_player_inventory")
                 .pos(303, 264));
         panel.child(
-            text("aggregator_dimension_cost", () -> view.increase(false)).pos(18, 170)
-                .size(158, 12)
+            text("aggregator_dimension_cost", () -> tr("dim_text." + (view.directional() ? "directional" : "filtered")))
+                .pos(18, 172)
+                .size(158, 10)
+                .scale(.85f)
                 .addTooltipLine(
                     IKey.dynamic(() -> tr("dim_text." + (view.directional() ? "directional" : "filtered")))));
         panel.child(
             action("aggregator_directional", () -> tr("directional." + (view.directional() ? "on" : "off")), session, 5)
                 .pos(18, 184)
-                .size(158, 18)
+                .size(90, 18)
                 .addTooltipLine(IKey.lang(PREFIX + "directional.tip")));
         panel.child(
             new ListWidget<>().name("aggregator_mode_hint")
-                .pos(18, 206)
-                .size(158, 62)
+                .pos(18, 204)
+                .size(158, 60)
                 .scrollDirection(new VerticalScrollData().cancelScrollEdge(false))
+                .child(
+                    text(
+                        "aggregator_mode_hint_title",
+                        () -> tr("mode_hint." + (view.directional() ? "directional" : "filtered") + ".title"))
+                            .width(148)
+                            .height(12)
+                            .color(GtsrGuiPalette.TEXT_ACCENT))
                 .child(
                     // These legacy literals contain ordinary percent signs, not formatter arguments.
                     IKey.dynamic(() -> tr("mode_hint." + (view.directional() ? "directional" : "filtered")))
@@ -148,24 +171,28 @@ public final class AggregatorConfigPanel {
                         .textAlign(Alignment.TopLeft)
                         .color(GtsrGuiPalette.TEXT_BODY)));
         panel.child(
-            text("aggregator_uu_cost", view::uuLabel).pos(18, 270)
-                .size(270, 14)
+            text("aggregator_uu_cost", view::uuLabel).pos(18, 266)
+                .size(270, 12)
+                .scale(.85f)
+                .color(0xffe080e8)
                 .addTooltipLine(IKey.lang(PREFIX + "uu_formula")));
         panel.child(
             new ListWidget<>().name("aggregator_help")
-                .pos(18, 287)
-                .size(270, 37)
+                .pos(18, 280)
+                .size(280, 44)
                 .scrollDirection(new VerticalScrollData().cancelScrollEdge(false))
                 .child(
                     IKey.lang(PREFIX + "help.slots")
                         .asWidget()
-                        .width(256)
-                        .color(GtsrGuiPalette.TEXT_BODY))
+                        .width(266)
+                        .scale(.9f)
+                        .color(GtsrGuiPalette.TEXT_LABEL))
                 .child(
                     IKey.lang(() -> PREFIX + "help." + (view.directional() ? "directional" : "filter"))
                         .asWidget()
-                        .width(256)
-                        .color(GtsrGuiPalette.TEXT_BODY)));
+                        .width(266)
+                        .scale(.9f)
+                        .color(GtsrGuiPalette.TEXT_LABEL)));
         panel.child(
             IKey.lang(session::receiptKey)
                 .asWidget()
@@ -175,18 +202,27 @@ public final class AggregatorConfigPanel {
                 .color(GtsrGuiPalette.TEXT_ACCENT));
         addBrowser(panel, view, session);
         return window.child(
-            TerminalViewport.wrap("aggregator_viewport", panel, 475, 350)
+            TerminalViewport.wrapExact("aggregator_viewport", panel, 475, 350)
                 .pos(0, 0)
                 .sizeRel(1f));
     }
 
     private static void addBrowser(ParentWidget<?> panel, View view, AggregatorConfigSession session) {
         panel.child(
-            text("aggregator_browser_title", () -> tr("browser_title") + "  " + view.increase(true)).pos(180, 44)
-                .size(290, 14));
+            text("aggregator_browser_title", () -> tr("browser_title")).pos(180, 45)
+                .size(54, 12));
+        panel.child(
+            text("aggregator_weight_increase", () -> "\u00a7l" + view.increase(true)).pos(234, 45)
+                .size(236, 12)
+                .color(GtsrGuiPalette.TEXT_WHITE));
+        panel.child(
+            new ParentWidget<>().name("aggregator_browser_background")
+                .pos(180, 58)
+                .size(290, 208)
+                .background(TerminalUiStyle.CARD));
         TextFieldWidget search = new TextFieldWidget().name("aggregator_search_input")
             .pos(184, 62)
-            .size(134, 16)
+            .size(138, 16)
             .setMaxLength(128)
             .autoUpdateOnChange(true)
             .value(new StringValue.Dynamic(() -> view.draft, s -> view.draft = s))
@@ -195,17 +231,17 @@ public final class AggregatorConfigPanel {
         panel.child(localButton("aggregator_search", () -> tr("search"), () -> {
             view.search = search.getText();
             view.offset = 0;
-        }).pos(322, 62)
+        }).pos(326, 62)
             .size(44, 16));
         panel.child(localButton("aggregator_category", () -> tr("category." + CATEGORIES[view.category]), () -> {
             view.category = (view.category + 1) % 3;
             view.offset = 0;
-        }).pos(370, 62)
+        }).pos(374, 62)
             .size(44, 16)
             .addTooltipLine(IKey.lang(PREFIX + "category.tip")));
         panel.child(
-            action("aggregator_clear", () -> tr("clear_config"), session, 7).pos(418, 62)
-                .size(52, 16)
+            action("aggregator_clear", () -> tr("clear_config"), session, 7).pos(422, 62)
+                .size(44, 16)
                 .addTooltipLine(IKey.lang(PREFIX + "clear_config.tip")));
         for (int n = 0; n < 3; n++) {
             final int key = n;
@@ -213,7 +249,8 @@ public final class AggregatorConfigPanel {
             panel.child(
                 localButton(
                     "aggregator_sort_" + label,
-                    () -> tr("col." + label) + (view.sort == key ? view.ascending ? " ▲" : " ▼" : ""),
+                    () -> "\u00a76\u00a7l" + tr("col." + label)
+                        + (view.sort == key ? view.ascending ? " ▲" : " ▼" : ""),
                     () -> {
                         if (view.sort == key) view.ascending = !view.ascending;
                         else {
@@ -221,25 +258,26 @@ public final class AggregatorConfigPanel {
                             view.ascending = true;
                         }
                         view.offset = 0;
-                    }).pos(184 + new int[] { 0, 122, 174 }[n], 82)
-                        .size(n == 0 ? 118 : 48, 16));
+                    }).pos(184 + new int[] { 20, 124, 172 }[n], 80)
+                        .size(n == 0 ? 100 : n == 1 ? 44 : 56, 14)
+                        .background(IDrawable.EMPTY)
+                        .hoverBackground(TerminalUiStyle.ROW_HOVER));
         }
         panel.child(
             IKey.lang(PREFIX + "col.action")
                 .asWidget()
                 .name("aggregator_action_header")
-                .pos(418, 82)
-                .size(52, 16)
-                .scale(.8f)
-                .color(GtsrGuiPalette.TEXT_BODY));
+                .pos(416, 82)
+                .size(44, 12)
+                .color(GtsrGuiPalette.TEXT_ACCENT));
         Flow rows = Flow.column()
             .size(274, 154);
         for (int n = 0; n < VISIBLE_ROWS; n++) {
             final int row = n;
-            Flow line = Flow.row()
-                .name("aggregator_ore_row_" + n)
+            ParentWidget<?> line = new ParentWidget<>().name("aggregator_ore_row_" + n)
                 .size(274, 22)
-                .childPadding(2);
+                .hoverBackground(TerminalUiStyle.ROW_HOVER)
+                .setEnabledIf(widget -> view.entry(row) != null);
             line.child(
                 new ItemDisplayWidget()
                     .item(
@@ -247,29 +285,42 @@ public final class AggregatorConfigPanel {
                             ItemStack.class,
                             () -> view.entry(row) == null ? null : view.entry(row).displayStack,
                             null))
-                    .size(18));
+                    .pos(0, 3)
+                    .size(16));
             line.child(
-                text("aggregator_ore_name_" + n, () -> shorten(view.name(view.entry(row)), 15)).size(96, 20)
+                text("aggregator_ore_name_" + n, () -> shorten(view.name(view.entry(row)), 15)).pos(20, 6)
+                    .size(100, 12)
+                    .color(GtsrGuiPalette.TEXT_WHITE)
                     .addTooltipLine(IKey.dynamic(() -> view.name(view.entry(row)))));
             line.child(
                 text(
                     "aggregator_ore_weight_" + n,
-                    () -> view.entry(row) == null ? "" : String.format(Locale.ROOT, "%.3g", view.entry(row).weight))
-                        .size(48, 20)
+                    () -> view.entry(row) == null ? "" : formatWeight(view.entry(row).weight)).pos(124, 6)
+                        .size(44, 12)
+                        .color(GtsrGuiPalette.TEXT_WHITE)
                         .addTooltipLine(
                             IKey.dynamic(() -> view.entry(row) == null ? "" : Float.toString(view.entry(row).weight))));
             line.child(
                 text(
                     "aggregator_ore_dims_" + n,
-                    () -> view.entry(row) == null ? "" : shorten(String.join("+", view.entry(row).dimAbbrs), 7))
-                        .size(42, 20)
+                    () -> view.entry(row) == null ? "" : shorten(String.join("+", view.entry(row).dimAbbrs), 9))
+                        .pos(172, 6)
+                        .size(56, 12)
+                        .color(GtsrGuiPalette.TEXT_WHITE)
                         .addTooltipLine(
                             IKey.dynamic(
                                 () -> view.entry(row) == null ? "" : String.join("+", view.entry(row).dimAbbrs))));
             line.child(localButton("aggregator_ore_action_" + n, () -> view.rowAction(row), () -> {
                 OreEntry entry = view.entry(row);
                 if (entry != null) session.submit(view.directional() ? 6 : 3, entry);
-            }).size(52, 18)
+            }).pos(232, 4)
+                .size(44, 14)
+                .background(
+                    new DynamicDrawable(
+                        () -> view.entry(row) != null
+                            && (view.directional() ? view.entry(row).aimed : view.entry(row).filtered)
+                                ? TerminalUiStyle.CHIP_ACTIVE
+                                : TerminalUiStyle.CHIP_NORMAL))
                 .addTooltipLine(
                     IKey.lang(() -> PREFIX + (view.directional() ? "directional_ore_hint" : "filtered_hint"))));
             rows.child(line);
@@ -278,7 +329,7 @@ public final class AggregatorConfigPanel {
             new ButtonWidget<>().name("aggregator_ore_list")
                 .pos(180, 100)
                 .size(290, 156)
-                .background(TerminalUiStyle.CARD)
+                .background(IDrawable.EMPTY)
                 .child(rows.pos(4, 1))
                 .onMousePressed(button -> true)
                 .onMouseScrolled((direction, amount) -> {
@@ -290,6 +341,8 @@ public final class AggregatorConfigPanel {
             new SliderWidget().name("aggregator_ore_scrollbar")
                 .pos(459, 101)
                 .size(9, 153)
+                .background(TerminalUiStyle.SCROLLBAR_TRACK)
+                .sliderTexture(TerminalUiStyle.SCROLLBAR_THUMB)
                 .setAxis(GuiAxis.Y)
                 .bounds(0, 1)
                 .sliderWidth(8)
@@ -325,7 +378,19 @@ public final class AggregatorConfigPanel {
 
     private static ButtonWidget<?> action(String name, Supplier<String> label, AggregatorConfigSession session,
         int code) {
-        return localButton(name, label, () -> session.submit(code, null));
+        return localButton(name, label, () -> {
+            // Legacy raw mode keeps Fortune visible, with no actionable hover or submission.
+            if (code != 2 || fortuneAvailable(session)) session.submit(code, null);
+        }).background(
+            new DynamicDrawable(
+                () -> code == 2 && !fortuneAvailable(session) ? TerminalUiStyle.DISABLED : TerminalUiStyle.BUTTON))
+            .hoverBackground(
+                new DynamicDrawable(
+                    () -> code == 2 && !fortuneAvailable(session) ? TerminalUiStyle.DISABLED : TerminalUiStyle.HOVER));
+    }
+
+    private static boolean fortuneAvailable(AggregatorConfigSession session) {
+        return session.snapshot() != null && session.snapshot().oreMode != 0;
     }
 
     private static ButtonWidget<?> localButton(String name, Supplier<String> label, Runnable action) {
@@ -334,7 +399,7 @@ public final class AggregatorConfigPanel {
             .hoverBackground(TerminalUiStyle.HOVER)
             .child(
                 text(name + "_label", label).sizeRel(1f)
-                    .scale(.8f)
+                    .scale(1f)
                     .textAlign(Alignment.Center))
             .onMousePressed(button -> {
                 if (button == 0) action.run();
@@ -344,6 +409,11 @@ public final class AggregatorConfigPanel {
 
     private static String tr(String suffix) {
         return StatCollector.translateToLocal(PREFIX + suffix);
+    }
+
+    private static String formatWeight(float weight) {
+        return weight == Math.floor(weight) ? String.format(Locale.ROOT, "%.0f", weight)
+            : String.format(Locale.ROOT, "%.1f", weight);
     }
 
     private static String shorten(String value, int length) {
@@ -432,7 +502,7 @@ public final class AggregatorConfigPanel {
         private String fortuneLabel() {
             int fortune = session.snapshot() == null ? 3 : session.snapshot().fortune;
             int index = Math.max(0, Math.min(6, (fortune - 3) / 2));
-            return String.format(
+            return (fortuneAvailable(session) ? "" : "§7") + String.format(
                 tr("fortune_level"),
                 ROMAN[index],
                 Math.round(MTECrustMatterAggregator.FORTUNE_STEAM_BONUS[index] * 100));
@@ -449,12 +519,24 @@ public final class AggregatorConfigPanel {
         private String steamLabel() {
             AggregatorTerminalData.Snapshot s = session.snapshot();
             return s == null ? "—"
-                : tr("steam_cost") + String.format(
-                    Locale.ROOT,
-                    "%,.0f L/s ×%.2f",
-                    (s.denseState ? MTECrustMatterAggregator.DENSE_STEAM_PER_SECOND
-                        : MTECrustMatterAggregator.NORMAL_STEAM_PER_SECOND) * s.steamMult,
-                    s.steamMult);
+                : "§l" + tr("steam_cost")
+                    + String.format(
+                        Locale.ROOT,
+                        "%,.0f L/s §6§l×%.2f",
+                        (s.denseState ? MTECrustMatterAggregator.DENSE_STEAM_PER_SECOND
+                            : MTECrustMatterAggregator.NORMAL_STEAM_PER_SECOND) * s.steamMult,
+                        s.steamMult);
+        }
+
+        private String steamFormula() {
+            AggregatorTerminalData.Snapshot s = session.snapshot();
+            if (s == null) return "—";
+            long base = s.denseState ? MTECrustMatterAggregator.DENSE_STEAM_PER_SECOND
+                : MTECrustMatterAggregator.NORMAL_STEAM_PER_SECOND;
+            return base + " × "
+                + String.format(Locale.ROOT, "%.2f", s.steamMult)
+                + " = "
+                + String.format(Locale.ROOT, "%,.0f L/s", base * s.steamMult);
         }
 
         private String steamDetail() {
@@ -469,8 +551,9 @@ public final class AggregatorConfigPanel {
         }
 
         private String uuLabel() {
-            return tr("uu_cost")
-                + (!directional() ? tr("uu_cost.off") : String.format(Locale.ROOT, "×%.2f", session.snapshot().uuMult));
+            return tr("uu_cost") + (!directional() ? tr("uu_cost.off")
+                : String
+                    .format(Locale.ROOT, "%,.0f L/s (×%.2f)", session.snapshot().uuMult, session.snapshot().uuMult));
         }
     }
 }

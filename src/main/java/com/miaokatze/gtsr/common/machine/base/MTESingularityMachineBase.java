@@ -216,6 +216,25 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
             }
         },
 
+        FuelInputBus("GTSR.HatchElement.SteamInputBus", MTESingularityMachineBase::addFuelInputBusToMachineList,
+            MTEHatchInputBus.class) {
+
+            @Override
+            public boolean matchesHatch(IMetaTileEntity mte) {
+                return mte instanceof MTEHatchInputBus && !(mte instanceof IDualInputHatch);
+            }
+
+            @Override
+            public long count(MTESingularityMachineBase t) {
+                return t.mInputBusses.size();
+            }
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEHatchSteamBusInput.class);
+            }
+        },
+
         SteamOutputBus("GTSR.HatchElement.SteamOutputBus", MTESingularityMachineBase::addOutputBusToMachineList,
             MTEHatchOutputBus.class) {
 
@@ -283,6 +302,12 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
             return mPressureSteamInputs.add(hatch);
         }
         return false;
+    }
+
+    private boolean addFuelInputBusToMachineList(IGregTechTileEntity tile, int casingIndex) {
+        return tile != null && tile.getMetaTileEntity() instanceof MTEHatchInputBus
+            && !(tile.getMetaTileEntity() instanceof IDualInputHatch)
+            && addInputBusToMachineList(tile, casingIndex);
     }
 
     public boolean addOutputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {

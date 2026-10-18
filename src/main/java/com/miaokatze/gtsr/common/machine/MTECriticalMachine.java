@@ -56,6 +56,71 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     private World previewWorld;
     private NBTTagCompound previewSelection;
 
+    /** Auxiliary chambers already consumed by the critical recipe paths use the same native declaration. */
+    public enum CriticalHatchElement implements gregtech.api.interfaces.IHatchElement<MTECriticalMachine> {
+
+        DataAccess("gt.blockmachines.hatch.dataaccess.name",
+            gregtech.api.metatileentity.implementations.MTEHatchDataAccess.class) {
+
+            @Override
+            public long count(MTECriticalMachine machine) {
+                return machine.criticalDataHatches.size();
+            }
+        },
+        BulkCatalyst("gt.blockmachines.hatch.catalystbulk.name",
+            gregtech.api.metatileentity.implementations.MTEHatchBulkCatalystHousing.class) {
+
+            @Override
+            public long count(MTECriticalMachine machine) {
+                return machine.criticalCatalystHatches.size();
+            }
+        };
+
+        private final String translationKey;
+        private final Class<? extends IMetaTileEntity> type;
+
+        CriticalHatchElement(String translationKey, Class<? extends IMetaTileEntity> type) {
+            this.translationKey = translationKey;
+            this.type = type;
+        }
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return java.util.Collections.singletonList(type);
+        }
+
+        @Override
+        public gregtech.api.util.IGTHatchAdder<? super MTECriticalMachine> adder() {
+            return (machine, tile, casing) -> tile != null && type.isInstance(tile.getMetaTileEntity())
+                && machine.addCriticalAuxiliaryHatch(tile, casing);
+        }
+
+        @Override
+        public String getDisplayName() {
+            return StatCollector.translateToLocal(translationKey);
+        }
+
+        @Override
+        public String getDescriptionLangKey() {
+            return translationKey;
+        }
+    }
+
+    private boolean addCriticalAuxiliaryHatch(IGregTechTileEntity tile, int casing) {
+        if (tile.getMetaTileEntity() instanceof gregtech.api.metatileentity.implementations.MTEHatchDataAccess hatch) {
+            hatch.updateTexture(casing);
+            if (!criticalDataHatches.contains(hatch)) criticalDataHatches.add(hatch);
+            return true;
+        }
+        if (tile
+            .getMetaTileEntity() instanceof gregtech.api.metatileentity.implementations.MTEHatchBulkCatalystHousing hatch) {
+            hatch.updateTexture(casing);
+            if (!criticalCatalystHatches.contains(hatch)) criticalCatalystHatches.add(hatch);
+            return true;
+        }
+        return false;
+    }
+
     public MTECriticalMachine(int id, String name, String localizedName, CriticalMachineKind kind) {
         super(id, name, localizedName);
         presetKind = kind;
@@ -891,15 +956,17 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     @Override
     public RecipeMap<?> getRecipeMap() {
-        if (presetKind == CriticalMachineKind.PROCESSING || presetKind == CriticalMachineKind.ASSEMBLY) {
-            String mode = com.miaokatze.gtsr.common.critical.CriticalProcessingModes.selected(getCriticalState());
-            if (com.miaokatze.gtsr.common.critical.CriticalProcessingModes.ASSEMBLY_LINE.equals(mode))
-                return gregtech.api.recipe.RecipeMaps.assemblylineVisualRecipes;
-            RecipeMap<?> map = com.miaokatze.gtsr.common.critical.CriticalProcessingModes.map(mode);
-            if (map != null) return map;
+        return com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.forKind(presetKind);
+    }
+
+    @Override
+    public java.util.Collection<RecipeMap<?>> getAvailableRecipeMaps() {
+        RecipeMap<?> map = getRecipeMap();
+        if (map == null) return java.util.Collections.emptyList();
+        if (presetKind == CriticalMachineKind.SOLAR) {
+            return java.util.Arrays.asList(map, com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.stellarIrradiation);
         }
-        return presetKind == null ? com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.displayRecipes
-            : com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.forKind(presetKind);
+        return java.util.Collections.singletonList(map);
     }
 
     @Override

@@ -560,13 +560,8 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.CriticalLoom.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.CriticalSolar.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.CriticalTurbine.get(1));
-        CreativeTabManager.addItemToTab(GTSRItemList.CriticalProcessing.get(1));
-        CreativeTabManager.addItemToTab(GTSRItemList.CriticalEntangler.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.CriticalSun.get(1));
-        CreativeTabManager.addItemToTab(GTSRItemList.CriticalDimension.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.CriticalBattery.get(1));
-        CreativeTabManager.addItemToTab(GTSRItemList.CriticalAssembly.get(1));
-        CreativeTabManager.addItemToTab(GTSRItemList.CriticalAccelerator.get(1));
 
         CreativeTabManager.addItemToTab(GTSRItemList.SpacetimeCalibration.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.DenseStateManipulator.get(1));

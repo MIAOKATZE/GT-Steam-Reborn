@@ -5,7 +5,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.Maintenance;
 import static gregtech.api.enums.HatchElement.Muffler;
@@ -402,19 +401,16 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
             final int casingIndex = getCasingTextureID();
             STRUCTURE_DEFINITION = StructureDefinition.<MTEThermoChemicalDenseSteamGenerator>builder()
                 .addShape(STRUCTURE_PIECE_MAIN, transpose(SHAPE_MAIN))
-                // 仓室优先，只有真实洁净不锈钢机械方块计入最低外壳数。
+                // 原生自动建造每类仓默认放一个后回退外壳；世界校验仍保留现行可选仓集合。
+                // 只有真实洁净不锈钢机械方块计入最低外壳数。
                 .addElement(
                     'A',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEThermoChemicalDenseSteamGenerator.class)
-                                .anyOf(Maintenance, Muffler, TcdsHatchElement.FluidInput, OutputHatch)
-                                .casingIndex(casingIndex)
-                                .hint(1),
-                            Maintenance,
-                            Muffler,
-                            TcdsHatchElement.FluidInput,
-                            OutputHatch),
+                        buildHatchAdder(MTEThermoChemicalDenseSteamGenerator.class)
+                            .atLeast(Maintenance, Muffler, TcdsHatchElement.FluidInput, OutputHatch)
+                            .casingIndex(casingIndex)
+                            .hint(1)
+                            .build(),
                         onElementPass(t -> t.mCasingCount++, ofBlock(GregTechAPI.sBlockCasings4, 1))))
                 // 'B' 不锈钢框架：gt.blockframes meta 306
                 .addElement('B', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockframes"), 306))

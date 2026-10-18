@@ -25,7 +25,6 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.cluster.MTEBasicLogisticsUnitNativeGui;
-import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -47,7 +46,7 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
  * 物流模块：集群的单点链执行器骨架（E3b 切片：四 I/O 结构 + 软锤启停 + 双 tank 语义收紧 + 独立 GUI stub）。
  * <p>
  * <b>结构（r9 权威规格 5×4×4，控制器 (2,2,0)）</b>：全矩阵 A 位四 I/O 自由化（切片 3）——'A' 元素
- * = ofChain(hatchAdder.anyOf(输入总线/输出总线/输入仓/输出仓), tiered 外壳)，矩阵内任意 A 位皆可
+ * = ofChain(hatchAdder.atLeast(输入总线/输出总线/输入仓/输出仓), tiered 外壳)，矩阵内任意 A 位皆可
  * 承载四类 I/O hatch 之一（原 D/E/F/G 专用字符已按草稿还原为 'A'）；数量校验在 checkMachine 按
  * 真实注册列表计数（四类各 1..2，任一类 0 或 &gt;2 不成型）。B=tiered 管道
  * （{@link #tieredPipeElement()}，r9 由齿轮箱族改绑——权威规格）、C=tiered 框架
@@ -57,7 +56,7 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
  * {@code MTEHatchOutputBusME extends MTEHatchOutputBus}（Output Bus (ME)）、
  * {@code MTEHatchInputME extends MTEHatchInput}（Stocking Input Hatch (ME)，流体）、
  * {@code MTEHatchOutputME extends MTEHatchOutput}（Output Hatch (ME)，流体）——四类 ME 仓室经
- * HatchElement 继承匹配自然通过 'A' 元素 anyOf 并入各自标准列表，计入 {@link #checkMachine}
+ * HatchElement 继承匹配自然通过 'A' 原生仓添加器并入各自标准列表，计入 {@link #checkMachine}
  * 各类 1..2 计数（旧 {@code addInputBusToMachineList} 对 {@code MTEHatchInputBusME} 的
  * instanceof 拒绝已删除）。流体批结算经 {@link GTSRHatchFluidAccess} 普通仓/ME 仓同口径；
  * ME 输出总线产物写入由 {@link ClusterChainExecutor} 趟 2 兜底 +
@@ -216,27 +215,25 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
      * 并显式列出四类预览候选；矩阵内任意 A 位皆可承载四类 I/O hatch 之一；
      * GT5U ME 系四类仓室（MTEHatchInputBusME/MTEHatchOutputBusME/MTEHatchInputME/MTEHatchOutputME，
      * 均为对应基类子类）经 HatchElement 继承匹配同路入列，不再单独拒绝；数量校验在
-     * {@link #checkMachine} 按真实注册列表计数（各 1..2）。禁用 atLeast（GT5U atLeast 是「各元素
-     * 至少一个」语义，此处不适用）；casingIndex+hint 齐备（静态青铜 hint 口径保留）。
+     * {@link #checkMachine} 按真实注册列表计数（各 1..2）。原生 atLeast 使自动建造每类默认放一个后
+     * 回退外壳，不限制世界校验的多仓准入；casingIndex+hint 保留静态青铜口径。
      */
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     protected IStructureElement tieredCasingElement() {
         return ofChain(
-            GTSRStructureUtility.hatchWithCandidates(
-                buildHatchAdder(MTEBasicLogisticsUnit.class).anyOf(InputBus, OutputBus, InputHatch, OutputHatch)
-                    .descriptions(
-                        () -> Arrays.asList(
-                            "gtsr.structure.cluster.logistics.input_bus",
-                            "gtsr.structure.cluster.logistics.output_bus",
-                            "gtsr.structure.cluster.logistics.input_hatch",
-                            "gtsr.structure.cluster.logistics.output_hatch"))
-                    .casingIndex(HATCH_CASING_INDEX)
-                    .hint(1),
-                InputBus,
-                OutputBus,
-                InputHatch,
-                OutputHatch),
+            ClusterInputHatchPolicy
+                .rejectUnsupportedDualInput(
+                    buildHatchAdder(MTEBasicLogisticsUnit.class).atLeast(InputBus, OutputBus, InputHatch, OutputHatch)
+                        .descriptions(
+                            () -> Arrays.asList(
+                                "gtsr.structure.cluster.logistics.input_bus",
+                                "gtsr.structure.cluster.logistics.output_bus",
+                                "gtsr.structure.cluster.logistics.input_hatch",
+                                "gtsr.structure.cluster.logistics.output_hatch"))
+                        .casingIndex(HATCH_CASING_INDEX)
+                        .hint(1))
+                .build(),
             super.tieredCasingElement());
     }
 

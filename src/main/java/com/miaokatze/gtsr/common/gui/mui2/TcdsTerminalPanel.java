@@ -6,26 +6,33 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
 import com.cleanroommc.modularui.factory.PosGuiData;
+import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.StringValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandler;
-import com.cleanroommc.modularui.widget.scroll.HorizontalScrollData;
-import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
-import com.cleanroommc.modularui.widgets.ListWidget;
+import com.cleanroommc.modularui.widget.ParentWidget;
+import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
 import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
 import com.miaokatze.gtsr.common.terminal.TcdsTerminalData;
 import com.miaokatze.gtsr.common.terminal.TerminalServerSessions;
+import com.miaokatze.gtsr.common.util.GtsrNumFormat;
+
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 
 /** One persistent widget tree and one snapshot consumer per opened TCDS session. */
 public final class TcdsTerminalPanel {
@@ -39,7 +46,7 @@ public final class TcdsTerminalPanel {
         Session session = new Session(data, machine);
         manager.syncValue(SYNC_KEY, session);
         TextFieldWidget input = new TextFieldWidget().name("tcds_flow_input")
-            .size(150, 20)
+            .size(140, 14)
             .setMaxLength(11)
             .autoUpdateOnChange(true)
             .value(new StringValue.Dynamic(session::draft, value -> {
@@ -47,28 +54,54 @@ public final class TcdsTerminalPanel {
                 session.edited = true;
             }))
             .addTooltipLine(IKey.lang("gtsr.tcds_terminal.mui2.input_hint"));
-        Flow content = Flow.col()
-            .name("tcds_content")
-            .size(376, 244)
-            .childPadding(2);
-        content.child(row("gtsr.tcds_terminal.flow_label", session, s -> s.flow + " L/t"));
-        content.child(row("gtsr.tcds_terminal.heat_cap_label", session, s -> s.heatCap));
+        ParentWidget<?> content = new ParentWidget<>().name("tcds_content")
+            .size(384, 232)
+            .pos(0, 0);
         content.child(
-            Flow.row()
-                .name("tcds_input_row")
-                .size(376, 22)
-                .childPadding(8)
-                .child(input)
+            text(IKey.lang("gtsr.tcds_terminal.title"), 0, 3, 384, 12, 1f, GtsrGuiPalette.TEXT_TITLE)
+                .name("tcds_title"));
+        content.child(
+            row(
+                "gtsr.tcds_terminal.flow_label",
+                session,
+                s -> NumberFormatUtil.formatNumber(s.flow) + " L/t",
+                32,
+                1f,
+                GtsrGuiPalette.TEXT_ACCENT));
+        content
+            .child(row("gtsr.tcds_terminal.heat_cap_label", session, s -> s.heatCap, 48, 1f, GtsrGuiPalette.TEXT_BODY));
+        content.child(text(IKey.lang("gtsr.tcds_terminal.input_label"), 0, 64, 210, 10, 1f, GtsrGuiPalette.TEXT_LABEL));
+        content.child(
+            text(
+                IKey.dynamic(
+                    () -> IKey.lang("gtsr.tcds_terminal.mui2.heat")
+                        .getFormatted() + " "
+                        + (session.snapshot == null ? "—" : number(session.snapshot.heat) + "%")),
+                224,
+                64,
+                160,
+                10,
+                0.7f,
+                GtsrGuiPalette.TEXT_MUTED).name("gtsr.tcds_terminal.mui2.heat"));
+        content.child(
+            new ParentWidget<>().name("tcds_input_row")
+                .pos(0, 74)
+                .size(384, 14)
+                .child(input.pos(0, 0))
                 .child(
                     TerminalUiStyle.button("gtsr.tcds_terminal.confirm")
                         .name("tcds_apply")
-                        .size(85, 20)
+                        .pos(144, 0)
+                        .size(64, 14)
                         .background(
                             new DynamicDrawable(
                                 () -> session.awaiting ? TerminalUiStyle.DISABLED : TerminalUiStyle.BUTTON))
                         .hoverBackground(
                             new DynamicDrawable(
                                 () -> session.awaiting ? TerminalUiStyle.DISABLED : TerminalUiStyle.HOVER))
+                        .overlay(
+                            IKey.lang("gtsr.tcds_terminal.confirm")
+                                .color(() -> session.awaiting ? GtsrGuiPalette.TEXT_MUTED : GtsrGuiPalette.TEXT_BODY))
                         .onMousePressed(button -> {
                             if (button == 0) session.submit(input.getText());
                             return true;
@@ -77,92 +110,234 @@ public final class TcdsTerminalPanel {
                 .child(
                     TerminalUiStyle.button("gtsr.tcds_terminal.formula_help")
                         .name("tcds_formula_help")
-                        .size(116, 20)
+                        .pos(224, 0)
+                        .size(152, 14)
                         .tooltipBuilder(tooltip -> {
                             for (String key : new String[] { "flow", "efficiency", "output", "cap", "consumption",
                                 "shortage", "buffer", "chip" })
                                 tooltip.addLine(IKey.lang("gtsr.tcds_terminal.formula_" + key));
                         })));
-        content.child(row("gtsr.tcds_terminal.mui2.heat", session, s -> number(s.heat) + "%"));
-        content.child(row("gtsr.tcds_terminal.mui2.efficiency", session, s -> number(s.efficiency * 100) + "%"));
-        content.child(row("gtsr.tcds_terminal.kv_actual_flow", session, s -> s.fuelConsumption + " L/t"));
-        content.child(row("gtsr.tcds_terminal.kv_output_total", session, s -> s.output + " L/t"));
-        content.child(row("gtsr.tcds_terminal.kv_fuel", session, s -> s.fuelConsumption + " L/t"));
-        content.child(
-            row(
-                "gtsr.tcds_terminal.derive_gas",
-                session,
-                s -> familyFlow(s, true) + " L/t → " + familyTerm(s, true) + " L/t")
-                    .addTooltipLine(IKey.dynamic(() -> familyEquation(session.snapshot, true))));
-        content.child(
-            row(
-                "gtsr.tcds_terminal.derive_liquid",
-                session,
-                s -> familyFlow(s, false) + " L/t → " + familyTerm(s, false) + " L/t")
-                    .addTooltipLine(IKey.dynamic(() -> familyEquation(session.snapshot, false))));
-        content.child(row("gtsr.tcds_terminal.kv_air", session, s -> s.airConsumption + " L/t"));
-        content.child(row("gtsr.tcds_terminal.kv_water", session, s -> s.waterConsumption + " L/t"));
-        content.child(
-            Flow.row()
-                .name("tcds_status_row")
-                .size(376, 14)
-                .childPadding(6)
+        Flow formula = Flow.col()
+            .pos(0, 96)
+            .size(384, 132)
+            .childPadding(0)
+            .collapseDisabledChild();
+        formula.child(
+            line(
+                header("gtsr.tcds_terminal.group_flow", 0)
+                    .addTooltipLine(IKey.lang("gtsr.tcds_terminal.formula_cap"))));
+        formula.child(
+            line(
+                row(
+                    "gtsr.tcds_terminal.kv_actual_flow",
+                    session,
+                    TcdsTerminalPanel::actualFlow,
+                    0,
+                    0.7f,
+                    GtsrGuiPalette.TEXT_BODY).addTooltipLine(IKey.lang("gtsr.tcds_terminal.formula_flow"))));
+        formula.child(
+            line(
+                text(
+                    IKey.dynamic(
+                        () -> IKey.lang("gtsr.tcds_terminal.formula_efficiency")
+                            .getFormatted() + " → "
+                            + (session.snapshot == null ? "—"
+                                : String.format(Locale.ROOT, "%.3f", session.snapshot.efficiency))),
+                    12,
+                    0,
+                    372,
+                    11,
+                    0.6f,
+                    GtsrGuiPalette.TEXT_MUTED).name("gtsr.tcds_terminal.mui2.efficiency")
+                        .addTooltipLine(IKey.lang("gtsr.tcds_terminal.formula_efficiency"))));
+        formula.child(
+            line(
+                header("gtsr.tcds_terminal.group_output", 0)
+                    .addTooltipLine(IKey.lang("gtsr.tcds_terminal.formula_output"))
+                    .addTooltipLine(
+                        IKey.dynamic(() -> session.snapshot == null ? "—" : outputFlow(session.snapshot)))));
+        formula.child(
+            line(
+                row(
+                    "gtsr.tcds_terminal.kv_output_total",
+                    session,
+                    TcdsTerminalPanel::outputFlow,
+                    0,
+                    0.7f,
+                    GtsrGuiPalette.TEXT_ACCENT)));
+        formula.child(line(derivation(session, true, 0)).setEnabledIf(w -> familyActive(session.snapshot, true)));
+        formula.child(line(derivation(session, false, 0)).setEnabledIf(w -> familyActive(session.snapshot, false)));
+        formula.child(
+            line(
+                header("gtsr.tcds_terminal.group_consumption", 0)
+                    .addTooltipLine(IKey.lang("gtsr.tcds_terminal.formula_consumption"))));
+        formula.child(
+            line(
+                row(
+                    "gtsr.tcds_terminal.kv_fuel",
+                    session,
+                    TcdsTerminalPanel::fuelFlow,
+                    0,
+                    0.7f,
+                    GtsrGuiPalette.TEXT_BODY)));
+        formula.child(
+            line(
+                row(
+                    "gtsr.tcds_terminal.kv_air",
+                    session,
+                    s -> GtsrNumFormat.grouped(s.airConsumption),
+                    0,
+                    0.7f,
+                    GtsrGuiPalette.TEXT_BODY)));
+        formula.child(
+            line(
+                row(
+                    "gtsr.tcds_terminal.kv_water",
+                    session,
+                    s -> GtsrNumFormat.grouped(s.waterConsumption),
+                    0,
+                    0.7f,
+                    GtsrGuiPalette.TEXT_BODY)));
+        formula.child(
+            new ParentWidget<>().name("tcds_status_row")
+                .size(384, 11)
+                .child(text(IKey.lang("gtsr.tcds_terminal.kv_status"), 0, 0, 138, 11, 0.7f, GtsrGuiPalette.TEXT_LABEL))
                 .child(
-                    IKey.dynamicKey(
-                        () -> IKey.lang(
-                            session.snapshot != null
-                                && (session.snapshot.airConsumption > 0 || session.snapshot.waterConsumption > 0)
-                                    ? "gtsr.tcds_terminal.status_ok"
-                                    : "gtsr.tcds_terminal.status_stopped"))
-                        .asWidget()
-                        .name("tcds_status")
-                        .size(154, 14)
-                        .color(GtsrGuiPalette.TEXT_BODY))
+                    text(
+                        IKey.dynamicKey(
+                            () -> IKey.lang(
+                                running(session) ? "gtsr.tcds_terminal.status_ok"
+                                    : "gtsr.tcds_terminal.status_stopped")),
+                        142,
+                        0,
+                        150,
+                        11,
+                        0.7f,
+                        GtsrGuiPalette.TEXT_BODY).name("tcds_status")
+                            .color(() -> running(session) ? GtsrGuiPalette.STATE_ONLINE : GtsrGuiPalette.STATE_IDLE))
                 .child(
+                    text(
+                        IKey.dynamic(
+                            () -> session.snapshot == null ? "—"
+                                : "· " + GtsrNumFormat.grouped(session.snapshot.output / 1000)),
+                        292,
+                        0,
+                        92,
+                        11,
+                        0.7f,
+                        GtsrGuiPalette.TEXT_ACCENT).name("tcds_chip_output"))
+                .addTooltipLine(IKey.lang("gtsr.tcds_terminal.formula_shortage"))
+                .addTooltipLine(IKey.lang("gtsr.tcds_terminal.formula_buffer"))
+                .addTooltipLine(IKey.lang("gtsr.tcds_terminal.formula_chip"))
+                .addTooltipLine(
                     IKey.dynamic(
                         () -> session.snapshot == null ? "—"
-                            : session.snapshot.output + " ÷ 1000 = " + session.snapshot.output / 1000)
-                        .asWidget()
-                        .name("tcds_chip_output")
-                        .size(216, 14)
-                        .color(GtsrGuiPalette.TEXT_BODY)));
-        content.child(IKey.dynamicKey(() -> {
+                            : session.snapshot.output + " ÷ 1000 = " + session.snapshot.output / 1000)));
+        content.child(formula);
+        content.child(text(IKey.dynamicKey(() -> {
             session.consumeResult();
             return IKey.lang(session.receiptKey);
-        })
-            .asWidget()
-            .name("tcds_receipt")
-            .size(376, 16)
-            .color(GtsrGuiPalette.TEXT_ACCENT));
-        // Keep the entire widget tree on both sides. Only the client viewport changes size.
-        // The horizontal axis also preserves access below the normal 427px minimum canvas width.
-        HorizontalScrollData horizontal = new HorizontalScrollData(false, 4);
-        horizontal.setScrollSize(376);
-        horizontal.setCancelScrollEdge(false);
-        ListWidget<?, ?> body = new ListWidget<>().name("tcds_body_viewport")
-            .pos(12, 30)
-            .widthRelOffset(1f, -16)
-            .heightRelOffset(1f, -42)
-            .crossAxisAlignment(Alignment.CrossAxis.START)
-            .scrollDirection(new VerticalScrollData(false, 4).cancelScrollEdge(false))
-            .child(content);
-        body.getScrollArea()
-            .setScrollDataX(horizontal);
-        body.onUpdateListener(widget -> {
-            horizontal.clamp(body.getScrollArea());
-            body.getScrollData()
-                .clamp(body.getScrollArea());
-        });
-        return ModularPanel.defaultPanel(TcdsTerminalFactory.PANEL_NAME, 400, 286)
-            .background(TerminalUiStyle.PANEL)
+        }), 224, 88, 160, 8, 0.6f, GtsrGuiPalette.TEXT_ACCENT).name("tcds_receipt")
+            .addTooltipLine(IKey.dynamicKey(() -> IKey.lang(session.receiptKey)))
+            .tooltipAutoUpdate(true));
+        // Both sides retain the same tree; narrow canvases expose the original canvas through native scrollbars.
+        return ModularPanel.defaultPanel(TcdsTerminalFactory.PANEL_NAME, 400, 240)
+            .background(TerminalUiStyle.HUB_PANEL)
             .child(
-                IKey.lang("gtsr.tcds_terminal.title")
-                    .asWidget()
-                    .name("tcds_title")
-                    .pos(12, 10)
-                    .size(376, 16)
-                    .color(GtsrGuiPalette.TEXT_TITLE))
-            .child(body);
+                TerminalViewport.wrapExact("tcds_body_viewport", content, 384, 232)
+                    .pos(8, 0)
+                    .widthRelOffset(1f, -16)
+                    .heightRelOffset(1f, -8));
+    }
+
+    private static boolean running(Session session) {
+        return session.snapshot != null
+            && (session.snapshot.airConsumption > 0 || session.snapshot.waterConsumption > 0);
+    }
+
+    private static String fuelFlow(TcdsTerminalData.Snapshot snapshot) {
+        if (snapshot.fuelKind == 3) return "gas " + GtsrNumFormat.grouped(snapshot.gasConsumption)
+            + " + liquid "
+            + GtsrNumFormat.grouped(snapshot.liquidConsumption);
+        if (snapshot.fuelKind == 1 || snapshot.fuelKind == 2)
+            return (snapshot.fuelKind == 1 ? "gas " : "liquid ") + GtsrNumFormat.grouped(snapshot.fuelConsumption);
+        return "0";
+    }
+
+    private static ParentWidget<?> line(IWidget child) {
+        return new ParentWidget<>().size(384, 11)
+            .child(child);
+    }
+
+    private static boolean familyActive(TcdsTerminalData.Snapshot snapshot, boolean gas) {
+        return snapshot != null && (snapshot.fuelKind == 3 || snapshot.fuelKind == (gas ? 1 : 2));
+    }
+
+    private static String actualFlow(TcdsTerminalData.Snapshot snapshot) {
+        if (snapshot.fuelKind == 0) return "0 L/t";
+        return fuelFlow(snapshot) + " = "
+            + GtsrNumFormat.grouped(familyFlow(snapshot, true) + familyFlow(snapshot, false))
+            + " L/t";
+    }
+
+    private static String outputFlow(TcdsTerminalData.Snapshot snapshot) {
+        if (snapshot.fuelKind == 0) return "0 L/t";
+        String terms = familyActive(snapshot, true) ? "gas " + GtsrNumFormat.grouped(familyTerm(snapshot, true)) : "";
+        if (familyActive(snapshot, false))
+            terms += (terms.isEmpty() ? "" : " + ") + "liquid " + GtsrNumFormat.grouped(familyTerm(snapshot, false));
+        return terms + " = " + GtsrNumFormat.grouped(snapshot.output) + " L/t";
+    }
+
+    private static TextWidget<?> header(String key, int y) {
+        return text(
+            IKey.dynamic(
+                () -> "§6§l" + IKey.lang(key)
+                    .getFormatted()),
+            0,
+            y,
+            384,
+            11,
+            0.7f,
+            GtsrGuiPalette.TEXT_ACCENT);
+    }
+
+    private static TextWidget<?> derivation(Session session, boolean gas, int y) {
+        String key = "gtsr.tcds_terminal.derive_" + (gas ? "gas" : "liquid");
+        return text(
+            IKey.dynamic(
+                () -> IKey.lang(key)
+                    .getFormatted() + " = "
+                    + (session.snapshot == null ? "—"
+                        : GtsrNumFormat.grouped(familyTerm(session.snapshot, gas)) + " L/t")),
+            12,
+            y,
+            372,
+            11,
+            0.6f,
+            GtsrGuiPalette.TEXT_MUTED).name(key)
+                .addTooltipLine(IKey.dynamic(() -> familyEquation(session.snapshot, gas)))
+                .tooltipAutoUpdate(true);
+    }
+
+    private static TextWidget<?> text(IKey key, int x, int y, int width, int height, float scale, int color) {
+        return IKey.dynamic(() -> clip(key.getFormatted(), (int) (width / scale)))
+            .asWidget()
+            .pos(x, y)
+            .size(width, height)
+            .scale(scale)
+            .textAlign(Alignment.CenterLeft)
+            .color(color)
+            .shadow(true);
+    }
+
+    private static String clip(String text, int width) {
+        return NetworkUtils.isDedicatedClient() ? clientClip(text, width) : text;
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static String clientClip(String text, int width) {
+        if (Minecraft.getMinecraft().fontRenderer.getStringWidth(text) <= width) return text;
+        return Minecraft.getMinecraft().fontRenderer.trimStringToWidth(text, Math.max(0, width - 9)) + "...";
     }
 
     private static String number(double value) {
@@ -196,21 +371,21 @@ public final class TcdsTerminalPanel {
             + " L/t";
     }
 
-    private static Flow row(String key, Session session, Function<TcdsTerminalData.Snapshot, String> value) {
-        return Flow.row()
-            .name(key)
-            .size(376, 14)
-            .childPadding(6)
+    private static ParentWidget<?> row(String key, Session session, Function<TcdsTerminalData.Snapshot, String> value,
+        int y, float scale, int valueColor) {
+        return new ParentWidget<>().name(key)
+            .pos(0, y)
+            .size(384, scale == 1f ? 12 : 11)
+            .child(text(IKey.lang(key), 0, 0, 138, scale == 1f ? 12 : 11, scale, GtsrGuiPalette.TEXT_LABEL))
             .child(
-                IKey.lang(key)
-                    .asWidget()
-                    .size(154, 14)
-                    .color(GtsrGuiPalette.TEXT_LABEL))
-            .child(
-                IKey.dynamic(() -> session.snapshot == null ? "—" : value.apply(session.snapshot))
-                    .asWidget()
-                    .size(216, 14)
-                    .color(GtsrGuiPalette.TEXT_BODY));
+                text(
+                    IKey.dynamic(() -> session.snapshot == null ? "—" : value.apply(session.snapshot)),
+                    142,
+                    0,
+                    242,
+                    scale == 1f ? 12 : 11,
+                    scale,
+                    valueColor));
     }
 
     /** Wire ids: 0 snapshot, 1 apply(seq,int), 2 result(seq,accepted,int). All keys are explicit. */

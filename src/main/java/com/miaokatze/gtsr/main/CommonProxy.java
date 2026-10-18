@@ -323,7 +323,6 @@ public class CommonProxy {
         GTSteamReborn.LOG.info("[3/3] 开始注册 GTSR 配方...");
         try {
             new GTSRRecipeLoader().run();
-            com.miaokatze.gtsr.common.critical.CriticalRuntime.registerRecipes();
             GTSteamReborn.LOG.info("[3/3] GTSR 配方注册完成。");
             // 注入蒸汽纠缠奇点到村庄/地牢/矿井/要塞箱子战利品（~2% 抽取概率，每次 1 个）
             LootInjectionRunawaySingularity.init();
@@ -369,6 +368,7 @@ public class CommonProxy {
      * 如果之前注册失败，可以在此处进行最后的补救尝试。
      */
     public void loadComplete(cpw.mods.fml.common.event.FMLLoadCompleteEvent event) {
+        GTSRRecipeLoader.registerCriticalRuntimeViews();
         // P12（L8）：装配进维一次性诊断行的内容段供给器 + 打一行 [GTSR][diag] boot 汇总
         // （降级三态/owner 快照/开关/roster/贴图）。纯观测：任何异常只 WARN，不影响加载链。
         try {

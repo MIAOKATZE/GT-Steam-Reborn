@@ -5,7 +5,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
@@ -74,6 +73,7 @@ import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.blocks.ItemMachines;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 
@@ -256,24 +256,22 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
                 .addElement(
                     'B',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEGearSteamCompressor.class)
-                                .anyOf(GearSteamCompressorHatchElement.PressureSteamInput)
-                                .casingIndex(BRONZE_CASING_INDEX)
-                                .hint(1),
-                            GearSteamCompressorHatchElement.PressureSteamInput),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEGearSteamCompressor.class)
-                                .anyOf(GearSteamCompressorHatchElement.CoolingHatch)
-                                .casingIndex(BRONZE_CASING_INDEX)
-                                .hint(2),
-                            GearSteamCompressorHatchElement.CoolingHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEGearSteamCompressor.class).anyOf(InputHatch, OutputHatch)
-                                .casingIndex(BRONZE_CASING_INDEX)
-                                .hint(3),
-                            InputHatch,
-                            OutputHatch),
+                        buildHatchAdder(MTEGearSteamCompressor.class)
+                            .atLeast(GearSteamCompressorHatchElement.PressureSteamInput)
+                            .casingIndex(BRONZE_CASING_INDEX)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTEGearSteamCompressor.class)
+                            .atLeast(GearSteamCompressorHatchElement.CoolingHatch)
+                            .casingIndex(BRONZE_CASING_INDEX)
+                            .hint(2)
+                            .build(),
+                        buildHatchAdder(MTEGearSteamCompressor.class).atLeast(InputHatch, OutputHatch)
+                            .hatchItemFilterAnd(
+                                t -> stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof MTESteamCoolingHatch))
+                            .casingIndex(BRONZE_CASING_INDEX)
+                            .hint(3)
+                            .build(),
                         onElementPass(
                             t -> t.mMechanicalCasingCount++,
                             onElementPass(
@@ -725,7 +723,7 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
             .addStructureInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.shared.bronze_steel_tier"))
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 99, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 20, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 18, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 30, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 12, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.reinforced_glass"), 10, false)

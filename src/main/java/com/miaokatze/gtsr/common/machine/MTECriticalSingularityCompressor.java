@@ -5,7 +5,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -565,30 +564,25 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
             .addElement(
                 'G',
                 ofChain(
-                    hatchWithCandidates(
-                        buildHatchAdder(MTECriticalSingularityCompressor.class)
-                            .atLeast(SingularityHatchElement.SteamInput)
-                            .casingIndex(casingIndex)
-                            .hint(1),
-                        SingularityHatchElement.SteamInput),
-                    hatchWithCandidates(
-                        buildHatchAdder(MTECriticalSingularityCompressor.class)
-                            .anyOf(SingularityHatchElement.SteamInputBus)
-                            .casingIndex(casingIndex)
-                            .hint(1),
-                        SingularityHatchElement.SteamInputBus),
-                    hatchWithCandidates(
-                        buildHatchAdder(MTECriticalSingularityCompressor.class)
-                            .atLeast(SingularityHatchElement.SteamOutputBus)
-                            .casingIndex(casingIndex)
-                            .hint(1),
-                        SingularityHatchElement.SteamOutputBus),
-                    hatchWithCandidates(
-                        buildHatchAdder(MTECriticalSingularityCompressor.class)
-                            .anyOf(SingularityHatchElement.SteamOutputHatch)
-                            .casingIndex(casingIndex)
-                            .hint(2),
-                        SingularityHatchElement.SteamOutputHatch),
+                    buildHatchAdder(MTECriticalSingularityCompressor.class).atLeast(SingularityHatchElement.SteamInput)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTECriticalSingularityCompressor.class)
+                        .atLeast(SingularityHatchElement.SteamInputBus)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTECriticalSingularityCompressor.class)
+                        .atLeast(SingularityHatchElement.SteamOutputBus)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTECriticalSingularityCompressor.class)
+                        .atLeast(SingularityHatchElement.SteamOutputHatch)
+                        .casingIndex(casingIndex)
+                        .hint(2)
+                        .build(),
                     onElementPass(t -> t.mCasingCount++, ofBlock(GregTechAPI.sBlockCasings8, 6))))
             .addElement('H', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockframes"), 70))
             .addElement('I', singularityLocator)
@@ -634,8 +628,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
             return;
         }
 
-        if ((mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty() && mDualInputHatches.isEmpty())
-            || mOutputBusses.isEmpty()) {
+        if ((mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty()) || mOutputBusses.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

@@ -4,7 +4,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -383,27 +382,23 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
                 .addElement(
                     'B',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.InputBus)
-                                .casingIndex(casingIndex)
-                                .hint(1),
-                            SiemensMartinHatchElement.InputBus),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTESiemensMartinFurnace.class).anyOf(SiemensMartinHatchElement.InputHatch)
-                                .casingIndex(casingIndex)
-                                .hint(1),
-                            SiemensMartinHatchElement.InputHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.OutputBus)
-                                .casingIndex(casingIndex)
-                                .hint(1),
-                            SiemensMartinHatchElement.OutputBus),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTESiemensMartinFurnace.class)
-                                .anyOf(SiemensMartinHatchElement.PressureSteamInput)
-                                .casingIndex(casingIndex)
-                                .hint(1),
-                            SiemensMartinHatchElement.PressureSteamInput),
+                        buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.InputBus)
+                            .casingIndex(casingIndex)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.InputHatch)
+                            .casingIndex(casingIndex)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.OutputBus)
+                            .casingIndex(casingIndex)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTESiemensMartinFurnace.class)
+                            .atLeast(SiemensMartinHatchElement.PressureSteamInput)
+                            .casingIndex(casingIndex)
+                            .hint(1)
+                            .build(),
                         onElementPass(t -> t.mMechanicalCasingCount++, ofBlock(GregTechAPI.sBlockCasings2, 0))))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
                 .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))

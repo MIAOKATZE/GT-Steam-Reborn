@@ -5,7 +5,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -453,23 +452,20 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
                 'A',
                 ofChain(
                     // 流体输入仓（含 ME 输入仓、耐压蒸汽输入仓），可选
-                    hatchWithCandidates(
-                        buildHatchAdder(MTECrustMatterAggregator.class).anyOf(SingularityHatchElement.SteamInput)
-                            .casingIndex(casingIndex)
-                            .hint(1),
-                        SingularityHatchElement.SteamInput),
+                    buildHatchAdder(MTECrustMatterAggregator.class).atLeast(SingularityHatchElement.SteamInput)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
                     // 物品输入总线 = 奇点燃料仓（蒸汽纠缠/临界蒸汽纠缠奇点），可选
-                    hatchWithCandidates(
-                        buildHatchAdder(MTECrustMatterAggregator.class).anyOf(SingularityHatchElement.SteamInputBus)
-                            .casingIndex(casingIndex)
-                            .hint(1),
-                        SingularityHatchElement.SteamInputBus),
+                    buildHatchAdder(MTECrustMatterAggregator.class).atLeast(SingularityHatchElement.SteamInputBus)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
                     // 输出总线 = 矿石输出（必填）
-                    hatchWithCandidates(
-                        buildHatchAdder(MTECrustMatterAggregator.class).atLeast(SingularityHatchElement.SteamOutputBus)
-                            .casingIndex(casingIndex)
-                            .hint(1),
-                        SingularityHatchElement.SteamOutputBus),
+                    buildHatchAdder(MTECrustMatterAggregator.class).atLeast(SingularityHatchElement.SteamOutputBus)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
                     onElementPass(
                         t -> t.mCasingCount++,
                         ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 0))))

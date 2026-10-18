@@ -1,7 +1,9 @@
 package com.miaokatze.gtsr.common.critical;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -26,6 +28,7 @@ public final class CriticalMaterials {
     private static final Map<String, MaterialBlock> PROXY = new LinkedHashMap<>();
     private static final Map<String, MaterialBlock> LOOM_STATIC = new LinkedHashMap<>();
     private static final Map<String, MaterialBlock> LOOM_PROXY = new LinkedHashMap<>();
+    private static final Set<String> CURRENT_LOOM_FORMS = new HashSet<>();
     private static JsonObject palette;
 
     private CriticalMaterials() {}
@@ -49,7 +52,9 @@ public final class CriticalMaterials {
                     .has(
                         row.get(4)
                             .getAsString());
-                loomForms.add(id + ':' + dynamic);
+                String form = id + ':' + dynamic;
+                loomForms.add(form);
+                if ("v2_loom".equals(slug)) CURRENT_LOOM_FORMS.add(form);
             }
         }
         for (Map.Entry<String, JsonElement> entry : palette.entrySet()) {
@@ -75,14 +80,21 @@ public final class CriticalMaterials {
                 MaterialBlock loom = new MaterialBlock(id, false, glass, animated, emissive, true);
                 LOOM_STATIC.put(id, loom);
                 GameRegistry.registerBlock(loom, MaterialItemBlock.class, "critical_loom_" + id);
+                addCurrentLoomItem(loom);
             }
             if (loomForms.contains(id + ":true")) {
                 MaterialBlock loomProxy = new MaterialBlock(id, true, glass, animated, emissive, true);
                 LOOM_PROXY.put(id, loomProxy);
                 GameRegistry.registerBlock(loomProxy, MaterialItemBlock.class, "critical_loom_proxy_" + id);
+                addCurrentLoomItem(loomProxy);
             }
         }
         CriticalControllerTextures.register();
+    }
+
+    private static void addCurrentLoomItem(MaterialBlock block) {
+        if (block.isCurrentLoomForm())
+            com.miaokatze.gtsr.register.CreativeTabManager.addItemToTab(new net.minecraft.item.ItemStack(block));
     }
 
     public static JsonObject properties(String alias) {
@@ -131,12 +143,12 @@ public final class CriticalMaterials {
             boolean loom) {
             super(transparent ? Material.glass : Material.iron);
             this.loom = loom;
-            if (loom) setCreativeTab(com.miaokatze.gtsr.register.CreativeTabManager.CREATIVE_TAB);
             this.materialId = id;
             this.proxy = proxy;
             this.transparent = transparent;
             this.animated = animated;
             this.emissive = emissive;
+            if (isCurrentLoomForm()) setCreativeTab(com.miaokatze.gtsr.register.CreativeTabManager.CREATIVE_TAB);
             JsonObject properties = properties(id);
             lightLevel = properties.has("lightValue") ? properties.get("lightValue")
                 .getAsInt() : 0;
@@ -151,6 +163,10 @@ public final class CriticalMaterials {
             // Native light is an immutable registered block property, never a texture-frame or machine-state update.
             setLightLevel(lightLevel / 15F);
             setBlockTextureName("gtsr:critical/" + id);
+        }
+
+        public boolean isCurrentLoomForm() {
+            return loom && CURRENT_LOOM_FORMS.contains(materialId + ':' + proxy);
         }
 
         @Override

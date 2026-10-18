@@ -6,7 +6,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElement
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.withChannel;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureChecks.require;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -101,11 +100,7 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
             .addElement(
                 'A',
                 ofChain(
-                    hatchWithCandidates(
-                        storageConstructionHatches(),
-                        WaterHubStorageElement.HubUnit,
-                        WaterHubStorageElement.ReinforcedHubUnit,
-                        WaterHubStorageElement.OverpressureUnit),
+                    storageConstructionHatches().build(),
                     onElementPass(
                         MTEWaterHubArray::onCasingAdded,
                         withChannel(
@@ -122,21 +117,11 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
             .addElement(
                 'C',
                 ofChain(
-                    hatchWithCandidates(
-                        buildHatchAdder(MTEWaterHubArray.class).anyOf(
-                            // S1：奇点仓两枚举必须在前——流体输入/输出仓分别继承 MTEWaterHubInputHatch/
-                            // MTEWaterHubOutputHatch，泛化 adder 的 instanceof 会误收子类（R4），
-                            // 枚举间 adder 按声明顺序短路，具体类先认领
-                            WaterHubHatchElement.SingularityFluidInputCompartment,
-                            WaterHubHatchElement.SingularityFluidOutputCompartment,
-                            WaterHubHatchElement.WaterOutput,
-                            WaterHubHatchElement.WaterInput)
-                            .casingIndex(CASING_INDEX)
-                            .hint(1),
-                        WaterHubHatchElement.SingularityFluidInputCompartment,
-                        WaterHubHatchElement.SingularityFluidOutputCompartment,
-                        WaterHubHatchElement.WaterOutput,
-                        WaterHubHatchElement.WaterInput),
+                    buildHatchAdder(MTEWaterHubArray.class)
+                        .atLeast(WaterHubHatchElement.WaterOutput, WaterHubHatchElement.WaterInput)
+                        .casingIndex(CASING_INDEX)
+                        .hint(1)
+                        .build(),
                     onElementPass(
                         MTEWaterHubArray::onCasingAdded,
                         withChannel(
@@ -229,12 +214,6 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
 
     private enum WaterHubHatchElement implements IHatchElement<MTEWaterHubArray> {
 
-        // S1：奇点仓两枚举（结构接纳，问题 2）；声明顺序 = anyOf adder 认领顺序（具体在前，
-        // 两仓分别是近亲输入/输出仓的子类，必须在泛化枚举之前认领）
-        SingularityFluidInputCompartment(MTEWaterHubArray::addSingularityFluidInputCompartmentToMachineList,
-            MTESingularityFluidInputCompartment.class),
-        SingularityFluidOutputCompartment(MTEWaterHubArray::addSingularityFluidOutputCompartmentToMachineList,
-            MTESingularityFluidOutputCompartment.class),
         WaterInput(MTEWaterHubArray::addWaterInputToMachineList, MTEWaterHubInputHatch.class),
         WaterOutput(MTEWaterHubArray::addWaterOutputToMachineList, MTEWaterHubOutputHatch.class);
 
@@ -250,6 +229,14 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         @Override
         public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
             return mteClasses;
+        }
+
+        @Override
+        public boolean matchesHatch(IMetaTileEntity mte) {
+            // 奇点仓可远程绑定，但不能作为枢纽结构的专用输入/输出仓。
+            if (mte instanceof MTESingularityFluidInputCompartment
+                || mte instanceof MTESingularityFluidOutputCompartment) return false;
+            return IHatchElement.super.matchesHatch(mte);
         }
 
         @Override
@@ -270,9 +257,7 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         @Override
         public long count(MTEWaterHubArray t) {
             if (this == WaterInput) return t.mWaterInputHatches.size();
-            if (this == WaterOutput) return t.mWaterOutputHatches.size();
-            if (this == SingularityFluidInputCompartment) return t.mSingularityFluidInputCompartmentCount;
-            return t.mSingularityFluidOutputCompartmentCount;
+            return t.mWaterOutputHatches.size();
         }
     }
 
@@ -321,10 +306,6 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
 
     private final ArrayList<MTEWaterHubInputHatch> mWaterInputHatches = new ArrayList<>();
     private final ArrayList<MTEWaterHubOutputHatch> mWaterOutputHatches = new ArrayList<>();
-
-    // S1：奇点仓结构接纳计数（仅结构组成提示用，不注入 mController、不参与传输——传输走终端绑定链）
-    private int mSingularityFluidInputCompartmentCount = 0;
-    private int mSingularityFluidOutputCompartmentCount = 0;
 
     public int mHubUnitCount = 0;
     public int mReinforcedHubUnitCount = 0;
@@ -437,8 +418,6 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         mCasingAmount = 0;
         mWaterInputHatches.clear();
         mWaterOutputHatches.clear();
-        mSingularityFluidInputCompartmentCount = 0;
-        mSingularityFluidOutputCompartmentCount = 0;
     }
 
     @Override
@@ -486,6 +465,7 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     public boolean addWaterInputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity instanceof MTESingularityFluidInputCompartment) return false;
         if (aMetaTileEntity instanceof MTEWaterHubInputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
             hatch.mController = this;
@@ -497,36 +477,11 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     public boolean addWaterOutputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity instanceof MTESingularityFluidOutputCompartment) return false;
         if (aMetaTileEntity instanceof MTEWaterHubOutputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
             hatch.mController = this;
             return mWaterOutputHatches.add(hatch);
-        }
-        return false;
-    }
-
-    // S1：奇点仓结构接纳（问题 2）——只计数与换装外壳材质，不注入 mController、不加入输入/输出运转列表
-    // （仓与枢纽的流体交互走终端绑定链 transferWithBoundNodes，与结构成员资格无关）
-    public boolean addSingularityFluidInputCompartmentToMachineList(IGregTechTileEntity aTileEntity,
-        int aBaseCasingIndex) {
-        if (aTileEntity == null) return false;
-        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity instanceof MTESingularityFluidInputCompartment hatch) {
-            hatch.updateTexture(aBaseCasingIndex);
-            mSingularityFluidInputCompartmentCount++;
-            return true;
-        }
-        return false;
-    }
-
-    public boolean addSingularityFluidOutputCompartmentToMachineList(IGregTechTileEntity aTileEntity,
-        int aBaseCasingIndex) {
-        if (aTileEntity == null) return false;
-        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity instanceof MTESingularityFluidOutputCompartment hatch) {
-            hatch.updateTexture(aBaseCasingIndex);
-            mSingularityFluidOutputCompartmentCount++;
-            return true;
         }
         return false;
     }
@@ -652,11 +607,6 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     @Override
     protected int getMechanicalCasingCount() {
         return mCasingAmount;
-    }
-
-    @Override
-    protected void restoreMechanicalCasingCount(int count) {
-        mCasingAmount = count;
     }
 
     @Override

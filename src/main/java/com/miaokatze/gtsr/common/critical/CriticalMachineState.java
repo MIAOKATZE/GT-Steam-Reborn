@@ -706,6 +706,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public boolean configure(EntityPlayer p, CriticalTier tier, CriticalMachineKind kind, int a, int b, int c) {
         if (worldObj.isRemote || !canUse(p) || state != 0) return false;
+        if (kind == null || !kind.isReleased()) return fail("该临界机型维护冻结，暂不可配置");
         if (host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt
             && gt.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine machine
             && machine.getPresetKind() != null
@@ -735,6 +736,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public boolean startConstruction(EntityPlayer p) {
         if (worldObj.isRemote || !canUse(p) || state != 0) return false;
+        if (!config.kind.isReleased()) return fail("该临界机型维护冻结，暂不可施工");
         // An explicit build request also resumes a controller stopped while its loom was incomplete.
         setEnabled(p, true);
         if (!ensureConstructionWindow(Collections.emptyList(), 0, 0)) {
@@ -1385,6 +1387,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         blocksChangedThisTick = lightsChangedThisTick = 0;
         blockBudgetStarted = 0;
         if (worldObj == null || worldObj.isRemote) return;
+        CriticalEnergyRuntime.idleTick(this);
         // The formed manual loom is the sole ticket owner, including when idle or soft-mallet paused.
         if (isLoomGeometryValid()) chunkLoading.ensureAllStructureChunks(worldObj, host, loomChunks());
         else {
@@ -1410,6 +1413,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         }
         if (!isEnabled()) {
             fail("已暂停");
+            return;
+        }
+        // Keep saved journals and dismantling available without advancing frozen machines.
+        if ((state == 1 || state == 2 || state == 4) && !config.kind.isReleased()) {
+            data().releaseNight(structureId);
+            fail("该临界机型维护冻结，可保留或拆除已有结构");
             return;
         }
         if (nativeFundingUncertain) {
@@ -2307,8 +2316,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private void runBatch() {
         // A pre-upgrade batch already paid its inputs. Settle its persisted outputs and energy
         // through the original journal before allowing the new energy backend to start a batch.
-        if (batchId.isEmpty()
-            && (config.kind == CriticalMachineKind.SOLAR || config.kind == CriticalMachineKind.TURBINE)) {
+        if (batchId.isEmpty() && (config.kind == CriticalMachineKind.SOLAR || config.kind == CriticalMachineKind.TURBINE
+            || config.kind == CriticalMachineKind.BATTERY)) {
             CriticalEnergyRuntime.tick(this, gtMachine());
             return;
         }
@@ -2321,7 +2330,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             FluidStack[] fluids = gtMachine() == null ? new FluidStack[0]
                 : gtMachine().criticalPhysicalFluidsSnapshot();
             RecipeMatch match;
-            if (config.kind == CriticalMachineKind.PROCESSING || config.kind == CriticalMachineKind.ASSEMBLY)
+            if (config.kind == CriticalMachineKind.SUN) match = CriticalGTRecipes.matchFusion(this, gtMachine());
+            else if (config.kind == CriticalMachineKind.PROCESSING || config.kind == CriticalMachineKind.ASSEMBLY)
                 match = CriticalGTRecipes.match(this, gtMachine());
             else {
                 match = CriticalRecipes.match(config, inputs, fluids);
@@ -2473,7 +2483,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     private boolean nativeProduction() {
         return gtMachine() != null
-            && (config.kind == CriticalMachineKind.PROCESSING || config.kind == CriticalMachineKind.ASSEMBLY);
+            && (config.kind == CriticalMachineKind.PROCESSING || config.kind == CriticalMachineKind.ASSEMBLY
+                || config.kind == CriticalMachineKind.SUN);
     }
 
     private CriticalEnergyPorts.OutputPlan nativeOutputs(ItemStack[] items, FluidStack[] fluids) {
