@@ -5,7 +5,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -255,15 +254,13 @@ public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTERei
                 .addElement(
                     'A',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEReinforcedBrickBlastFurnace.class)
-                                .atLeast(
-                                    ReinforcedBrickBlastFurnaceHatchElement.InputBus,
-                                    ReinforcedBrickBlastFurnaceHatchElement.OutputBus)
-                                .casingIndex(casingIndex)
-                                .hint(1),
-                            ReinforcedBrickBlastFurnaceHatchElement.InputBus,
-                            ReinforcedBrickBlastFurnaceHatchElement.OutputBus),
+                        buildHatchAdder(MTEReinforcedBrickBlastFurnace.class)
+                            .atLeast(
+                                ReinforcedBrickBlastFurnaceHatchElement.InputBus,
+                                ReinforcedBrickBlastFurnaceHatchElement.OutputBus)
+                            .casingIndex(casingIndex)
+                            .hint(1)
+                            .build(),
                         onElementPass(t -> t.mMechanicalCasingCount++, ofBlock(GregTechAPI.sBlockCasings2, 0))))
                 .addElement('B', ofBlock(GregTechAPI.sBlockCasings3, 14))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings4, 15))

@@ -5,7 +5,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -533,28 +532,22 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
             .addElement(
                 'A',
                 ofChain(
-                    hatchWithCandidates(
-                        buildHatchAdder(MTESteamSingularityEntangler.class).atLeast(SingularityHatchElement.SteamInput)
-                            .casingIndex(casingIndex)
-                            .hint(1),
-                        SingularityHatchElement.SteamInput),
-                    hatchWithCandidates(
-                        buildHatchAdder(MTESteamSingularityEntangler.class).anyOf(SingularityHatchElement.SteamInputBus)
-                            .casingIndex(casingIndex)
-                            .hint(1),
-                        SingularityHatchElement.SteamInputBus),
-                    hatchWithCandidates(
-                        buildHatchAdder(MTESteamSingularityEntangler.class)
-                            .atLeast(SingularityHatchElement.SteamOutputBus)
-                            .casingIndex(casingIndex)
-                            .hint(1),
-                        SingularityHatchElement.SteamOutputBus),
-                    hatchWithCandidates(
-                        buildHatchAdder(MTESteamSingularityEntangler.class)
-                            .anyOf(SingularityHatchElement.SteamOutputHatch)
-                            .casingIndex(casingIndex)
-                            .hint(2),
-                        SingularityHatchElement.SteamOutputHatch),
+                    buildHatchAdder(MTESteamSingularityEntangler.class).atLeast(SingularityHatchElement.SteamInput)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTESteamSingularityEntangler.class).anyOf(SingularityHatchElement.SteamInputBus)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTESteamSingularityEntangler.class).atLeast(SingularityHatchElement.SteamOutputBus)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTESteamSingularityEntangler.class).anyOf(SingularityHatchElement.SteamOutputHatch)
+                        .casingIndex(casingIndex)
+                        .hint(2)
+                        .build(),
                     onElementPass(
                         t -> t.mCasingCount++,
                         ofBlocksTiered(

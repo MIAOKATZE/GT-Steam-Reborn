@@ -8,7 +8,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
@@ -200,25 +199,20 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                 .addElement(
                     'B',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(PressureSteamInputHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1)
-                                .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty()),
-                            PressureSteamInputHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(InputHatch, OutputHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            InputHatch,
-                            OutputHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEAtmosphericCentrifuge.class)
-                                .anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            SteamCoolingHatch,
-                            PressureSteamCoolingHatch),
+                        buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(PressureSteamInputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
+                            .build(),
+                        buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(InputHatch, OutputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTEAtmosphericCentrifuge.class)
+                            .anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
                         onElementPass(
                             t -> t.mMechanicalCasingCount++,
                             onElementPass(

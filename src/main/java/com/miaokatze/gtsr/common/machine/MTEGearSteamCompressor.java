@@ -5,7 +5,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
@@ -256,24 +255,20 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
                 .addElement(
                     'B',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEGearSteamCompressor.class)
-                                .anyOf(GearSteamCompressorHatchElement.PressureSteamInput)
-                                .casingIndex(BRONZE_CASING_INDEX)
-                                .hint(1),
-                            GearSteamCompressorHatchElement.PressureSteamInput),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEGearSteamCompressor.class)
-                                .anyOf(GearSteamCompressorHatchElement.CoolingHatch)
-                                .casingIndex(BRONZE_CASING_INDEX)
-                                .hint(2),
-                            GearSteamCompressorHatchElement.CoolingHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEGearSteamCompressor.class).anyOf(InputHatch, OutputHatch)
-                                .casingIndex(BRONZE_CASING_INDEX)
-                                .hint(3),
-                            InputHatch,
-                            OutputHatch),
+                        buildHatchAdder(MTEGearSteamCompressor.class)
+                            .anyOf(GearSteamCompressorHatchElement.PressureSteamInput)
+                            .casingIndex(BRONZE_CASING_INDEX)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTEGearSteamCompressor.class)
+                            .anyOf(GearSteamCompressorHatchElement.CoolingHatch)
+                            .casingIndex(BRONZE_CASING_INDEX)
+                            .hint(2)
+                            .build(),
+                        buildHatchAdder(MTEGearSteamCompressor.class).anyOf(InputHatch, OutputHatch)
+                            .casingIndex(BRONZE_CASING_INDEX)
+                            .hint(3)
+                            .build(),
                         onElementPass(
                             t -> t.mMechanicalCasingCount++,
                             onElementPass(

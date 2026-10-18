@@ -8,7 +8,6 @@ import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteam
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -249,24 +248,19 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
                 .addElement(
                     'B',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTECrustSteamBorer.class).atLeast(PressureSteamInputHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1)
-                                .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty()),
-                            PressureSteamInputHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTECrustSteamBorer.class).atLeast(SteamOutputBus)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            SteamOutputBus),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTECrustSteamBorer.class)
-                                .anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            SteamCoolingHatch,
-                            PressureSteamCoolingHatch),
+                        buildHatchAdder(MTECrustSteamBorer.class).atLeast(PressureSteamInputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
+                            .build(),
+                        buildHatchAdder(MTECrustSteamBorer.class).atLeast(SteamOutputBus)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTECrustSteamBorer.class).anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
                         onElementPass(
                             t -> t.mMechanicalCasingCount++,
                             onElementPass(

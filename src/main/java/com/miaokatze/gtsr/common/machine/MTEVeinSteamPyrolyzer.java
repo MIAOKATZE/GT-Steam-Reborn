@@ -7,7 +7,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -218,24 +217,19 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
                 .addElement(
                     'B',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEVeinSteamPyrolyzer.class).atLeast(PressureSteamInputHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1)
-                                .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty()),
-                            PressureSteamInputHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEVeinSteamPyrolyzer.class).anyOf(GTSRHatchElement.SteamOutputBus)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            GTSRHatchElement.SteamOutputBus),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEVeinSteamPyrolyzer.class)
-                                .anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            SteamCoolingHatch,
-                            PressureSteamCoolingHatch),
+                        buildHatchAdder(MTEVeinSteamPyrolyzer.class).atLeast(PressureSteamInputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
+                            .build(),
+                        buildHatchAdder(MTEVeinSteamPyrolyzer.class).anyOf(GTSRHatchElement.SteamOutputBus)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTEVeinSteamPyrolyzer.class).anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
                         onElementPass(
                             t -> t.mMechanicalCasingCount++,
                             onElementPass(

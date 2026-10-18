@@ -25,7 +25,6 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.cluster.MTEBasicLogisticsUnitNativeGui;
-import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -223,20 +222,16 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     @SuppressWarnings({ "rawtypes", "unchecked" })
     protected IStructureElement tieredCasingElement() {
         return ofChain(
-            GTSRStructureUtility.hatchWithCandidates(
-                buildHatchAdder(MTEBasicLogisticsUnit.class).anyOf(InputBus, OutputBus, InputHatch, OutputHatch)
-                    .descriptions(
-                        () -> Arrays.asList(
-                            "gtsr.structure.cluster.logistics.input_bus",
-                            "gtsr.structure.cluster.logistics.output_bus",
-                            "gtsr.structure.cluster.logistics.input_hatch",
-                            "gtsr.structure.cluster.logistics.output_hatch"))
-                    .casingIndex(HATCH_CASING_INDEX)
-                    .hint(1),
-                InputBus,
-                OutputBus,
-                InputHatch,
-                OutputHatch),
+            buildHatchAdder(MTEBasicLogisticsUnit.class).anyOf(InputBus, OutputBus, InputHatch, OutputHatch)
+                .descriptions(
+                    () -> Arrays.asList(
+                        "gtsr.structure.cluster.logistics.input_bus",
+                        "gtsr.structure.cluster.logistics.output_bus",
+                        "gtsr.structure.cluster.logistics.input_hatch",
+                        "gtsr.structure.cluster.logistics.output_hatch"))
+                .casingIndex(HATCH_CASING_INDEX)
+                .hint(1)
+                .build(),
             super.tieredCasingElement());
     }
 

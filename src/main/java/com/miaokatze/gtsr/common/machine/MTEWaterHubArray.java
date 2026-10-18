@@ -6,7 +6,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElement
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.withChannel;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureChecks.require;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -101,11 +100,7 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
             .addElement(
                 'A',
                 ofChain(
-                    hatchWithCandidates(
-                        storageConstructionHatches(),
-                        WaterHubStorageElement.HubUnit,
-                        WaterHubStorageElement.ReinforcedHubUnit,
-                        WaterHubStorageElement.OverpressureUnit),
+                    storageConstructionHatches().build(),
                     onElementPass(
                         MTEWaterHubArray::onCasingAdded,
                         withChannel(
@@ -122,21 +117,17 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
             .addElement(
                 'C',
                 ofChain(
-                    hatchWithCandidates(
-                        buildHatchAdder(MTEWaterHubArray.class).anyOf(
-                            // S1：奇点仓两枚举必须在前——流体输入/输出仓分别继承 MTEWaterHubInputHatch/
-                            // MTEWaterHubOutputHatch，泛化 adder 的 instanceof 会误收子类（R4），
-                            // 枚举间 adder 按声明顺序短路，具体类先认领
-                            WaterHubHatchElement.SingularityFluidInputCompartment,
-                            WaterHubHatchElement.SingularityFluidOutputCompartment,
-                            WaterHubHatchElement.WaterOutput,
-                            WaterHubHatchElement.WaterInput)
-                            .casingIndex(CASING_INDEX)
-                            .hint(1),
+                    buildHatchAdder(MTEWaterHubArray.class).anyOf(
+                        // S1：奇点仓两枚举必须在前——流体输入/输出仓分别继承 MTEWaterHubInputHatch/
+                        // MTEWaterHubOutputHatch，泛化 adder 的 instanceof 会误收子类（R4），
+                        // 枚举间 adder 按声明顺序短路，具体类先认领
                         WaterHubHatchElement.SingularityFluidInputCompartment,
                         WaterHubHatchElement.SingularityFluidOutputCompartment,
                         WaterHubHatchElement.WaterOutput,
-                        WaterHubHatchElement.WaterInput),
+                        WaterHubHatchElement.WaterInput)
+                        .casingIndex(CASING_INDEX)
+                        .hint(1)
+                        .build(),
                     onElementPass(
                         MTEWaterHubArray::onCasingAdded,
                         withChannel(

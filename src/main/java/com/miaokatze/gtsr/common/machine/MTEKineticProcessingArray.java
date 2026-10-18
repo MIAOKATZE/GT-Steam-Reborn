@@ -8,7 +8,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.withChann
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hasMinimumCasings;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.Energy;
 import static gregtech.api.enums.HatchElement.InputHatch;
@@ -283,25 +282,17 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                 .addElement(
                     'B',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEKineticProcessingArray.class)
-                                .anyOf(KineticProcessingArrayHatchElement.PressureSteamInput)
-                                .casingIndex(SOLID_STEEL_CASING_INDEX)
-                                .hint(2),
-                            KineticProcessingArrayHatchElement.PressureSteamInput),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEKineticProcessingArray.class)
-                                .anyOf(KineticProcessingArrayHatchElement.PressureSteamCooling)
-                                .casingIndex(SOLID_STEEL_CASING_INDEX)
-                                .hint(3),
-                            KineticProcessingArrayHatchElement.PressureSteamCooling),
-                        hatchWithCandidates(
-                            ioConstructionHatches(),
-                            SteamInputBus,
-                            InputHatch,
-                            SteamOutputBus,
-                            OutputHatch,
-                            Energy),
+                        buildHatchAdder(MTEKineticProcessingArray.class)
+                            .anyOf(KineticProcessingArrayHatchElement.PressureSteamInput)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .hint(2)
+                            .build(),
+                        buildHatchAdder(MTEKineticProcessingArray.class)
+                            .anyOf(KineticProcessingArrayHatchElement.PressureSteamCooling)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .hint(3)
+                            .build(),
+                        ioConstructionHatches().build(),
                         onElementPass(
                             MTEKineticProcessingArray::onCasingAdded,
                             withChannel(

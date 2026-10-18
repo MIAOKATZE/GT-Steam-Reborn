@@ -9,7 +9,6 @@ import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteam
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -221,25 +220,19 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                 .addElement(
                     'B',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTELargeSteamFurnace.class).atLeast(PressureSteamInputHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1)
-                                .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty()),
-                            PressureSteamInputHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTELargeSteamFurnace.class).atLeast(SteamInputBus, SteamOutputBus)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            SteamInputBus,
-                            SteamOutputBus),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTELargeSteamFurnace.class)
-                                .anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            SteamCoolingHatch,
-                            PressureSteamCoolingHatch),
+                        buildHatchAdder(MTELargeSteamFurnace.class).atLeast(PressureSteamInputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
+                            .build(),
+                        buildHatchAdder(MTELargeSteamFurnace.class).atLeast(SteamInputBus, SteamOutputBus)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTELargeSteamFurnace.class).anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
                         onElementPass(
                             t -> t.mMechanicalCasingCount++,
                             onElementPass(

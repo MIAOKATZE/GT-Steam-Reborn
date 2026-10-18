@@ -5,7 +5,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.Maintenance;
 import static gregtech.api.enums.HatchElement.Muffler;
@@ -406,15 +405,11 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
                 .addElement(
                     'A',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEThermoChemicalDenseSteamGenerator.class)
-                                .anyOf(Maintenance, Muffler, TcdsHatchElement.FluidInput, OutputHatch)
-                                .casingIndex(casingIndex)
-                                .hint(1),
-                            Maintenance,
-                            Muffler,
-                            TcdsHatchElement.FluidInput,
-                            OutputHatch),
+                        buildHatchAdder(MTEThermoChemicalDenseSteamGenerator.class)
+                            .anyOf(Maintenance, Muffler, TcdsHatchElement.FluidInput, OutputHatch)
+                            .casingIndex(casingIndex)
+                            .hint(1)
+                            .build(),
                         onElementPass(t -> t.mCasingCount++, ofBlock(GregTechAPI.sBlockCasings4, 1))))
                 // 'B' 不锈钢框架：gt.blockframes meta 306
                 .addElement('B', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockframes"), 306))

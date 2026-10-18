@@ -8,7 +8,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -307,27 +306,23 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                 .addElement(
                     'B',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTESingularityDrillingHub.class).atLeast(PressureSteamInputHatch)
-                                .casingIndex(casingIndex)
-                                .hint(1)
-                                .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty()),
-                            PressureSteamInputHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTESingularityDrillingHub.class).atLeast(SteamOutputBus)
-                                .casingIndex(casingIndex)
-                                .hint(1),
-                            SteamOutputBus),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTESingularityDrillingHub.class).atLeast(OutputHatch)
-                                .casingIndex(casingIndex)
-                                .hint(1),
-                            OutputHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTESingularityDrillingHub.class).anyOf(SteamCoolingHatch)
-                                .casingIndex(casingIndex)
-                                .hint(2),
-                            SteamCoolingHatch),
+                        buildHatchAdder(MTESingularityDrillingHub.class).atLeast(PressureSteamInputHatch)
+                            .casingIndex(casingIndex)
+                            .hint(1)
+                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
+                            .build(),
+                        buildHatchAdder(MTESingularityDrillingHub.class).atLeast(SteamOutputBus)
+                            .casingIndex(casingIndex)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTESingularityDrillingHub.class).atLeast(OutputHatch)
+                            .casingIndex(casingIndex)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTESingularityDrillingHub.class).anyOf(SteamCoolingHatch)
+                            .casingIndex(casingIndex)
+                            .hint(2)
+                            .build(),
                         onElementPass(
                             t -> t.mMechanicalCasingCount++,
                             onElementPass(

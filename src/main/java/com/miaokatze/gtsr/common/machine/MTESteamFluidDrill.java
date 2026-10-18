@@ -7,7 +7,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -217,24 +216,19 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
                 .addElement(
                     'B',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTESteamFluidDrill.class).atLeast(PressureSteamInputHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1)
-                                .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty()),
-                            PressureSteamInputHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTESteamFluidDrill.class).atLeast(OutputHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            OutputHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTESteamFluidDrill.class)
-                                .anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            SteamCoolingHatch,
-                            PressureSteamCoolingHatch),
+                        buildHatchAdder(MTESteamFluidDrill.class).atLeast(PressureSteamInputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
+                            .build(),
+                        buildHatchAdder(MTESteamFluidDrill.class).atLeast(OutputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTESteamFluidDrill.class).anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
                         onElementPass(
                             t -> t.mMechanicalCasingCount++,
                             onElementPass(

@@ -12,7 +12,6 @@ import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
-import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.IIconContainer;
@@ -84,12 +83,11 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private IStructureElement energyHatchElement() {
-        return GTSRStructureUtility.hatchWithCandidates(
-            buildHatchAdder(this.getClass()).anyOf(Energy)
-                .descriptions(() -> Collections.singletonList("gtsr.structure.cluster.processing.energy"))
-                .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10))
-                .hint(1),
-            Energy);
+        return buildHatchAdder(this.getClass()).anyOf(Energy)
+            .descriptions(() -> Collections.singletonList("gtsr.structure.cluster.processing.energy"))
+            .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10))
+            .hint(1)
+            .build();
     }
 
     /**

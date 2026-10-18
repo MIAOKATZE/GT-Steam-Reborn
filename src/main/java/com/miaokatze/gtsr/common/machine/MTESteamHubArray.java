@@ -6,7 +6,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElement
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.withChannel;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureChecks.require;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -106,11 +105,7 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
             .addElement(
                 'A',
                 ofChain(
-                    hatchWithCandidates(
-                        storageConstructionHatches(),
-                        SteamHubStorageElement.PressureUnit,
-                        SteamHubStorageElement.ReinforcedUnit,
-                        SteamHubStorageElement.OverpressureUnit),
+                    storageConstructionHatches().build(),
                     onElementPass(
                         MTESteamHubArray::onCasingAdded,
                         withChannel(
@@ -127,20 +122,16 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
             .addElement(
                 'C',
                 ofChain(
-                    hatchWithCandidates(
-                        buildHatchAdder(MTESteamHubArray.class).anyOf(
-                            // S1：奇点仓两枚举在前——更具体的 adder 先认领，防止后续泛化 adder 的
-                            // instanceof 误收（枚举间 adder 按声明顺序短路）
-                            SteamHubHatchElement.SingularitySteamCompartment,
-                            SteamHubHatchElement.SingularitySteamOutputCompartment,
-                            SteamHubHatchElement.SteamInput,
-                            SteamHubHatchElement.SteamOutput)
-                            .casingIndex(CASING_INDEX)
-                            .hint(1),
+                    buildHatchAdder(MTESteamHubArray.class).anyOf(
+                        // S1：奇点仓两枚举在前——更具体的 adder 先认领，防止后续泛化 adder 的
+                        // instanceof 误收（枚举间 adder 按声明顺序短路）
                         SteamHubHatchElement.SingularitySteamCompartment,
                         SteamHubHatchElement.SingularitySteamOutputCompartment,
                         SteamHubHatchElement.SteamInput,
-                        SteamHubHatchElement.SteamOutput),
+                        SteamHubHatchElement.SteamOutput)
+                        .casingIndex(CASING_INDEX)
+                        .hint(1)
+                        .build(),
                     onElementPass(
                         MTESteamHubArray::onCasingAdded,
                         withChannel(

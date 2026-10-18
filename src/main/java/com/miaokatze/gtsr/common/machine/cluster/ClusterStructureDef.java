@@ -489,19 +489,16 @@ public final class ClusterStructureDef {
      */
     private static IStructureElement<MTESteamMineralLogisticsCluster> casingOrControllerInputSlot() {
         return ofChain(
-            GTSRStructureUtility.hatchWithCandidates(
-                buildHatchAdder(MTESteamMineralLogisticsCluster.class)
-                    .anyOf(InputHatch, SteamInputHatch, PressureSteamInputHatch)
-                    .adder(ClusterStructureDef::addControllerInputHatch)
-                    .descriptions(
-                        () -> Arrays.asList(
-                            "gtsr.structure.cluster.controller.input_hatch",
-                            "gtsr.structure.cluster.controller.steam_hatches"))
-                    .casingIndex(BRONZE_CASING_TEXTURE_ID)
-                    .hint(1),
-                InputHatch,
-                SteamInputHatch,
-                PressureSteamInputHatch),
+            buildHatchAdder(MTESteamMineralLogisticsCluster.class)
+                .anyOf(InputHatch, SteamInputHatch, PressureSteamInputHatch)
+                .adder(ClusterStructureDef::addControllerInputHatch)
+                .descriptions(
+                    () -> Arrays.asList(
+                        "gtsr.structure.cluster.controller.input_hatch",
+                        "gtsr.structure.cluster.controller.steam_hatches"))
+                .casingIndex(BRONZE_CASING_TEXTURE_ID)
+                .hint(1)
+                .build(),
             onElementPass(
                 MTESteamMineralLogisticsCluster::onCasingAdded,
                 ofBlocksTiered(

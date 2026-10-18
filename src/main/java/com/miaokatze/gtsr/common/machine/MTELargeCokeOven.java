@@ -5,7 +5,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -290,18 +289,15 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
             .addElement(
                 'B',
                 ofChain(
-                    hatchWithCandidates(
-                        buildHatchAdder(MTELargeCokeOven.class)
-                            .atLeast(CokeOvenHatchElement.InputBus, CokeOvenHatchElement.OutputBus)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1),
-                        CokeOvenHatchElement.InputBus,
-                        CokeOvenHatchElement.OutputBus),
-                    hatchWithCandidates(
-                        buildHatchAdder(MTELargeCokeOven.class).anyOf(OutputHatch)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1),
-                        OutputHatch),
+                    buildHatchAdder(MTELargeCokeOven.class)
+                        .atLeast(CokeOvenHatchElement.InputBus, CokeOvenHatchElement.OutputBus)
+                        .casingIndex(bronzeCasingIndex)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTELargeCokeOven.class).anyOf(OutputHatch)
+                        .casingIndex(bronzeCasingIndex)
+                        .hint(1)
+                        .build(),
                     onElementPass(
                         t -> t.mMechanicalCasingCount++,
                         ofBlocksTiered(

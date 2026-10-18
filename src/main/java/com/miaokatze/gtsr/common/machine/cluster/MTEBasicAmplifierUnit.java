@@ -14,7 +14,6 @@ import net.minecraftforge.fluids.FluidStack;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
-import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 
 import bartworks.system.material.Werkstoff;
 import bartworks.system.material.WerkstoffLoader;
@@ -87,12 +86,11 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     @SuppressWarnings({ "rawtypes", "unchecked" })
     protected IStructureElement tieredCasingElement() {
         return StructureUtility.ofChain(
-            GTSRStructureUtility.hatchWithCandidates(
-                buildHatchAdder(MTEBasicAmplifierUnit.class).anyOf(InputHatch)
-                    .descriptions(() -> Collections.singletonList("gtsr.structure.cluster.amplifier.input_hatch"))
-                    .casingIndex(HATCH_HINT_CASING_INDEX)
-                    .hint(1),
-                InputHatch),
+            buildHatchAdder(MTEBasicAmplifierUnit.class).anyOf(InputHatch)
+                .descriptions(() -> Collections.singletonList("gtsr.structure.cluster.amplifier.input_hatch"))
+                .casingIndex(HATCH_HINT_CASING_INDEX)
+                .hint(1)
+                .build(),
             super.tieredCasingElement());
     }
 

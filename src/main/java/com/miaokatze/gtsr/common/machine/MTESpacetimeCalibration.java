@@ -5,7 +5,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -121,11 +120,10 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
                 .addElement(
                     'C',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTESpacetimeCalibration.class).anyOf(UtilityHatchElement.Utility)
-                                .casingIndex(6)
-                                .hint(1),
-                            UtilityHatchElement.Utility),
+                        buildHatchAdder(MTESpacetimeCalibration.class).anyOf(UtilityHatchElement.Utility)
+                            .casingIndex(6)
+                            .hint(1)
+                            .build(),
                         onElementPass(t -> t.mCasingCount++, ofBlock(GregTechAPI.sBlockCasings1, 6))))
                 .addElement('Q', ofBlock(GregTechAPI.sBlockCasings1, 15))
                 .addElement(

@@ -6,7 +6,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
@@ -382,27 +381,23 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
                 .addElement(
                     'A',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(InputHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            InputHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTELargeGeothermalSteamBoiler.class)
-                                .anyOf(GeothermalSteamOutputHatchElement.SteamOutput)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            GeothermalSteamOutputHatchElement.SteamOutput),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTELargeGeothermalSteamBoiler.class).anyOf(OutputHatch)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            OutputHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTELargeGeothermalSteamBoiler.class).anyOf(SteamOutputBus)
-                                .casingIndex(bronzeCasingIndex)
-                                .hint(1),
-                            SteamOutputBus),
+                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(InputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class)
+                            .anyOf(GeothermalSteamOutputHatchElement.SteamOutput)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).anyOf(OutputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).anyOf(SteamOutputBus)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
                         onElementPass(
                             t -> t.mMechanicalCasingCount++,
                             onElementPass(

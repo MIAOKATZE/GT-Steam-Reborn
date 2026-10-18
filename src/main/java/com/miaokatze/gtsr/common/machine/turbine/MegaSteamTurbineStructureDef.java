@@ -6,7 +6,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElement
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.withChannel;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hatchWithCandidates;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -108,41 +107,34 @@ public final class MegaSteamTurbineStructureDef {
                 .addElement(
                     'B',
                     ofChain(
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                                .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.PressureSteamInput)
-                                .casingIndex(SOLID_STEEL_CASING_INDEX)
-                                .hint(1),
-                            MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.PressureSteamInput),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                                .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.OverpressureInput)
-                                .casingIndex(SOLID_STEEL_CASING_INDEX)
-                                .hint(1),
-                            MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.OverpressureInput),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                                .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.CoolingHatch)
-                                .casingIndex(SOLID_STEEL_CASING_INDEX)
-                                .hint(2),
-                            MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.CoolingHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEMegaSteamTurbineArray.class).anyOf(InputHatch, OutputHatch)
-                                .casingIndex(SOLID_STEEL_CASING_INDEX)
-                                .hint(1),
-                            InputHatch,
-                            OutputHatch),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEMegaSteamTurbineArray.class).anyOf(SteamInputBus)
-                                .casingIndex(SOLID_STEEL_CASING_INDEX)
-                                .hint(1),
-                            SteamInputBus),
-                        hatchWithCandidates(
-                            buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                                .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.DynamoOutput)
-                                .casingIndex(SOLID_STEEL_CASING_INDEX)
-                                .hint(1),
-                            MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.DynamoOutput),
+                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                            .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.PressureSteamInput)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                            .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.OverpressureInput)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                            .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.CoolingHatch)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .hint(2)
+                            .build(),
+                        buildHatchAdder(MTEMegaSteamTurbineArray.class).anyOf(InputHatch, OutputHatch)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTEMegaSteamTurbineArray.class).anyOf(SteamInputBus)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                            .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.DynamoOutput)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .hint(1)
+                            .build(),
                         onElementPass(
                             MTEMegaSteamTurbineArray::onCasingAdded,
                             withChannel(
