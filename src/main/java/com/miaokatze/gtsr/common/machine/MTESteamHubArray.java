@@ -122,13 +122,8 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
             .addElement(
                 'C',
                 ofChain(
-                    buildHatchAdder(MTESteamHubArray.class).atLeast(
-                        // S1：奇点仓两枚举在前——更具体的 adder 先认领，防止后续泛化 adder 的
-                        // instanceof 误收（枚举间 adder 按声明顺序短路）
-                        SteamHubHatchElement.SingularitySteamCompartment,
-                        SteamHubHatchElement.SingularitySteamOutputCompartment,
-                        SteamHubHatchElement.SteamInput,
-                        SteamHubHatchElement.SteamOutput)
+                    buildHatchAdder(MTESteamHubArray.class)
+                        .atLeast(SteamHubHatchElement.SteamInput, SteamHubHatchElement.SteamOutput)
                         .casingIndex(CASING_INDEX)
                         .hint(1)
                         .build(),
@@ -245,11 +240,6 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
 
     private enum SteamHubHatchElement implements IHatchElement<MTESteamHubArray> {
 
-        // S1：奇点仓两枚举（结构接纳，问题 2）；声明顺序 = anyOf adder 认领顺序（具体在前）
-        SingularitySteamCompartment(MTESteamHubArray::addSingularitySteamCompartmentToMachineList,
-            MTESingularitySteamCompartment.class),
-        SingularitySteamOutputCompartment(MTESteamHubArray::addSingularitySteamOutputCompartmentToMachineList,
-            MTESingularitySteamOutputCompartment.class),
         SteamInput(MTESteamHubArray::addSteamInputToMachineList, MTESteamHubInputHatch.class),
         SteamOutput(MTESteamHubArray::addSteamOutputToMachineList, MTESteamHubOutputHatch.class);
 
@@ -269,8 +259,10 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
 
         @Override
         public boolean matchesHatch(IMetaTileEntity mte) {
-            if ((this == SteamInput || this == SteamOutput) && (mte instanceof MTESingularitySteamCompartment
-                || mte instanceof MTESingularitySteamOutputCompartment)) return false;
+            // 奇点仓可远程绑定，但不能作为枢纽结构的专用输入/输出仓。
+            if (mte instanceof MTESingularitySteamCompartment || mte instanceof MTESingularitySteamOutputCompartment) {
+                return false;
+            }
             return IHatchElement.super.matchesHatch(mte);
         }
 
@@ -292,9 +284,7 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         @Override
         public long count(MTESteamHubArray t) {
             if (this == SteamInput) return t.mSteamInputHatches.size();
-            if (this == SteamOutput) return t.mSteamOutputHatches.size();
-            if (this == SingularitySteamCompartment) return t.mSingularitySteamCompartmentCount;
-            return t.mSingularitySteamOutputCompartmentCount;
+            return t.mSteamOutputHatches.size();
         }
     }
 
@@ -343,10 +333,6 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
 
     private final ArrayList<MTESteamHubInputHatch> mSteamInputHatches = new ArrayList<>();
     private final ArrayList<MTESteamHubOutputHatch> mSteamOutputHatches = new ArrayList<>();
-
-    // S1：奇点仓结构接纳计数（仅结构组成提示用，不注入 mController、不参与传输——传输走终端绑定链）
-    private int mSingularitySteamCompartmentCount = 0;
-    private int mSingularitySteamOutputCompartmentCount = 0;
 
     public int mPressureUnitCount = 0;
     public int mReinforcedUnitCount = 0;
@@ -462,8 +448,6 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         mGearTier = -1;
         mSteamInputHatches.clear();
         mSteamOutputHatches.clear();
-        mSingularitySteamCompartmentCount = 0;
-        mSingularitySteamOutputCompartmentCount = 0;
     }
 
     @Override
@@ -513,6 +497,7 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
     public boolean addSteamInputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity instanceof MTESingularitySteamCompartment) return false;
         if (aMetaTileEntity instanceof MTESteamHubInputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
             hatch.mController = this;
@@ -524,35 +509,11 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
     public boolean addSteamOutputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity instanceof MTESingularitySteamOutputCompartment) return false;
         if (aMetaTileEntity instanceof MTESteamHubOutputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
             hatch.mController = this;
             return mSteamOutputHatches.add(hatch);
-        }
-        return false;
-    }
-
-    // S1：奇点仓结构接纳（问题 2）——只计数与换装外壳材质，不注入 mController、不加入输入/输出运转列表
-    // （仓与枢纽的流体交互走终端绑定链 transferWithBoundNodes，与结构成员资格无关）
-    public boolean addSingularitySteamCompartmentToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
-        if (aTileEntity == null) return false;
-        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity instanceof MTESingularitySteamCompartment hatch) {
-            hatch.updateTexture(aBaseCasingIndex);
-            mSingularitySteamCompartmentCount++;
-            return true;
-        }
-        return false;
-    }
-
-    public boolean addSingularitySteamOutputCompartmentToMachineList(IGregTechTileEntity aTileEntity,
-        int aBaseCasingIndex) {
-        if (aTileEntity == null) return false;
-        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity instanceof MTESingularitySteamOutputCompartment hatch) {
-            hatch.updateTexture(aBaseCasingIndex);
-            mSingularitySteamOutputCompartmentCount++;
-            return true;
         }
         return false;
     }
