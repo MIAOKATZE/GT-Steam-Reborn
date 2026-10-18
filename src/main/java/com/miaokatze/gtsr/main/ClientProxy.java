@@ -8,6 +8,7 @@ import net.minecraftforge.common.MinecraftForge;
 import com.miaokatze.gtsr.client.HubBindClientHandler;
 import com.miaokatze.gtsr.client.gui.terminal.GuiAggregatorConfigScreen;
 import com.miaokatze.gtsr.client.travel.SpacetimeClient;
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.fx.GTSRFXEngine;
 import com.miaokatze.gtsr.common.gui.terminal.ContainerAggregatorConfig;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
@@ -68,6 +69,12 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void postInit(FMLPostInitializationEvent event) {
         super.postInit(event);
+
+        // Keep all legacy MTE IDs registered, while hiding the five frozen controllers from NEI.
+        for (GTSRItemList frozen : new GTSRItemList[] { GTSRItemList.CriticalProcessing, GTSRItemList.CriticalEntangler,
+            GTSRItemList.CriticalDimension, GTSRItemList.CriticalAssembly, GTSRItemList.CriticalAccelerator }) {
+            codechicken.nei.api.API.hideItem(frozen.get(1));
+        }
 
         GTSteamReborn.LOG.info("[3/3] 客户端后初始化完成。");
     }

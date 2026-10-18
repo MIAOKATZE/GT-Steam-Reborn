@@ -35,6 +35,11 @@ public class GTSRRecipeLoader implements Runnable {
         }
     }
 
+    /** Snapshot native work recipes only after every mod has finished postInit. */
+    public static void registerCriticalRuntimeViews() {
+        safeRegister("CriticalMachines", CriticalMachineRecipes::register);
+    }
+
     @Override
     public void run() {
         // 【Bug2 加固】全部注册调用经 safeRegister 独立 try-catch，单方法失败不再拖垮其余配方
@@ -76,7 +81,6 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("ProsperityIndustrial", ProsperityIndustrialRecipes::registerAll);
         safeRegister("AbyssalObsession", AbyssalObsessionRecipes::register);
         safeRegister("SpacetimeEngineering", SpacetimeMachineRecipes::register);
-        safeRegister("CriticalMachines", CriticalMachineRecipes::register);
         com.miaokatze.gtsr.loader.recipes.PortableWeaponRecipes.register();
     }
 }

@@ -34,6 +34,37 @@ public final class CriticalEnergyRuntime {
 
     private CriticalEnergyRuntime() {}
 
+    /** Called even while paused/invalid, since a stopped generator also loses efficiency. */
+    public static void idleTick(CriticalMachineState state) {
+        if (!adaptive(state)) return;
+        NBTTagCompound data = state.energyRuntimeData();
+        long now = state.worldObj.getTotalWorldTime();
+        if (data.hasKey("lastIdleTick") && data.getLong("lastIdleTick") == now) return;
+        data.setLong("lastIdleTick", now);
+        if (data.hasKey("lastWorkTick") && data.getLong("lastWorkTick") == now - 1) {
+            if (data.getInteger("idleTicks") != 0) {
+                data.setInteger("idleTicks", 0);
+                state.markDirty();
+            }
+            return;
+        }
+        int idle = data.getInteger("idleTicks") + 1;
+        if (idle >= CYCLE_TICKS) {
+            data.setInteger(
+                "efficiency",
+                CriticalEnergyMath.efficiency(
+                    CriticalEnergyMath.efficiency(data.getInteger("efficiency")) - CriticalEnergyMath.EFFICIENCY_STEP));
+            idle = 0;
+        }
+        data.setInteger("idleTicks", idle);
+        state.markDirty();
+    }
+
+    private static boolean adaptive(CriticalMachineState state) {
+        return state.getMachineKind() == CriticalMachineKind.TURBINE
+            || state.getMachineKind() == CriticalMachineKind.BATTERY;
+    }
+
     public static FluidStack steam(int mode) {
         return switch (Math.floorMod(mode, 6)) {
             case 1 -> GTModHandler.getSuperHeatedSteam(1);
@@ -82,11 +113,15 @@ public final class CriticalEnergyRuntime {
             return;
         }
         if (!data.getBoolean("funded")) {
-            if (!(solar ? startSolar(state, host, data) : startTurbine(state, host, data))) return;
+            boolean started = solar ? startSolar(state, host, data)
+                : state.getMachineKind() == CriticalMachineKind.BATTERY ? startChemical(state, host, data)
+                    : startTurbine(state, host, data);
+            if (!started) return;
         }
         int progress = data.getInteger("progress");
         if (progress < CYCLE_TICKS) {
             data.setInteger("progress", ++progress);
+            data.setLong("lastWorkTick", state.worldObj.getTotalWorldTime());
             state.setRuntimeBatch(progress, CYCLE_TICKS, 0, "工作 " + progress + "/" + CYCLE_TICKS);
             state.markDirty();
             if (progress < CYCLE_TICKS) return;
@@ -111,6 +146,7 @@ public final class CriticalEnergyRuntime {
                     throw new IllegalStateException("Wireless increment rejected");
             }
             data.setInteger("waterRemainder", data.getInteger("nextWaterRemainder"));
+            data.setInteger("generationRemainder", data.getInteger("nextGenerationRemainder"));
             data.setBoolean("funded", false);
             data.setBoolean("uncertain", false);
             data.setInteger("progress", 0);
@@ -141,7 +177,7 @@ public final class CriticalEnergyRuntime {
             if (volumes[i].signum() > 0) debits.addAll(CriticalEnergyPorts.take(snapshot, type, volumes[i]));
         }
         CriticalEnergyMath.TurbineBatch batch = CriticalEnergyMath.turbine(volumes, data.getInteger("waterRemainder"));
-        if (batch.eu.signum() == 0) {
+        if (batch.rawHeat.signum() == 0) {
             state.setRuntimeBatch(0, 0, 0, "没有完整可执行批次");
             return false;
         }
@@ -157,7 +193,46 @@ public final class CriticalEnergyRuntime {
             return false;
         }
         data.setString("owner", owner.toString());
-        return fund(state, data, debits, outputs, NO_ITEMS, batch.eu, batch.remainder);
+        return fundAdaptive(state, data, debits, outputs, batch.rawHeat, batch.remainder);
+    }
+
+    private static boolean startChemical(CriticalMachineState state, MTECriticalMachine host, NBTTagCompound data) {
+        List<CriticalEnergyPorts.Input> snapshot = CriticalEnergyPorts.snapshot(host);
+        List<CriticalEnergyPorts.Debit> debits = new ArrayList<>();
+        BigInteger heat = BigInteger.ZERO;
+        for (CriticalGTRecipes.ChemicalFuel fuel : CriticalGTRecipes.chemicalFuels()) {
+            BigInteger amount = CriticalEnergyPorts.total(snapshot, fuel.fluid);
+            if (amount.signum() <= 0) continue;
+            debits.addAll(CriticalEnergyPorts.take(snapshot, fuel.fluid, amount));
+            heat = heat.add(
+                amount.multiply(fuel.euPerL)
+                    .multiply(BigInteger.valueOf(2)));
+        }
+        if (heat.signum() == 0) {
+            state.setRuntimeBatch(0, 0, 0, "没有可用化学燃料");
+            return false;
+        }
+        UUID owner = WirelessNetworkManager.processInitialSettings(host.getBaseMetaTileEntity());
+        if (owner == null) return state.fail("无线网络缺少控制器owner身份");
+        data.setString("owner", owner.toString());
+        return fundAdaptive(state, data, debits, new ArrayList<>(), heat, data.getInteger("waterRemainder"));
+    }
+
+    private static boolean fundAdaptive(CriticalMachineState state, NBTTagCompound data,
+        List<CriticalEnergyPorts.Debit> debits, List<FluidAmount> outputs, BigInteger heat, int waterRemainder) {
+        int efficiency = CriticalEnergyMath
+            .trendEfficiency(data.getInteger("efficiency"), number(data, "lastRawHeat"), heat);
+        // Common unit is half-EU; keep even fractional efficiency EU across batches (denominator 200).
+        BigInteger[] energy = heat.multiply(BigInteger.valueOf(efficiency))
+            .add(BigInteger.valueOf(data.getInteger("generationRemainder")))
+            .divideAndRemainder(BigInteger.valueOf(200));
+        if (!fund(state, data, debits, outputs, NO_ITEMS, energy[0], waterRemainder)) return false;
+        data.setInteger("nextGenerationRemainder", energy[1].intValue());
+        data.setInteger("efficiency", efficiency);
+        data.setInteger("idleTicks", 0);
+        data.setString("lastRawHeat", heat.toString());
+        state.markDirty();
+        return true;
     }
 
     private static boolean startSolar(CriticalMachineState state, MTECriticalMachine host, NBTTagCompound data) {

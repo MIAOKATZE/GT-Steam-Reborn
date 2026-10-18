@@ -1,8 +1,11 @@
 package com.miaokatze.gtsr.common.critical;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
@@ -11,7 +14,9 @@ import com.miaokatze.gtsr.common.critical.recipe.RecipeMatch;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
 import gregtech.api.recipe.RecipeMap;
+import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.util.GTRecipe;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.OverclockCalculator;
 import gregtech.api.util.ParallelHelper;
 
@@ -23,6 +28,82 @@ import gregtech.api.util.ParallelHelper;
 public final class CriticalGTRecipes {
 
     private CriticalGTRecipes() {}
+
+    public static final class ChemicalFuel {
+
+        public final FluidStack fluid;
+        public final BigInteger euPerL;
+
+        private ChemicalFuel(FluidStack fluid, BigInteger euPerL) {
+            this.fluid = fluid.copy();
+            this.fluid.amount = 1;
+            this.euPerL = euPerL;
+        }
+    }
+
+    /** Same maps, fuel-container decoding and rocket bonus as GT205's UCFE, without its promoter. */
+    public static List<ChemicalFuel> chemicalFuels() {
+        Map<GTUtility.FluidId, ChemicalFuel> fuels = new LinkedHashMap<>();
+        addChemicalFuels(fuels, RecipeMaps.dieselFuels, 1);
+        addChemicalFuels(fuels, RecipeMaps.gasTurbineFuels, 1);
+        addChemicalFuels(fuels, RecipeMaps.rocketFuels, 3);
+        return new ArrayList<>(fuels.values());
+    }
+
+    private static void addChemicalFuels(Map<GTUtility.FluidId, ChemicalFuel> fuels, RecipeMap<?> map, int bonus) {
+        for (GTRecipe recipe : map.getAllRecipes()) {
+            if (!recipe.mEnabled || recipe.mFakeRecipe || recipe.mSpecialValue <= 0) continue;
+            FluidStack fluid = recipe.mInputs != null && recipe.mInputs.length > 0
+                ? GTUtility.getFluidForFilledItem(recipe.mInputs[0], true)
+                : recipe.mFluidInputs != null && recipe.mFluidInputs.length > 0 ? recipe.mFluidInputs[0] : null;
+            if (fluid != null) fuels.putIfAbsent(
+                GTUtility.FluidId.create(fluid),
+                new ChemicalFuel(
+                    fluid,
+                    BigInteger.valueOf(recipe.mSpecialValue)
+                        .multiply(BigInteger.valueOf(bonus))));
+        }
+    }
+
+    /** All native fusion recipes, with no startup/tier gate and no processing-mode EU discount. */
+    public static RecipeMatch matchFusion(CriticalMachineState state, MTECriticalMachine host) {
+        if (host == null) return null;
+        ItemStack[] items = host.criticalRecipeItemsSnapshot();
+        FluidStack[] fluids = concat(host.criticalPhysicalFluidsSnapshot(), host.criticalMEFluidsSnapshot());
+        for (GTRecipe recipe : RecipeMaps.fusionRecipes.getAllRecipes()) {
+            if (!recipe.mEnabled || recipe.mFakeRecipe || recipe.mEUt < 0) continue;
+            ParallelHelper limit = helper(
+                recipe,
+                copies(items),
+                copies(fluids),
+                CriticalEnergyMath.FUSION_PARALLEL,
+                Long.MAX_VALUE,
+                false,
+                false);
+            int low = 0, high = limit.getCurrentParallel();
+            while (low < high) {
+                int middle = low + (high - low + 1) / 2;
+                if (fits(state, recipe, middle)) low = middle;
+                else high = middle - 1;
+            }
+            if (low == 0) continue;
+            ItemStack[] remainingItems = copies(items);
+            FluidStack[] remainingFluids = copies(fluids);
+            ParallelHelper execution = helper(recipe, remainingItems, remainingFluids, low, Long.MAX_VALUE, true, true);
+            int parallel = execution.getCurrentParallel();
+            if (parallel <= 0) continue;
+            return new RecipeMatch(
+                "native_fusion",
+                itemDelta(items, remainingItems),
+                fluidDelta(fluids, remainingFluids),
+                copies(execution.getItemOutputs()),
+                copies(execution.getFluidOutputs()),
+                CriticalEnergyMath.CYCLE_TICKS,
+                (long) recipe.mEUt * parallel,
+                0);
+        }
+        return null;
+    }
 
     // ParallelHelper always reads IVoidable's output-count limits, even when its own void
     // protection is disabled. Capacity is reserved jointly through CriticalEnergyPorts below;

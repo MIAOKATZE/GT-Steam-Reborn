@@ -111,6 +111,7 @@ public final class TestLabCriticalTask implements TestLabTask {
 
     @Override
     public void start(WorldServer world, int x, int y, int z) throws Exception {
+        if (!loomOnly && (!kind.isReleased() || !implemented())) return;
         TestLabFixtures.attach(world);
         tile = TestLabFixtures.machine(world, x + 80, y + 4, z + 80, CriticalRuntime.getLoomMetaId());
         machine = (MTECriticalMachine) tile.getMetaTileEntity();
@@ -144,6 +145,9 @@ public final class TestLabCriticalTask implements TestLabTask {
 
     @Override
     public TestLabReport.Result tick(WorldServer world, int elapsedTicks) throws Exception {
+        if (!loomOnly && !kind.isReleased()) return result(TestLabReport.Status.UNSUPPORTED, "该临界种类处于维护冻结，未施工");
+        if (!loomOnly && !implemented())
+            return result(TestLabReport.Status.UNSUPPORTED, "本真实施工测试尚无该种类的专用生产fixture，未施工；不代表生产后端未实现");
         switch (phase) {
             case LOOM:
                 if (!loom.buildTick()) return null;
@@ -178,7 +182,6 @@ public final class TestLabCriticalTask implements TestLabTask {
                 if (!pairedMain(world)) return result(TestLabReport.Status.FAIL, "自然施工未生成同账本的目标控制器");
                 if (loomOnly)
                     return result(TestLabReport.Status.PASS, "织机施工功能：真实手搭织机→正常净空/施工journal→目标SUN结构校验完成；未声明SUN生产通过");
-                if (!implemented()) return result(TestLabReport.Status.UNSUPPORTED, "生产功能尚无专用可执行后端；真实织机、自然施工和目标结构已验证");
                 phase = Phase.PREPARE;
                 return null;
             case PREPARE:
@@ -213,9 +216,7 @@ public final class TestLabCriticalTask implements TestLabTask {
     }
 
     private boolean implemented() {
-        return kind == CriticalMachineKind.PROCESSING || kind == CriticalMachineKind.ASSEMBLY
-            || kind == CriticalMachineKind.SOLAR
-            || kind == CriticalMachineKind.TURBINE;
+        return kind == CriticalMachineKind.SOLAR || kind == CriticalMachineKind.TURBINE;
     }
 
     private TestLabReport.Result prepare(WorldServer world) throws Exception {
@@ -251,7 +252,8 @@ public final class TestLabCriticalTask implements TestLabTask {
                 return result(TestLabReport.Status.BLOCKED, "测试UUID已加入其他无线团队，拒绝触碰其账户");
             WirelessNetworkManager.strongCheckOrAddUser(TestLabFixtures.OWNER);
             wirelessBefore = WirelessNetworkManager.getUserEU(TestLabFixtures.OWNER);
-            expectedWireless = BigInteger.valueOf(suppliedFluid * 16);
+            expectedWireless = BigInteger.valueOf(suppliedFluid)
+                .divide(BigInteger.valueOf(2));
             consumedFluid = suppliedFluid;
             expectedFluid = suppliedFluid / 160;
         }

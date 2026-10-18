@@ -1,7 +1,6 @@
 package com.miaokatze.gtsr.common.gui;
 
 import java.util.Arrays;
-import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -17,7 +16,6 @@ import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.utils.serialization.ByteBufAdapters;
-import com.cleanroommc.modularui.value.StringValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
@@ -32,16 +30,11 @@ import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.PagedWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
-import com.cleanroommc.modularui.widgets.menu.DropdownWidget;
-import com.cleanroommc.modularui.widgets.menu.Menu;
 import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
-import com.miaokatze.gtsr.common.critical.CriticalProcessingModes;
 import com.miaokatze.gtsr.common.critical.CriticalTier;
-import com.miaokatze.gtsr.common.critical.recipe.CriticalRecipes;
-import com.miaokatze.gtsr.common.critical.recipe.RecipeMatch;
 import com.miaokatze.gtsr.common.gui.mui2.TerminalViewport;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
@@ -55,20 +48,19 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
 
     private final CriticalMachineState state;
     private EntityPlayer viewer;
-    private IntSyncValue tier, kind, parallel, speed, economy, status, reason, stage, job, total, batch, duration;
+    private IntSyncValue tier, kind, geometry, parallel, speed, economy, status, reason, stage, job, total, batch,
+        duration;
     private LongSyncValue energy, capacity, euPerTick, constructionElapsed, constructionDuration;
     private IntSyncValue constructionRound, constructionRounds, roundElapsed, roundDuration;
     private GenericListSyncHandler<ItemStack> constructionCosts, nextConstructionCosts, missingConstructionCosts;
     private GenericListSyncHandler<FluidStack> stageConstructionFluids, nextConstructionFluids,
         missingConstructionFluids;
     private BooleanSyncValue enabled, permitted, loomValid, roundFunded;
-    private StringSyncValue selectedMode;
     private IntSyncValue steamMode;
     private StringSyncValue detail, inputOverview, outputOverview, actionName, actionDetail, jobProgressText;
     private BooleanSyncValue actionAccepted;
     private String lastAction = "", lastActionDetail = "";
     private boolean lastActionAccepted;
-    private int recipePreview;
     private int selectedPage;
 
     public MTECriticalMachineTerminalGui(MTECriticalMachine multiblock) {
@@ -120,6 +112,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             "kind",
             () -> state.getKind()
                 .ordinal());
+        geometry = integer(manager, "geometry", state::getGeometryVersion);
         parallel = integer(manager, "parallel", state::getParallelPlugins);
         speed = integer(manager, "speed", state::getSpeedPlugins);
         economy = integer(manager, "economy", state::getEfficiencyPlugins);
@@ -151,8 +144,6 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         permitted = new BooleanSyncValue(() -> state.canUse(viewer));
         detail = new StringSyncValue(state::getStatus);
         steamMode = integer(manager, "steamMode", state::getSteamMode);
-        selectedMode = new StringSyncValue(() -> CriticalProcessingModes.selected(state));
-        manager.syncValue("critical.selectedMode", selectedMode);
         manager.syncValue("critical.constructionElapsed", constructionElapsed);
         manager.syncValue("critical.constructionDuration", constructionDuration);
         manager.syncValue("critical.nextConstructionCosts", nextConstructionCosts);
@@ -534,17 +525,19 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 .tooltipBuilder(t -> t.add(IKey.lang(key("configuration_hint")))));
         ListWidget<IWidget, ?> rules = new ListWidget<>().name("critical_configuration_rules")
             .pos(8, 60)
-            .size(447, 54)
+            .size(447, 90)
             .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
-        constructionLine(
-            rules,
-            () -> configuration().kind == CriticalMachineKind.PROCESSING
-                || configuration().kind == CriticalMachineKind.ASSEMBLY
-                    ? tr("mode") + ": " + CriticalProcessingModes.display(selectedMode.getValue())
-                    : tr("functional.rules"));
+        for (String section : new String[] { "input", "cycle", "parallel", "energy", "efficiency", "output" }) {
+            constructionLine(rules, () -> operationLine(section));
+        }
+        constructionLine(rules, () -> {
+            CriticalMachineKind current = configuration().kind;
+            if (current == CriticalMachineKind.BATTERY || current == CriticalMachineKind.TURBINE)
+                return tr("operation.trend") + " " + tr("operation.idle");
+            return tr(current == CriticalMachineKind.SOLAR ? "operation.solar.night" : "tooltip.unobtainable");
+        });
         constructionLine(rules, () -> tr("functional.decorative"));
         page.child(rules);
-        page.child(processingModeDropdown(manager));
         page.child(
             action(manager, "steam_mode", state::selectSteamMode)
                 .overlay(
@@ -558,93 +551,13 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 .background(CriticalGuiStyle.BUTTON)
                 .hoverBackground(CriticalGuiStyle.HOVER)
                 .overlay(
-                    IKey.lang(key("recipes"))
+                    IKey.lang(key("operation.details"))
                         .color(CriticalGuiStyle.TEXT_CONTROL))
                 .pos(8, 158)
                 .size(112, 20)
-                .onMousePressed(button -> {
-                    if (button != 0) return false;
-                    recipePreview++;
-                    return true;
-                })
-                .tooltipBuilder(t -> {
-                    t.add(IKey.lang(key("configuration_hint")));
-                    recipeTooltip(t);
-                })
+                .tooltipBuilder(this::operationTooltip)
                 .tooltipAutoUpdate(true));
         return page;
-    }
-
-    private IWidget processingModeDropdown(PanelSyncManager manager) {
-        java.util.Set<String> modes = new java.util.LinkedHashSet<>(
-            CriticalProcessingModes.list(CriticalMachineKind.PROCESSING));
-        modes.addAll(CriticalProcessingModes.list(CriticalMachineKind.ASSEMBLY));
-        java.util.Map<String, InteractionSyncHandler> commands = new java.util.LinkedHashMap<>();
-        for (String mode : modes) commands.put(mode, interaction(manager, "mode.select." + mode, player -> {
-            if (state.getBatchDuration() != 0 || !state.getBatchId()
-                .isEmpty()) return false;
-            return state.selectProcessingMode(player, mode);
-        }));
-        // The dropdown has a local value only. Each option sends its existing guarded server
-        // command; selectedMode remains authoritative S2C telemetry, including after rejection.
-        DropdownWidget<String, ?> dropdown = new IndustrialModeDropdown().name("critical_processing_modes")
-            .background(CriticalGuiStyle.BUTTON)
-            .hoverBackground(CriticalGuiStyle.HOVER)
-            .value(new StringValue.Dynamic(selectedMode::getValue, mode -> {
-                InteractionSyncHandler command = commands.get(mode);
-                if (command != null) command.onMousePressed(0);
-            }))
-            .options(CriticalProcessingModes.list(configuration().kind))
-            .optionToWidget(
-                (mode, selected) -> IKey
-                    .dynamic(() -> CriticalProcessingModes.display(selected ? selectedMode.getValue() : mode))
-                    .color(
-                        () -> mode.equals(selectedMode.getValue()) || selected ? CriticalGuiStyle.TEXT_ACCENT
-                            : CriticalGuiStyle.TEXT_CONTROL)
-                    .asWidget()
-                    .margin(8, 8, 5, 5)
-                    .tooltipBuilder(
-                        t -> t.add(CriticalProcessingModes.display(selected ? selectedMode.getValue() : mode)))
-                    .tooltipAutoUpdate(true))
-            .tooltipBuilder(t -> t.add(CriticalProcessingModes.display(selectedMode.getValue())))
-            .tooltipAutoUpdate(true)
-            .maxVerticalMenuSize(132)
-            .pos(8, 122)
-            .size(447, 24)
-            .setEnabledIf(
-                w -> permitted.getValue() && batch.getValue() == 0
-                    && duration.getValue() == 0
-                    && (status.getValue() == 0 || status.getValue() == 2)
-                    && (configuration().kind == CriticalMachineKind.PROCESSING
-                        || configuration().kind == CriticalMachineKind.ASSEMBLY));
-        kind.changeListener(() -> {
-            dropdown.clearOptions()
-                .options(CriticalProcessingModes.list(configuration().kind));
-            dropdown.deleteMenu();
-        });
-        return dropdown;
-    }
-
-    private static final class IndustrialModeDropdown extends DropdownWidget<String, IndustrialModeDropdown> {
-
-        private IndustrialModeDropdown() {
-            super("criticalProcessingModes", String.class);
-        }
-
-        @Override
-        protected Menu<?> createMenu() {
-            Menu<?> menu = super.createMenu();
-            menu.background(CriticalGuiStyle.CARD);
-            for (IWidget list : menu.getChildren()) {
-                for (IWidget option : list.getChildren()) {
-                    if (option instanceof ButtonWidget<?>button) {
-                        button.background(CriticalGuiStyle.BUTTON)
-                            .hoverBackground(CriticalGuiStyle.HOVER);
-                    }
-                }
-            }
-            return menu;
-        }
     }
 
     private boolean editable() {
@@ -663,8 +576,11 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             list,
             () -> tr(loomValid.getValue() ? "loom.ready" : "loom.incomplete"),
             () -> loomValid.getValue() ? CriticalGuiStyle.STATE_ONLINE : CriticalGuiStyle.STATE_OFFLINE);
-        for (String suffix : new String[] { "loom.dimensions", "loom.hatches", "loom.orientation", "loom.area",
-            "loom.supply", "loom.clock" }) constructionLine(list, () -> tr(suffix));
+        constructionLine(list, () -> tr(geometry.getValue() == 2 ? "v2.loom" : "loom.dimensions"));
+        constructionLine(list, () -> tr(geometry.getValue() == 2 ? "v2.loom_ports" : "loom.hatches"));
+        constructionLine(list, () -> tr(geometry.getValue() == 2 ? "v2.loom_controller" : "loom.orientation"));
+        constructionLine(list, () -> tr(geometry.getValue() == 2 ? "v2.region" : "loom.area"));
+        for (String suffix : new String[] { "loom.supply", "loom.clock" }) constructionLine(list, () -> tr(suffix));
         constructionLine(
             list,
             () -> tr("construction") + " " + stage.getValue() + " · " + job.getValue() + " / " + total.getValue());
@@ -774,9 +690,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         CriticalConfiguration cfg = state.getConfiguration();
         CriticalTier nextTier = field == 0 ? CriticalTier.byId((cfg.tier.ordinal() + 1) % CriticalTier.values().length)
             : cfg.tier;
-        CriticalMachineKind nextKind = field == 1
-            ? CriticalMachineKind.byId((cfg.kind.ordinal() + 1) % CriticalMachineKind.values().length)
-            : cfg.kind;
+        CriticalMachineKind nextKind = field == 1 ? cfg.kind.nextReleased() : cfg.kind;
         return state.configure(
             player,
             nextTier,
@@ -892,33 +806,26 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         tooltip.add(tr("cost_hint"));
     }
 
-    private void recipeTooltip(com.cleanroommc.modularui.screen.RichTooltip tooltip) {
-        if (configuration().kind == CriticalMachineKind.PROCESSING
-            || configuration().kind == CriticalMachineKind.ASSEMBLY) {
-            tooltip.add(CriticalProcessingModes.display(selectedMode.getValue()));
-            tooltip.add(tr("functional.native_recipes"));
-            tooltip.add(tr("functional.rules"));
+    private void operationTooltip(com.cleanroommc.modularui.screen.RichTooltip tooltip) {
+        CriticalMachineKind current = configuration().kind;
+        if (!current.isReleased()) {
+            tooltip.add(tr("tooltip.frozen"));
             return;
         }
-        List<RecipeMatch> recipes = CriticalRecipes.list(configuration());
-        if (recipes.isEmpty()) return;
-        int index = Math.floorMod(recipePreview, recipes.size());
-        RecipeMatch recipe = recipes.get(index);
-        tooltip.add(tr("recipes") + " " + (index + 1) + " / " + recipes.size());
-        tooltip.add(tr("input"));
-        appendRecipeStacks(tooltip, recipe.itemInputs, recipe.fluidInputs);
-        tooltip.add(tr("output"));
-        appendRecipeStacks(tooltip, recipe.itemOutputs, recipe.fluidOutputs);
-        tooltip.add(recipe.euPerTick + " EU/t · " + recipe.durationTicks + " t");
-        if (recipe.generatedEu > 0) tooltip.add(tr("generated") + " " + recipe.generatedEu + " EU");
-        tooltip.add(tr("recipe_hint"));
+        for (String section : new String[] { "input", "cycle", "parallel", "energy", "efficiency", "output" }) {
+            tooltip.add(operationLine(section));
+        }
+        if (current == CriticalMachineKind.BATTERY || current == CriticalMachineKind.TURBINE) {
+            tooltip.add(tr("operation.trend"));
+            tooltip.add(tr("operation.idle"));
+        }
+        if (current == CriticalMachineKind.SOLAR) tooltip.add(tr("operation.solar.night"));
     }
 
-    private static void appendRecipeStacks(com.cleanroommc.modularui.screen.RichTooltip tooltip, ItemStack[] items,
-        FluidStack[] fluids) {
-        for (ItemStack stack : items) tooltip.add(stack.getDisplayName() + " × " + stack.stackSize);
-        for (FluidStack fluid : fluids) tooltip.add(fluid.getLocalizedName() + " × " + fluid.amount + " mB");
-        if (items.length == 0 && fluids.length == 0) tooltip.add("—");
+    private String operationLine(String section) {
+        CriticalMachineKind current = configuration().kind;
+        if (!current.isReleased()) return "input".equals(section) ? tr("tooltip.frozen") : "";
+        return tr("operation." + current.key + "." + section);
     }
 
     private static String key(String suffix) {

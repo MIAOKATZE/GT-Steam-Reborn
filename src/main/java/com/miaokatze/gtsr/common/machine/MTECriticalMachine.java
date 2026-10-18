@@ -956,15 +956,17 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     @Override
     public RecipeMap<?> getRecipeMap() {
-        if (presetKind == CriticalMachineKind.PROCESSING || presetKind == CriticalMachineKind.ASSEMBLY) {
-            String mode = com.miaokatze.gtsr.common.critical.CriticalProcessingModes.selected(getCriticalState());
-            if (com.miaokatze.gtsr.common.critical.CriticalProcessingModes.ASSEMBLY_LINE.equals(mode))
-                return gregtech.api.recipe.RecipeMaps.assemblylineVisualRecipes;
-            RecipeMap<?> map = com.miaokatze.gtsr.common.critical.CriticalProcessingModes.map(mode);
-            if (map != null) return map;
+        return com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.forKind(presetKind);
+    }
+
+    @Override
+    public java.util.Collection<RecipeMap<?>> getAvailableRecipeMaps() {
+        RecipeMap<?> map = getRecipeMap();
+        if (map == null) return java.util.Collections.emptyList();
+        if (presetKind == CriticalMachineKind.SOLAR) {
+            return java.util.Arrays.asList(map, com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.stellarIrradiation);
         }
-        return presetKind == null ? com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.displayRecipes
-            : com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.forKind(presetKind);
+        return java.util.Collections.singletonList(map);
     }
 
     @Override
