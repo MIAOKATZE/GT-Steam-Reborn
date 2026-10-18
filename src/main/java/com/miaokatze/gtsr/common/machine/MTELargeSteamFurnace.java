@@ -4,7 +4,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
@@ -229,7 +228,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTELargeSteamFurnace.class).anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
+                        buildHatchAdder(MTELargeSteamFurnace.class).atLeast(SteamCoolingHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build(),

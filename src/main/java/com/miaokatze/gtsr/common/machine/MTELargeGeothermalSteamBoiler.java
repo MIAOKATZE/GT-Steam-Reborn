@@ -84,6 +84,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
+import gregtech.common.blocks.ItemMachines;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 
@@ -386,15 +387,17 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTELargeGeothermalSteamBoiler.class)
-                            .anyOf(GeothermalSteamOutputHatchElement.SteamOutput)
+                            .atLeast(GeothermalSteamOutputHatchElement.SteamOutput)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).anyOf(OutputHatch)
+                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(OutputHatch)
+                            .hatchItemFilterAnd(
+                                t -> stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof MTESteamOutputHatch))
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).anyOf(SteamOutputBus)
+                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(SteamOutputBus)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build(),

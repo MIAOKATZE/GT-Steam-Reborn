@@ -536,7 +536,7 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build(),
-                    buildHatchAdder(MTESteamSingularityEntangler.class).anyOf(SingularityHatchElement.SteamInputBus)
+                    buildHatchAdder(MTESteamSingularityEntangler.class).atLeast(SingularityHatchElement.SteamInputBus)
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build(),
@@ -544,7 +544,8 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build(),
-                    buildHatchAdder(MTESteamSingularityEntangler.class).anyOf(SingularityHatchElement.SteamOutputHatch)
+                    buildHatchAdder(MTESteamSingularityEntangler.class)
+                        .atLeast(SingularityHatchElement.SteamOutputHatch)
                         .casingIndex(casingIndex)
                         .hint(2)
                         .build(),

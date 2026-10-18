@@ -53,6 +53,7 @@ import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.machine.base.IHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
+import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.common.terminal.TerminalNet;
 import com.miaokatze.gtsr.common.terminal.TerminalUiType;
 import com.miaokatze.gtsr.common.util.GTSROutputBusCompat;
@@ -77,6 +78,7 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.blocks.ItemMachines;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
@@ -316,10 +318,12 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTESingularityDrillingHub.class).atLeast(OutputHatch)
+                            .hatchItemFilterAnd(
+                                t -> stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof MTESteamCoolingHatch))
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTESingularityDrillingHub.class).anyOf(SteamCoolingHatch)
+                        buildHatchAdder(MTESingularityDrillingHub.class).atLeast(SteamCoolingHatch)
                             .casingIndex(casingIndex)
                             .hint(2)
                             .build(),

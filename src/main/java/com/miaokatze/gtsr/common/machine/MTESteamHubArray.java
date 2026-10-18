@@ -122,7 +122,7 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
             .addElement(
                 'C',
                 ofChain(
-                    buildHatchAdder(MTESteamHubArray.class).anyOf(
+                    buildHatchAdder(MTESteamHubArray.class).atLeast(
                         // S1：奇点仓两枚举在前——更具体的 adder 先认领，防止后续泛化 adder 的
                         // instanceof 误收（枚举间 adder 按声明顺序短路）
                         SteamHubHatchElement.SingularitySteamCompartment,
@@ -265,6 +265,13 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         @Override
         public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
             return mteClasses;
+        }
+
+        @Override
+        public boolean matchesHatch(IMetaTileEntity mte) {
+            if ((this == SteamInput || this == SteamOutput) && (mte instanceof MTESingularitySteamCompartment
+                || mte instanceof MTESingularitySteamOutputCompartment)) return false;
+            return IHatchElement.super.matchesHatch(mte);
         }
 
         @Override
@@ -677,17 +684,6 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
         int built = survivalBuildPiece(
-            STRUCTURE_PIECE_CAP,
-            stackSize,
-            HORIZONTAL_OFF_SET,
-            -1,
-            DEPTH_OFF_SET,
-            elementBudget,
-            env,
-            false,
-            true);
-        if (built >= 0) return built;
-        built = survivalBuildPiece(
             STRUCTURE_PIECE_BASE,
             stackSize,
             HORIZONTAL_OFF_SET,
@@ -714,6 +710,17 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
                 true);
             if (built >= 0) return built;
         }
+        built = survivalBuildPiece(
+            STRUCTURE_PIECE_CAP,
+            stackSize,
+            HORIZONTAL_OFF_SET,
+            -1,
+            DEPTH_OFF_SET,
+            elementBudget,
+            env,
+            false,
+            true);
+        if (built >= 0) return built;
         return -1;
     }
 

@@ -117,7 +117,7 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
             .addElement(
                 'C',
                 ofChain(
-                    buildHatchAdder(MTEWaterHubArray.class).anyOf(
+                    buildHatchAdder(MTEWaterHubArray.class).atLeast(
                         // S1：奇点仓两枚举必须在前——流体输入/输出仓分别继承 MTEWaterHubInputHatch/
                         // MTEWaterHubOutputHatch，泛化 adder 的 instanceof 会误收子类（R4），
                         // 枚举间 adder 按声明顺序短路，具体类先认领
@@ -241,6 +241,13 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         @Override
         public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
             return mteClasses;
+        }
+
+        @Override
+        public boolean matchesHatch(IMetaTileEntity mte) {
+            if ((this == WaterInput || this == WaterOutput) && (mte instanceof MTESingularityFluidInputCompartment
+                || mte instanceof MTESingularityFluidOutputCompartment)) return false;
+            return IHatchElement.super.matchesHatch(mte);
         }
 
         @Override

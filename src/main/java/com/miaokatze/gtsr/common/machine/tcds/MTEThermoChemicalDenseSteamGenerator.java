@@ -401,12 +401,13 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
             final int casingIndex = getCasingTextureID();
             STRUCTURE_DEFINITION = StructureDefinition.<MTEThermoChemicalDenseSteamGenerator>builder()
                 .addShape(STRUCTURE_PIECE_MAIN, transpose(SHAPE_MAIN))
-                // 仓室优先，只有真实洁净不锈钢机械方块计入最低外壳数。
+                // 原生自动建造每类仓默认放一个后回退外壳；世界校验仍保留现行可选仓集合。
+                // 只有真实洁净不锈钢机械方块计入最低外壳数。
                 .addElement(
                     'A',
                     ofChain(
                         buildHatchAdder(MTEThermoChemicalDenseSteamGenerator.class)
-                            .anyOf(Maintenance, Muffler, TcdsHatchElement.FluidInput, OutputHatch)
+                            .atLeast(Maintenance, Muffler, TcdsHatchElement.FluidInput, OutputHatch)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),

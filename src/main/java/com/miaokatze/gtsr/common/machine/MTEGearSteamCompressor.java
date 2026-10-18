@@ -73,6 +73,7 @@ import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.blocks.ItemMachines;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 
@@ -256,16 +257,18 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
                     'B',
                     ofChain(
                         buildHatchAdder(MTEGearSteamCompressor.class)
-                            .anyOf(GearSteamCompressorHatchElement.PressureSteamInput)
+                            .atLeast(GearSteamCompressorHatchElement.PressureSteamInput)
                             .casingIndex(BRONZE_CASING_INDEX)
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTEGearSteamCompressor.class)
-                            .anyOf(GearSteamCompressorHatchElement.CoolingHatch)
+                            .atLeast(GearSteamCompressorHatchElement.CoolingHatch)
                             .casingIndex(BRONZE_CASING_INDEX)
                             .hint(2)
                             .build(),
-                        buildHatchAdder(MTEGearSteamCompressor.class).anyOf(InputHatch, OutputHatch)
+                        buildHatchAdder(MTEGearSteamCompressor.class).atLeast(InputHatch, OutputHatch)
+                            .hatchItemFilterAnd(
+                                t -> stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof MTESteamCoolingHatch))
                             .casingIndex(BRONZE_CASING_INDEX)
                             .hint(3)
                             .build(),

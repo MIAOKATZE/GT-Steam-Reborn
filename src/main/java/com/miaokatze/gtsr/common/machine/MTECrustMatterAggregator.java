@@ -452,12 +452,12 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
                 'A',
                 ofChain(
                     // 流体输入仓（含 ME 输入仓、耐压蒸汽输入仓），可选
-                    buildHatchAdder(MTECrustMatterAggregator.class).anyOf(SingularityHatchElement.SteamInput)
+                    buildHatchAdder(MTECrustMatterAggregator.class).atLeast(SingularityHatchElement.SteamInput)
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build(),
                     // 物品输入总线 = 奇点燃料仓（蒸汽纠缠/临界蒸汽纠缠奇点），可选
-                    buildHatchAdder(MTECrustMatterAggregator.class).anyOf(SingularityHatchElement.SteamInputBus)
+                    buildHatchAdder(MTECrustMatterAggregator.class).atLeast(SingularityHatchElement.SteamInputBus)
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build(),

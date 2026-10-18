@@ -339,11 +339,11 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build(),
-                    buildHatchAdder(MTEDenseStateManipulator.class).anyOf(SingularityHatchElement.SteamInputBus)
+                    buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamInputBus)
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build(),
-                    buildHatchAdder(MTEDenseStateManipulator.class).anyOf(SingularityHatchElement.SteamOutputBus)
+                    buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamOutputBus)
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build(),

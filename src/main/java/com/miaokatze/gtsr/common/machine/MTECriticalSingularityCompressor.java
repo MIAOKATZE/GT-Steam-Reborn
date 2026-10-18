@@ -568,7 +568,8 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build(),
-                    buildHatchAdder(MTECriticalSingularityCompressor.class).anyOf(SingularityHatchElement.SteamInputBus)
+                    buildHatchAdder(MTECriticalSingularityCompressor.class)
+                        .atLeast(SingularityHatchElement.SteamInputBus)
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build(),
@@ -578,7 +579,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
                         .hint(1)
                         .build(),
                     buildHatchAdder(MTECriticalSingularityCompressor.class)
-                        .anyOf(SingularityHatchElement.SteamOutputHatch)
+                        .atLeast(SingularityHatchElement.SteamOutputHatch)
                         .casingIndex(casingIndex)
                         .hint(2)
                         .build(),

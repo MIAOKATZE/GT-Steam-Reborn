@@ -19,6 +19,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.HatchElementBuilder;
 
 /**
  * 带自持能源仓的加工单元父类（热力离心机/磁选机共用）。
@@ -71,36 +72,31 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
     @Override
     @SuppressWarnings("rawtypes")
     protected void addUnitStructureElements(StructureDefinition.Builder builder) {
-        builder.addElement('P', energyHatchElement());
+        builder.addElement('P', energyHatchBuilder(false).build());
     }
 
-    /**
-     * 能源 hatch 元素（P 位与 A 位放宽共用，T15；casingIndex/hint 与原子类逐字一致）。
-     * anyOf 而非 atLeast（T15b 修订）：GT5U atLeast 携带「已达最少数量即 shouldReject」的自动建造
-     * 收窄（HatchElementBuilder.atLeast→mReject/mHatchItemFilter 按 count≥1 拒绝后续放置），多能源仓
-     * 自由化下不适用——与总控 A 位元素同口径禁用 atLeast（ClusterStructureDef casingOrControllerInputSlot
-     * 同款）；≥1 能源仓的成型校验由本类 checkMachine 强制，不依赖 atLeast。check 路径二者同 adder 等价。
-     */
+    /** P 专用位和 A 外壳替换位共用的原生 builder 配置，配额由调用点分别选择。 */
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private IStructureElement energyHatchElement() {
-        return buildHatchAdder(this.getClass()).anyOf(Energy)
-            .descriptions(() -> Collections.singletonList("gtsr.structure.cluster.processing.energy"))
+    private HatchElementBuilder energyHatchBuilder(boolean casingFallback) {
+        HatchElementBuilder builder = buildHatchAdder(this.getClass());
+        if (casingFallback) builder.atLeast(Energy);
+        else builder.anyOf(Energy);
+        return builder.descriptions(() -> Collections.singletonList("gtsr.structure.cluster.processing.energy"))
             .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10))
-            .hint(1)
-            .build();
+            .hint(1);
     }
 
     /**
      * A 外壳位放宽（T15）：tiered 外壳（默认形态，基类四族 casing 元素原样保留——能源仓分支不写
-     * casingFamilyTier）或 {@link #energyHatchElement()}——任意 A 机壳位可替换为能源 hatch（入
+     * casingFamilyTier）或 {@link #energyHatchBuilder(boolean)}——任意 A 机壳位可替换为能源 hatch（入
      * mEnergyHatches，成型末尾统一刷新贴图；每 A 位至多一枚，天然上限=本单元 A 位数量；重复注册
-     * 由 GT5U checkStructure→clearHatches 每轮清表防双计）。与 P 位同元素（同 casingIndex/hint），
-     * A 位能源仓优先，外壳作为回退；基类只给真实 A 外壳计数，P 位始终无外壳回退。
+     * 由 GT5U checkStructure→clearHatches 每轮清表防双计）。A 位自动建造默认放一个能源仓后回退外壳，
+     * 世界校验仍接受多仓；基类只计真实 A 外壳，P 专用位保持 anyOf 且无外壳回退。
      */
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     protected IStructureElement tieredCasingElement() {
-        return ofChain(energyHatchElement(), super.tieredCasingElement());
+        return ofChain(energyHatchBuilder(true).build(), super.tieredCasingElement());
     }
 
     @Override

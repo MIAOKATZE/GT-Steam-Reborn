@@ -5,7 +5,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
@@ -43,6 +42,7 @@ import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
+import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
@@ -63,6 +63,7 @@ import gregtech.api.util.GTRecipe;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
+import gregtech.common.blocks.ItemMachines;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
@@ -205,11 +206,12 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
                             .build(),
                         buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(InputHatch, OutputHatch)
+                            .hatchItemFilterAnd(
+                                t -> stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof MTESteamCoolingHatch))
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTEAtmosphericCentrifuge.class)
-                            .anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
+                        buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(SteamCoolingHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build(),

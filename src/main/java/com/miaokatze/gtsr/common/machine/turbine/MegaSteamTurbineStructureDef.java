@@ -22,6 +22,8 @@ import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.common.machine.MTEMegaSteamTurbineArray;
+import com.miaokatze.gtsr.common.machine.base.MTEOverpressureTurbineInputHatch;
+import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 
 import bartworks.system.material.Werkstoff;
 import bartworks.system.material.WerkstoffLoader;
@@ -29,6 +31,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.util.GTUtility;
+import gregtech.common.blocks.ItemMachines;
 
 /**
  * 巨型蒸汽轮机「结构定义与等级映射域」伴生类（O2-04/A01 段 2 自 MTEMegaSteamTurbineArray 外移）。
@@ -108,30 +111,36 @@ public final class MegaSteamTurbineStructureDef {
                     'B',
                     ofChain(
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.PressureSteamInput)
+                            .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.PressureSteamInput)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.OverpressureInput)
+                            .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.OverpressureInput)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.CoolingHatch)
+                            .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.CoolingHatch)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(2)
                             .build(),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class).anyOf(InputHatch, OutputHatch)
+                        buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(InputHatch, OutputHatch)
+                            // These subclasses register in dedicated lists, not the generic IO counters.
+                            .hatchItemFilterAnd(t -> stack -> {
+                                var hatch = ItemMachines.getMetaTileEntity(stack);
+                                return !(hatch instanceof MTEOverpressureTurbineInputHatch)
+                                    && !(hatch instanceof MTESteamCoolingHatch);
+                            })
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class).anyOf(SteamInputBus)
+                        buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(SteamInputBus)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .anyOf(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.DynamoOutput)
+                            .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.DynamoOutput)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(1)
                             .build(),

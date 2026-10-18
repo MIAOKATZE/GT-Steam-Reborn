@@ -487,7 +487,9 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     /** 失败路径统一收尾：回滚 tier + 拆除本次收集连接清空拓扑 + 冲突取走 + 热量清零 + 主结构破坏边沿日志（含原因）。 */
     private void failFormation(String reason, boolean wasFormed, int prevSegments, int prevUnits) {
-        rollbackFormation();
+        // Like native GT check failures, retain this check's registration prefix and its watcher relations.
+        // The next check/reset clears it; runtime tiers and module connections must still roll back now.
+        rollbackRuntimeState();
         // 结构失效即清零热量（切片 5d 增强项，幂等）：tickServer 的成型→未成型下降沿 reset（批次 1
         // 接线）至多晚一 tick，此处直调提前到失败时刻，两者幂等共存
         preheat.reset();
@@ -533,16 +535,21 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         return true;
     }
 
-    /** 失败路径统一回滚：注销原生仓与 watcher，再清除自有 tier、单元连接、垫位和耐压仓。 */
+    /** 新一轮扫描或已接受段重扫前，清除上轮原生注册和全部自有结构状态。 */
     private void rollbackFormation() {
         clearHatches();
+        pressureSteamHatches.clear();
+        rollbackRuntimeState();
+    }
+
+    /** 失败时仅清运行资格；保留本轮完整仓注册前缀供原生自动建造配额读取。 */
+    private void rollbackRuntimeState() {
         rollbackTiers();
         for (MTEClusterUnitBase unit : topology.getUnits()) {
             unit.disconnect();
         }
         topology.clear();
         occupiedSlots.clear();
-        pressureSteamHatches.clear();
         extensionCount = 0;
     }
 
@@ -585,6 +592,11 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     public void registerPressureSteamHatch(MTEHatchPressureSteamInput hatch) {
         if (hatch == null || pressureSteamHatches.contains(hatch)) return;
         pressureSteamHatches.add(hatch);
+    }
+
+    /** Native construction quotas count this dedicated list rather than generic fluid inputs. */
+    int pressureSteamHatchCount() {
+        return pressureSteamHatches.size();
     }
 
     /**

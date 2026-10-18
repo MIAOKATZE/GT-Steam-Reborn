@@ -386,7 +386,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTESiemensMartinFurnace.class).anyOf(SiemensMartinHatchElement.InputHatch)
+                        buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.InputHatch)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
@@ -395,7 +395,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTESiemensMartinFurnace.class)
-                            .anyOf(SiemensMartinHatchElement.PressureSteamInput)
+                            .atLeast(SiemensMartinHatchElement.PressureSteamInput)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),

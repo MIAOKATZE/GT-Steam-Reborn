@@ -294,7 +294,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
                         .casingIndex(bronzeCasingIndex)
                         .hint(1)
                         .build(),
-                    buildHatchAdder(MTELargeCokeOven.class).anyOf(OutputHatch)
+                    buildHatchAdder(MTELargeCokeOven.class).atLeast(OutputHatch)
                         .casingIndex(bronzeCasingIndex)
                         .hint(1)
                         .build(),

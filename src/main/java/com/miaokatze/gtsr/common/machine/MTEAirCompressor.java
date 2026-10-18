@@ -4,7 +4,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
@@ -41,6 +40,7 @@ import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.ProsperityAirLookup;
+import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.config.Config;
 
@@ -62,6 +62,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.VoidProtectionHelper;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
+import gregtech.common.blocks.ItemMachines;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
@@ -207,10 +208,12 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
                             .build(),
                         buildHatchAdder(MTEAirCompressor.class).atLeast(OutputHatch)
+                            .hatchItemFilterAnd(
+                                t -> stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof MTESteamCoolingHatch))
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTEAirCompressor.class).anyOf(SteamCoolingHatch, PressureSteamCoolingHatch)
+                        buildHatchAdder(MTEAirCompressor.class).atLeast(SteamCoolingHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build(),

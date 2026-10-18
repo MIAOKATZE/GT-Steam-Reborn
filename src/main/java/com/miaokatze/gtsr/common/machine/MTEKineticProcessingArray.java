@@ -133,7 +133,10 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     private static HatchElementBuilder<MTEKineticProcessingArray> ioConstructionHatches() {
         HatchElementBuilder<MTEKineticProcessingArray> builder = buildHatchAdder(MTEKineticProcessingArray.class)
-            .anyOf(SteamInputBus, InputHatch, SteamOutputBus, OutputHatch, Energy)
+            .atLeast(SteamInputBus, InputHatch, SteamOutputBus, OutputHatch, Energy)
+            // Pressure cooling belongs to the earlier B branch's dedicated counter.
+            .hatchItemFilterAnd(
+                t -> stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof MTEPressureSteamCoolingHatch))
             .casingIndex(SOLID_STEEL_CASING_INDEX)
             .hint(1);
         var nativeFilter = builder.getHatchItemFilter();
@@ -283,12 +286,12 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                     'B',
                     ofChain(
                         buildHatchAdder(MTEKineticProcessingArray.class)
-                            .anyOf(KineticProcessingArrayHatchElement.PressureSteamInput)
+                            .atLeast(KineticProcessingArrayHatchElement.PressureSteamInput)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(2)
                             .build(),
                         buildHatchAdder(MTEKineticProcessingArray.class)
-                            .anyOf(KineticProcessingArrayHatchElement.PressureSteamCooling)
+                            .atLeast(KineticProcessingArrayHatchElement.PressureSteamCooling)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(3)
                             .build(),
