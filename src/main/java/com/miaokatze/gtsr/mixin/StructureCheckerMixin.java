@@ -20,7 +20,9 @@ import com.gtnewhorizon.structurelib.structure.AutoPlaceEnvironment;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.IStructureElement.BlocksToPlace;
 import com.miaokatze.gtsr.common.api.compat.IGTSRHatchCasingProvider;
+import com.miaokatze.gtsr.common.api.compat.IGTSRRedstoneHatchCheck;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRRedstoneHatch;
+import com.miaokatze.gtsr.common.structure.GTSRRedstoneHatchCheck;
 import com.miaokatze.gtsr.common.structure.GTSRRedstoneHatchLimitError;
 
 import gregtech.api.enums.Textures;
@@ -39,10 +41,6 @@ import gregtech.api.util.GTUtility;
 @Mixin(value = gregtech.api.structure.StructureChecker.class, remap = false)
 public abstract class StructureCheckerMixin {
 
-    /** 红石仓数量上限：同一轮结构校验超出后不再放行 */
-    @Unique
-    private static final int gtsr$REDSTONE_HATCH_LIMIT = 4;
-
     /** 控制器元实体（StructureChecker<T>.instance，泛型擦除后为 Object，实际为 IMetaTileEntity） */
     @Shadow
     public Object instance;
@@ -56,11 +54,11 @@ public abstract class StructureCheckerMixin {
     @Shadow
     public boolean success;
 
-    /** 本轮校验已放行的红石仓个数（checker 每轮结构校验新建，实例字段随之归零） */
+    /** 直接使用独立 checker 时的兼容回退；普通控制器校验使用完整事务计数。 */
     @Unique
     private int gtsr$redstoneHatchCount;
 
-    /** 本轮已绑定的红石仓；任一结构位置失败时统一解除绑定。 */
+    /** 独立 checker 的兼容回退绑定集合；控制器完整校验由事务统一提交/回滚。 */
     @Unique
     private final List<MTEGTSRRedstoneHatch> gtsr$boundRedstoneHatches = new ArrayList<>();
 
@@ -71,21 +69,28 @@ public abstract class StructureCheckerMixin {
         if (te instanceof IGregTechTileEntity) {
             IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
             if (mte instanceof MTEGTSRRedstoneHatch) {
-                if (++gtsr$redstoneHatchCount > gtsr$REDSTONE_HATCH_LIMIT) {
+                MTEGTSRRedstoneHatch hatch = (MTEGTSRRedstoneHatch) mte;
+                GTSRRedstoneHatchCheck check = instance instanceof IGTSRRedstoneHatchCheck
+                    ? ((IGTSRRedstoneHatchCheck) instance).getGTSRRedstoneHatchCheck()
+                    : null;
+                boolean transactional = check != null && check.isChecking();
+                int count = transactional ? check.visit(hatch) : ++gtsr$redstoneHatchCount;
+                if (count > GTSRRedstoneHatchCheck.LIMIT) {
                     // 超出上限：本位置校验失败。原方法体被跳过，需手动置失败标志，
                     // 并补写结构错误（超限位置 + 世界高亮、超限文案）供控制器 GUI 呈现。
                     this.success = false;
                     gtsr$invalidateBoundHatches();
                     if (errors != null) {
                         errors.add(new PositionedStructureError(x, y, z));
-                        errors.add(new GTSRRedstoneHatchLimitError(gtsr$redstoneHatchCount));
+                        errors.add(new GTSRRedstoneHatchLimitError(count));
                     }
                     cir.setReturnValue(false);
                     return;
                 }
-                MTEGTSRRedstoneHatch hatch = (MTEGTSRRedstoneHatch) mte;
-                hatch.setController((IMetaTileEntity) instance);
-                gtsr$boundRedstoneHatches.add(hatch);
+                if (!transactional) {
+                    hatch.setController((IMetaTileEntity) instance);
+                    gtsr$boundRedstoneHatches.add(hatch);
+                }
                 // 解析结果显式返回；解析失败不否决结构，确保红石仓仍可替换任意结构位。
                 applyStructureTexture(element, world, x, y, z, hatch);
                 cir.setReturnValue(true);
@@ -128,7 +133,7 @@ public abstract class StructureCheckerMixin {
         return false;
     }
 
-    /** 结构校验失败时解除本轮已经建立的红石仓绑定，避免失败结构继续输出信号。 */
+    /** 独立 checker 超限时清理回退绑定；完整校验的失败由控制器事务收尾。 */
     @Unique
     private void gtsr$invalidateBoundHatches() {
         for (MTEGTSRRedstoneHatch hatch : gtsr$boundRedstoneHatches) {

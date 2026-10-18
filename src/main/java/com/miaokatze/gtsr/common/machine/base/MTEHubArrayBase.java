@@ -1223,8 +1223,6 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
 
     protected abstract int getMechanicalCasingSlots();
 
-    protected abstract void restoreMechanicalCasingCount(int count);
-
     private void resetCommonStructureState() {
         mSetTier = -1;
         mCasingTier = -1;
@@ -1233,16 +1231,30 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         mStackCount = 0;
     }
 
-    private void probeStackLayers() {
+    private boolean probeStackLayers(List<StructureError> errors) {
         for (int i = 0; i < 30; i++) {
             int bOffset = 1 + i;
-            int casingsBeforeLayer = getMechanicalCasingCount();
-            if (!checkPiece(STRUCTURE_PIECE_STACK, horizontalOffset(), bOffset, depthOffset())) {
-                restoreMechanicalCasingCount(casingsBeforeLayer);
-                break;
+            if (!checkPiece(STRUCTURE_PIECE_STACK, horizontalOffset(), bOffset, depthOffset(), null)) {
+                return recheckAcceptedLayers(mStackCount, errors);
             }
             mStackCount++;
         }
+        return true;
+    }
+
+    private boolean recheckAcceptedLayers(int acceptedLayers, List<StructureError> errors) {
+        // A failed optional layer may already have registered hatches, units and tier state.
+        detachHatchControllers();
+        clearHatches();
+        resetCommonStructureState();
+        resetFamilyStructureState();
+        if (!checkPiece(STRUCTURE_PIECE_BASE, horizontalOffset(), verticalOffset(), depthOffset(), errors))
+            return false;
+        for (int i = 0; i < acceptedLayers; i++) {
+            if (!checkPiece(STRUCTURE_PIECE_STACK, horizontalOffset(), 1 + i, depthOffset(), errors)) return false;
+            mStackCount++;
+        }
+        return true;
     }
 
     /**
@@ -1261,7 +1273,10 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
             return;
         }
 
-        probeStackLayers();
+        if (!probeStackLayers(errors)) {
+            getBaseMetaTileEntity().issueTileUpdate();
+            return;
+        }
 
         if (!require(mStackCount > 0, errors)) {
             getBaseMetaTileEntity().issueTileUpdate();

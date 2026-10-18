@@ -335,7 +335,11 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build(),
-                    buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamInputBus)
+                    buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.FuelInputBus)
+                        .casingIndex(casingIndex)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTEDenseStateManipulator.class).anyOf(SingularityHatchElement.SteamInputBus)
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build(),
@@ -392,11 +396,11 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             return;
         }
 
-        if (mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty() && mDualInputHatches.isEmpty()) {
+        if (mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        if (requiresInputBus() && mInputBusses.isEmpty() && mDualInputHatches.isEmpty()) {
+        if (requiresInputBus() && mInputBusses.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

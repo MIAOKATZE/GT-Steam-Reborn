@@ -657,11 +657,6 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
     }
 
     @Override
-    protected void restoreMechanicalCasingCount(int count) {
-        mCasingAmount = count;
-    }
-
-    @Override
     protected int getMechanicalCasingSlots() {
         return 70 + 25 * mStackCount;
     }

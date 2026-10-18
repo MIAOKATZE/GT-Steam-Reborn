@@ -121,7 +121,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     private final Map<Long, MTEClusterUnitBase> occupiedSlots = new HashMap<>();
 
     /**
-     * 耐压蒸汽输入仓（A 外壳位结构 adder 直收 registerPressureSteamHatch；checkMachine 复位清空重建、未成型延伸段 prune 剔除；与 mInputHatches 合成统一结算源）。
+     * 耐压蒸汽输入仓（A 外壳位结构 adder 直收 registerPressureSteamHatch；checkMachine 复位清空重建、失败延伸段经清理重扫剔除；与 mInputHatches 合成统一结算源）。
      */
     private final List<MTEHatchPressureSteamInput> pressureSteamHatches = new ArrayList<>();
 
@@ -346,18 +346,9 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             .size();
 
         // 1) 复位
-        List<MTEClusterUnitBase> previousUnits = new ArrayList<>(topology.getUnits());
-        topology.clear();
-        occupiedSlots.clear();
-        extensionCount = 0;
-        actualCasingCount = 0;
-        pressureSteamHatches.clear();
+        resetStructureRegistration();
         logisticsPowerLatch.clear();
         ClusterParticleFx.clearClusterAirCandidates(this);
-        rollbackTiers();
-        for (MTEClusterUnitBase unit : previousUnits) {
-            unit.disconnect();
-        }
 
         // 2) 主段
         if (!checkPiece(
@@ -374,18 +365,20 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         // 边界外失配误伤。断层检测：失配段之后仍可识别延伸结构（下一延伸段底框采样非空气）→
         // 断层错误上报 + 断裂段登记，结构不成型（E1a 遗留收尾）
         for (int k = 0; k < ClusterTopology.MAX_EXTENSION_SEGMENTS; k++) {
-            int previousCasingCount = actualCasingCount;
             if (!checkPiece(
                 ClusterStructureDef.PIECE_EXT,
                 ClusterStructureDef.extOffsetA(k),
                 ClusterStructureDef.extOffsetB(),
                 ClusterStructureDef.extOffsetC(k),
                 null)) {
-                actualCasingCount = previousCasingCount;
                 if (hasStructureBehind(k)) {
                     errors.add(ClusterStructureError.extensionBreak(k + 1));
                     failFormation("延伸段断层@" + (k + 1), wasFormed, prevSegments, prevUnits);
                     topology.setBrokenExtensionSegment(k + 1);
+                    return;
+                }
+                if (!recheckAcceptedSegments(extensionCount, errors)) {
+                    failFormation("已接受结构段重检失配", wasFormed, prevSegments, prevUnits);
                     return;
                 }
                 break;
@@ -418,8 +411,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         }
 
         // 5) 输入仓上限校验（终验反馈 FA）：通用输入仓（MTEHatchInput 且非蒸汽类）1..10、
-        // 蒸汽仓类（MTESteamInputHatchGeneric + 耐压仓）合计 0..10；先剔除失配延伸段中途收集的耐压仓
-        pruneUnformedSegmentPressureHatches();
+        // 蒸汽仓类（MTESteamInputHatchGeneric + 耐压仓）合计 0..10；只统计重建后的已接受结构段。
         int genericHatchCount = 0;
         int steamHatchCount = pressureSteamHatches.size();
         for (MTEHatch hatch : mInputHatches) {
@@ -513,8 +505,37 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         lastModuleConflicts.addAll(ClusterStructureDef.drainModuleConflicts());
     }
 
-    /** 失败路径统一回滚：回滚四 tier + 拆除本次扫描已收集的单元连接并清空拓扑/垫位登记/耐压仓。 */
+    /** Reset native hatch registrations and this machine's collection state before replaying accepted pieces. */
+    private void resetStructureRegistration() {
+        rollbackFormation();
+        actualCasingCount = 0;
+        ClusterStructureDef.drainModuleConflicts();
+    }
+
+    /** GT205 MultiLathe clears native registrations and rechecks accepted pieces after a speculative failure. */
+    private boolean recheckAcceptedSegments(int acceptedExtensions, List<StructureError> errors) {
+        resetStructureRegistration();
+        if (!checkPiece(
+            ClusterStructureDef.PIECE_MAIN,
+            ClusterStructureDef.mainOffsetA(),
+            ClusterStructureDef.mainOffsetB(),
+            ClusterStructureDef.mainOffsetC(),
+            errors)) return false;
+        for (int k = 0; k < acceptedExtensions; k++) {
+            if (!checkPiece(
+                ClusterStructureDef.PIECE_EXT,
+                ClusterStructureDef.extOffsetA(k),
+                ClusterStructureDef.extOffsetB(),
+                ClusterStructureDef.extOffsetC(k),
+                errors)) return false;
+        }
+        extensionCount = acceptedExtensions;
+        return true;
+    }
+
+    /** 失败路径统一回滚：注销原生仓与 watcher，再清除自有 tier、单元连接、垫位和耐压仓。 */
     private void rollbackFormation() {
+        clearHatches();
         rollbackTiers();
         for (MTEClusterUnitBase unit : topology.getUnits()) {
             unit.disconnect();
@@ -564,25 +585,6 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     public void registerPressureSteamHatch(MTEHatchPressureSteamInput hatch) {
         if (hatch == null || pressureSteamHatches.contains(hatch)) return;
         pressureSteamHatches.add(hatch);
-    }
-
-    /**
-     * 剔除未成型延伸段中途收集的耐压仓：延伸段 checkPiece 失配（非断层、正常短簇终止）时，
-     * 失败段内先于失配元素注册的耐压仓仍留在列表；按 {@link ClusterStructureDef#segmentOfWorldPos}
-     * 反解段号，段号超出已成型段（&gt; extensionCount）或 TE 失联即移除。上限校验前调用。
-     */
-    private void pruneUnformedSegmentPressureHatches() {
-        if (getBaseMetaTileEntity() == null) {
-            pressureSteamHatches.clear();
-            return;
-        }
-        pressureSteamHatches.removeIf(hatch -> {
-            IGregTechTileEntity hatchTe = hatch.getBaseMetaTileEntity();
-            if (hatchTe == null) return true;
-            int segment = ClusterStructureDef
-                .segmentOfWorldPos(this, hatchTe.getXCoord(), hatchTe.getYCoord(), hatchTe.getZCoord());
-            return segment > extensionCount;
-        });
     }
 
     /**

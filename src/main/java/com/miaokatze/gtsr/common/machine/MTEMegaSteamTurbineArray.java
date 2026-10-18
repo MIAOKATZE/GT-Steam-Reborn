@@ -586,8 +586,9 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         return false;
     }
 
-    @Override
-    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+    /** Reset through GT's hatch lifecycle before rebuilding accepted pieces after a failed stack probe. */
+    private void resetStructureRegistration() {
+        clearHatches();
         mCasingAmount = 0;
         mStackCount = 0;
         mCasingTier = -1;
@@ -599,16 +600,32 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         mSteamCoolingHatches.clear();
         mPressureCoolingHatches.clear();
         eDynamoMulti.clear();
+    }
 
+    /** GT205 MultiLathe uses the same reset-and-recheck pattern to discard failed-piece adders. */
+    private boolean recheckAcceptedStacks(int acceptedStacks, List<StructureError> errors) {
+        resetStructureRegistration();
+        if (!checkPiece(STRUCTURE_PIECE_BASE, 6, 5, 0, errors)) return false;
+        for (int i = 0; i < acceptedStacks; i++) {
+            if (!checkPiece(STRUCTURE_PIECE_STACK, 6, BASE_TOTAL_HEIGHT + i * STACK_LAYER_HEIGHT, 0, errors)) {
+                return false;
+            }
+            mStackCount++;
+        }
+        return true;
+    }
+
+    @Override
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        resetStructureRegistration();
         if (!checkPiece(STRUCTURE_PIECE_BASE, 6, 5, 0, errors)) {
             return;
         }
 
         for (int i = 0; i < 4; i++) {
             int bOffset = 9 + i * 4;
-            int casingsBeforeLayer = mCasingAmount;
-            if (!checkPiece(STRUCTURE_PIECE_STACK, 6, bOffset, 0)) {
-                mCasingAmount = casingsBeforeLayer;
+            if (!checkPiece(STRUCTURE_PIECE_STACK, 6, bOffset, 0, null)) {
+                if (!recheckAcceptedStacks(mStackCount, errors)) return;
                 break;
             }
             mStackCount++;

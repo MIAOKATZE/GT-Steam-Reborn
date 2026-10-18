@@ -66,7 +66,8 @@ import gregtech.api.util.GTLanguageManager;
 @SuppressWarnings({ "rawtypes", "unchecked" })
 final class TestLabStructureContractTask implements TestLabTask {
 
-    private static final int STATION_X = 16384, STATION_Y = 96, STATION_Z = 16384;
+    private static final int STATION_Y = 96;
+    private int stationX = 16384, stationZ = 16384, stationAttempt;
     private final MetaTileEntityID machineId;
     private final int casing, pipe, gear, height;
     private final boolean extended;
@@ -139,6 +140,8 @@ final class TestLabStructureContractTask implements TestLabTask {
             || ((TestLabStructureContractTask) task).machineId.name()
                 .equalsIgnoreCase(requested))
             result.add(task);
+        result.addAll(TestLabStructureFailureTask.select(requested));
+        result.addAll(TestLabStructurePolicyTask.select(requested));
         if (result.isEmpty()) throw new IllegalArgumentException("Unknown structure contract: " + requested);
         return result;
     }
@@ -185,11 +188,11 @@ final class TestLabStructureContractTask implements TestLabTask {
 
     private void initializeStation(WorldServer world) throws Exception {
         if (!(world.provider instanceof TestLabWorldProvider)) throw new IllegalArgumentException("Not testlab");
-        retain(world, STATION_X, STATION_Z);
-        if (!world.isAirBlock(STATION_X, STATION_Y, STATION_Z))
+        retain(world, stationX, stationZ);
+        if (!world.isAirBlock(stationX, STATION_Y, stationZ))
             throw new IllegalStateException("FIXTURE_BLOCKED independent controller station occupied; never overwrite");
-        owned.add(new Cell(null, STATION_X, STATION_Y, STATION_Z));
-        tile = TestLabFixtures.machine(world, STATION_X, STATION_Y, STATION_Z, machineId.ID);
+        owned.add(new Cell(null, stationX, STATION_Y, stationZ));
+        tile = TestLabFixtures.machine(world, stationX, STATION_Y, stationZ, machineId.ID);
         machine = (MTEMultiBlockBase) tile.getMetaTileEntity();
         trigger = new ItemStack(Items.stick, 1);
         ChannelDataAccessor.setChannelData(trigger, "casing", casing);
@@ -219,8 +222,8 @@ final class TestLabStructureContractTask implements TestLabTask {
                 (int) field(raw, "x"),
                 (int) field(raw, "y"),
                 (int) field(raw, "z"));
-            if (!world.blockExists(cell.x, cell.y, cell.z) || Math.abs((cell.x >> 4) - (STATION_X >> 4)) > 6
-                || Math.abs((cell.z >> 4) - (STATION_Z >> 4)) > 6)
+            if (!world.blockExists(cell.x, cell.y, cell.z) || Math.abs((cell.x >> 4) - (stationX >> 4)) > 6
+                || Math.abs((cell.z >> 4) - (stationZ >> 4)) > 6)
                 throw new IllegalStateException("FIXTURE_BLOCKED native position outside loaded station " + cell.key());
             if (positions.add(cell.key())) cells.add(cell);
         }
@@ -231,7 +234,7 @@ final class TestLabStructureContractTask implements TestLabTask {
             source,
             FakePlayerFactory.get(world, new GameProfile(TestLabFixtures.OWNER, "[GTSR Structure Contract]")),
             msg -> {});
-        evidence.put("origin", STATION_X + "," + STATION_Y + "," + STATION_Z);
+        evidence.put("origin", stationX + "," + STATION_Y + "," + stationZ);
         evidence.put("nativeCells", cells.size());
         evidence.put("channels", "casing=" + casing + ",pipe=" + pipe + ",gear=" + gear + ",height=" + height);
         evidence.put("legacyStationsTouched", false);
@@ -241,7 +244,7 @@ final class TestLabStructureContractTask implements TestLabTask {
     }
 
     private void declareSpillGuard() {
-        int minX = STATION_X, maxX = STATION_X, minZ = STATION_Z, maxZ = STATION_Z, maxY = STATION_Y;
+        int minX = stationX, maxX = stationX, minZ = stationZ, maxZ = stationZ, maxY = STATION_Y;
         for (Cell cell : cells) {
             minX = Math.min(minX, cell.x);
             maxX = Math.max(maxX, cell.x);
@@ -305,7 +308,7 @@ final class TestLabStructureContractTask implements TestLabTask {
             if (phase == -1) {
                 // Same 169-chunk bound as the ordinary lab, centred around this separate station.
                 for (int budget = 0; budget < 16 && preloadCursor < 169; budget++, preloadCursor++)
-                    retain(world, STATION_X + (preloadCursor % 13 - 6) * 16, STATION_Z + (preloadCursor / 13 - 6) * 16);
+                    retain(world, stationX + (preloadCursor % 13 - 6) * 16, stationZ + (preloadCursor / 13 - 6) * 16);
                 if (preloadCursor < 169) return null;
                 initializeStation(world);
                 phase = 0;
@@ -328,7 +331,7 @@ final class TestLabStructureContractTask implements TestLabTask {
             if (phase == 7) {
                 for (int budget = 0; budget < 4096 && cursor < spillGuard.size(); budget++, cursor++) {
                     Cell cell = spillGuard.get(cursor);
-                    if (cell.x == STATION_X && cell.y == STATION_Y && cell.z == STATION_Z) continue;
+                    if (cell.x == stationX && cell.y == STATION_Y && cell.z == stationZ) continue;
                     if (!world.blockExists(cell.x, cell.y, cell.z) || !world.isAirBlock(cell.x, cell.y, cell.z)
                         || world.getTileEntity(cell.x, cell.y, cell.z) != null)
                         throw new IllegalStateException(
@@ -423,6 +426,10 @@ final class TestLabStructureContractTask implements TestLabTask {
             String message = problem.getClass()
                 .getSimpleName() + ": "
                 + problem.getMessage();
+            if (message.contains("FIXTURE_BLOCKED occupied") && (phase < 1 || phase == 7) && stationAttempt < 3) {
+                retryEmptyStation(world);
+                return null;
+            }
             if (message.contains("FIXTURE_BLOCKED")) evidence.put("fixtureBlocked", message);
             else failures.add(message);
             phase = 6;
@@ -521,10 +528,23 @@ final class TestLabStructureContractTask implements TestLabTask {
             .getBlocksToPlace(machine, world, cell.x, cell.y, cell.z, trigger, environment);
         List<ItemStack> stacks = new ArrayList<>();
         if (blocks != null) {
-            require(blocks.getStacks() != null, "predicate-only candidate group at " + cell.key());
+            // A chain unions predicates but may expose only its concrete casing stacks. Predicate-only
+            // hatch declarations are native GT205 behaviour, not a malformed candidate group.
             if (blocks.getStacks() != null) for (ItemStack stack : blocks.getStacks()) {
                 require(stack != null && stack.getItem() != null, "invalid candidate at " + cell.key());
                 if (stack != null && stack.getItem() != null) stacks.add(stack.copy());
+            }
+            if (blocks.getPredicate() != null) {
+                int considered = 0;
+                for (int id = 0; id < GregTechAPI.METATILEENTITIES.length; id++) {
+                    Object prototype = GregTechAPI.METATILEENTITIES[id];
+                    if (!(prototype instanceof gregtech.api.metatileentity.implementations.MTEHatch)
+                        && !(prototype instanceof com.miaokatze.gtsr.common.machine.base.MTESteamStorageUnit)) continue;
+                    if (++considered > 4096) throw new IllegalStateException("Native hatch candidate budget exceeded");
+                    ItemStack candidate = new ItemStack(GregTechAPI.sBlockMachines, 1, id);
+                    if (blocks.getPredicate()
+                        .test(candidate) && !containsStack(stacks, candidate)) stacks.add(candidate);
+                }
             }
         }
         candidates.put(cell.element, stacks);
@@ -535,6 +555,42 @@ final class TestLabStructureContractTask implements TestLabTask {
                 "hatch candidates without description at " + cell.key());
             if (descriptions != null) for (String description : descriptions) validateDescription(description);
         }
+    }
+
+    private static boolean containsStack(List<ItemStack> stacks, ItemStack candidate) {
+        for (ItemStack stack : stacks)
+            if (stack.getItem() == candidate.getItem() && stack.getItemDamage() == candidate.getItemDamage())
+                return true;
+        return false;
+    }
+
+    private void retryEmptyStation(WorldServer world) {
+        // Preflight has not constructed anything: only our controller and verified air were claimed.
+        // Release those claims, leave the occupied coordinate untouched, and inspect a separate station.
+        for (Cell cell : owned) clearOwned(world, cell);
+        release();
+        stationAttempt++;
+        stationX = 16384 + stationAttempt * 512;
+        cells.clear();
+        owned.clear();
+        spillGuard.clear();
+        plannedPieces.clear();
+        candidates.clear();
+        evidence.clear();
+        failures.clear();
+        notRun.clear();
+        optionalNotRun.clear();
+        tile = null;
+        machine = null;
+        model = null;
+        cursor = 0;
+        preloadCursor = 0;
+        shellSlots = 0;
+        phase = -1;
+        cleanupPrepared = false;
+        cleanupFailed = false;
+        spillGuardVerified = false;
+        evidence.put("stationRelocations", stationAttempt);
     }
 
     private int minimumShapeCells() {

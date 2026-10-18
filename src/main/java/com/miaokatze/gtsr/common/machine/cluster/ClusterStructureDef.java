@@ -484,20 +484,22 @@ public final class ClusterStructureDef {
      * mInputHatches；耐压蒸汽输入仓在本 Enhanced 基座上无标准注册通道（其类不是 MTEHatchInput），
      * updateTexture 接受成型后经 {@code registerPressureSteamHatch} 直收总控
      * pressureSteamHatches 列表（终验反馈 FA：取代旧硬编码偏移枚举收集；checkMachine 复位段先清
-     * 列表、失配延伸段由总控 prune 剔除）。数量上限由总控 checkMachine 校验（通用输入仓 1..10、
+     * 列表、失配延伸段由总控清理后重扫已接受结构段剔除）。数量上限由总控 checkMachine 校验（通用输入仓 1..10、
      * 蒸汽仓类合计 0..10）。
      */
     private static IStructureElement<MTESteamMineralLogisticsCluster> casingOrControllerInputSlot() {
         return ofChain(
-            buildHatchAdder(MTESteamMineralLogisticsCluster.class)
-                .anyOf(InputHatch, SteamInputHatch, PressureSteamInputHatch)
-                .adder(ClusterStructureDef::addControllerInputHatch)
-                .descriptions(
-                    () -> Arrays.asList(
-                        "gtsr.structure.cluster.controller.input_hatch",
-                        "gtsr.structure.cluster.controller.steam_hatches"))
-                .casingIndex(BRONZE_CASING_TEXTURE_ID)
-                .hint(1)
+            ClusterInputHatchPolicy
+                .rejectUnsupportedDualInput(
+                    buildHatchAdder(MTESteamMineralLogisticsCluster.class)
+                        .anyOf(InputHatch, SteamInputHatch, PressureSteamInputHatch)
+                        .adder(ClusterStructureDef::addControllerInputHatch)
+                        .descriptions(
+                            () -> Arrays.asList(
+                                "gtsr.structure.cluster.controller.input_hatch",
+                                "gtsr.structure.cluster.controller.steam_hatches"))
+                        .casingIndex(BRONZE_CASING_TEXTURE_ID)
+                        .hint(1))
                 .build(),
             onElementPass(
                 MTESteamMineralLogisticsCluster::onCasingAdded,
@@ -592,7 +594,7 @@ public final class ClusterStructureDef {
      * {@code [13+8k, 20+8k]} is {@code k+1}. This is the inverse of {@link #extOffsetC(int)}
      * {@code -13-8k} (formula itself unchanged; only MAIN_DEPTH grew 12→20, so both boundaries
      * shifted by 8 automatically).
-     * 包私有：总控 prune 未成型延伸段耐压仓时复用（FA）。
+     * 包私有：结构域内的段号反解使用。
      */
     static int segmentOfWorldPos(MTESteamMineralLogisticsCluster t, int x, int y, int z) {
         IGregTechTileEntity base = t.getBaseMetaTileEntity();

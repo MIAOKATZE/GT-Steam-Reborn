@@ -85,13 +85,17 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     protected IStructureElement tieredCasingElement() {
-        return StructureUtility.ofChain(
-            buildHatchAdder(MTEBasicAmplifierUnit.class).anyOf(InputHatch)
-                .descriptions(() -> Collections.singletonList("gtsr.structure.cluster.amplifier.input_hatch"))
-                .casingIndex(HATCH_HINT_CASING_INDEX)
-                .hint(1)
-                .build(),
-            super.tieredCasingElement());
+        return StructureUtility
+            .ofChain(
+                ClusterInputHatchPolicy
+                    .rejectUnsupportedDualInput(
+                        buildHatchAdder(MTEBasicAmplifierUnit.class).anyOf(InputHatch)
+                            .descriptions(
+                                () -> Collections.singletonList("gtsr.structure.cluster.amplifier.input_hatch"))
+                            .casingIndex(HATCH_HINT_CASING_INDEX)
+                            .hint(1))
+                    .build(),
+                super.tieredCasingElement());
     }
 
     @Override

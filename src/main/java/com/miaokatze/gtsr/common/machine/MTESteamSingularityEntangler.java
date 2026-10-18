@@ -635,8 +635,7 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
         }
         mTier = tier;
 
-        if ((mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty() && mDualInputHatches.isEmpty())
-            || mOutputBusses.isEmpty()) {
+        if ((mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty()) || mOutputBusses.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

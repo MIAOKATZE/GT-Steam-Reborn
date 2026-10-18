@@ -72,7 +72,9 @@ public final class CriticalStructures {
         CriticalMachineKind kind = machine.getCriticalState()
             .getKind();
         if (CriticalGeometry.isV2(machine.getCriticalState())) return DEFINITIONS.computeIfAbsent(
-            CriticalGeometry.visualMachineSlug(machine.getCriticalState()) + ':'
+            kind.name() + ':'
+                + CriticalGeometry.visualMachineSlug(machine.getCriticalState())
+                + ':'
                 + CriticalGeometry.visualLoomSlug(machine.getCriticalState())
                 + ':'
                 + machine.getCriticalState()
@@ -565,6 +567,8 @@ public final class CriticalStructures {
     static IStructureElement<MTECriticalMachine> loomHatchElement(Block shell) {
         return buildHatchAdder(MTECriticalMachine.class)
             .anyOf(
+                MTECriticalMachine.CriticalHatchElement.DataAccess,
+                MTECriticalMachine.CriticalHatchElement.BulkCatalyst,
                 HatchElement.InputBus,
                 HatchElement.OutputBus,
                 HatchElement.InputHatch,
@@ -600,6 +604,8 @@ public final class CriticalStructures {
         private static IStructureElement<MTECriticalMachine> nativeElement(boolean v2, boolean manual) {
             if (manual) return buildHatchAdder(MTECriticalMachine.class)
                 .anyOf(
+                    MTECriticalMachine.CriticalHatchElement.DataAccess,
+                    MTECriticalMachine.CriticalHatchElement.BulkCatalyst,
                     HatchElement.InputBus,
                     HatchElement.OutputBus,
                     HatchElement.InputHatch,
@@ -612,12 +618,16 @@ public final class CriticalStructures {
                     MTEHatchInput.class,
                     MTEHatchOutput.class,
                     MTEHatchEnergy.class,
-                    tectech.thing.metaTileEntity.hatch.MTEHatchEnergyMulti.class)
+                    tectech.thing.metaTileEntity.hatch.MTEHatchEnergyMulti.class,
+                    gregtech.api.metatileentity.implementations.MTEHatchDataAccess.class,
+                    gregtech.api.metatileentity.implementations.MTEHatchBulkCatalystHousing.class)
                 .casingIndex(CriticalControllerTextures.casingIndex(v2))
                 .hint(1)
                 .build();
             return buildHatchAdder(MTECriticalMachine.class)
                 .anyOf(
+                    MTECriticalMachine.CriticalHatchElement.DataAccess,
+                    MTECriticalMachine.CriticalHatchElement.BulkCatalyst,
                     HatchElement.InputBus,
                     HatchElement.OutputBus,
                     HatchElement.InputHatch,
@@ -632,7 +642,9 @@ public final class CriticalStructures {
                     MTEHatchOutput.class,
                     MTEHatchEnergy.class,
                     tectech.thing.metaTileEntity.hatch.MTEHatchEnergyMulti.class,
-                    MTEHatchDynamo.class)
+                    MTEHatchDynamo.class,
+                    gregtech.api.metatileentity.implementations.MTEHatchDataAccess.class,
+                    gregtech.api.metatileentity.implementations.MTEHatchBulkCatalystHousing.class)
                 .casingIndex(CriticalControllerTextures.casingIndex(v2))
                 .hint(1)
                 .build();

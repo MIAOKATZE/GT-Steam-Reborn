@@ -26,6 +26,7 @@
     "CommonMetaTileEntityMixin",
     "SteamHatchElementOutputBusMixin",
     "StructureCheckerMixin",
+    "MTEMultiBlockRedstoneLifecycleMixin",
     "BaseMetaTileEntityMixin",
     "GameRegistryMixin",
     "EncounterReachMixin",
