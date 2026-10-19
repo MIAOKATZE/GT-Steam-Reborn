@@ -950,8 +950,8 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     @Override
     protected void addFamilyStructureInfo(MultiblockTooltipBuilder tt) {
         tt.addCasingInfoMin(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), minimumCasings(38), true)
-            .addSubChannel(GTStructureChannels.TIER_CASING)
-            .addSubChannel(GTStructureChannels.STRUCTURE_HEIGHT)
+            .addSubChannelUsage(GTStructureChannels.TIER_CASING)
+            .addSubChannelUsage(GTStructureChannels.STRUCTURE_HEIGHT)
             .addStructureHint("gtsr.structurelib.channel.water_hub_height.usage")
             .addStructureHint("gtsr.structurelib.channel.hub_min_casings")
             .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.counts"));

@@ -980,8 +980,8 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
     @Override
     protected void addFamilyStructureInfo(MultiblockTooltipBuilder tt) {
         tt.addCasingInfoMin(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), minimumCasings(95), true)
-            .addSubChannel(GTStructureChannels.TIER_CASING)
-            .addSubChannel(GTStructureChannels.STRUCTURE_HEIGHT)
+            .addSubChannelUsage(GTStructureChannels.TIER_CASING)
+            .addSubChannelUsage(GTStructureChannels.STRUCTURE_HEIGHT)
             .addStructureHint("gtsr.structurelib.channel.steam_hub_height.usage")
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 7, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
