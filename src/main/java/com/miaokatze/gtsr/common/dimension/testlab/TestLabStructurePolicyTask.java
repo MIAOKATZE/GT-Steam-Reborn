@@ -158,7 +158,7 @@ final class TestLabStructurePolicyTask implements TestLabTask {
             .getBlocksToPlace(machine, world, stationX + 2, 120, stationZ, trigger, null);
         boolean filter = blocks.getPredicate()
             .test(stack);
-        boolean skip = builder.getShouldSkip()
+        boolean skip = com.miaokatze.gtsr.api.compat.HatchElementBuilderCompat.shouldSkip(builder)
             .test(machine, hatchTile);
         boolean accepted = element.check(machine, world, stationX + 2, 120, stationZ);
         Map<String, Object> row = new LinkedHashMap<>();

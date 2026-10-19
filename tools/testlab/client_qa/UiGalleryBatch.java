@@ -154,10 +154,18 @@ public final class UiGalleryBatch {
         if(!screenReady(false))throw new AssertionError("Target window changed before navigation");localTabClick=false;lastNavigationProof=null;
         if(flag(row,"legacy")){if(row.has("page")&&str(row,"kind","").equals("CLUSTER_CONTROLLER"))set(q.gui,"activePage",row.get("page").getAsInt());actionTick=ticks;renderStartNanos=System.nanoTime();stage=14;return;}
         if(row.has("journalTab")||row.has("journalEntry")){Object model=call(q.screen,"model");if(row.has("journalTab"))call(model,"selectTab",Enum.valueOf((Class)type(G+"common.dimension.prosperity.lore.JournalTab"),row.get("journalTab").getAsString()));if(row.has("journalEntry"))call(model,"selectEntry",row.get("journalEntry").getAsString());}
+        if(isEntanglement(row)&&row.has("fluidDrafts")){
+            Object psm=call(call(q.screen,"getSyncManager"),"getMainPSM"),handler=call(psm,"findSyncHandler","entanglement_session");
+            for(int slot=0;slot<6;slot++){Object input=call(handler,"row",slot);if(input==null)continue;String kind=String.valueOf(field(input,"kind"));JsonElement draft=row.getAsJsonObject("fluidDrafts").get(kind);if(draft!=null)call(handler,"edit",slot,draft.getAsString());}
+        }
+        if(isEntanglement(row)&&row.has("drafts")){
+            Object psm=call(call(q.screen,"getSyncManager"),"getMainPSM"),handler=call(psm,"findSyncHandler","entanglement_session");
+            for(Map.Entry<String,JsonElement> draft:row.getAsJsonObject("drafts").entrySet())call(handler,"edit",Integer.parseInt(draft.getKey()),draft.getValue().getAsString());
+        }
         if(row.has("page")){
-            int page=row.get("page").getAsInt();String prefix=str(row,"kind","").equals("CLUSTER_CONTROLLER")?"cluster_tab_":"critical_tab_";
-            Object pages=q.find(q.panel,prefix.startsWith("cluster")?"cluster_pages":"critical_pages");
-            if(pages!=null){reveal(pages);Object tab=q.find(q.panel,prefix+page);if(tab!=null){reveal(tab);lastNavigationProof=hitEvidence(tab);q.check("navigation.actual-tab-hit."+row.get("name").getAsString(),flag(lastNavigationProof,"targetInHoveredChain"),String.valueOf(lastNavigationProof));q.click(tab);localTabClick=true;}else call(pages,"setPage",page);}
+            int page=row.get("page").getAsInt();String prefix=isEntanglement(row)?"entanglement_":str(row,"kind","").equals("CLUSTER_CONTROLLER")?"cluster_tab_":"critical_tab_";
+            Object pages=q.find(q.panel,isEntanglement(row)?"entanglement_pages":prefix.startsWith("cluster")?"cluster_pages":"critical_pages");
+            if(pages!=null){reveal(pages);Object tab=q.find(q.panel,isEntanglement(row)?(page==0?"entanglement_overview_tab":"entanglement_rules_tab"):prefix+page);if(tab!=null){reveal(tab);lastNavigationProof=hitEvidence(tab);q.check("navigation.actual-tab-hit."+row.get("name").getAsString(),flag(lastNavigationProof,"targetInHoveredChain"),String.valueOf(lastNavigationProof));q.click(tab);localTabClick=true;}else call(pages,"setPage",page);}
         }
         if(row.has("click")){
             String name=row.get("click").getAsString();if(name.equals("hub_rate")||name.equals("hub_capacity")){Object pages=q.find(q.panel,"hub_pages");if(pages!=null&&q.number(field(pages,"currentPageIndex"))==1)q.click(q.find(q.panel,"hub_numeric_cancel"));}
@@ -215,7 +223,7 @@ public final class UiGalleryBatch {
         try{Object server=FMLCommonHandler.instance().getMinecraftServerInstance();if(server==null)return;List<?> players=(List<?>)field(call(server,"getConfigurationManager|func_71203_ab"),"playerEntityList|field_72404_b");if(players.isEmpty())return;q.serverPlayer=players.get(0);
             if(request==1){Object configuration=call(server,"getConfigurationManager|func_71203_ab");call(configuration,"func_152605_a|addOp",call(q.serverPlayer,"getGameProfile|func_146103_bH"));call(call(server,"getCommandManager|func_71187_D"),"executeCommand|func_71556_a",q.serverPlayer,"gtsrtest enter");}
             else if(request==2)prepare();
-            else if(request==3){Object[] f=(Object[])currentFixture;Object host=f[4];if(host!=null&&type("gregtech.api.interfaces.tileentity.IGregTechTileEntity").isInstance(host)&&((Number)call(host,"getTimer")).longValue()<2)return;if(flag(row,"legacy")){prepareLegacy();}else{if(!str(row,"kind","").startsWith("CRITICAL_")&&str(row,"variant","").equals("terminal"))prepareLegacy();openServer();Object container=field(q.serverPlayer,"openContainer|field_71070_bA");windowId=q.number(field(container,"windowId|field_75152_c"));try{expectedValues=primitives(call(call(container,"getSyncManager"),"getMainPSM"));}catch(NoSuchMethodException noMui){expectedValues=Collections.emptyMap();}}}
+            else if(request==3){Object[] f=(Object[])currentFixture;Object host=f[4];if(host!=null&&type("gregtech.api.interfaces.tileentity.IGregTechTileEntity").isInstance(host)&&((Number)call(host,"getTimer")).longValue()<2)return;if(flag(row,"legacy")){prepareLegacy();}else{if(!str(row,"kind","").startsWith("CRITICAL_")&&!isEntanglement(row)&&str(row,"variant","").equals("terminal"))prepareLegacy();openServer();Object container=field(q.serverPlayer,"openContainer|field_71070_bA");windowId=q.number(field(container,"windowId|field_75152_c"));try{expectedValues=primitives(call(call(container,"getSyncManager"),"getMainPSM"));}catch(NoSuchMethodException noMui){expectedValues=Collections.emptyMap();}}}
             else if(request==5){inertServerContainer=field(q.serverPlayer,"openContainer|field_71070_bA");inertServerPSM=call(call(inertServerContainer,"getSyncManager"),"getMainPSM");inertCollectorWindowBefore=windowId;inertExpectedValuesBefore=expectedValues;inertInventoryBefore=inventoryLedger();prepareLegacy();inertStateBefore=hex(MessageDigest.getInstance("SHA-256").digest((byte[])call(legacyPacket,"getPayload")));}
             else if(request==6){String inventoryAfter=inventoryLedger();prepareLegacy();String stateAfter=hex(MessageDigest.getInstance("SHA-256").digest((byte[])call(legacyPacket,"getPayload")));Object serverContainer=field(q.serverPlayer,"openContainer|field_71070_bA"),serverPSM=call(call(serverContainer,"getSyncManager"),"getMainPSM");JsonObject proof=new JsonObject();proof.addProperty("serverWindowBefore",q.number(field(inertServerContainer,"windowId|field_75152_c")));proof.addProperty("serverWindowAfter",q.number(field(serverContainer,"windowId|field_75152_c")));proof.addProperty("collectorWindowBefore",inertCollectorWindowBefore);proof.addProperty("collectorWindowAfter",windowId);proof.addProperty("serverContainerIdentityBefore",System.identityHashCode(inertServerContainer));proof.addProperty("serverContainerIdentityAfter",System.identityHashCode(serverContainer));proof.addProperty("serverPSMIdentityBefore",System.identityHashCode(inertServerPSM));proof.addProperty("serverPSMIdentityAfter",System.identityHashCode(serverPSM));proof.addProperty("sameServerContainer",serverContainer==inertServerContainer);proof.addProperty("sameServerPSM",serverPSM==inertServerPSM);proof.addProperty("sameCollectorExpectedValues",expectedValues==inertExpectedValuesBefore);proof.addProperty("inventoryBefore",inertInventoryBefore);proof.addProperty("inventoryAfter",inventoryAfter);proof.addProperty("statePayloadBefore",inertStateBefore);proof.addProperty("statePayloadAfter",stateAfter);proof.addProperty("scope","Actual synthetic MUI2 hit-test on empty slot or guard-disabled nearby action; no item movement or submitted paid operation intended");inertProof=proof;Path proofs=directory.resolve("inert-probes");Files.createDirectories(proofs);Files.write(proofs.resolve(row.get("name").getAsString()+".server.json"),json(proof),StandardOpenOption.CREATE_NEW);q.check("focused.server-inventory-and-state-inert."+row.get("name").getAsString(),inertInventoryBefore.equals(inventoryAfter)&&inertStateBefore.equals(stateAfter)&&serverContainer==inertServerContainer&&serverPSM==inertServerPSM&&windowId==inertCollectorWindowBefore&&windowId>0&&expectedValues==inertExpectedValuesBefore,"Canonical full slot+cursor NBT ledger and production state payload unchanged after actual synthetic hit-test");}
             else if(request==9){call(q.serverPlayer,"closeScreen|func_71053_j");for(Object[] f:fixtures.values()){Object current=call(f[0],"getTileEntity|func_147438_o",f[1],f[2],f[3]);if(current==f[4]){call(f[0],"setBlockToAir|func_147468_f",f[1],f[2],f[3]);}else if(current!=null)throw new AssertionError("Owned fixture changed identity during cleanup");}fixtures.clear();cleaned=true;q.record("batch.owned-fixture-cleanup",true,"Every tracked exact tile removed, actual server container closed; no paid or construction operation requested");}
@@ -247,9 +255,39 @@ public final class UiGalleryBatch {
         if(!Boolean.TRUE.equals(call(call(stack,"getItem|func_77973_b"),"placeBlockAt",stack,q.serverPlayer,w,x,y,z,1,.5f,.5f,.5f,0)))throw new AssertionError("Owned auxiliary placement failed "+kind);
         Object[] f=new Object[]{w,x,y,z,call(w,"getTileEntity|func_147438_o",x,y,z)};fixtures.put(key,f);return f;
     }
+    Object[] nativeOutputBus(String key)throws Exception {
+        int n=fixtures.size(),x=80+(n%13)*3,y=70,z=48+(n/13)*3;Object w=world();call(call(w,"getChunkProvider|func_72863_F"),"loadChunk|func_73158_c",x>>4,z>>4);
+        call(w,"setBlock|func_147465_d",x,y-1,z,field(type("net.minecraft.init.Blocks"),"stone|field_150348_b"),0,3);
+        Object item=Enum.valueOf((Class)type("gregtech.api.enums.ItemList"),"Hatch_Output_Bus_LV"),stack=call(item,"get",1L,new Object[0]);
+        if(!Boolean.TRUE.equals(call(call(stack,"getItem|func_77973_b"),"placeBlockAt",stack,q.serverPlayer,w,x,y,z,1,.5f,.5f,.5f,0)))throw new AssertionError("Output bus placement refused");
+        Object[] result=new Object[]{w,x,y,z,call(w,"getTileEntity|func_147438_o",x,y,z)};fixtures.put(key,result);return result;
+    }
     void populate(Object[] f)throws Exception {
         String kind=str(row,"kind","");if(!populatedFixtures.add(kind))return;Object machine=call(f[4],"getMetaTileEntity");
-        if(kind.equals("STEAM_HUB_ARRAY")||kind.equals("WATER_HUB_ARRAY")){
+        if(isEntanglement(row)){
+            boolean critical=kind.equals("CRITICAL_SINGULARITY_COMPRESSOR");
+            set(machine,"mStartUpCheck",Integer.MAX_VALUE);set(machine,"mUpdate",Integer.MAX_VALUE);set(machine,"mUpdated",false);
+            set(machine,"mMachine",true);set(machine,"mMaxProgresstime",Integer.MAX_VALUE);set(machine,"mProgresstime",0);
+            set(machine,"mHeat",.426d);set(machine,"mOverlimit",120d);set(machine,"mInstability",35d);set(machine,"mTear",critical?12d:0d);
+            call(f[4],"enableWorking");
+            String[] names=critical?new String[]{"densesteam","densesuperheatedsteam","densesupercriticalsteam","pyrotheum","cryotheum","ic2uumatter"}:new String[]{"steam","ic2superheatedsteam","supercriticalsteam","pyrotheum","cryotheum"};
+            int[] amounts={250000,0,0,10000,500,500};Map<String,Long> limits=new LinkedHashMap<String,Long>();
+            for(int i=0;i<names.length;i++){
+                Object[] input=auxiliary("SINGULARITY_FLUID_INPUT_COMPARTMENT","entanglement."+kind+"."+i);Object hatch=call(input[4],"getMetaTileEntity");
+                Object fluid=call(type("net.minecraftforge.fluids.FluidRegistry"),"getFluidStack",names[i],amounts[i]);
+                if(fluid!=null&&amounts[i]>0){Object accepted=call(hatch,"fill",fluid,true);if(((Number)accepted).intValue()<=0)throw new AssertionError("Fixture fluid fill refused");}
+                if(!Boolean.TRUE.equals(call(machine,"addSteamInputToMachineList",input[4],10)))throw new AssertionError("Input registration refused");
+                limits.put(input[1]+","+input[2]+","+input[3]+","+i,0L);
+            }
+            Object control=call(machine,"inputControl");
+            // Apply in six-row chunks through the same validated production method; keep all actual consumption zero.
+            Map<String,Long> chunk=new LinkedHashMap<String,Long>();
+            for(Map.Entry<String,Long> entry:limits.entrySet()){chunk.put(entry.getKey(),entry.getValue());if(chunk.size()==6){if(!Boolean.TRUE.equals(call(machine,"applyEntanglementLimits",chunk,call(control,"revision"))))throw new AssertionError("Fixture limits refused");chunk=new LinkedHashMap<String,Long>();}}
+            if(!chunk.isEmpty()&&!Boolean.TRUE.equals(call(machine,"applyEntanglementLimits",chunk,call(control,"revision"))))throw new AssertionError("Fixture limits refused");
+            Object[] bus=nativeOutputBus("entanglement.output."+kind);
+            if(!Boolean.TRUE.equals(call(machine,"addOutputBusToMachineList",bus[4],10)))throw new AssertionError("Output bus registration refused");
+            JsonObject proof=new JsonObject();proof.addProperty("scope","Owned GT controllers and real input hatch registrations; formed flag and held cycle are explicit visual fixture signals, not a built multiblock. All production limits zero; no fluid production, explosion or paid business is executed.");events.add(proof);
+        }else if(kind.equals("STEAM_HUB_ARRAY")||kind.equals("WATER_HUB_ARRAY")){
             boolean water=kind.equals("WATER_HUB_ARRAY");String[] kinds=water?new String[]{"WATER_CACHE_NODE","REINFORCED_WATER_CACHE_NODE","OVERPRESSURE_WATER_CACHE_NODE"}:new String[]{"STEAM_CACHE_NODE","REINFORCED_STEAM_CACHE_NODE","OVERPRESSURE_STEAM_CACHE_NODE"};
             for(int i=0;i<12;i++){Object[] node=auxiliary(kinds[i%3],"populated."+kind+"."+i);Object m=call(node[4],"getMetaTileEntity");call(m,"setCustomName","QA "+(i%2==0?"receiving":"sending")+" node "+(i+1));call(m,"setOutputMode",i%2==0);call(m,"setAutoOutput",i%3==0);long cap=((Number)call(m,"getMaximumFluidCapacity")).longValue();call(m,"setFluidCapacityLimit",Math.max(1L,cap/(i%3+1)));long maxRate=((Number)call(m,"getMaximumHubTransferRate")).longValue();call(m,"setHubTransferRate",maxRate/(i%3+1));Object fluid=call(type("net.minecraftforge.fluids.FluidRegistry"),"getFluidStack",water?"water":"steam",i%4==0?0:(int)Math.min(2_000_000_000L,Math.max(1L,cap/(i%4+2))));call(m,"setFillableStack",fluid);call(machine,"registerCacheNode",node[1],node[2],node[3],1048577,i%2==0);}
         }else if(kind.equals("SINGULARITY_DRILLING_HUB")){
@@ -265,6 +303,7 @@ public final class UiGalleryBatch {
         }else throw new IllegalArgumentException("Unsupported populated visual state "+kind);
         JsonObject e=new JsonObject();e.addProperty("populatedVisualState",kind);e.addProperty("scope","Owned real GT tile placement plus explicit registration/model/slot/stat fixture values; main controllers remain unformed; cluster module formed/tier flags are explicit visual-only signals with both GT check/run gates held, no physically formed structure claim. No recipes, paid binding, construction or inventory transaction executed. Snapshot payload remains production-assembled.");events.add(e);
     }
+    boolean isEntanglement(JsonObject value){String kind=str(value,"kind","");return kind.equals("STEAM_SINGULARITY_ENTANGLER")||kind.equals("CRITICAL_SINGULARITY_COMPRESSOR");}
     void openServer()throws Exception {
         Object[] f=(Object[])currentFixture;Object host=f[4];
         if(str(row,"visual","").equals("chest")){call(host,"beginReward",1);call(type(G+"common.gui.mui2.inventory.UnsealedChestFactory"),"open",q.serverPlayer,host);return;}

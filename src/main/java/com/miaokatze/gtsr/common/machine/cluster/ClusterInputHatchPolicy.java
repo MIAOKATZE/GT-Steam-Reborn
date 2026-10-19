@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import com.miaokatze.gtsr.api.compat.HatchElementBuilderCompat;
+
 import gregtech.api.util.HatchElementBuilder;
 import gregtech.common.blocks.ItemMachines;
 import gregtech.common.tileentities.machines.IDualInputHatch;
@@ -11,12 +13,11 @@ final class ClusterInputHatchPolicy {
 
     /** Configure native paths consistently without materializing the predicate-only hatch catalog. */
     static <T> HatchElementBuilder<T> rejectUnsupportedDualInput(HatchElementBuilder<T> builder) {
-        var nativeFilter = builder.getHatchItemFilter();
-        var nativeAdder = builder.getAdder();
-        var nativeSkip = builder.getShouldSkip();
-        return builder.hatchItemFilter(
-            (controller, trigger) -> nativeFilter.apply(controller, trigger)
-                .and(stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof IDualInputHatch)))
+        var nativeAdder = HatchElementBuilderCompat.adder(builder);
+        var nativeSkip = HatchElementBuilderCompat.shouldSkip(builder);
+        return builder
+            .hatchItemFilterAnd(
+                controller -> stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof IDualInputHatch))
             .adder(
                 (controller, tile, casingIndex) -> tile != null
                     && !(tile.getMetaTileEntity() instanceof IDualInputHatch)

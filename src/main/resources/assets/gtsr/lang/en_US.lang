@@ -323,8 +323,8 @@ gtsr.tooltip.critical_singularity_compressor.output_hatch=Output Hatch
 gtsr.tooltip.critical_singularity_compressor.tier1_blocks=Materials: Advanced Rhodium Plated Palladium Machine Casing x1325, Fusion Coil Block x494, Fusion Machine Casing MK II x322, ZPM Machine Casing x212, Superconductor Coil Casing x112, Europium Frame x80, Rhodium Plated Palladium Frame x64, BW Tiered Glass III x117
 # T6 Three-value mechanics (one sentence per line)
 gtsr.tooltip.critical_singularity_compressor.overlimit_1=Overlimit mode tracks three values: singularity overlimit (0-1000%), structural instability (0-100%) and dimension tear (0-100%), all readable via GUI entries and the redstone hatch;
-gtsr.tooltip.critical_singularity_compressor.overlimit_2=Blazing Pyrotheum raises overlimit (y=0.05x/(x+5000)) and amplifies heat by (1 + overlimit/100) x (1 + tear/100); overlimit decays passively each second;
-gtsr.tooltip.critical_singularity_compressor.overlimit_3=Above 200% overlimit, instability accumulates while working (+overlimit/1000 per second); Gelid Cryotheum lowers it (y=0.01x/(x+1000)), overdosing forces a shutdown (Structural Chill);
+gtsr.tooltip.critical_singularity_compressor.overlimit_2=Blazing Pyrotheum raises overlimit (y=5x/(x+5000)) and amplifies heat by (1 + overlimit/100) x (1 + tear/100); overlimit decays passively each second;
+gtsr.tooltip.critical_singularity_compressor.overlimit_3=Above 200% overlimit, instability accumulates while working (+overlimit/1000 per second); Gelid Cryotheum lowers it (y=x/(x+1000)), overdosing forces a shutdown (Structural Chill);
 gtsr.tooltip.critical_singularity_compressor.overlimit_4=With instability >50% and overlimit >800%: the core singularity turns purple and dimension tear accumulates (+instability/100 + overlimit/1000 per second);
 gtsr.tooltip.critical_singularity_compressor.overlimit_5=UU-Matter lowers tear (-0.1% per 100 mB), overdosing forces a shutdown (Dimension Solidification); without UU the tear creeps +0.1% per second;
 gtsr.tooltip.critical_singularity_compressor.overlimit_6=While off, instability and tear each decay 0.1% per second.
@@ -850,7 +850,7 @@ gtsr.tooltip.entangler.tier1_blocks=Tier 1: Solid Steel Machine Casing x1340, St
 gtsr.tooltip.entangler.overlimit_1=Overlimit mode: Blazing Pyrotheum raises singularity overlimit (0-500%) and amplifies heat by (1 + overlimit/100), capped at 6x at 500%;
 gtsr.tooltip.entangler.overlimit_2=Overlimit decays passively each second (-0.01% while below 0.01%, otherwise -value/2000);
 gtsr.tooltip.entangler.overlimit_3=Above 200% overlimit, structural instability accumulates while working (+overlimit/1000 per second);
-gtsr.tooltip.entangler.overlimit_4=Gelid Cryotheum lowers structural instability (y=0.01x/(x+1000)); overdosing forces a shutdown (Structural Chill, recover with soft hammer);
+gtsr.tooltip.entangler.overlimit_4=Gelid Cryotheum lowers structural instability (y=x/(x+1000)); overdosing forces a shutdown (Structural Chill, recover with soft hammer);
 gtsr.tooltip.entangler.overlimit_5=While off, instability decays 0.1% per second.
 gtsr.tooltip.entangler.overlimit_explode=Two explosion chains (first trigger wins): overlimit >500% Device Overlimit / instability >100% Structural Collapse - a rogue black singularity (4 min self-destruct) spawns and destroys the machine!
 
@@ -4211,3 +4211,91 @@ tile.critical_proxy_superconducting_contact.name=Superconducting Contact
 tile.critical_proxy_turbine_rotor_blade.name=Turbine Rotor Blade
 tile.critical_proxy_turbine_stator.name=Turbine Stator
 tile.critical_proxy_violet_phase_glass.name=Violet Phase Glass
+
+# Singularity entanglement handheld terminal
+gtsr.entanglement_terminal.sse=Steam Singularity Entangler
+gtsr.entanglement_terminal.cess=Critical Entangled Singularity Stabilizer
+gtsr.entanglement_terminal.inputs=Input Hatch Limits
+gtsr.entanglement_terminal.limit_hint=Detected fluids only / blank = all / 0 = disabled
+gtsr.entanglement_terminal.fluid_hatch=Fluid / Input Hatch
+gtsr.entanglement_terminal.stored=Stored
+gtsr.entanglement_terminal.limit=Limit (mB/s)
+gtsr.entanglement_terminal.consume=Planned Debit
+gtsr.entanglement_terminal.effect=Effect / second
+gtsr.entanglement_terminal.all=All
+gtsr.entanglement_terminal.hatch=Hatch
+gtsr.entanglement_terminal.heat=Heat
+gtsr.entanglement_terminal.overlimit=Overlimit
+gtsr.entanglement_terminal.instability=Instability
+gtsr.entanglement_terminal.tear=Dimension Tear
+gtsr.entanglement_terminal.solidified=Dimension Solidified
+gtsr.entanglement_terminal.solid_state=Solidified
+gtsr.entanglement_terminal.no_tear=No dimension tear mechanic
+gtsr.entanglement_terminal.fixed_state=Fixed state / not calculated
+gtsr.entanglement_terminal.next_second=Next
+gtsr.entanglement_terminal.heat_cap=100% produces a singularity
+gtsr.entanglement_terminal.overlimit_cap_sse=>500% overlimit explosion
+gtsr.entanglement_terminal.overlimit_cap_cess=>=1000% overlimit explosion
+gtsr.entanglement_terminal.instability_cap=>100% structural collapse
+gtsr.entanglement_terminal.tear_cap=>100% dimension tear
+gtsr.entanglement_terminal.fluid_0=Steam
+gtsr.entanglement_terminal.fluid_1=Superheated Steam
+gtsr.entanglement_terminal.fluid_2=Supercritical Steam
+gtsr.entanglement_terminal.fluid_3=Blazing Pyrotheum
+gtsr.entanglement_terminal.fluid_4=Gelid Cryotheum
+gtsr.entanglement_terminal.fluid_5=UU-Matter
+gtsr.entanglement_terminal.dense_0=Dense Steam
+gtsr.entanglement_terminal.dense_1=Dense Superheated Steam
+gtsr.entanglement_terminal.dense_2=Dense Supercritical Steam
+gtsr.entanglement_terminal.previous=<
+gtsr.entanglement_terminal.next=>
+gtsr.entanglement_terminal.discard=Discard Draft
+gtsr.entanglement_terminal.defaults=Reset All to Default
+gtsr.entanglement_terminal.apply=Apply Limits
+gtsr.entanglement_terminal.apply_hint=Save this page. Reset All takes effect only after Apply.
+gtsr.entanglement_terminal.limit_tooltip=Nonnegative integer mB/s. Blank consumes all; 0 disables this fluid at this hatch. Maximum 9223372036854775807.
+gtsr.entanglement_terminal.shared_me_hint=Hatches on the same ME network may report shared stock more than once; output follows actual extraction.
+gtsr.entanglement_terminal.effect_hint=Effects are totals per fluid. Meters also include decay, accumulation and shutdown.
+gtsr.entanglement_terminal.forecast_hint=One full-cycle estimate from current stock and drafts. Actual timing, extraction and output space govern production.
+gtsr.entanglement_terminal.no_inputs=No processable fluid detected. Fill a hatch with a supported fluid to show it here.
+gtsr.entanglement_terminal.syncing=Synchronizing...
+gtsr.entanglement_terminal.unformed=Incomplete structure
+gtsr.entanglement_terminal.stopped=Stopped
+gtsr.entanglement_terminal.running=Formed / Running
+gtsr.entanglement_terminal.idle=Formed / Awaiting steam
+gtsr.entanglement_terminal.warn_explosion=DANGER: the next-second forecast reaches an explosion threshold. Adjust the inputs.
+gtsr.entanglement_terminal.warn_chill=Overcooling: Cryotheum exceeds current instability; Structural Chill will stop the machine, including at zero.
+gtsr.entanglement_terminal.warn_solidify=Excess UU: solidification exceeds current tear; Dimension Solidification will stop the machine.
+gtsr.entanglement_terminal.warn_output=Output bus full: heat is retained at 100%; production resumes when space is available.
+gtsr.entanglement_terminal.warn_stopped=No fluid consumption. Overlimit decays; instability/tear each decrease 0.1% per second.
+gtsr.entanglement_terminal.warn_idle=No usable steam. Auxiliary fluids are still consumed while work is enabled.
+gtsr.entanglement_terminal.warn_safe=Forecast normal. Fluid effects use the total actual amount consumed per fluid.
+gtsr.entanglement_terminal.receipt_ready=Live snapshot / Apply explicitly saves limits
+gtsr.entanglement_terminal.receipt_draft=Unsaved draft / meters preview draft settings
+gtsr.entanglement_terminal.receipt_default_draft=Reset-all draft / Apply restores full consumption at every hatch
+gtsr.entanglement_terminal.receipt_pending=Saving...
+gtsr.entanglement_terminal.receipt_applied=Limits saved to machine
+gtsr.entanglement_terminal.receipt_rejected=Save rejected. Discard the draft to refresh before editing again.
+gtsr.entanglement_terminal.receipt_conflict=Inputs or settings changed. Discard the draft to refresh.
+gtsr.entanglement_terminal.receipt_invalid=Invalid limit: nonnegative integer only; blank consumes all
+gtsr.entanglement_terminal.receipt_save_first=Apply or discard the draft before changing pages
+gtsr.entanglement_terminal.rule_0=Limit each fluid at each hatch independently. Blank consumes all; 0 disables it. Limits persist with the controller.
+gtsr.entanglement_terminal.rule_1=Only the highest available steam grade is processed. Disabling higher-grade input allows the next grade.
+gtsr.entanglement_terminal.rule_2=SSE accepts normal steam variants; CESS only dense variants. Grade coefficients: 0.5, 1, 2.
+gtsr.entanglement_terminal.rule_3=Heat gain (percentage points) = 0.5 x grade coefficient x amount/(amount+half-point) x multiplier.
+gtsr.entanglement_terminal.rule_4=Half-points: SSE 200000mB, CESS 5000mB. Multiplier=(1+overlimit/100); CESS also uses (1+tear/100).
+gtsr.entanglement_terminal.rule_5=Pyrotheum: +5x/(x+5000) overlimit points. Cryotheum: -x/(x+1000) instability points.
+gtsr.entanglement_terminal.rule_6=Overlimit rises, then decays: subtract 0.01 below 0.01%; otherwise subtract current value/2000.
+gtsr.entanglement_terminal.rule_7=While working above 200% overlimit, instability rises by overlimit/1000 per second. Off: instability/tear -0.1%.
+gtsr.entanglement_terminal.rule_8=CESS above 50% instability and 800% overlimit: tear += instability/100+overlimit/1000; no UU: creep +0.1%.
+gtsr.entanglement_terminal.rule_9=Each mB UU removes 0.001 tear points. Excess Cryotheum or UU forces shutdown, including at zero.
+gtsr.entanglement_terminal.rule_10=First trigger wins: SSE overlimit >500%, CESS >=1000%; then instability >100%, then CESS tear >100%.
+gtsr.entanglement_terminal.sse_solid=SSE has a solidified dimension: no dimension tear mechanic.
+gtsr.tooltip.hub_terminal.desc.8=Steam Singularity Entangler: input limits and operating values
+gtsr.tooltip.hub_terminal.desc.9=Critical Entangled Singularity Stabilizer: input limits and tear forecast
+gtsr.entanglement_terminal.formula_title=Live Heat Calculation
+gtsr.entanglement_terminal.formula_live=Current settings
+gtsr.entanglement_terminal.formula_draft=Draft preview / not applied
+gtsr.entanglement_terminal.formula_terms=Base heat x steam grade x saturation x overlimit multiplier (CESS also uses tear). Stopped operation adds a zero gate.
+gtsr.entanglement_terminal.formula_saturation=Saturation
+gtsr.entanglement_terminal.detected_hint=Only input hatches currently containing the corresponding fluid are listed. Empty rows hide; saved limits remain.

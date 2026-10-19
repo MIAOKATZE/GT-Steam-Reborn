@@ -9,7 +9,7 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0 beta1-3 & RC1-2" src="https://img.shields.io/badge/GTNH-2.9.0%20beta1--3%20%26%20RC1--2-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.21.14" src="https://img.shields.io/badge/Release-1.21.14-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.21.48" src="https://img.shields.io/badge/Release-1.21.48-green.svg"></a>
 </p>
 
 GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
@@ -258,11 +258,19 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 
 <p align="center"><img src="README/MTESteamSingularityEntangler.png" width="450" alt="蒸汽奇点纠缠装置 / Steam Singularity Entangler"><br><em>蒸汽奇点纠缠装置 / Steam Singularity Entangler</em></p>
 
+<p align="center"><img src="README/SSE-Terminal.png" width="900" alt="蒸汽奇点纠缠装置机器终端 / Steam Singularity Entangler Terminal"><br><em>蒸汽奇点纠缠装置机器终端 / Steam Singularity Entangler Terminal</em></p>
+
 **临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer (CSC)**
 
 仅接收致密蒸汽、致密过热与致密超临界蒸汽，累积热量产出临界蒸汽纠缠奇点。运行时消耗输入仓蒸汽并禁用蒸汽冷却，需要输入总线；结构核心显示纠缠奇点动画。
 
 <p align="center"><img src="README/MTECriticalSingularityCompressor.png" width="450" alt="临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer"><br><em>临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer</em></p>
+
+<p align="center"><img src="README/CSC-Terminal.png" width="900" alt="临界纠缠奇点稳定装置机器终端 / Critical Entangled Singularity Stabilizer Terminal"><br><em>临界纠缠奇点稳定装置机器终端 / Critical Entangled Singularity Stabilizer Terminal</em></p>
+
+手持机器终端右击这两台机器的控制器，可查看实时热量公式、运行状态和各输入仓的处理量。仅显示实际存有对应流体的仓室；处理上限留空消耗全部，0 暂停，修改后点击“应用处理量”保存。机制与阈值可悬浮查看；蒸汽装置的维度撕裂栏为固定“维度固化”状态。
+
+Right-click either controller with the Machine Terminal to view its live heat formula, operating values and per-hatch input limits. Only fluids currently stored in a hatch are listed. Leave a limit blank to consume all, or enter 0 to pause; click Apply Limits to save. Hover for rules and thresholds. The steam entangler has a fixed solidified dimension and no dimension-tear mechanic.
 
 **致密态蒸汽操控装置 / Dense State Manipulator (DSM)**
 

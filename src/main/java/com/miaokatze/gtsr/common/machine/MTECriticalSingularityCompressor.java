@@ -161,7 +161,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
         // UU 物质（双名探测）：全量消耗 → 撕裂 -0.001x；超扣（减少量 > 当前撕裂）→ clamp 0 + 停机 + 聊天「维度固化→停机」
         FluidStack uuProbe = FluidRegistry.getFluidStack(UU_MATTER_FLUID_NAME, 1);
         if (uuProbe == null) uuProbe = FluidRegistry.getFluidStack(UU_MATTER_FLUID_NAME_LEGACY, 1);
-        int uu = drainAllOfFluid(uuProbe);
+        long uu = drainAllOfFluid(uuProbe);
         if (uu > 0) {
             mUUConsumedThisSecond = true;
             double reduction = 0.001d * uu;

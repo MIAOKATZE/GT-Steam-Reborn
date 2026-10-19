@@ -222,19 +222,17 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
                 SteamHubStorageElement.OverpressureUnit)
             .casingIndex(CASING_INDEX)
             .hint(2);
-        var nativeFilter = builder.getHatchItemFilter();
-        return builder.hatchItemFilter((controller, trigger) -> {
+        return builder.hatchItemFilterAnd((controller, trigger) -> {
             int selectedTier = trigger == null ? 1 : ChannelDataAccessor.getChannelData(trigger, "casing");
             int casingTier = Math.max(1, Math.min(3, selectedTier));
-            return nativeFilter.apply(controller, trigger)
-                .and(stack -> {
-                    IMetaTileEntity mte = ItemMachines.getMetaTileEntity(stack);
-                    return switch (casingTier) {
-                        case 1 -> mte instanceof MTEHubStorageUnit;
-                        case 2 -> mte instanceof MTEReinforcedHubStorageUnit;
-                        default -> mte instanceof MTEOverpressureHubStorageUnit;
-                    };
-                });
+            return stack -> {
+                IMetaTileEntity mte = ItemMachines.getMetaTileEntity(stack);
+                return switch (casingTier) {
+                    case 1 -> mte instanceof MTEHubStorageUnit;
+                    case 2 -> mte instanceof MTEReinforcedHubStorageUnit;
+                    default -> mte instanceof MTEOverpressureHubStorageUnit;
+                };
+            };
         });
     }
 

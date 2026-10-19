@@ -139,15 +139,13 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                 t -> stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof MTEPressureSteamCoolingHatch))
             .casingIndex(SOLID_STEEL_CASING_INDEX)
             .hint(1);
-        var nativeFilter = builder.getHatchItemFilter();
-        return builder.hatchItemFilter((controller, trigger) -> {
+        return builder.hatchItemFilterAnd((controller, trigger) -> {
             int selectedTier = trigger == null ? 1 : ChannelDataAccessor.getChannelData(trigger, "casing");
             int casingTier = Math.max(1, Math.min(12, selectedTier));
-            return nativeFilter.apply(controller, trigger)
-                .and(stack -> {
-                    IMetaTileEntity mte = ItemMachines.getMetaTileEntity(stack);
-                    return !(mte instanceof MTEHatchEnergy energy) || energy.getInputTier() <= casingTier;
-                });
+            return stack -> {
+                IMetaTileEntity mte = ItemMachines.getMetaTileEntity(stack);
+                return !(mte instanceof MTEHatchEnergy energy) || energy.getInputTier() <= casingTier;
+            };
         });
     }
 

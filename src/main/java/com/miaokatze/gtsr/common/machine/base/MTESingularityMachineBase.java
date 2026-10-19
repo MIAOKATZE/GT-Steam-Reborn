@@ -5,11 +5,13 @@ import static gregtech.api.enums.GTValues.emptyItemStackArray;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.texture.IIconRegister;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
@@ -29,6 +31,9 @@ import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.event.GTSRSingularityStructChillEvent;
 import com.miaokatze.gtsr.common.gui.MTESingularityMachineGui;
+import com.miaokatze.gtsr.common.terminal.entanglement.EntanglementInputs;
+import com.miaokatze.gtsr.common.terminal.entanglement.EntanglementMath;
+import com.miaokatze.gtsr.common.terminal.entanglement.EntanglementSnapshot;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -85,6 +90,7 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
     public double mOverlimit = 0.0d;
     /** 结构失稳程度（%）：>100 结构崩解爆炸链；超限>200 工作中积累，cryotheum 降温，停机衰减 */
     public double mInstability = 0.0d;
+    private EntanglementInputs entanglementInputs;
     /** 维度撕裂程度（%）：>100 维度撕裂爆炸链（仅 CESS 实装） */
     public double mTear = 0.0d;
 
@@ -325,8 +331,14 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
     protected final CheckRecipeResult processAggregationCycle() {
         int grade = findHighestGrade(includeDenseSteam());
         if (grade < 0) return CheckRecipeResultRegistry.NO_RECIPE;
-        long amount = sumGrade(grade, includeDenseSteam());
-        drainGrade(grade, includeDenseSteam());
+        long amount;
+        if (hasOverlimitMechanics()) {
+            amount = inputControl().drain(entanglementInputRows(), grade);
+            if (amount <= 0) return CheckRecipeResultRegistry.NO_RECIPE;
+        } else {
+            amount = sumGrade(grade, includeDenseSteam());
+            drainGrade(grade, includeDenseSteam());
+        }
         double base = getHeatMax() * amount / (amount + getHeatHalfPoint());
         // T4 热量乘数钩子：默认 1.0（聚合器/致密机不受影响）；SSE=(1+超限/100)、CESS=(1+超限/100)(1+撕裂/100)
         mHeat += GRADE_COEF[grade] * base * getHeatMultiplier();
@@ -392,6 +404,12 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
     }
 
     protected final int findHighestGrade(boolean includeDense) {
+        if (hasOverlimitMechanics()) {
+            long[] amounts = new long[EntanglementInputs.KINDS];
+            for (EntanglementInputs.Input input : entanglementInputRows())
+                amounts[input.kind] = EntanglementInputs.add(amounts[input.kind], input.requested());
+            return EntanglementMath.grade(amounts);
+        }
         // v1.10.5 拆分后 1 级机（蒸汽奇点纠缠装置）设计上识别全部普通等级（蒸汽/过热/超临界），
         // 致密变体由 includeDense 参数控制；全等级识别与 tooltip 描述一致。
         for (int grade = 2; grade >= 0; grade--) {
@@ -523,8 +541,7 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
         }
         // 2. 超限被动衰减（无条件，唯一自然降低手段；字面读法）：值 < 0.01 时 -0.01，否则 -值/2000，clamp ≥ 0
         if (mOverlimit > 0.0d) {
-            mOverlimit = mOverlimit < OVERLIMIT_DECAY_SMALL ? Math.max(0.0d, mOverlimit - OVERLIMIT_DECAY_SMALL)
-                : Math.max(0.0d, mOverlimit - mOverlimit / 2000.0d);
+            mOverlimit = EntanglementMath.decayOverlimit(mOverlimit);
         }
         boolean working = shouldRenderEntanglementSingularity(aBaseMetaTileEntity);
         if (working) {
@@ -546,18 +563,18 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
 
     /**
      * 双流体结算（SSE/CESS 同款，v1.1 §2.4/§2.5）：
-     * pyrotheum 全量消耗 → 超限 +0.05x/(x+5000)；
-     * cryotheum 全量消耗 → 失稳 -0.01x/(x+1000)，超扣（减少量 > 当前失稳）→ clamp 0 + disableWorking()
+     * 状态以百分数保存：pyrotheum 全量消耗 → 超限 +5x/(x+5000) 个百分点；
+     * cryotheum 全量消耗 → 失稳 -x/(x+1000) 个百分点，超扣（减少量 > 当前失稳）→ clamp 0 + disableWorking()
      * （GT 原生软锤状态，玩家软锤右键恢复）+ 全服聊天「结构失温→停机」。
      */
     protected final void consumePyrotheumAndCryotheum() {
-        int pyrotheum = drainAllOfFluid(FluidRegistry.getFluidStack(PYROTHEUM_FLUID_NAME, 1));
+        long pyrotheum = drainAllOfFluid(FluidRegistry.getFluidStack(PYROTHEUM_FLUID_NAME, 1));
         if (pyrotheum > 0) {
-            mOverlimit += 0.05d * pyrotheum / (pyrotheum + 5000.0d);
+            mOverlimit += EntanglementMath.pyrotheum(pyrotheum);
         }
-        int cryotheum = drainAllOfFluid(FluidRegistry.getFluidStack(CRYOTHEUM_FLUID_NAME, 1));
+        long cryotheum = drainAllOfFluid(FluidRegistry.getFluidStack(CRYOTHEUM_FLUID_NAME, 1));
         if (cryotheum > 0) {
-            double reduction = 0.01d * cryotheum / (cryotheum + 1000.0d);
+            double reduction = EntanglementMath.cryotheum(cryotheum);
             if (reduction > mInstability) {
                 // 超扣：结构失温 → clamp 0 + 强制停机 + 全服聊天（先于停机发送）
                 mInstability = 0.0d;
@@ -576,8 +593,16 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
      * 探测走 getTankInfo，命中后逐仓 drain MAX_VALUE 实扣（勿经 GTSRHatchFluidAccess 传 MAX_VALUE，其注释 :23-25 禁止），
      * 返回实际消耗总量（mB）。probe 为 null（流体未注册）或输入仓无此流体时返回 0。
      */
-    protected final int drainAllOfFluid(@Nullable FluidStack probe) {
+    protected final long drainAllOfFluid(@Nullable FluidStack probe) {
         if (probe == null) return 0;
+        if (hasOverlimitMechanics()) {
+            for (int kind = 3; kind < EntanglementInputs.KINDS; kind++) {
+                FluidStack supported = EntanglementInputs.fluid(hasTearMechanics(), kind);
+                if (supported != null && supported.isFluidEqual(probe))
+                    return inputControl().drain(entanglementInputRows(), kind);
+            }
+            return 0;
+        }
         boolean present = false;
         for (MTEHatch hatch : getSteamInputHatches()) {
             FluidTankInfo[] tanks = hatch.getTankInfo(ForgeDirection.UNKNOWN);
@@ -593,12 +618,79 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
         if (!present) return 0;
         FluidStack full = probe.copy();
         full.amount = Integer.MAX_VALUE;
-        int drained = 0;
+        long drained = 0;
         for (MTEHatch hatch : getSteamInputHatches()) {
             FluidStack got = hatch.drain(ForgeDirection.UNKNOWN, full, true);
             if (got != null) drained += got.amount;
         }
         return drained;
+    }
+
+    private EntanglementInputs inputControl() {
+        if (entanglementInputs == null) entanglementInputs = new EntanglementInputs();
+        return entanglementInputs;
+    }
+
+    public boolean hasEntanglementTerminal() {
+        return hasOverlimitMechanics();
+    }
+
+    public List<EntanglementInputs.Input> entanglementInputRows() {
+        return inputControl().collect(getSteamInputHatches(), hasTearMechanics());
+    }
+
+    public EntanglementSnapshot entanglementSnapshot(int page) {
+        return EntanglementSnapshot.assemble(
+            hasTearMechanics(),
+            mMachine,
+            getBaseMetaTileEntity().isAllowedToWork(),
+            mMaxProgresstime > 0,
+            canOutputSingularity(),
+            mHeat * 100,
+            mOverlimit,
+            mInstability,
+            mTear,
+            inputControl().revision(),
+            page,
+            entanglementInputRows());
+    }
+
+    public boolean applyEntanglementLimits(Map<String, Long> changes, int expectedRevision) {
+        return applyEntanglementLimits(changes, expectedRevision, false);
+    }
+
+    public boolean applyEntanglementLimits(Map<String, Long> changes, int expectedRevision, boolean reset) {
+        if (!hasOverlimitMechanics()) return false;
+        java.util.Set<String> valid = new java.util.HashSet<>();
+        for (MTEHatch hatch : getSteamInputHatches()) {
+            IGregTechTileEntity base = hatch.getBaseMetaTileEntity();
+            if (base == null) continue;
+            for (int kind = 0; kind < (hasTearMechanics() ? 6 : 5); kind++)
+                valid.add(EntanglementInputs.key(base.getXCoord(), base.getYCoord(), base.getZCoord(), kind));
+        }
+        if (!valid.containsAll(changes.keySet()) || !inputControl().apply(changes, expectedRevision, reset))
+            return false;
+        getBaseMetaTileEntity().markDirty();
+        return true;
+    }
+
+    public boolean resetEntanglementLimits(int expectedRevision) {
+        if (!hasOverlimitMechanics() || !inputControl().reset(expectedRevision)) return false;
+        getBaseMetaTileEntity().markDirty();
+        return true;
+    }
+
+    @Override
+    public boolean onRightclick(IGregTechTileEntity base, EntityPlayer player, ForgeDirection side, float hitX,
+        float hitY, float hitZ) {
+        ItemStack held = player.getHeldItem();
+        if (hasEntanglementTerminal() && held != null
+            && held.getItem() instanceof com.miaokatze.gtsr.common.items.HubTerminal) {
+            if (base.isServerSide())
+                com.miaokatze.gtsr.common.gui.mui2.entanglement.EntanglementTerminalFactory.open(player, base);
+            return true;
+        }
+        return super.onRightclick(base, player, side, hitX, hitY, hitZ);
     }
 
     /**
@@ -857,6 +949,7 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
         aNBT.setDouble("mOverlimit", mOverlimit);
         aNBT.setDouble("mInstability", mInstability);
         aNBT.setDouble("mTear", mTear);
+        if (hasOverlimitMechanics()) inputControl().save(aNBT);
     }
 
     @Override
@@ -868,6 +961,7 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
         mOverlimit = aNBT.getDouble("mOverlimit");
         mInstability = aNBT.getDouble("mInstability");
         mTear = aNBT.getDouble("mTear");
+        if (hasOverlimitMechanics()) inputControl().load(aNBT);
     }
 
     @Override
