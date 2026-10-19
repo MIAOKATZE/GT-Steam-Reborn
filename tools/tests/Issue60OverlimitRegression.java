@@ -103,7 +103,13 @@ class Issue60Runtime {
         require(machine.applyEntanglementLimits(Map.of(),1,true),"restore-all accepted");
         machine.step();
         require(((Tank)machine.inputs.get(0)).fluid.amount==0&&((Tank)machine.inputs.get(1)).fluid.amount==0,"restored defaults consume all inputs");
-        require(machine.entanglementInputRows().size()==2,"empty observed fluids retain their editing rows");
+        require(machine.entanglementInputRows().isEmpty(),"drained fluids immediately disappear from terminal rows");
+        Machine empty=machine();empty.feed("steam",0);
+        require(empty.entanglementInputRows().isEmpty(),"empty hatches do not create synthetic fluid rows");
+        require(empty.applyEntanglementLimits(Map.of("0,0,0,3",0L),0),"saved limits can exist for currently absent fluids");
+        require(empty.entanglementInputRows().isEmpty(),"saved limits do not fabricate detected fluid rows");
+        ((Tank)empty.inputs.get(0)).fluid=FluidRegistry.getFluidStack("pyrotheum",100);
+        require(empty.entanglementInputRows().size()==1&&empty.entanglementInputRows().get(0).limit==0,"refilling reveals only the actual fluid and retains its limit");
         require(control.apply(Map.of("1,2,3,4",0L,"4,5,6,3",Long.MAX_VALUE),0),"long limits accepted");
         net.minecraft.nbt.NBTTagCompound nbt=new net.minecraft.nbt.NBTTagCompound();control.save(nbt);
         var loaded=new com.miaokatze.gtsr.common.terminal.entanglement.EntanglementInputs();loaded.load(nbt);

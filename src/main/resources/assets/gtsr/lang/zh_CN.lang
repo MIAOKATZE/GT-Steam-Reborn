@@ -4211,10 +4211,8 @@ tile.critical_proxy_violet_phase_glass.name=紫色相位玻璃
 # Singularity entanglement handheld terminal
 gtsr.entanglement_terminal.sse=蒸汽奇点纠缠装置
 gtsr.entanglement_terminal.cess=临界纠缠奇点稳定装置
-gtsr.entanglement_terminal.overview=运行与输入
-gtsr.entanglement_terminal.rules=机制说明
 gtsr.entanglement_terminal.inputs=输入仓处理量
-gtsr.entanglement_terminal.limit_hint=逐仓 · 逐流体 / 每秒结算 / 留空 = 全部 / 0 = 不消耗
+gtsr.entanglement_terminal.limit_hint=仅显示已检测流体 / 留空 = 全部 / 0 = 不消耗
 gtsr.entanglement_terminal.fluid_hatch=流体 / 输入仓
 gtsr.entanglement_terminal.stored=当前储量
 gtsr.entanglement_terminal.limit=处理上限 (mB/s)
@@ -4255,7 +4253,7 @@ gtsr.entanglement_terminal.limit_tooltip=非负整数 mB/s；留空消耗全部�
 gtsr.entanglement_terminal.shared_me_hint=共享 ME 网络的多个仓可能重复显示储量，实际产出以成功扣取量为准。
 gtsr.entanglement_terminal.effect_hint=此列为同类流体合计效果；上方仪表另计自然衰减、积累与停机。
 gtsr.entanglement_terminal.forecast_hint=按当前储量与草稿预测一个完整周期；实际以运行调度、成功扣取与输出空间为准。
-gtsr.entanglement_terminal.no_inputs=暂无输入仓；结构检测后显示实际输入仓。
+gtsr.entanglement_terminal.no_inputs=未检测到可处理流体；注入对应流体后才显示输入仓。
 gtsr.entanglement_terminal.syncing=同步中…
 gtsr.entanglement_terminal.unformed=结构不完整
 gtsr.entanglement_terminal.stopped=已停机
@@ -4291,3 +4289,9 @@ gtsr.entanglement_terminal.rule_10=爆炸链首触即止：SSE 超限>500%，CES
 gtsr.entanglement_terminal.sse_solid=蒸汽奇点纠缠装置的维度已固化：没有维度撕裂机制。
 gtsr.tooltip.hub_terminal.desc.8=蒸汽奇点纠缠装置：输入仓限量与运行数值
 gtsr.tooltip.hub_terminal.desc.9=临界纠缠奇点稳定装置：输入仓限量与撕裂预测
+gtsr.entanglement_terminal.formula_title=实时热量计算
+gtsr.entanglement_terminal.formula_live=当前设定
+gtsr.entanglement_terminal.formula_draft=草稿预览 · 尚未应用
+gtsr.entanglement_terminal.formula_terms=基础热量 × 蒸汽等级 × 饱和系数 × 超限倍率（CESS 再乘撕裂倍率）；停机门控为 0。
+gtsr.entanglement_terminal.formula_saturation=饱和系数
+gtsr.entanglement_terminal.detected_hint=仅列出当前确实存有对应流体的输入仓；耗尽后隐藏，已有处理上限仍保留。

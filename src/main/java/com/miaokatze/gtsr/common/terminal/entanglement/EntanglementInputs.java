@@ -27,7 +27,6 @@ public final class EntanglementInputs {
     private static final String[] DENSE = { "densesteam", "densesuperheatedsteam", "densesupercriticalsteam",
         "pyrotheum", "cryotheum", "ic2uumatter" };
     private final Map<String, Long> limits = new LinkedHashMap<>();
-    private final java.util.Set<String> discovered = new java.util.HashSet<>();
     private int revision;
 
     public static final class Input {
@@ -85,21 +84,13 @@ public final class EntanglementInputs {
         List<Input> inputs = new ArrayList<>();
         for (MTEHatch hatch : hatches) {
             if (hatch == null || hatch.getBaseMetaTileEntity() == null) continue;
-            List<Input> present = new ArrayList<>();
             for (int kind = 0; kind < (critical ? KINDS : KINDS - 1); kind++) {
                 FluidStack probe = fluid(critical, kind);
                 IGregTechTileEntity base = hatch.getBaseMetaTileEntity();
                 long limit = limits.getOrDefault(key(base.getXCoord(), base.getYCoord(), base.getZCoord(), kind), -1L);
                 Input input = new Input(hatch, kind, probe, stored(hatch, probe), limit);
-                if (input.stored > 0 || limit >= 0) discovered.add(input.key);
-                if (input.stored > 0 || limit >= 0 || discovered.contains(input.key)) present.add(input);
+                if (input.stored > 0) inputs.add(input);
             }
-            // Empty hatches remain configurable before the first fill.
-            if (present.isEmpty()) {
-                for (int kind = 0; kind < (critical ? KINDS : KINDS - 1); kind++)
-                    present.add(new Input(hatch, kind, fluid(critical, kind), 0, -1));
-            }
-            inputs.addAll(present);
         }
         inputs.sort(
             Comparator.comparingInt((Input input) -> input.x)
@@ -178,7 +169,6 @@ public final class EntanglementInputs {
 
     public void load(NBTTagCompound nbt) {
         limits.clear();
-        discovered.clear();
         revision = 0;
         NBTTagList list = nbt.getTagList("entanglementInputLimits", 10);
         for (int i = 0; i < Math.min(MAX_LIMITS, list.tagCount()); i++) {

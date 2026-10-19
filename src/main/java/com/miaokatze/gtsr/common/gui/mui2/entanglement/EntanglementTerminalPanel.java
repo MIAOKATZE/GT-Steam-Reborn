@@ -20,8 +20,6 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
-import com.cleanroommc.modularui.widgets.PageButton;
-import com.cleanroommc.modularui.widgets.PagedWidget;
 import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
@@ -53,72 +51,107 @@ public final class EntanglementTerminalPanel {
         ParentWidget<?> body = new ParentWidget<>().name("entanglement_body")
             .size(604, 332)
             .pos(0, 0);
-        body.child(text(() -> {
-            EntanglementSnapshot snapshot = session.snapshot();
-            return tr(snapshot != null && snapshot.critical ? "cess" : "sse");
-        }, 4, 5, 426, 13, 1, TITLE).name("entanglement_title"));
-        body.child(text(() -> status(session), 432, 7, 166, 11, 0.7f, GtsrGuiPalette.STATE_ONLINE));
-        body.child(line(24));
-        PagedWidget.Controller controller = new PagedWidget.Controller();
         body.child(
-            new PageButton(0, controller).name("entanglement_overview_tab")
-                .pos(4, 28)
-                .size(85, 16)
-                .background(TerminalUiStyle.BUTTON)
-                .overlay(
-                    IKey.lang(PREFIX + "overview")
-                        .color(BODY)));
+            text(
+                () -> "§l" + tr(session.snapshot() != null && session.snapshot().critical ? "cess" : "sse"),
+                4,
+                5,
+                426,
+                15,
+                1.05f,
+                TITLE).name("entanglement_title"));
         body.child(
-            new PageButton(1, controller).name("entanglement_rules_tab")
-                .pos(93, 28)
-                .size(85, 16)
-                .background(TerminalUiStyle.BUTTON)
-                .overlay(
-                    IKey.lang(PREFIX + "rules")
-                        .color(BODY)));
-        ParentWidget<?> overview = new ParentWidget<>().name("entanglement_overview")
-            .size(604, 274);
+            text(() -> "§l" + status(session), 432, 7, 166, 11, 0.8f, BODY).name("entanglement_status")
+                .color(() -> statusColor(session)));
+        body.child(line(25));
+
+        ParentWidget<?> formula = new ParentWidget<>().name("entanglement_formula")
+            .pos(0, 31)
+            .size(600, 34)
+            .background(TerminalUiStyle.CARD);
+        formula.child(
+            text(
+                () -> "§l" + tr("formula_title") + "  §r§7" + tr(session.dirty() ? "formula_draft" : "formula_live"),
+                8,
+                4,
+                584,
+                9,
+                0.7f,
+                AMBER));
+        formula.child(
+            text(() -> heatEquation(session), 8, 17, 584, 12, 0.9f, TITLE).name("entanglement_heat_equation")
+                .addTooltipLine(IKey.dynamic(() -> "§l" + tr("formula_terms")))
+                .addTooltipLine(IKey.dynamic(() -> saturationEquation(session)))
+                .addTooltipLine(IKey.dynamic(() -> tr("rule_4")))
+                .addTooltipLine(IKey.dynamic(() -> tr("forecast_hint")))
+                .tooltipAutoUpdate(true));
+        body.child(formula);
+
         for (int metric = 0; metric < 4; metric++) {
             final int index = metric;
             ParentWidget<?> card = new ParentWidget<>().name("entanglement_metric_" + index)
-                .pos(index * 151, 0)
-                .size(147, 65)
+                .pos(index * 151, 73)
+                .size(147, 68)
                 .background(TerminalUiStyle.CARD);
-            card.child(text(() -> metricName(session, index), 7, 5, 133, 9, 0.7f, BODY));
-            card.child(text(() -> metricValue(session, index), 7, 18, 133, 16, 1.3f, TITLE));
             card.child(
-                new Decoration().pos(7, 37)
+                text(() -> "§l" + metricName(session, index), 7, 5, 133, 10, 0.75f, BODY)
+                    .name("entanglement_metric_label_" + index)
+                    .color(() -> metricColor(session, index))
+                    .addTooltipLine(IKey.dynamic(() -> metricRule(session, index, false)))
+                    .addTooltipLine(IKey.dynamic(() -> metricRule(session, index, true)))
+                    .addTooltipLine(IKey.dynamic(() -> tr(index == 0 ? "rule_2" : "rule_10")))
+                    .tooltipAutoUpdate(true));
+            card.child(
+                text(() -> "§l" + metricValue(session, index), 7, 18, 133, 20, 1.55f, TITLE)
+                    .name("entanglement_metric_value_" + index)
+                    .color(() -> metricColor(session, index))
+                    .addTooltipLine(IKey.dynamic(() -> metricRule(session, index, false)))
+                    .addTooltipLine(IKey.dynamic(() -> metricRule(session, index, true)))
+                    .addTooltipLine(IKey.dynamic(() -> metricHint(session, index)))
+                    .tooltipAutoUpdate(true));
+            card.child(
+                new Decoration().pos(7, 40)
                     .size(133, 3)
-                    .background(new Meter(() -> progress(session, index), index == 3 ? 0xffb78bdb : AMBER)));
-            card.child(text(() -> metricNext(session, index), 7, 44, 133, 9, 0.65f, BODY));
-            card.child(text(() -> metricHint(session, index), 7, 54, 133, 8, 0.6f, MUTED));
-            overview.child(card);
+                    .background(new Meter(() -> progress(session, index), () -> metricColor(session, index))));
+            card.child(text(() -> metricNext(session, index), 7, 48, 133, 9, 0.7f, BODY));
+            card.child(
+                text(() -> metricDelta(session, index), 7, 59, 133, 8, 0.65f, MUTED)
+                    .name("entanglement_metric_delta_" + index)
+                    .color(() -> deltaColor(session, index))
+                    .addTooltipLine(IKey.dynamic(() -> metricHint(session, index)))
+                    .tooltipAutoUpdate(true));
+            body.child(card);
         }
-        overview.child(text(() -> tr("inputs"), 4, 73, 160, 11, 0.85f, TITLE));
-        overview.child(text(() -> tr("limit_hint"), 170, 75, 428, 9, 0.65f, MUTED));
-        overview.child(
-            new Decoration().pos(0, 90)
-                .size(600, 148)
+
+        body.child(text(() -> "§l" + tr("inputs"), 4, 149, 160, 12, 0.9f, TITLE));
+        body.child(text(() -> tr("limit_hint"), 170, 151, 428, 9, 0.65f, MUTED));
+        body.child(
+            new Decoration().pos(0, 165)
+                .size(600, 125)
                 .background(TerminalUiStyle.CARD));
         String[] columns = { "fluid_hatch", "stored", "limit", "consume", "effect" };
         int[] x = { 8, 177, 280, 383, 475 }, widths = { 165, 99, 99, 88, 117 };
         for (int i = 0; i < columns.length; i++) {
             final String key = columns[i];
-            overview.child(text(() -> tr(key), x[i], 94, widths[i], 10, 0.65f, MUTED));
+            body.child(text(() -> "§l" + tr(key), x[i], 169, widths[i], 10, 0.65f, GtsrGuiPalette.TEXT_LABEL));
         }
         for (int slot = 0; slot < EntanglementSnapshot.PAGE_SIZE; slot++) {
             final int index = slot;
-            int y = 108 + slot * 21;
             ParentWidget<?> row = new ParentWidget<>().name("entanglement_row_" + slot)
-                .pos(0, y)
-                .size(600, 21)
+                .pos(0, 182 + slot * 18)
+                .size(600, 18)
                 .setEnabledIf(widget -> session.row(index) != null);
-            row.child(text(() -> fluidName(session, index), 8, 0, 165, 10, 0.75f, BODY));
-            row.child(text(() -> position(session, index), 8, 11, 165, 8, 0.55f, MUTED));
+            row.child(
+                text(() -> "§l" + fluidName(session, index), 8, 0, 165, 10, 0.8f, BODY)
+                    .color(() -> fluidColor(session, index))
+                    .addTooltipLine(IKey.dynamic(() -> tr("detected_hint")))
+                    .addTooltipLine(IKey.dynamic(() -> fluidRule(session, index)))
+                    .tooltipAutoUpdate(true));
+            row.child(text(() -> position(session, index), 8, 10, 165, 7, 0.5f, 0xff8e9aa6));
             row.child(text(() -> {
                 EntanglementSnapshot.Row input = session.row(index);
-                return input == null ? "—" : GtsrNumFormat.compact3(input.stored) + " mB";
-            }, 177, 4, 99, 11, 0.75f, BODY).addTooltipLine(IKey.dynamic(() -> {
+                return input == null ? "—" : "§l" + GtsrNumFormat.compact3(input.stored) + "§r mB";
+            }, 177, 3, 99, 11, 0.85f, TITLE).addTooltipLine(IKey.dynamic(() -> {
                 EntanglementSnapshot.Row input = session.row(index);
                 return input == null ? "—" : GtsrNumFormat.grouped(input.stored) + " mB";
             }))
@@ -126,9 +159,9 @@ public final class EntanglementTerminalPanel {
                 .tooltipAutoUpdate(true));
             row.child(
                 new TextFieldWidget().name("entanglement_limit_" + slot)
-                    .pos(280, 1)
-                    .size(96, 17)
-                    .setScale(0.7f)
+                    .pos(280, 0)
+                    .size(96, 16)
+                    .setScale(0.75f)
                     .setTextColor(AMBER)
                     .setMaxLength(19)
                     .hintText(tr("all"))
@@ -136,47 +169,43 @@ public final class EntanglementTerminalPanel {
                     .value(new StringValue.Dynamic(() -> session.draft(index), value -> session.edit(index, value)))
                     .addTooltipLine(IKey.lang(PREFIX + "limit_tooltip")));
             row.child(
-                text(() -> GtsrNumFormat.compact3(session.planned(index)) + " mB/s", 383, 4, 88, 11, 0.7f, BODY)
-                    .addTooltipLine(IKey.dynamic(() -> GtsrNumFormat.grouped(session.planned(index)) + " mB/s"))
-                    .tooltipAutoUpdate(true));
+                text(
+                    () -> "§l" + GtsrNumFormat.compact3(session.planned(index)) + "§r mB/s",
+                    383,
+                    3,
+                    88,
+                    11,
+                    0.75f,
+                    BODY).color(() -> session.planned(index) > 0 ? GtsrGuiPalette.STATE_ONLINE : 0xff8e9aa6)
+                        .addTooltipLine(IKey.dynamic(() -> GtsrNumFormat.grouped(session.planned(index)) + " mB/s"))
+                        .tooltipAutoUpdate(true));
             row.child(
-                text(() -> effect(session, index), 475, 4, 117, 11, 0.65f, AMBER)
-                    .addTooltipLine(IKey.lang(PREFIX + "effect_hint")));
-            overview.child(row);
+                text(() -> effect(session, index), 475, 3, 117, 11, 0.7f, AMBER)
+                    .color(() -> session.planned(index) > 0 ? fluidColor(session, index) : MUTED)
+                    .addTooltipLine(IKey.lang(PREFIX + "effect_hint"))
+                    .addTooltipLine(IKey.dynamic(() -> fluidRule(session, index)))
+                    .tooltipAutoUpdate(true));
+            body.child(row);
         }
-        overview.child(text(() -> {
+        body.child(text(() -> {
             EntanglementSnapshot snapshot = session.snapshot();
             return snapshot != null && snapshot.totalRows == 0 ? tr("no_inputs") : "";
-        }, 12, 149, 574, 18, 0.8f, MUTED));
-        overview.child(
-            text(() -> warning(session), 5, 242, 458, 23, 0.7f, AMBER).name("entanglement_warning")
+        }, 12, 210, 574, 20, 0.85f, MUTED).name("entanglement_empty"));
+        body.child(
+            text(() -> warning(session), 5, 296, 458, 16, 0.7f, AMBER).name("entanglement_warning")
+                .color(() -> warningColor(session))
                 .addTooltipLine(IKey.lang(PREFIX + "forecast_hint")));
-        overview.child(
-            button("previous", () -> session.page(-1)).pos(466, 242)
-                .size(24, 17));
-        overview.child(text(() -> {
+        body.child(
+            button("previous", () -> session.page(-1)).pos(466, 296)
+                .size(24, 16));
+        body.child(text(() -> {
             EntanglementSnapshot snapshot = session.snapshot();
             return snapshot == null ? "—" : (snapshot.page + 1) + " / " + snapshot.pages();
-        }, 493, 246, 73, 10, 0.75f, BODY));
-        overview.child(
-            button("next", () -> session.page(1)).pos(572, 242)
-                .size(24, 17));
-        ParentWidget<?> rules = new ParentWidget<>().name("entanglement_rules")
-            .size(604, 274);
-        for (int row = 0; row < 11; row++) {
-            final int line = row;
-            rules.child(text(() -> tr("rule_" + line), 8, 4 + row * 22, 584, 20, 0.8f, BODY));
-        }
-        rules.child(text(() -> tr("sse_solid"), 8, 249, 584, 14, 0.85f, AMBER));
+        }, 493, 299, 73, 10, 0.75f, BODY));
         body.child(
-            new PagedWidget<>().name("entanglement_pages")
-                .pos(0, 50)
-                .size(604, 264)
-                .controller(controller)
-                .addPage(overview)
-                .addPage(rules));
+            button("next", () -> session.page(1)).pos(572, 296)
+                .size(24, 16));
         body.child(line(316));
-        // Footer stays outside the pages; changing tabs never submits a draft.
         body.child(
             text(() -> tr("receipt_" + session.receipt()), 4, 319, 290, 9, 0.6f, MUTED).name("entanglement_receipt"));
         body.child(
@@ -222,6 +251,115 @@ public final class EntanglementTerminalPanel {
         return String.format(Locale.ROOT, "%.3f", value);
     }
 
+    private static int metricColor(EntanglementTerminalSession session, int index) {
+        EntanglementSnapshot snapshot = session.snapshot();
+        if (snapshot == null) return MUTED;
+        if (index == 3 && !snapshot.critical) return 0xff94bfdf;
+        double fraction = progress(session, index);
+        if (index > 0 && fraction >= 0.8d) return GtsrGuiPalette.STATE_OFFLINE;
+        if (index == 2 && fraction <= 0.1d) return GtsrGuiPalette.STATE_ONLINE;
+        return new int[] { 0xffffc45a, 0xffff9359, 0xffead06a, 0xffcba1ff }[index];
+    }
+
+    private static int fluidColor(EntanglementTerminalSession session, int slot) {
+        EntanglementSnapshot.Row row = session.row(slot);
+        return row == null ? MUTED
+            : new int[] { 0xffc5deee, 0xffffc98c, 0xffff9d9d, 0xffffa53d, 0xff75d5ee, 0xffcf9eff }[row.kind];
+    }
+
+    private static double nextValue(EntanglementMath.Forecast forecast, int index) {
+        return new double[] { forecast.heat, forecast.overlimit, forecast.instability, forecast.tear }[index];
+    }
+
+    private static String metricDelta(EntanglementTerminalSession session, int index) {
+        EntanglementSnapshot snapshot = session.snapshot();
+        EntanglementMath.Forecast forecast = session.forecast();
+        if (snapshot == null || forecast == null) return "—";
+        if (index == 3 && !snapshot.critical) return tr("fixed_state");
+        double delta = nextValue(forecast, index) - value(snapshot, index);
+        String format = delta != 0 && Math.abs(delta) < 0.001d ? "%+.5f%%/s" : "%+.3f%%/s";
+        return String.format(Locale.ROOT, format, delta);
+    }
+
+    private static int deltaColor(EntanglementTerminalSession session, int index) {
+        EntanglementSnapshot snapshot = session.snapshot();
+        EntanglementMath.Forecast forecast = session.forecast();
+        if (snapshot == null || forecast == null || index == 3 && !snapshot.critical) return MUTED;
+        double delta = nextValue(forecast, index) - value(snapshot, index);
+        if (Math.abs(delta) < 1e-10) return MUTED;
+        boolean favorable = index == 0 ? delta > 0 || forecast.output : delta < 0;
+        return favorable ? GtsrGuiPalette.STATE_ONLINE : GtsrGuiPalette.STATE_OFFLINE;
+    }
+
+    private static int statusColor(EntanglementTerminalSession session) {
+        EntanglementSnapshot snapshot = session.snapshot();
+        if (snapshot == null) return MUTED;
+        if (!snapshot.formed) return GtsrGuiPalette.STATE_OFFLINE;
+        if (!snapshot.allowed) return MUTED;
+        return snapshot.cycling || EntanglementMath.grade(snapshot.amounts) >= 0 ? GtsrGuiPalette.STATE_ONLINE
+            : GtsrGuiPalette.STATE_IDLE;
+    }
+
+    private static int warningColor(EntanglementTerminalSession session) {
+        EntanglementSnapshot snapshot = session.snapshot();
+        EntanglementMath.Forecast forecast = session.forecast();
+        if (snapshot == null || forecast == null) return MUTED;
+        if (!session.canApply() && !session.receipt()
+            .equals("pending")) return GtsrGuiPalette.STATE_OFFLINE;
+        if (forecast.overlimitExplosion || forecast.collapse
+            || forecast.tearExplosion
+            || forecast.chill
+            || forecast.solidify) return GtsrGuiPalette.STATE_OFFLINE;
+        return snapshot.formed && snapshot.allowed && snapshot.outputSpace && forecast.grade >= 0
+            ? GtsrGuiPalette.STATE_ONLINE
+            : GtsrGuiPalette.STATE_IDLE;
+    }
+
+    private static String metricRule(EntanglementTerminalSession session, int index, boolean second) {
+        EntanglementSnapshot snapshot = session.snapshot();
+        if (index == 3 && (snapshot == null || !snapshot.critical)) return tr("sse_solid");
+        return tr(
+            second ? new String[] { "rule_4", "rule_6", "rule_9", "rule_9" }[index]
+                : new String[] { "rule_3", "rule_5", "rule_7", "rule_8" }[index]);
+    }
+
+    private static String fluidRule(EntanglementTerminalSession session, int slot) {
+        EntanglementSnapshot.Row row = session.row(slot);
+        return row == null ? "" : tr(row.kind < 3 ? "rule_1" : row.kind == 5 ? "rule_9" : "rule_5");
+    }
+
+    private static String heatEquation(EntanglementTerminalSession session) {
+        EntanglementSnapshot snapshot = session.snapshot();
+        EntanglementMath.Forecast forecast = session.forecast();
+        if (snapshot == null || forecast == null) return tr("syncing");
+        long[] requested = session.requested();
+        int grade = EntanglementMath.grade(requested);
+        long amount = grade < 0 ? 0 : requested[grade];
+        double coefficient = grade < 0 ? 0 : new double[] { 0.5d, 1, 2 }[grade];
+        double saturation = amount / (amount + (snapshot.critical ? 5000.0d : 200000.0d));
+        String equation = "§e0.500% §7× §b" + number(
+            coefficient) + " §7× §f" + number(saturation) + " §7× §6" + number(1 + snapshot.overlimit / 100);
+        if (snapshot.critical) equation += " §7× §d" + number(1 + snapshot.tear / 100);
+        if (!snapshot.formed || !snapshot.allowed) equation += " §7× §c0";
+        return equation + " §7= " + (forecast.heatGain > 0 ? "§a" : "§7") + "§l+" + number(forecast.heatGain) + "%/s";
+    }
+
+    private static String saturationEquation(EntanglementTerminalSession session) {
+        EntanglementSnapshot snapshot = session.snapshot();
+        if (snapshot == null) return tr("syncing");
+        long[] requested = session.requested();
+        int grade = EntanglementMath.grade(requested);
+        long amount = grade < 0 ? 0 : requested[grade], half = snapshot.critical ? 5000 : 200000;
+        return tr("formula_saturation") + " = "
+            + GtsrNumFormat.grouped(amount)
+            + " / ("
+            + GtsrNumFormat.grouped(amount)
+            + " + "
+            + GtsrNumFormat.grouped(half)
+            + ") = "
+            + number(amount / (amount + (double) half));
+    }
+
     private static String metricName(EntanglementTerminalSession session, int index) {
         return tr(new String[] { "heat", "overlimit", "instability", "tear" }[index]);
     }
@@ -248,12 +386,7 @@ public final class EntanglementTerminalPanel {
         EntanglementMath.Forecast forecast = session.forecast();
         if (snapshot == null || forecast == null) return "—";
         if (index == 3 && !snapshot.critical) return tr("no_tear");
-        double next = new double[] { forecast.heat, forecast.overlimit, forecast.instability, forecast.tear }[index];
-        return tr("next_second") + " "
-            + number(next)
-            + "% ("
-            + String.format(Locale.ROOT, "%+.3f", next - value(snapshot, index))
-            + ")";
+        return tr("next_second") + " " + number(nextValue(forecast, index)) + "%";
     }
 
     private static String metricHint(EntanglementTerminalSession session, int index) {
@@ -284,10 +417,11 @@ public final class EntanglementTerminalPanel {
         if (row == null || forecast == null || snapshot == null || session.planned(slot) == 0) return "—";
         long[] requested = session.requested();
         // Effects are per-fluid totals, as documented by the column tooltip; draft preview uses the same totals.
-        if (row.kind < 3) return tr("heat") + " +" + number(forecast.heatGain) + "%";
+        if (row.kind < 3) return tr("heat") + " §l+" + number(forecast.heatGain) + "%";
         double delta = row.kind == 3 ? EntanglementMath.pyrotheum(requested[3])
             : row.kind == 4 ? EntanglementMath.cryotheum(requested[4]) : 0.001d * requested[5];
-        return tr(row.kind == 3 ? "overlimit" : row.kind == 4 ? "instability" : "tear") + (row.kind == 3 ? " +" : " −")
+        return tr(row.kind == 3 ? "overlimit" : row.kind == 4 ? "instability" : "tear")
+            + (row.kind == 3 ? " §l+" : " §l−")
             + number(Math.abs(delta))
             + "%";
     }
@@ -342,17 +476,19 @@ public final class EntanglementTerminalPanel {
 
         private final DoubleSupplier value;
         private final Rectangle empty = new Rectangle().color(0xff262a30);
-        private final Rectangle full;
+        private final Rectangle full = new Rectangle();
+        private final java.util.function.IntSupplier color;
 
-        Meter(DoubleSupplier value, int color) {
+        Meter(DoubleSupplier value, java.util.function.IntSupplier color) {
             this.value = value;
-            full = new Rectangle().color(color);
+            this.color = color;
         }
 
         @SideOnly(Side.CLIENT)
         @Override
         public void draw(GuiContext context, int x, int y, int width, int height, WidgetTheme theme) {
             empty.draw(context, x, y, width, height, theme);
+            full.color(color.getAsInt());
             int filled = (int) (width * Math.max(0, Math.min(1, value.getAsDouble())));
             if (filled > 0) full.draw(context, x, y, filled, height, theme);
         }

@@ -154,6 +154,10 @@ public final class UiGalleryBatch {
         if(!screenReady(false))throw new AssertionError("Target window changed before navigation");localTabClick=false;lastNavigationProof=null;
         if(flag(row,"legacy")){if(row.has("page")&&str(row,"kind","").equals("CLUSTER_CONTROLLER"))set(q.gui,"activePage",row.get("page").getAsInt());actionTick=ticks;renderStartNanos=System.nanoTime();stage=14;return;}
         if(row.has("journalTab")||row.has("journalEntry")){Object model=call(q.screen,"model");if(row.has("journalTab"))call(model,"selectTab",Enum.valueOf((Class)type(G+"common.dimension.prosperity.lore.JournalTab"),row.get("journalTab").getAsString()));if(row.has("journalEntry"))call(model,"selectEntry",row.get("journalEntry").getAsString());}
+        if(isEntanglement(row)&&row.has("fluidDrafts")){
+            Object psm=call(call(q.screen,"getSyncManager"),"getMainPSM"),handler=call(psm,"findSyncHandler","entanglement_session");
+            for(int slot=0;slot<6;slot++){Object input=call(handler,"row",slot);if(input==null)continue;String kind=String.valueOf(field(input,"kind"));JsonElement draft=row.getAsJsonObject("fluidDrafts").get(kind);if(draft!=null)call(handler,"edit",slot,draft.getAsString());}
+        }
         if(isEntanglement(row)&&row.has("drafts")){
             Object psm=call(call(q.screen,"getSyncManager"),"getMainPSM"),handler=call(psm,"findSyncHandler","entanglement_session");
             for(Map.Entry<String,JsonElement> draft:row.getAsJsonObject("drafts").entrySet())call(handler,"edit",Integer.parseInt(draft.getKey()),draft.getValue().getAsString());

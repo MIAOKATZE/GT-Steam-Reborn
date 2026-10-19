@@ -4215,10 +4215,8 @@ tile.critical_proxy_violet_phase_glass.name=Violet Phase Glass
 # Singularity entanglement handheld terminal
 gtsr.entanglement_terminal.sse=Steam Singularity Entangler
 gtsr.entanglement_terminal.cess=Critical Entangled Singularity Stabilizer
-gtsr.entanglement_terminal.overview=Status & Inputs
-gtsr.entanglement_terminal.rules=Mechanics
 gtsr.entanglement_terminal.inputs=Input Hatch Limits
-gtsr.entanglement_terminal.limit_hint=Per hatch / per fluid / per second / blank = all / 0 = disabled
+gtsr.entanglement_terminal.limit_hint=Detected fluids only / blank = all / 0 = disabled
 gtsr.entanglement_terminal.fluid_hatch=Fluid / Input Hatch
 gtsr.entanglement_terminal.stored=Stored
 gtsr.entanglement_terminal.limit=Limit (mB/s)
@@ -4259,7 +4257,7 @@ gtsr.entanglement_terminal.limit_tooltip=Nonnegative integer mB/s. Blank consume
 gtsr.entanglement_terminal.shared_me_hint=Hatches on the same ME network may report shared stock more than once; output follows actual extraction.
 gtsr.entanglement_terminal.effect_hint=Effects are totals per fluid. Meters also include decay, accumulation and shutdown.
 gtsr.entanglement_terminal.forecast_hint=One full-cycle estimate from current stock and drafts. Actual timing, extraction and output space govern production.
-gtsr.entanglement_terminal.no_inputs=No input hatches found. Check the structure to discover connected hatches.
+gtsr.entanglement_terminal.no_inputs=No processable fluid detected. Fill a hatch with a supported fluid to show it here.
 gtsr.entanglement_terminal.syncing=Synchronizing...
 gtsr.entanglement_terminal.unformed=Incomplete structure
 gtsr.entanglement_terminal.stopped=Stopped
@@ -4295,3 +4293,9 @@ gtsr.entanglement_terminal.rule_10=First trigger wins: SSE overlimit >500%, CESS
 gtsr.entanglement_terminal.sse_solid=SSE has a solidified dimension: no dimension tear mechanic.
 gtsr.tooltip.hub_terminal.desc.8=Steam Singularity Entangler: input limits and operating values
 gtsr.tooltip.hub_terminal.desc.9=Critical Entangled Singularity Stabilizer: input limits and tear forecast
+gtsr.entanglement_terminal.formula_title=Live Heat Calculation
+gtsr.entanglement_terminal.formula_live=Current settings
+gtsr.entanglement_terminal.formula_draft=Draft preview / not applied
+gtsr.entanglement_terminal.formula_terms=Base heat x steam grade x saturation x overlimit multiplier (CESS also uses tear). Stopped operation adds a zero gate.
+gtsr.entanglement_terminal.formula_saturation=Saturation
+gtsr.entanglement_terminal.detected_hint=Only input hatches currently containing the corresponding fluid are listed. Empty rows hide; saved limits remain.
