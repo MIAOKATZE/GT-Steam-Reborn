@@ -28,6 +28,7 @@ import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.blocks.TileSpacetimeSingularity;
 import com.miaokatze.gtsr.common.dimension.prosperity.portal.SpacetimeGeometry;
@@ -130,7 +131,7 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
                 .addElement(
                     'R',
                     ofBlock(requiredBlock("gregtech", "bw.frames"), WerkstoffLoader.RhodiumPlatedPalladium.getmID()))
-                .addElement('G', ofBlock(requiredBlock("bartworks", "BW_TieredGlass"), 3))
+                .addElement('G', ofBlock(GTVersionCompat.getTieredBorosilicateGlassBlock(), 3))
                 .addElement('F', ofBlock(GregTechAPI.sBlockReinforced, 10))
                 .addElement('-', isAir())
                 .addElement('S', coreElement())

@@ -10,6 +10,7 @@ import net.minecraft.block.Block;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import bartworks.common.loaders.ItemRegistry;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -271,6 +272,16 @@ public class GTVersionCompat {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /**
+     * 获取 BartWorks 分级硼硅玻璃。稳定字段在 beta-1 注册为 BW_GlasBlocks，RC2 注册为 BW_TieredGlass；
+     * 两代 meta 3 均为镀铑钯强化的 LuV 玻璃，不能以防爆玻璃替代。
+     */
+    public static Block getTieredBorosilicateGlassBlock() {
+        Block block = ItemRegistry.bw_realglas;
+        if (block == null) throw new IllegalStateException("BartWorks tiered borosilicate glass is unavailable");
+        return block;
     }
 
     /**

@@ -12,6 +12,7 @@ import static gregtech.api.util.GTRecipeBuilder.SECONDS;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidRegistry;
 
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 
 import bartworks.system.material.WerkstoffLoader;
@@ -157,7 +158,7 @@ public final class MultiblockMachineRecipes {
             ItemStack[] dsmInputs = filterNulls(
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings8"), 64, 6),
                 new ItemStack(GameRegistry.findItem("gregtech", "bw.frames"), 64, 88),
-                new ItemStack(GameRegistry.findItem("bartworks", "BW_TieredGlass"), 64, 3),
+                new ItemStack(GTVersionCompat.getTieredBorosilicateGlassBlock(), 64, 3),
                 get(OrePrefixes.circuit, Materials.UV, 16),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings4"), 64, 7),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 16, 32645),
