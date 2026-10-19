@@ -4,6 +4,7 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
@@ -12,6 +13,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.industrial.ProsperityIndus
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.OrePrefixes;
+import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
@@ -28,6 +30,9 @@ public final class AbyssalObsessionRecipes {
 
     public static void register() {
         if (registered) throw new IllegalStateException("Abyssal obsession recipes already registered");
+        RecipeMap<?> rockBreakerRecipes = GTVersionCompat.gppRecipeMap("multiblockRockBreakerRecipes");
+        if (rockBreakerRecipes == null)
+            throw new IllegalStateException("Missing required GT recipe map: multiblockRockBreakerRecipes");
         GTValues.RA.stdBuilder()
             .itemInputs(new ItemStack(BlocksGTSR.prosperityStone))
             .itemOutputs(
@@ -80,7 +85,7 @@ public final class AbyssalObsessionRecipes {
             .itemOutputs(new ItemStack(BlocksGTSR.prosperityStone))
             .duration(100)
             .eut(30)
-            .addTo(RecipeMaps.multiblockRockBreakerRecipes);
+            .addTo(rockBreakerRecipes);
         registered = true;
     }
 
