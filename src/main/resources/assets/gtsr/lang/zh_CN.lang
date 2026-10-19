@@ -323,8 +323,8 @@ gtsr.tooltip.critical_singularity_compressor.output_hatch=输出仓
 gtsr.tooltip.critical_singularity_compressor.tier1_blocks=结构材料：强化镀铑钯机械方块×1325、熔融线圈方块×494、熔融机械方块MK II×322、ZPM机械方块×212、超导线圈外壳×112、铕框架×80、镀铑钯框架×64、巴特沃克3级玻璃×117
 # T6 三值机制说明（每行一句）
 gtsr.tooltip.critical_singularity_compressor.overlimit_1=超限模式三值：奇点超限（0-1000%）、结构失稳（0-100%）、维度撕裂（0-100%），GUI 词条与红石仓实时可读；
-gtsr.tooltip.critical_singularity_compressor.overlimit_2=通入烈焰之炽焱提升超限（y=0.05x/(x+5000)）并放大热量 (1+超限/100)×(1+撕裂/100)；超限每秒被动衰减；
-gtsr.tooltip.critical_singularity_compressor.overlimit_3=超限>200% 时工作中失稳持续积累（每秒 +超限/1000）；通入极寒之凛冰降低失稳（y=0.01x/(x+1000)），过量降温强制停机（结构失温）；
+gtsr.tooltip.critical_singularity_compressor.overlimit_2=通入烈焰之炽焱提升超限（y=5x/(x+5000)）并放大热量 (1+超限/100)×(1+撕裂/100)；超限每秒被动衰减；
+gtsr.tooltip.critical_singularity_compressor.overlimit_3=超限>200% 时工作中失稳持续积累（每秒 +超限/1000）；通入极寒之凛冰降低失稳（y=x/(x+1000)），过量降温强制停机（结构失温）；
 gtsr.tooltip.critical_singularity_compressor.overlimit_4=失稳>50% 且超限>800% 时：机内奇点变紫，维度撕裂开始积累（每秒 +失稳/100+超限/1000）；
 gtsr.tooltip.critical_singularity_compressor.overlimit_5=通入 UU 物质降低撕裂（每 100mB -0.1%），过量固化强制停机（维度固化）；无 UU 时撕裂蠕变每秒 +0.1%；
 gtsr.tooltip.critical_singularity_compressor.overlimit_6=停机时失稳/撕裂每秒各自然衰减 0.1%。
@@ -872,7 +872,7 @@ gtsr.tooltip.entangler.tier1_blocks=等级1：固体钢外壳×1340、钢管×56
 gtsr.tooltip.entangler.overlimit_1=超限模式：通入烈焰之炽焱提升奇点超限（0-500%），并按 (1+超限/100) 放大热量（500% 封顶 6 倍）；
 gtsr.tooltip.entangler.overlimit_2=超限每秒自然衰减（不足 0.01% 时降 0.01%，否则降 值/2000）；
 gtsr.tooltip.entangler.overlimit_3=超限>200% 时，工作中结构失稳持续积累（每秒 +超限/1000）；
-gtsr.tooltip.entangler.overlimit_4=通入极寒之凛冰降低结构失稳（y=0.01x/(x+1000)），过量降温会强制停机（结构失温，软锤恢复）；
+gtsr.tooltip.entangler.overlimit_4=通入极寒之凛冰降低结构失稳（y=x/(x+1000)），过量降温会强制停机（结构失温，软锤恢复）；
 gtsr.tooltip.entangler.overlimit_5=停机时失稳每秒自然衰减 0.1%。
 gtsr.tooltip.entangler.overlimit_explode=两条爆炸链（首触即爆）：超限>500% 装置超限 / 失稳>100% 结构崩解——生成失控黑奇点（4 分钟自毁）并摧毁装置！
 
@@ -4207,3 +4207,87 @@ tile.critical_proxy_superconducting_contact.name=超导接触器
 tile.critical_proxy_turbine_rotor_blade.name=透平转子叶片
 tile.critical_proxy_turbine_stator.name=透平定子
 tile.critical_proxy_violet_phase_glass.name=紫色相位玻璃
+
+# Singularity entanglement handheld terminal
+gtsr.entanglement_terminal.sse=蒸汽奇点纠缠装置
+gtsr.entanglement_terminal.cess=临界纠缠奇点稳定装置
+gtsr.entanglement_terminal.overview=运行与输入
+gtsr.entanglement_terminal.rules=机制说明
+gtsr.entanglement_terminal.inputs=输入仓处理量
+gtsr.entanglement_terminal.limit_hint=逐仓 · 逐流体 / 每秒结算 / 留空 = 全部 / 0 = 不消耗
+gtsr.entanglement_terminal.fluid_hatch=流体 / 输入仓
+gtsr.entanglement_terminal.stored=当前储量
+gtsr.entanglement_terminal.limit=处理上限 (mB/s)
+gtsr.entanglement_terminal.consume=预计消耗
+gtsr.entanglement_terminal.effect=词条影响 / 秒
+gtsr.entanglement_terminal.all=全部
+gtsr.entanglement_terminal.hatch=输入仓
+gtsr.entanglement_terminal.heat=热量
+gtsr.entanglement_terminal.overlimit=奇点超限
+gtsr.entanglement_terminal.instability=结构失稳
+gtsr.entanglement_terminal.tear=维度撕裂
+gtsr.entanglement_terminal.solidified=维度固化
+gtsr.entanglement_terminal.solid_state=已固化
+gtsr.entanglement_terminal.no_tear=无维度撕裂机制
+gtsr.entanglement_terminal.fixed_state=固定状态 · 不参与结算
+gtsr.entanglement_terminal.next_second=下一秒
+gtsr.entanglement_terminal.heat_cap=100% 时产出奇点
+gtsr.entanglement_terminal.overlimit_cap_sse=>500% 装置超限爆炸
+gtsr.entanglement_terminal.overlimit_cap_cess=≥1000% 装置超限爆炸
+gtsr.entanglement_terminal.instability_cap=>100% 结构崩解
+gtsr.entanglement_terminal.tear_cap=>100% 维度撕裂
+gtsr.entanglement_terminal.fluid_0=蒸汽
+gtsr.entanglement_terminal.fluid_1=过热蒸汽
+gtsr.entanglement_terminal.fluid_2=超临界蒸汽
+gtsr.entanglement_terminal.fluid_3=烈焰之炽焱
+gtsr.entanglement_terminal.fluid_4=极寒之凛冰
+gtsr.entanglement_terminal.fluid_5=UU 物质
+gtsr.entanglement_terminal.dense_0=致密蒸汽
+gtsr.entanglement_terminal.dense_1=致密过热蒸汽
+gtsr.entanglement_terminal.dense_2=致密超临界蒸汽
+gtsr.entanglement_terminal.previous=<
+gtsr.entanglement_terminal.next=>
+gtsr.entanglement_terminal.discard=撤销草稿
+gtsr.entanglement_terminal.defaults=全部恢复默认
+gtsr.entanglement_terminal.apply=应用处理量
+gtsr.entanglement_terminal.apply_hint=保存当前页处理上限；“全部恢复默认”需点击应用后生效。
+gtsr.entanglement_terminal.limit_tooltip=非负整数 mB/s；留空消耗全部，0 暂停该仓的该种流体；最大值 9223372036854775807。
+gtsr.entanglement_terminal.shared_me_hint=共享 ME 网络的多个仓可能重复显示储量，实际产出以成功扣取量为准。
+gtsr.entanglement_terminal.effect_hint=此列为同类流体合计效果；上方仪表另计自然衰减、积累与停机。
+gtsr.entanglement_terminal.forecast_hint=按当前储量与草稿预测一个完整周期；实际以运行调度、成功扣取与输出空间为准。
+gtsr.entanglement_terminal.no_inputs=暂无输入仓；结构检测后显示实际输入仓。
+gtsr.entanglement_terminal.syncing=同步中…
+gtsr.entanglement_terminal.unformed=结构不完整
+gtsr.entanglement_terminal.stopped=已停机
+gtsr.entanglement_terminal.running=结构完整 · 运行中
+gtsr.entanglement_terminal.idle=结构完整 · 等待蒸汽
+gtsr.entanglement_terminal.warn_explosion=危险：预测下一秒触发爆炸链！请调整输入量。
+gtsr.entanglement_terminal.warn_chill=过冷：凛冰降幅超过已有失稳，预测结构失温停机（零失稳也会触发）。
+gtsr.entanglement_terminal.warn_solidify=过量：UU 固化量超过已有撕裂，预测维度固化停机。
+gtsr.entanglement_terminal.warn_output=输出总线无空间：热量达到 100% 后保留，腾出空间后再产出。
+gtsr.entanglement_terminal.warn_stopped=当前不消耗流体；超限自然衰减，失稳/撕裂每秒降低 0.1%。
+gtsr.entanglement_terminal.warn_idle=无可用蒸汽；允许工作时仍按上限消耗辅助流体。
+gtsr.entanglement_terminal.warn_safe=预计运行正常；词条变化按同类流体实际消耗总量计算。
+gtsr.entanglement_terminal.receipt_ready=实时快照 · 仅点击“应用”才保存处理量
+gtsr.entanglement_terminal.receipt_draft=未应用草稿 · 仪表已预览草稿效果
+gtsr.entanglement_terminal.receipt_default_draft=全部恢复默认草稿 · 点击应用后所有仓消耗全部
+gtsr.entanglement_terminal.receipt_pending=正在保存…
+gtsr.entanglement_terminal.receipt_applied=处理量已保存到机器
+gtsr.entanglement_terminal.receipt_rejected=保存被拒绝；请撤销草稿刷新后再修改
+gtsr.entanglement_terminal.receipt_conflict=输入仓或配置已变化；请撤销草稿刷新
+gtsr.entanglement_terminal.receipt_invalid=处理量无效：仅支持非负整数；留空表示全部
+gtsr.entanglement_terminal.receipt_save_first=换页前请应用设置或撤销草稿
+gtsr.entanglement_terminal.rule_0=输入仓的每种流体可独立限量；留空消耗全部，0 不消耗。设置随控制器保存。
+gtsr.entanglement_terminal.rule_1=蒸汽仅处理有可用量的最高等级；禁用高等级输入后，可使用下一等级。
+gtsr.entanglement_terminal.rule_2=SSE 使用普通蒸汽族，CESS 只使用致密蒸汽族；等级系数为 0.5、1、2。
+gtsr.entanglement_terminal.rule_3=热量增益（百分点）= 0.5×等级系数×x/(x+半效量)×倍率。
+gtsr.entanglement_terminal.rule_4=半效量：SSE 200000mB、CESS 5000mB；倍率=(1+超限/100)，CESS 再乘(1+撕裂/100)。
+gtsr.entanglement_terminal.rule_5=炽焱：超限 +5x/(x+5000) 个百分点；凛冰：失稳 -x/(x+1000) 个百分点。
+gtsr.entanglement_terminal.rule_6=超限先增加后衰减：不足 0.01% 时减 0.01，否则减当前值/2000。
+gtsr.entanglement_terminal.rule_7=工作中超限>200% 时，失稳每秒增加超限/1000；停机时失稳/撕裂各 -0.1%。
+gtsr.entanglement_terminal.rule_8=CESS：失稳>50% 且超限>800% 时，撕裂增加失稳/100+超限/1000；无 UU 时蠕变 +0.1%。
+gtsr.entanglement_terminal.rule_9=UU 每 mB 降低 0.001 个百分点撕裂；凛冰/UU 超扣均强制停机，包括零状态。
+gtsr.entanglement_terminal.rule_10=爆炸链首触即止：SSE 超限>500%，CESS 超限≥1000%；其次失稳>100%，CESS 再查撕裂>100%。
+gtsr.entanglement_terminal.sse_solid=蒸汽奇点纠缠装置的维度已固化：没有维度撕裂机制。
+gtsr.tooltip.hub_terminal.desc.8=蒸汽奇点纠缠装置：输入仓限量与运行数值
+gtsr.tooltip.hub_terminal.desc.9=临界纠缠奇点稳定装置：输入仓限量与撕裂预测

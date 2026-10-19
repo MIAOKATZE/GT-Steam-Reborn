@@ -280,6 +280,7 @@ public class CommonProxy {
         NetworkRegistry.INSTANCE.registerGuiHandler(AggregatorGuiHandler.modInstance(), new AggregatorGuiHandler());
         com.miaokatze.gtsr.common.critical.CriticalRuntime.register();
         com.miaokatze.gtsr.common.gui.mui2.TcdsTerminalFactory.register();
+        com.miaokatze.gtsr.common.gui.mui2.entanglement.EntanglementTerminalFactory.register();
         com.miaokatze.gtsr.common.gui.mui2.hub.HubTerminalFactory.register();
         com.miaokatze.gtsr.common.gui.mui2.hub.CacheNodeEditorFactory.register();
         com.miaokatze.gtsr.common.gui.mui2.inventory.AggregatorConfigFactory.register();
