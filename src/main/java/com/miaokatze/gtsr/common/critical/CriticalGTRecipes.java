@@ -10,6 +10,7 @@ import java.util.Map;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.critical.recipe.RecipeMatch;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
@@ -46,7 +47,7 @@ public final class CriticalGTRecipes {
         Map<GTUtility.FluidId, ChemicalFuel> fuels = new LinkedHashMap<>();
         addChemicalFuels(fuels, RecipeMaps.dieselFuels, 1);
         addChemicalFuels(fuels, RecipeMaps.gasTurbineFuels, 1);
-        addChemicalFuels(fuels, RecipeMaps.rocketFuels, 3);
+        addChemicalFuels(fuels, GTVersionCompat.requireGppRecipeMap("rocketFuels"), 3);
         return new ArrayList<>(fuels.values());
     }
 
@@ -188,7 +189,7 @@ public final class CriticalGTRecipes {
         while (candidates.hasNext()) {
             GTRecipe recipe = candidates.next();
             int maxParallel = Integer.MAX_VALUE;
-            if (map == gregtech.api.recipe.RecipeMaps.quantumForceTransformerRecipes) {
+            if (map == GTVersionCompat.requireGppRecipeMap("quantumForceTransformerRecipes")) {
                 maxParallel = CriticalAdvancedRecipes.qftCatalysts(recipe, items);
                 if (maxParallel == 0) continue;
                 recipe = CriticalAdvancedRecipes.qftBase(recipe);

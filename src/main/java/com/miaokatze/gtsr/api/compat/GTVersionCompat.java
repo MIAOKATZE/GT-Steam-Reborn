@@ -365,4 +365,11 @@ public class GTVersionCompat {
         GPP_RECIPE_MAP_CACHE.put(fieldName, result);
         return result;
     }
+
+    /** Resolve a mandatory GT++ / GT5U map, with an explicit failure when neither owner provides it. */
+    public static RecipeMap<?> requireGppRecipeMap(String fieldName) {
+        RecipeMap<?> map = gppRecipeMap(fieldName);
+        if (map == null) throw new IllegalStateException("Missing required GT recipe map: " + fieldName);
+        return map;
+    }
 }

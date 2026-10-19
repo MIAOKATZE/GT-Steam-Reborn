@@ -13,6 +13,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.critical.CriticalControllerTextures;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
@@ -672,7 +673,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         java.util.Collections.addAll(items, criticalMEItemsSnapshot());
         if (getCriticalState().getKind() == CriticalMachineKind.PROCESSING
             && com.miaokatze.gtsr.common.critical.CriticalProcessingModes.selected(getCriticalState())
-                .equals(gregtech.api.recipe.RecipeMaps.quantumForceTransformerRecipes.unlocalizedName))
+                .equals(GTVersionCompat.requireGppRecipeMap("quantumForceTransformerRecipes").unlocalizedName))
             for (gregtech.api.metatileentity.implementations.MTEHatchBulkCatalystHousing hatch : criticalCatalystHatches)
                 if (hatch.isValid() && hatch.getItemStack() != null && hatch.getItemCount() > 0) {
                     ItemStack catalyst = hatch.getItemStack()
