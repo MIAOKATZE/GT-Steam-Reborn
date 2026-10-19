@@ -1276,8 +1276,8 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             .addStructureInfo(
                 EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.tier_system"))
             .addCasingInfoMin(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), minimumCasings(93), true)
-            .addSubChannel(GTStructureChannels.TIER_CASING)
-            .addSubChannel(GTStructureChannels.PIPE_CASING)
+            .addSubChannelUsage(GTStructureChannels.TIER_CASING)
+            .addSubChannelUsage(GTStructureChannels.PIPE_CASING)
             .addStructureHint("gtsr.structurelib.channel.gear.usage")
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 15, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 8, false)
