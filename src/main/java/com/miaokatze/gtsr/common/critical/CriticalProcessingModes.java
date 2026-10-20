@@ -47,7 +47,7 @@ public final class CriticalProcessingModes {
     }
 
     public static String display(String mode) {
-        if (RecipeMaps.quantumForceTransformerRecipes.unlocalizedName.equals(mode))
+        if (GTVersionCompat.requireGppRecipeMap("quantumForceTransformerRecipes").unlocalizedName.equals(mode))
             return StatCollector.translateToLocal("gtsr.critical.mode.qft_base");
         return ASSEMBLY_LINE.equals(mode) ? StatCollector.translateToLocal("gtsr.critical.mode.assembly_line")
             : StatCollector.translateToLocal(mode);
@@ -74,7 +74,8 @@ public final class CriticalProcessingModes {
             RecipeMaps.implosionRecipes, RecipeMaps.multiblockChemicalReactorRecipes,
             RecipeMaps.distillationTowerRecipes, RecipeMaps.crackingRecipes, RecipeMaps.pyrolyseRecipes,
             RecipeMaps.plasmaForgeRecipes, RecipeMaps.transcendentPlasmaMixerRecipes,
-            RecipeMaps.quantumForceTransformerRecipes, GTVersionCompat.gppRecipeMap("electrolyzerNonCellRecipes"),
+            GTVersionCompat.requireGppRecipeMap("quantumForceTransformerRecipes"),
+            GTVersionCompat.gppRecipeMap("electrolyzerNonCellRecipes"),
             GTVersionCompat.gppRecipeMap("centrifugeNonCellRecipes"),
             GTVersionCompat.gppRecipeMap("mixerNonCellRecipes"),
             GTVersionCompat.gppRecipeMap("chemicalDehydratorRecipes"),

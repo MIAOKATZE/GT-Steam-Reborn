@@ -10,6 +10,7 @@ import net.minecraft.block.Block;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import bartworks.common.loaders.ItemRegistry;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -274,6 +275,16 @@ public class GTVersionCompat {
     }
 
     /**
+     * 获取 BartWorks 分级硼硅玻璃。稳定字段在 beta-1 注册为 BW_GlasBlocks，RC2 注册为 BW_TieredGlass；
+     * 两代 meta 3 均为镀铑钯强化的 LuV 玻璃，不能以防爆玻璃替代。
+     */
+    public static Block getTieredBorosilicateGlassBlock() {
+        Block block = ItemRegistry.bw_realglas;
+        if (block == null) throw new IllegalStateException("BartWorks tiered borosilicate glass is unavailable");
+        return block;
+    }
+
+    /**
      * 获取当前版本下防爆玻璃的方块实例。
      * <p>
      * beta-1 返回 IC2 {@code blockAlloyGlass}；beta-2 / beta-3 返回 {@link GregTechAPI#sBlockGlass1}。
@@ -364,5 +375,12 @@ public class GTVersionCompat {
         }
         GPP_RECIPE_MAP_CACHE.put(fieldName, result);
         return result;
+    }
+
+    /** Resolve a mandatory GT++ / GT5U map, with an explicit failure when neither owner provides it. */
+    public static RecipeMap<?> requireGppRecipeMap(String fieldName) {
+        RecipeMap<?> map = gppRecipeMap(fieldName);
+        if (map == null) throw new IllegalStateException("Missing required GT recipe map: " + fieldName);
+        return map;
     }
 }
