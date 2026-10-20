@@ -542,7 +542,7 @@ public final class ClusterTerminalPanel {
                     + tr("gtsr.cluster.gui.link.perf.thru")
                     + " "
                     + String.format(Locale.ROOT, "%.2f /s", session.integer(ClusterTerminalData.KEY_F_THRU, 0) / 100d))
-                        .width(350)
+                        .widthRel(1)
                         .height(12)
                         .scale(.65f));
         for (int i = 0; i < 40; i++) {
@@ -552,7 +552,7 @@ public final class ClusterTerminalPanel {
                     .parse(session.string(ClusterTerminalData.KEY_F_FORMULA));
                 return line < lines.size() ? lines.get(line).text : "";
             })).name("cluster_formula_line_" + i)
-                .width(350)
+                .widthRel(1)
                 .scale(.6f)
                 .color(GtsrGuiPalette.TEXT_BODY)
                 .textAlign(Alignment.TopLeft)
