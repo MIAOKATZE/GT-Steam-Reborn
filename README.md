@@ -12,6 +12,8 @@
   <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.21.48" src="https://img.shields.io/badge/Release-1.21.48-green.svg"></a>
 </p>
 
+此版本客户端与服务端均需 [MIAOKATZE Core 0.1.1](https://github.com/MIAOKATZE/MIAOKATZE-Core)（兼容区间：0.1.1 ≤ 版本 < 0.2.0）。FalsePatternLib 可在缺失时补下载；已有旧版请手动更新。
+
 GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
 
 在繁荣维度探索遗址、解开机关并挑战首领，将六种原液带回基地加工。四种便携武器与停火后补弹的拟态弹药包，为远征提供从 LV 到 EV 的装备路线。

@@ -80,3 +80,9 @@ dependencies {
     // UniMixins is automatically included by the GTNH build script because usesMixins = true in gradle.properties.
     // No need to declare it manually.
 }
+
+// Shared library API; immutable candidate versions may be supplied for isolated integration builds.
+dependencies {
+    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.1.1"
+    api("com.miaokatze.miaokatzecore:miaokatzecore:${coreVersion}:dev") { transitive = false }
+}

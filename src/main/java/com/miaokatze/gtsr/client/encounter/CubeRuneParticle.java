@@ -453,12 +453,6 @@ public final class CubeRuneParticle {
 
     /** Filled six-faced cubes keep the Minecraft silhouette from every camera angle. */
     public static void box(double x, double y, double z, double s) {
-        double[][] v = { { x - s, y - s, z - s }, { x + s, y - s, z - s }, { x + s, y + s, z - s },
-            { x - s, y + s, z - s }, { x - s, y - s, z + s }, { x + s, y - s, z + s }, { x + s, y + s, z + s },
-            { x - s, y + s, z + s } };
-        int[] f = { 0, 3, 2, 1, 4, 5, 6, 7, 0, 1, 5, 4, 3, 7, 6, 2, 0, 4, 7, 3, 1, 2, 6, 5 };
-        GL11.glBegin(GL11.GL_QUADS);
-        for (int i : f) GL11.glVertex3d(v[i][0], v[i][1], v[i][2]);
-        GL11.glEnd();
+        com.miaokatze.miaokatzecore.client.fx.VoxelGeometry.box(x, y, z, s);
     }
 }
