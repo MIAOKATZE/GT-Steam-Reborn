@@ -1243,13 +1243,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         return tryOutputOre(out);
     }
 
-    /**
-     * v1.10.61：试放单组矿石到输出总线（voidingMode.protectItem=true 限流）：
-     * 依次对每个输出总线做 storePartial 模拟探测（storePartial 模拟模式同样会扣减入参 stackSize，
-     * 故用副本探测），整组放得下才实放并返回 true；所有总线都放不下时整组不放入、返回 false——
-     * 矿石保留在 mOreAccumulator 累积状态，下次周期继续尝试，不销毁。
-     * v1.10.74：探测与实放走 GTSROutputBusCompat——ME 输出总线 cache 满时过滤放行视为可放（探测与实放一致）。
-     */
+    /** RC2 native simulation and insertion share the bus capacity and filter contract. */
     private boolean tryOutputOre(ItemStack ore) {
         if (GTUtility.isStackInvalid(ore)) return false;
         for (MTEHatchOutputBus bus : GTUtility.validMTEList(mOutputBusses)) {

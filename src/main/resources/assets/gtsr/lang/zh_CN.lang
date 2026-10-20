@@ -4295,3 +4295,4 @@ gtsr.entanglement_terminal.formula_draft=草稿预览 · 尚未应用
 gtsr.entanglement_terminal.formula_terms=基础热量 × 蒸汽等级 × 饱和系数 × 超限倍率（CESS 再乘撕裂倍率）；停机门控为 0。
 gtsr.entanglement_terminal.formula_saturation=饱和系数
 gtsr.entanglement_terminal.detected_hint=仅列出当前确实存有对应流体的输入仓；耗尽后隐藏，已有处理上限仍保留。
+gtsr.cluster.mui2.peak=峰

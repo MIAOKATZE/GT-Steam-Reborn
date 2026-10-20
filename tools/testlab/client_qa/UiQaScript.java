@@ -167,7 +167,7 @@ final class UiQaScript {
             dumpScreen(string(s,"name","screen"));
             if(s.has("slots"))q.check("script.actual-slot-count",((List<?>)Mui2ClientQa.field(Mui2ClientQa.call(q.screen,"getContainer"),"inventorySlots|field_75151_b")).size()==s.get("slots").getAsInt(),"Actual client container slots="+((List<?>)Mui2ClientQa.field(Mui2ClientQa.call(q.screen,"getContainer"),"inventorySlots|field_75151_b")).size()+" expected="+s.get("slots"));
         }
-        else if(op.equals("click")){capture();Object w=q.find(q.panel,s.get("widget").getAsString());if(w==null)throw new AssertionError("Widget missing "+s);q.click(w);}
+        else if(op.equals("click")){capture();Object w=q.find(q.panel,s.get("widget").getAsString());if(w==null)for(Object floating:(List<?>)Mui2ClientQa.call(Mui2ClientQa.call(q.screen,"getPanelManager"),"getOpenPanels")){w=q.find(floating,s.get("widget").getAsString());if(w!=null)break;}if(w==null)throw new AssertionError("Widget missing "+s);q.click(w);}
         else if(op.equals("text")){capture();q.input=q.find(q.panel,s.get("widget").getAsString());if(q.input==null)throw new AssertionError("Text field missing "+s);q.edit(s.get("text").getAsString());}
         else if(op.equals("key")){capture();q.key((char)0,s.get("code").getAsInt());}
         else if(op.equals("screenshot")){capture();if(s.has("hover"))q.pendingTooltip=q.find(q.panel,s.get("hover").getAsString());q.shot(s.get("name").getAsString());}

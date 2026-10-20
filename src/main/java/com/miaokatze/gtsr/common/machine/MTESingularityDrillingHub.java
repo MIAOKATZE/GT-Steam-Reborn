@@ -808,10 +808,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         return stack.stackSize - fits;
     }
 
-    /**
-     * v1.10.74：storePartial 走 GTSROutputBusCompat——ME 输出总线 simulate 探测受 cache 空间门控，
-     * 过滤放行时兼容层视为全部可放（探测与实放一致），普通/压缩总线直通原语义。
-     */
+    /** RC2 native simulation and insertion share the bus capacity and filter contract. */
     private void gtsr$storeItemIntoBusses(ItemStack stack, boolean simulate) {
         for (MTEHatchOutputBus bus : GTUtility.validMTEList(mSteamOutputs)) {
             if (stack.stackSize <= 0) break;

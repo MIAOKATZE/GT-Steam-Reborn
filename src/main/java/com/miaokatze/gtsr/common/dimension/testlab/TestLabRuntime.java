@@ -21,6 +21,7 @@ import net.minecraftforge.event.world.WorldEvent;
 
 import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.main.GTSteamReborn;
+import com.miaokatze.miaokatzecore.testkit.Deadline;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
@@ -141,8 +142,9 @@ public final class TestLabRuntime {
 
     private void startRun(String requested, ICommandSender sender) {
         List<TestLabTask> selected = new ArrayList<>();
-        for (TestLabTask task : TestLabCatalog.tasks()) if ("all".equals(requested) || task.id()
-            .equals(requested)) selected.add(task);
+        for (TestLabTask task : TestLabCatalog.tasks())
+            if ("all".equals(requested) && !TestLabCatalog.isExplicitRegression(task.id()) || task.id()
+                .equals(requested)) selected.add(task);
         if (selected.isEmpty()) throw new IllegalArgumentException("未知测试项：" + requested + "；使用 list");
         begin(selected, requested, "MACHINE", sender);
     }
@@ -518,9 +520,9 @@ public final class TestLabRuntime {
             if (active == null) return;
             if (loadIndex < targetChunks) {
                 // Bound both work and wall time, without a fixed 169-tick tax on every small fixture.
-                long until = System.nanoTime() + 5_000_000L;
+                Deadline deadline = Deadline.afterNanos(5_000_000L);
                 for (int burst = 0; loadIndex < targetChunks && burst < 16
-                    && (burst == 0 || System.nanoTime() < until); burst++) {
+                    && (burst == 0 || deadline.hasTimeRemaining()); burst++) {
                     int i = loadIndex++;
                     ChunkCoordIntPair chunk = new ChunkCoordIntPair((originX >> 4) + i % 13, (originZ >> 4) + i / 13);
                     int offset = i;

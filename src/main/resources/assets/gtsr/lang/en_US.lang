@@ -4299,3 +4299,4 @@ gtsr.entanglement_terminal.formula_draft=Draft preview / not applied
 gtsr.entanglement_terminal.formula_terms=Base heat x steam grade x saturation x overlimit multiplier (CESS also uses tear). Stopped operation adds a zero gate.
 gtsr.entanglement_terminal.formula_saturation=Saturation
 gtsr.entanglement_terminal.detected_hint=Only input hatches currently containing the corresponding fluid are listed. Empty rows hide; saved limits remain.
+gtsr.cluster.mui2.peak=Peak

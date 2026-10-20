@@ -8,9 +8,13 @@
   <a href="LICENSE"><img alt="License AGPL-3.0" src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg"></a>
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
-  <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0 beta1-3 & RC1-2" src="https://img.shields.io/badge/GTNH-2.9.0%20beta1--3%20%26%20RC1--2-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.21.48" src="https://img.shields.io/badge/Release-1.21.48-green.svg"></a>
+  <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0 RC" src="https://img.shields.io/badge/GTNH-2.9.0%20RC-orange.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 2.0.0" src="https://img.shields.io/badge/Release-2.0.0-green.svg"></a>
 </p>
+
+此版本客户端与服务端均必须安装前置库 [MIAOKATZE Core 0.1.7](https://github.com/MIAOKATZE/MIAOKATZE-Core)（兼容区间：0.1.7 ≤ 版本 < 0.2.0）。FalsePatternLib 可在缺失时补下载；已有旧版请手动更新。
+
+仅支持 GTNH 2.9.0 RC 版本。自 v2.0.0 起，建议 GTIT、GTSWN、GTSR 三者一起更新。
 
 GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
 
@@ -39,15 +43,11 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 
 ## 下载与版本需求 / Downloads & Requirements
 
-从 [最新发布页](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/latest) 下载普通 `gtsr-*.jar`，放入客户端和服务器的 `mods` 文件夹；`dev` 与 `sources` 文件不是游玩版本。支持 **GTNH 2.9.0 beta1–3 与 RC1–2**，当前版本以 **RC-2** 为基准。升级时请保留现有配置与存档备份。
+从 [最新发布页](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/latest) 下载普通 `gtsr-*.jar`，放入客户端和服务器的 `mods` 文件夹；`dev` 与 `sources` 文件不是游玩版本。仅支持 GTNH 2.9.0 RC 版本。升级时请保留现有配置与存档备份。
 
 | GTNH         | GTSR           | Maintenance / 维护 |
 | ------------ | -------------- | :--------------: |
-| 2.9.0 beta1-3 & RC1-2 | **1.20.0 +**（当前 / current） |        ✔️        |
-| 2.9.0 beta-1&2 | 1.7.31~1.11.37  |        ✔️        |
-| 2.9.0 beta-2 | 1.7.16~1.7.30  |        ✔️        |
-| 2.9.0 beta-1 | 1.7.1\~1.7.15  |        ✔️        |
-| 2.8.4        | 1.6.0          |        ❌️        |
+| 2.9.0 RC | **2.0.0+**（当前 / current） |        ✔️        |
 
 ***
 
@@ -462,4 +462,4 @@ GTSR 机器专用蒸汽输出仓。
 
 采用 AGPL-3.0 许可证，详见 LICENSE 文件。
 
-文档更新：2026-10-11 · 当前版本：1.21.14
+文档更新：2026-10-21 · 当前版本：2.0.0

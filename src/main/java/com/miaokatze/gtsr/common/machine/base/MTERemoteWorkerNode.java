@@ -230,19 +230,8 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     // onDescriptionPacket()。初始区块同步与 issueTileUpdate() 触发的重发都走此链路。
     // 注意必须始终返回非 null：返回 null 时客户端收不到回调，「清除自定义名」将无法同步到客户端。
     // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-1/2 运行时经虚分派继续生效；beta-3 走 writeToStream/readFromStream，正式版发布时移除本分支
-    public NBTTagCompound getDescriptionData() {
-        NBTTagCompound data = new NBTTagCompound();
-        if (!getCustomName().isEmpty()) {
-            data.setString("gtsr.customName", getCustomName());
-        }
-        return data;
-    }
 
     // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-1/2 运行时经虚分派继续生效；beta-3 走 writeToStream/readFromStream，正式版发布时移除本分支
-    public void onDescriptionPacket(NBTTagCompound data) {
-        // 无 key 表示服务端已清除自定义名，回退空串（GUI 标题恢复默认本地化名）
-        mCustomName = data.hasKey("gtsr.customName") ? data.getString("gtsr.customName") : "";
-    }
 
     // [GT-compat] beta-3 ByteBuf 同步链（对应上面 NBT 版 gtsr.customName 单字段）：写读逐字节对称
     // （bool 哨兵 + writeUTF8String）；super 为接口 default 空体（父链无中间覆写），调用无害且防将来父类加字段。

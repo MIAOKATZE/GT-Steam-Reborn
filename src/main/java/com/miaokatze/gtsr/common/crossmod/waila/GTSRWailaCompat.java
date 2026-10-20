@@ -26,7 +26,7 @@ public class GTSRWailaCompat {
         if (Loader.isModLoaded(Mods.Waila.ID)) {
             FMLInterModComms
                 .sendMessage(Mods.Waila.ID, "register", GTSRWailaCompat.class.getName() + ".callbackRegister");
-            GTSteamReborn.LOG.info("已检测到 Waila，注册 GTSR 节点自定义名 WAILA 显示兼容。");
+            GTSteamReborn.LOG.debug("已检测到 Waila，注册 GTSR 节点自定义名 WAILA 显示兼容。");
         }
     }
 

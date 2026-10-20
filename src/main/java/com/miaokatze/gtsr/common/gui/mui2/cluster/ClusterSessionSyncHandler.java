@@ -390,11 +390,13 @@ public final class ClusterSessionSyncHandler extends SyncHandler<ClusterSessionS
 
     public int topo(int slot, int offset) {
         int index = slot * 5 + offset;
-        return topology != null && index < topology.length ? topology[index] & 255 : 255;
+        return topology != null && slot >= 0 && offset >= 0 && offset < 5 && index < topology.length
+            ? topology[index] & 255
+            : 255;
     }
 
     public int run(int slot) {
-        return run != null && slot < run.length ? run[slot] & 255 : 255;
+        return run != null && slot >= 0 && slot < run.length ? run[slot] & 255 : 255;
     }
 
     public int selectedSlot() {

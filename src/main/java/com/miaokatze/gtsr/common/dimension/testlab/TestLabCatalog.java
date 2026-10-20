@@ -60,7 +60,16 @@ public final class TestLabCatalog {
                     break;
             }
         }
+        for (String variant : new String[] { "water_bulk", "residual_distilled_bulk", "distilled_bulk" })
+            tasks.add(new TestLabClusterTask(MetaTileEntityID.CLUSTER_UNIT_ORE_WASHER, variant));
+        tasks.add(new TestLabClusterTask(MetaTileEntityID.CLUSTER_UNIT_FURNACE, "output_split"));
         return Collections.unmodifiableList(tasks);
+    }
+
+    public static boolean isExplicitRegression(String id) {
+        return id.equals("cluster_unit_furnace_output_split") || id.equals("cluster_unit_ore_washer_water_bulk")
+            || id.equals("cluster_unit_ore_washer_residual_distilled_bulk")
+            || id.equals("cluster_unit_ore_washer_distilled_bulk");
     }
 
     public static List<String> machineIds() {
