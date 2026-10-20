@@ -609,7 +609,11 @@ public final class ClusterTerminalPanel {
                 text("cluster_dropdown_empty", () -> tr("gtsr.cluster.gui.link.unit.none")).widthRel(1)
                     .height(14)
                     .scale(.75f)
-                    .setEnabledIf(widget -> session.integer(ClusterTerminalData.KEY_LE_AVAIL, 0) == 0));
+                    .setEnabledIf(widget -> {
+                        for (int segment = 0; segment < 20; segment++)
+                            if (session.topo(segment * 3 + 2, 0) == 13) return false;
+                        return true;
+                    }));
             return new Menu<>().width(200)
                 .coverChildrenHeight()
                 .background(TerminalUiStyle.CARD.withColorOverride(0xFFFFFFFF))
