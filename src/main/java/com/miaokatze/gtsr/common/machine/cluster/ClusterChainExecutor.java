@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.machine.cluster;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,8 @@ import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.util.GTSROutputBusCompat;
 
 import gregtech.api.enums.Materials;
+import gregtech.api.interfaces.IOutputBusTransaction;
+import gregtech.api.interfaces.IOutputTransaction;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
@@ -995,24 +998,12 @@ public final class ClusterChainExecutor {
     }
 
     /**
-     * 产物写入/输出预检共用实现（普通总线 probe-place-ledger + ME 总线兜底双趟）：
-     * <ol>
-     * <li><b>趟 1（普通总线）</b>：每组产物依次对每个普通总线做 storePartial 模拟探测（探测会
-     * 扣减入参 stackSize，故用副本），整组放得下才实放（<b>实放同样传副本</b>——入参
-     * {@code outputs} 各堆尺寸保持不变，预检回滚与暂存重试共用同一列表）并记台账；后续组的
-     * 探测可见先续组的实放结果，累积可放性成立。</li>
-     * <li><b>趟 2（ME 总线兜底）</b>：趟 1 无处可放的组改投 ME 总线——先逐组模拟探测<b>全部</b>
-     * 选定可行目标，再一次性实放。ME 实放走 addToCache 无容量门控（{@link GTSROutputBusCompat}
-     * 类注释），探测过即实放必成；且回滚台账<b>永不含 ME 条目</b>（ME cache 不在 mInventory 槽，
-     * {@link #rollbackOutputs} 对 ME 恒 no-op）——失败路径上 ME 零实放，杜绝预检/排空重试对
-     * ME cache 的凭空多发与双份。</li>
-     * </ol>
-     * 趟 1 任一组普通放不下转入趟 2，趟 2 任一组全部 ME 探测失败 → 回滚已实放的普通条目并
-     * 返回 null（普通零残留；ME 未动）。组落点偏好普通总线、ME 仅兜底。
+     * Ordinary buses share each output group and reserve capacity by placement with an undo ledger.
+     * Any remainder is reserved in one RC2 transaction per ME bus; all groups must fit before commit.
+     * Capacity probes discard the ME transactions and undo ordinary placement, leaving outputs untouched.
      *
-     * @param realPlaceMe 预检（false）= ME 只模拟不落地（台账只含普通条目，立即回滚即
-     *                    probe-place-undo 精确还原）；排空实发（true）= ME 全组探测齐备后真实落地
-     * @return 实放台账（仅普通条目；ME 不入账）；null = 放不下（已内部回滚普通部分）
+     * @param realPlaceMe whether to commit the reserved ME outputs after the complete batch fits
+     * @return ordinary-bus undo ledger, or null after undoing a batch that cannot fit
      */
     private static List<OutputLedger> tryEmitOutputs(MTEBasicLogisticsUnit unit, List<ItemStack> outputs,
         boolean realPlaceMe) {
@@ -1044,26 +1035,28 @@ public final class ClusterChainExecutor {
             }
             if (remaining > 0) meOverflow.add(GTUtility.copyAmountUnsafe(remaining, out));
         }
-        // 趟 2：ME 兜底——先全部模拟探测选定目标（任一失败即整趟零落地回滚普通台账），再一次性实放
-        MTEHatchOutputBus[] meTargets = new MTEHatchOutputBus[meOverflow.size()];
-        for (int g = 0; g < meOverflow.size(); g++) {
-            ItemStack out = meOverflow.get(g);
+        // RC2 native transactions reserve all groups per bus without touching its real cache.
+        // Discard them for a capacity probe; commit only once every overflow group is reserved.
+        Map<MTEHatchOutputBusME, IOutputBusTransaction> transactions = new LinkedHashMap<>();
+        for (ItemStack out : meOverflow) {
+            ItemStack remaining = GTUtility.copyOrNull(out);
+            GTUtility.ItemId itemId = GTUtility.ItemId.createNoCopy(out);
             for (MTEHatchOutputBus bus : buses) {
-                if (!(bus instanceof MTEHatchOutputBusME)) continue;
-                if (!GTSROutputBusCompat.storePartial(bus, GTUtility.copyOrNull(out), true)) continue;
-                meTargets[g] = bus;
-                break;
+                if (!(bus instanceof MTEHatchOutputBusME meBus)) continue;
+                IOutputBusTransaction transaction = transactions.computeIfAbsent(meBus, key -> {
+                    IOutputBusTransaction created = key.createTransaction();
+                    if (created instanceof IOutputTransaction.IRecipeCheckAware aware) aware.setRecipeCheck(false);
+                    return created;
+                });
+                transaction.storePartial(itemId, remaining, 0L, 0L);
+                if (remaining.stackSize <= 0) break;
             }
-            if (meTargets[g] == null) {
+            if (remaining.stackSize > 0) {
                 rollbackOutputs(ledger);
                 return null;
             }
         }
-        if (realPlaceMe) {
-            for (int g = 0; g < meOverflow.size(); g++) {
-                GTSROutputBusCompat.storePartial(meTargets[g], GTUtility.copyOrNull(meOverflow.get(g)), false);
-            }
-        }
+        if (realPlaceMe) for (IOutputBusTransaction transaction : transactions.values()) transaction.commit();
         return ledger;
     }
 
