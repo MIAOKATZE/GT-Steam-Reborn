@@ -42,12 +42,14 @@ public class MTESingularityFluidOutputCompartment extends MTEWaterHubOutputHatch
 
     public MTESingularityFluidOutputCompartment(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
-        // 近亲构造已置 mMode=3（纯蒸汽输出模式），本仓不响应螺丝刀切档（见 onScrewdriverRightClick 覆写）
+        // 任意流体使用 GT 原生无锁模式；近亲的纯蒸汽模式不适用于本仓。
+        mMode = 0;
     }
 
     public MTESingularityFluidOutputCompartment(String aName, int aTier, String[] aDescription,
         ITexture[][][] aTextures) {
         super(aName, aTier, aDescription, aTextures);
+        mMode = 0;
     }
 
     @Override
@@ -161,7 +163,7 @@ public class MTESingularityFluidOutputCompartment extends MTEWaterHubOutputHatch
         return true;
     }
 
-    /** mMode 恒为 3：不响应螺丝刀切档（近亲此键切换 mOverflowOutput，仓无溢流输出语义）。 */
+    /** 不响应螺丝刀切档；流体锁仍由原生 GUI 的 8/9 模式管理，仓无溢流输出语义。 */
     @Override
     public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
         ItemStack aTool) {}
@@ -254,6 +256,8 @@ public class MTESingularityFluidOutputCompartment extends MTEWaterHubOutputHatch
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
+        // 旧版从近亲继承了纯蒸汽模式；只迁移该历史默认，保留显式流体锁。
+        if (mMode == 3) mMode = 0;
         loadCompartmentNBT(aNBT);
     }
 

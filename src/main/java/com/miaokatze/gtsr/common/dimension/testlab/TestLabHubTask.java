@@ -41,6 +41,7 @@ final class TestLabHubTask implements TestLabTask {
     private int originX, originY, originZ;
     private String nativeIssue = "";
     private String supplyPath = "hub_input";
+    private String fluidModeRegression = "NOT_APPLICABLE";
 
     TestLabHubTask(MetaTileEntityID target) {
         this.target = target;
@@ -207,6 +208,8 @@ final class TestLabHubTask implements TestLabTask {
                     + supplyPath
                     + " nativeIssue="
                     + nativeIssue
+                    + " fluidModeRegression="
+                    + fluidModeRegression
                     + " production=NOT_APPLICABLE");
         return null;
     }
@@ -243,6 +246,8 @@ final class TestLabHubTask implements TestLabTask {
         saved.setBoolean("gtsr.singularity_consumed", true);
         node.getMetaTileEntity()
             .loadNBTData(saved);
+        if (target == MetaTileEntityID.SINGULARITY_FLUID_OUTPUT_COMPARTMENT)
+            verifyAnyFluidOutput((MTEHatchOutput) node.getMetaTileEntity());
         IHubCacheNode cache = (IHubCacheNode) node.getMetaTileEntity();
         cache.setAutoOutput(false);
         if (!cache.isOutputModeLocked()) cache.setOutputMode(true);
@@ -274,6 +279,55 @@ final class TestLabHubTask implements TestLabTask {
         // Inventory is only a binding fixture; release it so later scenarios cannot consume stale singularities.
         player.inventory.mainInventory[0] = null;
         player.inventory.mainInventory[1] = null;
+    }
+
+    private void verifyAnyFluidOutput(MTEHatchOutput hatch) {
+        NBTTagCompound legacy = new NBTTagCompound();
+        hatch.saveNBTData(legacy);
+        legacy.setByte("mMode", (byte) 3);
+        hatch.loadNBTData(legacy);
+        NBTTagCompound migrated = new NBTTagCompound();
+        hatch.saveNBTData(migrated);
+        if (migrated.getByte("mMode") != 0 || !hatch.isEmptyAndAcceptsAnyFluid())
+            throw new IllegalStateException("Legacy steam-only default did not migrate to any-fluid mode");
+        FluidStack waterProbe = Materials.Water.getFluid(1);
+        FluidStack lavaProbe = new FluidStack(net.minecraftforge.fluids.FluidRegistry.LAVA, 1);
+        FluidStack steamProbe = Materials.Steam.getGas(1);
+        for (FluidStack probe : new FluidStack[] { waterProbe, lavaProbe, steamProbe }) {
+            if (ejectIntoOutput(hatch, probe) != 1 || hatch.getFluid() == null
+                || hatch.getFluid().amount != 1
+                || !probe.isFluidEqual(hatch.getFluid()))
+                throw new IllegalStateException("Any-fluid native output transaction failed for " + probe);
+            FluidStack incompatible = probe.isFluidEqual(waterProbe) ? lavaProbe : waterProbe;
+            if (ejectIntoOutput(hatch, incompatible) != 0 || hatch.getFluid().amount != 1)
+                throw new IllegalStateException("Native output mixed incompatible fluids");
+            FluidStack drainedProbe = hatch.drain(1, true);
+            if (!probe.isFluidEqual(drainedProbe) || drainedProbe.amount != 1 || hatch.getFluidAmount() != 0)
+                throw new IllegalStateException("Native output regression did not drain exact fixture amount");
+        }
+        if (!hatch.setFilter(waterProbe)) throw new IllegalStateException("Native water lock refused");
+        NBTTagCompound locked = new NBTTagCompound();
+        hatch.saveNBTData(locked);
+        for (byte mode : new byte[] { 8, 9 }) {
+            locked.setByte("mMode", mode);
+            hatch.loadNBTData(locked);
+            NBTTagCompound roundtrip = new NBTTagCompound();
+            hatch.saveNBTData(roundtrip);
+            hatch.loadNBTData(roundtrip);
+            if (roundtrip.getByte("mMode") != mode || !hatch.isFluidLocked()
+                || hatch.getLockedFluid() != waterProbe.getFluid())
+                throw new IllegalStateException("Explicit fluid lock mode/name did not survive NBT: " + mode);
+            if (ejectIntoOutput(hatch, lavaProbe) != 0 || ejectIntoOutput(hatch, steamProbe) != 0
+                || hatch.getFluidAmount() != 0)
+                throw new IllegalStateException("Explicit water lock accepted another fluid: " + mode);
+            if (ejectIntoOutput(hatch, waterProbe) != 1)
+                throw new IllegalStateException("Explicit water lock refused matching fluid: " + mode);
+            hatch.drain(1, true);
+        }
+        if (!hatch.setFilter(null) || !hatch.isEmptyAndAcceptsAnyFluid())
+            throw new IllegalStateException("Native fluid unlock did not restore any-fluid mode");
+        fluidModeRegression = "PASS legacy_3_to_0; water_lava_steam_native_transactions; mixed_fluid_rejection;"
+            + " locked_8_9_NBT_and_matching_only; native_unlock";
     }
 
     private static int ejectIntoOutput(MTEHatchOutput hatch, FluidStack resource) {
