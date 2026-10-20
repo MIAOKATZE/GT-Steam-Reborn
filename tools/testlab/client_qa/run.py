@@ -84,9 +84,9 @@ def main():
                 receipt['forcedStop']=True;proc.terminate();code=proc.wait(30)
         checks=result/'checks.json';payload=json.loads(checks.read_text(encoding='utf-8')) if checks.exists() else None
         receipt.update(exitCode=code,elapsedSeconds=time.monotonic()-started,checksStatus=payload.get('status') if payload else 'NO_RECEIPT',candidateUnchanged=sha(destination)==receipt['candidateSHA256'])
-        if a.mode=='ticket-restart':
+        if True:
             # BetterCrashes can recover and leave exit0. Lifecycle checks alone cannot mean crash-free.
-            markers=('Unreported exception thrown!', 'Minecraft ran into a problem!', 'Exception in server tick loop')
+            markers=('Unreported exception thrown!', 'Reported exception thrown!', 'Minecraft ran into a problem!', 'Exception in server tick loop')
             receipt['runtimeCrashFindings']=[dict(line=i,text=line) for i,line in enumerate((result/'stdout.log').read_text(encoding='utf-8',errors='replace').splitlines(),1) if any(marker in line for marker in markers)]
         receipt['status']='PASS' if code==0 and payload and payload['status']=='PASS' and not receipt['forcedStop'] and receipt['candidateUnchanged'] else 'FAIL'
         if receipt.get('runtimeCrashFindings'):receipt['status']='FAIL'

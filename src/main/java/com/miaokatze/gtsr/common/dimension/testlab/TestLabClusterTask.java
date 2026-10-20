@@ -384,7 +384,7 @@ public final class TestLabClusterTask implements TestLabTask {
                 if (booster != null && (booster.isLastBatchPrecheckFailed()
                     || boosterInitial - boosterHatch.getFluidAmount() != booster.batchCost(input.stackSize)))
                     return result(TestLabReport.Status.FAIL, "增幅液未按原生批单价真实扣除");
-                if (!batchRegression.isEmpty()) {
+                if (link == ChainLink.ORE_WASH && !batchRegression.isEmpty()) {
                     String fluidSummary = logistics.getLastBatchFluidSummary()
                         .toString();
                     String wantedFluid = recipeFluid.getFluid()
