@@ -731,33 +731,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
     // onDescriptionPacket()。初始区块同步与 issueTileUpdate() 触发的重发都走此链路。
     // 注意必须始终返回非 null：返回 null 时客户端收不到回调，「清除自定义名」将无法同步到客户端。
     // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-1/2 运行时经虚分派继续生效；beta-3 走 writeToStream/readFromStream，正式版发布时移除本分支
-    public NBTTagCompound getDescriptionData() {
-        NBTTagCompound data = new NBTTagCompound();
-        if (!getCustomName().isEmpty()) {
-            data.setString("gtsr.customName", getCustomName());
-        }
-        // 渲染状态（顶面流体窗+框架层）：绑定/方向模式/枢纽类型/窗显示流体名（罐内流体或记忆流体）
-        data.setBoolean("gtsr.bound", mBound);
-        data.setBoolean("gtsr.out", mIsOutputMode);
-        data.setString("gtsr.hubType", mHubType == null ? "" : mHubType);
-        data.setString("gtsr.fluid", getDisplayedWindowFluidName());
-        return data;
-    }
 
     // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-1/2 运行时经虚分派继续生效；beta-3 走 writeToStream/readFromStream，正式版发布时移除本分支
-    public void onDescriptionPacket(NBTTagCompound data) {
-        // 无 key 表示服务端已清除自定义名，回退空串（GUI 标题恢复默认本地化名）
-        mCustomName = data.hasKey("gtsr.customName") ? data.getString("gtsr.customName") : "";
-        // 渲染状态副本回读落地（getTexture 只读这组字段）
-        mClientBound = data.getBoolean("gtsr.bound");
-        mClientOutputMode = data.getBoolean("gtsr.out");
-        mClientHubType = data.getString("gtsr.hubType");
-        mClientFluidName = data.getString("gtsr.fluid");
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base != null) {
-            base.issueTextureUpdate();
-        }
-    }
 
     // [GT-compat] beta-3 ByteBuf 同步链（CommonBaseMetaTileEntity.writeDescriptionBuffer/readDescriptionBuffer
     // → 本方法对）：字段与上面 NBT 版逐一对应，写读逐字节对称（bool 哨兵 + writeUTF8String）；

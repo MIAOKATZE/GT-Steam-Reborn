@@ -189,38 +189,41 @@ public final class ClusterChainExecutor {
         // 结果登记为各模块「最近开批预检失效」标记；随后按标记重聚合——失效模块本批从聚合输入
         // 剔除（无增益、不计蒸汽惩罚乘子），批照常执行、输入照常收取（不重取料、不缩批）；
         // 通过者本处不实扣，整批提交点（步骤 10）一次扣除。主控一次性播报锁存读同一标记。
-        booster = precheckBoosterForBatch(topology, batch);
-
-        // 6) 链加工（副本单遍执行，逐物品累计真实配方流体需求 + processedLinks 跟踪 + 主产物单峰
-        // 解析（S1-T9）；此点零副作用——bonusSink 仅在提交成功后回填主控统计）
-        List<ItemStack> mid = new ArrayList<>(batch);
-        for (InputTake take : takes) {
-            for (int i = 0; i < take.amount; i++) {
+        BatchFluidLedger fluids;
+        EnumSet<ChainLink> processedLinks;
+        Map<Long, Long> bonusSink;
+        List<ItemStack> outputs;
+        int originalPeak = unit.getLastEffectivePeak();
+        // An ordinary chain can run a smaller batch when its actual washing fluids cannot fund full parallelism.
+        // Trials only touch copies. Halving bounds total planning work; queue mode deliberately waits for a full batch.
+        while (true) {
+            booster = precheckBoosterForBatch(topology, batch);
+            List<ItemStack> mid = new ArrayList<>(batch);
+            for (InputTake take : takes) for (int i = 0; i < take.amount; i++) {
                 mid.add(GTUtility.copyAmountUnsafe(1, take.live));
             }
-        }
-        BatchFluidLedger fluids = new BatchFluidLedger();
-        EnumSet<ChainLink> processedLinks = EnumSet.noneOf(ChainLink.class);
-        Map<Long, Long> bonusSink = new HashMap<>();
-        // T2⑤ 批内流体信号缓存：一次 executeBatch 一例，穿参至链加工两遍（峰探测 + 正式）的
-        // 配方流体信号解析——批内只读窗口零失效（论证见 BatchFluidSignalCache）
-        BatchFluidSignalCache fluidSignals = new BatchFluidSignalCache();
-        List<ItemStack> outputs = runChain(
-            chain,
-            mid,
-            unit,
-            fluids,
-            booster,
-            processedLinks,
-            tier,
-            bonusSink,
-            fluidSignals);
-
-        // 7) 批流体预检（§3.6.5-3）：本批将处理物品的累计需求任一不足 → 整批零副作用
-        if (!fluids.isSatisfiable(unit)) {
-            if (meWindow) unit.endMEBusProcessing(cluster);
-            unit.setChainCooldownTicks(ClusterParams.BATCH_FAIL_BACKOFF_TICKS);
-            return 0;
+            fluids = new BatchFluidLedger();
+            processedLinks = EnumSet.noneOf(ChainLink.class);
+            bonusSink = new HashMap<>();
+            outputs = runChain(
+                chain,
+                mid,
+                unit,
+                fluids,
+                booster,
+                processedLinks,
+                tier,
+                bonusSink,
+                new BatchFluidSignalCache());
+            if (fluids.isSatisfiable(unit)) break;
+            unit.setLastEffectivePeak(originalPeak);
+            if (unit.isQueueMode() || batch <= 1) {
+                if (meWindow) unit.endMEBusProcessing(cluster);
+                unit.setChainCooldownTicks(ClusterParams.BATCH_FAIL_BACKOFF_TICKS);
+                return 0;
+            }
+            batch = Math.max(1, batch / 2);
+            takes = limitTakes(takes, batch);
         }
 
         // 8) 输出预检（r-logi-power-bind，probe-place-undo）：整批逐组证明放得下后立即按台账
@@ -339,6 +342,17 @@ public final class ClusterChainExecutor {
         return parallel - remaining;
     }
 
+    private static List<InputTake> limitTakes(List<InputTake> original, int limit) {
+        List<InputTake> limited = new ArrayList<>(original.size());
+        for (InputTake take : original) {
+            int amount = Math.min(limit, take.amount);
+            if (amount <= 0) break;
+            limited.add(new InputTake(take.bus, take.slot, take.live, amount));
+            limit -= amount;
+        }
+        return limited;
+    }
+
     /** 扣料执行（IOF :317 原式）：对每个 live 引用 stackSize -= take（0-size 槽由总线自身 tick 收口）。 */
     private static void applyTakes(List<InputTake> takes) {
         for (InputTake take : takes) {
@@ -393,23 +407,47 @@ public final class ClusterChainExecutor {
         /** 本批出现了互斥的两种化浴液需求（预检失败 → 整批零副作用）。 */
         private boolean mixedChemFluids;
 
+        private boolean overflow;
+
+        boolean canCharge(ChainLink link, GTRecipe recipe, int items, MTEBasicLogisticsUnit unit) {
+            BatchFluidLedger trial = new BatchFluidLedger();
+            trial.plainWaterMb = plainWaterMb;
+            trial.plainWaterFluid = plainWaterFluid;
+            trial.distilledWaterMb = distilledWaterMb;
+            trial.distilledWaterFluid = distilledWaterFluid;
+            trial.chemFluid = chemFluid == null ? null : chemFluid.copy();
+            trial.mixedChemFluids = mixedChemFluids;
+            trial.overflow = overflow;
+            trial.charge(link, recipe, items);
+            return trial.isSatisfiable(unit);
+        }
+
         /** 按链步与命中配方累计需求（items = 本物品堆数量，rollOutputs 的 aTime 同口径）。 */
         void charge(ChainLink link, GTRecipe recipe, int items) {
             if (link != ChainLink.ORE_WASH && link != ChainLink.CHEM_BATH && link != ChainLink.SIMPLE_WASH) return;
             FluidStack rep = recipe.getRepresentativeFluidInput(0);
             if (rep == null || rep.getFluid() == null || rep.amount <= 0) return;
+            long cost = (long) items * rep.amount;
+            if (cost < 0 || cost > Integer.MAX_VALUE) {
+                overflow = true;
+                return;
+            }
             if (link == ChainLink.ORE_WASH || link == ChainLink.SIMPLE_WASH) {
                 if (isDistilledFluid(rep.getFluid())) {
                     distilledWaterFluid = rep.getFluid();
-                    distilledWaterMb += items * rep.amount;
+                    if (cost > Integer.MAX_VALUE - distilledWaterMb) overflow = true;
+                    else distilledWaterMb += (int) cost;
                 } else {
                     plainWaterFluid = rep.getFluid();
-                    plainWaterMb += items * rep.amount;
+                    if (cost > Integer.MAX_VALUE - plainWaterMb) overflow = true;
+                    else plainWaterMb += (int) cost;
                 }
             } else {
-                if (chemFluid == null) chemFluid = new FluidStack(rep.getFluid(), items * rep.amount);
-                else if (chemFluid.getFluid() == rep.getFluid()) chemFluid.amount += items * rep.amount;
-                else mixedChemFluids = true;
+                if (chemFluid == null) chemFluid = new FluidStack(rep.getFluid(), (int) cost);
+                else if (chemFluid.getFluid() == rep.getFluid()) {
+                    if (cost > Integer.MAX_VALUE - chemFluid.amount) overflow = true;
+                    else chemFluid.amount += (int) cost;
+                } else mixedChemFluids = true;
             }
         }
 
@@ -419,7 +457,7 @@ public final class ClusterChainExecutor {
          */
         boolean isSatisfiable(MTEBasicLogisticsUnit unit) {
             List<MTEHatchInput> hatches = unit.getLogisticsInputHatches();
-            if (mixedChemFluids) return false;
+            if (mixedChemFluids || overflow) return false;
             if (plainWaterMb > 0
                 && !GTSRHatchFluidAccess.hasEnoughAcross(hatches, ledgerStack(plainWaterFluid, plainWaterMb)))
                 return false;
@@ -622,7 +660,8 @@ public final class ClusterChainExecutor {
                     map,
                     GTUtility.copyAmountUnsafe(amount, stack),
                     unit,
-                    fluidSignals);
+                    fluidSignals,
+                    fluids);
                 if (recipe == null) {
                     output.add(stack);
                     addPrimary(nextPrimary, stack, primaryAmount);
@@ -767,7 +806,7 @@ public final class ClusterChainExecutor {
      * 可得性按批缓存（T2⑤ {@link BatchFluidSignalCache#distilledAvailable} 懒计算，判据同源搬移）。
      */
     private static GTRecipe findLinkRecipe(ChainLink link, RecipeMap<?> map, ItemStack stackCopy,
-        MTEBasicLogisticsUnit unit, BatchFluidSignalCache fluidSignals) {
+        MTEBasicLogisticsUnit unit, BatchFluidSignalCache fluidSignals, BatchFluidLedger fluids) {
         switch (link) {
             case ORE_WASH: {
                 // T2⑤ 判据同源搬移为批内懒缓存：同一探针、同一条件结构、同一判定方向，
@@ -779,7 +818,9 @@ public final class ClusterChainExecutor {
                 }
                 if (fluidSignals.distilledAvailable) {
                     GTRecipe distilled = findRecipe(map, stackCopy, GTModHandler.getDistilledWater(Integer.MAX_VALUE));
-                    if (distilled != null) return distilled;
+                    if (distilled != null
+                        && (fluids == null || fluids.canCharge(link, distilled, stackCopy.stackSize, unit)))
+                        return distilled;
                 }
                 return findRecipe(map, stackCopy, Materials.Water.getFluid(Integer.MAX_VALUE));
             }
@@ -981,17 +1022,27 @@ public final class ClusterChainExecutor {
         // 趟 1：普通总线逐组探测→实放（副本）→台账
         for (ItemStack out : outputs) {
             if (GTUtility.isStackInvalid(out)) continue;
-            boolean placed = false;
+            int remaining = out.stackSize;
             for (MTEHatchOutputBus bus : buses) {
                 if (bus instanceof MTEHatchOutputBusME) continue;
-                if (!GTSROutputBusCompat.storePartial(bus, GTUtility.copyOrNull(out), true)) continue;
-                int amount = out.stackSize;
-                GTSROutputBusCompat.storePartial(bus, GTUtility.copyOrNull(out), false);
-                ledger.add(new OutputLedger(bus, GTUtility.stackToInt(out), amount));
-                placed = true;
-                break;
+                ItemStack probe = GTUtility.copyAmountUnsafe(remaining, out);
+                GTSROutputBusCompat.storePartial(bus, probe, true);
+                int accepted = remaining - Math.max(0, probe.stackSize);
+                if (accepted <= 0) continue;
+                ItemStack insertion = GTUtility.copyAmountUnsafe(accepted, out);
+                GTSROutputBusCompat.storePartial(bus, insertion, false);
+                int placed = accepted - Math.max(0, insertion.stackSize);
+                if (placed > 0) {
+                    ledger.add(new OutputLedger(bus, GTUtility.stackToInt(out), placed));
+                    remaining -= placed;
+                }
+                if (placed != accepted) {
+                    rollbackOutputs(ledger);
+                    return null;
+                }
+                if (remaining <= 0) break;
             }
-            if (!placed) meOverflow.add(out);
+            if (remaining > 0) meOverflow.add(GTUtility.copyAmountUnsafe(remaining, out));
         }
         // 趟 2：ME 兜底——先全部模拟探测选定目标（任一失败即整趟零落地回滚普通台账），再一次性实放
         MTEHatchOutputBus[] meTargets = new MTEHatchOutputBus[meOverflow.size()];

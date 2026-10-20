@@ -369,9 +369,10 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 + " EU/t",
             () -> GtsrGuiPalette.TEXT_LABEL);
         summary.child(summaryText);
+        GTProgressWidget batchProgress = new GTProgressWidget();
+        if (multiblock.getRecipeMap() != null) batchProgress.neiTransferRect(multiblock.getRecipeMap());
         summary.child(
-            new GTProgressWidget().neiTransferRect(multiblock.getRecipeMap())
-                .texture(GTGuiTextures.PROGRESSBAR_ARROW_STANDARD, 20)
+            batchProgress.texture(GTGuiTextures.PROGRESSBAR_ARROW_STANDARD, 20)
                 .progress(() -> ratio(batch.getValue(), duration.getValue()))
                 .pos(435, 22)
                 .size(20, 16));

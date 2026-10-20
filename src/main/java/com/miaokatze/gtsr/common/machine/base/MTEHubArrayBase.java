@@ -918,25 +918,6 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
     // 任何父类方法），beta-1/2 运行时仍经虚分派覆写父类；super 落到 MTEGTSRMultiBlockBase 垫片，
     // 由垫片承住 beta-2 父类的 center/朝向键（radius 见垫片注释的降级说明）。
 
-    public NBTTagCompound getDescriptionData() {
-        NBTTagCompound data = super.getDescriptionData();
-        if (data == null) data = new NBTTagCompound();
-        data.setInteger("mSetTier", mSetTier);
-        // 正面流体窗渲染状态：窗显示流体名（存储非空=存储流体，空=记忆流体，客户端再回退族默认流体）
-        data.setString("gtsr.hubFluid", displayFluidNameForSync());
-        return data;
-    }
-
-    public void onDescriptionPacket(NBTTagCompound data) {
-        super.onDescriptionPacket(data);
-        mSetTier = data.getInteger("mSetTier");
-        mClientFluidName = data.getString("gtsr.hubFluid");
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base != null) {
-            base.issueTextureUpdate();
-        }
-    }
-
     /**
      * [GT-compat] beta-3 流同步路径：首行 super 承住 MTEEnhancedMultiBlockBase 的
      * center XYZ float×3 + radius int + 朝向 byte（beta-3 :553-560 顺序），本类追加

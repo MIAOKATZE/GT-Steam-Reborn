@@ -142,8 +142,9 @@ public final class TestLabRuntime {
 
     private void startRun(String requested, ICommandSender sender) {
         List<TestLabTask> selected = new ArrayList<>();
-        for (TestLabTask task : TestLabCatalog.tasks()) if ("all".equals(requested) || task.id()
-            .equals(requested)) selected.add(task);
+        for (TestLabTask task : TestLabCatalog.tasks())
+            if ("all".equals(requested) && !TestLabCatalog.isExplicitRegression(task.id()) || task.id()
+                .equals(requested)) selected.add(task);
         if (selected.isEmpty()) throw new IllegalArgumentException("未知测试项：" + requested + "；使用 list");
         begin(selected, requested, "MACHINE", sender);
     }

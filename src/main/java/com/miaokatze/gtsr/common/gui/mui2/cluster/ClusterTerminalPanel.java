@@ -9,6 +9,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
 
+import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
 import com.cleanroommc.modularui.drawable.Rectangle;
@@ -25,6 +26,8 @@ import com.cleanroommc.modularui.widgets.PageButton;
 import com.cleanroommc.modularui.widgets.PagedWidget;
 import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.cleanroommc.modularui.widgets.menu.AbstractMenuButton;
+import com.cleanroommc.modularui.widgets.menu.Menu;
 import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
 import com.miaokatze.gtsr.common.gui.mui2.TerminalUiStyle;
 import com.miaokatze.gtsr.common.gui.mui2.TerminalViewport;
@@ -219,7 +222,7 @@ public final class ClusterTerminalPanel {
                     new ParentWidget<>().name("cluster_topology_slot_" + slot)
                         .pos(36 + pad * 180, 0)
                         .size(178, 22)
-                        .background(new Rectangle().color(0xff26262b))
+                        .background(IDrawable.EMPTY)
                         .child(
                             text("cluster_topology_name_" + slot, () -> type(session.topo(slot, 0))).pos(2, 2)
                                 .size(164, 9)
@@ -282,44 +285,29 @@ public final class ClusterTerminalPanel {
 
     private static ParentWidget<?> links(ClusterSessionSyncHandler session) {
         ParentWidget<?> page = page("cluster_links");
-        ListWidget<com.cleanroommc.modularui.api.widget.IWidget, ?> units = new ListWidget<>()
-            .scrollDirection(new VerticalScrollData().cancelScrollEdge(false))
-            .name("cluster_unit_list")
-            .pos(0, 0)
-            .size(210, 36)
-            .background(TerminalUiStyle.CARD);
-        for (int segment = 0; segment < 20; segment++) {
-            int slot = segment * 3 + 2;
-            units.child(
-                button(
-                    "cluster_unit_" + slot,
-                    () -> (session.selectedSlot() == slot ? "▶ " : "") + tr(
-                        "gtsr.cluster.mui2.logistics") + " #" + (slot / 3) + " · " + unitState(session, slot),
-                    () -> session.select(slot)).widthRel(1)
-                        .height(19)
-                        .setEnabledIf(widget -> session.topo(slot, 0) == 13));
-        }
-        page.child(units);
         page.child(
-            text("cluster_chain_banner", () -> chainBanner(session)).pos(216, 0)
-                .size(366, 16)
+            new LogisticsMenu(session).pos(0, 0)
+                .size(200, 14));
+        page.child(
+            text("cluster_chain_banner", () -> chainBanner(session)).pos(212, 0)
+                .size(370, 14)
                 .scale(.7f));
         page.child(
-            button("cluster_chain_save", () -> tr("gtsr.cluster.gui.link.chain.save"), session::save).pos(422, 19)
-                .size(78, 20));
+            button("cluster_chain_save", () -> tr("gtsr.cluster.gui.link.chain.save"), session::save).pos(496, 13)
+                .size(42, 12));
         page.child(
-            button("cluster_chain_revert", () -> tr("gtsr.cluster.mui2.revert"), session::discardDraft).pos(340, 19)
-                .size(78, 20));
+            button("cluster_chain_revert", () -> tr("gtsr.cluster.mui2.revert"), session::discardDraft).pos(450, 13)
+                .size(42, 12));
         page.child(button("cluster_chain_clear", () -> tr("gtsr.cluster.gui.link.chain.clear"), () -> {
             ClusterDraftState draft = session.draft();
             if (draft != null) draft.clear();
-        }).pos(504, 19)
-            .size(78, 20));
+        }).pos(540, 13)
+            .size(42, 12));
         ListWidget<com.cleanroommc.modularui.api.widget.IWidget, ?> available = new ListWidget<>()
             .scrollDirection(new VerticalScrollData().cancelScrollEdge(false))
             .name("cluster_available_links")
-            .pos(0, 52)
-            .size(210, 194)
+            .pos(0, 28)
+            .size(272, 218)
             .background(TerminalUiStyle.CARD);
         for (ChainLink link : LINKS) {
             available.child(
@@ -338,8 +326,15 @@ public final class ClusterTerminalPanel {
                         if (draft != null) draft.append(link.ordinal());
                     }).widthRel(1)
                         .height(34)
-                        .background(com.cleanroommc.modularui.api.drawable.IDrawable.EMPTY)
-                        .hoverBackground(TerminalUiStyle.ROW_HOVER)
+                        .background(IDrawable.EMPTY)
+                        .padding(5, 3)
+                        .overlay(
+                            IKey.dynamic(() -> availableLinkLabel(session, link))
+                                .alignment(Alignment.TopLeft)
+                                .scale(.75f)
+                                .shadow(false)
+                                .color(GtsrGuiPalette.TEXT_BODY))
+                        .hoverBackground(TerminalUiStyle.ROW_HOVER.withColorOverride(0xFFFFFFFF))
                         .tooltipBuilder(tooltip -> {
                             tooltip.addLine(IKey.lang(link.getLangKey()));
                             tooltip.addLine(
@@ -374,76 +369,107 @@ public final class ClusterTerminalPanel {
         ListWidget<com.cleanroommc.modularui.api.widget.IWidget, ?> chain = new ListWidget<>()
             .scrollDirection(new VerticalScrollData().cancelScrollEdge(false))
             .name("cluster_draft_list")
-            .pos(216, 44)
-            .size(366, 88)
+            .pos(280, 46)
+            .size(302, 88)
             .background(TerminalUiStyle.CARD);
         for (int i = 0; i < 16; i++) {
             final int index = i;
-            Flow row = Flow.row()
-                .name("cluster_draft_step_" + index)
+            ParentWidget<?> row = new ParentWidget<>().name("cluster_draft_step_" + index)
                 .widthRel(1)
                 .height(25)
-                .background(
-                    new DynamicDrawable(
-                        () -> session.draft() != null && session.draft().peak == index ? TerminalUiStyle.CHIP_ACTIVE
-                            : TerminalUiStyle.CHIP_NORMAL))
-                .childPadding(2)
                 .setEnabledIf(widget -> session.draft() != null && index < session.draft().ordinals.size());
+            row.child(
+                new ParentWidget<>().pos(1, 0)
+                    .size(296, 13)
+                    .background(new Rectangle().color(0x30c87e3b))
+                    .setEnabledIf(widget -> session.draft() != null && session.draft().peak == index));
+            row.child(
+                text("cluster_draft_number_" + index, () -> (index + 1) + ".").pos(2, 3)
+                    .size(16, 10)
+                    .scale(.75f)
+                    .color(GtsrGuiPalette.TEXT_ACCENT));
             row.child(text("cluster_draft_label_" + index, () -> {
                 ClusterDraftState draft = session.draft();
                 return draft == null || index >= draft.ordinals.size() ? ""
-                    : (index + 1) + ". " + tr(LINKS[draft.ordinals.get(index)].getLangKey());
-            }).width(208)
-                .height(24)
-                .scale(.75f)
+                    : tr(LINKS[draft.ordinals.get(index)].getLangKey());
+            }).pos(18, 4)
+                .size(44, 9)
+                .scale(.65f)
                 .color(() -> failedDraftStep(session, index) ? GtsrGuiPalette.STATE_OFFLINE : GtsrGuiPalette.TEXT_BODY)
                 .tooltipBuilder(tooltip -> {
                     ClusterDraftState draft = session.draft();
                     if (draft != null && index < draft.ordinals.size()) {
                         int ordinal = draft.ordinals.get(index);
-                        int tier = Math.max(0, Math.min(3, session.integer(ClusterTerminalData.KEY_TIER, 0)));
-                        double seconds = LINKS[ordinal].getBaseSecondsPrecise() * ClusterParams.TIER_TIME_FACTOR[tier]
-                            / Math.max(1, lock(session, ordinal, 1));
                         tooltip.addLine(IKey.lang(LINKS[ordinal].getLangKey()));
-                        tooltip.addLine(IKey.lang("gtsr.cluster.mui2.actual_seconds", seconds));
                         tooltip.addLine(IKey.str(flow(draft)));
                     }
                 })
                 .tooltipAutoUpdate(true));
             row.child(
-                button(
-                    "cluster_peak_" + index,
-                    () -> session.draft() != null && session.draft().peak == index ? "★" : "☆",
-                    () -> {
-                        if (session.draft() != null) session.draft()
-                            .peak(index);
-                    }).size(28, 22));
+                text("cluster_draft_time_" + index, () -> draftStepTime(session, index)).pos(64, 4)
+                    .size(48, 9)
+                    .scale(.6f)
+                    .color(GtsrGuiPalette.STATE_ONLINE));
             row.child(
                 button(
                     "cluster_move_up_" + index,
-                    () -> "↑",
+                    () -> "◀",
                     () -> {
                         if (session.draft() != null) session.draft()
                             .move(index, -1);
-                    }).size(28, 22));
+                    }).pos(114, 0)
+                        .size(14, 13));
             row.child(
                 button(
                     "cluster_move_down_" + index,
-                    () -> "↓",
+                    () -> "▶",
                     () -> {
                         if (session.draft() != null) session.draft()
                             .move(index, 1);
-                    }).size(28, 22));
+                    }).pos(130, 0)
+                        .size(14, 13));
             row.child(
                 button(
                     "cluster_remove_" + index,
-                    () -> "×",
+                    () -> "§c✖",
                     () -> {
                         if (session.draft() != null) session.draft()
                             .remove(index);
-                    }).size(28, 22));
+                    }).pos(146, 0)
+                        .size(16, 13));
+            row.child(
+                button(
+                    "cluster_peak_" + index,
+                    () -> session.draft() != null && session.draft().peak == index
+                        ? "§6▲" + tr("gtsr.cluster.mui2.peak")
+                        : "▲" + tr("gtsr.cluster.mui2.peak"),
+                    () -> {
+                        if (session.draft() != null) session.draft()
+                            .peak(index);
+                    }).pos(164, 0)
+                        .size(32, 13)
+                        .addTooltipLine(IKey.lang("gtsr.terminal.le.chains.peak", index + 1)));
+            row.child(
+                text("cluster_draft_note_" + index, () -> draftStepNote(session, index)).pos(2, 17)
+                    .size(286, 8)
+                    .scale(.55f)
+                    .color(GtsrGuiPalette.TEXT_ACCENT));
             chain.child(row);
         }
+        ListWidget<com.cleanroommc.modularui.api.widget.IWidget, ?> unitChips = new ListWidget<>()
+            .name("cluster_unit_list")
+            .pos(280, 28)
+            .size(302, 14)
+            .scrollDirection(
+                new com.cleanroommc.modularui.widget.scroll.HorizontalScrollData().cancelScrollEdge(false));
+        for (int segment = 0; segment < 20; segment++) {
+            final int slot = segment * 3 + 2;
+            unitChips.child(
+                button("cluster_unit_" + slot, () -> "#" + slot / 3, () -> session.select(slot)).width(46)
+                    .height(14)
+                    .setEnabledIf(widget -> session.topo(slot, 0) == 13));
+        }
+        page.child(unitChips);
         page.child(chain);
         page.child(text("cluster_chain_flow", () -> {
             ClusterDraftState draft = session.draft();
@@ -454,19 +480,19 @@ public final class ClusterTerminalPanel {
                     + tr("gtsr.cluster.mui2.fsm")
                     + " "
                     + (draft.valid() ? "✔" : "✖");
-        }).pos(216, 134)
-            .size(366, 12)
+        }).pos(280, 136)
+            .size(302, 10)
             .scale(.65f)
             .color(
                 () -> session.draft() != null && session.draft()
                     .valid() ? GtsrGuiPalette.STATE_ONLINE : GtsrGuiPalette.STATE_OFFLINE));
         page.child(
             text("cluster_chain_feedback", () -> tr(session.receipt())).pos(0, 247)
-                .size(210, 11)
+                .size(272, 11)
                 .scale(.65f));
         page.child(
-            text("cluster_chain_formula", () -> tr("gtsr.cluster.gui.link.perf")).pos(216, 180)
-                .size(366, 12)
+            text("cluster_chain_formula", () -> tr("gtsr.cluster.gui.link.perf")).pos(280, 168)
+                .size(302, 12)
                 .scale(.7f)
                 .color(GtsrGuiPalette.TEXT_ACCENT)
                 .tooltipBuilder(tooltip -> {
@@ -476,31 +502,31 @@ public final class ClusterTerminalPanel {
                 })
                 .tooltipAutoUpdate(true));
         page.child(
-            text("cluster_available_title", () -> tr("gtsr.cluster.gui.link.avail")).pos(0, 40)
-                .size(210, 11)
+            text("cluster_available_title", () -> tr("gtsr.cluster.gui.link.avail")).pos(0, 16)
+                .size(272, 11)
                 .scale(.7f)
                 .color(GtsrGuiPalette.TEXT_ACCENT));
         page.child(
-            text("cluster_chain_title", () -> tr("gtsr.cluster.gui.link.chain")).pos(216, 23)
+            text("cluster_chain_title", () -> tr("gtsr.cluster.gui.link.chain")).pos(280, 16)
                 .size(120, 12)
                 .scale(.7f)
                 .color(GtsrGuiPalette.TEXT_ACCENT));
         page.child(
             new ListWidget<>().name("cluster_flow_diagram")
-                .pos(216, 148)
-                .size(366, 28)
+                .pos(280, 148)
+                .size(302, 16)
                 .background(TerminalUiStyle.CARD)
                 .scrollDirection(new VerticalScrollData().cancelScrollEdge(false))
                 .child(
                     new PerformanceText(IKey.dynamic(() -> flow(session.draft()))).name("cluster_flow_text")
-                        .width(350)
+                        .width(286)
                         .scale(.6f)
                         .color(GtsrGuiPalette.TEXT_BODY)
                         .textAlign(Alignment.TopLeft)));
         ListWidget<com.cleanroommc.modularui.api.widget.IWidget, ?> formula = new ListWidget<>()
             .name("cluster_formula_list")
-            .pos(216, 194)
-            .size(366, 64)
+            .pos(280, 183)
+            .size(302, 63)
             .background(TerminalUiStyle.CARD)
             .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
         formula.child(
@@ -536,6 +562,93 @@ public final class ClusterTerminalPanel {
         }
         page.child(formula);
         return page;
+    }
+
+    private static final class LogisticsMenu extends AbstractMenuButton<LogisticsMenu> {
+
+        private final ClusterSessionSyncHandler session;
+
+        LogisticsMenu(ClusterSessionSyncHandler session) {
+            super("cluster_logistics_dropdown");
+            this.session = session;
+            openOnHover = false;
+            background(TerminalUiStyle.CHIP_NORMAL.withColorOverride(0xFFFFFFFF));
+            hoverBackground(TerminalUiStyle.CHIP_ACTIVE.withColorOverride(0xFFFFFFFF));
+            padding(5, 0);
+            overlay(
+                IKey.dynamic(
+                    () -> session.topo(session.selectedSlot(), 0) == 13 ? tr("gtsr.cluster.mui2.logistics") + " #"
+                        + session.selectedSlot() / 3
+                        + " · "
+                        + unitState(session, session.selectedSlot())
+                        + " ▾" : tr("gtsr.cluster.gui.link.unit.none") + " ▾")
+                    .alignment(Alignment.CenterLeft)
+                    .scale(.75f)
+                    .shadow(false)
+                    .color(GtsrGuiPalette.TEXT_BODY));
+        }
+
+        @Override
+        protected Menu<?> createMenu() {
+            ListWidget<com.cleanroommc.modularui.api.widget.IWidget, ?> options = new ListWidget<>().widthRel(1)
+                .maxSize(140);
+            for (int segment = 0; segment < 20; segment++) {
+                final int slot = segment * 3 + 2;
+                options.child(
+                    button(
+                        "cluster_dropdown_unit_" + slot,
+                        () -> tr("gtsr.cluster.mui2.logistics") + " #" + slot / 3 + " · " + unitState(session, slot),
+                        () -> {
+                            session.select(slot);
+                            closeMenu(false);
+                        }).widthRel(1)
+                            .height(14)
+                            .setEnabledIf(widget -> session.topo(slot, 0) == 13));
+            }
+            options.child(
+                text("cluster_dropdown_empty", () -> tr("gtsr.cluster.gui.link.unit.none")).widthRel(1)
+                    .height(14)
+                    .scale(.75f)
+                    .setEnabledIf(widget -> session.integer(ClusterTerminalData.KEY_LE_AVAIL, 0) == 0));
+            return new Menu<>().width(200)
+                .coverChildrenHeight()
+                .background(TerminalUiStyle.CARD.withColorOverride(0xFFFFFFFF))
+                .child(options);
+        }
+    }
+
+    private static String availableLinkLabel(ClusterSessionSyncHandler session, ChainLink link) {
+        int count = 0;
+        ClusterDraftState draft = session.draft();
+        if (draft != null) for (int ordinal : draft.ordinals) if (ordinal == link.ordinal()) count++;
+        String first = tr(link.getLangKey()) + (count == 0 ? "" : "  §a×" + count);
+        String second = String.format(Locale.ROOT, "%.2fs", link.getBaseSecondsPrecise()) + " · " + tr(mediumKey(link));
+        int kind = lock(session, link.ordinal(), 0);
+        if (kind != 0) second += " · §c"
+            + (kind == 2 ? String.format(tr("gtsr.gui.cluster.link.locked_module"), tr(link.getLangKey()))
+                : tr(kind == 3 ? "gtsr.gui.cluster.link.locked_unformed" : "gtsr.gui.cluster.link.locked_power"));
+        return first + "\n§r" + second;
+    }
+
+    private static String draftStepTime(ClusterSessionSyncHandler session, int index) {
+        ClusterDraftState draft = session.draft();
+        if (draft == null || index >= draft.ordinals.size()) return "";
+        int ordinal = draft.ordinals.get(index);
+        int tier = Math.max(0, Math.min(3, session.integer(ClusterTerminalData.KEY_TIER, 0)));
+        double seconds = LINKS[ordinal].getBaseSecondsPrecise() * ClusterParams.TIER_TIME_FACTOR[tier]
+            / Math.max(1, lock(session, ordinal, 1));
+        return String.format(Locale.ROOT, "%.2fs", seconds);
+    }
+
+    private static String draftStepNote(ClusterSessionSyncHandler session, int index) {
+        ClusterDraftState draft = session.draft();
+        if (draft == null || index >= draft.ordinals.size() || LINKS[draft.ordinals.get(index)] != ChainLink.CRUSH)
+            return "";
+        int tier = session.integer(ClusterTerminalData.KEY_TIER, 0);
+        double multiplier = tier >= 2 ? ClusterParams.CRUSH_BYPRODUCT_MULT_HIGH_TIER
+            : tier == 1 ? ClusterParams.CRUSH_BYPRODUCT_MULT_STEEL : ClusterParams.CRUSH_BYPRODUCT_MULT_NORMAL;
+        return multiplier >= 1 ? tr("gtsr.gui.cluster.link.crush.byproduct_none")
+            : String.format(tr("gtsr.gui.cluster.link.crush.byproduct_debuff"), Math.round((1 - multiplier) * 100));
     }
 
     private static ParentWidget<?> boosters(ClusterSessionSyncHandler session, View view) {
@@ -787,18 +900,22 @@ public final class ClusterTerminalPanel {
     }
 
     private static TextWidget<?> text(String name, Supplier<String> value) {
-        return new TextWidget<>(IKey.dynamic(value)).name(name)
-            .color(GtsrGuiPalette.TEXT_BODY)
-            .scale(0.85f);
+        return new TextWidget<>(
+            IKey.dynamic(value)
+                .shadow(false)).name(name)
+                    .color(GtsrGuiPalette.TEXT_BODY)
+                    .scale(0.85f);
     }
 
     private static ButtonWidget<?> button(String name, Supplier<String> label, Runnable action) {
         return new ButtonWidget<>().name(name)
-            .background(TerminalUiStyle.BUTTON)
-            .hoverBackground(TerminalUiStyle.HOVER)
+            .background(TerminalUiStyle.BUTTON.withColorOverride(0xFFFFFFFF))
+            .hoverBackground(TerminalUiStyle.HOVER.withColorOverride(0xFFFFFFFF))
             .overlay(
                 IKey.dynamic(label)
-                    .scale(0.8f))
+                    .color(GtsrGuiPalette.TEXT_BODY)
+                    .shadow(false)
+                    .scale(0.7f))
             .onMousePressed(mouse -> {
                 if (mouse == 0) action.run();
                 return true;

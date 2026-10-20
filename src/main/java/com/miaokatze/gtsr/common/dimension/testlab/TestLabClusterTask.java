@@ -48,6 +48,10 @@ public final class TestLabClusterTask implements TestLabTask {
 
     private final MetaTileEntityID requested;
     private final ChainLink link;
+    private final String batchRegression;
+    private IGregTechTileEntity residualDistilledHatch;
+    private boolean splitOutputUnblocked;
+    private int splitOutputCompletedAt = -1;
     private final List<Node> nodes = new ArrayList<>();
     private final List<Spec> specs = new ArrayList<>();
     private final List<IGregTechTileEntity> feeds = new ArrayList<>();
@@ -92,6 +96,11 @@ public final class TestLabClusterTask implements TestLabTask {
     private final List<String> beforeThermalFixtureSnapshots = new ArrayList<>();
 
     public TestLabClusterTask(MetaTileEntityID requested) {
+        this(requested, "");
+    }
+
+    TestLabClusterTask(MetaTileEntityID requested, String batchRegression) {
+        this.batchRegression = batchRegression;
         if (!requested.name()
             .startsWith("CLUSTER_")) throw new IllegalArgumentException("Not a cluster ID: " + requested);
         this.requested = requested;
@@ -101,7 +110,7 @@ public final class TestLabClusterTask implements TestLabTask {
     @Override
     public String id() {
         return requested.name()
-            .toLowerCase(Locale.ROOT);
+            .toLowerCase(Locale.ROOT) + (batchRegression.isEmpty() ? "" : "_" + batchRegression);
     }
 
     @Override
@@ -291,13 +300,24 @@ public final class TestLabClusterTask implements TestLabTask {
                     return result(TestLabReport.Status.UNSUPPORTED, "成型与绑定通过；当前配方图无适合确定产物的单输入测试配方；未验证生产");
                 return null;
             }
+            if (!batchRegression.isEmpty()) {
+                input.stackSize = "output_split".equals(batchRegression) ? 24 : 64;
+                if (link == ChainLink.ORE_WASH) recipeFluid = "distilled_bulk".equals(batchRegression)
+                    ? gregtech.api.util.GTModHandler.getDistilledWater(Integer.MAX_VALUE)
+                    : Materials.Water.getFluid(Integer.MAX_VALUE);
+                if (residualDistilledHatch != null) {
+                    ((MTEHatchInput) residualDistilledHatch.getMetaTileEntity())
+                        .fill(ForgeDirection.UNKNOWN, gregtech.api.util.GTModHandler.getDistilledWater(1), true);
+                }
+            }
             if (recipeFluid != null) supply(world, logisticsFluid, recipeFluid);
             for (Node node : nodes) node.tile.enableWorking();
             cluster.setMachineEnabled(true);
             // Feed before natural preheat, explicitly checking that the low-heat gate does not consume it.
             captureThermalBaseline();
             beginEnergyObservation();
-            initialOutputCount = count(outputBus, expected);
+            if ("output_split".equals(batchRegression)) prepareSplitOutputs();
+            initialOutputCount = countOutputs(expected);
             inputBus.setInventorySlotContents(0, input.copy());
             productionStart = elapsedTicks;
             phase = "RUN";
@@ -312,7 +332,8 @@ public final class TestLabClusterTask implements TestLabTask {
             }
             if (!cluster.isPreheatReady() && cluster.getPreheatProgress() < 95D && elapsedTicks > productionStart + 2) {
                 if (count(inputBus, input) != input.stackSize || cluster.getTotalProcessedOre() != initialProcessed
-                    || count(outputBus, expected) != 0) return result(TestLabReport.Status.FAIL, "低温门控失败：预热期间吞料/输出/记账");
+                    || countOutputs(expected) != initialOutputCount)
+                    return result(TestLabReport.Status.FAIL, "低温门控失败：预热期间吞料/输出/记账");
                 sawColdInputPreserved = true;
                 if (!thermalFixture.containsKey("coldGateNaturalCheck")) {
                     java.util.Map<String, Object> check = new java.util.LinkedHashMap<>();
@@ -321,15 +342,34 @@ public final class TestLabClusterTask implements TestLabTask {
                     check.put("inputRemaining", count(inputBus, input));
                     check.put("expectedInputRemaining", input.stackSize);
                     check.put("processedDelta", cluster.getTotalProcessedOre() - initialProcessed);
-                    check.put("outputObserved", count(outputBus, expected));
+                    check.put("outputObserved", countOutputs(expected));
                     thermalFixture.put("coldGateNaturalCheck", check);
                 }
             }
             if (!thermalFixtureIssued && elapsedTicks > productionStart + 2
                 && (sawColdInputPreserved || existingLayout && existingWarm)) acceleratePreheat();
+            if ("output_split".equals(batchRegression) && !splitOutputUnblocked
+                && cluster.isPreheatReady()
+                && elapsedTicks > productionStart + 60) {
+                if (countOutputs(expected) != initialOutputCount || count(inputBus, input) != input.stackSize
+                    || cluster.getTotalProcessedOre() != initialProcessed
+                    || logistics.hasPendingOutputs())
+                    return result(
+                        TestLabReport.Status.FAIL,
+                        "Insufficient split capacity changed stock or consumed input");
+                MTEHatchOutputBus second = logistics.getLogisticsOutputBusses()
+                    .get(1);
+                ItemStack retained = second.getStackInSlot(0)
+                    .copy();
+                retained.stackSize--;
+                second.setInventorySlotContents(0, retained);
+                initialOutputCount--;
+                splitOutputUnblocked = true;
+            }
             sawRunning |= logistics.isWorkInProgress();
             recipeHit |= lastBatchLinks().contains(link);
-            if (count(outputBus, expected) - initialOutputCount >= 1) {
+            if (countOutputs(expected) - initialOutputCount >= 1
+                && (batchRegression.isEmpty() || count(inputBus, input) == 0 && !logistics.hasPendingOutputs())) {
                 if (!cluster.isPreheatReady() || !(sawColdInputPreserved || existingLayout && existingWarm)
                     || !recipeHit
                     || !sawRunning
@@ -344,9 +384,28 @@ public final class TestLabClusterTask implements TestLabTask {
                 if (booster != null && (booster.isLastBatchPrecheckFailed()
                     || boosterInitial - boosterHatch.getFluidAmount() != booster.batchCost(input.stackSize)))
                     return result(TestLabReport.Status.FAIL, "增幅液未按原生批单价真实扣除");
+                if (!batchRegression.isEmpty()) {
+                    String fluidSummary = logistics.getLastBatchFluidSummary()
+                        .toString();
+                    String wantedFluid = recipeFluid.getFluid()
+                        .getName() + ":";
+                    if (!fluidSummary.contains(wantedFluid) || cluster.getTotalProcessedOre() - initialProcessed != 64)
+                        return result(TestLabReport.Status.FAIL, "Washing batch accounting mismatch: " + fluidSummary);
+                    if (residualDistilledHatch != null
+                        && ((MTEHatchInput) residualDistilledHatch.getMetaTileEntity()).getFluidAmount() != 1)
+                        return result(TestLabReport.Status.FAIL, "Insufficient residual distilled water was consumed");
+                }
+                if ("output_split".equals(batchRegression)) {
+                    if (!splitOutputUnblocked)
+                        return result(TestLabReport.Status.FAIL, "Split-output operation bypassed the capacity guard");
+                    if (splitOutputCompletedAt < 0) splitOutputCompletedAt = elapsedTicks;
+                    if (elapsedTicks - splitOutputCompletedAt < 40) return null;
+                }
                 return result(
                     TestLabReport.Status.PASS,
-                    "formation=" + formation
+                    "batchRegression=" + batchRegression
+                        + " formation="
+                        + formation
                         + " binding=PASS coldGate="
                         + coldGateStatus()
                         + " preheat=traceable_fixture_acceleration directThermalWrites="
@@ -360,7 +419,7 @@ public final class TestLabClusterTask implements TestLabTask {
                         + " inputConsumed="
                         + input.stackSize
                         + " observedOutput="
-                        + count(outputBus, expected)
+                        + countOutputs(expected)
                         + " output="
                         + expected.getDisplayName()
                         + " pending=empty"
@@ -373,6 +432,26 @@ public final class TestLabClusterTask implements TestLabTask {
         return null;
     }
 
+    private void prepareSplitOutputs() {
+        if (logistics.getLogisticsOutputBusses()
+            .size() != 2) throw new IllegalStateException("Split-output fixture needs exactly two native output buses");
+        int busIndex = 0;
+        for (MTEHatchOutputBus bus : logistics.getLogisticsOutputBusses()) {
+            for (int slot = 0; slot < bus.getSizeInventory(); slot++)
+                bus.setInventorySlotContents(slot, new ItemStack(Items.stick, 64));
+            ItemStack retained = expected.copy();
+            retained.stackSize = busIndex++ == 0 ? 52 : 53;
+            bus.setInventorySlotContents(0, retained);
+        }
+    }
+
+    private int countOutputs(ItemStack stack) {
+        if (logistics == null) return 0;
+        int total = 0;
+        for (MTEHatchOutputBus bus : logistics.getLogisticsOutputBusses()) total += count(bus, stack);
+        return total;
+    }
+
     private void configurePorts(WorldServer world, Node node) throws Exception {
         if (node.machine == cluster) {
             steamFeed = requiredPort(ItemList.Hatch_Input_HV.get(1L));
@@ -382,8 +461,14 @@ public final class TestLabClusterTask implements TestLabTask {
         } else if (node.machine instanceof MTEBasicLogisticsUnit) {
             logistics = (MTEBasicLogisticsUnit) node.machine;
             inputBus = (MTEHatchInputBus) requiredPort(ItemList.Hatch_Input_Bus_HV.get(1L)).getMetaTileEntity();
-            outputBus = (MTEHatchOutputBus) requiredPort(ItemList.Hatch_Output_Bus_HV.get(1L)).getMetaTileEntity();
-            logisticsFluid = requiredPort(ItemList.Hatch_Input_HV.get(1L));
+            outputBus = (MTEHatchOutputBus) requiredPort(
+                ("output_split".equals(batchRegression) ? ItemList.Hatch_Output_Bus_LV : ItemList.Hatch_Output_Bus_HV)
+                    .get(1L)).getMetaTileEntity();
+            if ("output_split".equals(batchRegression)) requiredPort(ItemList.Hatch_Output_Bus_LV.get(1L));
+            logisticsFluid = requiredPort(
+                (batchRegression.isEmpty() ? ItemList.Hatch_Input_HV : ItemList.Hatch_Input_LV).get(1L));
+            if ("residual_distilled_bulk".equals(batchRegression))
+                residualDistilledHatch = requiredPort(ItemList.Hatch_Input_LV.get(1L));
             requiredPort(ItemList.Hatch_Output_HV.get(1L));
         } else if (node.machine instanceof MTEBasicAmplifierUnit) {
             booster = (MTEBasicAmplifierUnit) node.machine;
@@ -654,8 +739,8 @@ public final class TestLabClusterTask implements TestLabTask {
         if (logistics != null) result.put("pendingOutputsEmpty", !logistics.hasPendingOutputs());
         if (inputBus != null && input != null) result.put("inputRemaining", count(inputBus, input));
         if (outputBus != null && expected != null) {
-            result.put("currentOutputCount", count(outputBus, expected));
-            result.put("freshOutputDelta", count(outputBus, expected) - initialOutputCount);
+            result.put("currentOutputCount", countOutputs(expected));
+            result.put("freshOutputDelta", countOutputs(expected) - initialOutputCount);
         }
         return result;
     }
@@ -698,7 +783,7 @@ public final class TestLabClusterTask implements TestLabTask {
         if (inputBus != null && input != null) out.append(" inputRemaining=")
             .append(count(inputBus, input));
         if (outputBus != null && expected != null) out.append(" expectedOutputCount=")
-            .append(count(outputBus, expected));
+            .append(countOutputs(expected));
         if (building != null && "BUILD".equals(phase)) out.append(" building=")
             .append(building.describe());
         for (Node node : nodes) {

@@ -467,32 +467,15 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
     // ===== 客户端渲染同步（description packet）=====
 
     /** getDescriptionData 增量：正面流体窗渲染状态（绑定 + 窗显示流体名——罐内流体或记忆流体）。 */
-    default NBTTagCompound writeCompartmentDescriptionData(NBTTagCompound data) {
-        HubCompartmentState s = getHubState();
-        data.setString("gtsr.customName", getCustomName());
-        data.setBoolean("gtsr.bound", s.bound);
-        data.setString("gtsr.fluid", getDisplayedWindowFluidName());
-        return data;
-    }
 
     /** onDescriptionPacket 增量：客户端渲染副本落地。 */
-    default void readCompartmentDescriptionData(NBTTagCompound data) {
-        HubCompartmentState s = getHubState();
-        s.customName = data.getString("gtsr.customName");
-        s.clientBound = data.getBoolean("gtsr.bound");
-        s.clientFluidName = data.getString("gtsr.fluid");
-        IGregTechTileEntity base = ((IMetaTileEntity) this).getBaseMetaTileEntity();
-        if (base != null) {
-            base.issueTextureUpdate();
-        }
-    }
 
     // ===== 客户端渲染同步（beta-3 stream：writeToStream/readFromStream 增量）=====
 
     /**
      * [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起 description packet 改走
      * writeToStream/readFromStream 流路径，本助手承担四仓 stream 增量（正面流体窗渲染状态）。
-     * 字段序与 {@link #writeCompartmentDescriptionData} 两键一致（bound、fluid），与旧 NBT
+     * 字段序与 RC2 stream 两键一致（bound、fluid），与旧 NBT
      * 路径同样无条件写全（fluid 空串也写长度前缀，无省略哨兵），与读侧严格对称。
      */
     default void writeCompartmentToStream(ByteBuf buf) {
@@ -504,7 +487,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
 
     /**
      * [GT-compat] beta 兼容层（beta1/beta2/beta3）：readFromStream 增量，客户端渲染副本落地。
-     * 与 {@link #readCompartmentDescriptionData} 对称读（bound bool → fluid UTF8 名），但
+     * 与 RC2 stream 对称读（bound bool → fluid UTF8 名），但
      * 不调 issueTextureUpdate——beta-3 流路径的贴图刷新时机由基类统一负责，助手只落状态。
      */
     default void readCompartmentFromStream(ByteBuf buf) {

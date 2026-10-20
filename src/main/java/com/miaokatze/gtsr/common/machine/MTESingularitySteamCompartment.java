@@ -204,14 +204,6 @@ public class MTESingularitySteamCompartment extends MTEHatchPressureSteamInput
     // 不再成立），本组 NBT 方法仅 beta-1/2 经运行时虚分派生效——去 @Override 去 super
     // （super 链 MTEHatch 只写/读 texturePage/textureIndex 两键，GTSR 无设置入口恒 0=0，
     // 两键随 super 移除而丢失=行为中性）。
-    public NBTTagCompound getDescriptionData() {
-        // 原 super 返回 null 后自 new 的防御保留为直接 new
-        return writeCompartmentDescriptionData(new NBTTagCompound());
-    }
-
-    public void onDescriptionPacket(NBTTagCompound data) {
-        readCompartmentDescriptionData(data);
-    }
 
     // [GT-compat] beta-3 stream 同步：首行 super 承接 MTEHatch beta-3 覆写的
     // texturePage/textureIndex 两 int 承重，再委托接口助手补 bound+fluid 两字段
