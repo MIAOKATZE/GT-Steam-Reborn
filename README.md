@@ -9,10 +9,10 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0 RC" src="https://img.shields.io/badge/GTNH-2.9.0%20RC-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 2.0.0" src="https://img.shields.io/badge/Release-2.0.0-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 2.0.1" src="https://img.shields.io/badge/Release-2.0.1-green.svg"></a>
 </p>
 
-此版本客户端与服务端均必须安装前置库 [MIAOKATZE Core 0.1.7](https://github.com/MIAOKATZE/MIAOKATZE-Core)（兼容区间：0.1.7 ≤ 版本 < 0.2.0）。FalsePatternLib 可在缺失时补下载；已有旧版请手动更新。
+此版本客户端与服务端均必须安装前置库 [MIAOKATZE Core 0.1.8](https://github.com/MIAOKATZE/MIAOKATZE-Core)（最低版本：0.1.8）。FalsePatternLib 可在缺失时补下载；已有旧版请手动更新。
 
 仅支持 GTNH 2.9.0 RC 版本。自 v2.0.0 起，建议 GTIT、GTSWN、GTSR 三者一起更新。
 
@@ -47,7 +47,7 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 
 | GTNH         | GTSR           | Maintenance / 维护 |
 | ------------ | -------------- | :--------------: |
-| 2.9.0 RC | **2.0.0+**（当前 / current） |        ✔️        |
+| 2.9.0 RC | **2.0.1+**（当前 / current） |        ✔️        |
 
 ***
 
@@ -462,4 +462,4 @@ GTSR 机器专用蒸汽输出仓。
 
 采用 AGPL-3.0 许可证，详见 LICENSE 文件。
 
-文档更新：2026-10-21 · 当前版本：2.0.0
+文档更新：2026-10-21 · 当前版本：2.0.1
