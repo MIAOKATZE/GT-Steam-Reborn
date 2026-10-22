@@ -605,7 +605,10 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 fail("缺电暂停");
                 return;
             }
-            for (CriticalFoundationChunk chunk : curing) chunk.cure(tick);
+            for (CriticalFoundationChunk chunk : curing) {
+                if (debugSpeed == 3) chunk.capCuringRemaining(100);
+                chunk.cure(tick);
+            }
             foundationCuringCheckTicks++;
             if (foundationCuringCheckTicks >= 400) {
                 foundationCuringCheckTicks = 0;
@@ -1257,11 +1260,13 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         int rewind = cursor;
         for (int index = 0; index < voxels.size(); index++) {
             CriticalGeometry.Voxel voxel = voxels.get(index);
+            if (isUserBuilt(voxel) || !placed.get(index)) continue;
             if (worldObj.isAirBlock(wx(voxel), wy(voxel), wz(voxel))) continue;
-            if (!isUserBuilt(voxel) && (!placed.get(index) || !matches(voxel))) return fail("拆除账本重核发现外来方块，禁止恢复");
+            if (!matches(voxel)) return fail("拆除账本重核发现外来方块，禁止恢复");
             rewind = Math.min(rewind, voxels.size() - 1 - index);
         }
         cursor = rewind;
+        protectionDirty = true;
         scanCursor = 0;
         removalVerified = false;
         status = "拆除账本重核完成";
@@ -1466,6 +1471,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         n.setTag("config", config.write());
         n.setString("structureId", structureId);
         n.setInteger("state", state);
+        n.setInteger("cursor", cursor);
         n.setLong("fingerprint", jobFingerprint);
         n.setByteArray("placed", placed.toByteArray());
         return n;
@@ -1484,6 +1490,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         Integer index = protectionIndices
             .get(CriticalGeometry.Voxel.positionKey(localBlockX(x, z), y - getOriginY(), localBlockZ(x, z)));
         if (index == null || !placed.get(index)) return false;
+        if (state == 3 && index >= geometry.size() - cursor) return false;
         CriticalGeometry.Voxel voxel = geometry.get(index);
         if (CriticalStructures.isController(voxel)) return matches(voxel);
         return !isStandardHatchHost(worldObj.getTileEntity(x, y, z)) && worldObj.getBlock(x, y, z) == voxel.block
@@ -2092,8 +2099,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 fail("施工放置失败，已付进度保留");
                 return;
             }
-            placed.set(voxelIndices.get(voxel));
-            protectionDirty = true;
         }
         constructionAdvancing = advance > 0;
         status = (repairing ? "修复阶段 " : "施工阶段 ") + stage
@@ -2221,10 +2226,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                     return;
                 }
             }
-            if (!isUserBuilt(v)) {
-                placed.set(voxelIndices.get(v));
-                protectionDirty = true;
-            }
             cursor++;
         }
         status = "修复阶段 " + stage + " " + cursor + "/" + current.size();
@@ -2310,10 +2311,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                     return;
                 }
             }
-            if (!isUserBuilt(v)) {
-                placed.set(voxelIndices.get(v));
-                protectionDirty = true;
-            }
             cursor++;
         }
         status = "施工阶段 " + stage + " " + cursor + "/" + current.size();
@@ -2350,6 +2347,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 .placeController(gtMachine(), worldObj, wx(v), wy(v), wz(v))
             : worldObj.setBlock(wx(v), wy(v), wz(v), v.block, v.metadata, 2);
         if (!placedBlock) return false;
+        placed.set(voxelIndices.get(v));
+        protectionDirty = true;
         blocksChangedThisTick++;
         if (v.block.getLightValue(worldObj, wx(v), wy(v), wz(v)) > 0) lightsChangedThisTick++;
         return true;
@@ -2358,7 +2357,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private void dismantle() {
         List<CriticalGeometry.Voxel> voxels = allVoxels();
         long cost = config.tier.constructionVoltage();
-        if (cursor < voxels.size()) {
+        if (cursor < voxels.size() && !debugIgnoreEnergy) {
             if (getEnergy() < cost) {
                 fail("拆除缺电");
                 return;
@@ -2380,7 +2379,10 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                     fail("拆除冲突，目标不是已登记结构方块");
                     return;
                 }
-                if (!hasBlockBudget(v)) return;
+                if (!hasBlockBudget(v)) {
+                    markDirty();
+                    return;
+                }
                 boolean light = v.block.getLightValue(worldObj, wx(v), wy(v), wz(v)) > 0;
                 if (blockBudgetStarted == 0) blockBudgetStarted = System.nanoTime();
                 if (!worldObj.setBlockToAir(wx(v), wy(v), wz(v))) {
@@ -2391,6 +2393,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 if (light) lightsChangedThisTick++;
             }
             cursor++;
+            protectionDirty = true;
         }
         markDirty();
         status = "拆除 " + cursor + "/" + voxels.size();
@@ -2403,7 +2406,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             }
             for (; scanCursor < end; scanCursor++) {
                 CriticalGeometry.Voxel v = voxels.get(scanCursor);
-                if (!isUserBuilt(v) && !worldObj.isAirBlock(wx(v), wy(v), wz(v))) {
+                if (!isUserBuilt(v) && placed.get(scanCursor) && !worldObj.isAirBlock(wx(v), wy(v), wz(v))) {
                     fail("区域残留核验失败");
                     return;
                 }
@@ -2449,6 +2452,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         pendingFluids = new FluidStack[0];
         CriticalRenderAnchors.remove(this);
         chunkLoading.release(host);
+        if (foundationRequired) data().discardIncompleteFoundations(loomChunks());
         data().release(structureId);
         state = 0;
         invalidateStructure();

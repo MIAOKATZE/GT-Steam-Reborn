@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldSavedData;
 
@@ -23,6 +24,20 @@ public final class CriticalWorldData extends WorldSavedData {
 
     public CriticalFoundationChunk findFoundation(int chunkX, int chunkZ) {
         return foundations.get(((long) chunkX << 32) ^ (chunkZ & 0xffffffffL));
+    }
+
+    /** Only a successfully dismantled job may discard its unfinished shared work. */
+    public void discardIncompleteFoundations(Iterable<ChunkCoordIntPair> chunks) {
+        boolean removed = false;
+        for (ChunkCoordIntPair chunk : chunks) {
+            long key = ((long) chunk.chunkXPos << 32) ^ (chunk.chunkZPos & 0xffffffffL);
+            CriticalFoundationChunk foundation = foundations.get(key);
+            if (foundation != null && !foundation.complete()) {
+                foundations.remove(key);
+                removed = true;
+            }
+        }
+        if (removed) markDirty();
     }
 
     private String nightOwner = "";
