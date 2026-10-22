@@ -89,13 +89,15 @@ final class CriticalConstructionView {
         line(information, () -> {
             CriticalConstructionSnapshot s = sample();
             if (s.showsFoundation()) return tr("view.cells") + " " + s.completedCells() + " / " + s.totalCells();
-            return tr("view.blocks") + " " + s.placed() + " / " + s.total();
+            return tr(s.status() == 3 ? "status.3" : "view.blocks") + " " + s.placed() + " / " + s.total();
         });
         line(information, () -> {
             CriticalConstructionSnapshot s = sample();
-            if (s.phase() == 1)
+            if (s.status() == 3) return "";
+            if (s.showsFoundation() && s.phase() == 1)
                 return tr("view.cell_time") + " " + seconds(s.cellTicks()) + " / " + seconds(s.cellDuration());
-            if (s.phase() == 2) return tr("view.curing_remaining") + " " + clock(s.curingRemaining());
+            if (s.showsFoundation() && s.phase() == 2)
+                return tr("view.curing_remaining") + " " + clock(s.curingRemaining());
             return tr("construction.elapsed") + " "
                 + clock(s.constructionTicks())
                 + " / "
@@ -144,17 +146,17 @@ final class CriticalConstructionView {
     private String phaseName() {
         CriticalConstructionSnapshot s = sample();
         if (s.status() == 0) return tr("view.phase.planned");
-        if (s.phase() == 1) return tr("view.phase.pouring");
-        if (s.phase() == 2) return tr("view.phase.curing");
-        if (s.status() == 2) return tr("view.phase.complete");
         if (s.status() == 3) return tr("status.3");
+        if (s.status() == 2) return tr("view.phase.complete");
+        if (s.showsFoundation() && s.phase() == 1) return tr("view.phase.pouring");
+        if (s.showsFoundation() && s.phase() == 2) return tr("view.phase.curing");
         return tr(s.stage() == 0 ? "view.phase.loom" : s.stage() <= 3 ? "view.phase.base" : "view.phase.body");
     }
 
     private String activeLocation() {
         CriticalConstructionSnapshot s = sample();
         int chunk = s.activeChunk(), cell = s.activeCell();
-        if (s.phase() != 1 || chunk < 0 || chunk >= s.chunkCount() || cell < 0) return "";
+        if (!s.showsFoundation() || s.phase() != 1 || chunk < 0 || chunk >= s.chunkCount() || cell < 0) return "";
         return tr("view.active_chunk") + " ["
             + s.chunkX(chunk)
             + ", "

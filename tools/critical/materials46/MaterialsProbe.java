@@ -98,9 +98,9 @@ public final class MaterialsProbe {
         Set<String> nei=new TreeSet<>();int neiCount=0;
         for(CriticalMaterials.MaterialBlock b:materials) {
             List<ItemStack> stacks=(List<ItemStack>)permutations.invoke(null,Item.getItemFromBlock(b));neiCount+=stacks.size();nei.addAll(ids(stacks));
-            check(codechicken.nei.api.ItemInfo.isHidden(new ItemStack(b))==!manual.contains(b.materialId),"production API.hideItem reaches NEI ItemInfo filter "+b.materialId);
+            check(codechicken.nei.api.ItemInfo.isHidden(new ItemStack(b))==!expectedCreative.contains(b.materialId),"production API.hideItem reaches NEI ItemInfo filter "+b.materialId);
         }
-        check(neiCount==15&&nei.equals(manual),"real NEI getPermutations hides50 and exposes exactly manual15");
+        check(neiCount==24&&nei.equals(expectedCreative),"real NEI getPermutations hides41 and exposes exactly current24");
         hide.invoke(null);check(ids(creative()).equals(expectedCreative),"repeated NEI hiding leaves actual creative exposure24");
         Map<CriticalMaterialCatalog.Usage,Integer> usage=new EnumMap<>(CriticalMaterialCatalog.Usage.class);
         for(CriticalMaterialCatalog.Usage u:CriticalMaterialCatalog.current().usages().values())usage.put(u,usage.getOrDefault(u,0)+1);

@@ -33,9 +33,10 @@ public final class CriticalConstructionOwnershipContract {
         invoke(state, "dismantle", new Class<?>[0]);
     }
     @SuppressWarnings("unchecked")
-    private static void coverage(SparseWorld world, CriticalMachineState state) throws Exception {
+    static void coverage(SparseWorld world, CriticalMachineState state) throws Exception {
         member(World.class, "provider").set(world, unsafe.allocateInstance(WorldProviderSurface.class));
-        Host host = (Host) unsafe.allocateInstance(Host.class);
+        member(WorldProvider.class, "worldObj").set(world.provider, world);
+        BaseMetaTileEntity host = state.getHost() instanceof BaseMetaTileEntity existing ? existing : (Host) unsafe.allocateInstance(Host.class);
         host.setWorldObj(world); host.xCoord = state.xCoord; host.yCoord = state.yCoord; host.zCoord = state.zCoord;
         world.tiles.put(key(host.xCoord, host.yCoord, host.zCoord), host); state.bindHost(host);
         gregtech.api.enums.GTValues.enableChunkloaders = true;
@@ -109,6 +110,11 @@ public final class CriticalConstructionOwnershipContract {
         check(state.resetConstructionDebug(player), "Owner can disable debug while dismantling");
         dismantle(state);
         check(state.getCursor() == 0 && data.findFoundation(-1, 7) == curing, "Unpowered ordinary dismantling pauses without clearing foundations");
+        // A sparse paid journal now finishes physical removal in one tick. Keep its refund output
+        // blocked so the following recovery assertions still inspect the same live teardown job.
+        Item blockedOutput = new Item(); ItemStack[] blockedInventory = (ItemStack[]) field(state, "inventory");
+        for (int slot = 18; slot < 36; slot++) blockedInventory[slot] = new ItemStack(blockedOutput, 64);
+        set(state, "refundPrepared", true); set(state, "pendingItems", new ItemStack[] { new ItemStack(blockedOutput) });
         long cost = state.getTier().constructionVoltage(); set(state, "energy", cost);
         dismantle(state);
         check(state.getCursor() > 0 && state.getEnergy() == 0, "Ordinary dismantling keeps its original per-tick construction-voltage debit: cursor=" + state.getCursor() + " EU=" + state.getEnergy() + " status=" + state.getStatus() + " loading=" + state.getChunkLoading().getStatus());
@@ -121,7 +127,7 @@ public final class CriticalConstructionOwnershipContract {
         check((Boolean) invoke(state, "consumeEnergy", new Class<?>[] { long.class }, 1L) && state.getEnergy() == 0, "Running-state debit still consumes exact energy with debug exemption configured");
         set(state, "state", 3);
         dismantle(state);
-        check(state.getCursor() > 0 && state.getCursor() <= 128 && state.getEnergy() == 0, "Energy exemption advances at the original bounded dismantle speed");
+        check(state.getCursor() == geometry.size() && state.getEnergy() == 0, "Energy exemption removes sparse paid cells and skips never-placed model positions");
         check(world.isAirBlock(state.blockWorldX(automatic), state.blockWorldY(automatic.y), state.blockWorldZ(automatic)) && !world.isAirBlock(state.blockWorldX(manual), state.blockWorldY(manual.y), state.blockWorldZ(manual)), "Dismantle removes actual machine placement and retains preplaced material");
         put(state, automatic, automatic.block);
         check(automatic.block.getBlockHardness(world, state.blockWorldX(automatic), state.blockWorldY(automatic.y), state.blockWorldZ(automatic)) == 5F, "Passed dismantle cursor no longer protects a replacement at an old paid coordinate");

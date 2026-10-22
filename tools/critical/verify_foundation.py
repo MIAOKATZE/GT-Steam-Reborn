@@ -10,7 +10,8 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[2]
 CACHE = Path.home() / '.gradle/caches/modules-2/files-2.1'
 CONTRACTS = ('CriticalFoundationContract', 'CriticalFoundationRuntimeContract', 'CriticalFoundationPortsContract',
-             'CriticalConstructionOwnershipContract', 'CriticalConstructionLedgerContract')
+             'CriticalConstructionOwnershipContract', 'CriticalConstructionLedgerContract', 'CriticalConstructionRecoveryContract',
+             'CriticalConstructionViewContract')
 
 
 def sha(path):
@@ -21,6 +22,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jar', required=True, type=Path)
     parser.add_argument('--out', required=True, type=Path)
+    parser.add_argument('--contract', action='append', choices=CONTRACTS,
+                        help='Run only the named contracts for a focused diagnosis loop')
     parser.add_argument('--java-home', type=Path,
                         default=Path.home() / '.gradle/jdks/azul_systems__inc_-17-amd64-windows.2')
     args = parser.parse_args()
@@ -62,14 +65,14 @@ def main():
     execute('javac.exe', 'compile', ['-encoding', 'UTF-8', '-proc:none', '-sourcepath', empty,
                                      '-cp', cp, '-d', classes, *sources])
     results, origins = {}, {}
-    for name in CONTRACTS:
+    for name in args.contract or CONTRACTS:
         text = execute('java.exe', name, ['-cp', cp, 'com.miaokatze.gtsr.common.critical.' + name, candidate])
         match = re.search(r'PASS ' + name + r' checks=(\d+)', text)
         if not match:
             raise RuntimeError(f'{name} returned no receipt')
         results[name] = int(match.group(1))
         origins.update(dict(re.findall(r'^SOURCE ([^=]+)=(.+)$', text, re.MULTILINE)))
-    if len(origins) != 11:
+    if not args.contract and len(origins) != 11:
         raise RuntimeError(f'Expected eleven bound production classes, found {origins}')
     if sha(candidate) != candidate_hash or before != {str(path.relative_to(ROOT)): sha(path) for path in sources}:
         raise RuntimeError('Candidate or fixture changed during verification')

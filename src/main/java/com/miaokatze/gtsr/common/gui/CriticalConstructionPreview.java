@@ -92,6 +92,10 @@ final class CriticalConstructionPreview implements IDrawable {
         double baseProgress = complete || current.stage() > 3 ? 1
             : current.stage() > 0 ? (current.stage() - 1 + stageProgress) / 3 : 0;
         double bodyProgress = complete ? 1 : current.stage() >= 4 ? stageProgress : 0;
+        if (current.status() == 3) {
+            baseProgress = 1 - stageProgress;
+            bodyProgress = 1 - stageProgress;
+        }
         float unit = Math.min((width - 44) / 14f, (height - 14) / 14f);
         float center = x + width / 2f;
         float floor = y + height - 7;

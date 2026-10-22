@@ -93,7 +93,7 @@ public final class CriticalMaterialCatalogContract {
                 case MANUAL_LOOM_ONLY: loomOnly++; break;
             }
         }
-        check(creative == 24 && nei == 15, "creative and NEI exposure differ by acquisition path");
+        check(creative == 24 && nei == 24, "creative and NEI expose the same current materials");
         check(old == 35 && frozen == 2 && orphan == 2 && marker == 2, "compatibility groups remain registered");
         check(shared == 12 && bodyOnly == 9 && loomOnly == 3, "construction ownership partition");
         check(exposure.usage("v2_gt_controller") == CriticalMaterialCatalog.Usage.GT_CONTROLLER_MARKER,
@@ -113,6 +113,6 @@ public final class CriticalMaterialCatalogContract {
         }
         for (Map.Entry<String, JsonElement> entry : document.getAsJsonObject("definitions").entrySet())
             check(catalog.definition(entry.getKey()).properties().equals(entry.getValue()), "canonical property payload preserved");
-        System.out.println("PASS " + checks + " schema/identity/exposure checks; creative=24, NEI=15, definitions=65, aliases=371");
+        System.out.println("PASS " + checks + " schema/identity/exposure checks; creative=24, NEI=24, definitions=65, aliases=371");
     }
 }

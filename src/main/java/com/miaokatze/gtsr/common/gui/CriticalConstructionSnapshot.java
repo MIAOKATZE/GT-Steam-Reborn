@@ -183,13 +183,15 @@ final class CriticalConstructionSnapshot {
     }
 
     boolean showsFoundation() {
-        return status() == 0 || foundationRequired() && (phase() == 1 || phase() == 2);
+        return status() == 0 || status() == 1 && foundationRequired() && (phase() == 1 || phase() == 2);
     }
 
     double progress() {
-        if (phase() == 1) return ratio(completedCells() + ratio(cellTicks(), cellDuration()), totalCells());
-        if (phase() == 2) return 1 - ratio(curingRemaining(), curingDuration());
         if (status() == 2) return 1;
+        if (showsFoundation()) {
+            if (phase() == 1) return ratio(completedCells() + ratio(cellTicks(), cellDuration()), totalCells());
+            if (phase() == 2) return 1 - ratio(curingRemaining(), curingDuration());
+        }
         return ratio(placed(), total());
     }
 
