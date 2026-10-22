@@ -25,15 +25,13 @@ public final class CriticalV32Fixture {
     static String key(int x,int y,int z){return x+","+y+","+z;}
     @SuppressWarnings("unchecked") static void materials()throws Exception {
         Constructor<CriticalMaterials.MaterialBlock> c=CriticalMaterials.MaterialBlock.class.getDeclaredConstructor(
-            String.class,boolean.class,boolean.class,boolean.class,boolean.class,boolean.class);c.setAccessible(true);
+            String.class,boolean.class,boolean.class,boolean.class);c.setAccessible(true);
         for(Map.Entry<String,JsonElement> entry:CriticalGeometry.readJson("materials.json").entrySet()) {
             JsonObject p=entry.getValue().getAsJsonObject();String id=p.get("id").getAsString();
-            for(boolean proxy:new boolean[]{false,true})for(boolean loom:new boolean[]{false,true}) {
-                Field f=CriticalMaterials.class.getDeclaredField(loom?proxy?"LOOM_PROXY":"LOOM_STATIC":proxy?"PROXY":"STATIC");
-                f.setAccessible(true);Map<String,Block> map=(Map<String,Block>)f.get(null);
-                if(!map.containsKey(id))map.put(id,c.newInstance(id,proxy,!p.get("alphaMode").getAsString().equals("opaque"),
-                    p.get("animated").getAsBoolean(),p.get("emissionStrength").getAsDouble()>0,loom));
-            }
+            Field f=CriticalMaterials.class.getDeclaredField("MATERIALS");
+            f.setAccessible(true);Map<String,Block> map=(Map<String,Block>)f.get(null);
+            if(!map.containsKey(id))map.put(id,c.newInstance(id,!p.get("alphaMode").getAsString().equals("opaque"),
+                p.get("animated").getAsBoolean(),p.get("emissionStrength").getAsDouble()>0));
         }
     }
     static SparseWorld world()throws Exception {
@@ -86,6 +84,7 @@ public final class CriticalV32Fixture {
         SparseWorld(){super(null,"unused",(WorldProvider)null,null,null);}
         void read(){if(!loaded)unloadedReads++;}
         @Override public boolean setBlock(int x,int y,int z,Block block,int meta,int flags){blocks.put(key(x,y,z),block);return true;}
+        @Override public boolean setBlockToAir(int x,int y,int z){blocks.remove(key(x,y,z));tiles.remove(key(x,y,z));return true;}
         @Override public Block getBlock(int x,int y,int z){read();return blocks.getOrDefault(key(x,y,z),AIR);}
         @Override public int getBlockMetadata(int x,int y,int z){read();return 0;}
         @Override public boolean isAirBlock(int x,int y,int z){read();return !blocks.containsKey(key(x,y,z));}

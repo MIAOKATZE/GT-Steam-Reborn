@@ -76,6 +76,10 @@ public final class CriticalFoundationChunk {
         curingRemaining--;
     }
 
+    public void capCuringRemaining(int ticks) {
+        if (poured() && !fundingUncertain) curingRemaining = Math.min(curingRemaining, Math.max(0, ticks));
+    }
+
     /** floor(remaining * 20% * n/(16+n)); positive sub-tick fractions stay on the clock. */
     public static int curingReduction(int remaining, long singularities) {
         if (remaining <= 0 || singularities <= 0) return 0;

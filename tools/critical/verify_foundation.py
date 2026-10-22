@@ -9,7 +9,8 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
 CACHE = Path.home() / '.gradle/caches/modules-2/files-2.1'
-CONTRACTS = ('CriticalFoundationContract', 'CriticalFoundationRuntimeContract', 'CriticalFoundationPortsContract')
+CONTRACTS = ('CriticalFoundationContract', 'CriticalFoundationRuntimeContract', 'CriticalFoundationPortsContract',
+             'CriticalConstructionOwnershipContract')
 
 
 def sha(path):
@@ -40,6 +41,7 @@ def main():
                                    ROOT / 'build/rfg/recompiled_minecraft-1.7.10.jar',
                                    ROOT / 'build/rfg/mclauncher-1.7.10.jar', *dependencies]))
     sources = [ROOT / 'tools/tests' / (name + '.java') for name in CONTRACTS]
+    sources.append(ROOT / 'tools/critical/CriticalV32Fixture.java')
     before = {str(path.relative_to(ROOT)): sha(path) for path in sources}
     candidate_hash = sha(candidate)
 
@@ -67,8 +69,8 @@ def main():
             raise RuntimeError(f'{name} returned no receipt')
         results[name] = int(match.group(1))
         origins.update(dict(re.findall(r'^SOURCE ([^=]+)=(.+)$', text, re.MULTILINE)))
-    if len(origins) != 6:
-        raise RuntimeError(f'Expected six bound production classes, found {origins}')
+    if len(origins) != 8:
+        raise RuntimeError(f'Expected eight bound production classes, found {origins}')
     if sha(candidate) != candidate_hash or before != {str(path.relative_to(ROOT)): sha(path) for path in sources}:
         raise RuntimeError('Candidate or fixture changed during verification')
     receipt = {'status': 'PASS', 'jar': str(candidate), 'jarSHA256': candidate_hash,

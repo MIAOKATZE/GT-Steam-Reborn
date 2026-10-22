@@ -81,9 +81,10 @@ public final class CriticalFoundationRuntimeContract {
         check(restored.getFoundationPhase() == 2 && restored.getConstructionDurationTicks() == 1_440_000,
             "Sixteen cells enter fixed-duration curing phase=" + restored.getFoundationPhase()
                 + " duration=" + restored.getConstructionDurationTicks() + " cells=" + restored.getFoundationCompletedCells());
+        field(restored, "debugSpeed", 2);
         field(restored, "energy", UHV * 400);
         for (int i = 0; i < 400; i++) advance(restored, world);
-        check(restored.getFoundationCuringRemainingTicks() == 1_439_600, "Debug construction speed never accelerates curing");
+        check(restored.getFoundationCuringRemainingTicks() == 1_439_600, "Non-instant debug speed never accelerates curing");
         check(restored.getEnergy() == 0, "Curing spends exactly UHV one ampere per tick");
         Field cadence = CriticalMachineState.class.getDeclaredField("foundationCuringCheckTicks");
         cadence.setAccessible(true);
@@ -96,6 +97,22 @@ public final class CriticalFoundationRuntimeContract {
         field(state, "energy", UHV);
         tick.invoke(state);
         check(state.getEnergy() == UHV && state.getFoundationCuringRemainingTicks() == remaining - 1, "A second loom cannot double-cure a chunk or spend power in the same tick");
+        field(restored, "debugSpeed", 3);
+        advance(restored, world);
+        check(restored.getFoundationCuringRemainingTicks() == remaining - 1, "Unpowered instant mode does not shorten curing");
+        field(restored, "energy", UHV * 100);
+        advance(restored, world);
+        check(restored.getFoundationCuringRemainingTicks() == 99, "Instant mode caps remaining curing at five seconds and advances one tick");
+        for (int i = 0; i < 98; i++) advance(restored, world);
+        check(restored.getFoundationCuringRemainingTicks() == 1, "Repeated instant ticks count down rather than reset the cap");
+        advance(restored, world);
+        check(restored.getFoundationPhase() == 3 && restored.getEnergy() == 0, "Capped curing finishes naturally after one hundred powered ticks");
+        NBTTagCompound shortCure = new NBTTagCompound();
+        shortCure.setInteger("cells", 16); shortCure.setInteger("curing", 3);
+        CriticalWorldData.get(world).foundation(-2, 7).read(shortCure);
+        field(restored, "energy", UHV);
+        advance(restored, world);
+        check(restored.getFoundationCuringRemainingTicks() == 2, "Instant mode never lengthens a shorter remaining cure");
         saved = new NBTTagCompound();
         restored.writeToNBT(saved);
         CriticalMachineState legacy = state(world);
