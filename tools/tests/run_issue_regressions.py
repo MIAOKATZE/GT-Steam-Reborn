@@ -29,8 +29,10 @@ def main():
         dependencies = [p for p in dependencies if '/NotEnoughItems/' not in p.replace('\\','/')]
         dependencies.insert(0, next(cache.glob('com.github.GTNewHorizons/NotEnoughItems/2.8.145-GTNH/*/*-dev.jar')))
         sources += [ROOT/'src/main/java/com/miaokatze/gtsr'/path for path in
-                    ('client/NEIItemOrdering.java', 'main/ClientProxy.java', 'loader/ItemLoader.java',
+                    ('loader/ItemLoader.java', 'register/GTSRItemOrderCatalog.java',
                      'register/CreativeTabManager.java')]
+        sources.append(ROOT.parent/'MIAOKATZE-Core/src/main/java/com/miaokatze/miaokatzecore/api/items/ItemOrderCatalog.java')
+        sources.append(Path(__file__).parent/'item-ordering/squeek/applecore/api/food/IEdible.java')
     classes = out/'classes'; classes.mkdir()
     production = [ROOT/'build/classes/java/main', ROOT/'build/classes/java/patchedMc',
                   ROOT/'build/resources/patchedMc', ROOT/'src/main/resources']

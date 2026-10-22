@@ -266,6 +266,12 @@ public final class CriticalMaterials {
         }
 
         @Override
+        @SideOnly(Side.CLIENT)
+        @SuppressWarnings("rawtypes")
+        public void getSubItems(net.minecraft.item.Item item, net.minecraft.creativetab.CreativeTabs tab,
+            java.util.List items) {}
+
+        @Override
         public boolean placeBlockAt(net.minecraft.item.ItemStack stack, net.minecraft.entity.player.EntityPlayer player,
             net.minecraft.world.World world, int x, int y, int z, int side, float hitX, float hitY, float hitZ,
             int metadata) {

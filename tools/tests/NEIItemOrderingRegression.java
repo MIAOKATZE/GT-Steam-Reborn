@@ -1,22 +1,20 @@
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
-import com.miaokatze.gtsr.client.NEIItemOrdering;
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.loader.BlockLoader;
 import com.miaokatze.gtsr.loader.ItemLoader;
+import com.miaokatze.gtsr.loader.MachineLoader;
 import com.miaokatze.gtsr.register.CreativeTabManager;
+import com.miaokatze.gtsr.register.GTSRItemOrderCatalog;
+import com.miaokatze.miaokatzecore.api.items.ItemOrderCatalog;
 
-import codechicken.nei.ItemSorter;
-import codechicken.nei.api.ItemInfo;
-import codechicken.nei.event.NEIConfigsLoadedEvent;
-
-/** Runs production ordering against NEI 2.8.145's actual ID/name/mod comparators. No game launch. */
+/** GTSR catalogue contract; shared Core owns the actual NEI comparator regression. */
 public final class NEIItemOrderingRegression {
     public static void main(String[] args) throws Exception {
         Issue37RegistrationRegression.launch("NEIItemOrderingRuntime", args[0]);
@@ -26,120 +24,123 @@ public final class NEIItemOrderingRegression {
 class NEIItemOrderingRuntime {
     public static void run(String version) throws Exception {
         Issue37Runtime.bootstrap(version);
-        CreativeTabManager.getItemsToAdd().clear();
-        for (String method : List.of("registerPyrolyzerChips", "registerGeothermalOverheatChip",
-            "registerTcdsDenseSteamChip", "registerHubSingularityChip", "registerReinforcedHubSingularityChip",
-            "registerSteamTurbineCycleOverlimitChip", "registerRareGasSeparationChip", "registerAmmoniaCatalysts")) {
-            Method register = ItemLoader.class.getDeclaredMethod(method);
-            register.setAccessible(true);
-            register.invoke(null);
-        }
-        List<ItemStack> group = new ArrayList<>(CreativeTabManager.getItemsToAdd());
-        if (group.size() != 16) throw new AssertionError("Expected 9 chips + 7 catalysts: " + group.size());
-        List<ItemStack> others = new ArrayList<>();
-        for (int i = 0; i < 16; i++) others.add(new ItemStack(new Item().setUnlocalizedName("ordinary" + i)));
-        List<ItemStack> all = new ArrayList<>(group);
-        all.addAll(others);
-        Object registry = cpw.mods.fml.common.registry.GameData.getItemRegistry();
-        Method raw = registry.getClass().getDeclaredMethod("addObjectRaw", int.class, String.class, Object.class);
-        raw.setAccessible(true);
-        List<String> registryNames = new ArrayList<>();
-        for (int i = 0; i < all.size(); i++) {
-            ItemStack stack = all.get(i);
-            String name = Item.itemRegistry.getNameForObject(stack.getItem());
-            if (name == null) name = "gtsr:ordering_probe_" + i;
-            registryNames.add(name);
-            raw.invoke(registry, 10000 + i, name, stack.getItem());
-            ItemInfo.itemOwners.put(stack.getItem(), "gtsr");
-            stack.setStackDisplayName(String.format("%02d", all.size() - i));
-        }
+        Issue37Runtime.set(gregtech.GTMod.proxy, gregtech.common.GTProxy.class, "mCTMBlockCache",
+            new gregtech.api.util.GTBlockMap<Boolean>());
+        ItemLoader.initItems();
+        MachineLoader.initMachines();
+        BlockLoader.initBlocks();
+        com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterBlocks.registerBlocks();
+        com.miaokatze.gtsr.common.critical.CriticalRenderAnchors.register();
+        CreativeTabManager.initCreativeTab();
 
-        ItemSorter.entries.clear();
-        ItemSorter.list.clear();
-        String[] names = { "minecraft", "mod", "id", "default", "damage", "name" };
-        for (int i = 0; i < names.length; i++) ItemSorter.add("nei.itemsort." + names[i], upstream(i));
-        NEIItemOrdering hook = new NEIItemOrdering();
-        hook.onConfigsLoaded(new NEIConfigsLoadedEvent());
-        var wrapped = ItemSorter.find("nei.itemsort.id");
-        hook.onConfigsLoaded(new NEIConfigsLoadedEvent());
-        if (ItemSorter.find("nei.itemsort.id") != wrapped) throw new AssertionError("Wrapped twice");
-        String config = ItemSorter.getSaveString(ItemSorter.list);
-        if (!config.equals("nei.itemsort.minecraft,nei.itemsort.mod,nei.itemsort.id,nei.itemsort.default,"
-            + "nei.itemsort.damage,nei.itemsort.name")) throw new AssertionError("Changed sort priorities: " + config);
-
-        Random random = new Random(20261022L);
-        int reproduced = 0;
-        long triples = 0;
-        for (int seed = 0; seed < 100; seed++) {
-            List<Integer> ids = new ArrayList<>();
-            for (int i = 0; i < all.size(); i++) ids.add(10000 + i);
-            Collections.shuffle(ids, random);
-            for (int i = 0; i < all.size(); i++) {
-                raw.invoke(registry, ids.get(i), registryNames.get(i), all.get(i).getItem());
-            }
-            List<ItemStack> oldOrder = new ArrayList<>(all);
-            oldOrder.sort(upstream(2));
-            if (!oldOrder.stream().filter(group::contains).toList().equals(group)) reproduced++;
-            List<ItemStack> actual = new ArrayList<>(all);
-            Collections.shuffle(actual, random);
-            ItemSorter.sort(actual);
-            if (!actual.stream().filter(group::contains).toList().equals(group)) {
-                throw new AssertionError("Group order changed for remap " + seed);
-            }
-            int start = actual.indexOf(group.get(0));
-            if (!actual.subList(start, start + group.size()).equals(group)) {
-                throw new AssertionError("Group split by ordinary GTSR item for remap " + seed);
-            }
-            List<ItemStack> ordinaryOrder = new ArrayList<>(others);
-            ordinaryOrder.sort(upstream(2));
-            if (!actual.stream().filter(others::contains).toList().equals(ordinaryOrder)) {
-                throw new AssertionError("Changed unrelated item order");
-            }
-            for (ItemStack a : all) for (ItemStack b : all) {
-                int ab = Integer.signum(ItemSorter.instance.compare(a, b));
-                if (ab != -Integer.signum(ItemSorter.instance.compare(b, a))) {
-                    throw new AssertionError("Comparator is not antisymmetric");
-                }
-                for (ItemStack c : all) {
-                    if (ab <= 0 && ItemSorter.instance.compare(b, c) <= 0
-                        && ItemSorter.instance.compare(a, c) > 0) throw new AssertionError("Non-transitive comparator");
-                    triples++;
-                }
-            }
-            // The options screen reconstructs the active list; it must retain the replacement too.
-            ItemSorter.list = ItemSorter.fromSaveString(config);
-            ItemSorter.sort(actual);
-            if (!actual.subList(actual.indexOf(group.get(0)), actual.indexOf(group.get(0)) + 16).equals(group)) {
-                throw new AssertionError("Option reload lost ordering");
+        List<ItemStack> raw = GTSRItemOrderCatalog.rawItems();
+        List<ItemStack> ordered = GTSRItemOrderCatalog.orderedItems();
+        sameOrder(raw, ordered);
+        // GT material generation is intentionally outside this off-game registration fixture.
+        if (!GTSRItemOrderCatalog.generatedDimensionItems().isEmpty())
+            throw new AssertionError("Uninitialized generated forms must not create catalogue placeholders");
+        List<ItemStack> creative = new ArrayList<>();
+        CreativeTabManager.CREATIVE_TAB.displayAllReleventItems(creative);
+        sameOrder(ordered, creative);
+        List<ItemStack> registered = CreativeTabManager.getRegisteredItems();
+        for (ItemStack stack : registered) {
+            if (index(ordered, stack) < 0) throw new AssertionError("Dropped registered entry " + name(stack));
+        }
+        if (ordered.size() != registered.size() + 10) throw new AssertionError("Missing weapons or duplicates");
+        boolean dimension = false;
+        int dimensionCount = 0;
+        for (ItemStack stack : ordered) {
+            if (GTSRItemOrderCatalog.isDimensionItem(stack)) { dimension = true; dimensionCount++; }
+            else if (dimension) throw new AssertionError("Non-dimension entry after dimension " + name(stack));
+            if (name(stack).equals("gtsr:critical_render_anchor")) throw new AssertionError("Internal anchor visible");
+        }
+        if (dimensionCount < 100) throw new AssertionError("Dimension classification incomplete: " + dimensionCount);
+        for (GTSRItemList frozen : new GTSRItemList[] { GTSRItemList.CriticalProcessing,
+            GTSRItemList.CriticalEntangler, GTSRItemList.CriticalDimension, GTSRItemList.CriticalAssembly,
+            GTSRItemList.CriticalAccelerator }) {
+            if (index(ordered, frozen.get(1)) >= 0) throw new AssertionError("Frozen controller visible " + frozen);
+        }
+        assertBefore(ordered, GTSRItemList.VeinPyrolyzerChipT1, GTSRItemList.VeinPyrolyzerChipT2,
+            GTSRItemList.VeinPyrolyzerChipT3);
+        assertBefore(ordered, GTSRItemList.SteamCacheNode, GTSRItemList.ReinforcedSteamCacheNode,
+            GTSRItemList.OverpressureSteamCacheNode);
+        assertBefore(ordered, GTSRItemList.AmmoniaCatalystNickel, GTSRItemList.AmmoniaCatalystPlatinum,
+            GTSRItemList.AmmoniaCatalystUranium, GTSRItemList.AmmoniaCatalystOsmium,
+            GTSRItemList.AmmoniaCatalystFeCo, GTSRItemList.AmmoniaCatalystRuthenium,
+            GTSRItemList.AmmoniaCatalystQuantum);
+        Item shared = GTSRItemList.SteamCacheNode.getItem();
+        if (ItemOrderCatalog.view().entry(new ItemStack(shared, 1, 1)) != null)
+            throw new AssertionError("Claimed unrelated shared GT machine meta");
+        for (int meta = 0; meta < 4; meta++) {
+            ItemStack variant = new ItemStack(com.miaokatze.gtsr.common.blocks.BlocksGTSR.runawaySingularity, 1, meta);
+            if (index(ordered, variant) < 0) throw new AssertionError("Missing singularity meta " + meta);
+        }
+        net.minecraft.block.Block[] metaBlocks = {
+            com.miaokatze.gtsr.common.blocks.BlocksGTSR.prosperitySurface,
+            com.miaokatze.gtsr.common.blocks.BlocksGTSR.ruinDebris,
+            com.miaokatze.gtsr.common.blocks.BlocksGTSR.ruinedCasing };
+        int[] counts = { 6, 4, 3 };
+        for (int family = 0; family < metaBlocks.length; family++) {
+            int previous = -1;
+            for (int meta = 0; meta < counts[family]; meta++) {
+                ItemStack variant = new ItemStack(metaBlocks[family], 1, meta);
+                int current = index(ordered, variant);
+                if (current <= previous || ItemOrderCatalog.view().entry(variant) == null)
+                    throw new AssertionError("Missing or unordered dimension metadata " + name(variant) + ":" + meta);
+                previous = current;
             }
         }
-        if (reproduced == 0) throw new AssertionError("Native ID ordering did not reproduce the issue");
-        ItemSorter.list = ItemSorter.fromSaveString("nei.itemsort.name," + config);
-        List<ItemStack> named = new ArrayList<>(all);
-        named.sort(upstream(5));
-        List<ItemStack> actual = new ArrayList<>(all);
-        ItemSorter.sort(actual);
-        if (!actual.equals(named)) throw new AssertionError("Explicit name priority overridden");
-
-        ItemSorter.list = ItemSorter.fromSaveString(config);
-        ItemInfo.itemOwners.put(others.get(0).getItem(), "another_mod");
-        ItemInfo.itemOwners.put(others.get(1).getItem(), "zz_mod");
-        ItemSorter.sort(actual);
-        if (actual.get(0) != others.get(0) || actual.get(actual.size() - 1) != others.get(1)) {
-            throw new AssertionError("Changed mod grouping");
+        for (net.minecraft.block.Block internal : new net.minecraft.block.Block[] {
+            com.miaokatze.gtsr.common.critical.CriticalRenderAnchors.BLOCK,
+            com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarBlocks.core,
+            com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterRegistry.sealedChest,
+            com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterRegistry.unsealedChest,
+            com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinMechanisms.block }) {
+            ItemStack stack = new ItemStack(internal);
+            if (index(ordered, stack) >= 0 || ItemOrderCatalog.view().entry(stack) != null)
+                throw new AssertionError("Claimed internal world block " + name(stack));
         }
-        System.out.println("SOURCE NEI " + ItemSorter.class.getProtectionDomain().getCodeSource().getLocation());
-        System.out.println("RESULT NEI ordering native-bug=" + reproduced + "/100 remaps=100/100 triples=" + triples
-            + " contiguous=PASS unrelated=PASS config-reload=PASS idempotent=PASS name-priority=PASS mod-priority=PASS");
-        System.out.println("RESULT sequence=" + group.stream().map(s -> s.getItem().getUnlocalizedName()).toList());
+        // Core only reorders supplied entries, and raw/ordered accessors must not expose owned stacks.
+        List<ItemStack> shuffled = new ArrayList<>(ordered);
+        Collections.shuffle(shuffled, new Random(20261022));
+        ItemOrderCatalog.sort("gtsr", shuffled);
+        sameOrder(ordered, shuffled);
+        List<ItemStack> subset = new ArrayList<>(List.of(ordered.get(10), ordered.get(0)));
+        ItemOrderCatalog.sort("gtsr", subset);
+        if (subset.size() != 2 || index(subset, ordered.get(0)) != 0) throw new AssertionError("sort added entries");
+        ordered.get(0).stackSize = 42;
+        registered.get(0).stackSize = 42;
+        if (GTSRItemOrderCatalog.orderedItems().get(0).stackSize != 1
+            || CreativeTabManager.getRegisteredItems().get(0).stackSize != 1)
+            throw new AssertionError("Snapshot leaked mutable stacks");
+        Item late = new Item().setUnlocalizedName("late_catalog_probe");
+        cpw.mods.fml.common.registry.GameRegistry.registerItem(late, "LateCatalogProbe");
+        CreativeTabManager.addItemToTab(new ItemStack(late));
+        if (index(GTSRItemOrderCatalog.orderedItems(), new ItemStack(late)) < 0)
+            throw new AssertionError("Late registration lost to early snapshot");
+        System.out.println("RESULT catalogue PASS version=" + version + " registered=" + registered.size()
+            + " ordered=" + raw.size() + " dimension=" + dimensionCount + " weapons=10");
     }
-
-    private static Comparator<ItemStack> upstream(int index) throws Exception {
-        Method method = ItemSorter.class.getDeclaredMethod("lambda$initConfig$" + index, ItemStack.class, ItemStack.class);
-        method.setAccessible(true);
-        return (left, right) -> {
-            try { return (Integer) method.invoke(null, left, right); }
-            catch (ReflectiveOperationException e) { throw new AssertionError(e); }
-        };
+    private static void assertBefore(List<ItemStack> items, GTSRItemList... entries) {
+        int last = -1;
+        for (GTSRItemList entry : entries) {
+            int current = index(items, entry.get(1));
+            if (current <= last) throw new AssertionError("Wrong family order: " + entry);
+            last = current;
+        }
+    }
+    private static String name(ItemStack stack) { return Item.itemRegistry.getNameForObject(stack.getItem()); }
+    private static int index(List<ItemStack> items, ItemStack key) {
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack stack = items.get(i);
+            if (stack.getItem() == key.getItem() && stack.getItemDamage() == key.getItemDamage()) return i;
+        }
+        return -1;
+    }
+    private static void sameOrder(List<ItemStack> expected, List<ItemStack> actual) {
+        if (expected.size() != actual.size()) throw new AssertionError("Different catalogue sizes");
+        for (int i = 0; i < expected.size(); i++) {
+            if (index(actual, expected.get(i)) != i) throw new AssertionError("Different catalogue rank " + i);
+        }
     }
 }

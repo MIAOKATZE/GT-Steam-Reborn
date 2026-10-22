@@ -12,6 +12,7 @@ import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TierEU;
 import gregtech.api.fluid.GTFluidFactory;
 import gregtech.api.recipe.RecipeMaps;
+import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTUtility;
 
@@ -37,8 +38,9 @@ public final class CriticalFoundationMaterials {
             .asFluid();
         GTValues.RA.stdBuilder()
             .itemInputsUnsafe(
+                GTModHandler.getIC2Item("carbonFiber", 32),
                 GTUtility
-                    .copyAmountUnsafe(128, GTOreDictUnificator.get(OrePrefixes.wireGt01, Materials.TungstenSteel, 1)),
+                    .copyAmountUnsafe(128, GTOreDictUnificator.get(OrePrefixes.wireFine, Materials.TungstenSteel, 1)),
                 GTOreDictUnificator.get(OrePrefixes.dust, Materials.SiliconDioxide, 64))
             .fluidInputs(wetConcrete)
             .fluidOutputs(fluid(16000))
