@@ -375,11 +375,13 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         page.child(
             action(manager, "dismantle", player -> state.startDismantle(player)).pos(117, 150)
                 .size(112, 20)
-                .setEnabledIf(w -> permitted.getValue() && (status.getValue() == 1 || status.getValue() == 2)));
+                .setEnabledIf(
+                    w -> permitted.getValue()
+                        && (status.getValue() == 1 || status.getValue() == 2 || status.getValue() == 4)));
         page.child(
             action(manager, "repair", player -> state.repairStructure(player)).pos(234, 150)
                 .size(112, 20)
-                .setEnabledIf(w -> permitted.getValue() && loomValid.getValue() && status.getValue() != 0)
+                .setEnabledIf(w -> permitted.getValue() && status.getValue() != 0)
                 .tooltipBuilder(this::constructionTooltip)
                 .tooltipAutoUpdate(true));
         page.child(
@@ -389,7 +391,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                         .color(CriticalGuiStyle.TEXT_CONTROL))
                 .pos(351, 150)
                 .size(112, 20)
-                .setEnabledIf(w -> permitted.getValue() && (enabled.getValue() || loomValid.getValue())));
+                .setEnabledIf(w -> permitted.getValue()));
         ListWidget<IWidget, ?> feedback = new ListWidget<>().name("critical_action_feedback")
             .pos(0, 176)
             .size(463, 26)

@@ -188,7 +188,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return true;
     }
 
-    private boolean enabled = true, stageFunded, refundPrepared;
+    private boolean enabled = true, stageFunded, refundPrepared, dismantleRequested;
     private ItemStack[] escrow = new ItemStack[0], pendingItems = new ItemStack[0];
     private FluidStack[] fluidEscrow = new FluidStack[0], pendingFluids = new FluidStack[0];
     private long recoverySeed;
@@ -1108,16 +1108,41 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public boolean startDismantle(EntityPlayer p) {
-        if (worldObj.isRemote || !canUse(p) || nativeFundingUncertain || (state != 1 && state != 2)) return false;
+        if (worldObj.isRemote || !canUse(p) || nativeFundingUncertain || (state != 1 && state != 2 && state != 4))
+            return false;
         allVoxels();
         if (jobFingerprint != modelFingerprint) return fail("结构定义与任务快照不一致");
         if (!ownsTask()) return fail("施工区任务身份不一致，请用修复按钮重核账本");
-        if (!batchId.isEmpty() || energyRuntime.getBoolean("funded") || energyRuntime.getBoolean("uncertain"))
-            return fail("先完成或恢复当前批次");
-        if (state == 1 && stageFunded) {
-            int total = getJobTotal();
+        if (energyRuntime.getBoolean("uncertain")) return fail("批次提交结果不确定，请先核验当前批次");
+        if (hasActiveBatch() || pendingGenerated > 0) {
+            if (!setEnabled(p, true)) return false;
+            dismantleRequested = true;
+            status = "已预约拆除，等待当前批次交付";
+            changed();
+            return true;
+        }
+        beginDismantle();
+        setEnabled(p, true);
+        return true;
+    }
+
+    private boolean hasActiveBatch() {
+        return !batchId.isEmpty() || energyRuntime.getBoolean("funded");
+    }
+
+    private void beginDismantle() {
+        if (state == 1 && stageFunded || state == 4 && repairFunded) {
+            boolean repairing = state == 4;
+            int total = repairing ? 0 : getJobTotal();
+            if (repairing) {
+                List<CriticalGeometry.Voxel> voxels = allVoxels();
+                for (int index = repairTargets.nextSetBit(0); index >= 0
+                    && index < voxels.size(); index = repairTargets.nextSetBit(index + 1))
+                    if (voxels.get(index).stage == stage) total++;
+            }
             List<ItemStack> unconsumed = new ArrayList<>();
-            for (ItemStack stack : escrow) {
+            if (repairing) Collections.addAll(unconsumed, escrow);
+            for (ItemStack stack : repairing ? repairEscrow : escrow) {
                 int consumed = total == 0 ? 0 : (int) (((long) stack.stackSize * cursor + total - 1) / total);
                 if (consumed > 0) {
                     ItemStack used = stack.copy();
@@ -1132,7 +1157,10 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             }
             escrow = unconsumed.toArray(new ItemStack[0]);
             stageFunded = false;
+            repairFunded = false;
+            repairEscrow = new ItemStack[0];
         }
+        dismantleRequested = false;
         state = 3;
         invalidateStructure();
         CriticalRenderAnchors.ensure(this, isLoomGeometryValid());
@@ -1145,7 +1173,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         data().releaseNight(structureId);
         status = "拆除中";
         changed();
-        return true;
     }
 
     public boolean repairStructure(EntityPlayer p) {
@@ -1155,8 +1182,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (jobFingerprint != modelFingerprint) return fail("结构定义与任务快照不一致");
         if (!ownsTask() && !recoverTask(p)) return false;
         if (!matchesOptionalWorkPorts()) return fail("工作仓口被外来方块占用，请手动维护仓室");
-        if (state == 3) return reconcileDismantle();
+        if (state == 3) {
+            if (!reconcileDismantle()) return false;
+            return setEnabled(p, true);
+        }
         if (state != 2) {
+            setEnabled(p, true);
             status = "任务账本重核完成";
             changed();
             return true;
@@ -1180,6 +1211,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         bindTask();
         invalidateStructure();
         data().releaseNight(structureId);
+        setEnabled(p, true);
         changed();
         return true;
     }
@@ -1584,6 +1616,14 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         blockBudgetStarted = 0;
         if (worldObj == null || worldObj.isRemote) return;
         CriticalEnergyRuntime.idleTick(this);
+        // v2.0.5 could finish teardown with generated EU still in the legacy output journal.
+        // Moving already-generated EU into the real GT buffer is safe even with power disabled.
+        if (state == 0 && pendingGenerated > 0) {
+            if (settleDismantleEnergy()) {
+                status = "遗留发电交付完成";
+                changed();
+            }
+        }
         // The formed manual loom is the sole ticket owner, including when idle or soft-mallet paused.
         if (isLoomGeometryValid()) chunkLoading.ensureAllStructureChunks(worldObj, host, loomChunks());
         else {
@@ -1651,6 +1691,10 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             return;
         }
         boolean previouslyWorking = isWorking();
+        if (dismantleRequested && !hasActiveBatch() && !energyRuntime.getBoolean("uncertain")) {
+            if (!settleDismantleEnergy()) return;
+            beginDismantle();
+        }
         if (state == 1 && foundationRequired && getFoundationPhase() != 3) {
             tickFoundation();
             if (previouslyWorking != isWorking() || worldObj.getTotalWorldTime() % 20 == 0) changed();
@@ -1699,6 +1743,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             }
             emitEnergy();
             runBatch();
+            if (dismantleRequested && !hasActiveBatch()
+                && !energyRuntime.getBoolean("uncertain")
+                && settleDismantleEnergy()) beginDismantle();
         }
         if (previouslyWorking != isWorking() || worldObj.getTotalWorldTime() % 20 == 0) changed();
     }
@@ -2251,25 +2298,25 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     private void dismantle() {
         List<CriticalGeometry.Voxel> voxels = allVoxels();
+        // The persisted placement journal is the ownership boundary. Never-placed cells need no
+        // world reads, power or reverse scan (a foundation-only job has no machine cells at all).
+        int next = placed.previousSetBit(voxels.size() - 1 - cursor);
         long cost = config.tier.constructionVoltage();
-        if (cursor < voxels.size() && !debugIgnoreEnergy) {
+        if (next >= 0 && !debugIgnoreEnergy) {
             if (getEnergy() < cost) {
                 fail("拆除缺电");
                 return;
             }
             if (!consumeEnergy(cost)) return;
         }
-        List<CriticalGeometry.Voxel> reversed = new ArrayList<>(voxels);
-        Collections.reverse(reversed);
-        int loadedEnd = loadedWindowEnd(reversed, cursor, reversed.size());
-        if (loadedEnd < 0) {
+        if (!ensureConstructionWindow(Collections.emptyList(), 0, 0)) {
             fail("拆除区块加载等待");
             return;
         }
-        for (int i = 0; i < 128 && cursor < loadedEnd; i++) {
-            CriticalGeometry.Voxel v = voxels.get(voxels.size() - 1 - cursor);
-            if (!isUserBuilt(v) && placed.get(voxels.size() - 1 - cursor)
-                && !worldObj.isAirBlock(wx(v), wy(v), wz(v))) {
+        for (int i = 0; i < 128 && next >= 0; i++) {
+            cursor = voxels.size() - 1 - next;
+            CriticalGeometry.Voxel v = voxels.get(next);
+            if (!isUserBuilt(v) && !worldObj.isAirBlock(wx(v), wy(v), wz(v))) {
                 if (!matches(v)) {
                     fail("拆除冲突，目标不是已登记结构方块");
                     return;
@@ -2289,24 +2336,25 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             }
             cursor++;
             protectionDirty = true;
+            next = placed.previousSetBit(next - 1);
         }
+        if (next < 0) cursor = voxels.size();
         markDirty();
         status = "拆除 " + cursor + "/" + voxels.size();
         if (cursor < voxels.size()) return;
         if (!removalVerified) {
-            int end = loadedWindowEnd(voxels, scanCursor, voxels.size());
-            if (end < 0) {
-                fail("区域残留区块加载等待");
-                return;
-            }
-            for (; scanCursor < end; scanCursor++) {
-                CriticalGeometry.Voxel v = voxels.get(scanCursor);
-                if (!isUserBuilt(v) && placed.get(scanCursor) && !worldObj.isAirBlock(wx(v), wy(v), wz(v))) {
+            int index = placed.nextSetBit(scanCursor);
+            for (int checked = 0; checked < 128 && index >= 0 && index < voxels.size(); checked++) {
+                CriticalGeometry.Voxel v = voxels.get(index);
+                if (!isUserBuilt(v) && !worldObj.isAirBlock(wx(v), wy(v), wz(v))) {
                     fail("区域残留核验失败");
                     return;
                 }
+                scanCursor = index + 1;
+                index = placed.nextSetBit(scanCursor);
             }
-            if (scanCursor < voxels.size()) return;
+            if (index >= 0 && index < voxels.size()) return;
+            scanCursor = voxels.size();
             removalVerified = true;
         }
         if (!refundPrepared) {
@@ -2334,6 +2382,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             fail("拆除回收等待输出空间");
             return;
         }
+        if (!settleDismantleEnergy()) return;
         deliverFluids(pendingFluids);
         pendingFluids = new FluidStack[0];
         CriticalRenderAnchors.remove(this);
@@ -2353,6 +2402,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         cursor = 0;
         stage = 0;
         refundPrepared = false;
+        dismantleRequested = false;
         placed.clear();
         repairTargets.clear();
         scanCursor = 0;
@@ -2360,7 +2410,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         jobFingerprint = 0;
         visualHostId = UUID.randomUUID()
             .toString();
-        status = "拆除完成";
+        status = canRemove() ? "拆除完成" : "拆除完成，请取出控制器内回收物品与流体";
         changed();
     }
 
@@ -2529,6 +2579,13 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             && gt.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine machine) {
             pendingGenerated -= machine.emitCriticalEnergy(pendingGenerated);
         }
+    }
+
+    private boolean settleDismantleEnergy() {
+        if (pendingGenerated <= 0) return true;
+        emitEnergy();
+        markDirty();
+        return pendingGenerated == 0 || fail("拆除等待遗留发电交付，请腾出GT储能或输出空间");
     }
 
     public long injectEnergyUnits(ForgeDirection side, long voltage, long amperage) {
@@ -2934,6 +2991,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         n.setBoolean("enabled", enabled);
         n.setBoolean("stageFunded", stageFunded);
         n.setBoolean("refundPrepared", refundPrepared);
+        n.setBoolean("dismantleRequested", dismantleRequested);
         n.setLong("energy", energy);
         n.setLong("seed", recoverySeed);
         n.setLong("batchEu", batchEu);
@@ -3004,6 +3062,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         enabled = !n.hasKey("enabled") || n.getBoolean("enabled");
         stageFunded = n.getBoolean("stageFunded");
         refundPrepared = n.getBoolean("refundPrepared");
+        dismantleRequested = n.getBoolean("dismantleRequested") && (state == 2 || state == 4);
         energy = Math.max(0, Math.min(capacity(), n.getLong("energy")));
         recoverySeed = n.getLong("seed");
         batchEu = n.getLong("batchEu");

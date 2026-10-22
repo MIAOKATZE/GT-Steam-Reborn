@@ -82,7 +82,11 @@ public final class CriticalV32Fixture {
         Map<String,Block> blocks;Map<String,TileEntity> tiles;IChunkProvider chunks;boolean loaded=true;int unloadedReads;
         SparseWorld(){super(null,"unused",(WorldProvider)null,null,null);}
         void read(){if(!loaded)unloadedReads++;}
-        @Override public boolean setBlock(int x,int y,int z,Block block,int meta,int flags){blocks.put(key(x,y,z),block);return true;}
+        @Override public boolean setBlock(int x,int y,int z,Block block,int meta,int flags){
+            blocks.put(key(x,y,z),block);
+            if(block==CriticalRenderAnchors.BLOCK){TileEntityCriticalRenderAnchor anchor=new TileEntityCriticalRenderAnchor();anchor.setWorldObj(this);anchor.xCoord=x;anchor.yCoord=y;anchor.zCoord=z;tiles.put(key(x,y,z),anchor);}
+            return true;
+        }
         @Override public boolean setBlockToAir(int x,int y,int z){blocks.remove(key(x,y,z));tiles.remove(key(x,y,z));return true;}
         @Override public Block getBlock(int x,int y,int z){read();return blocks.getOrDefault(key(x,y,z),AIR);}
         @Override public int getBlockMetadata(int x,int y,int z){read();return 0;}

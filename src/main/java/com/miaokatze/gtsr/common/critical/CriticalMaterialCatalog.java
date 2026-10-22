@@ -91,9 +91,9 @@ public final class CriticalMaterialCatalog {
         return currentPhysical.contains(CriticalMaterialDefinitions.canonicalId(aliasOrId));
     }
 
-    /** NEI lists the player's manual loom supply list; paid construction is a separate acquisition path. */
+    /** Show the same current physical catalog in NEI and creative; visibility does not imply a recipe. */
     public boolean visibleInNei(String aliasOrId) {
-        return manualLoom.contains(CriticalMaterialDefinitions.canonicalId(aliasOrId));
+        return currentPhysical.contains(CriticalMaterialDefinitions.canonicalId(aliasOrId));
     }
 
     public Set<String> manualLoom() {
