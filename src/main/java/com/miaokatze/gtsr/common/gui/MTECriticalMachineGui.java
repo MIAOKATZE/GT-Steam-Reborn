@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.gui;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
+import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.ModularPanel;
@@ -10,9 +11,12 @@ import com.cleanroommc.modularui.utils.Alignment.MainAxis;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widget.ParentWidget;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
+import com.miaokatze.gtsr.common.gui.mui2.TerminalViewport;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -21,6 +25,7 @@ import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECriticalMachine> {
 
     private final CriticalMachineState state;
+    private IPanelHandler constructionPanel;
 
     public MTECriticalMachineGui(MTECriticalMachine machine) {
         super(machine);
@@ -36,7 +41,17 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
             .mainAxisAlignment(MainAxis.END)
             .reverseLayout(true)
             .child(createPowerSwitchButton())
-            .child(createStructureUpdateButton(manager));
+            .child(createStructureUpdateButton(manager))
+            .child(
+                new ButtonWidget<>().name("critical_native_construction")
+                    .size(18)
+                    .overlay(IKey.str("C"))
+                    .tooltipBuilder(t -> t.add(IKey.lang("gtsr.critical.tab.construction")))
+                    .onMousePressed(button -> {
+                        if (button != 0) return false;
+                        constructionPanel.openPanel();
+                        return true;
+                    }));
     }
 
     @Override
@@ -44,6 +59,25 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
         super.registerSyncValues(manager);
         manager.syncValue("critical.native.loom", new BooleanSyncValue(state::isLoomStructureValid));
         manager.syncValue("critical.native.status", new IntSyncValue(state::getStatusCode));
+        constructionPanel = manager.syncedPanel("critical.native.construction", true, (childManager, handler) -> {
+            CriticalConstructionView view = new CriticalConstructionView(state, childManager);
+            ParentWidget<?> content = new ParentWidget<>().size(475, 230)
+                .child(
+                    IKey.lang("gtsr.critical.tab.construction")
+                        .color(CriticalGuiStyle.TEXT_TITLE)
+                        .asWidget()
+                        .pos(8, 7)
+                        .size(435, 12))
+                .child(
+                    view.create()
+                        .pos(6, 22));
+            return new ModularPanel("critical_native_construction").size(475, 230)
+                .background(CriticalGuiStyle.PANEL)
+                .child(
+                    TerminalViewport.wrapExact("critical_native_construction_viewport", content, 475, 230)
+                        .sizeRel(1f))
+                .child(ButtonWidget.panelCloseButton());
+        });
     }
 
     @Override

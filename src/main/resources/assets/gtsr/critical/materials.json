@@ -5072,27 +5072,27 @@
       "sprites": {
         "side": {
           "0": {
-            "albedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_00",
+            "albedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_00",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_00",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_00",
             "frozenEmission": null
           },
           "2": {
-            "albedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_02",
+            "albedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_02",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_02",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_02",
             "frozenEmission": null
           },
           "8": {
-            "albedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_08",
+            "albedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_08",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_08",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_08",
             "frozenEmission": null
           },
           "10": {
-            "albedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_10",
+            "albedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_10",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_10",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_10",
             "frozenEmission": null
           }
         },
@@ -5242,27 +5242,27 @@
       "sprites": {
         "side": {
           "0": {
-            "albedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_00",
+            "albedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_00",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_00",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_00",
             "frozenEmission": null
           },
           "2": {
-            "albedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_02",
+            "albedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_02",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_02",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_02",
             "frozenEmission": null
           },
           "8": {
-            "albedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_08",
+            "albedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_08",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_08",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_08",
             "frozenEmission": null
           },
           "10": {
-            "albedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_10",
+            "albedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_10",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/side/mask_10",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/copper_busbar/top/mask_10",
             "frozenEmission": null
           }
         },
@@ -5426,9 +5426,9 @@
         "side": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_00_emission",
+            "emission": "gtsr:critical/v2/superconducting_contact_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_00_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/superconducting_contact_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_01",
@@ -5681,9 +5681,9 @@
         "side": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_00_emission",
+            "emission": "gtsr:critical/v2/superconducting_contact_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_00_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/superconducting_contact_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_01",
@@ -5936,9 +5936,9 @@
         "side": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_00_emission",
+            "emission": "gtsr:critical/v2/superconducting_contact_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_00_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/superconducting_contact_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/superconducting_contact/side/mask_01",
@@ -6191,9 +6191,9 @@
         "side": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/magnetic_coil/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/magnetic_coil/side/mask_00_emission",
+            "emission": "gtsr:critical/v2/magnetic_coil_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/magnetic_coil/side/mask_00_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/magnetic_coil/side/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/magnetic_coil_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/magnetic_coil/side/mask_01",
@@ -6446,9 +6446,9 @@
         "side": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/magnetic_coil/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/magnetic_coil/side/mask_00_emission",
+            "emission": "gtsr:critical/v2/magnetic_coil_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/magnetic_coil/side/mask_00_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/magnetic_coil/side/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/magnetic_coil_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/magnetic_coil/side/mask_01",
@@ -6598,9 +6598,9 @@
         "frozenEmission": null
       },
       "top": {
-        "albedo": "gtsr:critical/v2/blue_field_glass__top",
+        "albedo": "gtsr:critical/v2/blue_field_glass",
         "emission": null,
-        "frozenAlbedo": "gtsr:critical/v2/blue_field_glass__top",
+        "frozenAlbedo": "gtsr:critical/v2/blue_field_glass",
         "frozenEmission": null
       }
     },
@@ -6711,99 +6711,99 @@
       "sprites": {
         "side": {
           "0": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_00",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_00",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_00",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_00",
             "frozenEmission": null
           },
           "1": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_01",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_01",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_01",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_01",
             "frozenEmission": null
           },
           "2": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_02",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_02",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_02",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_02",
             "frozenEmission": null
           },
           "3": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_03",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_03",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_03",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_03",
             "frozenEmission": null
           },
           "4": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_04",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_04",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_04",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_04",
             "frozenEmission": null
           },
           "5": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_05",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_05",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_05",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_05",
             "frozenEmission": null
           },
           "6": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_06",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_06",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_06",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_06",
             "frozenEmission": null
           },
           "7": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_07",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_07",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_07",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_07",
             "frozenEmission": null
           },
           "8": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_08",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_08",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_08",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_08",
             "frozenEmission": null
           },
           "9": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_09",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_09",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_09",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_09",
             "frozenEmission": null
           },
           "10": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_10",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_10",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_10",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_10",
             "frozenEmission": null
           },
           "11": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_11",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_11",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_11",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_11",
             "frozenEmission": null
           },
           "12": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_12",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_12",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_12",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_12",
             "frozenEmission": null
           },
           "13": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_13",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_13",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_13",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_13",
             "frozenEmission": null
           },
           "14": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_14",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_14",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_14",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_14",
             "frozenEmission": null
           },
           "15": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_15",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_15",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_15",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_15",
             "frozenEmission": null
           }
         },
@@ -6936,9 +6936,9 @@
         "frozenEmission": null
       },
       "top": {
-        "albedo": "gtsr:critical/v2/blue_field_glass__top",
+        "albedo": "gtsr:critical/v2/blue_field_glass",
         "emission": null,
-        "frozenAlbedo": "gtsr:critical/v2/blue_field_glass__top",
+        "frozenAlbedo": "gtsr:critical/v2/blue_field_glass",
         "frozenEmission": null
       }
     },
@@ -7049,99 +7049,99 @@
       "sprites": {
         "side": {
           "0": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_00",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_00",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_00",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_00",
             "frozenEmission": null
           },
           "1": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_01",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_01",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_01",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_01",
             "frozenEmission": null
           },
           "2": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_02",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_02",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_02",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_02",
             "frozenEmission": null
           },
           "3": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_03",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_03",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_03",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_03",
             "frozenEmission": null
           },
           "4": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_04",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_04",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_04",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_04",
             "frozenEmission": null
           },
           "5": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_05",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_05",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_05",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_05",
             "frozenEmission": null
           },
           "6": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_06",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_06",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_06",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_06",
             "frozenEmission": null
           },
           "7": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_07",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_07",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_07",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_07",
             "frozenEmission": null
           },
           "8": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_08",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_08",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_08",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_08",
             "frozenEmission": null
           },
           "9": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_09",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_09",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_09",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_09",
             "frozenEmission": null
           },
           "10": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_10",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_10",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_10",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_10",
             "frozenEmission": null
           },
           "11": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_11",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_11",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_11",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_11",
             "frozenEmission": null
           },
           "12": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_12",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_12",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_12",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_12",
             "frozenEmission": null
           },
           "13": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_13",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_13",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_13",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_13",
             "frozenEmission": null
           },
           "14": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_14",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_14",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_14",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_14",
             "frozenEmission": null
           },
           "15": {
-            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_15",
+            "albedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_15",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/side/mask_15",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/blue_field_glass/top/mask_15",
             "frozenEmission": null
           }
         },
@@ -7274,9 +7274,9 @@
         "frozenEmission": null
       },
       "top": {
-        "albedo": "gtsr:critical/v2/violet_phase_glass__top",
+        "albedo": "gtsr:critical/v2/violet_phase_glass",
         "emission": null,
-        "frozenAlbedo": "gtsr:critical/v2/violet_phase_glass__top",
+        "frozenAlbedo": "gtsr:critical/v2/violet_phase_glass",
         "frozenEmission": null
       }
     },
@@ -7387,99 +7387,99 @@
       "sprites": {
         "side": {
           "0": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_00",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_00",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_00",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_00",
             "frozenEmission": null
           },
           "1": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_01",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_01",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_01",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_01",
             "frozenEmission": null
           },
           "2": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_02",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_02",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_02",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_02",
             "frozenEmission": null
           },
           "3": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_03",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_03",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_03",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_03",
             "frozenEmission": null
           },
           "4": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_04",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_04",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_04",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_04",
             "frozenEmission": null
           },
           "5": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_05",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_05",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_05",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_05",
             "frozenEmission": null
           },
           "6": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_06",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_06",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_06",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_06",
             "frozenEmission": null
           },
           "7": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_07",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_07",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_07",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_07",
             "frozenEmission": null
           },
           "8": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_08",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_08",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_08",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_08",
             "frozenEmission": null
           },
           "9": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_09",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_09",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_09",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_09",
             "frozenEmission": null
           },
           "10": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_10",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_10",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_10",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_10",
             "frozenEmission": null
           },
           "11": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_11",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_11",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_11",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_11",
             "frozenEmission": null
           },
           "12": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_12",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_12",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_12",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_12",
             "frozenEmission": null
           },
           "13": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_13",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_13",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_13",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_13",
             "frozenEmission": null
           },
           "14": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_14",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_14",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_14",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_14",
             "frozenEmission": null
           },
           "15": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_15",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_15",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_15",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_15",
             "frozenEmission": null
           }
         },
@@ -7612,9 +7612,9 @@
         "frozenEmission": null
       },
       "top": {
-        "albedo": "gtsr:critical/v2/violet_phase_glass__top",
+        "albedo": "gtsr:critical/v2/violet_phase_glass",
         "emission": null,
-        "frozenAlbedo": "gtsr:critical/v2/violet_phase_glass__top",
+        "frozenAlbedo": "gtsr:critical/v2/violet_phase_glass",
         "frozenEmission": null
       }
     },
@@ -7725,99 +7725,99 @@
       "sprites": {
         "side": {
           "0": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_00",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_00",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_00",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_00",
             "frozenEmission": null
           },
           "1": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_01",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_01",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_01",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_01",
             "frozenEmission": null
           },
           "2": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_02",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_02",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_02",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_02",
             "frozenEmission": null
           },
           "3": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_03",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_03",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_03",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_03",
             "frozenEmission": null
           },
           "4": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_04",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_04",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_04",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_04",
             "frozenEmission": null
           },
           "5": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_05",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_05",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_05",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_05",
             "frozenEmission": null
           },
           "6": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_06",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_06",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_06",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_06",
             "frozenEmission": null
           },
           "7": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_07",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_07",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_07",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_07",
             "frozenEmission": null
           },
           "8": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_08",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_08",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_08",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_08",
             "frozenEmission": null
           },
           "9": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_09",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_09",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_09",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_09",
             "frozenEmission": null
           },
           "10": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_10",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_10",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_10",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_10",
             "frozenEmission": null
           },
           "11": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_11",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_11",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_11",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_11",
             "frozenEmission": null
           },
           "12": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_12",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_12",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_12",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_12",
             "frozenEmission": null
           },
           "13": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_13",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_13",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_13",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_13",
             "frozenEmission": null
           },
           "14": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_14",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_14",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_14",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_14",
             "frozenEmission": null
           },
           "15": {
-            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_15",
+            "albedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_15",
             "emission": null,
-            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/side/mask_15",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/violet_phase_glass/top/mask_15",
             "frozenEmission": null
           }
         },
@@ -7945,9 +7945,9 @@
     "sprites": {
       "side": {
         "albedo": "gtsr:critical/v2/luminous_rail",
-        "emission": "gtsr:critical/v2/luminous_rail_emission",
+        "emission": "gtsr:critical/v2/loom_guide_emission",
         "frozenAlbedo": "gtsr:critical/v2/luminous_rail_frozen",
-        "frozenEmission": "gtsr:critical/v2/luminous_rail_emission_frozen"
+        "frozenEmission": "gtsr:critical/v2/loom_guide_emission_frozen"
       },
       "top": {
         "albedo": "gtsr:critical/v2/luminous_rail__top",
@@ -8052,27 +8052,27 @@
         "side": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_00_emission",
+            "emission": "gtsr:critical/v2/loom_guide_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_00_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/loom_guide_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_01",
-            "emission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_01_emission",
+            "emission": "gtsr:critical/v2/ctm/loom_guide/side/mask_01_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_01_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_01_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/loom_guide/side/mask_01_emission_frozen"
           },
           "4": {
             "albedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_04",
-            "emission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_04_emission",
+            "emission": "gtsr:critical/v2/ctm/loom_guide/side/mask_04_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_04_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_04_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/loom_guide/side/mask_04_emission_frozen"
           },
           "5": {
             "albedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_05",
-            "emission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_05_emission",
+            "emission": "gtsr:critical/v2/ctm/loom_guide/side/mask_05_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_05_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_05_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/loom_guide/side/mask_05_emission_frozen"
           }
         },
         "top": {
@@ -8199,9 +8199,9 @@
     "sprites": {
       "side": {
         "albedo": "gtsr:critical/v2/luminous_rail",
-        "emission": "gtsr:critical/v2/luminous_rail_emission",
+        "emission": "gtsr:critical/v2/loom_guide_emission",
         "frozenAlbedo": "gtsr:critical/v2/luminous_rail_frozen",
-        "frozenEmission": "gtsr:critical/v2/luminous_rail_emission_frozen"
+        "frozenEmission": "gtsr:critical/v2/loom_guide_emission_frozen"
       },
       "top": {
         "albedo": "gtsr:critical/v2/luminous_rail__top",
@@ -8306,27 +8306,27 @@
         "side": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_00_emission",
+            "emission": "gtsr:critical/v2/loom_guide_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_00_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/loom_guide_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_01",
-            "emission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_01_emission",
+            "emission": "gtsr:critical/v2/ctm/loom_guide/side/mask_01_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_01_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_01_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/loom_guide/side/mask_01_emission_frozen"
           },
           "4": {
             "albedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_04",
-            "emission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_04_emission",
+            "emission": "gtsr:critical/v2/ctm/loom_guide/side/mask_04_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_04_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_04_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/loom_guide/side/mask_04_emission_frozen"
           },
           "5": {
             "albedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_05",
-            "emission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_05_emission",
+            "emission": "gtsr:critical/v2/ctm/loom_guide/side/mask_05_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/luminous_rail/side/mask_05_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/luminous_rail/side/mask_05_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/loom_guide/side/mask_05_emission_frozen"
           }
         },
         "top": {
@@ -8458,9 +8458,9 @@
         "frozenEmission": "gtsr:critical/v2/fuel_socket_emission"
       },
       "top": {
-        "albedo": "gtsr:critical/v2/fuel_socket__top",
+        "albedo": "gtsr:critical/v2/fuel_socket",
         "emission": null,
-        "frozenAlbedo": "gtsr:critical/v2/fuel_socket__top",
+        "frozenAlbedo": "gtsr:critical/v2/fuel_socket",
         "frozenEmission": null
       }
     },
@@ -8530,9 +8530,9 @@
         "frozenEmission": "gtsr:critical/v2/fuel_socket_emission"
       },
       "top": {
-        "albedo": "gtsr:critical/v2/fuel_socket__top",
+        "albedo": "gtsr:critical/v2/fuel_socket",
         "emission": null,
-        "frozenAlbedo": "gtsr:critical/v2/fuel_socket__top",
+        "frozenAlbedo": "gtsr:critical/v2/fuel_socket",
         "frozenEmission": null
       }
     },
@@ -9110,9 +9110,9 @@
         "frozenEmission": null
       },
       "top": {
-        "albedo": "gtsr:critical/v2/hazard_stripe__top",
+        "albedo": "gtsr:critical/v2/hazard_stripe",
         "emission": null,
-        "frozenAlbedo": "gtsr:critical/v2/hazard_stripe__top",
+        "frozenAlbedo": "gtsr:critical/v2/hazard_stripe",
         "frozenEmission": null
       }
     },
@@ -9182,9 +9182,9 @@
         "frozenEmission": null
       },
       "top": {
-        "albedo": "gtsr:critical/v2/hazard_stripe__top",
+        "albedo": "gtsr:critical/v2/hazard_stripe",
         "emission": null,
-        "frozenAlbedo": "gtsr:critical/v2/hazard_stripe__top",
+        "frozenAlbedo": "gtsr:critical/v2/hazard_stripe",
         "frozenEmission": null
       }
     },
@@ -9254,9 +9254,9 @@
         "frozenEmission": null
       },
       "top": {
-        "albedo": "gtsr:critical/v2/rubber__top",
+        "albedo": "gtsr:critical/v2/rubber",
         "emission": null,
-        "frozenAlbedo": "gtsr:critical/v2/rubber__top",
+        "frozenAlbedo": "gtsr:critical/v2/rubber",
         "frozenEmission": null
       }
     },
@@ -9683,9 +9683,9 @@
         "side": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/loom_guide/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/loom_guide/side/mask_00_emission",
+            "emission": "gtsr:critical/v2/loom_guide_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/loom_guide/side/mask_00_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/loom_guide/side/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/loom_guide_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/loom_guide/side/mask_01",
@@ -10122,9 +10122,9 @@
     "sprites": {
       "side": {
         "albedo": "gtsr:critical/v2/foundation_status_tile",
-        "emission": "gtsr:critical/v2/foundation_status_tile_emission",
+        "emission": "gtsr:critical/v2/loom_controller_emission",
         "frozenAlbedo": "gtsr:critical/v2/foundation_status_tile_frozen",
-        "frozenEmission": "gtsr:critical/v2/foundation_status_tile_emission_frozen"
+        "frozenEmission": "gtsr:critical/v2/loom_controller_emission_frozen"
       },
       "top": {
         "albedo": "gtsr:critical/v2/foundation_status_tile__top",
@@ -10197,12 +10197,12 @@
         "albedo": "gtsr:critical/v2/stellar_lens",
         "emission": "gtsr:critical/v2/stellar_lens_emission",
         "frozenAlbedo": "gtsr:critical/v2/stellar_lens",
-        "frozenEmission": "gtsr:critical/v2/stellar_lens_emission_frozen"
+        "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
       },
       "top": {
-        "albedo": "gtsr:critical/v2/stellar_lens__top",
+        "albedo": "gtsr:critical/v2/stellar_lens",
         "emission": "gtsr:critical/v2/stellar_lens__top_emission",
-        "frozenAlbedo": "gtsr:critical/v2/stellar_lens__top",
+        "frozenAlbedo": "gtsr:critical/v2/stellar_lens",
         "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
       }
     },
@@ -10314,198 +10314,198 @@
       "sprites": {
         "side": {
           "0": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_00_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_00",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_00_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_00",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_00",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "1": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_01",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_01_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_01",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_01_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_01",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_01",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "2": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_02",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_02_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_02",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_02_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_02",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_02",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "3": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_03",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_03_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_03",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_03_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_03",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_03",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "4": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_04",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_04_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_04",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_04_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_04",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_04",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "5": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_05",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_05_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_05",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_05_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_05",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_05",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "6": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_06",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_06_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_06",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_06_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_06",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_06",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "7": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_07",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_07_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_07",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_07_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_07",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_07",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "8": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_08",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_08_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_08",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_08_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_08",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_08",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "9": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_09",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_09_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_09",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_09_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_09",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_09",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "10": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_10",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_10_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_10",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_10_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_10",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_10",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "11": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_11",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_11_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_11",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_11_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_11",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_11",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "12": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_12",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_12_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_12",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_12_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_12",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_12",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "13": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_13",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_13_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_13",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_13_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_13",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_13",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "14": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_14",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_14_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_14",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_14_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_14",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_14",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "15": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_15",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_15_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/side/mask_15",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/side/mask_15_emission_frozen"
+            "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_15",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_15",
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           }
         },
         "top": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_00",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_00_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_00",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_01",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_01_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_01",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_01_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "2": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_02",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_02_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_02",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_02_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "3": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_03",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_03_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_03",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_03_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "4": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_04",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_04_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_04",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_04_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "5": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_05",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_05_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_05",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_05_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "6": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_06",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_06_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_06",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_06_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "7": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_07",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_07_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_07",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_07_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "8": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_08",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_08_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_08",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_08_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "9": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_09",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_09_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_09",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_09_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "10": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_10",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_10_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_10",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_10_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "11": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_11",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_11_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_11",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_11_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "12": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_12",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_12_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_12",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_12_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "13": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_13",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_13_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_13",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_13_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "14": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_14",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_14_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_14",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_14_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           },
           "15": {
             "albedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_15",
-            "emission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_15_emission",
+            "emission": "gtsr:critical/v2/stellar_lens_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_lens/top/mask_15",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_lens/top/mask_15_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/stellar_lens__top_emission"
           }
         }
       }
@@ -10535,14 +10535,14 @@
       "side": {
         "albedo": "gtsr:critical/v2/stellar_plasma_skin",
         "emission": "gtsr:critical/v2/stellar_plasma_skin_emission",
-        "frozenAlbedo": "gtsr:critical/v2/stellar_plasma_skin_frozen",
+        "frozenAlbedo": "gtsr:critical/v2/stellar_plasma_skin__top",
         "frozenEmission": "gtsr:critical/v2/stellar_plasma_skin_emission"
       },
       "top": {
         "albedo": "gtsr:critical/v2/stellar_plasma_skin__top",
-        "emission": "gtsr:critical/v2/stellar_plasma_skin__top_emission",
+        "emission": "gtsr:critical/v2/stellar_plasma_skin_emission",
         "frozenAlbedo": "gtsr:critical/v2/stellar_plasma_skin__top",
-        "frozenEmission": "gtsr:critical/v2/stellar_plasma_skin__top_emission"
+        "frozenEmission": "gtsr:critical/v2/stellar_plasma_skin_emission"
       }
     },
     "faceSprites": {
@@ -10653,100 +10653,100 @@
       "sprites": {
         "side": {
           "0": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_00_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_00_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_00_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_00",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_00_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_00_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_00_emission"
           },
           "1": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_01",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_01_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_01_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_01_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_01",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_01_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_01_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_01_emission"
           },
           "2": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_02",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_02_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_02_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_02_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_02",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_02_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_02_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_02_emission"
           },
           "3": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_03",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_03_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_03_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_03_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_03",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_03_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_03_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_03_emission"
           },
           "4": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_04",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_04_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_04_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_04_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_04",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_04_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_04_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_04_emission"
           },
           "5": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_05",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_05_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_05_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_05_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_05",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_05_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_05_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_05_emission"
           },
           "6": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_06",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_06_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_06_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_06_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_06",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_06_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_06_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_06_emission"
           },
           "7": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_07",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_07_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_07_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_07_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_07",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_07_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_07_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_07_emission"
           },
           "8": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_08",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_08_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_08_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_08_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_08",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_08_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_08_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_08_emission"
           },
           "9": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_09",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_09_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_09_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_09_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_09",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_09_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_09_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_09_emission"
           },
           "10": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_10",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_10_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_10_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_10_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_10",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_10_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_10_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_10_emission"
           },
           "11": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_11",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_11_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_11_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_11_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_11",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_11_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_11_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_11_emission"
           },
           "12": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_12",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_12_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_12_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_12_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_12",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_12_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_12_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_12_emission"
           },
           "13": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_13",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_13_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_13_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_13_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_13",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_13_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_13_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_13_emission"
           },
           "14": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_14",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_14_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_14_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_14_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_14",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_14_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_14_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_14_emission"
           },
           "15": {
-            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_15",
-            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_15_emission",
-            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_15_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/side/mask_15_emission"
+            "albedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_15",
+            "emission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_15_emission",
+            "frozenAlbedo": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_15_frozen",
+            "frozenEmission": "gtsr:critical/v2/ctm/stellar_plasma_skin/top/mask_15_emission"
           }
         },
         "top": {
@@ -10980,27 +10980,27 @@
         "side": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_00_emission",
+            "emission": "gtsr:critical/v2/coolant_channel_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_00_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/coolant_channel_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_01",
-            "emission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_01_emission",
+            "emission": "gtsr:critical/v2/coolant_channel_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_01_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_01_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/coolant_channel_emission_frozen"
           },
           "4": {
             "albedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_04",
-            "emission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_04_emission",
+            "emission": "gtsr:critical/v2/coolant_channel_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_04_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_04_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/coolant_channel_emission_frozen"
           },
           "5": {
             "albedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_05",
-            "emission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_05_emission",
+            "emission": "gtsr:critical/v2/coolant_channel_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_05_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_05_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/coolant_channel_emission_frozen"
           }
         },
         "top": {
@@ -11234,27 +11234,27 @@
         "side": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_00_emission",
+            "emission": "gtsr:critical/v2/coolant_channel_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_00_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/coolant_channel_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_01",
-            "emission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_01_emission",
+            "emission": "gtsr:critical/v2/coolant_channel_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_01_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_01_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/coolant_channel_emission_frozen"
           },
           "4": {
             "albedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_04",
-            "emission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_04_emission",
+            "emission": "gtsr:critical/v2/coolant_channel_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_04_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_04_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/coolant_channel_emission_frozen"
           },
           "5": {
             "albedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_05",
-            "emission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_05_emission",
+            "emission": "gtsr:critical/v2/coolant_channel_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/coolant_channel/side/mask_05_frozen",
-            "frozenEmission": "gtsr:critical/v2/ctm/coolant_channel/side/mask_05_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/coolant_channel_emission_frozen"
           }
         },
         "top": {
@@ -11457,9 +11457,9 @@
         "frozenEmission": null
       },
       "top": {
-        "albedo": "gtsr:critical/v2/gt_hatch__top",
+        "albedo": "gtsr:critical/v2/gt_hatch",
         "emission": null,
-        "frozenAlbedo": "gtsr:critical/v2/gt_hatch__top",
+        "frozenAlbedo": "gtsr:critical/v2/gt_hatch",
         "frozenEmission": null
       }
     },
@@ -11529,9 +11529,9 @@
         "frozenEmission": null
       },
       "top": {
-        "albedo": "gtsr:critical/v2/gt_bus__top",
+        "albedo": "gtsr:critical/v2/gt_bus",
         "emission": null,
-        "frozenAlbedo": "gtsr:critical/v2/gt_bus__top",
+        "frozenAlbedo": "gtsr:critical/v2/gt_bus",
         "frozenEmission": null
       }
     },
@@ -11601,9 +11601,9 @@
         "frozenEmission": null
       },
       "top": {
-        "albedo": "gtsr:critical/v2/maintenance_grate__top",
+        "albedo": "gtsr:critical/v2/maintenance_grate",
         "emission": null,
-        "frozenAlbedo": "gtsr:critical/v2/maintenance_grate__top",
+        "frozenAlbedo": "gtsr:critical/v2/maintenance_grate",
         "frozenEmission": null
       }
     },
@@ -11815,125 +11815,125 @@
         "side": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_00_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_00",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_01",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_01_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_01",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_01_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator_emission_frozen"
           },
           "4": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_04",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_04_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_04",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_04_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator_emission_frozen"
           },
           "5": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_05",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_05_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_05",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/side/mask_05_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator_emission_frozen"
           }
         },
         "top": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_00",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_00_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_00",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_01",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_01_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_01",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_01_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "2": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_02",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_02_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_02",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_02_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "3": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_03",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_03_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_03",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_03_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "4": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_04",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_04_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_04",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_04_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "5": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_05",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_05_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_05",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_05_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "6": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_06",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_06_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_06",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_06_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "7": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_07",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_07_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_07",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_07_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "8": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_08",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_08_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_08",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_08_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "9": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_09",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_09_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_09",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_09_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "10": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_10",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_10_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_10",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_10_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "11": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_11",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_11_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_11",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_11_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "12": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_12",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_12_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_12",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_12_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "13": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_13",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_13_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_13",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_13_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "14": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_14",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_14_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_14",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_14_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           },
           "15": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_15",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_15_emission",
+            "emission": "gtsr:critical/v2/gravity_modulator__top_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_15",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/top/mask_15_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/gravity_modulator__top_emission_frozen"
           }
         },
         "bottom": {
@@ -11945,93 +11945,93 @@
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_01",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_01_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_01",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_01_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "2": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_02",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_02_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_02",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_02_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "3": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_03",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_03_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_03",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_03_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "4": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_04",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_04_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_04",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_04_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "5": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_05",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_05_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_05",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_05_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "6": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_06",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_06_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_06",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_06_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "7": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_07",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_07_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_07",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_07_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "8": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_08",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_08_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_08",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_08_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "9": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_09",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_09_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_09",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_09_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "10": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_10",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_10_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_10",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_10_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "11": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_11",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_11_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_11",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_11_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "12": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_12",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_12_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_12",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_12_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "13": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_13",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_13_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_13",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_13_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "14": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_14",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_14_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_14",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_14_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           },
           "15": {
             "albedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_15",
-            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_15_emission",
+            "emission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_15",
-            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_15_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/ctm/gravity_modulator/bottom/mask_00_emission_frozen"
           }
         }
       }
@@ -12168,9 +12168,9 @@
         "side": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/thermal_confinement_coil/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/thermal_confinement_coil/side/mask_00_emission",
+            "emission": "gtsr:critical/v2/thermal_confinement_coil_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/thermal_confinement_coil/side/mask_00",
-            "frozenEmission": "gtsr:critical/v2/ctm/thermal_confinement_coil/side/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/thermal_confinement_coil_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/thermal_confinement_coil/side/mask_01",
@@ -12423,9 +12423,9 @@
         "side": {
           "0": {
             "albedo": "gtsr:critical/v2/ctm/thermal_confinement_coil/side/mask_00",
-            "emission": "gtsr:critical/v2/ctm/thermal_confinement_coil/side/mask_00_emission",
+            "emission": "gtsr:critical/v2/thermal_confinement_coil_emission",
             "frozenAlbedo": "gtsr:critical/v2/ctm/thermal_confinement_coil/side/mask_00",
-            "frozenEmission": "gtsr:critical/v2/ctm/thermal_confinement_coil/side/mask_00_emission_frozen"
+            "frozenEmission": "gtsr:critical/v2/thermal_confinement_coil_emission_frozen"
           },
           "1": {
             "albedo": "gtsr:critical/v2/ctm/thermal_confinement_coil/side/mask_01",
@@ -12646,9 +12646,9 @@
         "frozenEmission": null
       },
       "top": {
-        "albedo": "gtsr:critical/v2/gt_hatch__top",
+        "albedo": "gtsr:critical/v2/gt_hatch",
         "emission": null,
-        "frozenAlbedo": "gtsr:critical/v2/gt_hatch__top",
+        "frozenAlbedo": "gtsr:critical/v2/gt_hatch",
         "frozenEmission": null
       }
     },

@@ -21,7 +21,12 @@ public final class CriticalTooltips {
         }
         if (preset == null) {
             tt.addInfo(tr("tooltip.selection"))
-                .addInfo(EnumChatFormatting.AQUA + tr("tooltip.loom_only"));
+                .addInfo(EnumChatFormatting.AQUA + tr("tooltip.loom_only"))
+                .addInfo(tr("foundation.cycle"))
+                .addInfo(tr("foundation.cost"))
+                .addInfo(tr("foundation.curing"))
+                .addInfo(tr("foundation.singularity"))
+                .addInfo(tr("foundation.hatches"));
         } else {
             tt.addInfo(EnumChatFormatting.AQUA + tr("operation." + preset.key + ".input"))
                 .addInfo(tr("operation." + preset.key + ".cycle"))

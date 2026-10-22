@@ -62,6 +62,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     private String lastAction = "", lastActionDetail = "";
     private boolean lastActionAccepted;
     private int selectedPage;
+    private CriticalConstructionView constructionView;
 
     public MTECriticalMachineTerminalGui(MTECriticalMachine multiblock) {
         super(multiblock);
@@ -173,6 +174,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         // Send the stage cursor and total together so a stage transition cannot display mismatched counts.
         jobProgressText = new StringSyncValue(() -> state.getJobProgress() + " / " + state.getJobTotal());
         manager.syncValue("critical.jobProgressText", jobProgressText);
+        constructionView = new CriticalConstructionView(state, manager);
     }
 
     private GenericListSyncHandler<ItemStack> itemCosts(java.util.function.Supplier<ItemStack[]> getter) {
@@ -211,15 +213,17 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         pages.addPage(configurationPage(manager));
         pages.addPage(inventoryPage(manager));
         pages.addPage(constructionPage());
+        pages.addPage(constructionView.create());
         Flow tabs = Flow.row()
             .size(463, 20)
             .childPadding(4);
-        String[] labels = { "tab.status", "tab.configuration", "tab.inventory", "tab.requirements" };
+        String[] labels = { "tab.status", "tab.configuration", "tab.inventory", "tab.requirements",
+            "tab.construction" };
         for (int i = 0; i < labels.length; i++) {
             final int page = i;
             tabs.child(
                 new ButtonWidget<>().name("critical_tab_" + page)
-                    .size(112, 18)
+                    .size(89, 18)
                     .background(
                         new DynamicDrawable(
                             () -> selectedPage == page ? CriticalGuiStyle.SELECTED_TAB : CriticalGuiStyle.TAB))

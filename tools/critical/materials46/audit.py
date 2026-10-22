@@ -98,9 +98,8 @@ def main():
                 collect(faces[face])
         inventory.append({'id':identifier,'aliases':aliases,'names':{lang:names['tile.critical_'+identifier+'.name'] for lang,names in languages.items()},
             'currentGeometryUsed':identifier in current,'models':sorted(usage[identifier]),
-            'currentHandPlaceableLoomForms':[{'dynamic':dynamic,'registry':'critical_loom_'+('proxy_' if dynamic else '')+identifier,
-                'names':{lang:names['tile.critical_loom_'+('proxy_' if dynamic else '')+identifier+'.name'] for lang,names in languages.items()}} for dynamic in [False,True] if (identifier,dynamic) in current_forms],
-            'constructionBlocksInternal':True,'faces':faces,'alphaMode':p['alphaMode'],'emissive':p['emissionStrength']>0})
+            'placeableRegistry':'critical_'+identifier,
+            'constructionBlocksInternal':False,'faces':faces,'alphaMode':p['alphaMode'],'emissive':p['emissionStrength']>0})
     for lang,names in languages.items():
         for identifier,dynamic in current_forms:
             key='tile.critical_loom_'+('proxy_' if dynamic else '')+identifier+'.name'
@@ -124,9 +123,9 @@ def main():
     result={'status':'FAIL' if failures else 'PASS','resourceSource':str(args.jar.resolve()) if args.jar else 'source tree',
         'resourceJarSHA256':hashlib.sha256(args.jar.read_bytes()).hexdigest() if args.jar else None,
         'counts':{'aliases':len(palette),'entities':len(ids),'legacy':sum(not i.startswith('v2_') for i in ids),
-                  'v2':sum(i.startswith('v2_') for i in ids),'registryIdentities':2*len(ids)+len(loom_forms),
+                  'v2':sum(i.startswith('v2_') for i in ids),'registryIdentities':len(ids),'removedLegacyIdentities':len(ids)+len(loom_forms),
                   'currentLoomForms':len(current_forms),'sprites':len(sprites),'animatedSprites':animated},
-        'controllerCasings':[{'textureId':15872,'registry':'critical_loom_alloy_frame','material':'alloy_frame'},
+        'controllerCasings':[{'textureId':15872,'registry':'critical_alloy_frame','material':'alloy_frame'},
                              {'textureId':15873,'registry':'critical_v2_reinforced_panel','material':'v2_reinforced_panel'}],
         'materials':inventory,'failures':failures,'boundary':'Resource declarations, palette identity, geometry, all registered names and sprite file/animation metadata only; no client visual/GL claim.'}
     args.out.parent.mkdir(parents=True,exist_ok=True);args.out.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')

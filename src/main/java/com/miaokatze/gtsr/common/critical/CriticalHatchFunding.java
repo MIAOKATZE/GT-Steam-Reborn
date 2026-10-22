@@ -20,13 +20,62 @@ public final class CriticalHatchFunding {
 
     private CriticalHatchFunding() {}
 
+    private static boolean isCircuitSlot(MTEHatchInputBus bus, int slot) {
+        return slot == (bus instanceof gregtech.api.metatileentity.implementations.MTEHatchInputBusDebug
+            ? bus.getSizeInventory() - 1
+            : bus.getCircuitSlot());
+    }
+
+    /** A single server-thread transaction; a failed commit must lock its construction journal. */
+    public static CriticalNativeMEFunding.ItemConsumption consumeAllItem(MTEMultiBlockBase host,
+        List<MTEHatchInputBus> busses, ItemStack wanted) {
+        List<ItemDebit> debits = new ArrayList<>();
+        Map<MTEHatchInputBus, Boolean> seen = new IdentityHashMap<>();
+        for (MTEHatchInputBus bus : busses) {
+            if (!bus.isValid() || bus instanceof IRecipeProcessingAwareHatch || seen.put(bus, true) != null) continue;
+            for (int slot = 0; slot < bus.getSizeInventory(); slot++) {
+                if (isCircuitSlot(bus, slot)) continue;
+                ItemStack ref = bus.getStackInSlot(slot);
+                if (ref != null && ref.stackSize > 0 && same(ref, wanted))
+                    debits.add(new ItemDebit(bus, slot, ref, ref.stackSize));
+            }
+        }
+        CriticalNativeMEFunding.ItemConsumption network = CriticalNativeMEFunding.consumeAllItem(host, busses, wanted);
+        if (network.result != CriticalNativeMEFunding.Result.SUCCESS) return network;
+        long amount = network.amount;
+        try {
+            for (ItemDebit debit : debits) {
+                if (debit.bus instanceof gregtech.api.metatileentity.implementations.MTEHatchInputBusDebug) {
+                    amount += debit.amount;
+                    continue;
+                }
+                if (debit.bus.getStackInSlot(debit.slot) != debit.ref || debit.ref.stackSize != debit.amount)
+                    return new CriticalNativeMEFunding.ItemConsumption(
+                        CriticalNativeMEFunding.Result.COMMIT_FAILED,
+                        amount);
+                ItemStack removed = debit.bus.decrStackSize(debit.slot, debit.amount);
+                if (!same(removed, wanted) || removed.stackSize != debit.amount)
+                    return new CriticalNativeMEFunding.ItemConsumption(
+                        CriticalNativeMEFunding.Result.COMMIT_FAILED,
+                        amount);
+                amount += removed.stackSize;
+                debit.bus.getBaseMetaTileEntity()
+                    .markDirty();
+            }
+            host.updateSlots();
+            return new CriticalNativeMEFunding.ItemConsumption(CriticalNativeMEFunding.Result.SUCCESS, amount);
+        } catch (RuntimeException failure) {
+            return new CriticalNativeMEFunding.ItemConsumption(CriticalNativeMEFunding.Result.COMMIT_FAILED, amount);
+        }
+    }
+
     public static ItemStack[] snapshotItems(List<MTEHatchInputBus> busses) {
         List<ItemStack> result = new ArrayList<>();
         Map<MTEHatchInputBus, Boolean> seen = new IdentityHashMap<>();
         for (MTEHatchInputBus bus : busses) {
             if (!bus.isValid() || bus instanceof IRecipeProcessingAwareHatch || seen.put(bus, true) != null) continue;
             for (int slot = 0; slot < bus.getSizeInventory(); slot++) {
-                if (slot == bus.getCircuitSlot()) continue;
+                if (isCircuitSlot(bus, slot)) continue;
                 ItemStack stack = bus.getStackInSlot(slot);
                 if (stack != null && stack.stackSize > 0) result.add(stack.copy());
             }
@@ -40,6 +89,14 @@ public final class CriticalHatchFunding {
         for (MTEHatchInput hatch : hatches) {
             if (!hatch.isValid() || hatch instanceof IRecipeProcessingAwareHatch || seen.put(hatch, true) != null)
                 continue;
+            if (hatch instanceof gregtech.api.metatileentity.implementations.MTEHatchInputDebug debug) {
+                for (FluidStack fluid : debug.getFluidList()) if (fluid != null) {
+                    FluidStack copy = fluid.copy();
+                    copy.amount = Integer.MAX_VALUE;
+                    result.add(copy);
+                }
+                continue;
+            }
             for (FluidTankInfo tank : hatch.getTankInfo(ForgeDirection.UNKNOWN)) {
                 if (tank != null && tank.fluid != null && tank.fluid.amount > 0) result.add(tank.fluid.copy());
             }
@@ -54,6 +111,7 @@ public final class CriticalHatchFunding {
         List<ItemStack> missingItems = new ArrayList<>();
         List<FluidStack> missingFluids = new ArrayList<>();
         Map<ItemStack, Integer> reservedItems = new IdentityHashMap<>();
+        Map<MTEHatchInputBus, Map<Integer, Integer>> debugReservations = new IdentityHashMap<>();
         Map<MTEHatchInput, List<FluidStack>> reservedFluids = new IdentityHashMap<>();
         for (ItemStack wanted : items) {
             if (wanted == null || wanted.stackSize == 0) continue;
@@ -64,14 +122,18 @@ public final class CriticalHatchFunding {
                 if (!bus.isValid() || bus instanceof IRecipeProcessingAwareHatch || seen.put(bus, true) != null)
                     continue;
                 for (int slot = 0; slot < bus.getSizeInventory() && left > 0; slot++) {
-                    if (slot == bus.getCircuitSlot()) continue;
+                    if (isCircuitSlot(bus, slot)) continue;
                     ItemStack ref = bus.getStackInSlot(slot);
                     if (!same(ref, wanted)) continue;
-                    int reserved = reservedItems.getOrDefault(ref, 0);
+                    boolean debug = bus instanceof gregtech.api.metatileentity.implementations.MTEHatchInputBusDebug;
+                    Map<Integer, Integer> slots = debugReservations
+                        .computeIfAbsent(bus, ignored -> new java.util.HashMap<>());
+                    int reserved = debug ? slots.getOrDefault(slot, 0) : reservedItems.getOrDefault(ref, 0);
                     int amount = Math.min(left, Math.max(0, ref.stackSize - reserved));
                     if (amount == 0) continue;
                     itemDebits.add(new ItemDebit(bus, slot, ref, amount));
                     reservedItems.put(ref, reserved + amount);
+                    if (debug) slots.put(slot, reserved + amount);
                     left -= amount;
                 }
             }
@@ -122,6 +184,8 @@ public final class CriticalHatchFunding {
         if (result != CriticalNativeMEFunding.Result.SUCCESS) return result;
         try {
             for (ItemDebit debit : itemDebits) {
+                // Debug input buses deliberately expose fresh phantom copies, rather than stored references.
+                if (debit.bus instanceof gregtech.api.metatileentity.implementations.MTEHatchInputBusDebug) continue;
                 if (debit.bus.getStackInSlot(debit.slot) != debit.ref || debit.ref.stackSize < debit.amount)
                     return CriticalNativeMEFunding.Result.COMMIT_FAILED;
                 ItemStack removed = debit.bus.decrStackSize(debit.slot, debit.amount);

@@ -1,0 +1,61 @@
+package com.miaokatze.gtsr.common.critical;
+
+import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidStack;
+
+import gregtech.api.enums.FluidState;
+import gregtech.api.enums.GTValues;
+import gregtech.api.enums.ItemList;
+import gregtech.api.enums.Materials;
+import gregtech.api.enums.OrePrefixes;
+import gregtech.api.enums.TierEU;
+import gregtech.api.fluid.GTFluidFactory;
+import gregtech.api.recipe.RecipeMaps;
+import gregtech.api.util.GTOreDictUnificator;
+import gregtech.api.util.GTUtility;
+
+/** The loom's foundation bill and its concrete mixer recipe. */
+public final class CriticalFoundationMaterials {
+
+    public static final String FLUID_NAME = "gtsr.ultra_high_performance_concrete";
+    private static Fluid concrete;
+    private static boolean registered;
+
+    private CriticalFoundationMaterials() {}
+
+    public static void registerRecipes() {
+        if (registered) return;
+        FluidStack wetConcrete = Materials.Concrete.getMolten(9000);
+        if (wetConcrete == null) throw new IllegalStateException("Missing wet concrete");
+        concrete = GTFluidFactory.builder(FLUID_NAME)
+            .withDefaultLocalName("Ultra High Performance Concrete")
+            .withStateAndTemperature(FluidState.LIQUID, 300)
+            .withColorRGBA(new short[] { 150, 157, 166, 255 })
+            .withIconsFrom(wetConcrete.getFluid())
+            .buildAndRegister()
+            .asFluid();
+        GTValues.RA.stdBuilder()
+            .itemInputsUnsafe(
+                GTUtility
+                    .copyAmountUnsafe(128, GTOreDictUnificator.get(OrePrefixes.wireGt01, Materials.TungstenSteel, 1)),
+                GTOreDictUnificator.get(OrePrefixes.dust, Materials.SiliconDioxide, 64))
+            .fluidInputs(wetConcrete)
+            .fluidOutputs(fluid(16000))
+            .duration(300 * 20)
+            .eut(TierEU.RECIPE_IV)
+            .addTo(RecipeMaps.mixerRecipes);
+        registered = true;
+    }
+
+    public static FluidStack fluid(int amount) {
+        if (concrete == null) throw new IllegalStateException("Foundation concrete not registered");
+        return new FluidStack(concrete, amount);
+    }
+
+    public static ItemStack[] items() {
+        return new ItemStack[] {
+            GTUtility.copyAmountUnsafe(512, GTOreDictUnificator.get(OrePrefixes.stickLong, Materials.Neutronium, 1)),
+            ItemList.Hull_MAX.get(32) };
+    }
+}

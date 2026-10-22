@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.common.critical;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -36,6 +37,67 @@ public final class CriticalNativeMEFunding {
     }
 
     private CriticalNativeMEFunding() {}
+
+    public static final class ItemConsumption {
+
+        public final Result result;
+        public final long amount;
+
+        public ItemConsumption(Result result, long amount) {
+            this.result = result;
+            this.amount = amount;
+        }
+    }
+
+    /** Consume every matching native stocking view, once per backing ME inventory. */
+    public static ItemConsumption consumeAllItem(MTEMultiBlockBase host, List<MTEHatchInputBus> inputBusses,
+        ItemStack wanted) {
+        List<MTEHatchInputBusME> opened = new ArrayList<>();
+        Map<Object, ItemStack> selected = new java.util.IdentityHashMap<>();
+        long amount = 0;
+        boolean settled = true;
+        try {
+            for (MTEHatchInputBus bus : inputBusses) {
+                if (!(bus instanceof MTEHatchInputBusME) || !bus.isValid()) continue;
+                MTEHatchInputBusME me = (MTEHatchInputBusME) bus;
+                if (!me.isAllowedToWork() || opened.contains(me)) continue;
+                Object inventory;
+                try {
+                    inventory = me.getProxy()
+                        .getStorage()
+                        .getItemInventory();
+                } catch (GridAccessException unavailable) {
+                    // A disconnected stocking view offers no inputs and has not requested a debit.
+                    continue;
+                }
+                opened.add(me);
+                me.startRecipeProcessing();
+                for (int slot = 0; slot < MTEHatchInputBusME.SLOT_COUNT; slot++) {
+                    ItemStack ref = me.getStackInSlot(slot);
+                    if (ref == null || ref.stackSize <= 0 || !sameItem(ref, wanted)) continue;
+                    ItemStack previous = selected.get(inventory);
+                    if (previous == null || previous.stackSize < ref.stackSize) selected.put(inventory, ref);
+                }
+            }
+            for (ItemStack ref : selected.values()) {
+                amount += ref.stackSize;
+                ref.stackSize = 0;
+            }
+        } catch (Exception failure) {
+            settled = false;
+        } finally {
+            for (MTEHatchInputBusME me : opened) {
+                try {
+                    CheckRecipeResult result = me.endRecipeProcessing(host);
+                    if (result == null || !result.wasSuccessful()) settled = false;
+                } catch (RuntimeException failure) {
+                    settled = false;
+                }
+            }
+        }
+        // Opening/closing an unchanged view cannot create an uncertain item extraction.
+        return new ItemConsumption(settled || amount == 0 ? Result.SUCCESS : Result.COMMIT_FAILED, amount);
+    }
 
     /** Read-only recipe selection view. These copies are never evidence of a committed debit. */
     public static ItemStack[] snapshotItems(List<MTEHatchInputBus> inputBusses) {
