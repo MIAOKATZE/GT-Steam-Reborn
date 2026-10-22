@@ -9,180 +9,132 @@ import net.minecraft.block.Block;
 import net.minecraft.item.*;
 import net.minecraft.util.IIcon;
 import com.miaokatze.gtsr.client.critical.CriticalMaterialTextures;
+import com.miaokatze.gtsr.register.CreativeTabManager;
+import net.minecraftforge.client.event.TextureStitchEvent;
+import net.minecraft.client.renderer.texture.TextureMap;
 
-/** Real Forge registrations and production icon selection; no GL or complete mod lifecycle. */
+/** Actual candidate Forge/creative/NEI exposure and typed atlas lookup; no GL. */
 public final class MaterialsProbe {
-    static IIcon icon(String name) {
-        return (IIcon) Proxy.newProxyInstance(IIcon.class.getClassLoader(), new Class[] { IIcon.class }, (p,m,a) -> {
-            if (m.getName().equals("getIconName")) return name;
-            if (m.getName().equals("hashCode")) return name.hashCode();
-            if (m.getReturnType() == int.class) return 16;
-            if (m.getReturnType() == float.class) return 0F;
-            return null;
-        });
+    static Set<String> geometry(String slug) {
+        Set<String> ids=new TreeSet<>();
+        JsonObject palette=CriticalGeometry.readJson("materials.json");
+        for(JsonElement e:CriticalGeometry.readJson("models/"+slug+".geometry.json").getAsJsonArray("blocks"))
+            ids.add(palette.getAsJsonObject(e.getAsJsonArray().get(3).getAsString()).get("id").getAsString());
+        ids.remove("v2_gt_controller");ids.remove("v2_loom_machine_controller");return ids;
     }
-    static void verifyPositionOwnership() throws Exception {
-        net.minecraft.client.multiplayer.WorldClient client=(net.minecraft.client.multiplayer.WorldClient)U.allocateInstance(net.minecraft.client.multiplayer.WorldClient.class);set(client,"isRemote",true);
-        set(net.minecraft.client.Minecraft.getMinecraft(),"theWorld",client);
-        CriticalGeometry.Voxel voxel=null;
-        for(CriticalGeometry.Voxel candidate:CriticalGeometry.getModel("v2_loom").voxels)
-            if(CriticalGeometry.isDynamic(candidate.model,candidate.group)
-                && !((CriticalMaterials.MaterialBlock)candidate.block).transparent) {voxel=candidate;break;}
-        check(voxel!=null,"ownership fixture selects a moving opaque loom cell");
-        final Block material=voxel.block;
-        net.minecraft.world.IBlockAccess access=(net.minecraft.world.IBlockAccess)Proxy.newProxyInstance(
-            MaterialsProbe.class.getClassLoader(),new Class[]{net.minecraft.world.IBlockAccess.class},(proxy,method,args)->{
-                if(method.getName().equals("getBlock"))return material;
-                if(method.getReturnType()==int.class)return 0;
-                if(method.getReturnType()==boolean.class)return false;
-                return null;
-            });
-        check(!CriticalMaterials.isAnimatedAt(access,1,64,1),"unowned canonical material remains static");
-        Class<?> registrationClass=Class.forName(CriticalLoomProxyVisibility.class.getName()+"$Registration");
-        Constructor<?> registrationConstructor=registrationClass.getDeclaredConstructors()[0];registrationConstructor.setAccessible(true);
-        Object registration=registrationConstructor.newInstance(client,0,0,0,0,0,net.minecraftforge.common.util.ForgeDirection.NORTH,"fixture",Collections.singletonList(voxel));
-        set(registration,"activeGroups",Collections.singleton(voxel.model+":"+voxel.group));
-        TileEntityCriticalRenderAnchor anchor=new TileEntityCriticalRenderAnchor();anchor.setWorldObj(client);
-        net.minecraft.nbt.NBTTagCompound descriptor=new net.minecraft.nbt.NBTTagCompound();descriptor.setBoolean("loomVisible",true);set(anchor,"descriptor",descriptor);
-        Class<?> entryClass=Class.forName(CriticalLoomProxyVisibility.class.getName()+"$Entry");Constructor<?> entryConstructor=entryClass.getDeclaredConstructors()[0];entryConstructor.setAccessible(true);
-        Object entry=entryConstructor.newInstance(anchor,voxel,registration);
-        Map<Long,Object> positions=new HashMap<>();positions.put(64L<<8|1L<<4|1L,entry);
-        Map<Long,Map<Long,Object>> chunks=new HashMap<>();chunks.put(0L,positions);
-        Map worlds=(Map)get(CriticalLoomProxyVisibility.class,"WORLDS");worlds.put(client,chunks);
-        check(CriticalMaterials.isAnimatedAt(access,1,64,1),"owned canonical cell moves only after its group is published");
-        check(!CriticalMaterials.isAnimatedAt(access,2,64,1),"same registered block stays static at an unowned coordinate");
-        check(!CriticalLoomProxyVisibility.animated(client,1,64,1,material,1),"wrong metadata cannot hide a world cell");
-        CriticalMaterials.MaterialBlock block=(CriticalMaterials.MaterialBlock)material;
-        check(block.shouldSideBeRendered(access,1,64,1,2),"static neighbor keeps its exposed face next to an owned moving cell");
-        check(!block.shouldSideBeRendered(access,2,64,1,2),"static opaque material neighbor remains culled");
-        set(registration,"activeGroups",Collections.emptySet());
-        check(!CriticalMaterials.isAnimatedAt(access,1,64,1),"unpublished animation group restores canonical world cell");
-        worlds.remove(client);set(net.minecraft.client.Minecraft.getMinecraft(),"theWorld",null);
+    static Set<String> ids(Collection<ItemStack> items) {
+        Set<String> names=new TreeSet<>();
+        for(ItemStack s:items) {
+            Block b=Block.getBlockFromItem(s.getItem());
+            if(b instanceof CriticalMaterials.MaterialBlock)names.add(((CriticalMaterials.MaterialBlock)b).materialId);
+        }
+        return names;
     }
-    public static void main(String[] args) throws Exception {
-        bootstrap();
-        set(gregtech.GTMod.proxy,"mCTMBlockCache",new gregtech.api.util.GTBlockMap<Boolean>());
-        cpw.mods.fml.common.Loader loader=cpw.mods.fml.common.Loader.instance();
-        cpw.mods.fml.common.ModMetadata data=new cpw.mods.fml.common.ModMetadata();
-        data.modId="gtsr";data.name="GTSR materials fixture";data.version="unified-materials";
-        set(get(loader,"modController"),"activeContainer",new cpw.mods.fml.common.DummyModContainer(data));
-        CriticalMaterials.register();
-        com.google.common.collect.ListMultimap<String,cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping> missingMappings=com.google.common.collect.ArrayListMultimap.create();
+    static List<ItemStack> creative() {
+        List<ItemStack> items=new ArrayList<>();CreativeTabManager.CREATIVE_TAB.displayAllReleventItems(items);return items;
+    }
+    static TextureMap atlas(int type)throws Exception {
+        TextureMap map=(TextureMap)U.allocateInstance(TextureMap.class);set(map,"textureType",type);return map;
+    }
+    static void stitch(CriticalMaterialTextures listener,TextureMap map,boolean post) {
+        if(post)listener.afterStitch(new TextureStitchEvent.Post(map));
+        else listener.beforeStitch(new TextureStitchEvent.Pre(map));
+    }
+    static void removedMappings()throws Exception {
         Set<String> removed=(Set<String>)get(CriticalMaterials.class,"REMOVED_REGISTRATIONS");
-        check(removed.size()==105,"only the 105 removed legacy registry names are ignored");
-        int removedId=1000;
-        for(String name:removed) {
-            for(char type:new char[]{1,2}) missingMappings.put("gtsr",new cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping(type+name,removedId));
-            removedId++;
+        check(removed.size()==105,"105 intentionally removed duplicate registrations remain targeted");
+        com.google.common.collect.ListMultimap<String,cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping> rows=com.google.common.collect.ArrayListMultimap.create();
+        int id=1000;for(String name:removed) {
+            for(char type:new char[]{1,2})rows.put("gtsr",new cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping(type+name,id));
+            id++;
         }
-        for(String name:new String[]{"gtsr:critical_v2_reinforced_panel","gtsr:critical_proxy_unknown","gtsr:unrelated_missing"})
-            missingMappings.put("gtsr",new cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping("\1"+name,1234));
-        cpw.mods.fml.common.event.FMLMissingMappingsEvent missingEvent=new cpw.mods.fml.common.event.FMLMissingMappingsEvent(missingMappings);
-        missingEvent.applyModContainer(new cpw.mods.fml.common.DummyModContainer(data));
-        CriticalMaterials.ignoreRemovedMappings(missingEvent);
-        for(cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping mapping:missingEvent.get())
-            check(mapping.getAction()==(removed.contains(mapping.name)?cpw.mods.fml.common.event.FMLMissingMappingsEvent.Action.IGNORE:cpw.mods.fml.common.event.FMLMissingMappingsEvent.Action.DEFAULT),
-                "targeted removed mapping action "+mapping.type+":"+mapping.name);
-        List<cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping> ignoredMappings=new ArrayList<>();
-        for(cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping mapping:missingEvent.get())
-            if(removed.contains(mapping.name))ignoredMappings.add(mapping);
-        Constructor<cpw.mods.fml.common.registry.GameData> gameDataConstructor=cpw.mods.fml.common.registry.GameData.class.getDeclaredConstructor();gameDataConstructor.setAccessible(true);
-        cpw.mods.fml.common.registry.GameData scratch=gameDataConstructor.newInstance();
-        check(cpw.mods.fml.common.registry.GameData.processIdRematches(ignoredMappings,true,scratch,new HashMap<>()).isEmpty(),
-            "actual Forge missing-ID processing accepts all intentional removals without default confirmation");
-        check(((Set)get(scratch,"blockedIds")).size()==105,"Forge reserves each removed numeric ID against reuse");
-        JsonArray blocks=new JsonArray(), mismatches=new JsonArray(), earlyNulls=new JsonArray();
-        List<CriticalMaterials.MaterialBlock> materials=new ArrayList<>();
-        for(Object obj:Block.blockRegistry) if(obj instanceof CriticalMaterials.MaterialBlock b) materials.add(b);
-        for(CriticalMaterials.MaterialBlock b:materials) {
-            b.registerBlockIcons(name -> icon(name));
-            if(b.materialId.startsWith("v2_")) for(int side=0;side<6;side++) if(b.getIcon(side,0)==null)
-                earlyNulls.add(new JsonPrimitive(b.materialId+":"+side));
+        rows.put("gtsr",new cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping("\1gtsr:unrelated_missing",1234));
+        cpw.mods.fml.common.event.FMLMissingMappingsEvent event=new cpw.mods.fml.common.event.FMLMissingMappingsEvent(rows);
+        cpw.mods.fml.common.ModMetadata data=new cpw.mods.fml.common.ModMetadata();data.modId="gtsr";
+        event.applyModContainer(new cpw.mods.fml.common.DummyModContainer(data));CriticalMaterials.ignoreRemovedMappings(event);
+        List<cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping> ignored=new ArrayList<>();
+        for(cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping row:event.get()) {
+            check(row.getAction()==(removed.contains(row.name)?cpw.mods.fml.common.event.FMLMissingMappingsEvent.Action.IGNORE:cpw.mods.fml.common.event.FMLMissingMappingsEvent.Action.DEFAULT),"targeted Forge missing mapping "+row.type+":"+row.name);
+            if(removed.contains(row.name))ignored.add(row);
         }
-        int exposed=0, missing=0, iconChecks=0;
-        Set<String> exposedNames=new TreeSet<>(), expectedNames=new TreeSet<>(), registeredNames=new TreeSet<>();
-        for(Map.Entry<String,JsonElement> entry:CriticalGeometry.readJson("materials.json").entrySet())
-            expectedNames.add("gtsr:critical_"+entry.getValue().getAsJsonObject().get("id").getAsString());
-        SparseWorld placementWorld=world();
+        Constructor<cpw.mods.fml.common.registry.GameData> ctor=cpw.mods.fml.common.registry.GameData.class.getDeclaredConstructor();ctor.setAccessible(true);
+        cpw.mods.fml.common.registry.GameData scratch=ctor.newInstance();
+        check(cpw.mods.fml.common.registry.GameData.processIdRematches(ignored,true,scratch,new HashMap<>()).isEmpty(),"actual Forge rematch accepts intentional removals");
+        check(((Set<?>)get(scratch,"blockedIds")).size()==105,"Forge reserves105 removed numeric IDs");
+    }
+    public static void main(String[] args)throws Exception {
+        LegacyMaterialReference.initialize();
+        removedMappings();
+        JsonObject baseline=new JsonParser().parse(new String(Files.readAllBytes(Paths.get(args[1])),"UTF-8")).getAsJsonObject();
+        List<CriticalMaterials.MaterialBlock> materials=LegacyMaterialReference.materials();
+        check(materials.size()==65,"65 real Forge material registrations");
+        check(CriticalMaterialDefinitions.catalog().aliases().size()==371,"371 historical aliases remain registered");
+        Set<String> manual=geometry("v2_loom"),expectedCreative=new TreeSet<>(manual);
+        for(String slug:new String[]{"v2_base_t3","v2_solar","v2_turbine","v2_sun","v2_battery","v2_plugin_parallel"})expectedCreative.addAll(geometry(slug));
+        check(manual.size()==15&&expectedCreative.size()==24,"independent model resources define manual15 and physical24");
+        List<ItemStack> displayed=creative();
+        check(displayed.size()==24&&ids(displayed).equals(expectedCreative),"actual CreativeTabs.displayAllReleventItems exposes exactly24");
+        SparseWorld world=world();int nativeVariants=0;
+        JsonObject propertyMismatches=new JsonObject();
         for(CriticalMaterials.MaterialBlock b:materials) {
-            List<ItemStack> variants=new ArrayList<>();
-            Item item=Item.getItemFromBlock(b);
-            item.getSubItems(item,null,variants);
-            exposed+=variants.size();
-            for(ItemStack variant:variants) exposedNames.add(Item.itemRegistry.getNameForObject(variant.getItem()));
-            JsonObject row=new JsonObject();row.addProperty("registry",Block.blockRegistry.getNameForObject(b));
-            registeredNames.add(Block.blockRegistry.getNameForObject(b));
-            row.addProperty("numericBlockId",Block.getIdFromBlock(b));row.addProperty("numericItemId",Item.getIdFromItem(item));
-            row.addProperty("id",b.materialId);
-            check(b.canPlaceBlockAt(placementWorld,0,64,0),"material permits manual placement "+b.materialId);
-            check(b.getCollisionBoundingBoxFromPool(placementWorld,0,64,0)!=null,"material keeps native collision "+b.materialId);
-            check(b.getBlockHardness(placementWorld,0,64,0)==5F,"unclaimed material is removable "+b.materialId);
-            row.addProperty("key",new ItemStack(b).getUnlocalizedName()+".name");
-            row.addProperty("enumerated",variants.size());blocks.add(row);
-            if(!b.materialId.startsWith("v2_"))continue;
+            check(b.getCreativeTabToDisplayOn()==(expectedCreative.contains(b.materialId)?CreativeTabManager.CREATIVE_TAB:null),"native creative tab property "+b.materialId);
+            List<ItemStack> nativeItems=new ArrayList<>();Item item=Item.getItemFromBlock(b);item.getSubItems(item,null,nativeItems);nativeVariants+=nativeItems.size();
+            check(nativeItems.size()==1,"native ItemBlock retains placeable identity "+b.materialId);
+            check(b.canPlaceBlockAt(world,0,64,0)&&b.getCollisionBoundingBoxFromPool(world,0,64,0)!=null&&b.getBlockHardness(world,0,64,0)==5F,"native placement collision hardness "+b.materialId);
             JsonObject props=CriticalMaterials.properties(b.materialId);
-            for(int side=0;side<6;side++)for(int mask=0;mask<16;mask++)for(boolean frozen:new boolean[]{false,true})for(boolean emission:new boolean[]{false,true}) {
-                String face=CriticalMaterialTextures.FACE_NAMES[side],kind=frozen?(emission?"frozenEmission":"frozenAlbedo"):(emission?"emission":"albedo");
-                JsonObject pair;
-                if(props.has("ctm")) {
-                    JsonObject ctm=props.getAsJsonObject("ctm");String group=ctm.getAsJsonObject("faceLookup").get(face).getAsString();
-                    int allowed=ctm.getAsJsonObject("faceAllowedMask").get(face).getAsInt();
-                    pair=ctm.getAsJsonObject("sprites").getAsJsonObject(group).getAsJsonObject(""+(mask&allowed));
-                } else if(props.has("faceSprites")) {
-                    JsonObject link=props.getAsJsonObject("faceSprites").getAsJsonObject(face);
-                    pair=CriticalMaterials.properties("v2_"+link.get("material").getAsString()).getAsJsonObject("sprites").getAsJsonObject(link.get("group").getAsString());
-                } else pair=props.getAsJsonObject("sprites").getAsJsonObject(side<2?"top":"side");
-                JsonElement expected=pair.get(kind);String wanted=expected==null||expected.isJsonNull()?null:expected.getAsString();
-                IIcon actual=CriticalMaterialTextures.icon(b.materialId,side,mask,emission,frozen);String got=actual==null?null:actual.getIconName();
-                iconChecks++;
-                if(!Objects.equals(wanted,got)){JsonObject failure=new JsonObject();failure.addProperty("id",b.materialId);failure.addProperty("side",side);failure.addProperty("mask",mask);failure.addProperty("kind",kind);failure.addProperty("expected",wanted);failure.addProperty("actual",got);mismatches.add(failure);}
-                if(!emission&&actual==null) missing++;
-            }
+            if(!props.equals(baseline.getAsJsonObject("properties").get(b.materialId)))propertyMismatches.add(b.materialId,props);
+            check(LegacyMaterialReference.blockProperties(b).equals(baseline.getAsJsonObject("blocks").get(b.materialId)),"old/new actual registered block attributes "+b.materialId);
         }
-        verifyPositionOwnership();
-        int registered=materials.size(), creativeBefore=com.miaokatze.gtsr.register.CreativeTabManager.getItemsToAdd().size();
-        CriticalMaterials.register();int after=0;
-        for(Object obj:Block.blockRegistry)if(obj instanceof CriticalMaterials.MaterialBlock)after++;
-        check(registered==65&&after==registered,"65 stable unique Forge material registrations; repeated init is idempotent");
-        check(creativeBefore==com.miaokatze.gtsr.register.CreativeTabManager.getItemsToAdd().size(),"repeated registration does not duplicate creative entries");
-        check(missing==0,"all V2 exposed face/mask/frozen albedos resolve after complete stitch");
-        Set<String> creativeNames=new TreeSet<>();
-        for(ItemStack stack:com.miaokatze.gtsr.register.CreativeTabManager.getItemsToAdd()) creativeNames.add(Item.itemRegistry.getNameForObject(stack.getItem()));
-        boolean allVisible=exposed==registered&&exposedNames.equals(registeredNames);
-        boolean creativeValid=creativeBefore==65&&creativeNames.equals(expectedNames);
-        for(Map.Entry<String,JsonElement> entry:CriticalGeometry.readJson("materials.json").entrySet()) for(boolean dynamic:new boolean[]{false,true})
-            check(CriticalMaterials.block(entry.getKey(),dynamic)==CriticalMaterials.block(entry.getValue().getAsJsonObject().get("id").getAsString(),dynamic),"canonical alias identity "+entry.getKey()+":"+dynamic);
-        for(String name:expectedNames) {
-            String alias=name.substring("gtsr:critical_".length());
-            check(CriticalMaterials.block(alias,false)==CriticalMaterials.block(alias,true)
-                && CriticalMaterials.block(alias,false)==CriticalMaterials.loomBlock(alias,false)
-                && CriticalMaterials.block(alias,false)==CriticalMaterials.loomBlock(alias,true),
-                "all four prior roles share canonical identity "+alias);
+        check(propertyMismatches.entrySet().isEmpty(),"all65 old/new material JSON properties equal");
+        for(Map.Entry<String,String> alias:CriticalMaterialDefinitions.catalog().aliases().entrySet()) {
+            Block canonical=CriticalMaterials.block(alias.getValue(),false);
+            check(CriticalMaterials.block(alias.getKey(),false)==canonical&&CriticalMaterials.block(alias.getKey(),true)==canonical&&CriticalMaterials.loomBlock(alias.getKey(),false)==canonical&&CriticalMaterials.loomBlock(alias.getKey(),true)==canonical,"all four roles share alias identity "+alias.getKey());
         }
-        check(gregtech.api.enums.Textures.BlockIcons.getCasingTextureForId(15872)!=null&&gregtech.api.enums.Textures.BlockIcons.getCasingTextureForId(15873)!=null,"legacy and V2 controller casing texture slots initialize");
-        try { com.miaokatze.gtsr.client.critical.CriticalMaterialRenderer.class.getMethod("hideInternalItems").invoke(null); }
-        catch(NoSuchMethodException allMaterialsVisible) { /* No material visibility filter is required. */ }
+        CriticalMaterials.register();check(LegacyMaterialReference.materials().size()==65&&creative().size()==24,"repeated registration preserves65 and creative24");
         Method permutations=codechicken.nei.ItemListLoader.class.getDeclaredMethod("getPermutations",Item.class);permutations.setAccessible(true);
-        Set<String> neiNames=new TreeSet<>();int neiCount=0;
+        int beforeHide=0;for(CriticalMaterials.MaterialBlock b:materials)beforeHide+=((List<?>)permutations.invoke(null,Item.getItemFromBlock(b))).size();
+        check(beforeHide==65,"actual NEI getPermutations sees all65 before production hide registration");
+        Method hide=com.miaokatze.gtsr.main.ClientProxy.class.getDeclaredMethod("hideCriticalMaterialItems");hide.setAccessible(true);hide.invoke(null);
+        Set<String> nei=new TreeSet<>();int neiCount=0;
         for(CriticalMaterials.MaterialBlock b:materials) {
-            List<ItemStack> stacks=(List<ItemStack>)permutations.invoke(null,Item.getItemFromBlock(b));neiCount+=stacks.size();
-            for(ItemStack stack:stacks)neiNames.add(Item.itemRegistry.getNameForObject(stack.getItem()));
+            List<ItemStack> stacks=(List<ItemStack>)permutations.invoke(null,Item.getItemFromBlock(b));neiCount+=stacks.size();nei.addAll(ids(stacks));
+            check(codechicken.nei.api.ItemInfo.isHidden(new ItemStack(b))==!manual.contains(b.materialId),"production API.hideItem reaches NEI ItemInfo filter "+b.materialId);
         }
-        boolean neiAllVisible=neiCount==registered&&neiNames.equals(registeredNames);
-        JsonArray missingCanonical=new JsonArray();
-        Set<String> canonicalIds=new TreeSet<>();
-        for(Map.Entry<String,JsonElement> entry:CriticalGeometry.readJson("materials.json").entrySet())
-            canonicalIds.add(entry.getValue().getAsJsonObject().get("id").getAsString());
-        for(String canonical:canonicalIds) if(!neiNames.contains("gtsr:critical_"+canonical)) missingCanonical.add(new JsonPrimitive(canonical));
-        JsonObject result=new JsonObject();result.addProperty("status",mismatches.size()==0&&allVisible&&creativeValid&&neiAllVisible&&missingCanonical.size()==0?"PASS":"REPRODUCED");
-        result.addProperty("registered",registered);result.addProperty("enumerated",exposed);result.addProperty("creative",com.miaokatze.gtsr.register.CreativeTabManager.getItemsToAdd().size());
-        result.addProperty("iconChecks",iconChecks);result.addProperty("checks",checks);result.addProperty("product",source(CriticalMaterials.class));result.addProperty("textures",source(CriticalMaterialTextures.class));
-        result.add("blocks",blocks);result.add("iconMismatches",mismatches);result.add("transientRegistrationNulls",earlyNulls);
-        result.addProperty("allRegisteredMaterialsVisible",allVisible);
-        result.addProperty("creativeCanonicalMaterials",creativeValid);
-        result.addProperty("neiEnumerated",neiCount);result.addProperty("allRegisteredMaterialsVisibleInNei",neiAllVisible);result.addProperty("NEI",source(codechicken.nei.ItemListLoader.class));
-        result.add("missingCanonicalNeiMaterials",missingCanonical);
-        result.addProperty("boundary","Actual Forge GameRegistry + native ItemBlock.getSubItems + NEI 2.8.145 ItemListLoader.getPermutations (damageSearch and hidden filters) and production icon lookup; mock named IIcons, FML/StructureLib seams, seeded client ownership-index entry. No full anchor lifecycle, client atlas/GL or screenshot.");
+        check(neiCount==15&&nei.equals(manual),"real NEI getPermutations hides50 and exposes exactly manual15");
+        hide.invoke(null);check(ids(creative()).equals(expectedCreative),"repeated NEI hiding leaves actual creative exposure24");
+        Map<CriticalMaterialCatalog.Usage,Integer> usage=new EnumMap<>(CriticalMaterialCatalog.Usage.class);
+        for(CriticalMaterialCatalog.Usage u:CriticalMaterialCatalog.current().usages().values())usage.put(u,usage.getOrDefault(u,0)+1);
+        check(usage.get(CriticalMaterialCatalog.Usage.LEGACY_V1)==35&&usage.get(CriticalMaterialCatalog.Usage.FROZEN_ONLY)==2&&usage.get(CriticalMaterialCatalog.Usage.ORPHAN)==2&&usage.get(CriticalMaterialCatalog.Usage.GT_CONTROLLER_MARKER)==2&&usage.get(CriticalMaterialCatalog.Usage.AUTOMATIC_BODY_ONLY)==9,"hidden categories35+2+2+2 and auto-only9");
+        Constructor<CriticalMaterialTextures> ctor=CriticalMaterialTextures.class.getDeclaredConstructor();ctor.setAccessible(true);CriticalMaterialTextures listener=ctor.newInstance();
+        TextureMap terrain=atlas(0),items=atlas(1);int iconChecks=0;
+        JsonObject expectedIcons=baseline.getAsJsonObject("icons");Map<String,IIcon> firstGeneration=new HashMap<>();
+        for(int generation=1;generation<=2;generation++) {
+            final int round=generation;
+            for(CriticalMaterials.MaterialBlock b:materials)b.registerBlockIcons(name->LegacyMaterialReference.icon(name+"@"+round));
+            stitch(listener,terrain,false);check(((Map<?,?>)get(CriticalMaterialTextures.class,"tables")).isEmpty(),"terrain Pre invalidates published typed table generation"+round);
+            stitch(listener,terrain,true);Object published=get(CriticalMaterialTextures.class,"tables");
+            stitch(listener,items,false);stitch(listener,items,true);check(get(CriticalMaterialTextures.class,"tables")==published,"item atlas stitch leaves terrain table generation"+round);
+            for(CriticalMaterials.MaterialBlock b:materials)if(b.materialId.startsWith("v2_"))
+                for(int side=0;side<6;side++)for(int mask=0;mask<16;mask++)for(boolean emission:new boolean[]{false,true})for(boolean frozen:new boolean[]{false,true}) {
+                    String key=LegacyMaterialReference.key(b.materialId,side,mask,emission,frozen);
+                    JsonElement expected=expectedIcons.get(key);String want=expected.isJsonNull()?null:expected.getAsString()+"@"+round;
+                    IIcon actual=CriticalMaterialTextures.icon(b.materialId,side,mask,emission,frozen);String got=actual==null?null:actual.getIconName();
+                    if(!Objects.equals(want,got))throw new AssertionError("old/new actual IIcon lookup "+key+": "+want+" != "+got);
+                    if(generation==1)firstGeneration.put(key,actual);
+                    else if(actual!=null&&firstGeneration.get(key)==actual)throw new AssertionError("stale atlas IIcon survived reload "+key);
+                    iconChecks++;
+                }
+            for(Map.Entry<String,String> alias:CriticalMaterialDefinitions.catalog().aliases().entrySet())if(alias.getValue().startsWith("v2_"))
+                check(CriticalMaterialTextures.icon(alias.getKey(),3,0,false,false)==CriticalMaterialTextures.icon(alias.getValue(),3,0,false,false),"typed aliases share exact stitched IIcon "+alias.getKey()+" generation"+round);
+        }
+        check(iconChecks==23040,"all old/new V2 face mask emission frozen lookups agree over two atlas generations");
+        JsonObject result=new JsonObject();result.addProperty("status","PASS");result.addProperty("registered",65);result.addProperty("aliases",371);
+        result.addProperty("nativeEnumerated",nativeVariants);result.addProperty("creative",displayed.size());result.addProperty("neiBeforeHide",beforeHide);result.addProperty("neiEnumerated",neiCount);
+        result.addProperty("iconChecks",iconChecks);result.addProperty("checks",checks);result.addProperty("product",source(CriticalMaterials.class));result.addProperty("definitions",source(CriticalMaterialDefinitions.class));
+        result.addProperty("catalog",source(CriticalMaterialCatalog.class));result.addProperty("textures",source(CriticalMaterialTextures.class));result.addProperty("clientProxy",source(com.miaokatze.gtsr.main.ClientProxy.class));
+        result.addProperty("NEI",source(codechicken.nei.ItemListLoader.class));result.add("usage",new Gson().toJsonTree(usage));result.add("creativeIds",new Gson().toJsonTree(expectedCreative));result.add("neiIds",new Gson().toJsonTree(nei));
+        result.addProperty("Core",source(com.miaokatze.miaokatzecore.api.items.ItemOrderCatalog.class));
+        result.addProperty("boundary","Actual Forge registration, CreativeTabs display, ClientProxy production hide helper, NEI2.8.145 getPermutations/ItemInfo.isHidden, and old/new JAR-executed IIcon lookup. Named IIcons and allocated TextureMap events do not run GL or pixel rendering. Historical private ownership fixture belongs to world/anchor runtime contracts, not material exposure.");
         Files.write(Paths.get(args[0]),new GsonBuilder().setPrettyPrinting().create().toJson(result).getBytes("UTF-8"));
     }
 }

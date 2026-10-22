@@ -35,6 +35,11 @@ final class CriticalSolarFX {
 
     interface ParticleSink {
 
+        /** A bounded renderer may stop once later samples cannot produce any vertices. */
+        default boolean full() {
+            return false;
+        }
+
         void emit(String family, int index, double[] center, double[] color, double alpha, double[] glowColor,
             double glowAlpha, double size);
     }
@@ -65,8 +70,10 @@ final class CriticalSolarFX {
         boolean work = "working".equals(machineMode);
         int emitted = 0, familyIndex = 0;
         for (int owner = 0; owner < metas.length; owner++) {
+            if (sink.full()) return emitted;
             ModelData data = data(metas[owner], animations[owner]);
             for (int ci = 0; ci < data.gravity.size(); ci++) {
+                if (sink.full()) return emitted;
                 if (!CriticalDesignFX.active(ci, data.gravity.size(), seconds)) continue;
                 Gravity gravity = data.gravity.get(ci);
                 double cycle = seconds * .65 + gravity.height * .07;
@@ -107,6 +114,7 @@ final class CriticalSolarFX {
         }
         ModelData solar = data(metas[2], animations[2]);
         for (int family = 0; family < KEYS.length; family++) {
+            if (sink.full()) return emitted;
             List<Route> sources = solar.routes.get(family);
             familyIndex = 0;
             int budget = work ? WORK[family] : IDLE[family];
@@ -117,6 +125,7 @@ final class CriticalSolarFX {
             double[] glow = family == 0 ? CONCENTRATION_GLOW
                 : family == 1 || family == 2 ? THERMAL_GLOW : steam ? STEAM_GLOW : COLORS[family];
             for (int rank = 0; rank < sources.size(); rank++) {
+                if (sink.full()) return emitted;
                 Route source = sources.get(rank);
                 int count = budget / sources.size() + (rank < budget % sources.size() ? 1 : 0);
                 JsonObject g = group(animations[2], source.group), target = group(animations[2], source.targetGroup);
@@ -139,6 +148,7 @@ final class CriticalSolarFX {
                     vector(new double[] { 0, 0, 1 }, g, phase, seconds, mode, source.basisZ);
                 }
                 for (int i = 0; i < count; i++) {
+                    if (sink.full()) return emitted;
                     int index = familyIndex++;
                     if (index % lod != 0) continue;
                     double progress = wrap(

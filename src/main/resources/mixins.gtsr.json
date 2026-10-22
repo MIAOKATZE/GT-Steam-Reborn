@@ -39,7 +39,9 @@
     "WeaponCreativeBooksMixin",
     "angelica.CriticalMeshingTaskMixin",
     "angelica.CriticalChunkBuildContextMixin",
-    "angelica.CriticalMaterialFaceMixin"
+    "angelica.CriticalMaterialFaceMixin",
+    "nei.CriticalPreviewWorldMixin",
+    "nei.CriticalPreviewSceneMixin"
   ],
   "server": []
 }

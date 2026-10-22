@@ -66,13 +66,13 @@ final class CriticalSunFX {
             mode,
             lod,
             visible,
-            (family, source, index, center, color, alpha, glowAlpha, size) -> {
+            CriticalFXBudget.designSink((family, source, index, center, color, alpha, glowAlpha, size) -> {
                 if (!CriticalFXBudget.claim()) return;
                 if ("ring".equals(family)) rings[0]++;
                 CriticalFX.solarCube(tessellator, center, color, alpha * .62, size);
                 CriticalFX.solarCube(tessellator, center, color, glowAlpha * .95, size * .56);
                 CriticalFX.solarCube(tessellator, center, color, glowAlpha * .16, size * 2);
-            });
+            }));
         int ringCount = 0;
         for (int k = 0; k < 4; k++) if (sun.animations.has("confinement_" + k)
             && (visible == null || visible.contains(sunSlug + ":confinement_" + k))) ringCount++;

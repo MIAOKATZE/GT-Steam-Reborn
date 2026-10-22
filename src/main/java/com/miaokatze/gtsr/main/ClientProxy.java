@@ -73,6 +73,8 @@ public class ClientProxy extends CommonProxy {
         codechicken.nei.api.API
             .hideItem(new net.minecraft.item.ItemStack(com.miaokatze.gtsr.common.critical.CriticalRenderAnchors.BLOCK));
 
+        hideCriticalMaterialItems();
+
         // Keep all legacy MTE IDs registered, while hiding the five frozen controllers from NEI.
         for (GTSRItemList frozen : new GTSRItemList[] { GTSRItemList.CriticalProcessing, GTSRItemList.CriticalEntangler,
             GTSRItemList.CriticalDimension, GTSRItemList.CriticalAssembly, GTSRItemList.CriticalAccelerator }) {
@@ -80,6 +82,18 @@ public class ClientProxy extends CommonProxy {
         }
 
         GTSteamReborn.LOG.info("[3/3] 客户端后初始化完成。");
+    }
+
+    private static void hideCriticalMaterialItems() {
+        for (String id : com.miaokatze.gtsr.common.critical.CriticalMaterialDefinitions.catalog()
+            .definitions()
+            .keySet()) {
+            if (!com.miaokatze.gtsr.common.critical.CriticalMaterialCatalog.current()
+                .visibleInNei(id))
+                codechicken.nei.api.API.hideItem(
+                    new net.minecraft.item.ItemStack(
+                        com.miaokatze.gtsr.common.critical.CriticalMaterials.block(id, false)));
+        }
     }
 
     /**

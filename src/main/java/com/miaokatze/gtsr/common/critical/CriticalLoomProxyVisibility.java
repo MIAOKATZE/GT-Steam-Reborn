@@ -30,19 +30,19 @@ public final class CriticalLoomProxyVisibility {
         TileEntityCriticalRenderAnchor anchor = entry == null ? null : entry.anchor.get();
         return anchor != null && !anchor.isInvalid()
             && anchor.isLoomVisible()
-            && entry.registration.activeGroups.contains(entry.voxel.model + ':' + entry.voxel.group)
+            && entry.registration.activeGroups.contains(entry.group)
             && (CriticalLoomStructure.isLoomVoxel(entry.voxel)
                 ? CriticalMaterials.matchesLoomVoxel(block, metadata, entry.voxel)
                 : block == entry.voxel.block && metadata == entry.voxel.metadata);
     }
 
-    /** The renderer publishes only complete groups that it actually draws. Chunk workers read an immutable snapshot. */
+    /** Caller publishes an immutable snapshot of complete groups it draws; workers may retain it. */
     public static void publishVisibleGroups(TileEntityCriticalRenderAnchor anchor, java.util.Set<String> activeGroups) {
         Registration registration = ANCHORS.get(anchor);
         if (registration == null) return;
-        java.util.Set<String> next = java.util.Collections.unmodifiableSet(new java.util.HashSet<>(activeGroups));
         java.util.Set<String> previous = registration.activeGroups;
-        if (previous.equals(next)) return;
+        if (previous == activeGroups || previous.equals(activeGroups)) return;
+        java.util.Set<String> next = activeGroups;
         registration.activeGroups = next;
         java.util.Set<String> changed = new java.util.HashSet<>(previous);
         changed.addAll(next);
@@ -149,6 +149,10 @@ public final class CriticalLoomProxyVisibility {
         return (long) (x >> 4) << 32 | (z >> 4) & 0xffffffffL;
     }
 
+    private static long sectionKey(int x, int y, int z) {
+        return ((long) (x >> 4) & 0x3ffffffL) << 38 | ((long) (z >> 4) & 0x3ffffffL) << 12 | (y >> 4) & 0xfffL;
+    }
+
     private static long positionKey(int x, int y, int z) {
         return (long) y << 8 | (x & 15) << 4 | z & 15;
     }
@@ -157,11 +161,13 @@ public final class CriticalLoomProxyVisibility {
 
         final WeakReference<TileEntityCriticalRenderAnchor> anchor;
         final CriticalGeometry.Voxel voxel;
+        final String group;
         final Registration registration;
 
         Entry(TileEntityCriticalRenderAnchor anchor, CriticalGeometry.Voxel voxel, Registration registration) {
             this.anchor = new WeakReference<>(anchor);
             this.voxel = voxel;
+            this.group = voxel.model + ':' + voxel.group;
             this.registration = registration;
         }
     }
@@ -200,7 +206,7 @@ public final class CriticalLoomProxyVisibility {
 
         void record(String group, int x, int y, int z) {
             int[] bounds = groupChunks.computeIfAbsent(group, ignored -> new java.util.HashMap<>())
-                .computeIfAbsent(chunkKey(x, z), ignored -> new int[] { x, y, z, x, y, z });
+                .computeIfAbsent(sectionKey(x, y, z), ignored -> new int[] { x, y, z, x, y, z });
             bounds[0] = Math.min(bounds[0], x);
             bounds[1] = Math.min(bounds[1], y);
             bounds[2] = Math.min(bounds[2], z);
@@ -216,11 +222,21 @@ public final class CriticalLoomProxyVisibility {
         void redrawGroups(java.util.Set<String> groups) {
             World current = world.get();
             if (current == null) return;
+            Map<Long, int[]> sections = new java.util.HashMap<>();
             for (String group : groups) {
                 Map<Long, int[]> chunks = groupChunks.get(group);
-                if (chunks != null) for (int[] b : chunks.values())
-                    current.markBlockRangeForRenderUpdate(b[0], b[1], b[2], b[3], b[4], b[5]);
+                if (chunks == null) continue;
+                for (Map.Entry<Long, int[]> section : chunks.entrySet()) {
+                    int[] incoming = section.getValue();
+                    int[] merged = sections.get(section.getKey());
+                    if (merged == null) sections.put(section.getKey(), incoming.clone());
+                    else for (int axis = 0; axis < 3; axis++) {
+                        merged[axis] = Math.min(merged[axis], incoming[axis]);
+                        merged[axis + 3] = Math.max(merged[axis + 3], incoming[axis + 3]);
+                    }
+                }
             }
+            for (int[] b : sections.values()) current.markBlockRangeForRenderUpdate(b[0], b[1], b[2], b[3], b[4], b[5]);
         }
     }
 }

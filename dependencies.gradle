@@ -53,6 +53,9 @@ dependencies {
     // NEI (Not Enough Items) is required for HandlerInfo used in RecipeMapBuilder.neiHandlerInfo()
     compileOnlyApi("com.github.GTNewHorizons:NotEnoughItems:2.8.145-GTNH:dev") { transitive = false }
 
+    // Supplied by GTNHLib/BlockRenderer at runtime; only the optional preview adapter uses it.
+    compileOnly("it.unimi.dsi:fastutil:8.5.18")
+
     // IC2 API is required for implementing IElectricItem to support charging stations.
     compileOnlyApi("net.industrial-craft:industrialcraft-2:2.2.828-experimental:api") { transitive = false }
 
@@ -83,6 +86,6 @@ dependencies {
 
 // Shared library API; immutable candidate versions may be supplied for isolated integration builds.
 dependencies {
-    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.1.10"
+    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.1.12"
     api("com.miaokatze.miaokatzecore:miaokatzecore:${coreVersion}:dev") { transitive = false }
 }

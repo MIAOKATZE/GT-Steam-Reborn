@@ -9,10 +9,14 @@ import copy
 import hashlib
 import io
 import json
+import sys
 import math
 import subprocess
 
 from PIL import Image, ImageDraw
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from material_palette import expand_palette, normalize_palette
 
 ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / 'build/critical-v2-runtime-v12129/material'
@@ -36,10 +40,13 @@ def released(p):
 
 
 def load(p):
-    return json.loads(p.read_text(encoding='utf-8'))
+    value = json.loads(p.read_text(encoding='utf-8'))
+    return expand_palette(value) if p == MATERIALS else value
 
 
 def write(p, value, crlf=False):
+    if p == MATERIALS and 'schemaVersion' in json.loads(p.read_text(encoding='utf-8')):
+        value = normalize_palette(value)
     text = json.dumps(value, ensure_ascii=False, indent=2) + '\n'
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_bytes((text.replace('\n', '\r\n') if crlf else text).encode('utf-8'))
@@ -98,7 +105,7 @@ def sprite(path):
 
 def amend():
     materials = load(MATERIALS)
-    original_materials = json.loads(released(MATERIALS))
+    original_materials = expand_palette(json.loads(released(MATERIALS)))
     assert materials == original_materials, 'Materials changed since released baseline; review before apply.'
     gravity = materials['v2_gravity_modulator']
     owned = []
@@ -153,7 +160,7 @@ def resolve(name):
 
 def verify():
     materials = load(MATERIALS)
-    baseline = json.loads(released(MATERIALS))
+    baseline = expand_palette(json.loads(released(MATERIALS)))
     gravity = materials['v2_gravity_modulator']
     prior = baseline['v2_gravity_modulator']
     assert all(v == materials[k] for k, v in baseline.items() if k != 'v2_gravity_modulator')

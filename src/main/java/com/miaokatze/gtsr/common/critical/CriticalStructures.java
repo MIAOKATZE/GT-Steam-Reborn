@@ -6,7 +6,6 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,8 +39,9 @@ public final class CriticalStructures {
     private static final Map<String, IStructureDefinition<MTECriticalMachine>> DEFINITIONS = new HashMap<>();
     private static final Map<IStructureDefinition<MTECriticalMachine>, IStructureDefinition<MTECriticalMachine>> ALL_DEFINITIONS = new HashMap<>();
     // NORTH's StructureLib axes are WEST, DOWN, SOUTH. Shape X and Y are reversed accordingly.
-    public static final int CONTROLLER_Z = 33;
-    private static final int MAX_X = 76, MAX_Z = 76;
+    public static final int CONTROLLER_Z = CriticalLayoutDefinition.V1_CONTROLLER_Z;
+    private static final int MAX_X = CriticalLayoutDefinition.V1_SHAPE_MAX,
+        MAX_Z = CriticalLayoutDefinition.V1_SHAPE_MAX;
 
     private CriticalStructures() {}
 
@@ -71,71 +71,52 @@ public final class CriticalStructures {
     public static synchronized IStructureDefinition<MTECriticalMachine> fullDefinition(MTECriticalMachine machine) {
         CriticalMachineKind kind = machine.getCriticalState()
             .getKind();
-        if (CriticalGeometry.isV2(machine.getCriticalState())) return DEFINITIONS.computeIfAbsent(
-            kind.name() + ':'
-                + CriticalGeometry.visualMachineSlug(machine.getCriticalState())
+        CriticalMachineState state = machine.getCriticalState();
+        CriticalLayoutDefinition layout = CriticalLayoutDefinition.forState(state);
+        if (layout.v2) return DEFINITIONS.computeIfAbsent(
+            layout.cacheKey() + ':'
+                + machine.isKindSelector()
                 + ':'
-                + CriticalGeometry.visualLoomSlug(machine.getCriticalState())
+                + state.getParallelPlugins()
                 + ':'
-                + machine.getCriticalState()
-                    .getV2LayoutRevision()
-                + ":"
-                + machine.getLocalCriticalState()
-                    .getControllerZ()
+                + state.getSpeedPlugins()
                 + ':'
-                + machine.getCriticalState()
-                    .getParallelPlugins()
-                + ':'
-                + machine.getCriticalState()
-                    .getSpeedPlugins()
-                + ':'
-                + machine.getCriticalState()
-                    .getEfficiencyPlugins(),
-            key -> createV2(machine.getCriticalState(), false, machine.isKindSelector()));
+                + state.getEfficiencyPlugins(),
+            key -> createV2(state, false, machine.isKindSelector()));
         return DEFINITIONS.computeIfAbsent(kind.name(), key -> create(kind));
     }
 
     public static List<CriticalGeometry.Voxel> voxels(CriticalMachineState state) {
-        if (!CriticalGeometry.isV2(state)) return voxels(state.getTier(), state.getKind());
-        Map<Long, CriticalGeometry.Voxel> cells = new LinkedHashMap<>();
-        if (state.usesLegacyV2Geometry())
-            for (CriticalGeometry.Voxel v : CriticalLoomStructure.voxels(state)) cells.put(v.positionKey(), v);
-        for (String slug : new String[] { CriticalGeometry.visualBaseSlug(state),
-            CriticalGeometry.visualMachineSlug(state) })
-            for (CriticalGeometry.Voxel v : CriticalGeometry.getModel(slug).voxels) cells.put(v.positionKey(), v);
-        for (CriticalGeometry.Voxel v : CriticalGeometry.physicalPlugins(state)) cells.put(v.positionKey(), v);
-        // The complete manual loom owns every shared coordinate; paid bodies and addons cannot reclassify it.
-        if (!state.usesLegacyV2Geometry())
-            for (CriticalGeometry.Voxel v : CriticalLoomStructure.voxels(state)) cells.put(v.positionKey(), v);
-        List<CriticalGeometry.Voxel> result = new ArrayList<>(cells.values());
-        result.sort(
-            java.util.Comparator.comparingInt((CriticalGeometry.Voxel v) -> v.stage)
-                .thenComparingInt(v -> v.y)
-                .thenComparingInt(v -> v.x)
-                .thenComparingInt(v -> v.z));
-        return result;
+        return CriticalCompiledLayout.forState(state)
+            .voxels();
     }
 
     static boolean isController(CriticalGeometry.Voxel v) {
-        return v.model.startsWith("v2_") && v.x == 56 && v.y == 4 && (v.z == 35 || v.z == 47);
+        return CriticalLayoutDefinition.isController(v);
     }
 
     static IStructureDefinition<MTECriticalMachine> createV2(CriticalMachineState state, boolean loomOnly,
         boolean selector) {
         StructureDefinition.Builder<MTECriticalMachine> builder = StructureDefinition.builder();
         Map<String, Character> characters = new HashMap<>();
-        List<CriticalGeometry.Voxel> source = new ArrayList<>(
-            loomOnly ? CriticalLoomStructure.voxels(state) : voxels(state));
-        if (!loomOnly) source.addAll(CriticalGeometry.optionalWorkPorts(state));
-        int top = top(source);
-        char[][][] grid = new char[112][top + 1][112];
+        CriticalLayoutDefinition layout = CriticalLayoutDefinition.forState(state);
+        CriticalCompiledLayout compiled = CriticalCompiledLayout.forState(state);
+        List<CriticalGeometry.Voxel> source = new ArrayList<>(loomOnly ? compiled.loomVoxels() : compiled.voxels());
+        if (!loomOnly) source.addAll(compiled.optionalWorkPorts());
+        int top = loomOnly ? compiled.loomTop()
+            : Math.max(
+                compiled.top(),
+                compiled.optionalWorkPorts()
+                    .isEmpty() ? 0 : 5);
+        int size = layout.frameSize;
+        char[][][] grid = new char[size][top + 1][size];
         for (char[][] slice : grid) for (char[] row : slice) java.util.Arrays.fill(row, ' ');
         for (CriticalGeometry.Voxel v : source) {
             String key = isController(v) ? "controller:" + v.z
                 : v.material + ':'
                     + CriticalLoomStructure.isLoomVoxel(v)
                     + ':'
-                    + isHatchPosition(state, v)
+                    + layout.isHatch(v)
                     + ":"
                     + isOptionalWorkPort(v);
             Character symbol = characters.get(key);
@@ -149,7 +130,7 @@ public final class CriticalStructures {
                     symbol,
                     isController(v) ? new ControllerElement(v.z == 47, state.getKind())
                         : isOptionalWorkPort(v) ? new OptionalWorkPortElement()
-                            : isHatchPosition(state, v)
+                            : layout.isHatch(v)
                                 ? ofChain(material, new PaidHatchElement(CriticalLoomStructure.isLoomVoxel(v)))
                                 : material);
             }
@@ -159,8 +140,8 @@ public final class CriticalStructures {
         }
         grid[CriticalStructureAlignment.controllerC(selector)][top - state.getControllerY()][CriticalStructureAlignment
             .controllerA(selector)] = '~';
-        String[][] shape = new String[112][top + 1];
-        for (int z = 0; z < 112; z++) for (int y = 0; y <= top; y++) shape[z][y] = new String(grid[z][y]);
+        String[][] shape = new String[size][top + 1];
+        for (int z = 0; z < size; z++) for (int y = 0; y <= top; y++) shape[z][y] = new String(grid[z][y]);
         if (loomOnly) builder.addShape(CriticalLoomStructure.PIECE, shape);
         else for (CriticalTier tier : CriticalTier.values()) builder.addShape(piece(tier), shape);
         return builder.build();
@@ -274,71 +255,30 @@ public final class CriticalStructures {
     }
 
     public static List<CriticalGeometry.Voxel> voxels(CriticalTier tier, CriticalMachineKind kind) {
-        Map<Long, CriticalGeometry.Voxel> positions = new LinkedHashMap<>();
-        for (CriticalGeometry.Voxel voxel : CriticalGeometry.getLoom()) positions.put(voxel.positionKey(), voxel);
-        for (CriticalGeometry.Voxel voxel : CriticalGeometry.get(tier, kind)) positions.put(voxel.positionKey(), voxel);
-        positions.remove(CriticalGeometry.Voxel.positionKey(40, 0, CONTROLLER_Z));
-        return new ArrayList<>(positions.values());
+        return CriticalCompiledLayout.v1(tier, kind)
+            .voxels();
     }
 
-    /** V2 loom interfaces and its controller-height reinforced shell accept supported GT chambers. */
     public static boolean isHatchPosition(CriticalGeometry.Voxel voxel) {
-        if (isOptionalWorkPort(voxel)) return true;
-        if (voxel.model.startsWith("v2_")) {
-            if (isController(voxel) || voxel.model.startsWith("v2_plugin_") || voxel.model.startsWith("v2_v30_plugin_"))
-                return false;
-            if ("v2_loom".equals(voxel.model) || "v2_v25_loom".equals(voxel.model)
-                || "v2_v27_loom".equals(voxel.model)
-                || "v2_v30_loom".equals(voxel.model))
-                return voxel.y == 4
-                    && (voxel.z == 47 && (voxel.x == 50 || voxel.x == 53 || voxel.x == 59 || voxel.x == 62)
-                        || "static".equals(voxel.group) && voxel.x >= 47
-                            && voxel.x <= 65
-                            && voxel.z >= 47
-                            && voxel.z <= 65
-                            && voxel.block instanceof CriticalMaterials.MaterialBlock shell
-                            && "v2_reinforced_panel".equals(shell.materialId));
-            return voxel.block instanceof CriticalMaterials.MaterialBlock block
-                && ("v2_alloy_frame".equals(block.materialId) || "v2_service_hatch".equals(block.materialId)
-                    || "v2_gt_hatch".equals(block.materialId))
-                || "v2_legacy_loom".equals(voxel.model) && voxel.y == 4
-                    && voxel.z == 36
-                    && (voxel.x == 50 || voxel.x == 53 || voxel.x == 59 || voxel.x == 62);
-        }
-        return voxel.block instanceof CriticalMaterials.MaterialBlock material
-            && "alloy_frame".equals(material.materialId);
+        return CriticalLayoutDefinition.isHatchPosition(voxel);
     }
 
     public static boolean isOptionalWorkPort(CriticalGeometry.Voxel voxel) {
-        return "v2_optional_work_port".equals(voxel.model) && voxel.y == 5
-            && voxel.z == 34
-            && voxel.x >= 50
-            && voxel.x <= 62;
+        return CriticalLayoutDefinition.isOptionalWorkPort(voxel);
     }
 
     public static boolean isHatchPosition(CriticalMachineState state, CriticalGeometry.Voxel voxel) {
-        return isOptionalWorkPort(voxel)
-            || isHatchPosition(voxel) && !(state.getGeometryVersion() == 2 && state.getV2LayoutRevision() >= 30
-                && !CriticalLoomStructure.isLoomVoxel(voxel)
-                && voxel.y == 4
-                && voxel.z == 34
-                && voxel.x >= 50
-                && voxel.x <= 62);
+        return CriticalLayoutDefinition.forState(state)
+            .isHatch(voxel);
     }
 
     static boolean isPaidChamberPosition(CriticalGeometry.Voxel voxel) {
-        if (isOptionalWorkPort(voxel)) return true;
-        return !CriticalLoomStructure.isLoomVoxel(voxel) && isHatchPosition(voxel)
-            && voxel.y == 4
-            && voxel.z == 34
-            && voxel.x >= 50
-            && voxel.x <= 62;
+        return CriticalLayoutDefinition.isPaidChamber(voxel);
     }
 
     public static List<CriticalGeometry.Voxel> hatchPorts(CriticalTier tier, CriticalMachineKind kind) {
-        List<CriticalGeometry.Voxel> ports = voxels(tier, kind);
-        ports.removeIf(v -> !isHatchPosition(v));
-        return Collections.unmodifiableList(ports);
+        return CriticalCompiledLayout.v1(tier, kind)
+            .hatchPorts();
     }
 
     private static IStructureDefinition<MTECriticalMachine> create(CriticalMachineKind kind) {
@@ -346,7 +286,8 @@ public final class CriticalStructures {
         Map<String, Character> characters = new HashMap<>();
         for (CriticalTier tier : CriticalTier.values()) {
             List<CriticalGeometry.Voxel> voxels = voxels(tier, kind);
-            int top = top(voxels);
+            int top = CriticalCompiledLayout.v1(tier, kind)
+                .top();
             char[][][] grid = new char[MAX_Z + 1][top + 1][MAX_X + 1];
             for (char[][] slice : grid) for (char[] row : slice) java.util.Arrays.fill(row, ' ');
             java.util.Set<Long> ports = new java.util.HashSet<>();
@@ -376,12 +317,6 @@ public final class CriticalStructures {
             builder.addShape(piece(tier), shape);
         }
         return builder.build();
-    }
-
-    private static int top(List<CriticalGeometry.Voxel> voxels) {
-        int top = 0;
-        for (CriticalGeometry.Voxel voxel : voxels) top = Math.max(top, voxel.y);
-        return top;
     }
 
     public static String piece(CriticalTier tier) {
@@ -417,7 +352,8 @@ public final class CriticalStructures {
             .byId(trigger == null ? 0 : trigger.stackSize - (machine.isKindSelector() ? 2 : 1));
         CriticalMachineState current = machine.getCriticalState();
         if (CriticalGeometry.isV2(current)) {
-            int top = top(voxels(current));
+            int top = CriticalCompiledLayout.forState(current)
+                .top();
             machine.buildCriticalPiece(
                 piece(tier),
                 trigger,
@@ -429,7 +365,8 @@ public final class CriticalStructures {
                 world.setBlock(current.blockWorldX(v), current.blockWorldY(v.y), current.blockWorldZ(v), v.block, 0, 2);
             return;
         }
-        int top = top(voxels(tier, kind));
+        int top = CriticalCompiledLayout.v1(tier, kind)
+            .top();
         machine.buildCriticalPiece(piece(tier), trigger, hintsOnly, MAX_X - 40, top, CONTROLLER_Z);
         if (!hintsOnly) previewPlugins(
             machine.getCriticalState()

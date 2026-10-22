@@ -4,7 +4,6 @@ import java.nio.DoubleBuffer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -116,15 +115,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         activeGroups = checked.update(controller);
         boolean geometryReady = controller.getState() != 2 || controller.isGeometryValidated();
         boolean loomReady = anchor.isLoomVisible();
-        if (!geometryReady || !loomReady) {
-            String loomPrefix = CriticalGeometry.visualLoomSlug(controller) + ':';
-            Set<String> allowedGroups = new HashSet<>();
-            for (String group : activeGroups) {
-                boolean loomGroup = group.startsWith(loomPrefix) || group.contains(":loom_");
-                if (loomGroup ? loomReady : geometryReady) allowedGroups.add(group);
-            }
-            activeGroups = allowedGroups;
-        }
+        activeGroups = checked.readyGroups(activeGroups, geometryReady, loomReady);
         com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility.publishVisibleGroups(anchor, activeGroups);
         boolean hasBatch = !controller.getBatchId()
             .isEmpty();

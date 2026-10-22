@@ -29,8 +29,9 @@ public final class CriticalGeometry {
         String path = "/assets/gtsr/critical/" + relative;
         try (InputStream stream = CriticalGeometry.class.getResourceAsStream(path)) {
             if (stream == null) throw new IllegalStateException("Missing critical asset " + path);
-            return new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8))
+            JsonObject parsed = new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8))
                 .getAsJsonObject();
+            return "materials.json".equals(relative) ? CriticalMaterialDefinitions.expandLegacyPalette(parsed) : parsed;
         } catch (java.io.IOException ex) {
             throw new IllegalStateException("Cannot read critical asset " + path, ex);
         }
@@ -83,7 +84,12 @@ public final class CriticalGeometry {
 
     /** Optional working chambers are not paid voxels and never enter the persistent placement indices. */
     public static List<Voxel> optionalWorkPorts(CriticalMachineState state) {
-        if (!isV2(state) || state.getV2LayoutRevision() < 30) return Collections.emptyList();
+        return CriticalCompiledLayout.forState(state)
+            .optionalWorkPorts();
+    }
+
+    static List<Voxel> compileOptionalWorkPorts(CriticalLayoutDefinition layout) {
+        if (!layout.optionalWorkPorts) return Collections.emptyList();
         List<Voxel> ports = new ArrayList<>();
         for (int x = 50; x <= 62; x++) ports.add(
             new Voxel(
@@ -103,32 +109,15 @@ public final class CriticalGeometry {
     }
 
     public static String visualLoomSlug(CriticalMachineState state) {
-        return isV2(state) ? state.usesLegacyV2Geometry() ? "v2_legacy_loom"
-            : state.getV2LayoutRevision() == 25 ? "v2_v25_loom"
-                : state.getV2LayoutRevision() <= 27 ? "v2_v27_loom"
-                    : state.getV2LayoutRevision() <= 30 ? "v2_v30_loom" : "v2_loom"
-            : "loom";
+        return CriticalLayoutDefinition.forState(state).loomSlug;
     }
 
     public static String visualBaseSlug(CriticalMachineState state) {
-        return isV2(state)
-            ? state.usesLegacyV2Geometry() ? "v2_legacy_base_t3"
-                : state.getV2LayoutRevision() == 25 ? "v2_v25_base_t3"
-                    : state.getV2LayoutRevision() <= 27 ? "v2_v27_base_t3"
-                        : state.getV2LayoutRevision() <= 30 ? "v2_v30_base_t3" : "v2_base_t3"
-            : "base_" + state.getTier()
-                .name()
-                .toLowerCase(Locale.ROOT);
+        return CriticalLayoutDefinition.forState(state).baseSlug;
     }
 
     public static String visualMachineSlug(CriticalMachineState state) {
-        return isV2(state)
-            ? state.getV2LayoutRevision() <= 30 || state.usesLegacyV2Geometry()
-                ? state.getKind() == CriticalMachineKind.SOLAR ? "v2_v30_solar" : "v2_v30_sun"
-                : "v2_" + state.getKind().key
-            : state.getKind()
-                .name()
-                .toLowerCase(Locale.ROOT);
+        return CriticalLayoutDefinition.forState(state).machineSlug;
     }
 
     public static List<Voxel> getLoom(CriticalMachineState state) {
@@ -137,17 +126,19 @@ public final class CriticalGeometry {
 
     /** Exact inverse sampling used by the frozen design's integer-world addon exporter. */
     public static List<Voxel> physicalPlugins(CriticalConfiguration config) {
-        return physicalPlugins(config, "v2_base_t3", false);
+        return CriticalCompiledLayout
+            .get(CriticalLayoutDefinition.select(2, 31, false, config.tier, config.kind), config)
+            .plugins();
     }
 
     public static List<Voxel> physicalPlugins(CriticalMachineState state) {
-        return physicalPlugins(
-            state.getConfiguration(),
-            visualBaseSlug(state),
-            state.getV2LayoutRevision() <= 30 || state.usesLegacyV2Geometry());
+        return CriticalCompiledLayout.forState(state)
+            .plugins();
     }
 
-    private static List<Voxel> physicalPlugins(CriticalConfiguration config, String baseSlug, boolean frozen) {
+    static List<Voxel> compilePhysicalPlugins(CriticalConfiguration config, CriticalLayoutDefinition layout) {
+        String baseSlug = layout.baseSlug;
+        boolean frozen = layout.frozenPlugins;
         List<Voxel> result = new ArrayList<>();
         JsonArray mounts = getModel(baseSlug).meta.getAsJsonObject("attachmentPlacement")
             .getAsJsonArray("mounts");
@@ -155,7 +146,7 @@ public final class CriticalGeometry {
         String[] kinds = { "parallel", "speed", "efficiency" };
         int slot = 0;
         for (int kind = 0; kind < 3; kind++) for (int n = 0; n < counts[kind]; n++, slot++) {
-            String slug = (frozen ? "v2_v30_plugin_" : "v2_plugin_") + kinds[kind];
+            String slug = layout.pluginSlug(kinds[kind]);
             Model model = getModel(slug);
             JsonObject mount = mounts.get(slot)
                 .getAsJsonObject();
