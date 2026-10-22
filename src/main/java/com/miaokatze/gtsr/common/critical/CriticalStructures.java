@@ -133,8 +133,6 @@ public final class CriticalStructures {
         for (CriticalGeometry.Voxel v : source) {
             String key = isController(v) ? "controller:" + v.z
                 : v.material + ':'
-                    + ((CriticalMaterials.MaterialBlock) v.block).proxy
-                    + ':'
                     + CriticalLoomStructure.isLoomVoxel(v)
                     + ':'
                     + isHatchPosition(state, v)
@@ -356,12 +354,7 @@ public final class CriticalStructures {
             for (CriticalGeometry.Voxel voxel : voxels) {
                 boolean hatch = ports.contains(voxel.positionKey());
                 boolean loom = CriticalLoomStructure.isLoomVoxel(voxel);
-                String key = voxel.material + ':'
-                    + ((CriticalMaterials.MaterialBlock) voxel.block).proxy
-                    + ':'
-                    + hatch
-                    + ':'
-                    + loom;
+                String key = voxel.material + ':' + hatch + ':' + loom;
                 Character character = characters.get(key);
                 if (character == null) {
                     character = (char) (0x100 + characters.size());
@@ -574,7 +567,8 @@ public final class CriticalStructures {
                 HatchElement.InputHatch,
                 HatchElement.OutputHatch,
                 HatchElement.Energy,
-                HatchElement.MultiAmpEnergy)
+                HatchElement.MultiAmpEnergy,
+                HatchElement.ExoticEnergy)
             .casingIndex(CriticalControllerTextures.casingIndex())
             .hint(1)
             .buildAndChain(shell, 0);
@@ -611,7 +605,8 @@ public final class CriticalStructures {
                     HatchElement.InputHatch,
                     HatchElement.OutputHatch,
                     HatchElement.Energy,
-                    HatchElement.MultiAmpEnergy)
+                    HatchElement.MultiAmpEnergy,
+                    HatchElement.ExoticEnergy)
                 .hatchClasses(
                     MTEHatchInputBus.class,
                     MTEHatchOutputBus.class,
@@ -634,6 +629,7 @@ public final class CriticalStructures {
                     HatchElement.OutputHatch,
                     HatchElement.Energy,
                     HatchElement.MultiAmpEnergy,
+                    HatchElement.ExoticEnergy,
                     HatchElement.Dynamo)
                 .hatchClasses(
                     MTEHatchInputBus.class,

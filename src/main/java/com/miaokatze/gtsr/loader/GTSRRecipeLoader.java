@@ -51,6 +51,9 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("AtmosphericCentrifuge", ProcessingMachineRecipes::registerAtmosphericCentrifugeRecipes);
         safeRegister("Chip", ProcessingMachineRecipes::registerChipRecipes);
         safeRegister("Catalyst", ProcessingMachineRecipes::registerCatalystRecipes);
+        safeRegister(
+            "CriticalFoundation",
+            com.miaokatze.gtsr.common.critical.CriticalFoundationMaterials::registerRecipes);
         safeRegister("CacheNode", NodeAndHubRecipes::registerCacheNodeRecipes);
         safeRegister("TinyPlanetBlock", NodeAndHubRecipes::registerTinyPlanetRecipe); // 新增：Botania Tiny Planet
                                                                                       // Block（魔力环绕器）工作台配方

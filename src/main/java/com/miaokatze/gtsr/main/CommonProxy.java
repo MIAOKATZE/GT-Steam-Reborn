@@ -334,6 +334,8 @@ public class CommonProxy {
             .registries()
             .externalStorage()
             .addExternalStorageInterface(new GTSRAE2ExternalStorageHandler());
+        // GT 的材料/Cell/display 已生成，丢弃 init 阶段可能提前读取的展示目录快照。
+        com.miaokatze.miaokatzecore.api.items.ItemOrderCatalog.invalidate();
     }
 
     /**

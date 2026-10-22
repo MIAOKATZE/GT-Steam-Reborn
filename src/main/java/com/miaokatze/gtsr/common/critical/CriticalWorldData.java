@@ -14,6 +14,17 @@ public final class CriticalWorldData extends WorldSavedData {
 
     private static final String KEY = "gtsr_critical_regions";
     private final Map<String, Region> regions = new LinkedHashMap<>();
+    private final Map<Long, CriticalFoundationChunk> foundations = new LinkedHashMap<>();
+
+    public CriticalFoundationChunk foundation(int chunkX, int chunkZ) {
+        long key = ((long) chunkX << 32) ^ (chunkZ & 0xffffffffL);
+        return foundations.computeIfAbsent(key, ignored -> new CriticalFoundationChunk());
+    }
+
+    public CriticalFoundationChunk findFoundation(int chunkX, int chunkZ) {
+        return foundations.get(((long) chunkX << 32) ^ (chunkZ & 0xffffffffL));
+    }
+
     private String nightOwner = "";
     private boolean localClock;
     private long localTime;
@@ -230,6 +241,13 @@ public final class CriticalWorldData extends WorldSavedData {
     @Override
     public void readFromNBT(NBTTagCompound n) {
         regions.clear();
+        foundations.clear();
+        NBTTagList foundationList = n.getTagList("foundations", 10);
+        for (int i = 0; i < foundationList.tagCount(); i++) {
+            NBTTagCompound entry = foundationList.getCompoundTagAt(i);
+            CriticalFoundationChunk foundation = foundation(entry.getInteger("x"), entry.getInteger("z"));
+            foundation.read(entry);
+        }
         nightOwner = n.getString("nightOwner");
         localClock = n.getBoolean("localClock");
         localTime = n.getLong("localTime");
@@ -259,6 +277,16 @@ public final class CriticalWorldData extends WorldSavedData {
 
     @Override
     public void writeToNBT(NBTTagCompound n) {
+        NBTTagList foundationList = new NBTTagList();
+        for (Map.Entry<Long, CriticalFoundationChunk> entry : foundations.entrySet()) {
+            NBTTagCompound tag = new NBTTagCompound();
+            tag.setInteger("x", (int) (entry.getKey() >> 32));
+            tag.setInteger("z", (int) (long) entry.getKey());
+            entry.getValue()
+                .write(tag);
+            foundationList.appendTag(tag);
+        }
+        n.setTag("foundations", foundationList);
         n.setString("nightOwner", nightOwner);
         n.setBoolean("localClock", localClock);
         n.setLong("localTime", localTime);

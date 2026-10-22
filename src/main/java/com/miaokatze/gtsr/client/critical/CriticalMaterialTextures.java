@@ -118,7 +118,7 @@ public final class CriticalMaterialTextures {
     public static int worldMask(IBlockAccess world, int x, int y, int z, CriticalMaterials.MaterialBlock material,
         int side) {
         JsonObject properties = CriticalMaterials.properties(material.materialId);
-        if (!properties.has("ctm") || material.proxy) return 0;
+        if (!properties.has("ctm") || CriticalMaterials.isAnimatedAt(world, x, y, z)) return 0;
         String face = FACE_NAMES[side];
         int allowed = properties.getAsJsonObject("ctm")
             .getAsJsonObject("faceAllowedMask")
@@ -130,7 +130,8 @@ public final class CriticalMaterialTextures {
             int[] basis = bit == 1 || bit == 4 ? V[side] : U[side];
             int sign = bit == 1 || bit == 8 ? -1 : 1;
             int nx = x + basis[0] * sign, ny = y + basis[1] * sign, nz = z + basis[2] * sign;
-            if (!(world.getBlock(nx, ny, nz) instanceof CriticalMaterials.MaterialBlock next) || next.proxy
+            if (!(world.getBlock(nx, ny, nz) instanceof CriticalMaterials.MaterialBlock next)
+                || CriticalMaterials.isAnimatedAt(world, nx, ny, nz)
                 || !material.materialId.equals(next.materialId)) continue;
             int[] normal = NORMALS[side];
             if (!next.shouldSideBeRendered(world, nx + normal[0], ny + normal[1], nz + normal[2], side)) continue;

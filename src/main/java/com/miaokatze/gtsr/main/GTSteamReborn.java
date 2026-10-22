@@ -9,6 +9,7 @@ import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
+import cpw.mods.fml.common.event.FMLMissingMappingsEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartedEvent;
@@ -24,7 +25,7 @@ import cpw.mods.fml.common.event.FMLServerStoppedEvent;
     version = Tags.VERSION,
     name = "GTSteamReborn",
     acceptedMinecraftVersions = "[1.7.10]",
-    dependencies = "required-after:miaokatzecore@[0.1.8,);required-before:gregtech;after:betterquesting;")
+    dependencies = "required-after:miaokatzecore@[0.1.10,);required-before:gregtech;after:betterquesting;")
 public class GTSteamReborn {
 
     // 模组唯一标识符 (Mod ID)
@@ -44,6 +45,11 @@ public class GTSteamReborn {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         proxy.preInit(event);
+    }
+
+    @Mod.EventHandler
+    public void missingMappings(FMLMissingMappingsEvent event) {
+        com.miaokatze.gtsr.common.critical.CriticalMaterials.ignoreRemovedMappings(event);
     }
 
     /**

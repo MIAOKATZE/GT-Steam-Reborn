@@ -90,7 +90,7 @@ public final class CriticalLoomStructure {
     }
 
     public static Block shell(CriticalGeometry.Voxel voxel) {
-        return CriticalMaterials.loomBlock(voxel.material, ((CriticalMaterials.MaterialBlock) voxel.block).proxy);
+        return voxel.block;
     }
 
     public static synchronized IStructureDefinition<MTECriticalMachine> definition() {
@@ -102,7 +102,7 @@ public final class CriticalLoomStructure {
         for (char[][] slice : grid) for (char[] row : slice) java.util.Arrays.fill(row, ' ');
         for (CriticalGeometry.Voxel voxel : voxels()) {
             boolean port = CriticalStructures.isHatchPosition(voxel);
-            String key = voxel.material + ':' + ((CriticalMaterials.MaterialBlock) voxel.block).proxy + ':' + port;
+            String key = voxel.material + ':' + port;
             Character symbol = characters.get(key);
             if (symbol == null) {
                 symbol = (char) (0x100 + characters.size());

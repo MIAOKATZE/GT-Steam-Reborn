@@ -10,6 +10,8 @@ import net.minecraft.item.ItemStack;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.miaokatze.miaokatzecore.api.items.ItemOrderCatalog;
+
 /**
  * 创造模式物品栏管理器
  * 负责管理模组专属的创造模式标签页，包括图标设置、名称显示以及物品列表的维护。
@@ -70,7 +72,8 @@ public class CreativeTabManager {
 
     public static void addItemToTab(ItemStack itemStack) {
         if (itemStack != null) {
-            itemsToAdd.add(itemStack);
+            itemsToAdd.add(itemStack.copy());
+            ItemOrderCatalog.invalidate();
         }
     }
 
@@ -80,15 +83,26 @@ public class CreativeTabManager {
                 .isItemEqual(itemStack)) {
                 return;
             }
-            itemsToAdd.add(0, itemStack);
+            itemsToAdd.add(0, itemStack.copy());
+            ItemOrderCatalog.invalidate();
         }
     }
 
     public static void initCreativeTab() {
+        ItemOrderCatalog.register("gtsr", GTSRItemOrderCatalog::rawItems);
         LOG.info("正在初始化创造模式物品栏，当前包含 " + itemsToAdd.size() + " 个物品");
     }
 
     public static List<ItemStack> getItemsToAdd() {
-        return itemsToAdd;
+        List<ItemStack> result = GTSRItemOrderCatalog.rawCreativeItems();
+        ItemOrderCatalog.sort("gtsr", result);
+        return result;
+    }
+
+    /** 注册入口收集的原始快照；目录供应器只能读取此方法，不能反调已排序目录。 */
+    public static List<ItemStack> getRegisteredItems() {
+        List<ItemStack> result = new ArrayList<>();
+        for (ItemStack stack : itemsToAdd) result.add(stack.copy());
+        return result;
     }
 }

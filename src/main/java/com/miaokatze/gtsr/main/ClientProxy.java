@@ -70,6 +70,9 @@ public class ClientProxy extends CommonProxy {
     public void postInit(FMLPostInitializationEvent event) {
         super.postInit(event);
 
+        codechicken.nei.api.API
+            .hideItem(new net.minecraft.item.ItemStack(com.miaokatze.gtsr.common.critical.CriticalRenderAnchors.BLOCK));
+
         // Keep all legacy MTE IDs registered, while hiding the five frozen controllers from NEI.
         for (GTSRItemList frozen : new GTSRItemList[] { GTSRItemList.CriticalProcessing, GTSRItemList.CriticalEntangler,
             GTSRItemList.CriticalDimension, GTSRItemList.CriticalAssembly, GTSRItemList.CriticalAccelerator }) {

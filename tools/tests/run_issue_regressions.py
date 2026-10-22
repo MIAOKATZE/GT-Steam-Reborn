@@ -23,6 +23,16 @@ def main():
     dependencies = [p for p in dependencies if
                     ('/StructureLib/' not in p.replace('\\','/') or '/1.4.45/' in p.replace('\\','/')) and
                     ('/GTNHLib/' not in p.replace('\\','/') or '/0.11.52/' in p.replace('\\','/'))]
+    sources = [Path(__file__).with_name('Issue37RegistrationRegression.java'),
+               Path(__file__).with_name(args.probe+'.java')]
+    if args.probe == 'NEIItemOrderingRegression':
+        dependencies = [p for p in dependencies if '/NotEnoughItems/' not in p.replace('\\','/')]
+        dependencies.insert(0, next(cache.glob('com.github.GTNewHorizons/NotEnoughItems/2.8.145-GTNH/*/*-dev.jar')))
+        sources += [ROOT/'src/main/java/com/miaokatze/gtsr'/path for path in
+                    ('loader/ItemLoader.java', 'register/GTSRItemOrderCatalog.java',
+                     'register/CreativeTabManager.java')]
+        sources.append(ROOT.parent/'MIAOKATZE-Core/src/main/java/com/miaokatze/miaokatzecore/api/items/ItemOrderCatalog.java')
+        sources.append(Path(__file__).parent/'item-ordering/squeek/applecore/api/food/IEdible.java')
     classes = out/'classes'; classes.mkdir()
     production = [ROOT/'build/classes/java/main', ROOT/'build/classes/java/patchedMc',
                   ROOT/'build/resources/patchedMc', ROOT/'src/main/resources']
@@ -35,8 +45,7 @@ def main():
         return result
     compile_cp = ';'.join(map(str,[gt205,*production,*dependencies]))
     result = run('compile','javac',['-encoding','UTF-8','-proc:none','-cp',compile_cp,'-d',classes,
-                                  *dict.fromkeys([Path(__file__).with_name('Issue37RegistrationRegression.java'),
-                                                 Path(__file__).with_name(args.probe+'.java')])])
+                                  *dict.fromkeys(sources)])
     if result.returncode:
         print(result.stdout+result.stderr); raise SystemExit(result.returncode)
     results = {}
