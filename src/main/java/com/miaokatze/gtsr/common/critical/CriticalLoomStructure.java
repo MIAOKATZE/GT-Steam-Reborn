@@ -30,27 +30,22 @@ public final class CriticalLoomStructure {
     private CriticalLoomStructure() {}
 
     public static List<CriticalGeometry.Voxel> voxels() {
-        List<CriticalGeometry.Voxel> result = new ArrayList<>(CriticalGeometry.getLoom());
-        result.removeIf(v -> v.x == 40 && v.y == 0 && v.z == CriticalStructures.CONTROLLER_Z);
-        return Collections.unmodifiableList(result);
+        return CriticalCompiledLayout.v1(CriticalTier.T3, CriticalMachineKind.SUN)
+            .loomVoxels();
     }
 
     public static List<CriticalGeometry.Voxel> voxels(CriticalMachineState state) {
-        return CriticalGeometry.isV2(state) ? CriticalGeometry.getLoom(state) : voxels();
+        return CriticalCompiledLayout.forState(state)
+            .loomVoxels();
     }
 
     public static boolean isLoomVoxel(CriticalGeometry.Voxel voxel) {
-        return "loom".equals(voxel.model) || "v2_loom".equals(voxel.model)
-            || "v2_v25_loom".equals(voxel.model)
-            || "v2_v27_loom".equals(voxel.model)
-            || "v2_v30_loom".equals(voxel.model)
-            || "v2_legacy_loom".equals(voxel.model);
+        return CriticalLayoutDefinition.isLoom(voxel);
     }
 
     private static int top(CriticalMachineState state) {
-        int top = 0;
-        for (CriticalGeometry.Voxel voxel : voxels(state)) top = Math.max(top, voxel.y);
-        return top;
+        return CriticalCompiledLayout.forState(state)
+            .loomTop();
     }
 
     public static List<CriticalGeometry.Voxel> hatchPorts() {
@@ -98,7 +93,9 @@ public final class CriticalLoomStructure {
         StructureDefinition.Builder<MTECriticalMachine> builder = StructureDefinition.builder();
         Map<String, Character> characters = new HashMap<>();
         // NORTH axes are WEST, DOWN, SOUTH. Include the controller immediately before the cylinder.
-        char[][][] grid = new char[16][36][15];
+        int sizeZ = CriticalLayoutDefinition.V1_LOOM_SIZE_Z, sizeX = CriticalLayoutDefinition.V1_LOOM_SIZE_X;
+        int top = CriticalLayoutDefinition.V1_LOOM_TOP;
+        char[][][] grid = new char[sizeZ][top + 1][sizeX];
         for (char[][] slice : grid) for (char[] row : slice) java.util.Arrays.fill(row, ' ');
         for (CriticalGeometry.Voxel voxel : voxels()) {
             boolean port = CriticalStructures.isHatchPosition(voxel);
@@ -110,11 +107,12 @@ public final class CriticalLoomStructure {
                 IStructureElement<MTECriticalMachine> material = materialElement(voxel);
                 builder.addElement(symbol, port ? CriticalStructures.loomHatchElement(shell(voxel)) : material);
             }
-            grid[voxel.z - 32][35 - voxel.y][47 - voxel.x] = symbol;
+            grid[voxel.z - CriticalLayoutDefinition.V1_LOOM_MIN_Z][top - voxel.y][CriticalLayoutDefinition.V1_LOOM_MAX_X
+                - voxel.x] = symbol;
         }
-        grid[1][35][7] = '~';
-        String[][] shape = new String[16][36];
-        for (int z = 0; z < 16; z++) for (int y = 0; y < 36; y++) shape[z][y] = new String(grid[z][y]);
+        grid[CriticalLayoutDefinition.V1_LOOM_CONTROLLER_C][top][CriticalLayoutDefinition.V1_LOOM_CONTROLLER_A] = '~';
+        String[][] shape = new String[sizeZ][top + 1];
+        for (int z = 0; z < sizeZ; z++) for (int y = 0; y <= top; y++) shape[z][y] = new String(grid[z][y]);
         IStructureDefinition<MTECriticalMachine> result = builder.addShape(PIECE, shape)
             .build();
         return definition = result;
@@ -140,7 +138,7 @@ public final class CriticalLoomStructure {
         if (CriticalGeometry.isV2(local) && tile.getFrontFacing() != local.getControllerFacing(host.isKindSelector()))
             return false;
         for (CriticalGeometry.Voxel voxel : voxels(local)) if (!matchesVoxel(local, voxel)) return false;
-        int top = CriticalGeometry.isV2(local) ? top(local) : 35;
+        int top = CriticalGeometry.isV2(local) ? top(local) : CriticalLayoutDefinition.V1_LOOM_TOP;
         if (!definition(host).check(
             host,
             PIECE,
@@ -149,9 +147,11 @@ public final class CriticalLoomStructure {
             tile.getXCoord(),
             tile.getYCoord(),
             tile.getZCoord(),
-            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerA(host.isKindSelector()) : 7,
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerA(host.isKindSelector())
+                : CriticalLayoutDefinition.V1_LOOM_CONTROLLER_A,
             top - local.getControllerY(),
-            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerC(host.isKindSelector()) : 1,
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerC(host.isKindSelector())
+                : CriticalLayoutDefinition.V1_LOOM_CONTROLLER_C,
             false)) return false;
         return true;
     }
@@ -169,9 +169,11 @@ public final class CriticalLoomStructure {
             PIECE,
             trigger,
             hintsOnly,
-            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerA(host.isKindSelector()) : 7,
-            CriticalGeometry.isV2(local) ? top(local) - local.getControllerY() : 35,
-            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerC(host.isKindSelector()) : 1);
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerA(host.isKindSelector())
+                : CriticalLayoutDefinition.V1_LOOM_CONTROLLER_A,
+            CriticalGeometry.isV2(local) ? top(local) - local.getControllerY() : CriticalLayoutDefinition.V1_LOOM_TOP,
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerC(host.isKindSelector())
+                : CriticalLayoutDefinition.V1_LOOM_CONTROLLER_C);
     }
 
     public static int survivalConstruct(MTECriticalMachine host, ItemStack trigger, int budget,
@@ -182,9 +184,11 @@ public final class CriticalLoomStructure {
         return host.survivalBuildCriticalPiece(
             PIECE,
             trigger,
-            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerA(host.isKindSelector()) : 7,
-            CriticalGeometry.isV2(local) ? top(local) - local.getControllerY() : 35,
-            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerC(host.isKindSelector()) : 1,
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerA(host.isKindSelector())
+                : CriticalLayoutDefinition.V1_LOOM_CONTROLLER_A,
+            CriticalGeometry.isV2(local) ? top(local) - local.getControllerY() : CriticalLayoutDefinition.V1_LOOM_TOP,
+            CriticalGeometry.isV2(local) ? CriticalStructureAlignment.controllerC(host.isKindSelector())
+                : CriticalLayoutDefinition.V1_LOOM_CONTROLLER_C,
             budget,
             env);
     }

@@ -27,42 +27,31 @@ public final class CriticalMaterials {
 
     private static final Map<String, MaterialBlock> MATERIALS = new LinkedHashMap<>();
     private static final Set<String> REMOVED_REGISTRATIONS = new HashSet<>();
-    private static JsonObject palette;
 
     private CriticalMaterials() {}
 
     public static void register() {
         if (!MATERIALS.isEmpty()) return;
-        palette = CriticalGeometry.readJson("materials.json");
-        for (Map.Entry<String, JsonElement> entry : palette.entrySet()) {
-            JsonObject value = entry.getValue()
-                .getAsJsonObject();
-            String id = value.get("id")
-                .getAsString();
-            if (MATERIALS.containsKey(id)) continue;
-            MaterialBlock block = new MaterialBlock(
-                id,
-                !"opaque".equals(
-                    value.get("alphaMode")
-                        .getAsString()),
-                value.get("animated")
-                    .getAsBoolean(),
-                value.get("emissionStrength")
-                    .getAsDouble() > 0);
+        for (CriticalMaterialDefinitions.Definition definition : CriticalMaterialDefinitions.catalog()
+            .definitions()
+            .values()) {
+            String id = definition.id;
+            MaterialBlock block = new MaterialBlock(definition);
             MATERIALS.put(id, block);
             GameRegistry.registerBlock(block, MaterialItemBlock.class, "critical_" + id);
             REMOVED_REGISTRATIONS.add("gtsr:critical_proxy_" + id);
-            com.miaokatze.gtsr.register.CreativeTabManager.addItemToTab(new net.minecraft.item.ItemStack(block));
+            if (CriticalMaterialCatalog.current()
+                .visibleInCreative(id))
+                com.miaokatze.gtsr.register.CreativeTabManager.addItemToTab(new net.minecraft.item.ItemStack(block));
         }
         for (String slug : new String[] { "loom", "v2_loom", "v2_v25_loom", "v2_v27_loom", "v2_v30_loom",
             "v2_legacy_loom" }) {
             JsonObject geometry = CriticalGeometry.readJson("models/" + slug + ".geometry.json");
             for (JsonElement element : geometry.getAsJsonArray("blocks")) {
                 com.google.gson.JsonArray row = element.getAsJsonArray();
-                String id = properties(
+                String id = CriticalMaterialDefinitions.canonicalId(
                     row.get(3)
-                        .getAsString()).get("id")
-                            .getAsString();
+                        .getAsString());
                 boolean dynamic = geometry.getAsJsonObject("animationGroups")
                     .has(
                         row.get(4)
@@ -80,16 +69,13 @@ public final class CriticalMaterials {
     }
 
     public static JsonObject properties(String alias) {
-        if (palette == null) palette = CriticalGeometry.readJson("materials.json");
-        JsonElement value = palette.get(alias);
-        if (value == null) throw new IllegalArgumentException("Unknown critical material: " + alias);
-        return value.getAsJsonObject();
+        return CriticalMaterialDefinitions.catalog()
+            .legacyProperties(alias);
     }
 
     /** Geometry roles belong to placed voxels; both construction paths resolve the same material. */
     public static Block block(String alias, boolean dynamic) {
-        String id = properties(alias).get("id")
-            .getAsString();
+        String id = CriticalMaterialDefinitions.canonicalId(alias);
         Block block = MATERIALS.get(id);
         if (block == null) throw new IllegalStateException("Critical materials not registered");
         return block;
@@ -126,24 +112,20 @@ public final class CriticalMaterials {
         @SideOnly(Side.CLIENT)
         private IIcon top;
 
-        private MaterialBlock(String id, boolean transparent, boolean animated, boolean emissive) {
-            super(transparent ? Material.glass : Material.iron);
+        private MaterialBlock(CriticalMaterialDefinitions.Definition definition) {
+            super(definition.transparent ? Material.glass : Material.iron);
+            String id = definition.id;
             this.materialId = id;
-            this.transparent = transparent;
-            this.animated = animated;
-            this.emissive = emissive;
-            setCreativeTab(com.miaokatze.gtsr.register.CreativeTabManager.CREATIVE_TAB);
-            JsonObject properties = properties(id);
-            lightLevel = properties.has("lightValue") ? properties.get("lightValue")
-                .getAsInt() : 0;
-            if (lightLevel < 0 || lightLevel > 15)
-                throw new IllegalArgumentException("Invalid critical light level: " + id);
+            this.transparent = definition.transparent;
+            this.animated = definition.animated;
+            this.emissive = definition.emissive;
+            if (CriticalMaterialCatalog.current()
+                .visibleInCreative(id)) setCreativeTab(com.miaokatze.gtsr.register.CreativeTabManager.CREATIVE_TAB);
+            lightLevel = definition.lightValue;
             setBlockName("critical_" + id);
             setHardness(5);
             setResistance(10000);
-            setLightOpacity(
-                properties.has("lightOpacity") ? properties.get("lightOpacity")
-                    .getAsInt() : transparent ? 0 : 255);
+            setLightOpacity(definition.lightOpacity);
             // Native light is an immutable registered block property, never a texture-frame or machine-state update.
             setLightLevel(lightLevel / 15F);
             setBlockTextureName("gtsr:critical/" + id);
@@ -252,9 +234,8 @@ public final class CriticalMaterials {
             java.util.List tooltip, boolean advanced) {
             super.addInformation(stack, player, tooltip, advanced);
             if (!(field_150939_a instanceof MaterialBlock material) || !material.materialId.startsWith("v2_")) return;
-            JsonObject data = properties(material.materialId);
-            if (data.has("tooltipKeys")) for (JsonElement key : data.getAsJsonArray("tooltipKeys"))
-                tooltip.add(StatCollector.translateToLocal(key.getAsString()));
+            for (String key : CriticalMaterialDefinitions.definition(material.materialId).tooltipKeys)
+                tooltip.add(StatCollector.translateToLocal(key));
         }
     }
 

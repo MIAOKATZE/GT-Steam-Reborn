@@ -78,7 +78,10 @@ public final class CriticalConstructionOwnershipContract {
         check(pair.size() == 2, "Real last dismantle window contains two paid material cells");
         CriticalGeometry.Voxel manual = pair.get(0), automatic = pair.get(1);
         put(state, manual, manual.block);
-        set(state, "state", 1); set(state, "constructionCostSnapshot", true); set(state, "constructionRoundFunded", true);
+        set(state, "state", 1);
+        Object ledger = member(CriticalMachineState.class, "constructionLedger").get(state);
+        member(ledger.getClass(), "snapshot").setBoolean(ledger, true);
+        member(ledger.getClass(), "funded").setBoolean(ledger, true);
         set(state, "debugIgnoreEnergy", true); set(state, "constructionTickBudget", CriticalConstructionProgress.STAGE_DURATION);
         invoke(state, "advanceConstruction", new Class<?>[] { List.class, boolean.class }, pair, false);
         BitSet placed = (BitSet) field(state, "placed");

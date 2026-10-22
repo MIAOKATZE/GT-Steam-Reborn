@@ -34,6 +34,42 @@ public final class CriticalFXBudget {
         return particleSetting == 1 ? Math.min(4, factor * 2) : factor;
     }
 
+    static boolean full() {
+        return remaining == 0;
+    }
+
+    static CriticalDesignFX.ParticleSink designSink(CriticalDesignFX.ParticleSink draw) {
+        return new CriticalDesignFX.ParticleSink() {
+
+            @Override
+            public boolean full() {
+                return CriticalFXBudget.full();
+            }
+
+            @Override
+            public void emit(String family, String source, int index, double[] center, double[] color, double alpha,
+                double glowAlpha, double size) {
+                draw.emit(family, source, index, center, color, alpha, glowAlpha, size);
+            }
+        };
+    }
+
+    static CriticalSolarFX.ParticleSink solarSink(CriticalSolarFX.ParticleSink draw) {
+        return new CriticalSolarFX.ParticleSink() {
+
+            @Override
+            public boolean full() {
+                return CriticalFXBudget.full();
+            }
+
+            @Override
+            public void emit(String family, int index, double[] center, double[] color, double alpha,
+                double[] glowColor, double glowAlpha, double size) {
+                draw.emit(family, index, center, color, alpha, glowColor, glowAlpha, size);
+            }
+        };
+    }
+
     static boolean claim() {
         if (remaining == 0) {
             CriticalRenderMetrics.particleBudgetSkips++;

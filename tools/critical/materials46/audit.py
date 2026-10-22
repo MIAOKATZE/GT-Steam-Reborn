@@ -4,9 +4,13 @@ import collections
 import hashlib
 import io
 import json
+import sys
 from pathlib import Path
 import zipfile
 from PIL import Image
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from material_palette import expand_palette
 
 ROOT = Path(__file__).resolve().parents[3]
 ASSET = 'assets/gtsr/'
@@ -23,7 +27,7 @@ def main():
     def read(name): return jar.read(ASSET+name) if jar else (base/ASSET/name).read_bytes()
     def exists(name): return ASSET+name in jar.namelist() if jar else (base/ASSET/name).is_file()
     def data(name): return json.loads(read(name))
-    palette = data('critical/materials.json')
+    palette = expand_palette(data('critical/materials.json'))
     ids = list(dict.fromkeys(v['id'] for v in palette.values()))
     languages = {}
     failures = []

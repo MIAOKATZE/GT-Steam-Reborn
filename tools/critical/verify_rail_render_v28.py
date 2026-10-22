@@ -2,6 +2,7 @@
 from pathlib import Path
 import hashlib
 import json
+from material_palette import expand_palette
 import subprocess
 import zipfile
 
@@ -91,7 +92,7 @@ def main():
     assert controller.index('activeGroups = checked.update(controller)') < controller.index('publishVisibleGroups(anchor, activeGroups)')
     assert hashes == {relative(p): digest(p) for p in OWNED}, 'Owned sources changed during probe'
     materials = ROOT / 'src/main/resources/assets/gtsr/critical/materials.json'
-    palette = json.loads(materials.read_text(encoding='utf-8'))
+    palette = expand_palette(json.loads(materials.read_text(encoding='utf-8')))
     rail = palette['v2_loom_guide']
     assert rail['alphaMode'] == 'opaque' and rail['ctm']['family'] == 'vertical-only'
     report = {

@@ -25,13 +25,12 @@ public final class CriticalV32Fixture {
     static String key(int x,int y,int z){return x+","+y+","+z;}
     @SuppressWarnings("unchecked") static void materials()throws Exception {
         Constructor<CriticalMaterials.MaterialBlock> c=CriticalMaterials.MaterialBlock.class.getDeclaredConstructor(
-            String.class,boolean.class,boolean.class,boolean.class);c.setAccessible(true);
+            CriticalMaterialDefinitions.Definition.class);c.setAccessible(true);
         for(Map.Entry<String,JsonElement> entry:CriticalGeometry.readJson("materials.json").entrySet()) {
             JsonObject p=entry.getValue().getAsJsonObject();String id=p.get("id").getAsString();
             Field f=CriticalMaterials.class.getDeclaredField("MATERIALS");
             f.setAccessible(true);Map<String,Block> map=(Map<String,Block>)f.get(null);
-            if(!map.containsKey(id))map.put(id,c.newInstance(id,!p.get("alphaMode").getAsString().equals("opaque"),
-                p.get("animated").getAsBoolean(),p.get("emissionStrength").getAsDouble()>0));
+            if(!map.containsKey(id))map.put(id,c.newInstance(CriticalMaterialDefinitions.definition(id)));
         }
     }
     static SparseWorld world()throws Exception {

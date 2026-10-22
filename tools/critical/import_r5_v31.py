@@ -6,6 +6,7 @@ the exact Sun/Solar overrides that the approved preview applied at load time.
 from pathlib import Path
 import hashlib
 import json
+from material_palette import expand_palette
 import re
 import math
 from functools import lru_cache
@@ -79,7 +80,7 @@ def verify(baseline, overrides):
                 frozen_layouts.append({'revision': revision, 'legacyMainOwned': legacy, 'kind': kind, **proof})
 
     imported = {}
-    palette = json.loads((ASSETS / 'materials.json').read_text(encoding='utf-8'))
+    palette = expand_palette(json.loads((ASSETS / 'materials.json').read_text(encoding='utf-8')))
     registered = set()
     for slug in SLUGS:
         before = read(APPROVED / 'models', slug)
@@ -137,7 +138,7 @@ def verify(baseline, overrides):
 
 def main():
     authority = json.loads((WORK / 'root/delivery-meta.json').read_text(encoding='utf-8'))
-    palette = json.loads((ASSETS / 'materials.json').read_text(encoding='utf-8'))
+    palette = expand_palette(json.loads((ASSETS / 'materials.json').read_text(encoding='utf-8')))
     baseline = WORK / 'source-baseline/src/main/resources/assets/gtsr/critical/models'
     binding_path = ASSETS / 'source-sha256.json'
     binding = json.loads(binding_path.read_text(encoding='utf-8'))

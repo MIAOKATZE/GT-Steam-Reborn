@@ -19,6 +19,7 @@ public final class CriticalMaterialRenderer implements ISimpleBlockRenderingHand
 
     public static void register() {
         CriticalAngelicaCompat.register();
+        CriticalMaterialTextures.listen();
         CriticalMaterials.renderId = RenderingRegistry.getNextAvailableRenderId();
         RenderingRegistry.registerBlockHandler(new CriticalMaterialRenderer());
     }
@@ -116,11 +117,13 @@ public final class CriticalMaterialRenderer implements ISimpleBlockRenderingHand
     private static boolean renderV2(IBlockAccess world, int x, int y, int z, CriticalMaterials.MaterialBlock material) {
         Tessellator tessellator = Tessellator.instance;
         boolean rendered = false;
+        CriticalMaterialTextures.WorldMaskContext context = CriticalMaterialTextures
+            .staticContext(world, x, y, z, material);
         for (int side = 0; side < 6; side++) {
             int[] normal = CriticalMaterialTextures.NORMALS[side];
             int nx = x + normal[0], ny = y + normal[1], nz = z + normal[2];
             if (!material.shouldSideBeRendered(world, nx, ny, nz, side)) continue;
-            int mask = CriticalMaterialTextures.worldMask(world, x, y, z, material, side);
+            int mask = CriticalMaterialTextures.worldMask(context, side);
             IIcon albedo = CriticalMaterialTextures.icon(material.materialId, side, mask, false, false);
             if (albedo == null) continue;
             // Packed native sky/block light for this exposed face, baked when the chunk mesh is rebuilt.

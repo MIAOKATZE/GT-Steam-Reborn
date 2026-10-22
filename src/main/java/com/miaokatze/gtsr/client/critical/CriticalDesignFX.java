@@ -21,6 +21,11 @@ final class CriticalDesignFX {
 
     interface ParticleSink {
 
+        /** A bounded renderer may stop once later samples cannot produce any vertices. */
+        default boolean full() {
+            return false;
+        }
+
         void emit(String family, String source, int index, double[] center, double[] color, double alpha,
             double glowAlpha, double size);
     }
@@ -45,8 +50,10 @@ final class CriticalDesignFX {
         boolean work = "working".equals(mode);
         Counter out = new Counter(lod, work, seconds, sink);
         for (int owner = 0; owner < 3; owner++) {
+            if (sink.full()) return out.emitted;
             Data data = data(metas[owner]);
             for (int ci = 0; ci < data.clusters.size(); ci++) {
+                if (sink.full()) return out.emitted;
                 if (!active(ci, data.clusters.size(), seconds)) continue;
                 Cluster c = data.clusters.get(ci);
                 double cycle = seconds * .65 + c.meanHeight * .07, t = wrap(cycle);
@@ -73,9 +80,11 @@ final class CriticalDesignFX {
             return parsed;
         });
         for (NativeRing r : rings) {
+            if (sink.full()) return out.emitted;
             if (!visible(visible, slugs[2], r.name, r.animation)) continue;
             int n = work ? 72 : 48;
             for (int i = 0; i < n; i++) {
+                if (sink.full()) return out.emitted;
                 double t = wrap(i / (double) n + seconds * r.speed + phase * .35), a = t * Math.PI * 2, b = t * 64;
                 int j = (int) Math.floor(b);
                 double radius = r.radii[j] + (r.radii[(j + 1) % 64] - r.radii[j]) * (b - j);
@@ -96,6 +105,7 @@ final class CriticalDesignFX {
             double[] pivot = star == null ? new double[3] : CriticalAnimation.vector(star, "pivot", new double[3]);
             int n = work ? 96 : 64;
             for (int i = 0; i < n; i++) {
+                if (sink.full()) return out.emitted;
                 double y = 1 - 2 * (i + .5) / n, a = i * 2.399963 + seconds * .10, r = Math.sqrt(1 - y * y),
                     radius = 9.85 + .12 * Math.sin(seconds * 1.4 + i);
                 double[] q = { pivot[0] + r * Math.cos(a) * radius, pivot[1] + y * radius,
@@ -112,10 +122,12 @@ final class CriticalDesignFX {
         }
         Data main = data(metas[2]);
         for (NativeRoute r : main.tipRoutes) {
+            if (sink.full()) return out.emitted;
             JsonObject g = group(groups[2], r.group);
             if (!visible(visible, slugs[2], r.group, g)) continue;
             int n = work ? 8 : 3;
             for (int i = 0; i < n; i++) {
+                if (sink.full()) return out.emitted;
                 double t = wrap(seconds * .19 + i / (double) n + phase * .4);
                 double[] q = path(r.path, phase >= .72 ? 1 - t : t);
                 out.direct(
@@ -129,8 +141,10 @@ final class CriticalDesignFX {
             }
         }
         for (NativeRoute r : main.plateRoutes) {
+            if (sink.full()) return out.emitted;
             int n = work ? 3 : 1;
             for (int i = 0; i < n; i++) {
+                if (sink.full()) return out.emitted;
                 double[] q = path(r.path, wrap(seconds * .27 + i / (double) n + phase * .2));
                 q[1] += .58;
                 out.direct("plate", r.id, q, new double[] { .42, .61, .88 }, work ? .32 : .19, .65, .24);
@@ -147,8 +161,10 @@ final class CriticalDesignFX {
         boolean working = "working".equals(mode);
         Counter out = new Counter(lod, working, seconds, sink);
         for (int owner = 0; owner < 2; owner++) {
+            if (sink.full()) return out.emitted;
             Data shared = data(metas[owner]);
             for (int ci = 0; ci < shared.clusters.size(); ci++) {
+                if (sink.full()) return out.emitted;
                 Cluster cluster = shared.clusters.get(ci);
                 if (!active(ci, shared.clusters.size(), seconds)) continue;
                 double cycle = seconds * .65 + cluster.meanHeight * .07;
@@ -164,6 +180,7 @@ final class CriticalDesignFX {
         }
         Data machine = data(metas[2]);
         for (int si = 0; si < machine.sources.size(); si++) {
+            if (sink.full()) return out.emitted;
             Source s = machine.sources.get(si);
             int count = working ? s.work : s.idle;
             if ("gravity".equals(s.type)) continue;
@@ -171,6 +188,7 @@ final class CriticalDesignFX {
             if (!visible(visible, slugs[2], s.group, animation)) continue;
             if ("ring".equals(s.type)) {
                 for (int i = 0; i < count; i++) {
+                    if (sink.full()) return out.emitted;
                     double t = wrap(i / (double) count + seconds * s.direction * (working ? .075 : .035) + si * .125);
                     double angle = t * Math.PI * 2;
                     double[] point = new double[3];
@@ -191,6 +209,7 @@ final class CriticalDesignFX {
                                 * Math.sin(seconds * s.pulseFrequency + (s.pulsePhase == null ? si : s.pulsePhase))));
                 int amount = (int) Math.floor(count * gate * pulse);
                 for (int i = 0; i < amount; i++) {
+                    if (sink.full()) return out.emitted;
                     double t = wrap(i / (double) Math.max(1, amount) + seconds * s.speed + si * .125);
                     double angle = i * 2.399963 + seconds * .8 + si;
                     double radius = (.16 + Math.tan(s.spread) * s.length * t) * Math.sqrt((i % 11 + .5) / 11);
@@ -211,6 +230,7 @@ final class CriticalDesignFX {
                 }
             } else {
                 for (int i = 0; i < count; i++) {
+                    if (sink.full()) return out.emitted;
                     double t = wrap(i / (double) Math.max(1, count) + seconds * (working ? .18 : .06) + si * .125);
                     double[] point = path(s.path, t);
                     if ("scan".equals(s.type))
@@ -220,6 +240,7 @@ final class CriticalDesignFX {
             }
         }
         for (int ci = 0; ci < machine.clusters.size(); ci++) {
+            if (sink.full()) return out.emitted;
             Cluster c = machine.clusters.get(ci);
             if (!active(ci, machine.clusters.size(), seconds)) continue;
             double cycle = seconds * .65 + c.members[0].position[1] * .07;

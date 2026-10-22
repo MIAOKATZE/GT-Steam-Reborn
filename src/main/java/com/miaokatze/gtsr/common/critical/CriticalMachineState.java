@@ -1,7 +1,11 @@
 package com.miaokatze.gtsr.common.critical;
 
+import static com.miaokatze.gtsr.common.critical.CriticalResourceNbt.readFluids;
+import static com.miaokatze.gtsr.common.critical.CriticalResourceNbt.readItems;
+import static com.miaokatze.gtsr.common.critical.CriticalResourceNbt.writeFluids;
+import static com.miaokatze.gtsr.common.critical.CriticalResourceNbt.writeItems;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -14,7 +18,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
@@ -188,7 +191,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private boolean enabled = true, stageFunded, refundPrepared;
     private ItemStack[] escrow = new ItemStack[0], pendingItems = new ItemStack[0];
     private FluidStack[] fluidEscrow = new FluidStack[0], pendingFluids = new FluidStack[0];
-    private final List<ItemStack> spent = new ArrayList<>();
     private long recoverySeed;
     private boolean structureValid;
     private List<CriticalGeometry.Voxel> geometryCache;
@@ -394,19 +396,21 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public int getControllerX() {
-        return getGeometryVersion() == 2 ? 56 : 40;
+        return CriticalLayoutDefinition.forState(this)
+            .controllerX();
     }
 
     public int getControllerY() {
-        return getGeometryVersion() == 2 ? 4 : 0;
+        return CriticalLayoutDefinition.forState(this)
+            .controllerY();
     }
 
     public int getRegionSize() {
-        return getGeometryVersion() == 2 ? 112 : 80;
+        return CriticalLayoutDefinition.forState(this).frameSize;
     }
 
     public int getRegionHeight() {
-        return getGeometryVersion() == 2 ? 180 : 162;
+        return CriticalLayoutDefinition.forState(this).frameHeight;
     }
 
     public boolean isInitialClearanceAccepted() {
@@ -437,16 +441,13 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return visualHostId;
     }
 
-    private final CriticalConstructionProgress constructionProgress = new CriticalConstructionProgress();
+    private final CriticalConstructionLedger constructionLedger = new CriticalConstructionLedger();
     private int constructionTimeVersion = 1, debugRequirements, debugSpeed;
-    private boolean debugIgnoreEnergy, constructionAdvancing, constructionCostSnapshot, constructionRoundFunded,
-        nativeFundingUncertain;
+    private boolean debugIgnoreEnergy, constructionAdvancing, nativeFundingUncertain;
     private ItemStack[] uncertainFundingItems = new ItemStack[0];
     private FluidStack[] uncertainFundingFluids = new FluidStack[0];
-    private int constructionRound, repairScanCursor, constructionTickBudget = 1, constructionLastAdvance;
+    private int repairScanCursor, constructionTickBudget = 1, constructionLastAdvance;
     private boolean repairScanPending, completionValidationPending;
-    private ItemStack[] constructionStageCosts = new ItemStack[0];
-    private FluidStack[] constructionStageFluidCosts = new FluidStack[0], constructionPaidFluids = new FluidStack[0];
     private boolean foundationRequired;
     private int foundationCuringCheckTicks;
     private int clientFoundationPhase, clientFoundationCellProgress, clientFoundationCuringRemaining;
@@ -878,7 +879,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public int getControllerZ() {
-        return getGeometryVersion() == 2 ? (loomController ? 47 : 35) : CriticalStructures.CONTROLLER_Z;
+        return CriticalLayoutDefinition.forState(this)
+            .controllerZ(loomController);
     }
 
     public int getOriginZ() {
@@ -1120,7 +1122,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 if (consumed > 0) {
                     ItemStack used = stack.copy();
                     used.stackSize = consumed;
-                    spent.add(used);
+                    constructionLedger.recordLegacyItem(used);
                 }
                 if (consumed < stack.stackSize) {
                     ItemStack left = stack.copy();
@@ -1308,7 +1310,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return canRemove() && jobId.isEmpty()
             && jobFingerprint == 0L
             && placed.isEmpty()
-            && spent.isEmpty()
+            && !constructionLedger.hasSpentItems()
             && repairEscrow.length == 0
             && !nativeFundingUncertain;
     }
@@ -1397,12 +1399,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     /** All physical alloy frames in the loom and target are shared GT hatch positions. */
     public List<CriticalGeometry.Voxel> getHatchPorts() {
         if (hatchPortsCache == null) {
-            java.util.Map<Long, CriticalGeometry.Voxel> ports = new java.util.LinkedHashMap<>();
-            for (CriticalGeometry.Voxel port : allVoxels())
-                if (CriticalStructures.isHatchPosition(this, port)) ports.put(port.positionKey(), port);
-            for (CriticalGeometry.Voxel port : CriticalGeometry.optionalWorkPorts(this))
-                ports.put(port.positionKey(), port);
-            hatchPortsCache = new ArrayList<>(ports.values());
+            allVoxels();
+            hatchPortsCache = CriticalCompiledLayout.forState(this)
+                .hatchPorts();
         }
         return hatchPortsCache;
     }
@@ -1766,7 +1765,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             if (phase == 1) return getFoundationCellProgressTicks();
             if (phase == 2) return getFoundationCuringDurationTicks() - getFoundationCuringRemainingTicks();
         }
-        return constructionProgress.elapsed();
+        return constructionLedger.elapsed();
     }
 
     public int getConstructionDurationTicks() {
@@ -1783,41 +1782,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private void resetConstructionStage() {
-        constructionProgress.reset();
-        constructionRound = 0;
-        constructionRoundFunded = false;
-        constructionCostSnapshot = false;
-        constructionStageCosts = new ItemStack[0];
-        constructionStageFluidCosts = new FluidStack[0];
-    }
-
-    private ItemStack[] constructionItemIncrement(ItemStack[] totals, int next) {
-        List<ItemStack> costs = new ArrayList<>();
-        for (ItemStack total : totals) if (total != null) {
-            int delta = CriticalConstructionProgress.cumulative(total.stackSize, next)
-                - CriticalConstructionProgress.cumulative(total.stackSize, constructionProgress.elapsed());
-            if (delta > 0) {
-                ItemStack item = total.copy();
-                item.stackSize = delta;
-                costs.add(item);
-            }
-        }
-        return costs.toArray(new ItemStack[0]);
-    }
-
-    private FluidStack[] constructionFluidIncrement() {
-        List<FluidStack> costs = new ArrayList<>();
-        int rounds = constructionRoundCount(constructionStageCosts);
-        for (FluidStack total : constructionStageFluidCosts) if (total != null) {
-            int delta = (int) ((long) total.amount * (constructionRound + 1) / rounds
-                - (long) total.amount * constructionRound / rounds);
-            if (delta > 0) {
-                FluidStack fluid = total.copy();
-                fluid.amount = delta;
-                costs.add(fluid);
-            }
-        }
-        return costs.toArray(new FluidStack[0]);
+        constructionLedger.resetStage();
     }
 
     public FluidStack[] getConstructionStageFluidCostsForGui() {
@@ -1827,7 +1792,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public FluidStack[] getConstructionFluidCostsForGui() {
         if (constructionTimeVersion == 0 && (stageFunded || repairFunded)) return new FluidStack[0];
         if (state != 0 && state != 1 && state != 4) return new FluidStack[0];
-        if (constructionCostSnapshot) return copyFluids(constructionStageFluidCosts);
+        if (constructionLedger.hasStageSnapshot()) return constructionLedger.stageFluids();
         allVoxels();
         int costStage = state == 0 ? 0 : stage;
         int count = 0;
@@ -1842,57 +1807,34 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return count == 0 ? new FluidStack[0] : CriticalConstructionCosts.forStageFluids(config, costStage, count);
     }
 
-    private int constructionRoundCount(ItemStack[] costs) {
-        long count = 0;
-        for (ItemStack item : costs) if (item != null) count += item.stackSize;
-        return (int) Math.max(1L, Math.min(200L, count));
-    }
-
-    private ItemStack[] constructionRoundItems(ItemStack[] totals) {
-        long units = 0;
-        for (ItemStack item : totals) if (item != null) units += item.stackSize;
-        int rounds = constructionRoundCount(totals);
-        long start = units * constructionRound / rounds, end = units * (constructionRound + 1) / rounds, offset = 0;
-        List<ItemStack> items = new ArrayList<>();
-        for (ItemStack item : totals) if (item != null) {
-            long overlap = Math.max(0, Math.min(end, offset + item.stackSize) - Math.max(start, offset));
-            if (overlap > 0) {
-                ItemStack cost = item.copy();
-                cost.stackSize = (int) overlap;
-                items.add(cost);
-            }
-            offset += item.stackSize;
-        }
-        return items.toArray(new ItemStack[0]);
-    }
-
     public boolean isCompletionValidationPending() {
         return completionValidationPending;
     }
 
     public boolean isConstructionRoundFunded() {
-        return constructionRoundFunded;
+        return constructionLedger.funded();
     }
 
     public int getConstructionRoundIndex() {
-        return constructionRound;
+        return constructionLedger.round();
     }
 
     public int getConstructionRoundTotal() {
-        return constructionRoundCount(constructionCostSnapshot ? constructionStageCosts : getConstructionCostsForGui());
+        return CriticalConstructionLedger.roundCount(
+            constructionLedger.hasStageSnapshot() ? constructionLedger.stageItems() : getConstructionCostsForGui());
     }
 
     public int getConstructionRoundElapsedTicks() {
         return Math.max(
             0,
-            getConstructionElapsedTicks()
-                - CriticalConstructionProgress.STAGE_DURATION * constructionRound / getConstructionRoundTotal());
+            getConstructionElapsedTicks() - CriticalConstructionProgress.STAGE_DURATION * constructionLedger.round()
+                / getConstructionRoundTotal());
     }
 
     public int getConstructionRoundDurationTicks() {
         int rounds = getConstructionRoundTotal();
-        return CriticalConstructionProgress.STAGE_DURATION * (constructionRound + 1) / rounds
-            - CriticalConstructionProgress.STAGE_DURATION * constructionRound / rounds;
+        return CriticalConstructionProgress.STAGE_DURATION * (constructionLedger.round() + 1) / rounds
+            - CriticalConstructionProgress.STAGE_DURATION * constructionLedger.round() / rounds;
     }
 
     public ItemStack[] getConstructionNextItemCostsForGui() {
@@ -1900,8 +1842,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (state == 1 && foundationRequired && getFoundationPhase() != 3)
             return getFoundationPhase() == 1 && !isFoundationCellFunded() ? CriticalFoundationMaterials.items()
                 : new ItemStack[0];
-        ItemStack[] costs = constructionCostSnapshot ? constructionStageCosts : getConstructionCostsForGui();
-        return constructionTimeVersion > 0 ? constructionRoundItems(costs) : costs;
+        ItemStack[] costs = constructionLedger.hasStageSnapshot() ? constructionLedger.stageItems()
+            : getConstructionCostsForGui();
+        return constructionTimeVersion > 0 ? constructionLedger.nextItems(costs) : costs;
     }
 
     public FluidStack[] getConstructionNextFluidCostsForGui() {
@@ -1911,25 +1854,13 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 ? new FluidStack[] { CriticalFoundationMaterials.fluid(1_000_000) }
                 : new FluidStack[0];
         if (constructionTimeVersion == 0 && (stageFunded || repairFunded)) return new FluidStack[0];
-        if (constructionCostSnapshot) return constructionFluidIncrement();
-        FluidStack[] totals = getConstructionFluidCostsForGui();
-        int rounds = constructionRoundCount(getConstructionCostsForGui());
-        List<FluidStack> costs = new ArrayList<>();
-        for (FluidStack total : totals) {
-            int delta = (int) ((long) total.amount * (constructionRound + 1) / rounds
-                - (long) total.amount * constructionRound / rounds);
-            if (delta > 0) {
-                FluidStack fluid = total.copy();
-                fluid.amount = delta;
-                costs.add(fluid);
-            }
-        }
-        return costs.toArray(new FluidStack[0]);
+        if (constructionLedger.hasStageSnapshot()) return constructionLedger.nextStageFluids();
+        return constructionLedger.nextFluids(getConstructionFluidCostsForGui(), getConstructionCostsForGui());
     }
 
     public ItemStack[] getConstructionMissingItemsForGui() {
         List<ItemStack> missing = new ArrayList<>();
-        if (constructionRoundFunded) return new ItemStack[0];
+        if (constructionLedger.funded()) return new ItemStack[0];
         ItemStack[] physicalItems = gtMachine() == null ? new ItemStack[0]
             : gtMachine().criticalPhysicalItemsSnapshot();
         ItemStack[] networkItems = gtMachine() == null ? new ItemStack[0] : gtMachine().criticalMEItemsSnapshot();
@@ -1948,7 +1879,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public FluidStack[] getConstructionMissingFluidsForGui() {
         List<FluidStack> missing = new ArrayList<>();
-        if (constructionRoundFunded) return new FluidStack[0];
+        if (constructionLedger.funded()) return new FluidStack[0];
         FluidStack[] physicalFluids = gtMachine() == null ? new FluidStack[0]
             : gtMachine().criticalPhysicalFluidsSnapshot();
         FluidStack[] networkFluids = gtMachine() == null ? new FluidStack[0] : gtMachine().criticalMEFluidsSnapshot();
@@ -1992,36 +1923,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return true;
     }
 
-    private void recordConstructionItems(ItemStack[] paid) {
-        for (ItemStack item : paid) {
-            boolean merged = false;
-            for (ItemStack existing : spent)
-                if (same(existing, item) && existing.stackSize <= Integer.MAX_VALUE - item.stackSize) {
-                    existing.stackSize += item.stackSize;
-                    merged = true;
-                    break;
-                }
-            if (!merged) spent.add(item.copy());
-        }
-    }
-
-    private void recordConstructionFluids(FluidStack[] paid) {
-        for (FluidStack fluid : paid) {
-            boolean merged = false;
-            for (FluidStack existing : constructionPaidFluids)
-                if (existing.isFluidEqual(fluid) && existing.amount <= Integer.MAX_VALUE - fluid.amount) {
-                    existing.amount += fluid.amount;
-                    merged = true;
-                    break;
-                }
-            if (!merged) {
-                FluidStack[] next = Arrays.copyOf(constructionPaidFluids, constructionPaidFluids.length + 1);
-                next[next.length - 1] = fluid.copy();
-                constructionPaidFluids = next;
-            }
-        }
-    }
-
     private void advanceConstruction(List<CriticalGeometry.Voxel> current, boolean repairing) {
         if (current.isEmpty()) {
             stage++;
@@ -2030,7 +1931,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             changed();
             return;
         }
-        if (!constructionCostSnapshot) {
+        if (!constructionLedger.hasStageSnapshot()) {
             int count = 0;
             for (CriticalGeometry.Voxel voxel : current) if (!isUserBuilt(voxel)) count++;
             if (count == 0) {
@@ -2040,14 +1941,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 changed();
                 return;
             }
-            constructionStageCosts = CriticalConstructionCosts.forStage(config, stage, count);
-            constructionStageFluidCosts = CriticalConstructionCosts.forStageFluids(config, stage, count);
-            constructionCostSnapshot = true;
+            constructionLedger.snapshotStage(
+                CriticalConstructionCosts.forStage(config, stage, count),
+                CriticalConstructionCosts.forStageFluids(config, stage, count));
         }
-        int rounds = constructionRoundCount(constructionStageCosts);
-        int roundEnd = CriticalConstructionProgress.STAGE_DURATION * (constructionRound + 1) / rounds;
-        int next = (int) Math.min(roundEnd, (long) constructionProgress.elapsed() + constructionTickBudget);
-        int roundVoxelEnd = (int) ((long) current.size() * roundEnd / CriticalConstructionProgress.STAGE_DURATION);
+        CriticalConstructionLedger.Round round = constructionLedger.planRound(constructionTickBudget, current.size());
+        int roundEnd = round.end, next = round.next, roundVoxelEnd = round.voxelEnd;
         int end = loadedWindowEnd(current, cursor, roundVoxelEnd);
         if (end < 0) {
             fail("施工区块加载等待");
@@ -2060,21 +1959,18 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 return;
             }
         }
-        int advance = next - constructionProgress.elapsed();
+        int advance = round.advance;
         long eu = (isLoomJournalOwner() ? gregtech.api.enums.GTValues.V[9] : config.tier.constructionVoltage())
             * advance;
-        if (!constructionRoundFunded) {
-            ItemStack[] items = ignoresConstructionItems() ? new ItemStack[0]
-                : constructionRoundItems(constructionStageCosts);
-            FluidStack[] fluids = ignoresConstructionFluids() ? new FluidStack[0] : constructionFluidIncrement();
+        if (!constructionLedger.funded()) {
+            ItemStack[] items = ignoresConstructionItems() ? new ItemStack[0] : round.items();
+            FluidStack[] fluids = ignoresConstructionFluids() ? new FluidStack[0] : round.fluids();
             if (!debugIgnoreEnergy && !canConsumeConstructionEnergy(eu)) {
                 fail("施工缺电，暂停");
                 return;
             }
             if (!fundCriticalInputs(items, fluids)) return;
-            recordConstructionItems(items);
-            recordConstructionFluids(fluids);
-            constructionRoundFunded = true;
+            constructionLedger.recordRoundPayment(items, fluids);
             markDirty();
         }
         if (advance > 0 && !debugIgnoreEnergy && (getEnergy() < eu || !consumeEnergy(eu))) {
@@ -2082,7 +1978,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             return;
         }
         // Persist payment and elapsed together before any retryable placement. A failed setBlock cannot pay twice.
-        constructionProgress.advance(next);
+        constructionLedger.advanceElapsed(next);
         constructionLastAdvance = advance;
         markDirty();
         if (next < roundEnd) {
@@ -2110,8 +2006,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             markDirty();
             return;
         }
-        constructionRoundFunded = false;
-        constructionRound++;
+        constructionLedger.completeRound();
         if (next == CriticalConstructionProgress.STAGE_DURATION && cursor == current.size()) {
             stage++;
             cursor = 0;
@@ -2231,7 +2126,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         status = "修复阶段 " + stage + " " + cursor + "/" + current.size();
         markDirty();
         if (cursor == current.size()) {
-            for (ItemStack stack : repairEscrow) spent.add(stack.copy());
+            for (ItemStack stack : repairEscrow) constructionLedger.recordLegacyItem(stack);
             repairEscrow = new ItemStack[0];
             repairFunded = false;
             constructionTimeVersion = 1;
@@ -2316,7 +2211,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         status = "施工阶段 " + stage + " " + cursor + "/" + current.size();
         markDirty();
         if (cursor == current.size()) {
-            for (ItemStack item : escrow) spent.add(item.copy());
+            for (ItemStack item : escrow) constructionLedger.recordLegacyItem(item);
             escrow = new ItemStack[0];
             stageFunded = false;
             constructionTimeVersion = 1;
@@ -2426,19 +2321,10 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 fluidRefund.add(tanks[i].copy());
                 tanks[i] = null;
             }
-            Random random = new Random(recoverySeed);
-            for (ItemStack stack : spent) {
-                int count = 0;
-                for (int i = 0; i < stack.stackSize; i++) if (random.nextInt(10) == 0) count++;
-                if (count > 0) {
-                    ItemStack r = stack.copy();
-                    r.stackSize = count;
-                    refund.add(r);
-                }
-            }
+            for (ItemStack stack : constructionLedger.recoveryItems(recoverySeed)) refund.add(stack);
             pendingItems = refund.toArray(new ItemStack[0]);
             escrow = new ItemStack[0];
-            spent.clear();
+            constructionLedger.clearSpentItems();
             pendingFluids = fluidRefund.toArray(new FluidStack[0]);
             refundPrepared = true;
             changed();
@@ -2460,7 +2346,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         clearanceCursor = 0;
         clearanceTargets = null;
         clearanceRechecks.clear();
-        constructionPaidFluids = new FluidStack[0];
+        constructionLedger.clearPaidFluids();
         completionValidationPending = false;
         structureId = "";
         jobId = "";
@@ -3012,71 +2898,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return slot >= 18 && slot < 36;
     }
 
-    private static NBTTagList writeItems(ItemStack[] items) {
-        NBTTagList list = new NBTTagList();
-        for (int i = 0; i < items.length; i++) if (items[i] != null) {
-            NBTTagCompound t = new NBTTagCompound();
-            items[i].writeToNBT(t);
-            // Vanilla Count is a byte. Escrow and journal deliberately retain full counts.
-            t.setInteger("fullCount", items[i].stackSize);
-            t.setInteger("slot", i);
-            list.appendTag(t);
-        }
-        return list;
-    }
-
-    private static ItemStack[] readItems(NBTTagList list, int length) {
-        int size = length;
-        if (length < 0) {
-            size = 0;
-            for (int i = 0; i < list.tagCount(); i++) size = Math.max(
-                size,
-                list.getCompoundTagAt(i)
-                    .getInteger("slot") + 1);
-        }
-        ItemStack[] items = new ItemStack[size];
-        for (int i = 0; i < list.tagCount(); i++) {
-            NBTTagCompound t = list.getCompoundTagAt(i);
-            int slot = t.getInteger("slot");
-            if (slot < 0 || slot >= size) continue;
-            ItemStack item = ItemStack.loadItemStackFromNBT(t);
-            if (item != null) {
-                item.stackSize = t.hasKey("fullCount") ? t.getInteger("fullCount") : item.stackSize;
-                if (item.stackSize > 0) items[slot] = item;
-            }
-        }
-        return items;
-    }
-
-    private static NBTTagList writeFluids(FluidStack[] fluids) {
-        NBTTagList list = new NBTTagList();
-        for (int i = 0; i < fluids.length; i++) if (fluids[i] != null) {
-            NBTTagCompound t = new NBTTagCompound();
-            fluids[i].writeToNBT(t);
-            t.setInteger("slot", i);
-            list.appendTag(t);
-        }
-        return list;
-    }
-
-    private static FluidStack[] readFluids(NBTTagList list, int length) {
-        int size = length;
-        if (length < 0) {
-            size = 0;
-            for (int i = 0; i < list.tagCount(); i++) size = Math.max(
-                size,
-                list.getCompoundTagAt(i)
-                    .getInteger("slot") + 1);
-        }
-        FluidStack[] fluids = new FluidStack[size];
-        for (int i = 0; i < list.tagCount(); i++) {
-            NBTTagCompound t = list.getCompoundTagAt(i);
-            int slot = t.getInteger("slot");
-            if (slot >= 0 && slot < size) fluids[slot] = FluidStack.loadFluidStackFromNBT(t);
-        }
-        return fluids;
-    }
-
     public void writeToNBT(NBTTagCompound n) {
         n.setBoolean("foundationRequired", foundationRequired);
         n.setInteger("foundationCuringCheckTicks", foundationCuringCheckTicks);
@@ -3093,14 +2914,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         n.setBoolean("nativeFundingUncertain", nativeFundingUncertain);
         n.setTag("uncertainFundingItems", writeItems(uncertainFundingItems));
         n.setTag("uncertainFundingFluids", writeFluids(uncertainFundingFluids));
-        n.setBoolean("constructionRoundFunded", constructionRoundFunded);
-        n.setInteger("constructionRound", constructionRound);
+        constructionLedger.write(n);
         n.setInteger("constructionTimeVersion", constructionTimeVersion);
-        constructionProgress.write(n);
-        n.setBoolean("constructionCostSnapshot", constructionCostSnapshot);
-        n.setTag("constructionStageCosts", writeItems(constructionStageCosts));
-        n.setTag("constructionStageFluidCosts", writeFluids(constructionStageFluidCosts));
-        n.setTag("constructionPaidFluids", writeFluids(constructionPaidFluids));
         n.setInteger("constructionDebugRequirements", debugRequirements);
         n.setInteger("constructionDebugSpeed", debugSpeed);
         n.setBoolean("constructionDebugIgnoreEnergy", debugIgnoreEnergy);
@@ -3132,7 +2947,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         n.setTag("fluidEscrow", writeFluids(fluidEscrow));
         n.setTag("pendingItems", writeItems(pendingItems));
         n.setTag("pendingFluids", writeFluids(pendingFluids));
-        n.setTag("spent", writeItems(spent.toArray(new ItemStack[0])));
+        constructionLedger.writeSpent(n);
         n.setByteArray("placed", placed.toByteArray());
         n.setByteArray("repairTargets", repairTargets.toByteArray());
         n.setBoolean("completionValidationPending", completionValidationPending);
@@ -3169,14 +2984,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         nativeFundingUncertain = n.getBoolean("nativeFundingUncertain");
         uncertainFundingItems = readItems(n.getTagList("uncertainFundingItems", 10), -1);
         uncertainFundingFluids = readFluids(n.getTagList("uncertainFundingFluids", 10), -1);
-        constructionRoundFunded = n.getBoolean("constructionRoundFunded");
-        constructionRound = Math.max(0, n.getInteger("constructionRound"));
+        constructionLedger.read(n);
         constructionTimeVersion = n.getInteger("constructionTimeVersion");
-        constructionProgress.read(n);
-        constructionCostSnapshot = n.getBoolean("constructionCostSnapshot");
-        constructionStageCosts = readItems(n.getTagList("constructionStageCosts", 10), -1);
-        constructionStageFluidCosts = readFluids(n.getTagList("constructionStageFluidCosts", 10), -1);
-        constructionPaidFluids = readFluids(n.getTagList("constructionPaidFluids", 10), -1);
         debugRequirements = Math.max(0, Math.min(3, n.getInteger("constructionDebugRequirements")));
         debugSpeed = Math.max(0, Math.min(3, n.getInteger("constructionDebugSpeed")));
         debugIgnoreEnergy = n.getBoolean("constructionDebugIgnoreEnergy");
@@ -3208,8 +3017,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         fluidEscrow = readFluids(n.getTagList("fluidEscrow", 10), -1);
         pendingItems = readItems(n.getTagList("pendingItems", 10), -1);
         pendingFluids = readFluids(n.getTagList("pendingFluids", 10), -1);
-        spent.clear();
-        for (ItemStack item : readItems(n.getTagList("spent", 10), -1)) if (item != null) spent.add(item);
+        constructionLedger.readSpent(n);
         placed.clear();
         placed.or(BitSet.valueOf(n.getByteArray("placed")));
         repairTargets.clear();

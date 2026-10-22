@@ -39,6 +39,9 @@ public class GTSRMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (mixinClassName.startsWith("com.miaokatze.gtsr.mixin.nei.")) {
+            return BlockRendererPreviewShape.SUPPORTED;
+        }
         if (mixinClassName.startsWith("com.miaokatze.gtsr.mixin.angelica.")) {
             return AngelicaCaptureShape.SUPPORTED;
         }
@@ -80,6 +83,65 @@ public class GTSRMixinPlugin implements IMixinConfigPlugin {
             Class.forName(className, false, GTSRMixinPlugin.class.getClassLoader());
             return true;
         } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
+    /** The optional optimization is coupled to the inspected 1.4.24 scene/batch contract. */
+    private static final class BlockRendererPreviewShape {
+
+        private static final boolean SUPPORTED = hasPreviewShape();
+
+        private static boolean hasPreviewShape() {
+            ClassLoader loader = GTSRMixinPlugin.class.getClassLoader();
+            try (
+                InputStream sceneBytes = loader
+                    .getResourceAsStream("blockrenderer6343/client/renderer/WorldSceneRenderer.class");
+                InputStream worldBytes = loader
+                    .getResourceAsStream("blockrenderer6343/client/world/TrackedDummyWorld.class")) {
+                if (sceneBytes == null || worldBytes == null) return false;
+                ClassNode scene = new ClassNode(), world = new ClassNode();
+                new ClassReader(sceneBytes).accept(scene, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+                new ClassReader(worldBytes).accept(world, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+                return method(
+                    scene,
+                    "renderBlocks",
+                    "(Lnet/minecraft/client/renderer/Tessellator;" + "Lit/unimi/dsi/fastutil/longs/LongCollection;Z)V")
+                    && method(scene, "<init>", "(Lblockrenderer6343/client/world/TrackedDummyWorld;)V")
+                    && field(scene, "bufferBuilder", "Lnet/minecraft/client/renderer/RenderBlocks;")
+                    && field(scene, "renderAllFaces", "Z")
+                    && field(scene, "renderedBlocks", "Lit/unimi/dsi/fastutil/longs/LongSet;")
+                    && field(scene, "onRender", "Ljava/util/function/Consumer;")
+                    && method(scene, "resetRenderedBlocks", "()V")
+                    && method(scene, "setRenderAllFaces", "(Z)V")
+                    && AngelicaCaptureShape.calls(
+                        scene,
+                        "drawWorld",
+                        "it/unimi/dsi/fastutil/longs/LongSet",
+                        "forEach",
+                        "(Lit/unimi/dsi/fastutil/longs/LongConsumer;)V")
+                    && (method(world, "setBlock", "(IIILnet/minecraft/block/Block;II)Z")
+                        || method(world, "func_147465_d", "(IIILnet/minecraft/block/Block;II)Z"))
+                    && (method(world, "setBlockMetadataWithNotify", "(IIIII)Z")
+                        || method(world, "func_72921_c", "(IIIII)Z"))
+                    && (method(world, "setTileEntity", "(IIILnet/minecraft/tileentity/TileEntity;)V")
+                        || method(world, "func_147455_a", "(IIILnet/minecraft/tileentity/TileEntity;)V"))
+                    && (method(world, "removeTileEntity", "(III)V") || method(world, "func_147475_p", "(III)V"))
+                    && method(world, "setVisibleYLevel", "(I)V");
+            } catch (IOException unreadable) {
+                return false;
+            }
+        }
+
+        private static boolean method(ClassNode node, String name, String descriptor) {
+            for (MethodNode method : node.methods)
+                if (method.name.equals(name) && method.desc.equals(descriptor)) return true;
+            return false;
+        }
+
+        private static boolean field(ClassNode node, String name, String descriptor) {
+            for (org.spongepowered.asm.lib.tree.FieldNode field : node.fields)
+                if (field.name.equals(name) && field.desc.equals(descriptor)) return true;
             return false;
         }
     }

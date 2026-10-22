@@ -7,6 +7,7 @@ import argparse
 import collections
 import hashlib
 import json
+from material_palette import expand_palette
 from pathlib import Path
 import zipfile
 import zlib
@@ -129,8 +130,8 @@ def main():
                 if archive:
                     return (archive.read(png), archive.read(meta) if meta in archive.namelist() else None)
                 return payload(RESOURCES / png)
-            old_palette = json.loads(baseline.read('assets/gtsr/critical/materials.json'))
-            new_palette = json.loads(read_current('assets/gtsr/critical/materials.json'))
+            old_palette = expand_palette(json.loads(baseline.read('assets/gtsr/critical/materials.json')))
+            new_palette = expand_palette(json.loads(read_current('assets/gtsr/critical/materials.json')))
             old_names = [name for _, _, name in references(old_palette)]
             new_names = [name for _, _, name in references(new_palette)]
             if len(old_names) != len(new_names):

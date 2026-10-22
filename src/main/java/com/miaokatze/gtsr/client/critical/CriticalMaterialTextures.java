@@ -1,16 +1,23 @@
 package com.miaokatze.gtsr.client.critical;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.IBlockAccess;
+import net.minecraftforge.client.event.TextureStitchEvent;
+import net.minecraftforge.common.MinecraftForge;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.miaokatze.gtsr.common.critical.CriticalMaterialDefinitions;
+import com.miaokatze.gtsr.common.critical.CriticalMaterialDefinitions.Definition;
+import com.miaokatze.gtsr.common.critical.CriticalMaterialDefinitions.FaceSprite;
+import com.miaokatze.gtsr.common.critical.CriticalMaterialDefinitions.SpritePair;
 import com.miaokatze.gtsr.common.critical.CriticalMaterials;
 
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
@@ -25,118 +32,190 @@ public final class CriticalMaterialTextures {
     public static final int[][] U = { { 1, 0, 0 }, { 1, 0, 0 }, { -1, 0, 0 }, { 1, 0, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
     public static final int[][] V = { { 0, 0, 1 }, { 0, 0, -1 }, { 0, 1, 0 }, { 0, 1, 0 }, { 0, 1, 0 }, { 0, 1, 0 } };
 
-    private static final Map<String, Map<String, IIcon>> ICONS = new HashMap<>();
+    private static final Map<String, RegisteredMaterial> REGISTERED = new HashMap<>();
+    private static volatile Map<String, MaterialIcons> tables = Collections.emptyMap();
+    private static boolean listening, stitchComplete;
 
     private CriticalMaterialTextures() {}
 
-    public static void register(String alias, IIconRegister register) {
-        JsonObject properties = CriticalMaterials.properties(alias);
-        String id = properties.get("id")
-            .getAsString();
-        Map<String, IIcon> icons = new HashMap<>();
-        if (properties.has("sprites")) {
-            for (Map.Entry<String, JsonElement> group : properties.getAsJsonObject("sprites")
-                .entrySet()) {
-                registerPair(
-                    icons,
-                    group.getKey(),
-                    group.getValue()
-                        .getAsJsonObject(),
-                    register);
-            }
-            if (properties.has("ctm")) {
-                JsonObject groups = properties.getAsJsonObject("ctm")
-                    .getAsJsonObject("sprites");
-                for (Map.Entry<String, JsonElement> group : groups.entrySet()) {
-                    for (Map.Entry<String, JsonElement> mask : group.getValue()
-                        .getAsJsonObject()
-                        .entrySet()) {
-                        registerPair(
-                            icons,
-                            "ctm:" + group.getKey() + ':' + mask.getKey(),
-                            mask.getValue()
-                                .getAsJsonObject(),
-                            register);
-                    }
-                }
-            }
-        } else {
-            icons.put("side:albedo", register.registerIcon("gtsr:critical/" + id));
-            icons.put("top:albedo", register.registerIcon("gtsr:critical/" + id + "__top"));
-            if (properties.get("emissionStrength")
-                .getAsDouble() > 0) {
-                icons.put("side:emission", register.registerIcon("gtsr:critical/" + id + "_emission"));
-            }
-        }
-        // Overwrite on every atlas stitch: never retain IIcons from a previous resource reload.
-        ICONS.put(id, icons);
+    static void listen() {
+        if (listening) return;
+        listening = true;
+        MinecraftForge.EVENT_BUS.register(new CriticalMaterialTextures());
     }
 
-    private static void registerPair(Map<String, IIcon> icons, String group, JsonObject pair, IIconRegister register) {
-        for (String kind : new String[] { "albedo", "emission", "frozenAlbedo", "frozenEmission" }) {
-            JsonElement name = pair.get(kind);
-            if (name != null && !name.isJsonNull())
-                icons.put(group + ':' + kind, register.registerIcon(name.getAsString()));
+    @SubscribeEvent
+    public void beforeStitch(TextureStitchEvent.Pre event) {
+        if (event.map.getTextureType() != 0) return;
+        // Vanilla gathers block icons before emitting Pre, so those fresh registrations must survive.
+        tables = Collections.emptyMap();
+    }
+
+    @SubscribeEvent
+    public void afterStitch(TextureStitchEvent.Post event) {
+        if (event.map.getTextureType() != 0) return;
+        Map<String, MaterialIcons> next = new HashMap<>();
+        for (Definition definition : CriticalMaterialDefinitions.catalog()
+            .definitions()
+            .values()) next.put(definition.id, resolve(definition));
+        for (Map.Entry<String, String> alias : CriticalMaterialDefinitions.catalog()
+            .aliases()
+            .entrySet()) next.put(alias.getKey(), next.get(alias.getValue()));
+        // Publish complete immutable atlas data once. Chunk workers never see a table being filled.
+        tables = Collections.unmodifiableMap(next);
+        stitchComplete = true;
+    }
+
+    public static void register(String alias, IIconRegister register) {
+        if (stitchComplete) {
+            tables = Collections.emptyMap();
+            REGISTERED.clear();
+            stitchComplete = false;
         }
+        Definition definition = CriticalMaterialDefinitions.definition(alias);
+        RegisteredMaterial material = new RegisteredMaterial();
+        if (definition.hasSprites()) {
+            for (SpritePair pair : definition.sprites()
+                .values()) material.register(pair, register);
+            for (SpritePair pair : definition.ctmSprites()
+                .values()) material.register(pair, register);
+        } else {
+            material.side[0] = register.registerIcon("gtsr:critical/" + definition.id);
+            material.top[0] = register.registerIcon("gtsr:critical/" + definition.id + "__top");
+            if (definition.emissive)
+                material.side[1] = register.registerIcon("gtsr:critical/" + definition.id + "_emission");
+        }
+        REGISTERED.put(definition.id, material);
     }
 
     public static IIcon icon(String alias, int side, int mask, boolean emission, boolean frozen) {
-        JsonObject properties = CriticalMaterials.properties(alias);
-        String id = properties.get("id")
-            .getAsString();
-        Map<String, IIcon> icons = ICONS.get(id);
-        if (icons == null) return null;
-        String face = FACE_NAMES[side];
-        String group = side < 2 ? "top" : "side";
-        String kind = emission ? "emission" : "albedo";
-        String frozenKind = emission ? "frozenEmission" : "frozenAlbedo";
-        if (properties.has("ctm")) {
-            JsonObject ctm = properties.getAsJsonObject("ctm");
-            group = ctm.getAsJsonObject("faceLookup")
-                .get(face)
-                .getAsString();
-            mask &= ctm.getAsJsonObject("faceAllowedMask")
-                .get(face)
-                .getAsInt();
-            return icons.get("ctm:" + group + ':' + mask + ':' + (frozen ? frozenKind : kind));
+        MaterialIcons icons = tables.get(alias);
+        // registerBlockIcons asks for its block icons before the atlas Post event.
+        if (icons == null) icons = resolve(CriticalMaterialDefinitions.definition(alias));
+        return icons.faces[side][mask & 15][(frozen ? 2 : 0) + (emission ? 1 : 0)];
+    }
+
+    private static MaterialIcons resolve(Definition definition) {
+        MaterialIcons result = new MaterialIcons();
+        RegisteredMaterial material = REGISTERED.get(definition.id);
+        if (material == null) return result;
+        for (int side = 0; side < 6; side++) {
+            String face = FACE_NAMES[side];
+            for (int mask = 0; mask < 16; mask++) {
+                IIcon[] selected;
+                if (definition.hasCtm()) {
+                    selected = material.pairs.get(
+                        definition.ctmSprite(definition.ctmFaceGroup(face), mask & definition.ctmAllowedMask(face)));
+                } else if (definition.hasFaceSprites()) {
+                    FaceSprite target = definition.faceSprite(face);
+                    Definition targetDefinition = CriticalMaterialDefinitions.definition("v2_" + target.material);
+                    RegisteredMaterial targetMaterial = REGISTERED.get(targetDefinition.id);
+                    selected = targetMaterial == null ? null
+                        : targetMaterial.pairs.get(targetDefinition.sprite(target.group));
+                } else if (definition.hasSprites()) {
+                    selected = material.pairs.get(definition.sprite(side < 2 ? "top" : "side"));
+                } else selected = side < 2 ? material.top : material.side;
+                if (selected == null) continue;
+                System.arraycopy(selected, 0, result.faces[side][mask], 0, 4);
+                // The legacy side/top path deliberately ignores the frozen flag.
+                if (!definition.hasCtm() && !definition.hasFaceSprites()) {
+                    result.faces[side][mask][2] = selected[0];
+                    result.faces[side][mask][3] = selected[1];
+                }
+            }
         }
-        if (properties.has("faceSprites")) {
-            JsonObject faceSprite = properties.getAsJsonObject("faceSprites")
-                .getAsJsonObject(face);
-            String target = "v2_" + faceSprite.get("material")
-                .getAsString();
-            group = faceSprite.get("group")
-                .getAsString();
-            icons = ICONS.get(target);
-            if (icons == null) return null;
-            return icons.get(group + ':' + (frozen ? frozenKind : kind));
+        return result;
+    }
+
+    private static final class MaterialIcons {
+
+        final IIcon[][][] faces = new IIcon[6][16][4];
+    }
+
+    private static final class RegisteredMaterial {
+
+        final Map<SpritePair, IIcon[]> pairs = new IdentityHashMap<>();
+        final IIcon[] side = new IIcon[4], top = new IIcon[4];
+
+        void register(SpritePair pair, IIconRegister register) {
+            IIcon[] icons = new IIcon[4];
+            for (int variant = 0; variant < 4; variant++) {
+                String name = pair.texture((variant & 1) != 0, (variant & 2) != 0);
+                if (name != null) icons[variant] = register.registerIcon(name);
+            }
+            pairs.put(pair, icons);
         }
-        return icons.get(group + ':' + kind);
     }
 
     /** Static chunk faces connect only matching exposed materials. Moving ownership is resolved by the TESR. */
     public static int worldMask(IBlockAccess world, int x, int y, int z, CriticalMaterials.MaterialBlock material,
         int side) {
-        JsonObject properties = CriticalMaterials.properties(material.materialId);
-        if (!properties.has("ctm") || CriticalMaterials.isAnimatedAt(world, x, y, z)) return 0;
-        String face = FACE_NAMES[side];
-        int allowed = properties.getAsJsonObject("ctm")
-            .getAsJsonObject("faceAllowedMask")
-            .get(face)
-            .getAsInt();
+        WorldMaskContext context = staticContext(world, x, y, z, material);
+        if (context == null || CriticalMaterials.isAnimatedAt(world, x, y, z)) return 0;
+        return worldMask(context, side);
+    }
+
+    /** One synchronous block render only: no neighbor/world state survives a chunk rebuild callback. */
+    static WorldMaskContext staticContext(IBlockAccess world, int x, int y, int z,
+        CriticalMaterials.MaterialBlock material) {
+        Definition definition = CriticalMaterialDefinitions.definition(material.materialId);
+        return definition.hasCtm() ? new WorldMaskContext(world, x, y, z, material, definition) : null;
+    }
+
+    static int worldMask(WorldMaskContext context, int side) {
+        if (context == null) return 0;
+        int allowed = context.definition.ctmAllowedMask(FACE_NAMES[side]);
         int result = 0;
-        for (int bit : new int[] { 1, 2, 4, 8 }) {
+        for (int bit = 1; bit <= 8; bit <<= 1) {
             if ((allowed & bit) == 0) continue;
             int[] basis = bit == 1 || bit == 4 ? V[side] : U[side];
             int sign = bit == 1 || bit == 8 ? -1 : 1;
-            int nx = x + basis[0] * sign, ny = y + basis[1] * sign, nz = z + basis[2] * sign;
-            if (!(world.getBlock(nx, ny, nz) instanceof CriticalMaterials.MaterialBlock next)
-                || CriticalMaterials.isAnimatedAt(world, nx, ny, nz)
-                || !material.materialId.equals(next.materialId)) continue;
+            int dx = basis[0] * sign, dy = basis[1] * sign, dz = basis[2] * sign;
+            int neighbor = dy < 0 ? 0 : dy > 0 ? 1 : dz < 0 ? 2 : dz > 0 ? 3 : dx < 0 ? 4 : 5;
+            int nx = context.x + dx, ny = context.y + dy, nz = context.z + dz;
+            CriticalMaterials.MaterialBlock next = context.matchingNeighbor(neighbor, nx, ny, nz);
+            if (next == null) continue;
             int[] normal = NORMALS[side];
-            if (!next.shouldSideBeRendered(world, nx + normal[0], ny + normal[1], nz + normal[2], side)) continue;
+            if (!next.shouldSideBeRendered(context.world, nx + normal[0], ny + normal[1], nz + normal[2], side))
+                continue;
             result |= bit;
         }
         return result;
+    }
+
+    static final class WorldMaskContext {
+
+        final IBlockAccess world;
+        final net.minecraft.world.World ownerWorld;
+        final int x, y, z;
+        final CriticalMaterials.MaterialBlock material;
+        final Definition definition;
+        final CriticalMaterials.MaterialBlock[] neighbors = new CriticalMaterials.MaterialBlock[6];
+        int checked;
+
+        WorldMaskContext(IBlockAccess world, int x, int y, int z, CriticalMaterials.MaterialBlock material,
+            Definition definition) {
+            this.world = world;
+            this.ownerWorld = world instanceof net.minecraft.world.World real ? real
+                : net.minecraft.client.Minecraft.getMinecraft().theWorld;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.material = material;
+            this.definition = definition;
+        }
+
+        CriticalMaterials.MaterialBlock matchingNeighbor(int index, int x, int y, int z) {
+            int bit = 1 << index;
+            if ((checked & bit) == 0) {
+                checked |= bit;
+                if (world.getBlock(x, y, z) instanceof CriticalMaterials.MaterialBlock next
+                    && material.materialId.equals(next.materialId)
+                    && !com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility
+                        .animated(ownerWorld, x, y, z, next, world.getBlockMetadata(x, y, z)))
+                    neighbors[index] = next;
+            }
+            return neighbors[index];
+        }
     }
 }

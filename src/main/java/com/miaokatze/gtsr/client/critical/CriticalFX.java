@@ -92,12 +92,12 @@ final class CriticalFX {
                 mode,
                 lod,
                 visible,
-                (family, source, index, point, color, alpha, glowAlpha, size) -> {
+                CriticalFXBudget.designSink((family, source, index, point, color, alpha, glowAlpha, size) -> {
                     if (!CriticalFXBudget.claim()) return;
                     solarCube(tessellator, point, color, alpha * .62, size);
                     solarCube(tessellator, point, color, glowAlpha * .95, size * .56);
                     solarCube(tessellator, point, color, glowAlpha * .16, size * 2);
-                });
+                }));
         } else if (isSolar(sun.meta, sunSlug)) {
             renderSolar(sun, loom, base, phase, seconds, lod, visible, sunSlug, loomSlug, baseSlug, mode, tessellator);
         } else {
@@ -128,12 +128,12 @@ final class CriticalFX {
             mode,
             lod,
             visible,
-            (family, index, point, color, alpha, glow, glowAlpha, size) -> {
+            CriticalFXBudget.solarSink((family, index, point, color, alpha, glow, glowAlpha, size) -> {
                 if (!CriticalFXBudget.claim()) return;
                 solarCube(tessellator, point, color, alpha * .62, size);
                 solarCube(tessellator, point, glow, glowAlpha * .95, size * .56);
                 solarCube(tessellator, point, glow, glowAlpha * .16, size * 2);
-            });
+            }));
         CriticalRenderMetrics.lastSolarParticles = CriticalRenderMetrics.particlesDrawn - before;
         CriticalRenderMetrics.lastSolarLod = lod;
     }
@@ -165,7 +165,7 @@ final class CriticalFX {
         Tessellator t = Tessellator.instance;
         t.startDrawingQuads();
         t.setBrightness(0x00f000f0);
-        for (int layer = 0; layer < 2; layer++) {
+        particleStream: for (int layer = 0; layer < 2; layer++) {
             int budget = (layer == 0 ? 192 : phase > 0 && phase < 1 ? 512 : 0) / lod;
             if (layer == 1 && slug.equals("sun")) {
                 renderSun(model, phase, seconds, t, lod);
@@ -176,6 +176,7 @@ final class CriticalFX {
                 if (layer == 1 && (phase <= source.lo || phase >= source.hi)) continue;
                 int count = budget / sources.size() + (si < budget % sources.size() ? 1 : 0);
                 for (int i = 0; i < count; i++) {
+                    if (CriticalFXBudget.full()) break particleStream;
                     double local = (phase - source.lo) / (source.hi - source.lo);
                     double travel = wrap(
                         layer == 0 ? seconds * .045 + i / (double) Math.max(1, count)
@@ -264,6 +265,7 @@ final class CriticalFX {
             for (int layer = 0; layer < 2; layer++) {
                 int total = layer == 0 ? 288 : 128, count = (total / 4 + (ring < total % 4 ? 1 : 0)) / lod;
                 for (int i = 0; i < count; i++) {
+                    if (CriticalFXBudget.full()) return;
                     double tail = i / (double) count, turn = wrap(phase * (1.5 + ring * .19) + ring * .25 - tail * .72);
                     double[] point = points.get(Math.min(points.size() - 1, (int) (turn * points.size()))),
                         anchor = new double[3];

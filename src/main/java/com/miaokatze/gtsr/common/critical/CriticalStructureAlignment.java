@@ -7,7 +7,7 @@ import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 /** Controller-relative declarations for the canonical fabrication layout. */
 public final class CriticalStructureAlignment {
 
-    public static final int V2_MAX = 111;
+    public static final int V2_MAX = CriticalLayoutDefinition.V2_SIZE - 1;
 
     private CriticalStructureAlignment() {}
 
@@ -82,10 +82,10 @@ public final class CriticalStructureAlignment {
     }
 
     public static int controllerA(boolean selector) {
-        return shapeA(56, selector);
+        return shapeA(CriticalLayoutDefinition.V2_CONTROLLER_X, selector);
     }
 
     public static int controllerC(boolean selector) {
-        return shapeC(selector ? 47 : 35, selector);
+        return shapeC(selector ? CriticalLayoutDefinition.V2_LOOM_Z : CriticalLayoutDefinition.V2_MAIN_Z, selector);
     }
 }
