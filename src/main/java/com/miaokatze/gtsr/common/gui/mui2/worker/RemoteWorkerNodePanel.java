@@ -32,9 +32,20 @@ public final class RemoteWorkerNodePanel {
         WorkerUiSession session = new WorkerUiSession(data, machine);
         manager.syncValue(WorkerUiSession.SYNC_KEY, session);
         settings.canInteractWith(player -> session.canUse());
+        com.cleanroommc.modularui.value.sync.GenericSyncValue<ItemStack, ?> upgradeItem = com.cleanroommc.modularui.value.sync.GenericSyncValue
+            .forItem(
+                () -> manager.isClient() ? null : machine.getWorkerUpgradeItem(machine.getWorkerUiSnapshot().tier + 1),
+                null);
+        com.cleanroommc.modularui.value.sync.IntSyncValue upgradeCost = new com.cleanroommc.modularui.value.sync.IntSyncValue(
+            () -> manager.isClient() ? 0 : machine.getWorkerUpgradeCost(machine.getWorkerUiSnapshot().tier + 1));
+        manager.syncValue("worker_upgrade_item", upgradeItem);
+        manager.syncValue("worker_upgrade_cost", upgradeCost);
+        com.cleanroommc.modularui.utils.item.IItemHandler inventory = machine == null
+            ? new com.cleanroommc.modularui.utils.item.ItemStackHandler(3)
+            : machine.inventoryHandler;
         manager.registerSlotGroup("worker_pipes", 3);
         for (int i = 0; i < 3; i++) {
-            ModularSlot slot = new PureInventorySlot(machine.inventoryHandler, i).slotGroup("worker_pipes");
+            ModularSlot slot = new PureInventorySlot(inventory, i).slotGroup("worker_pipes");
             manager.itemSlot("worker_pipe", i, slot);
         }
         // Explicit registration precedes widget collection on both sides, so indices are always 0..2, then main/hotbar.
@@ -48,7 +59,7 @@ public final class RemoteWorkerNodePanel {
             IKey.dynamic(
                 () -> session.snapshot
                     == null
-                        ? machine.getLocalName()
+                        ? machine == null ? "" : machine.getLocalName()
                         : session.snapshot.title.isEmpty()
                             ? IKey
                                 .lang(
@@ -86,7 +97,7 @@ public final class RemoteWorkerNodePanel {
                             WorkerUiSnapshot snapshot = session.snapshot;
                             t.addLine(IKey.lang("gtsr.gui.node_upgrade.tooltip.title"));
                             int tier = snapshot == null ? 0 : snapshot.tier;
-                            ItemStack item = machine.getWorkerUpgradeItem(tier + 1);
+                            ItemStack item = upgradeItem.getValue();
                             if (item == null) t.addLine(IKey.lang("gtsr.gui.node_upgrade.tooltip.max"));
                             else {
                                 t.addLine(
@@ -99,7 +110,7 @@ public final class RemoteWorkerNodePanel {
                                     IKey.str(
                                         IKey.lang("gtsr.gui.node_upgrade.tooltip.singularity")
                                             .getFormatted() + " "
-                                            + machine.getWorkerUpgradeCost(tier + 1)));
+                                            + upgradeCost.getIntValue()));
                             }
                         })
                         .tooltipAutoUpdate(true)));

@@ -1,22 +1,34 @@
 package com.miaokatze.gtsr.loader.recipes;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.critical.CriticalCompiledLayout;
+import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
+import com.miaokatze.gtsr.common.critical.CriticalConstructionEconomy;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyRuntime;
+import com.miaokatze.gtsr.common.critical.CriticalFoundationMaterials;
 import com.miaokatze.gtsr.common.critical.CriticalGTRecipes;
+import com.miaokatze.gtsr.common.critical.CriticalGeometry;
+import com.miaokatze.gtsr.common.critical.CriticalLayoutDefinition;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
+import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
+import com.miaokatze.gtsr.common.critical.CriticalTier;
 import com.miaokatze.gtsr.common.items.IrradiatedDust;
 
 import gregtech.api.enums.GTValues;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
+import gregtech.api.util.GTRecipeConstants;
 import gtPlusPlus.core.material.MaterialMisc;
 
 /** Physical manufacturing recipes plus real work-recipe views. */
@@ -29,15 +41,84 @@ public final class CriticalMachineRecipes {
     public static void register() {
         if (registered) return;
         CriticalManufacturingRecipes.register();
+        registerConstruction();
         registerSolar();
         registerTurbine();
         registerChemicalFuels();
         for (GTRecipe original : RecipeMaps.fusionRecipes.getAllRecipes()) {
-            if (!original.mEnabled || original.mFakeRecipe || original.mEUt < 0) continue;
+            if (!supportedFusion(original)) continue;
+            GTRecipe display = original.copy();
+            display.mDuration = CriticalStellarPolicy.duration(original.mDuration);
             CriticalRecipeMaps
-                .addDisplayRecipe(CriticalMachineKind.SUN, original.copy(), "sun", BigInteger.valueOf(original.mEUt));
+                .addDisplayRecipe(CriticalMachineKind.SUN, display, "sun", BigInteger.valueOf(original.mEUt));
         }
         registered = true;
+    }
+
+    /** Mirror the runtime's public MkV gate and its closed native fluid-only metadata contract. */
+    private static boolean supportedFusion(GTRecipe recipe) {
+        if (!recipe.mEnabled || recipe.mFakeRecipe
+            || recipe.mDuration <= 0
+            || !CriticalStellarPolicy.nativeCapability(
+                recipe.getMetadataOrDefault(GTRecipeConstants.FUSION_THRESHOLD, -1L),
+                recipe.mEUt,
+                GTValues.V[10])
+            || recipe.mInputs.length != 0
+            || recipe.mOutputs.length != 0
+            || recipe.mSpecialItems != null
+            || recipe.mNeedsEmptyOutput) return false;
+        for (java.util.Map.Entry<gregtech.api.recipe.RecipeMetadataKey<?>, Object> entry : recipe.getMetadataStorage()
+            .getEntries()) if (entry.getKey() != GTRecipeConstants.FUSION_THRESHOLD) return false;
+        return true;
+    }
+
+    /** Freeze the exact canonical paid bill once at loadComplete, never in the NEI render loop. */
+    private static void registerConstruction() {
+        for (CriticalMachineKind kind : CriticalMachineKind.releasedValues()) {
+            CriticalConfiguration config = new CriticalConfiguration(CriticalTier.T3, kind, 8, 0, 0);
+            CriticalLayoutDefinition definition = CriticalLayoutDefinition.select(2, 31, false, config.tier, kind);
+            CriticalCompiledLayout layout = CriticalCompiledLayout.get(definition, config);
+            List<CriticalGeometry.Voxel> paid = new ArrayList<>();
+            for (CriticalGeometry.Voxel voxel : layout.voxels())
+                if (!CriticalLayoutDefinition.isLoom(voxel)) paid.add(voxel);
+            CriticalConstructionEconomy economy = CriticalConstructionEconomy
+                .freeze(config, paid, definition.cacheKey());
+            ItemStack controller = switch (kind) {
+                case SOLAR -> GTSRItemList.CriticalSolar.get(1);
+                case TURBINE -> GTSRItemList.CriticalTurbine.get(1);
+                case SUN -> GTSRItemList.CriticalSun.get(1);
+                case BATTERY -> GTSRItemList.CriticalBattery.get(1);
+                default -> throw new IllegalArgumentException("Unreleased construction " + kind);
+            };
+            constructionPages(
+                kind,
+                0,
+                controller,
+                CriticalFoundationMaterials.items(),
+                new FluidStack[] { CriticalFoundationMaterials.fluid(1_000_000) });
+            for (int stage = 1; stage <= 2; stage++) {
+                List<CriticalGeometry.Voxel> group = new ArrayList<>();
+                for (CriticalGeometry.Voxel voxel : paid) if ((voxel.stage < 4) == (stage == 1)) group.add(voxel);
+                constructionPages(kind, stage, controller, economy.costs(group, 0, group.size()), new FluidStack[0]);
+            }
+        }
+    }
+
+    private static void constructionPages(CriticalMachineKind kind, int stage, ItemStack controller, ItemStack[] costs,
+        FluidStack[] fluids) {
+        int size = CriticalRecipeMaps.CONSTRUCTION_PAGE_SIZE;
+        int pages = Math.max(1, (costs.length + size - 1) / size);
+        for (int page = 0; page < pages; page++) {
+            GTRecipe recipe = GTValues.RA.stdBuilder()
+                .itemInputsUnsafe(Arrays.copyOfRange(costs, page * size, Math.min(costs.length, (page + 1) * size)))
+                .itemOutputs(controller.copy())
+                .fluidInputs(fluids)
+                .duration(400)
+                .eut(0)
+                .build()
+                .orElseThrow(() -> new IllegalStateException("Invalid construction catalogue " + kind));
+            CriticalRecipeMaps.addConstruction(recipe, kind, stage, page, pages);
+        }
     }
 
     private static void registerSolar() {
@@ -100,14 +181,14 @@ public final class CriticalMachineRecipes {
         for (CriticalGTRecipes.ChemicalFuel fuel : CriticalGTRecipes.chemicalFuels()) {
             FluidStack fluid = fuel.fluid.copy();
             fluid.amount = 1;
-            add(
-                CriticalMachineKind.BATTERY,
-                "battery",
-                new ItemStack[0],
-                new ItemStack[0],
-                new FluidStack[] { fluid },
-                new FluidStack[0],
-                fuel.euPerL);
+            GTRecipe recipe = GTValues.RA.stdBuilder()
+                .fluidInputs(fluid)
+                .duration(CriticalEnergyMath.CYCLE_TICKS)
+                .eut(0)
+                .build()
+                .orElseThrow(() -> new IllegalStateException("Invalid chemical catalogue fuel"));
+            CriticalRecipeMaps
+                .addDisplayRecipe(CriticalMachineKind.BATTERY, recipe, "battery", fuel.euPerL, fuel.spectrum);
         }
     }
 

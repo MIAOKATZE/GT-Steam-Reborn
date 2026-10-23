@@ -168,7 +168,7 @@ public final class HubTerminalSession extends SyncHandler<HubTerminalSession> {
             PacketBuffer check = new PacketBuffer(Unpooled.wrappedBuffer(payload));
             if (check.readInt() != data.getX() || check.readInt() != data.getY()
                 || check.readInt() != data.getZ()
-                || check.readInt() != data.getPlayer().dimension) return REJECTED;
+                || check.readInt() != data.getWorld().provider.dimensionId) return REJECTED;
             CacheNodeTerminalData.executeAction(data.getPlayer(), (IGregTechTileEntity) tile, action, payload);
         } else if (factory.type == TerminalUiType.SINGULARITY_HUB) {
             // Deliberately preserve the legacy 64-block ordinary-action range. Teleport has its own 8-block check.

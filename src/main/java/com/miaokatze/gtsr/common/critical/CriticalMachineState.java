@@ -962,12 +962,18 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return Math.min(blockWorldZ(0, 0), blockWorldZ(max, max));
     }
 
-    public boolean canUse(EntityPlayer p) {
+    /** Ownership/loom contract independent of distance and any current GUI session. */
+    public boolean permitsTerminalAccess(EntityPlayer p) {
         return !loomOwnedMain && p != null
-            && isUseableByPlayer(p)
+            && !p.isDead
             && (owner.isEmpty() || owner.equals(
                 p.getUniqueID()
                     .toString()));
+    }
+
+    public boolean canUse(EntityPlayer p) {
+        return permitsTerminalAccess(p) && (isUseableByPlayer(p)
+            || com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.hasRemoteAccess(p, host));
     }
 
     public boolean configure(EntityPlayer p, CriticalTier tier, CriticalMachineKind kind, int a, int b, int c) {

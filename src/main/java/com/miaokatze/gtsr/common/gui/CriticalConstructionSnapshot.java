@@ -21,11 +21,18 @@ final class CriticalConstructionSnapshot {
         this.values = values;
     }
 
+    /** Client bootstrap only. This sample carries no authority and is replaced by S2C. */
+    static CriticalConstructionSnapshot empty() {
+        int[] values = new int[HEADER_SIZE];
+        values[7] = values[8] = -1;
+        return new CriticalConstructionSnapshot(values);
+    }
+
     static GenericSyncValue<CriticalConstructionSnapshot, ?> register(PanelSyncManager manager,
         CriticalMachineState state) {
         GenericSyncValue<CriticalConstructionSnapshot, ?> sync = GenericSyncValue
             .builder(CriticalConstructionSnapshot.class)
-            .getter(() -> capture(state))
+            .getter(() -> manager.isClient() ? empty() : capture(state))
             .serializer((packet, sample) -> sample.write(packet))
             .deserializer(CriticalConstructionSnapshot::read)
             .equals((a, b) -> Arrays.equals(a.values, b.values))

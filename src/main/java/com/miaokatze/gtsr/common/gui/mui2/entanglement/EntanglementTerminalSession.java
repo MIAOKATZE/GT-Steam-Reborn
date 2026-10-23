@@ -211,7 +211,8 @@ public final class EntanglementTerminalSession extends SyncHandler<EntanglementT
     private boolean active() {
         return isValid() && !getSyncManager().isClient()
             && data.getPlayer().openContainer == getSyncManager().getContainer()
-            && data.getPlayer().worldObj == tile.getWorldObj()
+            && (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data)
+                || data.getPlayer().worldObj == tile.getWorldObj())
             && data.getTileEntity() == tile
             && EntanglementTerminalFactory.machine(data) == machine
             && EntanglementTerminalFactory.canUse(data);

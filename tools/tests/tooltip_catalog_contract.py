@@ -65,6 +65,11 @@ inventory_file = OUT / 'declaration-inventory.tsv'
 inventory_file.write_text('\n'.join(inventory_rows), encoding='utf-8')
 
 stubs = {
+    # Machine page replacement has its own focused production-class contract.
+    'net.minecraft.client.gui.GuiScreen': 'public class GuiScreen {public static boolean isShiftKeyDown(){return false;}}',
+    'com.miaokatze.gtsr.client.tooltip.GTSRMachineTooltips': '''public class GTSRMachineTooltips {
+ public static boolean rewrite(net.minecraft.item.ItemStack stack,java.util.List<String> lines,boolean shift){return false;}
+}''',
     'net.minecraft.item.Item': 'public class Item { public net.minecraft.block.Block block; }',
     'net.minecraft.item.ItemStack': '''public class ItemStack {
  public final Item item; public final int damage; public Object nbt;
@@ -322,7 +327,8 @@ for path in SOURCE.glob('*.java'):
     assert not re.search(r'\.(?:setTag|setTagCompound|setItemDamage|setInteger|setString)\s*\(', implementation), path
     assert '.stackTagCompound' not in implementation, path
 
-sources = sorted(JAVA.rglob('*.java')) + sorted(SOURCE.glob('*.java'))
+sources = sorted(JAVA.rglob('*.java')) + [SOURCE / (name + '.java')
+                                         for name in ('GTSRTooltipCatalog', 'GTSRTooltipHandler')]
 sources += [ROOT / 'src/main/java/com/miaokatze/gtsr/common/critical' / (name + '.java')
             for name in ('CriticalTooltips', 'CriticalMachineKind')]
 subprocess.run(['javac', '-encoding', 'UTF-8', '-d', str(CLASSES), *map(str, sources)], cwd=ROOT, check=True)

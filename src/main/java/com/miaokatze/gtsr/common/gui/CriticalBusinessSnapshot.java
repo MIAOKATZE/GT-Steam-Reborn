@@ -35,6 +35,7 @@ final class CriticalBusinessSnapshot {
     private final String[][] identities;
     private final String[][] runtime;
     private final int[] configuration;
+    private final CriticalConfiguration displayConfiguration;
 
     private CriticalBusinessSnapshot(CriticalConstructionSnapshot construction, String[] text, int economyVersion,
         String[][] identities, String[][] runtime, int[] configuration) {
@@ -44,14 +45,31 @@ final class CriticalBusinessSnapshot {
         this.identities = identities;
         this.runtime = runtime;
         this.configuration = configuration;
+        this.displayConfiguration = decodeConfiguration();
+    }
+
+    /** Empty client-side bootstrap; never used to validate an action or a payment. */
+    static CriticalBusinessSnapshot empty() {
+        String[] text = new String[TEXT_FIELDS];
+        Arrays.fill(text, "");
+        text[7] = text[8] = text[9] = "0";
+        return new CriticalBusinessSnapshot(
+            CriticalConstructionSnapshot.empty(),
+            text,
+            0,
+            new String[0][9],
+            new String[0][2],
+            new int[9]);
     }
 
     static GenericSyncValue<CriticalBusinessSnapshot, ?> register(PanelSyncManager manager, CriticalMachineState state,
         MTECriticalMachine machine) {
-        final CriticalBusinessSnapshot[] last = new CriticalBusinessSnapshot[1];
+        final CriticalBusinessSnapshot[] last = { manager.isClient() ? empty() : null };
         final long[] lastTick = { Long.MIN_VALUE };
         GenericSyncValue<CriticalBusinessSnapshot, ?> value = GenericSyncValue.builder(CriticalBusinessSnapshot.class)
             .getter(() -> {
+                // The client may have no target chunk or TileEntity. Only S2C owns its display sample.
+                if (manager.isClient()) return last[0];
                 long tick = state.worldObj == null ? 0 : state.worldObj.getTotalWorldTime();
                 if (last[0] == null || tick < lastTick[0] || tick - lastTick[0] >= 5) {
                     last[0] = capture(state, machine);
@@ -210,6 +228,10 @@ final class CriticalBusinessSnapshot {
     }
 
     CriticalConfiguration configuration() {
+        return displayConfiguration;
+    }
+
+    private CriticalConfiguration decodeConfiguration() {
         int a = Math.max(0, Math.min(8, configuration[1]));
         int b = Math.max(0, Math.min(8 - a, configuration[2]));
         int c = Math.max(0, Math.min(8 - a - b, configuration[3]));

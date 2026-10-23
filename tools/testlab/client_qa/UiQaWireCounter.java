@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 final class UiQaWireCounter extends ChannelDuplexHandler {
     final Mui2ClientQa owner;
     final Map<String,AtomicLong> values=new ConcurrentHashMap<String,AtomicLong>();
+    volatile JsonObject lastMuiOpen;
     private UiQaWireCounter(Mui2ClientQa owner){this.owner=owner;}
     static UiQaWireCounter install(Mui2ClientQa owner,Object player)throws Exception {
         Object handler=Mui2ClientQa.field(player,"sendQueue|field_71174_a");
@@ -31,10 +32,33 @@ final class UiQaWireCounter extends ChannelDuplexHandler {
             else if(type.endsWith(".C17PacketCustomPayload")){channel=String.valueOf(Mui2ClientQa.call(message,"getChannelName|func_149559_c"));payload=Mui2ClientQa.call(message,"getBufferData|func_149558_e");}
             else if(type.endsWith(".S3FPacketCustomPayload")){channel=String.valueOf(Mui2ClientQa.call(message,"getChannelName|func_149169_c"));payload=Mui2ClientQa.call(message,"getBufferData|func_149168_d");}
             if(channel==null)return;
+            if(direction.equals("S2C")&&channel.equals("modularui2"))observeMuiOpen(payload);
             int bytes=payload instanceof byte[]?((byte[])payload).length:((Number)Mui2ClientQa.call(payload,"readableBytes")).intValue();
             add("phase"+owner.phase+":"+direction+":"+channel+":packets",1);
             add("phase"+owner.phase+":"+direction+":"+channel+":payloadBytes",bytes);
         }catch(Throwable failure){add("measurementErrors",1);}
+    }
+    void observeMuiOpen(Object payload)throws Exception {
+        // MUI2 .92 registers the same OpenGuiPacket class at 2 then 3. Forge retains both
+        // decoder entries, but its class-to-id map is overwritten to 3 for encoding on either side.
+        // Parse a duplicate's header only: no reader-index changes or packet execution on the live payload.
+        Object bytes=payload instanceof byte[]?io.netty.buffer.Unpooled.wrappedBuffer((byte[])payload)
+            :Mui2ClientQa.call(payload,"duplicate");
+        try{
+        Object buffer=Mui2ClientQa.type("net.minecraft.network.PacketBuffer")
+            .getConstructor(io.netty.buffer.ByteBuf.class).newInstance(bytes);
+        if(((Number)Mui2ClientQa.call(buffer,"readableBytes")).intValue()<3)return;
+        int discriminator=((Number)Mui2ClientQa.call(buffer,"readUnsignedByte")).intValue();
+        if(discriminator!=2&&discriminator!=3)return;
+        int window=((Number)Mui2ClientQa.call(buffer,"readVarIntFromBuffer|func_150792_a")).intValue();
+        int network=((Number)Mui2ClientQa.call(buffer,"readVarIntFromBuffer|func_150792_a")).intValue();
+        String factory=String.valueOf(Mui2ClientQa.call(Mui2ClientQa.type(
+            "com.cleanroommc.modularui.network.NetworkUtils"),"readStringSafe",buffer));
+        JsonObject proof=new JsonObject();proof.addProperty("factory",factory);proof.addProperty("windowId",window);
+        proof.addProperty("networkId",network);proof.addProperty("observedDiscriminator",discriminator);
+        proof.addProperty("scope","Read-only actual S2C OpenGuiPacket header; MUI2 2.3.92 valid decode ids 2/3, Forge final class-to-id encoding 3");
+        lastMuiOpen=proof;
+        }finally{if(payload instanceof byte[])((io.netty.buffer.ByteBuf)bytes).release();}
     }
     void add(String key,long n){AtomicLong value=values.get(key);if(value==null){AtomicLong fresh=new AtomicLong();AtomicLong old=values.putIfAbsent(key,fresh);value=old==null?fresh:old;}value.addAndGet(n);}
     long muiPackets(){long n=0;for(Map.Entry<String,AtomicLong> e:values.entrySet())if(e.getKey().contains(":modularui2:packets"))n+=e.getValue().get();return n;}

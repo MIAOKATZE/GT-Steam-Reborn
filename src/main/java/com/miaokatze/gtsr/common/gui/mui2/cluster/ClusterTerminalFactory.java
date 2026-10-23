@@ -10,7 +10,6 @@ import net.minecraftforge.common.util.FakePlayer;
 
 import com.cleanroommc.modularui.api.UIFactory;
 import com.cleanroommc.modularui.factory.GuiManager;
-import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.UISettings;
@@ -65,7 +64,9 @@ public final class ClusterTerminalFactory implements UIFactory<ClusterTerminalFa
             initialPage,
             EPOCH.incrementAndGet());
         if (data.getTileEntity() != base || !canUse(data)) return false;
+        Object previousContainer = player.openContainer;
         GuiManager.open(INSTANCE, data, serverPlayer);
+        com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.recordOpened(player, base, previousContainer);
         return true;
     }
 
@@ -80,6 +81,8 @@ public final class ClusterTerminalFactory implements UIFactory<ClusterTerminalFa
 
     static boolean canUse(ClusterGuiData data) {
         EntityPlayer player = data.getPlayer();
+        if (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data))
+            return com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.canUseRemote(player, data);
         double range = TerminalServerSessions.MAX_INTERACTION_DISTANCE;
         return player != null && !player.isDead
             && !(player instanceof FakePlayer)
@@ -140,10 +143,20 @@ public final class ClusterTerminalFactory implements UIFactory<ClusterTerminalFa
             buffer.readLong());
     }
 
-    public static final class ClusterGuiData extends PosGuiData {
+    public static final class ClusterGuiData extends com.miaokatze.gtsr.common.terminal.RemoteTerminalGuiData {
 
         public final int initialPage;
         public final long epoch;
+
+        public ClusterGuiData(com.miaokatze.gtsr.common.terminal.RemoteTerminalGuiData remote) {
+            this(remote, EPOCH.incrementAndGet());
+        }
+
+        public ClusterGuiData(com.miaokatze.gtsr.common.terminal.RemoteTerminalGuiData remote, long epoch) {
+            super(remote);
+            this.initialPage = 0;
+            this.epoch = epoch;
+        }
 
         public ClusterGuiData(EntityPlayer player, int x, int y, int z, int initialPage, long epoch) {
             super(player, x, y, z);

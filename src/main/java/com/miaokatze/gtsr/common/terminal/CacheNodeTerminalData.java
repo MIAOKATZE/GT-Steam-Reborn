@@ -18,6 +18,8 @@ public final class CacheNodeTerminalData {
     private CacheNodeTerminalData() {}
 
     public static boolean canUse(EntityPlayer player, IGregTechTileEntity base) {
+        if (MachineTerminalHistory.hasRemoteAccess(player, base))
+            return base.getMetaTileEntity() instanceof IHubCacheNode node && node.isBoundToHub();
         return player instanceof net.minecraft.entity.player.EntityPlayerMP
             && !(player instanceof net.minecraftforge.common.util.FakePlayer)
             && base != null
@@ -67,7 +69,7 @@ public final class CacheNodeTerminalData {
         ByteBuf buf = Unpooled.wrappedBuffer(payload);
         if (buf.readInt() != base.getXCoord() || buf.readInt() != base.getYCoord()
             || buf.readInt() != base.getZCoord()
-            || buf.readInt() != player.dimension) return;
+            || buf.readInt() != base.getWorld().provider.dimensionId) return;
         switch (action) {
             case CacheHubTerminalData.ACTION_SET_RATE:
                 if (buf.readableBytes() != 8) return;

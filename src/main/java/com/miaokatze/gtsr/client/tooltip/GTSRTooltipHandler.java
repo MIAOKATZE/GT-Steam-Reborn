@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.client.tooltip;
 
 import java.util.List;
 
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.MinecraftForge;
@@ -27,6 +28,7 @@ public final class GTSRTooltipHandler {
     public void onTooltip(ItemTooltipEvent event) {
         List<String> keys = GTSRTooltipCatalog.descriptionKeys(event.itemStack);
         if (keys == null) return;
+        GTSRMachineTooltips.rewrite(event.itemStack, event.toolTip, GuiScreen.isShiftKeyDown());
         for (String key : keys) {
             String line = StatCollector.translateToLocal(key);
             if (!containsLine(event.toolTip, line)) event.toolTip.add(EnumChatFormatting.GRAY + line);

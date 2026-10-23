@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /** Owned QA helper only. Never package this mod in the production deliverable. */
-@Mod(modid="gtsrmui2clientqa",name="GTSR owned MUI2 client QA",version="1",dependencies="after:gregtech;required-after:gtsr")
+@Mod(modid="gtsrmui2clientqa",name="GTSR owned MUI2 client QA",version="1",dependencies="after:gregtech;required-after:gtsr;after:betterquesting;after:gtit;after:gtswn")
 public final class Mui2ClientQa {
     final JsonObject receipt=new JsonObject(); final JsonArray checks=new JsonArray(),heapSamples=new JsonArray();
     TicketRestartQa ticketRestart;
@@ -58,6 +58,11 @@ public final class Mui2ClientQa {
         gate=m.find()&&java.util.regex.Pattern.compile("(?m)^\\s*B:enabled\\s*=\\s*true\\s*$").matcher(m.group(1)).find();
     }
     @Mod.EventHandler public void init(FMLInitializationEvent e)throws Exception {if(gate){Object listener=this;if("ticket-restart".equals(System.getProperty("gtsr.uiqa.mode"))){ticketRestart=new TicketRestartQa(this);listener=ticketRestart;}else if("gallery-batch".equals(System.getProperty("gtsr.uiqa.mode"))){galleryBatch=new UiGalleryBatch(this);listener=galleryBatch;}FMLCommonHandler.instance().bus().register(listener);net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(listener);}}
+    @Mod.EventHandler public void serverStarted(FMLServerStartedEvent event) {
+        if(galleryBatch==null)return;
+        try{UiGalleryBatchBqStartup.beforeFirstLogin(galleryBatch);}
+        catch(Throwable failure){galleryBatch.serverFailure=failure;record("batch.bq-barrier.failed",false,failure.toString());}
+    }
     @SubscribeEvent(priority=EventPriority.HIGHEST)
     public void syntheticHover(net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent.Pre event) {
         if(done||pendingTooltip==null)return;

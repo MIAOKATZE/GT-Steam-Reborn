@@ -10,7 +10,6 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
-import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
@@ -22,7 +21,7 @@ import gregtech.api.enums.GTValues;
 final class CriticalConstructionView {
 
     private final GenericSyncValue<CriticalBusinessSnapshot, ?> business;
-    private final boolean[] expanded = new boolean[10];
+    private final boolean[] expanded = new boolean[14];
     private static final String[] FAMILIES = { "controller", "equipment", "S", "H", "E", "O", "F", "M", "C", "G" };
 
     CriticalConstructionView(CriticalMachineState state, PanelSyncManager manager) {
@@ -39,15 +38,33 @@ final class CriticalConstructionView {
         ParentWidget<?> drawing = new ParentWidget<>().size(286, 202)
             .background(CriticalGuiStyle.CARD);
         drawing.child(
-            IKey.dynamic(this::phaseName)
+            IKey.dynamic(() -> tr("view.progress") + " · " + phaseName())
                 .color(CriticalGuiStyle.TEXT_ACCENT)
                 .asWidget()
                 .pos(8, 5)
-                .size(270, 12));
+                .size(270, 12)
+                .tooltipBuilder(t -> t.add(phaseName()))
+                .tooltipAutoUpdate(true));
+        drawing.child(
+            IKey.dynamic(() -> percent(sample().progress()))
+                .color(CriticalGuiStyle.TEXT_TITLE)
+                .scale(1.45f)
+                .asWidget()
+                .pos(8, 22)
+                .size(122, 20));
+        drawing.child(
+            new ListWidget<>().name("critical_construction_stage_counts")
+                .pos(139, 23)
+                .size(139, 18)
+                .scrollDirection(CriticalGuiStyle.scroll())
+                .child(
+                    CriticalGuiStyle.text(IKey.dynamic(this::stageCounts))
+                        .color(CriticalGuiStyle.TEXT_BODY)
+                        .fullWidth()));
         drawing.child(
             new ParentWidget<>().name("critical_construction_preview")
-                .pos(6, 22)
-                .size(274, 144)
+                .pos(6, 46)
+                .size(274, 119)
                 .background(new CriticalConstructionPreview(this::sample))
                 .tooltipBuilder(t -> {
                     t.add(IKey.lang(key("view.grid_hint")));
@@ -56,7 +73,7 @@ final class CriticalConstructionView {
         drawing.child(
             IKey.dynamic(() -> tr(sample().showsFoundation() ? "view.grid_legend" : "view.ghost_legend"))
                 .color(CriticalGuiStyle.TEXT_MUTED)
-                .scale(0.8f)
+                .scale(0.75f)
                 .asWidget()
                 .pos(8, 172)
                 .size(270, 10));
@@ -66,23 +83,34 @@ final class CriticalConstructionView {
                 .background(new CriticalProgressBar(() -> sample().progress())));
         page.child(drawing);
 
-        ListWidget<IWidget, ?> information = new ListWidget<>().name("critical_construction_live_details")
+        ListWidget<IWidget, ?> status = new ListWidget<>().name("critical_construction_priority")
             .pos(292, 0)
-            .size(171, 202)
+            .size(171, 67)
             .padding(7)
             .background(CriticalGuiStyle.CARD)
-            .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
-        heading(information, () -> tr("view.progress") + " " + percent(sample().progress()));
-        line(information, () -> tr("ui.controller_state") + ": " + tr("status." + sample().status()));
+            .scrollDirection(CriticalGuiStyle.scroll());
+        line(status, () -> tr("status." + sample().status()), CriticalGuiStyle.TEXT_TITLE);
         line(
-            information,
+            status,
+            () -> !sample().enabled() ? tr("reason.7")
+                : sample().reason() == 0 ? business.getValue()
+                    .detail() : tr("reason." + sample().reason()),
+            CriticalGuiStyle.TEXT_ACCENT);
+        line(status, this::nextAction, CriticalGuiStyle.TEXT_MUTED);
+        page.child(status);
+
+        ListWidget<IWidget, ?> information = new ListWidget<>().name("critical_construction_live_details")
+            .pos(292, 72)
+            .size(171, 130)
+            .padding(7)
+            .background(CriticalGuiStyle.CARD)
+            .scrollDirection(CriticalGuiStyle.scroll());
+        disclosure(information, 10, "ui.details.construction");
+        ListWidget<IWidget, ?> timing = detailGroup(information, 10);
+        line(
+            timing,
             () -> tr("ui.journal_owner") + ": " + tr(sample().loomOwner() ? "ui.journal.loom" : "ui.journal.main"));
-        line(information, () -> {
-            CriticalConstructionSnapshot s = sample();
-            if (s.showsFoundation()) return tr("view.cells") + " " + s.completedCells() + " / " + s.totalCells();
-            return tr(s.status() == 3 ? "status.3" : "view.blocks") + " " + s.placed() + " / " + s.total();
-        });
-        line(information, () -> {
+        line(timing, () -> {
             CriticalConstructionSnapshot s = sample();
             if (s.status() == 3) return "";
             if (s.showsFoundation() && s.phase() == 1)
@@ -94,53 +122,45 @@ final class CriticalConstructionView {
                 + " / "
                 + clock(s.constructionDuration());
         });
-        line(information, () -> tr("view.chunks") + " " + sample().chunkCount());
-        line(information, this::activeLocation);
+        line(timing, () -> tr("view.chunks") + " " + sample().chunkCount());
+        line(timing, this::activeLocation);
+        line(timing, () -> tr("view.base_power") + " " + constructionVoltage() + " EU/t");
         line(
-            information,
-            () -> !sample().enabled() ? tr("reason.7")
-                : sample().reason() == 0 ? "" : tr("reason." + sample().reason()),
-            CriticalGuiStyle.TEXT_ACCENT);
-        line(
-            information,
-            () -> business.getValue()
-                .detail());
-        line(information, this::nextAction, CriticalGuiStyle.TEXT_ACCENT);
-        line(information, () -> tr("view.base_power") + " " + constructionVoltage() + " EU/t");
-        line(
-            information,
+            timing,
             () -> sample().phase() == 1 ? tr(sample().cellFunded() ? "construction.funded" : "construction.unfunded")
                 : "");
-        heading(information, () -> tr("construction.next_cost"));
+        disclosure(information, 11, "construction.next_cost");
+        ListWidget<IWidget, ?> costs = detailGroup(information, 11);
         line(
-            information,
+            costs,
             () -> business.getValue()
                 .nextItems());
         line(
-            information,
+            costs,
             () -> business.getValue()
                 .nextFluids());
         line(
-            information,
+            costs,
             () -> business.getValue()
                 .nextItems()
                 .isEmpty()
                 && business.getValue()
                     .nextFluids()
                     .isEmpty() ? tr("view.no_pending_cost") : "");
-        heading(information, () -> tr("construction.missing"));
+        disclosure(information, 12, "construction.missing");
+        ListWidget<IWidget, ?> missing = detailGroup(information, 12);
         line(
-            information,
+            missing,
             () -> business.getValue()
                 .missingItems(),
             CriticalGuiStyle.STATE_OFFLINE);
         line(
-            information,
+            missing,
             () -> business.getValue()
                 .missingFluids(),
             CriticalGuiStyle.STATE_OFFLINE);
         line(
-            information,
+            missing,
             () -> business.getValue()
                 .missingItems()
                 .isEmpty()
@@ -148,12 +168,13 @@ final class CriticalConstructionView {
                     .missingFluids()
                     .isEmpty() ? tr("construction.supplied") : "",
             CriticalGuiStyle.STATE_ONLINE);
-        heading(information, () -> tr("ui.economy.layers"));
-        line(information, () -> tr(business.getValue().economyVersion == 2 ? "ui.economy.rc2" : "ui.economy.legacy"));
-        line(information, () -> tr("ui.economy.network_unpaid"), CriticalGuiStyle.TEXT_MUTED);
+        disclosure(information, 13, "ui.economy.layers");
+        ListWidget<IWidget, ?> ledger = detailGroup(information, 13);
+        line(ledger, () -> tr(business.getValue().economyVersion == 2 ? "ui.economy.rc2" : "ui.economy.legacy"));
+        line(ledger, () -> tr("ui.economy.network_unpaid"), CriticalGuiStyle.TEXT_MUTED);
         for (int family = 0; family < FAMILIES.length; family++) {
             final int index = family;
-            information.child(
+            ledger.child(
                 new ButtonWidget<>().name("critical_economy_family_" + FAMILIES[index])
                     .height(16)
                     .widthRel(1f)
@@ -161,13 +182,14 @@ final class CriticalConstructionView {
                     .hoverBackground(CriticalGuiStyle.HOVER)
                     .overlay(
                         IKey.dynamic(() -> (expanded[index] ? "− " : "+ ") + tr("ui.economy.family." + FAMILIES[index]))
+                            .scale(0.8f)
                             .color(CriticalGuiStyle.TEXT_ACCENT))
                     .onMousePressed(button -> {
                         if (button != 0) return false;
                         expanded[index] = !expanded[index];
                         return true;
                     }));
-            information.child(
+            ledger.child(
                 CriticalGuiStyle.text(IKey.dynamic(() -> familyLines(FAMILIES[index])))
                     .color(CriticalGuiStyle.TEXT_BODY)
                     .fullWidth()
@@ -176,6 +198,41 @@ final class CriticalConstructionView {
         }
         page.child(information);
         return page;
+    }
+
+    private String stageCounts() {
+        CriticalConstructionSnapshot s = sample();
+        return s.showsFoundation() ? tr("view.cells") + " " + s.completedCells() + " / " + s.totalCells()
+            : tr("view.blocks") + " " + s.placed() + " / " + s.total();
+    }
+
+    private void disclosure(ListWidget<IWidget, ?> list, int index, String label) {
+        list.child(
+            new ButtonWidget<>().name("critical_details_" + index)
+                .height(19)
+                .fullWidth()
+                .marginBottom(3)
+                .background(CriticalGuiStyle.BUTTON)
+                .hoverBackground(CriticalGuiStyle.HOVER)
+                .overlay(
+                    IKey.dynamic(() -> (expanded[index] ? "− " : "+ ") + tr(label))
+                        .scale(0.8f)
+                        .color(CriticalGuiStyle.TEXT_ACCENT))
+                .tooltipBuilder(t -> t.add(IKey.lang(key(label))))
+                .onMousePressed(button -> {
+                    if (button != 0) return false;
+                    expanded[index] = !expanded[index];
+                    return true;
+                }));
+    }
+
+    private ListWidget<IWidget, ?> detailGroup(ListWidget<IWidget, ?> list, int index) {
+        ListWidget<IWidget, ?> group = new ListWidget<>().fullWidth()
+            .coverChildrenHeight()
+            .scrollDirection(CriticalGuiStyle.scroll())
+            .setEnabledIf(w -> expanded[index]);
+        list.child(group);
+        return group;
     }
 
     private CriticalConstructionSnapshot sample() {
@@ -256,10 +313,6 @@ final class CriticalConstructionView {
         return s.loomOwner() || s.phase() == 1 || s.phase() == 2 ? GTValues.V[9]
             : CriticalTier.byId(s.tier())
                 .constructionVoltage();
-    }
-
-    private static void heading(ListWidget<IWidget, ?> list, Supplier<String> text) {
-        line(list, text, CriticalGuiStyle.TEXT_ACCENT);
     }
 
     private static void line(ListWidget<IWidget, ?> list, Supplier<String> text) {
