@@ -3,6 +3,8 @@ package com.miaokatze.gtsr.common.critical;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
+import com.miaokatze.gtsr.common.util.GTSRUtils;
+
 import gregtech.api.util.MultiblockTooltipBuilder;
 
 /** Standard GT tooltips with operating rules specific to each released machine. */
@@ -16,7 +18,8 @@ public final class CriticalTooltips {
         if (preset != null && !preset.isReleased()) {
             tt.addInfo(EnumChatFormatting.YELLOW + tr("tooltip.frozen"))
                 .addInfo(tr("tooltip.unobtainable"));
-            tt.toolTipFinisher("GTSteamReborn");
+            tt.addInfo(GTSRUtils.getAddedByLine())
+                .toolTipFinisher();
             return tt;
         }
         if (preset == null) {
@@ -34,14 +37,24 @@ public final class CriticalTooltips {
                 .addInfo(EnumChatFormatting.YELLOW + tr("operation." + preset.key + ".energy"))
                 .addInfo(tr("operation." + preset.key + ".efficiency"))
                 .addInfo(EnumChatFormatting.GREEN + tr("operation." + preset.key + ".output"));
-            if (preset == CriticalMachineKind.BATTERY || preset == CriticalMachineKind.TURBINE) {
+            if (preset == CriticalMachineKind.TURBINE) {
                 tt.addInfo(tr("operation.trend"))
                     .addInfo(tr("operation.idle"));
+            }
+            if (preset == CriticalMachineKind.BATTERY) {
+                tt.addInfo(tr("operation.battery.windows"))
+                    .addInfo(tr("operation.battery.paid"));
+            }
+            if (preset == CriticalMachineKind.SUN) {
+                tt.addInfo(tr("operation.sun.ignition"))
+                    .addInfo(tr("operation.sun.heat"))
+                    .addInfo(tr("operation.sun.pause"));
             }
             if (preset == CriticalMachineKind.SOLAR) tt.addInfo(tr("operation.solar.night"));
         }
         tt.addInfo(tr("functional.decorative"))
-            .addInfo(tr("tooltip.unobtainable"))
+            .addInfo(tr("tooltip.manufacturing.controllers"))
+            .addInfo(tr("tooltip.manufacturing.casings"))
             .addInfo(tr("management_hint"))
             .addSeparator();
         if (preset == null || CriticalMachineState.supportsV2Kind(preset)) {
@@ -49,7 +62,8 @@ public final class CriticalTooltips {
         } else {
             legacyStructure(tt);
         }
-        tt.toolTipFinisher("GTSteamReborn");
+        tt.addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 

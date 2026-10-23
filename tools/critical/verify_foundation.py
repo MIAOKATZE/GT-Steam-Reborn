@@ -24,6 +24,8 @@ def main():
     parser.add_argument('--out', required=True, type=Path)
     parser.add_argument('--contract', action='append', choices=CONTRACTS,
                         help='Run only the named contracts for a focused diagnosis loop')
+    parser.add_argument('--recovery-scenario', action='append',
+                        help='Run only named recovery scenarios; does not claim the entire recovery suite passed')
     parser.add_argument('--java-home', type=Path,
                         default=Path.home() / '.gradle/jdks/azul_systems__inc_-17-amd64-windows.2')
     args = parser.parse_args()
@@ -44,6 +46,7 @@ def main():
                                    ROOT / 'build/rfg/recompiled_minecraft-1.7.10.jar',
                                    ROOT / 'build/rfg/mclauncher-1.7.10.jar', *dependencies]))
     sources = [ROOT / 'tools/tests' / (name + '.java') for name in CONTRACTS]
+    sources.append(ROOT / 'tools/tests/CriticalRC2StateContract.java')
     sources.append(ROOT / 'tools/critical/CriticalV32Fixture.java')
     before = {str(path.relative_to(ROOT)): sha(path) for path in sources}
     candidate_hash = sha(candidate)
@@ -66,7 +69,8 @@ def main():
                                      '-cp', cp, '-d', classes, *sources])
     results, origins = {}, {}
     for name in args.contract or CONTRACTS:
-        text = execute('java.exe', name, ['-cp', cp, 'com.miaokatze.gtsr.common.critical.' + name, candidate])
+        selected = [','.join(args.recovery_scenario)] if name == 'CriticalConstructionRecoveryContract' and args.recovery_scenario else []
+        text = execute('java.exe', name, ['-cp', cp, 'com.miaokatze.gtsr.common.critical.' + name, candidate, *selected])
         match = re.search(r'PASS ' + name + r' checks=(\d+)', text)
         if not match:
             raise RuntimeError(f'{name} returned no receipt')
@@ -81,6 +85,8 @@ def main():
                'sourceOrigins': origins, 'fixtureSHA256': before, 'checks': results,
                'totalChecks': sum(results.values()),
                'scope': 'Detached real GT205/AE1080 classes; real NBT and State tick; sparse clocks; no FML/server/GL or live ME network'}
+    if args.recovery_scenario:
+        receipt['recoveryScenarios'] = args.recovery_scenario
     (out / 'verification.json').write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps({'status': receipt['status'], 'totalChecks': receipt['totalChecks'], 'jarSHA256': candidate_hash}))
 

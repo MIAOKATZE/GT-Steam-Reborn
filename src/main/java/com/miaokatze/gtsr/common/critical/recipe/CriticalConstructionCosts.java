@@ -9,7 +9,7 @@ import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 
-/** Five material stages. One plate funds 256 visual structural voxels (the projection is not a crafting recipe). */
+/** Frozen legacy prices only. RC2 jobs pay physical shells and carrier equipment through their job manifest. */
 public final class CriticalConstructionCosts {
 
     private static ItemStack[][] parts;

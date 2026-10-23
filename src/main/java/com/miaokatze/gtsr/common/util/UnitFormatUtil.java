@@ -40,6 +40,6 @@ public final class UnitFormatUtil {
         long frac = value % divisor * 100 / divisor;
         if (frac == 0) return whole + suffix;
         if (frac % 10 == 0) return whole + "." + frac / 10 + suffix;
-        return whole + "." + frac + suffix;
+        return whole + "." + (frac < 10 ? "0" : "") + frac + suffix;
     }
 }
