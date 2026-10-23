@@ -11,10 +11,12 @@ import com.miaokatze.miaokatzecore.client.render.GlScope;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Read-only drawing of server samples. No wall clock, extrapolation or world access. */
+/** Read-only server sample drawing. The active-cell pulse is decorative; progress never extrapolates. */
 final class CriticalConstructionPreview implements IDrawable {
 
     private final Supplier<CriticalConstructionSnapshot> sample;
+    private CriticalConstructionSnapshot boundsSample;
+    private int minX, maxX, minZ, maxZ;
 
     CriticalConstructionPreview(Supplier<CriticalConstructionSnapshot> sample) {
         this.sample = sample;
@@ -25,21 +27,33 @@ final class CriticalConstructionPreview implements IDrawable {
     public void draw(GuiContext context, int x, int y, int width, int height, WidgetTheme theme) {
         try (GlScope ignored = new GlScope()) {
             GuiDraw.drawRect(x, y, width, height, 0xFF151C25);
+            // Fixed drafting grid and corner marks. No model, world scan, texture allocation or widget rebuild.
+            for (int column = 12; column < width; column += 16) GuiDraw.drawRect(x + column, y, 1, height, 0x163E6676);
+            for (int row = 10; row < height; row += 16) GuiDraw.drawRect(x, y + row, width, 1, 0x163E6676);
+            GuiDraw.drawRect(x + 3, y + 3, 12, 1, 0xFF856C42);
+            GuiDraw.drawRect(x + 3, y + 3, 1, 9, 0xFF856C42);
+            GuiDraw.drawRect(x + width - 15, y + height - 4, 12, 1, 0xFF856C42);
+            GuiDraw.drawRect(x + width - 4, y + height - 12, 1, 9, 0xFF856C42);
             CriticalConstructionSnapshot current = sample.get();
-            if (current.showsFoundation()) drawFoundation(current, x, y, width, height);
+            if (current.showsFoundation() && current.chunkCount() > 0)
+                drawFoundation(current, context, x, y, width, height);
             else drawStructure(current, x, y, width, height);
         }
     }
 
     @SideOnly(Side.CLIENT)
-    private static void drawFoundation(CriticalConstructionSnapshot current, int x, int y, int width, int height) {
-        if (current.chunkCount() == 0) return;
-        int minX = current.chunkX(0), maxX = minX, minZ = current.chunkZ(0), maxZ = minZ;
-        for (int i = 1; i < current.chunkCount(); i++) {
-            minX = Math.min(minX, current.chunkX(i));
-            maxX = Math.max(maxX, current.chunkX(i));
-            minZ = Math.min(minZ, current.chunkZ(i));
-            maxZ = Math.max(maxZ, current.chunkZ(i));
+    private void drawFoundation(CriticalConstructionSnapshot current, GuiContext context, int x, int y, int width,
+        int height) {
+        if (boundsSample != current) {
+            minX = maxX = current.chunkX(0);
+            minZ = maxZ = current.chunkZ(0);
+            for (int i = 1; i < current.chunkCount(); i++) {
+                minX = Math.min(minX, current.chunkX(i));
+                maxX = Math.max(maxX, current.chunkX(i));
+                minZ = Math.min(minZ, current.chunkZ(i));
+                maxZ = Math.max(maxZ, current.chunkZ(i));
+            }
+            boundsSample = current;
         }
         double columns = ((double) maxX - minX + 1) * 4, rows = ((double) maxZ - minZ + 1) * 4;
         double scale = Math.min((width - 16) / columns, (height - 12) / rows);
@@ -50,10 +64,28 @@ final class CriticalConstructionPreview implements IDrawable {
                 ? 1 - CriticalConstructionSnapshot.ratio(current.curingRemaining(), current.curingDuration())
                 : 0;
         int concrete = mix(0xFF647E92, 0xFF82B49B, cured);
+        int activeColor = 0xFFFFCE83;
+        if (current.enabled() && current.reason() == 0) {
+            double pulse = 0.5 + 0.5 * Math.sin((context.getTick() % 40 + context.getPartialTicks()) * Math.PI / 20);
+            activeColor = ((int) (184 + 55 * pulse) << 24) | 0xFFCE83;
+        }
         float cellSize = (float) scale;
         for (int chunk = 0; chunk < current.chunkCount(); chunk++) {
             double localX = ((double) current.chunkX(chunk) - minX) * 4;
             double localZ = ((double) current.chunkZ(chunk) - minZ) * 4;
+            float chunkX = (float) (originX + localX * scale), chunkY = (float) (originY + localZ * scale);
+            // Tiny chunks cannot show sixteen distinct cells. Draw their sampled completion once instead.
+            if (cellSize < 2) {
+                GuiDraw.drawRect(
+                    chunkX,
+                    chunkY,
+                    cellSize * 4,
+                    cellSize * 4,
+                    mix(0xFF25303C, concrete, current.chunkCells(chunk) / 16D));
+                if (current.phase() == 1 && chunk == current.activeChunk())
+                    outline(chunkX, chunkY, cellSize * 4, cellSize * 4, 1, 0xFFFFCE83);
+                continue;
+            }
             for (int cell = 0; cell < 16; cell++) {
                 float cellX = (float) (originX + (localX + cell % 4) * scale);
                 float cellY = (float) (originY + (localZ + cell / 4) * scale);
@@ -66,7 +98,6 @@ final class CriticalConstructionPreview implements IDrawable {
                     GuiDraw.drawRect(cellX, cellY + cellSize * (1 - fill), cellSize, cellSize * fill, 0xFFDFAD62);
                 }
             }
-            float chunkX = (float) (originX + localX * scale), chunkY = (float) (originY + localZ * scale);
             // Fine lines mark 4 x 4 blocks; heavy outlines mark the actual chunk boundary.
             for (int line = 1; line < 4; line++) {
                 GuiDraw.drawRect(chunkX + cellSize * line, chunkY, 0.55f, cellSize * 4, 0x90536572);
@@ -80,7 +111,7 @@ final class CriticalConstructionPreview implements IDrawable {
                     cellSize,
                     cellSize,
                     1,
-                    0xFFFFCE83);
+                    activeColor);
             }
         }
     }
@@ -96,15 +127,14 @@ final class CriticalConstructionPreview implements IDrawable {
             baseProgress = 1 - stageProgress;
             bodyProgress = 1 - stageProgress;
         }
-        float unit = Math.min((width - 44) / 14f, (height - 14) / 14f);
+        float unit = Math.min((width - 44) / 14f, (height - 18) / 11f);
         float center = x + width / 2f;
         float floor = y + height - 7;
-        // Deliberately abstract ghost blocks: base and body are separate, rather than a fake world model.
-        if (current.stage() <= 3 && !complete) {
-            ghostBlocks(center - unit * 6, floor - unit * 3, unit, 12, 3, baseProgress, 0xFF72A8B2);
-        } else {
-            ghostBlocks(center - unit * 4, floor - unit * 10, unit, 8, 10, bodyProgress, 0xFFC39D62);
-        }
+        // Keep the complete blueprint visible while its base and body fill from the authoritative cursor.
+        ghostBlocks(center - unit * 6, floor - unit * 3, unit, 12, 3, baseProgress, 0xFF72A8B2);
+        ghostBlocks(center - unit * 4, floor - unit * 10, unit, 8, 7, bodyProgress, 0xFFC39D62);
+        for (int support = -5; support <= 5; support += 10)
+            GuiDraw.drawRect(center + unit * support, floor - unit * 10, 1, unit * 10, 0x558999A3);
         GuiDraw.drawRect(center - unit * 7, floor + 1, unit * 14, 1, 0xFF72828E);
     }
 

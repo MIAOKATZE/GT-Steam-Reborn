@@ -43,7 +43,9 @@ public final class CriticalMachineTerminalFactory implements UIFactory<PosGuiDat
         PosGuiData data = new PosGuiData(player, base.getXCoord(), base.getYCoord(), base.getZCoord());
         if (data.getTileEntity() != base || !INSTANCE.canInteractWith(player, data) || !hasTerminal(player))
             return false;
+        Object previousContainer = player.openContainer;
         GuiManager.open(INSTANCE, data, serverPlayer);
+        com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.recordOpened(player, base, previousContainer);
         return true;
     }
 

@@ -45,6 +45,8 @@ public final class WorkerUiSession extends SyncHandler<WorkerUiSession> {
     }
 
     public boolean canUse() {
+        if (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data))
+            return com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.canUseRemote(data.getPlayer(), data);
         return tile != null && !tile.isInvalid()
             && data.getPlayer() != null
             && !data.getPlayer().isDead

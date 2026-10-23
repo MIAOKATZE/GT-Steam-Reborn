@@ -33,6 +33,7 @@ public class HubTerminal extends Item {
         setTextureName("gtsr:HubTerminal");
         setMaxStackSize(1);
         com.miaokatze.gtsr.common.gui.CriticalMachineTerminalFactory.register();
+        com.miaokatze.gtsr.common.terminal.MachineHistoryFactory.register();
     }
 
     /** 消费织机点击前明确发送请求，避免 GT 方块先打开普通机器界面。 */
@@ -80,6 +81,12 @@ public class HubTerminal extends Item {
             base.getZCoord(),
             0);
         return true;
+    }
+
+    @Override
+    public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
+        if (!world.isRemote) com.miaokatze.gtsr.common.terminal.MachineHistoryFactory.open(player);
+        return stack;
     }
 
     @Override

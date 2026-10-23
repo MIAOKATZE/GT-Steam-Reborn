@@ -113,13 +113,18 @@ public final class AggregatorConfigPanel {
                 .pos(18, 58)
                 .size(158, 110)
                 .background(TerminalUiStyle.CARD));
-        InvWrapper plugins = new InvWrapper(machine.getPluginSlotInventory());
+        com.cleanroommc.modularui.utils.item.IItemHandler plugins = machine == null
+            ? new com.cleanroommc.modularui.utils.item.ItemStackHandler(24)
+            : new InvWrapper(machine.getPluginSlotInventory());
+        com.cleanroommc.modularui.utils.item.IItemHandler controller = machine == null
+            ? new com.cleanroommc.modularui.utils.item.ItemStackHandler(1)
+            : machine.inventoryHandler;
         for (int n = 0; n < 25; n++) {
-            ModularSlot slot = n
-                == 0 ? new PureInventorySlot(machine.inventoryHandler, machine.getControllerSlotIndex()).limit(1)
+            ModularSlot slot = n == 0
+                ? new PureInventorySlot(controller, machine == null ? 0 : machine.getControllerSlotIndex()).limit(1)
                     .filter(MTECrustMatterAggregator::isDimensionDisplayItem)
-                    : new PureInventorySlot(plugins, n - 1).limit(1)
-                        .filter(MTECrustMatterAggregator::isDimensionDisplayItem);
+                : new PureInventorySlot(plugins, n - 1).limit(1)
+                    .filter(MTECrustMatterAggregator::isDimensionDisplayItem);
             slot.slotGroup("aggregator_dimensions");
             if (n > 0) slot.changeListener(
                 (stack, amount, client, init) -> {

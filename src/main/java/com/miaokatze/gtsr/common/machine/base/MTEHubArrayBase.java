@@ -403,6 +403,7 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
     public boolean canUseStatusAction(EntityPlayer player) {
         IGregTechTileEntity base = getBaseMetaTileEntity();
         World world = base == null ? null : base.getWorld();
+        if (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.hasRemoteAccess(player, base)) return true;
         if (!(player instanceof net.minecraft.entity.player.EntityPlayerMP)
             || player instanceof net.minecraftforge.common.util.FakePlayer
             || base == null

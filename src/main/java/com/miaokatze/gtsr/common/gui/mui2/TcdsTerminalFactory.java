@@ -45,7 +45,9 @@ public final class TcdsTerminalFactory implements UIFactory<PosGuiData> {
             return false;
         PosGuiData data = new PosGuiData(player, base.getXCoord(), base.getYCoord(), base.getZCoord());
         if (data.getTileEntity() != base || !INSTANCE.canInteractWith(player, data)) return false;
+        Object previousContainer = player.openContainer;
         GuiManager.open(INSTANCE, data, serverPlayer);
+        com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.recordOpened(player, base, previousContainer);
         return true;
     }
 
@@ -68,6 +70,8 @@ public final class TcdsTerminalFactory implements UIFactory<PosGuiData> {
 
     @Override
     public boolean canInteractWith(EntityPlayer player, PosGuiData data) {
+        if (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data))
+            return com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.canUseRemote(player, data);
         ItemStack held = player.getHeldItem();
         double range = TerminalServerSessions.MAX_INTERACTION_DISTANCE;
         return (data.getWorld().isRemote || Mui2TerminalRoutes.tcdsTerminal) && player == data.getPlayer()

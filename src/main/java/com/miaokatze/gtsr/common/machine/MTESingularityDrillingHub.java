@@ -1084,6 +1084,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     private boolean canUseStatusAction(EntityPlayer player) {
         IGregTechTileEntity base = getBaseMetaTileEntity();
         World world = base == null ? null : base.getWorld();
+        if (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.hasRemoteAccess(player, base)) return true;
         if (player == null || base == null || world == null || player.dimension != world.provider.dimensionId)
             return false;
         return base.canAccessData()

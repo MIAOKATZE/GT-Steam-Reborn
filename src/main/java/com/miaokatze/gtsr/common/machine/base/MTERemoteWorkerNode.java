@@ -564,7 +564,10 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
         float aX, float aY, float aZ) {
         if (aBaseMetaTileEntity.isServerSide()) {
+            Object previousContainer = aPlayer.openContainer;
             openGui(aPlayer);
+            com.miaokatze.gtsr.common.terminal.MachineTerminalHistory
+                .recordOpened(aPlayer, aBaseMetaTileEntity, previousContainer);
         }
         return true;
     }

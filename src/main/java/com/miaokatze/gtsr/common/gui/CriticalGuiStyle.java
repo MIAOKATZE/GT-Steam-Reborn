@@ -2,9 +2,11 @@ package com.miaokatze.gtsr.common.gui;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.drawable.UITexture;
+import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.TextWidget;
 import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
 import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiTextures;
+import com.miaokatze.gtsr.common.gui.mui2.TerminalUiStyle;
 
 /** MUI2 adapters for the existing aggregator / processing-cluster texture family. */
 final class CriticalGuiStyle {
@@ -25,6 +27,7 @@ final class CriticalGuiStyle {
         GtsrGuiTextures.BUTTON_HOVER,
         GtsrGuiTextures.BUTTON_HOVER_W,
         GtsrGuiTextures.BUTTON_HOVER_H);
+    static final UITexture DISABLED = TerminalUiStyle.DISABLED;
     static final UITexture TAB = texture(
         GtsrGuiTextures.TAB_INACTIVE,
         GtsrGuiTextures.TAB_INACTIVE_W,
@@ -62,6 +65,13 @@ final class CriticalGuiStyle {
 
     static TextWidget<?> text(IKey key) {
         return new WrappedText(key);
+    }
+
+    static VerticalScrollData scroll() {
+        VerticalScrollData scroll = new VerticalScrollData().cancelScrollEdge(false);
+        scroll.texture(TerminalUiStyle.SCROLLBAR_THUMB);
+        scroll.setScrollSpeed(18);
+        return scroll;
     }
 
     /** Measure paragraphs only after the list has assigned their real width. */

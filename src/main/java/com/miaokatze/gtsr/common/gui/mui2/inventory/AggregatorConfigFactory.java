@@ -44,7 +44,9 @@ public final class AggregatorConfigFactory implements UIFactory<PosGuiData> {
             return false;
         PosGuiData data = new PosGuiData(player, base.getXCoord(), base.getYCoord(), base.getZCoord());
         if (data.getTileEntity() != base || !INSTANCE.canInteractWith(player, data)) return false;
+        Object previousContainer = player.openContainer;
         GuiManager.open(INSTANCE, data, server);
+        com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.recordOpened(player, base, previousContainer);
         return true;
     }
 
@@ -61,6 +63,8 @@ public final class AggregatorConfigFactory implements UIFactory<PosGuiData> {
 
     @Override
     public boolean canInteractWith(EntityPlayer player, PosGuiData data) {
+        if (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data))
+            return com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.canUseRemote(player, data);
         return (data.getWorld().isRemote || Mui2TerminalRoutes.aggregatorConfig) && player == data.getPlayer()
             && player.isEntityAlive()
             && !(player instanceof FakePlayer)

@@ -47,6 +47,14 @@ public final class CriticalBusinessSnapshotContract {
         Method read = CriticalBusinessSnapshot.class.getDeclaredMethod("read", PacketBuffer.class);
         write.setAccessible(true);
         read.setAccessible(true);
+        CriticalBusinessSnapshot bootstrap = CriticalBusinessSnapshot.empty();
+        check(bootstrap.identityCount() == 0 && bootstrap.runtimeCount() == 0
+            && bootstrap.construction.chunkCount() == 0, "client bootstrap must not require a target world or tile");
+        PacketBuffer bootstrapPacket = new PacketBuffer(Unpooled.buffer());
+        write.invoke(bootstrap, bootstrapPacket);
+        CriticalBusinessSnapshot bootstrapDecoded = (CriticalBusinessSnapshot) read.invoke(null, bootstrapPacket);
+        check(bootstrapPacket.readableBytes() == 0 && bootstrapDecoded.energy().equals("0")
+            && !bootstrapDecoded.canCancelLegacyStellarBatch(), "bootstrap must use the normal bounded S2C codec");
         PacketBuffer packet = new PacketBuffer(Unpooled.buffer());
         write.invoke(sample, packet);
         CriticalBusinessSnapshot decoded = (CriticalBusinessSnapshot) read.invoke(null, packet);
@@ -61,6 +69,7 @@ public final class CriticalBusinessSnapshotContract {
             "batch cursor and mode must be decoded from the same packet");
         check(decoded.configuration().parallel == 2 && decoded.configuration().speed == 3,
             "configuration must be from the same packet");
+        check(decoded.configuration() == decoded.configuration(), "immutable display configuration is reused per sample");
         check(decoded.canCancelLegacyStellarBatch(), "legacy recovery action must belong to the same sample");
         PacketBuffer wrongVersion = new PacketBuffer(Unpooled.buffer());
         wrongVersion.writeVarIntToBuffer(99);

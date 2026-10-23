@@ -1,5 +1,25 @@
 # 专用 UI 事件图库
 
+## v2.0.8 有限抽样
+
+`prepare_v208_gallery.py` 仅准备 `build/v208-ui-qa/gallery-v208-13.json` 与既有 owned 离线启动描述，不启动游戏。清单只使用 Critical 当前三页（0/1/2）：织机首页、展开账、运行、库存、Sun 运行、narrow 滚动共 6 张；NEI 建设/Sun/化学目录 3 张；真实历史工厂 1 张及真实远程 Sun 1 张；默认/Shift 生产文案的真实字体 renderproof 2 张。旧全量四页清单不作为本轮输入。
+
+`clicks` 只允许 Critical 本地折叠按钮，逐项至少隔两个自然 tick，并记录真实命中链；不接受业务按钮。`rememberHistory` 复用同一个 owned HubTerminal。历史项另放置 live owned Sun，经真实 local Critical 工厂打开并自然记录后，于下一服务器 tick 关闭，再从服务端 `MachineHistoryFactory.open` 打开历史列表。下一张 `actualRemote` 保留该真实历史面板，点击对应原始 index，经生产 Session C2S / RemoteTerminalFactory 创建 Grant。helper 不构造记录或 Grant。收据核对实际 S2C factory 名、双方 windowId/PSM、server grant，以及 client `remote=true` / `getTileEntity()==null`；仅证明同维近处实际远程路由/UI，物理跨维旅行未执行。NEI 通过 `GuiCraftingRecipe.openRecipeGui(RecipeMap.unlocalizedName)` 打开并记录实际 handler；编译依赖 NEI 2.8.145，现有 owned/目标实例为 2.8.155，使用共同公开 API，不替换模组。Tooltip 两张仅调用生产 builder 的默认/结构数组并用实际客户端字体绘制，标题明确标注 `FONT RENDER PROOF`，不声称键盘 Shift 或物品 hover 验收。
+
+```powershell
+python -X utf8 tools/testlab/client_qa/prepare_v208_gallery.py
+python -X utf8 tools/testlab/client_qa/compile.py --workspace build/v208-ui-qa --client-sandbox build/client-testlab-mui2-v12138
+# 生产候选 build 完成后，由主代理显式启动；一次 13 张，heap 上限 5 GiB：
+& ./build/v208-ui-qa/run-v208.ps1 -CandidateJar <生产候选绝对路径.jar>
+python -X utf8 tools/testlab/client_qa/gallery_report.py --workspace build/v208-ui-qa
+```
+
+`preparation.json` 保留准备状态、版本、helper 编译收据和边界；仅编译 helper 不代表已启动或通过截图验收。
+
+停止控制先于启动和同步阶段的所有早退检查：有活动 owned server 时进入 `stage90/request9` 关闭容器并清理 fixture；无活动 server 时直接取消退出，不新建服务器或重开世界。若服务器在 `stage90` 清理完成前意外停止，先写 `FAILED_SERVER_STOPPED`，下一客户端 tick 记录失败并 shutdown；启动/断线故障不作为产品 GUI 或远程路由结论。纯调度合同 `tools/tests/UiGalleryBatchControlContract.java` 覆盖启动阶段、远程等待阶段与正常/异常关闭决策，游戏层仍须后续真实运行核验。
+
+owned helper 在 `serverStarted` 回调中、首次登录前，为实际 `BQThreadedIO.INSTANCE` 连续提交并等待两个有界 barrier：第一个等待任务定义构建，第二个等待构建任务嵌套提交的 PacketSender 分片广播。helper 排在 GTSR/GTIT/GTSWN 注入器之后，并核对 barrier 前后在线人数均为 0、两个 barrier 使用同一真实 BQ worker；等待合计上限 30 秒，无固定 sleep。这样隔离“异步 ALL 广播进行中玩家加入，仅收到尾片”的测试启动窗口，不修改 BQ jar、分片、任务数据或产品；收据 `ownedBqStartupBarrier` 只证明该 QA 调度隔离，不等同 BQ 全包或远程验收。
+
 `gallery-batch` 是显式开启的 owned helper 模式。它不执行 `UiQaScript`、库存交易、付费升级或剧情事务。生产环境不开启 helper 时没有此监听器。
 
 客户端只启动一次，进入 TestLab 后按事件队列批量开窗。服务端开窗返回的 windowId 必须与客户端相等，主 PSM 必须初始化，GTSR 自定义 session 的初始 snapshot/revision 必须就绪；随后至少连续两个正常 RenderTick.END 的面板矩形稳定才调用 Minecraft framebuffer 截图。primitive 值只记录为观察，不把天然递增的 GT 时钟、运行时间等变成功能一致性门禁。MUI1 使用真实 wrapper、匹配 windowId 与 initialized 主窗口。页面允许本地 PagedWidget 选择并明确标注 NO_HITTEST；菜单操作仅白名单本地导航，不形成巨构。单项窗口/数据等待上限 12 秒，失败保留并继续，滚动项额外等待实际动画停止。

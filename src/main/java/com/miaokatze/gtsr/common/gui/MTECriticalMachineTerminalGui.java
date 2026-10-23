@@ -6,6 +6,7 @@ import net.minecraft.util.StatCollector;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
@@ -16,12 +17,12 @@ import com.cleanroommc.modularui.value.sync.InteractionSyncHandler;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widget.ParentWidget;
-import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.PagedWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
 import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
@@ -31,67 +32,64 @@ import com.miaokatze.gtsr.common.gui.mui2.TerminalViewport;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
 import gregtech.api.modularui2.GTGuiTextures;
-import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
-import gregtech.common.modularui2.factory.GTBaseGuiBuilder;
 import gregtech.common.modularui2.widget.GTProgressWidget;
 
 /** Handheld terminal only; GT's native container lifecycle owns inventory and NEI integration. */
-public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MTECriticalMachine> {
+public final class MTECriticalMachineTerminalGui {
 
+    private final MTECriticalMachine multiblock;
     private final CriticalMachineState state;
     private EntityPlayer viewer;
     private BooleanSyncValue permitted;
+    private BooleanSyncValue loomController;
     private StringSyncValue actionName, actionDetail;
     private BooleanSyncValue actionAccepted;
     private String lastAction = "", lastActionDetail = "";
     private boolean lastActionAccepted;
     private int selectedPage;
+    private boolean runtimeExpanded;
     private CriticalConstructionView constructionView;
     private GenericSyncValue<CriticalBusinessSnapshot, ?> business;
 
     public MTECriticalMachineTerminalGui(MTECriticalMachine multiblock) {
-        super(multiblock);
-        state = multiblock.getCriticalState();
+        this.multiblock = multiblock;
+        state = multiblock == null ? null : multiblock.getCriticalState();
     }
 
-    @Override
     public ModularPanel build(PosGuiData data, PanelSyncManager manager, UISettings settings) {
+        if (!manager.isClient() && multiblock == null)
+            throw new IllegalStateException("Missing server Critical target");
         // Sync-value constructors evaluate their getters before the modular container is bound.
         viewer = data.getPlayer();
-        return super.build(data, manager, settings);
+        registerSyncValues(manager);
+        ModularPanel panel = getBasePanel(data, manager, settings);
+        return panel.child(createMainColumn(panel, manager));
     }
 
-    @Override
     protected ModularPanel getBasePanel(PosGuiData data, PanelSyncManager manager, UISettings settings) {
         // The industrial terminal already has its title inside statusHeader. GT's external
         // title tab extends above the panel and is clipped on a 640 x 360 logical canvas.
-        return new GTBaseGuiBuilder(multiblock, data, manager, settings).setWidth(getBasePanelWidth())
-            .setHeight(getBasePanelHeight())
-            .doesAddTitle(false)
-            .doesAddGregTechLogo(false)
-            .doesBindPlayerInventory(false)
-            .build()
+        return ModularPanel.defaultPanel("gtsr_critical_terminal", getBasePanelWidth(), getBasePanelHeight())
             .background(CriticalGuiStyle.PANEL);
     }
 
-    @Override
     protected int getBasePanelWidth() {
         return 475;
     }
 
-    @Override
     protected int getBasePanelHeight() {
         return 350;
     }
 
-    @Override
     protected void registerSyncValues(PanelSyncManager manager) {
         // One immutable S2C business sample; all mutations use guarded server-side actions.
-        permitted = new BooleanSyncValue(() -> state.canUse(viewer));
+        permitted = new BooleanSyncValue(() -> !manager.isClient() && state.canUse(viewer));
+        loomController = new BooleanSyncValue(() -> !manager.isClient() && multiblock.isKindSelector());
         actionName = new StringSyncValue(() -> lastAction);
         actionDetail = new StringSyncValue(() -> lastActionDetail);
         actionAccepted = new BooleanSyncValue(() -> lastActionAccepted);
         manager.syncValue("critical.permitted", permitted);
+        manager.syncValue("critical.loomController", loomController);
         manager.syncValue("critical.actionName", actionName);
         manager.syncValue("critical.actionDetail", actionDetail);
         manager.syncValue("critical.actionAccepted", actionAccepted);
@@ -99,7 +97,6 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         constructionView = new CriticalConstructionView(business);
     }
 
-    @Override
     public Flow createMainColumn(ModularPanel panel, PanelSyncManager manager) {
         PagedWidget<?> pages = new PagedWidget<>().name("critical_pages")
             .size(463, 202);
@@ -109,7 +106,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         Flow tabs = Flow.row()
             .size(463, 20)
             .childPadding(4);
-        String[] labels = { "tab.construction", "tab.configuration", "tab.inventory" };
+        String[] labels = { "tab.construction", "ui.tab.runtime", "tab.inventory" };
         for (int i = 0; i < labels.length; i++) {
             final int page = i;
             tabs.child(
@@ -118,10 +115,11 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                     .background(
                         new DynamicDrawable(
                             () -> selectedPage == page ? CriticalGuiStyle.SELECTED_TAB : CriticalGuiStyle.TAB))
-                    .hoverBackground(CriticalGuiStyle.SELECTED_TAB)
+                    .hoverBackground(CriticalGuiStyle.HOVER)
                     .tooltipBuilder(t -> t.add(IKey.lang(key(labels[page]))))
                     .overlay(
-                        IKey.dynamic(() -> tr(labels[page]))
+                        IKey.dynamic(() -> (selectedPage == page ? "• " : "") + tr(labels[page]))
+                            .scale(0.9f)
                             .color(
                                 () -> selectedPage == page ? CriticalGuiStyle.TEXT_ACCENT : CriticalGuiStyle.TEXT_BODY))
                     .onMousePressed(button -> {
@@ -155,11 +153,8 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             .size(463, 32)
             .background(CriticalGuiStyle.CARD);
         header.child(
-            IKey.dynamic(this::terminalTitle)
-                .color(CriticalGuiStyle.TEXT_TITLE)
-                .asWidget()
+            textViewport("critical_terminal_title", this::terminalTitle, 389, 12, () -> CriticalGuiStyle.TEXT_TITLE)
                 .pos(8, 4)
-                .size(389, 12)
                 .tooltipBuilder(t -> t.add(terminalTitle()))
                 .tooltipAutoUpdate(true));
         header.child(
@@ -201,8 +196,8 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
 
     private String terminalTitle() {
         // A loom's selected target defaults to SUN; it is not the identity of the opened controller.
-        return multiblock.isKindSelector() ? StatCollector.translateToLocal("gt.blockmachines.gtsr.critical.loom.name")
-            : tr("machine." + multiblock.getPresetKind().key);
+        return loomController.getValue() ? StatCollector.translateToLocal("gt.blockmachines.gtsr.critical.loom.name")
+            : tr("machine." + configuration().kind.key);
     }
 
     private int statusColor() {
@@ -220,10 +215,12 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             action(manager, "kind", player -> change(player, 1, 1))
                 .overlay(
                     IKey.dynamic(() -> tr("machine." + configuration().kind.key))
-                        .color(CriticalGuiStyle.TEXT_CONTROL))
+                        .color(
+                            () -> actionAvailable("kind") ? CriticalGuiStyle.TEXT_CONTROL : CriticalGuiStyle.TEXT_MUTED)
+                        .scale(0.85f))
                 .pos(0, 0)
                 .size(210, 20)
-                .setEnabledIf(w -> editable() && multiblock.isKindSelector())
+                .setEnabledIf(w -> loomController.getValue())
                 .tooltipBuilder(t -> t.add(IKey.lang(key("configuration_hint")))));
         page.child(
             action(
@@ -245,7 +242,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                             w -> configuration().kind == CriticalMachineKind.SOLAR
                                 || configuration().kind == CriticalMachineKind.BATTERY));
         page.child(
-            action(manager, "ui.sun.production_pause", state::selectStellarProductionPaused)
+            action(manager, "ui.sun.production_pause", player -> state.selectStellarProductionPaused(player))
                 .overlay(
                     IKey.dynamic(() -> tr("ui.sun.production_pause." + runtimeValue("sun.production_paused")))
                         .color(CriticalGuiStyle.TEXT_CONTROL))
@@ -267,7 +264,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 .tooltipBuilder(this::operationTooltip)
                 .tooltipAutoUpdate(true));
         page.child(
-            action(manager, "ui.sun.cancel_legacy", state::cancelLegacyStellarBatch).pos(380, 0)
+            action(manager, "ui.sun.cancel_legacy", player -> state.cancelLegacyStellarBatch(player)).pos(380, 0)
                 .size(83, 20)
                 .setEnabledIf(
                     w -> business.getValue()
@@ -292,17 +289,52 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         ParentWidget<?> summary = new ParentWidget<>().pos(0, 74)
             .size(463, 70)
             .background(CriticalGuiStyle.CARD);
+        summary.child(
+            new ButtonWidget<>().name("critical_runtime_disclosure")
+                .pos(8, 5)
+                .size(419, 17)
+                .background(CriticalGuiStyle.BUTTON)
+                .hoverBackground(CriticalGuiStyle.HOVER)
+                .overlay(
+                    IKey.dynamic(() -> (runtimeExpanded ? "− " : "+ ") + tr("ui.details.runtime"))
+                        .color(CriticalGuiStyle.TEXT_ACCENT)
+                        .scale(0.85f))
+                .onMousePressed(button -> {
+                    if (button != 0) return false;
+                    runtimeExpanded = !runtimeExpanded;
+                    return true;
+                }));
         ListWidget<IWidget, ?> summaryText = new ListWidget<>().name("critical_status_summary")
-            .pos(8, 5)
-            .size(419, 60)
-            .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
+            .pos(8, 26)
+            .size(419, 37)
+            .scrollDirection(CriticalGuiStyle.scroll())
+            .setEnabledIf(w -> runtimeExpanded);
         for (int i = 0; i < 40; i++) {
             final int row = i;
             constructionLine(summaryText, () -> runtimeLine(row));
         }
         summary.child(summaryText);
-        GTProgressWidget batchProgress = new GTProgressWidget();
-        if (multiblock.getRecipeMap() != null) batchProgress.neiTransferRect(multiblock.getRecipeMap());
+        summary.child(
+            textViewport(
+                "critical_runtime_priority",
+                () -> business.getValue()
+                    .detail(),
+                419,
+                37,
+                this::statusColor).pos(8, 26)
+                    .setEnabledIf(w -> !runtimeExpanded));
+        GTProgressWidget batchProgress = new GTProgressWidget() {
+
+            @Override
+            public Interactable.Result onMousePressed(int button) {
+                // Resolve from the received descriptor at interaction time, including remote clients without a tile.
+                gregtech.api.recipe.RecipeMap<?> map = CriticalRecipeMaps
+                    .forKind(loomController.getValue() ? null : configuration().kind);
+                if (map == null) return Interactable.Result.IGNORE;
+                neiTransferRect(map);
+                return super.onMousePressed(button);
+            }
+        };
         summary.child(
             batchProgress.texture(GTGuiTextures.PROGRESSBAR_ARROW_STANDARD, 20)
                 .progress(
@@ -340,7 +372,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             .size(463, 26)
             .padding(4)
             .background(CriticalGuiStyle.CARD)
-            .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
+            .scrollDirection(CriticalGuiStyle.scroll());
         feedback.child(
             CriticalGuiStyle.text(
                 IKey.dynamic(
@@ -446,17 +478,24 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                     .pos(8, 5)
                     .size(212, 10))
             .child(
-                textViewport("critical_metric_" + label, value, 212, 14).pos(8, 16)
+                new ListWidget<>().name("critical_metric_" + label)
+                    .size(212, 16)
+                    .scrollDirection(CriticalGuiStyle.scroll())
+                    .child(
+                        CriticalGuiStyle.text(IKey.dynamic(value))
+                            .scale(1.2f)
+                            .color(CriticalGuiStyle.TEXT_TITLE)
+                            .fullWidth())
+                    .pos(8, 16)
                     .tooltipBuilder(t -> t.add(value.get()))
                     .tooltipAutoUpdate(true))
             .child(
                 new ParentWidget<>().background(new CriticalProgressBar(progress))
-                    .pos(8, 32)
-                    .size(212, 7)
+                    .pos(8, 35)
+                    .size(212, 4)
                     .setEnabledIf(w -> !"ui.energy".equals(label)));
     }
 
-    @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager manager, ModularPanel parent) {
         ListWidget<IWidget, ?> list = new ListWidget<>();
         list.child(
@@ -548,19 +587,59 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
 
     private ButtonWidget<?> action(PanelSyncManager manager, String name,
         java.util.function.Predicate<EntityPlayer> command) {
-        return new ButtonWidget<>().name("critical_action_" + name)
-            .background(CriticalGuiStyle.BUTTON)
-            .hoverBackground(CriticalGuiStyle.HOVER)
+        return new ActionButton(name).name("critical_action_" + name)
+            .background(
+                new DynamicDrawable(() -> actionAvailable(name) ? CriticalGuiStyle.BUTTON : CriticalGuiStyle.DISABLED))
+            .hoverBackground(
+                new DynamicDrawable(() -> actionAvailable(name) ? CriticalGuiStyle.HOVER : CriticalGuiStyle.DISABLED))
             .syncHandler(interaction(manager, name, command))
             .overlay(
                 IKey.lang(key(name))
-                    .color(CriticalGuiStyle.TEXT_CONTROL));
+                    .color(() -> actionAvailable(name) ? CriticalGuiStyle.TEXT_CONTROL : CriticalGuiStyle.TEXT_MUTED))
+            .tooltipBuilder(t -> { if (!actionAvailable(name)) t.add(actionDisabledReason(name)); })
+            .tooltipAutoUpdate(true);
+    }
+
+    /** Keep unavailable controls hoverable so their reason remains discoverable. */
+    private final class ActionButton extends ButtonWidget<ActionButton> {
+
+        private final String action;
+
+        private ActionButton(String action) {
+            this.action = action;
+        }
+
+        @Override
+        public Interactable.Result onMousePressed(int button) {
+            if (!actionAvailable(action)) return Interactable.Result.STOP;
+            return super.onMousePressed(button);
+        }
+
+    }
+
+    private boolean actionAvailable(String name) {
+        if (!permitted.getValue()) return false;
+        int status = business.getValue().construction.status();
+        return switch (name) {
+            case "kind" -> status == 0 && loomController.getValue();
+            case "build" -> status == 0;
+            case "dismantle" -> status == 1 || status == 2 || status == 4;
+            case "repair" -> status != 0;
+            default -> true;
+        };
+    }
+
+    private String actionDisabledReason(String name) {
+        if (!permitted.getValue()) return tr("action.permission");
+        return tr(
+            "ui.action.unavailable." + ("kind".equals(name) ? "configuration"
+                : "build".equals(name) ? "build" : "dismantle".equals(name) ? "dismantle" : "repair"));
     }
 
     private InteractionSyncHandler interaction(PanelSyncManager manager, String name,
         java.util.function.Predicate<EntityPlayer> command) {
         InteractionSyncHandler handler = new InteractionSyncHandler().setOnMousePressed(data -> {
-            if (!baseMetaTileEntity.isServerSide() || data.mouseButton != 0) return;
+            if (manager.isClient() || data.mouseButton != 0) return;
             EntityPlayer player = manager.getPlayer();
             lastAction = name;
             if (!state.canUse(player)) {
@@ -599,24 +678,27 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             ListWidget<IWidget, ?> contents = new ListWidget<>().name("critical_inventory_" + side)
                 .pos(8, 28)
                 .size(212, 130)
-                .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
+                .scrollDirection(CriticalGuiStyle.scroll());
             if (index == 0) {
                 constructionLine(contents, () -> tr("ui.inventory.physical"), () -> CriticalGuiStyle.TEXT_ACCENT);
                 constructionLine(
                     contents,
-                    () -> business.getValue()
-                        .inputs());
+                    () -> inventoryText(
+                        business.getValue()
+                            .inputs()));
                 constructionLine(contents, () -> tr("ui.inventory.network"), () -> CriticalGuiStyle.TEXT_ACCENT);
                 constructionLine(
                     contents,
-                    () -> business.getValue()
-                        .networkInputs());
+                    () -> inventoryText(
+                        business.getValue()
+                            .networkInputs()));
                 constructionLine(contents, () -> tr("ui.economy.network_unpaid"), () -> CriticalGuiStyle.TEXT_MUTED);
             } else {
                 constructionLine(
                     contents,
-                    () -> business.getValue()
-                        .outputs());
+                    () -> inventoryText(
+                        business.getValue()
+                            .outputs()));
                 constructionLine(
                     contents,
                     () -> tr("ui.inventory.blocker") + ": "
@@ -628,10 +710,22 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             page.child(card);
         }
         page.child(
-            textViewport("critical_inventory_hint", () -> tr("ui.inventory.hint"), 447, 24)
-                .background(CriticalGuiStyle.CARD)
-                .pos(8, 172));
+            textViewport(
+                "critical_inventory_hint",
+                () -> tr("ui.inventory.blocker") + ": "
+                    + business.getValue()
+                        .detail()
+                    + "\n"
+                    + tr("ui.inventory.hint"),
+                447,
+                24).background(CriticalGuiStyle.CARD)
+                    .pos(8, 172));
         return page;
+    }
+
+    private static String inventoryText(String value) {
+        return value.trim()
+            .isEmpty() ? tr("ui.inventory.empty") : value;
     }
 
     private static ListWidget<IWidget, ?> textViewport(String name, java.util.function.Supplier<String> text, int width,
@@ -643,7 +737,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         int height, java.util.function.IntSupplier color) {
         return new ListWidget<>().name(name)
             .size(width, height)
-            .scrollDirection(new VerticalScrollData().cancelScrollEdge(false))
+            .scrollDirection(CriticalGuiStyle.scroll())
             .child(
                 CriticalGuiStyle.text(IKey.dynamic(text))
                     .color(color)

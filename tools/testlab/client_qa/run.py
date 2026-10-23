@@ -24,7 +24,7 @@ def process_memory(proc):
 
 def main():
     global OUT, FIXTURE
-    p=argparse.ArgumentParser();p.add_argument('--workspace',type=Path,default=OUT);p.add_argument('--client-sandbox',type=Path,default=FIXTURE);p.add_argument('--plan',type=Path);p.add_argument('--mode',choices=['ui','gallery','gallery-batch','ticket-restart'],default='ui');p.add_argument('--keep-open',action='store_true');p.add_argument('--jar',type=Path,required=True);p.add_argument('--run',required=True);p.add_argument('--language',default='en_US');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=720);p.add_argument('--scale',type=int,default=2);p.add_argument('--heap-gib',type=int,default=5);p.add_argument('--reserve-gib',type=float,default=4);p.add_argument('--render-distance',type=int,default=3);p.add_argument('--deadline',type=int,default=900);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--workspace',type=Path,default=OUT);p.add_argument('--client-sandbox',type=Path,default=FIXTURE);p.add_argument('--plan',type=Path);p.add_argument('--mode',choices=['ui','gallery','gallery-batch','ticket-restart'],default='ui');p.add_argument('--keep-open',action='store_true');p.add_argument('--jar',type=Path,required=True);p.add_argument('--run',required=True);p.add_argument('--language',default='en_US');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=720);p.add_argument('--scale',type=int,default=2);p.add_argument('--heap-gib',type=int,default=5);p.add_argument('--reserve-gib',type=float,default=4);p.add_argument('--render-distance',type=int,default=3);p.add_argument('--deadline',type=int,default=900);p.add_argument('--allow-low-memory',action='store_true',help='Use only after the user explicitly requests launch below the advisory memory reserve; heap limit still applies');a=p.parse_args()
     if a.heap_gib>5:raise ValueError('User limit: client Java heap must not exceed 5GiB')
     OUT=a.workspace.resolve();FIXTURE=a.client_sandbox.resolve()
     if OUT.parent!=ROOT/'build' or FIXTURE.parent!=ROOT/'build' or not FIXTURE.name.startswith('client-testlab-'):raise ValueError('Use direct owned build children only')
@@ -38,16 +38,16 @@ def main():
     helper=FIXTURE/'mods/gtsr-mui2-qa-owned-only.jar';assert sha(helper)==compile_receipt['jarSHA256']
     if a.heap_gib<3 or a.reserve_gib<1 or not 2<=a.render_distance<=16:raise ValueError('Require heap3..5GiB, explicit reserve>=1GiB and render distance2..16')
     available=free_memory();required=(a.heap_gib+a.reserve_gib)*1024**3
-    preflight=dict(availableBytes=available,requiredBytes=required,heapGiB=a.heap_gib,reserveGiB=a.reserve_gib,renderDistance=a.render_distance,leaseExists=LEASE.exists(),state='PRECHECK')
+    preflight=dict(availableBytes=available,requiredBytes=required,heapGiB=a.heap_gib,reserveGiB=a.reserve_gib,renderDistance=a.render_distance,leaseExists=LEASE.exists(),userAuthorizedLowMemory=a.allow_low_memory,state='PRECHECK')
     (result/'preflight.json').write_text(json.dumps(preflight,indent=2))
-    if available<required:raise RuntimeError(f'Insufficient memory: {available/1024**3:.2f} GiB available, {required/1024**3:.2f} required; no process started')
+    if available<required and not a.allow_low_memory:raise RuntimeError(f'Insufficient memory: {available/1024**3:.2f} GiB available, {required/1024**3:.2f} required; no process started')
     fd=os.open(LEASE,os.O_CREAT|os.O_EXCL|os.O_WRONLY);lease_token=dict(pid=os.getpid(),fixture=str(FIXTURE),run=a.run,created=time.time());os.write(fd,json.dumps(lease_token).encode());os.close(fd)
     proc=None;receipt=dict(status='PREPARED',sourceJar=str(a.jar.resolve()),candidateSHA256=sha(a.jar),helperSHA256=sha(helper),inputType='Synthetic actual ModularScreen hit-test/key/drag dispatch, lwjgl3ify injectTextEvent, legacy GuiScreen.keyTyped and native PlayerController.windowClick; physical mouse/keyboard/IME NOT_RUN',mode='Real full client with integrated server',forcedStop=False,qaMode=a.mode)
     if a.mode=='ticket-restart':receipt['inputType']='Synthetic same-JVM Minecraft launchIntegratedServer/loadWorld(null) and production CriticalChunkLoading ensure/release; UI suite and physical input NOT_RUN'
     try:
         destination=FIXTURE/'mods/production-gtsr.jar';destination.chmod(0o666);shutil.copy2(a.jar,destination)
         (FIXTURE/'options.txt').write_text(f'fullscreen:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\nguiScale:{a.scale}\nlang:{a.language}\nrenderDistance:{a.render_distance}\n',encoding='utf-8')
-        cmd=[x.replace('-Xmx6G',f'-Xmx{a.heap_gib}G') for x in spec['command']]
+        cmd=[x for x in spec['command'] if not x.startswith('-Xmx')];cmd.insert(1,f'-Xmx{a.heap_gib}G')
         cmd=[x for x in cmd if not x.startswith('-Dgtsr.uiqa.receipt=')]
         cmd[1:1]=['-Dgtsr.uiqa.mode='+a.mode,'-Dgtsr.uiqa.batch.keepOpen='+str(a.keep_open).lower(),'-Dgtsr.uiqa.launchEpochMillis='+str(int(time.time()*1000)),'-Dgtsr.uiqa.timeoutMillis='+str(max(60,a.deadline-30)*1000),'-Dgtsr.uiqa.language='+a.language,'-Dgtsr.uiqa.receipt='+str(result/'checks.json'),'-Dgtsr.uiqa.world=Mui2Audit-'+a.run]
         if a.plan:cmd.insert(1,'-Dgtsr.uiqa.plan='+str(a.plan.resolve(strict=True)))
