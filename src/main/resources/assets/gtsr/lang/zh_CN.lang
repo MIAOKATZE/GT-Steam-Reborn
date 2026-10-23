@@ -4365,6 +4365,10 @@ gtsr.tooltip.catalog.light=自身可发出方块光照。
 
 ## RC2 business UI, manufacturing and runtime language
 gtsr.critical.ui.economy.layers=三层经济账
+gtsr.critical.ui.controller_state=主控状态
+gtsr.critical.ui.journal_owner=工程账本宿主
+gtsr.critical.ui.journal.loom=永久拟态织机
+gtsr.critical.ui.journal.main=旧版机器主控
 gtsr.critical.ui.economy.rc2=RC2 整单身份与数量已冻结
 gtsr.critical.ui.economy.legacy=旧任务按原冻结价格结清
 gtsr.critical.ui.economy.network_unpaid=网络可见库存 ≠ 已付托管

@@ -4369,6 +4369,10 @@ gtsr.tooltip.catalog.light=Emits block light.
 
 ## RC2 business UI, manufacturing and runtime language
 gtsr.critical.ui.economy.layers=Three-layer economy ledger
+gtsr.critical.ui.controller_state=Controller state
+gtsr.critical.ui.journal_owner=Construction journal host
+gtsr.critical.ui.journal.loom=Permanent mimic loom
+gtsr.critical.ui.journal.main=Legacy machine controller
 gtsr.critical.ui.economy.rc2=RC2 full-job identities and amounts frozen
 gtsr.critical.ui.economy.legacy=Legacy job retains its frozen prices
 gtsr.critical.ui.economy.network_unpaid=Network visibility does not mean paid escrow
