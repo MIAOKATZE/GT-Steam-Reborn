@@ -21,6 +21,7 @@ import appeng.api.networking.security.MachineSource;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.me.GridAccessException;
+import appeng.util.Platform;
 import appeng.util.item.AEFluidStack;
 import gregtech.api.interfaces.IOutputBusTransaction;
 import gregtech.api.interfaces.IOutputHatchTransaction;
@@ -29,7 +30,11 @@ import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.util.GTUtility;
+import gregtech.common.tileentities.machines.IDualInputHatch;
+import gregtech.common.tileentities.machines.IDualInputInventory;
 import gregtech.common.tileentities.machines.IRecipeProcessingAwareHatch;
+import gregtech.common.tileentities.machines.MTEHatchCraftingInputME;
+import gregtech.common.tileentities.machines.MTEHatchCraftingInputSlave;
 import gregtech.common.tileentities.machines.MTEHatchInputME;
 import gregtech.common.tileentities.machines.outputme.MTEHatchOutputME;
 
@@ -79,6 +84,24 @@ public final class CriticalEnergyPorts {
                 inputs.addAll(types.values());
             }
         }
+        // GT205 PatternSlot is already physically paid by pushPattern, not a virtual ME preview.
+        Set<IDualInputInventory> inventories = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<FluidStack> stacks = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (IDualInputHatch dual : host.getCriticalDualInputHatches()) {
+            MTEHatchCraftingInputME owner = null;
+            if (dual != null && dual.getClass() == MTEHatchCraftingInputME.class)
+                owner = (MTEHatchCraftingInputME) dual;
+            else if (dual != null && dual.getClass() == MTEHatchCraftingInputSlave.class)
+                owner = ((MTEHatchCraftingInputSlave) dual).getMaster();
+            if (owner == null || owner.getClass() != MTEHatchCraftingInputME.class || !owner.isValid()) continue;
+            for (java.util.Iterator<? extends IDualInputInventory> iterator = dual.inventories(); iterator.hasNext();) {
+                IDualInputInventory inventory = iterator.next();
+                if (!(inventory instanceof MTEHatchCraftingInputME.PatternSlot<?>) || !inventories.add(inventory))
+                    continue;
+                for (FluidStack stack : inventory.getFluidInputs())
+                    if (stack != null && stack.amount > 0 && stacks.add(stack)) inputs.add(new Input(owner, stack));
+            }
+        }
         return inputs;
     }
 
@@ -103,6 +126,75 @@ public final class CriticalEnergyPorts {
         return result;
     }
 
+    /** One allocation ledger per batch; repeated requests cannot spend the same snapshot twice. */
+    public static final class Allocation {
+
+        private final List<Input> inputs;
+        private final Map<Input, Long> reserved = new IdentityHashMap<>();
+
+        public Allocation(List<Input> inputs) {
+            this.inputs = inputs;
+        }
+
+        public List<Debit> take(FluidStack fluid, BigInteger amount) {
+            List<Debit> result = new ArrayList<>();
+            for (Input input : inputs) {
+                if (amount.signum() == 0) break;
+                if (fluid == null || !input.fluid.isFluidEqual(fluid)) continue;
+                long used = reserved.getOrDefault(input, 0L);
+                long take = amount.min(BigInteger.valueOf(input.amount - used))
+                    .longValueExact();
+                if (take <= 0) continue;
+                reserved.put(input, used + take);
+                result.add(new Debit(input, take));
+                amount = amount.subtract(BigInteger.valueOf(take));
+            }
+            if (amount.signum() != 0) throw new IllegalArgumentException("Snapshot allocation shortage");
+            return result;
+        }
+    }
+
+    public static final class DebitResult {
+
+        public final boolean complete, uncertain;
+        public final BigInteger confirmedLitres;
+
+        private DebitResult(boolean complete, boolean uncertain, BigInteger confirmedLitres) {
+            this.complete = complete;
+            this.uncertain = uncertain;
+            this.confirmedLitres = confirmedLitres;
+        }
+    }
+
+    /**
+     * The observer journals each confirmed extraction before proceeding to another source. A short return is
+     * confirmed partial payment; a throwing/custom invalid source is uncertain and must never be auto-replayed.
+     * AE and machine NBT still have separate save domains; this is not a cross-save atomic transaction.
+     */
+    public static DebitResult debitConfirmed(List<Debit> debits, java.util.function.BiConsumer<Debit, Long> confirmed) {
+        BigInteger paid = BigInteger.ZERO;
+        for (Debit debit : debits) {
+            try {
+                long left = debit.amount;
+                while (left > 0) {
+                    long request = debit.source.monitor != null ? left : Math.min(left, Integer.MAX_VALUE);
+                    long actual = debit.source.extractAmount(request, true);
+                    if (actual < 0 || actual > request) return new DebitResult(false, true, paid);
+                    if (actual > 0) {
+                        paid = paid.add(BigInteger.valueOf(actual));
+                        confirmed.accept(debit, actual);
+                        debit.source.markDirty();
+                        left -= actual;
+                    }
+                    if (actual != request) return new DebitResult(false, false, paid);
+                }
+            } catch (RuntimeException failure) {
+                return new DebitResult(false, true, paid);
+            }
+        }
+        return new DebitResult(true, false, paid);
+    }
+
     /** Returns false on a changed/custom hatch. Caller must lock an uncertain partial commit, never retry it. */
     public static boolean debit(List<Debit> debits) {
         if (!canDebit(debits)) return false;
@@ -111,7 +203,10 @@ public final class CriticalEnergyPorts {
     }
 
     public static boolean canDebit(List<Debit> debits) {
-        for (Debit debit : debits) if (!debit.source.extract(debit.amount, false)) return false;
+        Map<Input, Long> totals = new IdentityHashMap<>();
+        for (Debit debit : debits) totals.merge(debit.source, debit.amount, Math::addExact);
+        for (Map.Entry<Input, Long> total : totals.entrySet()) if (!total.getKey()
+            .extract(total.getValue(), false)) return false;
         return true;
     }
 
@@ -121,6 +216,8 @@ public final class CriticalEnergyPorts {
         public final FluidStack fluid;
         public long amount;
         private final IMEMonitor<IAEFluidStack> monitor;
+        private final MTEHatchCraftingInputME patternOwner;
+        private final FluidStack patternStack;
 
         private Input(MTEHatchInput hatch, FluidStack fluid, long amount, IMEMonitor<IAEFluidStack> monitor) {
             this.hatch = hatch;
@@ -128,39 +225,85 @@ public final class CriticalEnergyPorts {
             this.fluid.amount = 1;
             this.amount = amount;
             this.monitor = monitor;
+            this.patternOwner = null;
+            this.patternStack = null;
+        }
+
+        private Input(MTEHatchCraftingInputME owner, FluidStack stack) {
+            this.hatch = null;
+            this.fluid = stack.copy();
+            this.fluid.amount = 1;
+            this.amount = stack.amount;
+            this.monitor = null;
+            this.patternOwner = owner;
+            this.patternStack = stack;
+        }
+
+        private void markDirty() {
+            if (patternOwner != null) patternOwner.getBaseMetaTileEntity()
+                .markDirty();
+            else if (hatch != null) hatch.getBaseMetaTileEntity()
+                .markDirty();
         }
 
         private boolean extract(long wanted, boolean commit) {
-            if (!hatch.isValid()) return false;
+            if (!commit) return extractAmount(wanted, false) == wanted;
+            long left = wanted;
+            while (left > 0) {
+                long actual = extractAmount(monitor != null ? left : Math.min(left, Integer.MAX_VALUE), true);
+                if (actual <= 0) return false;
+                left -= actual;
+                markDirty();
+            }
+            return true;
+        }
+
+        private long extractAmount(long wanted, boolean commit) {
+            if (patternOwner != null) {
+                if (!patternOwner.isValid() || !patternStack.isFluidEqual(fluid)) return 0;
+                int actual = (int) Math.min(wanted, Math.max(0, patternStack.amount));
+                if (commit) patternStack.amount -= actual;
+                return actual;
+            }
+            if (!hatch.isValid()) return 0;
             if (monitor != null) {
                 IAEFluidStack request = AEFluidStack.create(fluid);
                 request.setStackSize(wanted);
-                IAEFluidStack actual = monitor.extractItems(
-                    request,
-                    commit ? Actionable.MODULATE : Actionable.SIMULATE,
-                    new MachineSource((appeng.api.networking.security.IActionHost) hatch.getBaseMetaTileEntity()));
-                return actual != null && actual.getStackSize() == wanted;
+                MachineSource source = new MachineSource(
+                    (appeng.api.networking.security.IActionHost) hatch.getBaseMetaTileEntity());
+                IAEFluidStack actual;
+                if (commit) {
+                    try {
+                        actual = Platform.poweredExtraction(
+                            ((MTEHatchInputME) hatch).getProxy()
+                                .getEnergy(),
+                            monitor,
+                            request,
+                            source);
+                    } catch (GridAccessException offline) {
+                        return 0;
+                    }
+                } else actual = monitor.extractItems(request, Actionable.SIMULATE, source);
+                if (actual == null) return 0;
+                if (!actual.getFluidStack()
+                    .isFluidEqual(fluid) || actual.getStackSize() < 0 || actual.getStackSize() > wanted)
+                    throw new IllegalStateException("Invalid ME debit receipt");
+                return actual.getStackSize();
             }
             if (!commit) {
                 long present = 0;
                 for (FluidTankInfo tank : hatch.getTankInfo(ForgeDirection.UNKNOWN))
                     if (tank != null && tank.fluid != null && tank.fluid.isFluidEqual(fluid))
                         present = Math.addExact(present, tank.fluid.amount);
-                return present >= wanted;
+                return Math.min(present, wanted);
             }
-            long left = wanted;
-            while (left > 0) {
-                FluidStack request = fluid.copy();
-                request.amount = (int) Math.min(left, Integer.MAX_VALUE);
-                FluidStack actual = hatch.drain(ForgeDirection.UNKNOWN, request, commit);
-                if (actual == null || !actual.isFluidEqual(request)
-                    || actual.amount <= 0
-                    || actual.amount > request.amount) return false;
-                left -= actual.amount;
-            }
-            hatch.getBaseMetaTileEntity()
-                .markDirty();
-            return true;
+            FluidStack request = fluid.copy();
+            request.amount = (int) Math.min(wanted, Integer.MAX_VALUE);
+            FluidStack actual = hatch.drain(ForgeDirection.UNKNOWN, request, true);
+            if (actual == null || actual.amount == 0) return 0;
+            if (!actual.isFluidEqual(request) || actual.amount < 0 || actual.amount > request.amount)
+                throw new IllegalStateException("Invalid hatch debit receipt");
+            return actual.amount;
         }
     }
 

@@ -49,6 +49,7 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.IShiftRightClickDecalcifiable;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.api.compat.GTSRWorkingFluidPayment;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
@@ -73,6 +74,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
+import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
@@ -162,6 +164,8 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
     public boolean mOverpressure = false;
     // 缺水停机标志：水/蒸馏水耗尽时置 true 阻止蒸汽产出（含停机冷却期），玩家重新开机（GUI 电源开关/软锤）时清除
     private boolean mWaterStop = false;
+    private final GTSRWorkingFluidPayment lavaPayment = new GTSRWorkingFluidPayment();
+    private final GTSRWorkingFluidPayment waterPayment = new GTSRWorkingFluidPayment();
     // 缺水提示已发送（NBT 持久）：每次停机周期只提示一次，重新开机时清除
     private boolean mNoWaterNotified = false;
 
@@ -604,12 +608,19 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
 
     @Override
     public CheckRecipeResult checkProcessing() {
-        FluidStack lava = drainLavaInput(LAVA_PER_RECIPE, false);
-        if (lava == null || lava.amount < LAVA_PER_RECIPE) {
+        if (GTSRHatchFluidAccess.hasUnsupportedWorkingFluidSources(mInputHatches, mDualInputHatches)) {
+            return SimpleCheckRecipeResult.ofFailure("gtsr_unsupported_working_fluid_hatch");
+        }
+        if (lavaPayment.isUncertain() || waterPayment.isUncertain()) {
+            return SimpleCheckRecipeResult.ofFailurePersistOnShutdown("gtsr_working_fluid_uncertain");
+        }
+        if (!lavaPayment
+            .pay(mInputHatches, mDualInputHatches, GTModHandler.getLava(LAVA_PER_RECIPE), this::markDirty)) {
+            if (lavaPayment.isUncertain()) {
+                return SimpleCheckRecipeResult.ofFailurePersistOnShutdown("gtsr_working_fluid_uncertain");
+            }
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
-
-        drainLavaInput(LAVA_PER_RECIPE, true);
 
         boolean hasChip = hasOverheatChip();
         java.util.ArrayList<ItemStack> outputs = new java.util.ArrayList<>();
@@ -653,24 +664,18 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
         mMaxProgresstime = duration;
         mEfficiency = 10000;
         mEfficiencyIncrease = 10000;
+        lavaPayment.complete();
+        markDirty();
 
         return CheckRecipeResultRegistry.SUCCESSFUL;
     }
 
-    // v1.9.39 修复：岩浆取流改用 GT5U 原生 depleteInput(FluidStack, boolean)。
-    // 原实现用 MTEHatch.getFluid() + 单参 drain，对 ME 输入仓（MTEHatchInputME，本地罐恒空）恒返回 null，
-    // 导致岩浆永远检测不到、锅炉无法产蒸汽。原生 2 参 depleteInput 走 drain(UNKNOWN,...)，
-    // 兼容普通仓 / ME 输入仓 / 限制性输入仓，且支持跨仓合计；流体匹配用 GTModHandler.getLava 的
-    // isFluidEqual 语义，替代硬编码流体名比较。
-    private FluidStack drainLavaInput(int amount, boolean doDrain) {
-        FluidStack lava = GTModHandler.getLava(amount);
-        // v1.10.6：样板仓（mDualInputHatches）岩浆供流兜底（引用扣减，样板仓自结算）
-        if (depleteInput(lava, !doDrain)) return lava;
-        if (doDrain && GTSRHatchFluidAccess.depleteFluidFromDuals(mDualInputHatches, lava) >= lava.amount) {
-            return lava;
-        }
-        return null;
-    }
+    // 没有父 ProcessingLogic 消耗的配方输入；熔岩/工作水均经真实支付托管处理。
+    @Override
+    public void startRecipeProcessing() {}
+
+    @Override
+    public void endRecipeProcessing() {}
 
     private int calculateActualDuration() {
         boolean hasChip = hasOverheatChip();
@@ -772,6 +777,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
             if (mHeat > 0.0d) spawnCloudParticle();
             return;
         }
+        if (mStartUpCheck > 0) return;
 
         if (mMachine) {
             mStructureGraceTicks = 100;
@@ -826,28 +832,29 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
             int maxWaterNeeded = maxOutput / STEAM_PER_WATER;
             int consumedWater = (int) (maxWaterNeeded * mHeat * getCalcificationOutputFactor());
 
-            // v1.10.60：水消耗改访问层（getTankInfo 探测+跨仓实扣），删窗口外 dual 兜底（免费流体），beta-1 安全
-            // 优先消耗蒸馏水（不钙化）；总量不足时本次不产蒸汽（与岩浆检查语义一致）。
+            // 蒸馏水优先；只对足额真实支付的周期产汽，部分支付保存在独立 NBT 托管。
             boolean producedSteam = false;
             if (consumedWater > 0) {
                 FluidStack distilledWater = GTModHandler.getDistilledWater(consumedWater);
                 FluidStack water = GTModHandler.getWater(consumedWater);
-                boolean hasDistilled = GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, distilledWater);
-                boolean hasWater = GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, water);
-                FluidStack toDeplete = hasDistilled ? distilledWater : (hasWater ? water : null);
-                boolean isDistilledWater = hasDistilled;
-                if (toDeplete != null
-                    && GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, toDeplete) >= toDeplete.amount) {
-                    int steamOutput = consumedWater * STEAM_PER_WATER;
+                boolean hasDistilled = GTSRHatchFluidAccess
+                    .probeWorkingFluid(mInputHatches, mDualInputHatches, distilledWater) >= consumedWater;
+                FluidStack toDeplete = waterPayment.getTarget();
+                if (toDeplete == null) toDeplete = hasDistilled ? distilledWater : water;
+                boolean isDistilledWater = toDeplete.isFluidEqual(distilledWater);
+                if (!GTSRHatchFluidAccess.hasUnsupportedWorkingFluidSources(mInputHatches, mDualInputHatches)
+                    && waterPayment.pay(mInputHatches, mDualInputHatches, toDeplete, this::markDirty)) {
+                    int steamOutput = toDeplete.amount * STEAM_PER_WATER;
                     mCurrentSteamOutput = steamOutput;
+                    long previous = mRunningTicks;
                     mRunningTicks += 20;
 
                     // Calcification logic
                     // 超压且用普通水：跳过 1 小时延迟门槛（立刻开始结垢）、每次增量 ×20（0.01→0.2，
                     // 满垢时间 = 原满垢 1/20）；interval 周期调制保留，避免逐秒高速结垢；蒸馏水豁免保持
                     if (!isDistilledWater && (mOverpressure || mRunningTicks > CALCIFICATION_DELAY_TICKS)) {
-                        long calcificationInterval = getCalcificationFullTime() / 100;
-                        if ((mRunningTicks / 20) % calcificationInterval == 0) {
+                        long calcificationInterval = Math.max(1, getCalcificationFullTime() / 100);
+                        if (mRunningTicks / calcificationInterval > previous / calcificationInterval) {
                             mCalcification = Math.min(1.0d, mCalcification + (mOverpressure ? 0.2d : 0.01d));
                         }
                     }
@@ -860,6 +867,8 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
                             : Materials.Steam.getGas(steamOutput);
                         distributeSteam(steam);
                     }
+                    waterPayment.complete();
+                    markDirty();
                     producedSteam = true;
                 }
             }
@@ -874,6 +883,12 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
                     GTSRMachineEvent.sendToOwner(getBaseMetaTileEntity().getOwnerUuid(), "gtsr.chat.no_water");
                 }
                 stopMachine(ShutDownReasonRegistry.NONE);
+                if (waterPayment.isUncertain()) {
+                    setResultIfFailure(
+                        SimpleCheckRecipeResult.ofFailurePersistOnShutdown("gtsr_working_fluid_uncertain"));
+                } else if (GTSRHatchFluidAccess.hasUnsupportedWorkingFluidSources(mInputHatches, mDualInputHatches)) {
+                    setResultIfFailure(SimpleCheckRecipeResult.ofFailure("gtsr_unsupported_working_fluid_hatch"));
+                }
             }
 
             if (!producedSteam) {
@@ -1189,6 +1204,8 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
         aNBT.setBoolean("mOverpressure", mOverpressure);
         aNBT.setBoolean("mWaterStop", mWaterStop);
         aNBT.setBoolean("mNoWaterNotified", mNoWaterNotified);
+        lavaPayment.save(aNBT, "gtsr.lavaPayment");
+        waterPayment.save(aNBT, "gtsr.waterPayment");
     }
 
     @Override
@@ -1203,5 +1220,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
         mOverpressure = aNBT.getBoolean("mOverpressure");
         mWaterStop = aNBT.getBoolean("mWaterStop");
         mNoWaterNotified = aNBT.getBoolean("mNoWaterNotified");
+        lavaPayment.load(aNBT, "gtsr.lavaPayment");
+        waterPayment.load(aNBT, "gtsr.waterPayment");
     }
 }

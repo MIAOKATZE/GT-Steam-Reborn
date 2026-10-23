@@ -34,24 +34,28 @@ public final class CriticalGTRecipes {
 
         public final FluidStack fluid;
         public final BigInteger euPerL;
+        /** First native map wins: diesel=0, gas=1, rocket=2. */
+        public final int spectrum;
 
-        private ChemicalFuel(FluidStack fluid, BigInteger euPerL) {
+        private ChemicalFuel(FluidStack fluid, BigInteger euPerL, int spectrum) {
             this.fluid = fluid.copy();
             this.fluid.amount = 1;
             this.euPerL = euPerL;
+            this.spectrum = spectrum;
         }
     }
 
     /** Same maps, fuel-container decoding and rocket bonus as GT205's UCFE, without its promoter. */
     public static List<ChemicalFuel> chemicalFuels() {
         Map<GTUtility.FluidId, ChemicalFuel> fuels = new LinkedHashMap<>();
-        addChemicalFuels(fuels, RecipeMaps.dieselFuels, 1);
-        addChemicalFuels(fuels, RecipeMaps.gasTurbineFuels, 1);
-        addChemicalFuels(fuels, GTVersionCompat.requireGppRecipeMap("rocketFuels"), 3);
+        addChemicalFuels(fuels, RecipeMaps.dieselFuels, 1, 0);
+        addChemicalFuels(fuels, RecipeMaps.gasTurbineFuels, 1, 1);
+        addChemicalFuels(fuels, GTVersionCompat.requireGppRecipeMap("rocketFuels"), 3, 2);
         return new ArrayList<>(fuels.values());
     }
 
-    private static void addChemicalFuels(Map<GTUtility.FluidId, ChemicalFuel> fuels, RecipeMap<?> map, int bonus) {
+    private static void addChemicalFuels(Map<GTUtility.FluidId, ChemicalFuel> fuels, RecipeMap<?> map, int bonus,
+        int spectrum) {
         for (GTRecipe recipe : map.getAllRecipes()) {
             if (!recipe.mEnabled || recipe.mFakeRecipe || recipe.mSpecialValue <= 0) continue;
             FluidStack fluid = recipe.mInputs != null && recipe.mInputs.length > 0
@@ -62,22 +66,36 @@ public final class CriticalGTRecipes {
                 new ChemicalFuel(
                     fluid,
                     BigInteger.valueOf(recipe.mSpecialValue)
-                        .multiply(BigInteger.valueOf(bonus))));
+                        .multiply(BigInteger.valueOf(bonus)),
+                    spectrum));
         }
     }
 
-    /** All native fusion recipes, with no startup/tier gate and no processing-mode EU discount. */
+    /** RC2 MkV capability with independent stellar pricing, real power and worst-case output gates. */
     public static RecipeMatch matchFusion(CriticalMachineState state, MTECriticalMachine host) {
-        if (host == null) return null;
+        if (host == null || !CriticalStellarRuntime.ready(state.getStellarRuntimeData())) return null;
         ItemStack[] items = host.criticalRecipeItemsSnapshot();
         FluidStack[] fluids = concat(host.criticalPhysicalFluidsSnapshot(), host.criticalMEFluidsSnapshot());
         for (GTRecipe recipe : RecipeMaps.fusionRecipes.getAllRecipes()) {
-            if (!recipe.mEnabled || recipe.mFakeRecipe || recipe.mEUt < 0) continue;
+            long threshold = recipe.getMetadataOrDefault(gregtech.api.util.GTRecipeConstants.FUSION_THRESHOLD, -1L);
+            if (!recipe.mEnabled || recipe.mFakeRecipe
+                || recipe.mDuration <= 0
+                || !CriticalStellarPolicy.nativeCapability(threshold, recipe.mEUt, gregtech.api.enums.GTValues.V[10]))
+                continue;
+            if (!knownFusionContract(recipe)) continue;
+            int powerParallel = CriticalStellarPolicy.powerLimitedParallel(
+                CriticalStellarPolicy.processingPowerBudget(
+                    host.criticalRecipePower(),
+                    MTECriticalMachine.criticalEnergyTickCap(),
+                    state.getStellarRuntimeData()
+                        .getBoolean("holdPaid")),
+                CriticalStellarPolicy.MAX_PARALLEL);
+            if (powerParallel <= 0) continue;
             ParallelHelper limit = helper(
                 recipe,
                 copies(items),
                 copies(fluids),
-                CriticalEnergyMath.FUSION_PARALLEL,
+                powerParallel,
                 Long.MAX_VALUE,
                 false,
                 false);
@@ -99,11 +117,72 @@ public final class CriticalGTRecipes {
                 fluidDelta(fluids, remainingFluids),
                 copies(execution.getItemOutputs()),
                 copies(execution.getFluidOutputs()),
-                CriticalEnergyMath.CYCLE_TICKS,
-                (long) recipe.mEUt * parallel,
-                0);
+                CriticalStellarPolicy.duration(recipe.mDuration),
+                CriticalStellarPolicy.runEuPerTick(parallel),
+                0,
+                fusionFingerprint(recipe, threshold),
+                recipe.mDuration,
+                recipe.mEUt,
+                threshold,
+                parallel,
+                CriticalStellarPolicy.VERSION);
         }
         return null;
+    }
+
+    private static String fusionFingerprint(GTRecipe recipe, long threshold) {
+        net.minecraft.nbt.NBTTagCompound data = new net.minecraft.nbt.NBTTagCompound();
+        data.setInteger("duration", recipe.mDuration);
+        data.setInteger("eut", recipe.mEUt);
+        data.setLong("threshold", threshold);
+        data.setBoolean("nbtSensitive", recipe.isNBTSensitive);
+        if (recipe.mFluidInputChances != null) data.setIntArray("inputChances", recipe.mFluidInputChances);
+        if (recipe.mFluidOutputChances != null) data.setIntArray("outputChances", recipe.mFluidOutputChances);
+        net.minecraft.nbt.NBTTagList inputs = new net.minecraft.nbt.NBTTagList();
+        for (FluidStack fluid : recipe.mFluidInputs)
+            if (fluid != null) inputs.appendTag(fluid.writeToNBT(new net.minecraft.nbt.NBTTagCompound()));
+        data.setTag("inputs", inputs);
+        net.minecraft.nbt.NBTTagList outputs = new net.minecraft.nbt.NBTTagList();
+        for (FluidStack fluid : recipe.mFluidOutputs)
+            if (fluid != null) outputs.appendTag(fluid.writeToNBT(new net.minecraft.nbt.NBTTagCompound()));
+        data.setTag("outputs", outputs);
+        // Canonical GT205 fusion recipes are fluid-only; reject future item/extra-metadata extensions separately.
+        return java.util.UUID.nameUUIDFromBytes(canonicalNbt(data).getBytes(java.nio.charset.StandardCharsets.UTF_8))
+            .toString();
+    }
+
+    private static String canonicalNbt(net.minecraft.nbt.NBTBase tag) {
+        if (tag instanceof net.minecraft.nbt.NBTTagCompound compound) {
+            StringBuilder result = new StringBuilder("{");
+            for (String key : new java.util.TreeSet<>(compound.func_150296_c())) result.append(key.length())
+                .append(':')
+                .append(key)
+                .append(canonicalNbt(compound.getTag(key)));
+            return result.append('}')
+                .toString();
+        }
+        if (tag instanceof net.minecraft.nbt.NBTTagList original) {
+            net.minecraft.nbt.NBTTagList list = (net.minecraft.nbt.NBTTagList) original.copy();
+            StringBuilder result = new StringBuilder("[");
+            while (list.tagCount() > 0) result.append(canonicalNbt(list.removeTag(0)));
+            return result.append(']')
+                .toString();
+        }
+        if (tag instanceof net.minecraft.nbt.NBTTagByteArray bytes)
+            return "B" + java.util.Arrays.toString(bytes.func_150292_c());
+        if (tag instanceof net.minecraft.nbt.NBTTagIntArray ints)
+            return "I" + java.util.Arrays.toString(ints.func_150302_c());
+        String value = tag.toString();
+        return tag.getId() + ":" + value.length() + ":" + value;
+    }
+
+    private static boolean knownFusionContract(GTRecipe recipe) {
+        if (recipe.mInputs.length != 0 || recipe.mOutputs.length != 0
+            || recipe.mSpecialItems != null
+            || recipe.mNeedsEmptyOutput) return false;
+        for (java.util.Map.Entry<gregtech.api.recipe.RecipeMetadataKey<?>, Object> entry : recipe.getMetadataStorage()
+            .getEntries()) if (entry.getKey() != gregtech.api.util.GTRecipeConstants.FUSION_THRESHOLD) return false;
+        return true;
     }
 
     // ParallelHelper always reads IVoidable's output-count limits, even when its own void

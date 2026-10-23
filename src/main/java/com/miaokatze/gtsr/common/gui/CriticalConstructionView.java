@@ -1,23 +1,17 @@
 package com.miaokatze.gtsr.common.gui;
 
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.function.Supplier;
 
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
-import net.minecraftforge.fluids.FluidStack;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
-import com.cleanroommc.modularui.network.NetworkUtils;
-import com.cleanroommc.modularui.utils.serialization.ByteBufAdapters;
-import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.CriticalTier;
@@ -27,23 +21,16 @@ import gregtech.api.enums.GTValues;
 /** Shared, bounded construction page for the management terminal and the native GT read-only dialog. */
 final class CriticalConstructionView {
 
-    private final GenericSyncValue<CriticalConstructionSnapshot, ?> snapshot;
-    private final GenericListSyncHandler<ItemStack> nextItems, missingItems;
-    private final GenericListSyncHandler<FluidStack> nextFluids, missingFluids;
-    private final StringSyncValue detail;
+    private final GenericSyncValue<CriticalBusinessSnapshot, ?> business;
+    private final boolean[] expanded = new boolean[10];
+    private static final String[] FAMILIES = { "controller", "equipment", "S", "H", "E", "O", "F", "M", "C", "G" };
 
     CriticalConstructionView(CriticalMachineState state, PanelSyncManager manager) {
-        snapshot = CriticalConstructionSnapshot.register(manager, state);
-        nextItems = items(state::getConstructionNextItemCostsForGui);
-        missingItems = items(state::getConstructionMissingItemsForGui);
-        nextFluids = fluids(state::getConstructionNextFluidCostsForGui);
-        missingFluids = fluids(state::getConstructionMissingFluidsForGui);
-        detail = new StringSyncValue(state::getStatus);
-        manager.syncValue("critical.constructionView.nextItems", nextItems);
-        manager.syncValue("critical.constructionView.missingItems", missingItems);
-        manager.syncValue("critical.constructionView.nextFluids", nextFluids);
-        manager.syncValue("critical.constructionView.missingFluids", missingFluids);
-        manager.syncValue("critical.constructionView.detail", detail);
+        this(CriticalBusinessSnapshot.register(manager, state, null));
+    }
+
+    CriticalConstructionView(GenericSyncValue<CriticalBusinessSnapshot, ?> business) {
+        this.business = business;
     }
 
     ParentWidget<?> create() {
@@ -61,7 +48,7 @@ final class CriticalConstructionView {
             new ParentWidget<>().name("critical_construction_preview")
                 .pos(6, 22)
                 .size(274, 144)
-                .background(new CriticalConstructionPreview(snapshot::getValue))
+                .background(new CriticalConstructionPreview(this::sample))
                 .tooltipBuilder(t -> {
                     t.add(IKey.lang(key("view.grid_hint")));
                     t.add(IKey.lang(key("view.ghost_hint")));
@@ -86,6 +73,10 @@ final class CriticalConstructionView {
             .background(CriticalGuiStyle.CARD)
             .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
         heading(information, () -> tr("view.progress") + " " + percent(sample().progress()));
+        line(information, () -> tr("ui.controller_state") + ": " + tr("status." + sample().status()));
+        line(
+            information,
+            () -> tr("ui.journal_owner") + ": " + tr(sample().loomOwner() ? "ui.journal.loom" : "ui.journal.main"));
         line(information, () -> {
             CriticalConstructionSnapshot s = sample();
             if (s.showsFoundation()) return tr("view.cells") + " " + s.completedCells() + " / " + s.totalCells();
@@ -110,37 +101,128 @@ final class CriticalConstructionView {
             () -> !sample().enabled() ? tr("reason.7")
                 : sample().reason() == 0 ? "" : tr("reason." + sample().reason()),
             CriticalGuiStyle.TEXT_ACCENT);
-        line(information, () -> detail.getValue());
+        line(
+            information,
+            () -> business.getValue()
+                .detail());
+        line(information, this::nextAction, CriticalGuiStyle.TEXT_ACCENT);
         line(information, () -> tr("view.base_power") + " " + constructionVoltage() + " EU/t");
         line(
             information,
             () -> sample().phase() == 1 ? tr(sample().cellFunded() ? "construction.funded" : "construction.unfunded")
                 : "");
         heading(information, () -> tr("construction.next_cost"));
-        line(information, () -> itemLines(nextItems));
-        line(information, () -> fluidLines(nextFluids));
         line(
             information,
-            () -> nextItems.getValue()
+            () -> business.getValue()
+                .nextItems());
+        line(
+            information,
+            () -> business.getValue()
+                .nextFluids());
+        line(
+            information,
+            () -> business.getValue()
+                .nextItems()
                 .isEmpty()
-                && nextFluids.getValue()
+                && business.getValue()
+                    .nextFluids()
                     .isEmpty() ? tr("view.no_pending_cost") : "");
         heading(information, () -> tr("construction.missing"));
-        line(information, () -> itemLines(missingItems), CriticalGuiStyle.STATE_OFFLINE);
-        line(information, () -> fluidLines(missingFluids), CriticalGuiStyle.STATE_OFFLINE);
         line(
             information,
-            () -> missingItems.getValue()
+            () -> business.getValue()
+                .missingItems(),
+            CriticalGuiStyle.STATE_OFFLINE);
+        line(
+            information,
+            () -> business.getValue()
+                .missingFluids(),
+            CriticalGuiStyle.STATE_OFFLINE);
+        line(
+            information,
+            () -> business.getValue()
+                .missingItems()
                 .isEmpty()
-                && missingFluids.getValue()
+                && business.getValue()
+                    .missingFluids()
                     .isEmpty() ? tr("construction.supplied") : "",
             CriticalGuiStyle.STATE_ONLINE);
+        heading(information, () -> tr("ui.economy.layers"));
+        line(information, () -> tr(business.getValue().economyVersion == 2 ? "ui.economy.rc2" : "ui.economy.legacy"));
+        line(information, () -> tr("ui.economy.network_unpaid"), CriticalGuiStyle.TEXT_MUTED);
+        for (int family = 0; family < FAMILIES.length; family++) {
+            final int index = family;
+            information.child(
+                new ButtonWidget<>().name("critical_economy_family_" + FAMILIES[index])
+                    .height(16)
+                    .widthRel(1f)
+                    .background(CriticalGuiStyle.BUTTON)
+                    .hoverBackground(CriticalGuiStyle.HOVER)
+                    .overlay(
+                        IKey.dynamic(() -> (expanded[index] ? "− " : "+ ") + tr("ui.economy.family." + FAMILIES[index]))
+                            .color(CriticalGuiStyle.TEXT_ACCENT))
+                    .onMousePressed(button -> {
+                        if (button != 0) return false;
+                        expanded[index] = !expanded[index];
+                        return true;
+                    }));
+            information.child(
+                CriticalGuiStyle.text(IKey.dynamic(() -> familyLines(FAMILIES[index])))
+                    .color(CriticalGuiStyle.TEXT_BODY)
+                    .fullWidth()
+                    .marginBottom(4)
+                    .setEnabledIf(w -> expanded[index]));
+        }
         page.child(information);
         return page;
     }
 
     private CriticalConstructionSnapshot sample() {
-        return snapshot.getValue();
+        return business.getValue().construction;
+    }
+
+    private String nextAction() {
+        CriticalConstructionSnapshot s = sample();
+        return tr("ui.next_action") + ": " + tr("ui.recover." + (!s.enabled() ? 7 : s.reason()));
+    }
+
+    private String familyLines(String family) {
+        StringBuilder text = new StringBuilder();
+        CriticalBusinessSnapshot sample = business.getValue();
+        for (int i = 0; i < sample.identityCount(); i++) {
+            if (!family.equals(sample.identity(i, 0))) continue;
+            if (text.length() > 0) text.append("\n\n");
+            text.append(identityLine(i));
+        }
+        return text.length() == 0 ? tr("view.no_pending_cost") : text.toString();
+    }
+
+    private String identityLine(int index) {
+        CriticalBusinessSnapshot s = business.getValue();
+        if (index >= s.identityCount()) return "";
+        return s.identity(index, 2) + " ["
+            + s.identity(index, 1)
+            + "]\n"
+            + tr("ui.economy.demand")
+            + " "
+            + s.identity(index, 3)
+            + " | "
+            + tr("ui.economy.installed")
+            + " "
+            + s.identity(index, 4)
+            + "\n"
+            + tr("ui.economy.escrow")
+            + " "
+            + s.identity(index, 5)
+            + " | "
+            + tr("ui.economy.missing")
+            + " "
+            + s.identity(index, 6)
+            + "\n"
+            + tr("ui.economy.next")
+            + " "
+            + s.identity(index, 7);
     }
 
     private String phaseName() {
@@ -193,53 +275,6 @@ final class CriticalConstructionView {
                 .setEnabledIf(
                     w -> !text.get()
                         .isEmpty()));
-    }
-
-    private static GenericListSyncHandler<ItemStack> items(Supplier<ItemStack[]> getter) {
-        return new GenericListSyncHandler<>(() -> Arrays.asList(getter.get()), null, packet -> {
-            ItemStack stack = NetworkUtils.readItemStack(packet);
-            int count = packet.readInt();
-            if (stack != null) stack.stackSize = count;
-            return stack;
-        }, (packet, stack) -> {
-            NetworkUtils.writeItemStack(packet, stack);
-            packet.writeInt(stack == null ? 0 : stack.stackSize);
-        }, ItemStack::areItemStacksEqual, stack -> stack == null ? null : stack.copy());
-    }
-
-    private static GenericListSyncHandler<FluidStack> fluids(Supplier<FluidStack[]> getter) {
-        return new GenericListSyncHandler<>(
-            () -> Arrays.asList(getter.get()),
-            null,
-            packet -> ByteBufAdapters.FLUID_STACK.deserialize(packet),
-            (packet, stack) -> ByteBufAdapters.FLUID_STACK.serialize(packet, stack),
-            FluidStack::isFluidStackIdentical,
-            FluidStack::copy);
-    }
-
-    private static String itemLines(GenericListSyncHandler<ItemStack> items) {
-        StringBuilder text = new StringBuilder();
-        for (ItemStack stack : items.getValue()) {
-            if (stack == null) continue;
-            if (text.length() > 0) text.append('\n');
-            text.append(stack.getDisplayName())
-                .append(" × ")
-                .append(stack.stackSize);
-        }
-        return text.toString();
-    }
-
-    private static String fluidLines(GenericListSyncHandler<FluidStack> fluids) {
-        StringBuilder text = new StringBuilder();
-        for (FluidStack stack : fluids.getValue()) {
-            if (stack == null) continue;
-            if (text.length() > 0) text.append('\n');
-            text.append(stack.getLocalizedName())
-                .append(" × ")
-                .append(stack.amount)
-                .append(" mB");
-        }
-        return text.toString();
     }
 
     private static String percent(double value) {

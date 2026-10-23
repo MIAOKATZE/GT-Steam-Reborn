@@ -19,9 +19,11 @@ import javax.annotation.Nullable;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -52,11 +54,15 @@ import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
+import gregtech.api.recipe.check.CheckRecipeResult;
+import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.FluidEjectionHelper;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.IGTHatchAdder;
+import gregtech.api.util.ItemEjectionHelper;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
 import gregtech.api.util.ParallelHelper;
@@ -88,6 +94,10 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
     // 客户端在收到第一次 onValueUpdate 之前会保持该值，
     // 此时 getCasingTextureID() 返回等级1（青铜）贴图，避免显示错误的等级2底材。
     public int mTier = -1;
+    private final List<ItemStack> pendingItems = new ArrayList<>();
+    private final List<FluidStack> pendingFluids = new ArrayList<>();
+    private int activeBatchParallel;
+    private int completedBatchParallel = -1;
 
     // v1.9.39 修复：样板输入仓（MTEHatchCraftingInputME/Slave，implements IDualInputHatch）重定向到
     // mDualInputHatches（仿 GT5U addInputBusToMachineList）。此前裸 instanceof 会把样板仓收进
@@ -475,7 +485,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
                 long recipeBudget = Math.max(0L, recipe.mEUt) * Math.max(1, getMaxParallelRecipes());
                 return super.createParallelHelper(recipe).setAvailableEUt(Math.max(32L, recipeBudget));
             }
-        }.setMaxParallelSupplier(this::getMaxParallelRecipes)
+        }.setMaxParallelSupplier(this::getTrueParallel)
             .setSpeedBonusSupplier(this::getRecipeDurationMultiplier);
     }
 
@@ -494,10 +504,93 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
 
     @Override
     public void onPostTick(IGregTechTileEntity tile, long tick) {
-        // GT5U 独占配方检索、输入消耗、进度推进及输出；这里只维护焦炉热量。
+        if (tile.isServerSide() && mMachine) retryPendingOutputs();
+        long completedBeforeTick = recipesDone;
+        completedBatchParallel = -1;
         super.onPostTick(tile, tick);
         if (!tile.isServerSide()) return;
+        // 父类在 outputAfterRecipe 后按 max(current,last) 累加，还可能同 tick 开下一批。
+        // 完成批只使用该批捕获值，不读取下一批状态，也不受旧 lastParallel 影响。
+        if (completedBatchParallel >= 0) recipesDone = completedBeforeTick + completedBatchParallel;
         updateHeat(tile.isActive());
+    }
+
+    @Override
+    public CheckRecipeResult checkProcessing() {
+        if (!pendingItems.isEmpty()) return CheckRecipeResultRegistry.ITEM_OUTPUT_FULL;
+        if (!pendingFluids.isEmpty()) return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
+        CheckRecipeResult result = super.checkProcessing();
+        if (result.wasSuccessful()) {
+            activeBatchParallel = Math.max(1, processingLogic.getCurrentParallels());
+            markDirty();
+        }
+        return result;
+    }
+
+    @Override
+    protected void outputAfterRecipe() {
+        completedBatchParallel = Math.max(1, activeBatchParallel);
+        activeBatchParallel = 0;
+        markDirty();
+        super.outputAfterRecipe();
+    }
+
+    @Override
+    public boolean addItemOutputs(ItemStack[] outputs) {
+        for (ItemStack stack : outputs) {
+            if (stack != null && stack.stackSize > 0) pendingItems.add(stack.copy());
+        }
+        retryPendingItems();
+        markDirty();
+        return pendingItems.isEmpty();
+    }
+
+    @Override
+    protected boolean addFluidOutputs(FluidStack[] outputs) {
+        for (FluidStack stack : outputs) {
+            if (stack != null && stack.amount > 0) pendingFluids.add(stack.copy());
+        }
+        retryPendingFluids();
+        markDirty();
+        return pendingFluids.isEmpty();
+    }
+
+    private void retryPendingOutputs() {
+        if (pendingItems.isEmpty() && pendingFluids.isEmpty()) return;
+        retryPendingItems();
+        retryPendingFluids();
+        markDirty();
+    }
+
+    private void retryPendingItems() {
+        if (pendingItems.isEmpty()) return;
+        ItemEjectionHelper helper = new ItemEjectionHelper(this);
+        // helper 只扣副本内已安排交付的部分；提交后只保留剩余量，绝不整组重试。
+        List<ItemStack> remaining = new ArrayList<>();
+        for (ItemStack original : pendingItems) {
+            ItemStack stack = original.copy();
+            helper.ejectStack(stack);
+            if (stack.stackSize > 0) remaining.add(stack);
+        }
+        helper.commit();
+        pendingItems.clear();
+        pendingItems.addAll(remaining);
+    }
+
+    private void retryPendingFluids() {
+        if (pendingFluids.isEmpty()) return;
+        FluidEjectionHelper helper = new FluidEjectionHelper(
+            getOutputHatches(pendingFluids.toArray(new FluidStack[0])),
+            protectsExcessFluid());
+        List<FluidStack> remaining = new ArrayList<>();
+        for (FluidStack original : pendingFluids) {
+            FluidStack stack = original.copy();
+            helper.ejectStack(stack);
+            if (stack.amount > 0) remaining.add(stack);
+        }
+        helper.commit();
+        pendingFluids.clear();
+        pendingFluids.addAll(remaining);
     }
 
     private void updateHeat(boolean active) {
@@ -602,6 +695,17 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
         aNBT.setDouble("mHeat", getHeat());
         aNBT.setInteger("mTier", mTier);
         aNBT.setBoolean(OUTPUT_PROTECTION_NBT_KEY, true);
+        aNBT.setInteger("gtsr.activeBatchParallel", activeBatchParallel);
+        NBTTagList items = new NBTTagList();
+        for (ItemStack stack : pendingItems) {
+            NBTTagCompound entry = stack.writeToNBT(new NBTTagCompound());
+            entry.setInteger("gtsr.amount", stack.stackSize);
+            items.appendTag(entry);
+        }
+        aNBT.setTag("gtsr.pendingItems", items);
+        NBTTagList fluids = new NBTTagList();
+        for (FluidStack stack : pendingFluids) fluids.appendTag(stack.writeToNBT(new NBTTagCompound()));
+        aNBT.setTag("gtsr.pendingFluids", fluids);
     }
 
     @Override
@@ -609,6 +713,25 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
         super.loadNBTData(aNBT);
         setHeat(aNBT.getDouble("mHeat"));
         setCokeTier(aNBT.getInteger("mTier"));
+        activeBatchParallel = aNBT.hasKey("gtsr.activeBatchParallel")
+            ? Math.max(0, aNBT.getInteger("gtsr.activeBatchParallel"))
+            : (mMaxProgresstime > 0 ? Math.max(1, lastParallel) : 0);
+        pendingItems.clear();
+        NBTTagList items = aNBT.getTagList("gtsr.pendingItems", 10);
+        for (int i = 0; i < items.tagCount(); i++) {
+            NBTTagCompound entry = items.getCompoundTagAt(i);
+            ItemStack stack = ItemStack.loadItemStackFromNBT(entry);
+            if (stack != null) {
+                stack.stackSize = entry.getInteger("gtsr.amount");
+                if (stack.stackSize > 0) pendingItems.add(stack);
+            }
+        }
+        pendingFluids.clear();
+        NBTTagList fluids = aNBT.getTagList("gtsr.pendingFluids", 10);
+        for (int i = 0; i < fluids.tagCount(); i++) {
+            FluidStack stack = FluidStack.loadFluidStackFromNBT(fluids.getCompoundTagAt(i));
+            if (stack != null && stack.amount > 0) pendingFluids.add(stack);
+        }
         // 旧焦炉不支持保护，其默认 VOID_ALL 并非玩家主动选择；首次升级恢复保护。
         // 此后保留玩家在 GT 标准界面中明确选择的丢弃模式。
         if (!aNBT.getBoolean(OUTPUT_PROTECTION_NBT_KEY)) setVoidingMode(getDefaultVoidingMode());

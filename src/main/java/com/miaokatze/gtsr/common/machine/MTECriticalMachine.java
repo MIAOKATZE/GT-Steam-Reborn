@@ -41,7 +41,9 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     private final CriticalMachineState state = new CriticalMachineState();
     private long energySpentThisTick;
     private long energyEmittedThisTick;
+    private int dynamoPacketsSpentThisTick;
     private final java.util.Map<MTEHatch, Long> hatchEnergySpent = new java.util.IdentityHashMap<>();
+    private final java.util.Map<MTEHatchDynamo, Integer> dynamoPacketsSpent = new java.util.IdentityHashMap<>();
     private final java.util.Map<Long, TileEntity> portSnapshot = new java.util.LinkedHashMap<>();
     private int previousJournalState = -1;
     private boolean previousCanonicalValidation;
@@ -475,7 +477,9 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         }
         energySpentThisTick = 0;
         energyEmittedThisTick = 0;
+        dynamoPacketsSpentThisTick = 0;
         hatchEnergySpent.clear();
+        dynamoPacketsSpent.clear();
         current.updateEntity();
         chargeBattery();
         if (tick % 20 == 0)
@@ -639,6 +643,10 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         return java.util.Collections.unmodifiableList(mInputHatches);
     }
 
+    public java.util.List<gregtech.common.tileentities.machines.IDualInputHatch> getCriticalDualInputHatches() {
+        return new java.util.ArrayList<>(mDualInputHatches);
+    }
+
     public java.util.List<gregtech.api.metatileentity.implementations.MTEHatchInputBus> getCriticalInputBusses() {
         return java.util.Collections.unmodifiableList(mInputBusses);
     }
@@ -668,8 +676,58 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     public long criticalRecipePower() {
         return Math.min(
-            com.miaokatze.gtsr.common.critical.CriticalTier.T3.recipeVoltage() * 16L,
+            Math.max(0L, criticalEnergyTickCap() - energySpentThisTick),
             gregtech.api.util.GTUtility.addSafe(getBaseMetaTileEntity().getStoredEU(), availableHatchEnergyThisTick()));
+    }
+
+    public static long criticalEnergyTickCap() {
+        return com.miaokatze.gtsr.common.critical.CriticalTier.T3.recipeVoltage() * 16L;
+    }
+
+    /** Canonical physical host identity; construction permission owner is intentionally unrelated. */
+    public com.miaokatze.gtsr.common.critical.CriticalStellarRuntime.PowerPort criticalStellarPowerPort() {
+        return new com.miaokatze.gtsr.common.critical.CriticalStellarRuntime.PowerPort() {
+
+            @Override
+            public long available() {
+                return criticalRecipePower();
+            }
+
+            @Override
+            public com.miaokatze.gtsr.common.critical.CriticalEnergyDebit debit(long requested) {
+                return debitCriticalEnergy(requested);
+            }
+
+            @Override
+            public long refund(long requested) {
+                // This callback is used only while settling a prepaid local refund, never for generation.
+                // Even with a full buffer (accepted=0), existing stored EU can drain through real dynamos.
+                return emitCriticalEnergy(requested);
+            }
+
+            @Override
+            public String identity() {
+                IGregTechTileEntity base = getBaseMetaTileEntity();
+                return base.getWorld().provider.dimensionId + ":"
+                    + base.getXCoord()
+                    + ":"
+                    + base.getYCoord()
+                    + ":"
+                    + base.getZCoord();
+            }
+
+            @Override
+            public void changed() {
+                getBaseMetaTileEntity().markDirty();
+            }
+        };
+    }
+
+    public boolean hasCriticalStellarRefundOutput() {
+        for (MTEHatchDynamo hatch : mDynamoHatches) if (hatch.isValid() && hatch.maxEUOutput() > 0
+            && hatch.maxEUOutput() <= Integer.MAX_VALUE
+            && hatch.maxAmperesOut() > 0) return true;
+        return false;
     }
 
     public ItemStack[] criticalRecipeItemsSnapshot() {
@@ -783,6 +841,50 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         return true;
     }
 
+    /**
+     * GT205's aggregate helper ignores individual decreaseStoredEnergyUnits return values. Debit each
+     * explicit tile directly and acknowledge only a successful native decrease. No speculative rollback.
+     */
+    public com.miaokatze.gtsr.common.critical.CriticalEnergyDebit debitCriticalEnergy(long amount) {
+        if (amount < 0) throw new IllegalArgumentException("negative debit");
+        long remaining = Math.min(amount, criticalRecipePower());
+        long confirmed = 0;
+        if (remaining == 0) return new com.miaokatze.gtsr.common.critical.CriticalEnergyDebit(amount, 0, false);
+        long fromBuffer = Math.min(remaining, getBaseMetaTileEntity().getStoredEU());
+        try {
+            if (fromBuffer > 0) {
+                if (!getBaseMetaTileEntity().decreaseStoredEnergyUnits(fromBuffer, false))
+                    return new com.miaokatze.gtsr.common.critical.CriticalEnergyDebit(amount, 0, true);
+                confirmed += fromBuffer;
+                remaining -= fromBuffer;
+                energySpentThisTick += fromBuffer;
+            }
+            java.util.Set<MTEHatch> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+            for (MTEHatch hatch : getExoticAndNormalEnergyHatchList()) {
+                if (remaining == 0) break;
+                if (!seen.add(hatch) || !hatch.isValid()) continue;
+                long portion = Math.min(
+                    remaining,
+                    Math.min(
+                        nativeHatchBudget(hatch),
+                        hatch.getBaseMetaTileEntity()
+                            .getStoredEU()));
+                if (portion <= 0) continue;
+                // Reserve this tick's source budget even if the external call becomes uncertain.
+                hatchEnergySpent.put(hatch, hatchEnergySpent.getOrDefault(hatch, 0L) + portion);
+                energySpentThisTick += portion;
+                if (!hatch.getBaseMetaTileEntity()
+                    .decreaseStoredEnergyUnits(portion, false))
+                    return new com.miaokatze.gtsr.common.critical.CriticalEnergyDebit(amount, confirmed, true);
+                confirmed += portion;
+                remaining -= portion;
+            }
+            return new com.miaokatze.gtsr.common.critical.CriticalEnergyDebit(amount, confirmed, false);
+        } catch (RuntimeException failure) {
+            return new com.miaokatze.gtsr.common.critical.CriticalEnergyDebit(amount, confirmed, true);
+        }
+    }
+
     private long nativeHatchBudget(MTEHatch hatch) {
         long voltage = hatch.maxEUInput(), amperage = hatch.maxWorkingAmperesIn();
         long nativePower = voltage > 0 && amperage > Long.MAX_VALUE / voltage ? Long.MAX_VALUE : voltage * amperage;
@@ -791,7 +893,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     private long availableHatchEnergyThisTick() {
         long total = 0;
-        for (MTEHatch hatch : getExoticAndNormalEnergyHatchList()) if (hatch.isValid()) {
+        java.util.Set<MTEHatch> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        for (MTEHatch hatch : getExoticAndNormalEnergyHatchList()) if (seen.add(hatch) && hatch.isValid()) {
             long legal = Math.min(
                 hatch.getBaseMetaTileEntity()
                     .getStoredEU(),
@@ -848,15 +951,18 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             && kind != CriticalMachineKind.ACCELERATOR) return accepted;
         long voltage = state.getTier()
             .recipeVoltage();
-        long left = Math.min(getBaseMetaTileEntity().getStoredEU(), voltage * 16L), emitted = 0;
-        int ampBudget = 16;
+        long left = Math
+            .min(getBaseMetaTileEntity().getStoredEU(), Math.max(0L, voltage * 16L - energyEmittedThisTick)),
+            emitted = 0;
+        int ampBudget = Math.max(0, 16 - dynamoPacketsSpentThisTick);
         java.util.ArrayList<MTEHatchDynamo> original = new java.util.ArrayList<>(mDynamoHatches);
         try {
             // GT205's shared output helper has an int accumulator. Send at most one native
             // voltage packet per call, while preserving each hatch's own per-tick amp budget.
             for (MTEHatchDynamo hatch : original) {
                 if (!hatch.isValid() || hatch.maxEUOutput() > Integer.MAX_VALUE) continue;
-                long nativeAmps = Math.min(ampBudget, hatch.maxAmperesOut());
+                long nativeAmps = Math
+                    .min(ampBudget, Math.max(0L, hatch.maxAmperesOut() - dynamoPacketsSpent.getOrDefault(hatch, 0)));
                 mDynamoHatches.clear();
                 mDynamoHatches.add(hatch);
                 for (long amp = 0; amp < nativeAmps && left > 0; amp++) {
@@ -867,6 +973,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
                     long packet = Math.min(left, Math.min(hatch.maxEUOutput(), hatchFree));
                     if (packet <= 0 || !addEnergyOutputMultipleDynamos(packet, true)) break;
                     emitted += packet;
+                    dynamoPacketsSpent.put(hatch, dynamoPacketsSpent.getOrDefault(hatch, 0) + 1);
+                    dynamoPacketsSpentThisTick++;
                     left -= packet;
                     ampBudget--;
                 }
@@ -927,6 +1035,12 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         super.setItemNBT(n);
         NBTTagCompound journal = new NBTTagCompound();
         getLocalCriticalState().writeToNBT(journal);
+        if (journal.hasKey("criticalStellarRuntime", 10)) {
+            NBTTagCompound itemStellar = (NBTTagCompound) journal.getCompoundTag("criticalStellarRuntime")
+                .copy();
+            com.miaokatze.gtsr.common.critical.CriticalStellarRuntime.markItemCopy(itemStellar);
+            journal.setTag("criticalStellarRuntime", itemStellar);
+        }
         n.setTag("criticalState", journal);
         if (getBaseMetaTileEntity() != null) n.setLong("mStoredEnergy", getBaseMetaTileEntity().getStoredEU());
     }

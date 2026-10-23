@@ -19,7 +19,7 @@ import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
 import gtPlusPlus.core.material.MaterialMisc;
 
-/** Real work-recipe views only. Critical controllers, casings and loom materials have no crafting recipes. */
+/** Physical manufacturing recipes plus real work-recipe views. */
 public final class CriticalMachineRecipes {
 
     private static boolean registered;
@@ -28,6 +28,7 @@ public final class CriticalMachineRecipes {
 
     public static void register() {
         if (registered) return;
+        CriticalManufacturingRecipes.register();
         registerSolar();
         registerTurbine();
         registerChemicalFuels();

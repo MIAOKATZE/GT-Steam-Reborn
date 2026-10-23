@@ -35,8 +35,9 @@ final class CriticalConstructionSnapshot {
         return sync;
     }
 
-    private static CriticalConstructionSnapshot capture(CriticalMachineState state) {
+    static CriticalConstructionSnapshot capture(CriticalMachineState state) {
         List<ChunkCoordIntPair> chunks = state.getFoundationChunks();
+        if (chunks.size() > 4096) throw new IllegalStateException("Construction preview exceeds 4096 chunks");
         int[] values = new int[HEADER_SIZE + chunks.size() * 3];
         values[0] = state.getFoundationPhase();
         values[1] = state.getFoundationCompletedCells();
@@ -69,17 +70,21 @@ final class CriticalConstructionSnapshot {
         return new CriticalConstructionSnapshot(values);
     }
 
-    private void write(PacketBuffer packet) {
+    void write(PacketBuffer packet) {
         packet.writeVarIntToBuffer(chunkCount());
         for (int value : values) packet.writeInt(value);
     }
 
-    private static CriticalConstructionSnapshot read(PacketBuffer packet) throws IOException {
+    static CriticalConstructionSnapshot read(PacketBuffer packet) throws IOException {
         int count = packet.readVarIntFromBuffer();
         if (count < 0 || count > 4096) throw new IOException("Invalid construction preview chunk count: " + count);
         int[] values = new int[HEADER_SIZE + count * 3];
         for (int i = 0; i < values.length; i++) values[i] = packet.readInt();
         return new CriticalConstructionSnapshot(values);
+    }
+
+    boolean same(CriticalConstructionSnapshot other) {
+        return other != null && Arrays.equals(values, other.values);
     }
 
     int phase() {

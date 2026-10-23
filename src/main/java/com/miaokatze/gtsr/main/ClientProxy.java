@@ -34,6 +34,7 @@ public class ClientProxy extends CommonProxy {
     public void init(FMLInitializationEvent event) {
         // 调用父类的 init 方法，确保通用逻辑正常执行
         super.init(event);
+        com.miaokatze.gtsr.client.tooltip.GTSRTooltipHandler.register();
         com.miaokatze.gtsr.client.critical.CriticalControllerRenderer.register();
         com.miaokatze.gtsr.client.critical.CriticalMaterialRenderer.register();
         SpacetimeClient.register();
@@ -69,6 +70,7 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void postInit(FMLPostInitializationEvent event) {
         super.postInit(event);
+        com.miaokatze.gtsr.client.tooltip.GTSRTooltipCatalog.initialize();
 
         codechicken.nei.api.API
             .hideItem(new net.minecraft.item.ItemStack(com.miaokatze.gtsr.common.critical.CriticalRenderAnchors.BLOCK));

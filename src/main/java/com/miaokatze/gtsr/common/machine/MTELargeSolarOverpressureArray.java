@@ -53,6 +53,7 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.IShiftRightClickDecalcifiable;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.api.compat.GTSRWorkingFluidPayment;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
@@ -76,6 +77,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
+import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
@@ -197,6 +199,8 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
     private boolean mNoWaterNotified = false;
     protected boolean mIsHeating = false;
     protected boolean mIsOperating = false;
+    private final GTSRWorkingFluidPayment waterPayment = new GTSRWorkingFluidPayment();
+    private boolean mCycleUsesDistilled;
     protected int tierCasing = -1;
     protected int tierGlass = -1;
     protected int tierMetal = -1;
@@ -648,6 +652,8 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
             }
             return;
         }
+        // 加载保护必须在结构早退之前；不改变正常拆壳后的散热。
+        if (mStartUpCheck > 0) return;
         if (!mMachine || mSetTier <= 0) {
             // 结构失效时热量仍按衰减速度降至 0，保证客户端经 updateData 同步后停止粒子渲染
             mHeat -= getHeatDecreaseSpeed();
@@ -724,94 +730,86 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
                 outputSteam();
             }
         } else {
-            checkProcessing();
+            setCheckRecipeResult(checkProcessing());
         }
     }
 
     @Nonnull
     @Override
     public CheckRecipeResult checkProcessing() {
+        if (waterPayment.isUncertain()) {
+            return SimpleCheckRecipeResult.ofFailurePersistOnShutdown("gtsr_working_fluid_uncertain");
+        }
         if (!mMachine || mSetTier <= 0 || !getBaseMetaTileEntity().isAllowedToWork()) {
             mIsOperating = false;
             mCurrentSteamOutput = 0;
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
+        if (GTSRHatchFluidAccess.hasUnsupportedWorkingFluidSources(mInputHatches, mDualInputHatches)) {
+            return SimpleCheckRecipeResult.ofFailure("gtsr_unsupported_working_fluid_hatch");
+        }
 
-        // v1.10.60：水消耗路径重构——探测改 GTSRHatchFluidAccess.probeFluidAmountAcross（getTankInfo 安全模拟：
-        // ME 输入仓窗口外每槽报真实可得量、普通仓报存量），实扣改 depleteFluidAcross（双版本 2 参 drain 语义一致，
-        // 无 beta-1 首遍模拟即真提取的双扣问题）；删除样板仓 dual 合并探测与 depleteFluidFromDuals 兜底
-        // （窗口外静默失效=免费流体）。蒸馏水优先：存在蒸馏水时优先消耗（与地热锅炉一致，避免钙化）。
-        float solarBooster = calculateSolarBooster();
-        int baseProduction = getBaseSteamProduction();
-        int maxNeed = baseProduction / STEAM_PER_WATER;
-        FluidStack distilledWant = GTModHandler.getDistilledWater(maxNeed);
-        FluidStack waterWant = GTModHandler.getWater(maxNeed);
-        boolean hasDistilledWater = GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, distilledWant) > 0;
-        boolean hasWater = GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, waterWant) > 0;
-        boolean hasWaterInSystem = hasDistilledWater || hasWater;
+        double outputFactor = calculateSolarBooster() + mHeat - 1.0d;
+        int desired = (int) (getBaseSteamProduction() / STEAM_PER_WATER
+            * outputFactor
+            * getCalcificationOutputFactor()
+            * mSunRatio);
+        // 零日照、量化为零或冷机都没有工作周期，不扣水，也不推进运行时间/钙化。
+        if (mHeat <= 0.01d || desired <= 0) {
+            mIsOperating = false;
+            mCurrentSteamOutput = 0;
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
 
-        if (hasWaterInSystem && mHeat > 0.01d) {
-            long available = hasDistilledWater
-                ? GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, distilledWant)
-                : GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, waterWant);
-
-            long calcificationDelayTicks = getCalcificationDelayTicks();
-            long calcificationInterval = getCalcificationFullTime() / 100;
-
-            // 超压 + 普通水：跳过 mRunningTicks 延迟门槛（立刻开始结垢）、增量 ×20（0.01→0.2，
-            // 满垢时间 = 原满垢 1/20）；interval 周期调制保留，避免夜间/失败路径逐 tick 高速结垢；蒸馏水豁免保持
-            if (mRunningTicks > (mOverpressure ? 0L : calcificationDelayTicks)
-                && (mRunningTicks / 20) % calcificationInterval == 0
-                && hasWater
-                && !hasDistilledWater) {
-                mCalcification += mOverpressure ? 0.2d : 0.01d;
-                if (mCalcification > 1.0d) mCalcification = 1.0d;
+        FluidStack request = waterPayment.getTarget();
+        if (request == null) {
+            int maxNeed = getBaseSteamProduction() / STEAM_PER_WATER;
+            FluidStack distilled = GTModHandler.getDistilledWater(maxNeed);
+            FluidStack water = GTModHandler.getWater(maxNeed);
+            int available = GTSRHatchFluidAccess.probeWorkingFluid(mInputHatches, mDualInputHatches, distilled);
+            request = available > 0 ? distilled : water;
+            if (available <= 0) {
+                available = GTSRHatchFluidAccess.probeWorkingFluid(mInputHatches, mDualInputHatches, water);
             }
-
-            // 加算口径（v1.10.51）：总倍率 = 1 + 太阳能额外增幅(solar-1) + 超压额外增幅(heat-1)
-            // = solar + heat - 1；热量 200% 只贡献 +100% 额外增幅，叠加太阳能锅炉后最大 ×4.0（额外 +300%）
-            double outputFactor = solarBooster + mHeat - 1.0d;
-
-            int consumedWater = (int) (Math.min(available, maxNeed) * outputFactor
+            if (available <= 0) {
+                stopForMissingWater();
+                return CheckRecipeResultRegistry.NO_RECIPE;
+            }
+            // 保留原有可得基数与太阳/热量倍率，只改变真实支付和失败恢复语义。
+            request.amount = (int) (Math.min(available, maxNeed) * outputFactor
                 * getCalcificationOutputFactor()
                 * mSunRatio);
-
-            if (consumedWater > 0) {
-                FluidStack liquidToDeplete = hasDistilledWater ? GTModHandler.getDistilledWater(consumedWater)
-                    : GTModHandler.getWater(consumedWater);
-
-                if (GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, liquidToDeplete) >= consumedWater) {
-                    int steamAmount = consumedWater * STEAM_PER_WATER;
-                    mRunningTicks += 20;
-                    mCurrentSteamOutput = steamAmount;
-
-                    FluidStack outputSteam;
-                    if (isNickel()) {
-                        outputSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", steamAmount);
-                    } else {
-                        outputSteam = Materials.Steam.getGas(steamAmount);
-                    }
-
-                    super.mOutputFluids = new FluidStack[] { outputSteam };
-                    super.mMaxProgresstime = 20;
-                    super.mEfficiency = getMaxEfficiency(null);
-                    mIsOperating = true;
-
-                    return CheckRecipeResultRegistry.SUCCESSFUL;
-                } else {
-                    // 水消耗失败：断电停机 + 一次性提示，须手动重启（软锤/打开 GUI 点电源开关）
-                    stopForMissingWater();
-                    return CheckRecipeResultRegistry.NO_RECIPE;
-                }
-            }
+            if (request.amount <= 0) return CheckRecipeResultRegistry.NO_RECIPE;
         }
-
-        // 系统内无水：断电停机，防止水恢复后自动复活（冷机 mHeat<=0.01 / 太阳被挡等未消耗场景不断电）
-        if (!hasWaterInSystem) {
+        if (!waterPayment.pay(mInputHatches, mDualInputHatches, request, this::markDirty)) {
             stopForMissingWater();
+            return waterPayment.isUncertain()
+                ? SimpleCheckRecipeResult.ofFailurePersistOnShutdown("gtsr_working_fluid_uncertain")
+                : CheckRecipeResultRegistry.NO_RECIPE;
         }
-        return CheckRecipeResultRegistry.NO_RECIPE;
+
+        int steamAmount = request.amount * STEAM_PER_WATER;
+        FluidStack steam = isNickel() ? FluidRegistry.getFluidStack("ic2superheatedsteam", steamAmount)
+            : Materials.Steam.getGas(steamAmount);
+        if (steam == null || steam.amount <= 0) return CheckRecipeResultRegistry.NO_RECIPE;
+        mCycleUsesDistilled = request.isFluidEqual(GTModHandler.getDistilledWater(1));
+        mOutputFluids = new FluidStack[] { steam };
+        mMaxProgresstime = 20;
+        mEfficiency = getMaxEfficiency(null);
+        mCurrentSteamOutput = steamAmount;
+        mIsOperating = true;
+        waterPayment.complete();
+        markDirty();
+        return CheckRecipeResultRegistry.SUCCESSFUL;
     }
+
+    // 本机没有父 ProcessingLogic 消耗的配方输入，工作水全部由实付托管负责。
+    // 不开启 GT 的虚拟输入窗口，也不让 endRecipeProcessing 在收据完成后再次结算/停机。
+    @Override
+    public void startRecipeProcessing() {}
+
+    @Override
+    public void endRecipeProcessing() {}
 
     /** 缺水断电：停机 + 一次性 gtsr.chat.no_water（mNoWaterNotified 防重复，恢复开机时清除） */
     private void stopForMissingWater() {
@@ -825,9 +823,11 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
     }
 
     private void outputSteam() {
+        boolean completedSteamCycle = false;
         if (super.mOutputFluids != null && super.mOutputFluids.length > 0) {
             FluidStack outputSteam = super.mOutputFluids[0];
             if (outputSteam != null && outputSteam.amount > 0) {
+                completedSteamCycle = true;
                 if (isNickel()) {
                     distributeSuperheatedSteamToOutputHatches(outputSteam.amount);
                 } else {
@@ -835,9 +835,19 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
                 }
             }
         }
+        if (completedSteamCycle) {
+            long previous = mRunningTicks;
+            mRunningTicks += 20;
+            long interval = Math.max(1, getCalcificationFullTime() / 100);
+            if (!mCycleUsesDistilled && (mOverpressure || mRunningTicks > getCalcificationDelayTicks())
+                && mRunningTicks / interval > previous / interval) {
+                mCalcification = Math.min(1.0d, mCalcification + (mOverpressure ? 0.2d : 0.01d));
+            }
+        }
         super.mOutputFluids = null;
         mMaxProgresstime = 0;
-        checkProcessing();
+        markDirty();
+        setCheckRecipeResult(checkProcessing());
     }
 
     @Override
@@ -1220,6 +1230,8 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
         aNBT.setDouble("mSunRatio", mSunRatio);
         aNBT.setBoolean("mOverpressure", mOverpressure);
         aNBT.setBoolean("mNoWaterNotified", mNoWaterNotified);
+        aNBT.setBoolean("gtsr.cycleUsesDistilled", mCycleUsesDistilled);
+        waterPayment.save(aNBT, "gtsr.waterPayment");
     }
 
     @Override
@@ -1233,6 +1245,8 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
         mSunRatio = aNBT.getDouble("mSunRatio");
         mOverpressure = aNBT.getBoolean("mOverpressure");
         mNoWaterNotified = aNBT.getBoolean("mNoWaterNotified");
+        mCycleUsesDistilled = !aNBT.hasKey("gtsr.cycleUsesDistilled") || aNBT.getBoolean("gtsr.cycleUsesDistilled");
+        waterPayment.load(aNBT, "gtsr.waterPayment");
     }
 
     @Override

@@ -1,9 +1,6 @@
 package com.miaokatze.gtsr.common.gui;
 
-import java.util.Arrays;
-
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.StatCollector;
 
@@ -11,14 +8,11 @@ import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
 import com.cleanroommc.modularui.factory.PosGuiData;
-import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
-import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
-import com.cleanroommc.modularui.value.sync.IntSyncValue;
+import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.InteractionSyncHandler;
-import com.cleanroommc.modularui.value.sync.LongSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widget.ParentWidget;
@@ -46,18 +40,14 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
 
     private final CriticalMachineState state;
     private EntityPlayer viewer;
-    private IntSyncValue tier, kind, parallel, speed, economy, status, reason, stage, job, total, batch, duration;
-    private LongSyncValue energy, capacity, euPerTick;
-    private IntSyncValue constructionRound, constructionRounds, roundElapsed, roundDuration;
-    private GenericListSyncHandler<ItemStack> constructionCosts;
-    private BooleanSyncValue enabled, permitted, loomValid, roundFunded;
-    private IntSyncValue steamMode;
-    private StringSyncValue detail, inputOverview, outputOverview, actionName, actionDetail, jobProgressText;
+    private BooleanSyncValue permitted;
+    private StringSyncValue actionName, actionDetail;
     private BooleanSyncValue actionAccepted;
     private String lastAction = "", lastActionDetail = "";
     private boolean lastActionAccepted;
     private int selectedPage;
     private CriticalConstructionView constructionView;
+    private GenericSyncValue<CriticalBusinessSnapshot, ?> business;
 
     public MTECriticalMachineTerminalGui(MTECriticalMachine multiblock) {
         super(multiblock);
@@ -96,83 +86,17 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
 
     @Override
     protected void registerSyncValues(PanelSyncManager manager) {
-        // Only server-owned telemetry and guarded interaction handlers are exposed. In particular,
-        // inherited feature setters are not registered as unrestricted C2S command endpoints.
-        tier = integer(
-            manager,
-            "tier",
-            () -> state.getTier()
-                .ordinal());
-        kind = integer(
-            manager,
-            "kind",
-            () -> state.getKind()
-                .ordinal());
-        parallel = integer(manager, "parallel", state::getParallelPlugins);
-        speed = integer(manager, "speed", state::getSpeedPlugins);
-        economy = integer(manager, "economy", state::getEfficiencyPlugins);
-        status = integer(manager, "status", state::getStatusCode);
-        reason = integer(manager, "reason", state::getReasonCode);
-        stage = integer(manager, "stage", state::getStage);
-        job = integer(manager, "job", state::getJobProgress);
-        total = integer(manager, "total", state::getJobTotal);
-        batch = integer(manager, "batch", state::getBatchProgress);
-        duration = integer(manager, "duration", state::getBatchDuration);
-        energy = new LongSyncValue(state::getEnergyStored);
-        capacity = new LongSyncValue(state::getEnergyCapacity);
-        euPerTick = new LongSyncValue(state::getBatchEuPerTick);
-        constructionCosts = itemCosts(state::getConstructionCostsForGui);
-        loomValid = new BooleanSyncValue(state::isLoomStructureValid);
-        roundFunded = new BooleanSyncValue(state::isConstructionRoundFunded);
-        constructionRound = integer(manager, "constructionRound", state::getConstructionRoundIndex);
-        constructionRounds = integer(manager, "constructionRounds", state::getConstructionRoundTotal);
-        roundElapsed = integer(manager, "roundElapsed", state::getConstructionRoundElapsedTicks);
-        roundDuration = integer(manager, "roundDuration", state::getConstructionRoundDurationTicks);
-        enabled = new BooleanSyncValue(state::isEnabled);
+        // One immutable S2C business sample; all mutations use guarded server-side actions.
         permitted = new BooleanSyncValue(() -> state.canUse(viewer));
-        detail = new StringSyncValue(state::getStatus);
-        steamMode = integer(manager, "steamMode", state::getSteamMode);
-        manager.syncValue("critical.loomValid", loomValid);
-        manager.syncValue("critical.roundFunded", roundFunded);
-        manager.syncValue("critical.energy", energy);
-        manager.syncValue("critical.capacity", capacity);
-        manager.syncValue("critical.euPerTick", euPerTick);
-        manager.syncValue("critical.constructionCosts", constructionCosts);
-        manager.syncValue("critical.enabled", enabled);
-        manager.syncValue("critical.permitted", permitted);
-        manager.syncValue("critical.detail", detail);
-        inputOverview = new StringSyncValue(multiblock::getCriticalInputOverviewForGui);
-        outputOverview = new StringSyncValue(multiblock::getCriticalOutputOverviewForGui);
         actionName = new StringSyncValue(() -> lastAction);
         actionDetail = new StringSyncValue(() -> lastActionDetail);
         actionAccepted = new BooleanSyncValue(() -> lastActionAccepted);
-        manager.syncValue("critical.inputOverview", inputOverview);
-        manager.syncValue("critical.outputOverview", outputOverview);
+        manager.syncValue("critical.permitted", permitted);
         manager.syncValue("critical.actionName", actionName);
         manager.syncValue("critical.actionDetail", actionDetail);
         manager.syncValue("critical.actionAccepted", actionAccepted);
-        // Send the stage cursor and total together so a stage transition cannot display mismatched counts.
-        jobProgressText = new StringSyncValue(() -> state.getJobProgress() + " / " + state.getJobTotal());
-        manager.syncValue("critical.jobProgressText", jobProgressText);
-        constructionView = new CriticalConstructionView(state, manager);
-    }
-
-    private GenericListSyncHandler<ItemStack> itemCosts(java.util.function.Supplier<ItemStack[]> getter) {
-        return new GenericListSyncHandler<>(() -> Arrays.asList(getter.get()), null, packet -> {
-            ItemStack stack = NetworkUtils.readItemStack(packet);
-            int count = packet.readInt();
-            if (stack != null) stack.stackSize = count;
-            return stack;
-        }, (packet, stack) -> {
-            NetworkUtils.writeItemStack(packet, stack);
-            packet.writeInt(stack == null ? 0 : stack.stackSize);
-        }, ItemStack::areItemStacksEqual, stack -> stack == null ? null : stack.copy());
-    }
-
-    private IntSyncValue integer(PanelSyncManager manager, String key, java.util.function.IntSupplier getter) {
-        IntSyncValue value = new IntSyncValue(getter);
-        manager.syncValue("critical." + key, value);
-        return value;
+        business = CriticalBusinessSnapshot.register(manager, state, multiblock);
+        constructionView = new CriticalConstructionView(business);
     }
 
     @Override
@@ -246,20 +170,31 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 .pos(405, 3)
                 .size(50, 14));
         header.child(
-            IKey.dynamic(() -> tr(loomValid.getValue() ? "ui.loom_valid" : "ui.loom_invalid"))
-                .color(() -> loomValid.getValue() ? CriticalGuiStyle.STATE_ONLINE : CriticalGuiStyle.STATE_OFFLINE)
+            IKey.dynamic(
+                () -> tr(
+                    business.getValue()
+                        .loomValid() ? "ui.loom_valid" : "ui.loom_invalid"))
+                .color(
+                    () -> business.getValue()
+                        .loomValid() ? CriticalGuiStyle.STATE_ONLINE : CriticalGuiStyle.STATE_OFFLINE)
                 .asWidget()
                 .pos(8, 19)
                 .size(136, 10));
         header.child(
             textViewport(
                 "critical_status_detail",
-                () -> detail.getValue()
-                    .equals("\u5f85\u914d\u7f6e") ? tr("status.0") : detail.getValue(),
+                () -> business.getValue()
+                    .detail()
+                    .equals("\u5f85\u914d\u7f6e") ? tr("status.0")
+                        : business.getValue()
+                            .detail(),
                 307,
                 10,
                 this::statusColor).pos(148, 19)
-                    .tooltipBuilder(t -> t.add(detail.getValue()))
+                    .tooltipBuilder(
+                        t -> t.add(
+                            business.getValue()
+                                .detail()))
                     .tooltipAutoUpdate(true));
         return header;
     }
@@ -271,10 +206,11 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     }
 
     private int statusColor() {
-        int cause = reason.getValue();
+        int cause = business.getValue().construction.reason();
         if (cause != 0 && cause != 7) return CriticalGuiStyle.STATE_OFFLINE;
-        if (cause == 7 || status.getValue() == 0) return GtsrGuiPalette.STATE_IDLE;
-        return status.getValue() == 2 ? CriticalGuiStyle.STATE_ONLINE : CriticalGuiStyle.TEXT_ACCENT;
+        if (cause == 7 || business.getValue().construction.status() == 0) return GtsrGuiPalette.STATE_IDLE;
+        return business.getValue().construction.status() == 2 ? CriticalGuiStyle.STATE_ONLINE
+            : CriticalGuiStyle.TEXT_ACCENT;
     }
 
     private IWidget controlPage(PanelSyncManager manager) {
@@ -290,13 +226,32 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 .setEnabledIf(w -> editable() && multiblock.isKindSelector())
                 .tooltipBuilder(t -> t.add(IKey.lang(key("configuration_hint")))));
         page.child(
-            action(manager, "steam_mode", state::selectSteamMode)
+            action(
+                manager,
+                "ui.change_mode",
+                player -> state.getKind() == CriticalMachineKind.BATTERY ? state.selectChemicalWindow(player)
+                    : state.selectSteamMode(player))
+                        .overlay(
+                            IKey.dynamic(
+                                () -> configuration().kind == CriticalMachineKind.BATTERY
+                                    ? tr("ui.chemical.window." + runtimeValue("chemical.window"))
+                                    : tr(
+                                        "steam_mode." + business.getValue()
+                                            .steamMode()))
+                                .color(CriticalGuiStyle.TEXT_CONTROL))
+                        .pos(215, 0)
+                        .size(160, 20)
+                        .setEnabledIf(
+                            w -> configuration().kind == CriticalMachineKind.SOLAR
+                                || configuration().kind == CriticalMachineKind.BATTERY));
+        page.child(
+            action(manager, "ui.sun.production_pause", state::selectStellarProductionPaused)
                 .overlay(
-                    IKey.dynamic(() -> tr("steam_mode." + steamMode.getValue()))
+                    IKey.dynamic(() -> tr("ui.sun.production_pause." + runtimeValue("sun.production_paused")))
                         .color(CriticalGuiStyle.TEXT_CONTROL))
                 .pos(215, 0)
                 .size(160, 20)
-                .setEnabledIf(w -> permitted.getValue() && configuration().kind == CriticalMachineKind.SOLAR));
+                .setEnabledIf(w -> configuration().kind == CriticalMachineKind.SUN));
         page.child(
             new ButtonWidget<>().name("critical_recipe_preview")
                 .background(CriticalGuiStyle.BUTTON)
@@ -306,20 +261,32 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                         .color(CriticalGuiStyle.TEXT_CONTROL))
                 .pos(380, 0)
                 .size(83, 20)
+                .setEnabledIf(
+                    w -> !business.getValue()
+                        .canCancelLegacyStellarBatch())
                 .tooltipBuilder(this::operationTooltip)
                 .tooltipAutoUpdate(true));
         page.child(
-            metric(
-                "ui.energy",
-                () -> energy.getValue() + " / " + capacity.getValue() + " EU",
-                () -> ratio(energy.getValue(), capacity.getValue()),
-                0,
-                26));
+            action(manager, "ui.sun.cancel_legacy", state::cancelLegacyStellarBatch).pos(380, 0)
+                .size(83, 20)
+                .setEnabledIf(
+                    w -> business.getValue()
+                        .canCancelLegacyStellarBatch())
+                .tooltipBuilder(t -> t.add(IKey.lang(key("ui.sun.cancel_legacy_hint")))));
+        page.child(metric("ui.energy", this::primaryMetricValue, () -> 0, 0, 26));
         page.child(
             metric(
                 "batch",
-                () -> time(batch.getValue(), duration.getValue()),
-                () -> ratio(batch.getValue(), duration.getValue()),
+                () -> time(
+                    business.getValue()
+                        .batchTicks(),
+                    business.getValue()
+                        .batchDuration()),
+                () -> ratio(
+                    business.getValue()
+                        .batchTicks(),
+                    business.getValue()
+                        .batchDuration()),
                 235,
                 26));
         ParentWidget<?> summary = new ParentWidget<>().pos(0, 74)
@@ -329,69 +296,45 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             .pos(8, 5)
             .size(419, 60)
             .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
-        constructionLine(
-            summaryText,
-            () -> tr("construction") + " "
-                + Math.min(5, stage.getValue() + 1)
-                + " / 5 | "
-                + tr("construction.round")
-                + " "
-                + (constructionRounds.getValue() == 0 ? 0
-                    : Math.min(constructionRounds.getValue(), constructionRound.getValue() + 1))
-                + " / "
-                + constructionRounds.getValue()
-                + " | "
-                + tr(roundFunded.getValue() ? "construction.funded" : "construction.unfunded"),
-            () -> roundFunded.getValue() ? CriticalGuiStyle.TEXT_BODY : CriticalGuiStyle.TEXT_ACCENT);
-        constructionLine(summaryText, () -> tr("ui.construction_progress") + " " + jobProgressText.getValue());
-        constructionLine(
-            summaryText,
-            () -> tr("ui.construction_round") + " " + time(roundElapsed.getValue(), roundDuration.getValue()));
-        constructionLine(
-            summaryText,
-            () -> tr("construction_power") + " "
-                + configuration().tier.constructionVoltage()
-                + " EU/t | "
-                + tr("ui.batch_power")
-                + " "
-                + euPerTick.getValue()
-                + " EU/t",
-            () -> GtsrGuiPalette.TEXT_LABEL);
+        for (int i = 0; i < 40; i++) {
+            final int row = i;
+            constructionLine(summaryText, () -> runtimeLine(row));
+        }
         summary.child(summaryText);
         GTProgressWidget batchProgress = new GTProgressWidget();
         if (multiblock.getRecipeMap() != null) batchProgress.neiTransferRect(multiblock.getRecipeMap());
         summary.child(
             batchProgress.texture(GTGuiTextures.PROGRESSBAR_ARROW_STANDARD, 20)
-                .progress(() -> ratio(batch.getValue(), duration.getValue()))
+                .progress(
+                    () -> ratio(
+                        business.getValue()
+                            .batchTicks(),
+                        business.getValue()
+                            .batchDuration()))
                 .pos(435, 48)
                 .size(20, 16));
         page.child(summary);
         page.child(
             action(manager, "build", player -> state.startConstruction(player)).pos(0, 150)
                 .size(112, 20)
-                .setEnabledIf(w -> permitted.getValue() && loomValid.getValue() && status.getValue() == 0)
                 .tooltipBuilder(this::constructionTooltip)
                 .tooltipAutoUpdate(true));
         page.child(
             action(manager, "dismantle", player -> state.startDismantle(player)).pos(117, 150)
-                .size(112, 20)
-                .setEnabledIf(
-                    w -> permitted.getValue()
-                        && (status.getValue() == 1 || status.getValue() == 2 || status.getValue() == 4)));
+                .size(112, 20));
         page.child(
             action(manager, "repair", player -> state.repairStructure(player)).pos(234, 150)
                 .size(112, 20)
-                .setEnabledIf(w -> permitted.getValue() && status.getValue() != 0)
                 .tooltipBuilder(this::constructionTooltip)
                 .tooltipAutoUpdate(true));
         page.child(
             action(manager, "power", player -> state.setEnabled(player, !state.isEnabled()))
                 .overlay(
-                    IKey.dynamic(() -> tr(enabled.getValue() ? "stop" : "start"))
+                    IKey.dynamic(() -> tr(business.getValue().construction.enabled() ? "stop" : "start"))
                         .color(CriticalGuiStyle.TEXT_CONTROL))
                 .pos(351, 150)
                 .size(112, 20)
-                .setEnabledIf(w -> permitted.getValue()));
+                .tooltipBuilder(t -> t.add(IKey.lang(key("ui.sun.power_hint")))));
         ListWidget<IWidget, ?> feedback = new ListWidget<>().name("critical_action_feedback")
             .pos(0, 176)
             .size(463, 26)
@@ -401,11 +344,21 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         feedback.child(
             CriticalGuiStyle.text(
                 IKey.dynamic(
-                    () -> actionName.getValue()
-                        .isEmpty()
-                            ? tr("ui.supply_short")
-                            : tr(actionName.getValue()) + " | "
-                                + tr(actionAccepted.getValue() ? "action.accepted" : "action.refused")))
+                    () -> tr("ui.inventory.blocker") + ": "
+                        + business.getValue()
+                            .detail()
+                        + "\n"
+                        + tr("ui.next_action")
+                        + ": "
+                        + tr(
+                            "ui.recover." + (!business.getValue().construction.enabled() ? 7
+                                : business.getValue().construction.reason()))
+                        + (actionName.getValue()
+                            .isEmpty()
+                                ? ""
+                                : "\n" + tr(actionName.getValue())
+                                    + " | "
+                                    + tr(actionAccepted.getValue() ? "action.accepted" : "action.refused"))))
                 .color(
                     () -> actionName.getValue()
                         .isEmpty()
@@ -422,6 +375,57 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         return page;
     }
 
+    private String primaryMetricLabel() {
+        return tr(switch (configuration().kind) {
+            case BATTERY -> "ui.runtime.batch_wireless";
+            case TURBINE -> "ui.runtime.steam.heat";
+            case SOLAR -> "ui.runtime.solar.dimension";
+            case SUN -> "ui.runtime.sun.reserve";
+            default -> "ui.energy";
+        });
+    }
+
+    private String primaryMetricValue() {
+        return switch (configuration().kind) {
+            case BATTERY -> runtimeValue("batch_wireless");
+            case TURBINE -> runtimeValue("steam.heat");
+            case SOLAR -> runtimeValue("solar.dimension");
+            case SUN -> runtimeValue("sun.reserve");
+            default -> business.getValue()
+                .energy() + " / "
+                + business.getValue()
+                    .capacity()
+                + " EU";
+        };
+    }
+
+    private String runtimeValue(String suffix) {
+        CriticalBusinessSnapshot sample = business.getValue();
+        for (int i = 0; i < sample.runtimeCount(); i++)
+            if (("ui.runtime." + suffix).equals(sample.runtime(i, 0))) return sample.runtime(i, 1);
+        return "\u2014";
+    }
+
+    private String runtimeLine(int row) {
+        CriticalBusinessSnapshot sample = business.getValue();
+        if (row >= sample.runtimeCount()) return "";
+        String label = sample.runtime(row, 0), value = sample.runtime(row, 1);
+        if (label.equals("ui.runtime.chemical.bottleneck"))
+            value = tr("ui.chemical.bottleneck." + (value.isEmpty() ? "none" : value));
+        else if (label.equals("ui.runtime.solar.water_status") || label.equals("ui.runtime.solar.salt_status"))
+            value = tr("ui.branch." + (value.isEmpty() ? "none" : value));
+        else if (label.equals("ui.runtime.solar.night")) value = tr("ui.solar.night." + value);
+        else if (label.equals("ui.runtime.sample_scope")) value = tr("ui.sample_scope." + value);
+        else if (label.equals("ui.runtime.chemical.window") || label.equals("ui.runtime.chemical.batch_window"))
+            value = tr("ui.chemical.window." + value);
+        else if (label.equals("ui.runtime.sun.phase")) value = tr("ui.sun.phase." + value);
+        else if (label.equals("ui.runtime.sun.production_paused")) value = tr("ui.sun.paused." + value);
+        else if ((label.equals("ui.runtime.solar.mode") || label.equals("ui.runtime.solar.batch_mode")))
+            value = tr("steam_mode." + value);
+        else if (label.equals("ui.runtime.settlement")) value = tr("ui.settlement." + value);
+        return tr(label) + ": " + value;
+    }
+
     private static double ratio(long value, long maximum) {
         return maximum <= 0 ? 0 : Math.max(0, Math.min(1, (double) value / maximum));
     }
@@ -430,13 +434,13 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         return String.format(java.util.Locale.ROOT, "%.1f / %.1f s", elapsed / 20D, duration / 20D);
     }
 
-    private static IWidget metric(String label, java.util.function.Supplier<String> value,
+    private IWidget metric(String label, java.util.function.Supplier<String> value,
         java.util.function.DoubleSupplier progress, int x, int y) {
         return new ParentWidget<>().pos(x, y)
             .size(228, 44)
             .background(CriticalGuiStyle.CARD)
             .child(
-                IKey.lang(key(label))
+                IKey.dynamic(() -> "ui.energy".equals(label) ? primaryMetricLabel() : tr(label))
                     .color(CriticalGuiStyle.TEXT_MUTED)
                     .asWidget()
                     .pos(8, 5)
@@ -448,33 +452,53 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
             .child(
                 new ParentWidget<>().background(new CriticalProgressBar(progress))
                     .pos(8, 32)
-                    .size(212, 7));
+                    .size(212, 7)
+                    .setEnabledIf(w -> !"ui.energy".equals(label)));
     }
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager manager, ModularPanel parent) {
         ListWidget<IWidget, ?> list = new ListWidget<>();
         list.child(
-            IKey.dynamic(() -> "EU " + energy.getValue() + " / " + capacity.getValue())
+            IKey.dynamic(
+                () -> "EU " + business.getValue()
+                    .energy()
+                    + " / "
+                    + business.getValue()
+                        .capacity())
                 .color(CriticalGuiStyle.TEXT_BODY)
                 .asWidget()
                 .fullWidth()
                 .marginBottom(3));
         list.child(
             IKey.dynamic(
-                () -> tr("construction") + " " + stage.getValue() + " · " + job.getValue() + " / " + total.getValue())
+                () -> tr("construction") + " "
+                    + business.getValue().construction.stage()
+                    + " · "
+                    + business.getValue().construction.placed()
+                    + " / "
+                    + business.getValue().construction.total())
                 .color(CriticalGuiStyle.TEXT_BODY)
                 .asWidget()
                 .fullWidth()
                 .marginBottom(3));
         list.child(
-            IKey.dynamic(() -> tr("batch") + " " + batch.getValue() + " / " + duration.getValue() + " t")
+            IKey.dynamic(
+                () -> tr("batch") + " "
+                    + business.getValue()
+                        .batchTicks()
+                    + " / "
+                    + business.getValue()
+                        .batchDuration()
+                    + " t")
                 .color(CriticalGuiStyle.TEXT_BODY)
                 .asWidget()
                 .fullWidth()
                 .marginBottom(3));
         list.child(
-            IKey.dynamic(() -> euPerTick.getValue() + " EU/t")
+            IKey.dynamic(
+                () -> business.getValue()
+                    .power() + " EU/t")
                 .color(CriticalGuiStyle.TEXT_BODY)
                 .asWidget()
                 .fullWidth()
@@ -488,7 +512,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     }
 
     private boolean editable() {
-        return permitted.getValue() && status.getValue() == 0;
+        return permitted.getValue() && business.getValue().construction.status() == 0;
     }
 
     private static void constructionLine(ListWidget<IWidget, ?> list, java.util.function.Supplier<String> text) {
@@ -538,8 +562,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         InteractionSyncHandler handler = new InteractionSyncHandler().setOnMousePressed(data -> {
             if (!baseMetaTileEntity.isServerSide() || data.mouseButton != 0) return;
             EntityPlayer player = manager.getPlayer();
-            int separator = name.indexOf('.');
-            lastAction = separator < 0 ? name : name.substring(0, separator);
+            lastAction = name;
             if (!state.canUse(player)) {
                 lastActionAccepted = false;
                 lastActionDetail = "gtsr.critical.action.permission";
@@ -561,7 +584,7 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     private IWidget inventoryPage(PanelSyncManager manager) {
         ParentWidget<?> page = new ParentWidget<>().name("critical_page_inventory")
             .size(463, 202);
-        StringSyncValue[] summaries = { inputOverview, outputOverview };
+
         for (int side = 0; side < 2; side++) {
             final int index = side;
             ParentWidget<?> card = new ParentWidget<>().pos(side * 235, 0)
@@ -577,12 +600,35 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
                 .pos(8, 28)
                 .size(212, 130)
                 .scrollDirection(new VerticalScrollData().cancelScrollEdge(false));
-            constructionLine(contents, () -> summaries[index].getValue());
+            if (index == 0) {
+                constructionLine(contents, () -> tr("ui.inventory.physical"), () -> CriticalGuiStyle.TEXT_ACCENT);
+                constructionLine(
+                    contents,
+                    () -> business.getValue()
+                        .inputs());
+                constructionLine(contents, () -> tr("ui.inventory.network"), () -> CriticalGuiStyle.TEXT_ACCENT);
+                constructionLine(
+                    contents,
+                    () -> business.getValue()
+                        .networkInputs());
+                constructionLine(contents, () -> tr("ui.economy.network_unpaid"), () -> CriticalGuiStyle.TEXT_MUTED);
+            } else {
+                constructionLine(
+                    contents,
+                    () -> business.getValue()
+                        .outputs());
+                constructionLine(
+                    contents,
+                    () -> tr("ui.inventory.blocker") + ": "
+                        + business.getValue()
+                            .detail(),
+                    () -> CriticalGuiStyle.TEXT_ACCENT);
+            }
             card.child(contents);
             page.child(card);
         }
         page.child(
-            textViewport("critical_inventory_hint", () -> tr("hatch_overview_hint"), 447, 24)
+            textViewport("critical_inventory_hint", () -> tr("ui.inventory.hint"), 447, 24)
                 .background(CriticalGuiStyle.CARD)
                 .pos(8, 172));
         return page;
@@ -605,25 +651,20 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
     }
 
     private CriticalConfiguration configuration() {
-        // Independent S2C values may arrive in different ticks; clamp the display snapshot.
-        int a = Math.max(0, Math.min(8, parallel.getValue()));
-        int b = Math.max(0, Math.min(8 - a, speed.getValue()));
-        int c = Math.max(0, Math.min(8 - a - b, economy.getValue()));
-        return new CriticalConfiguration(
-            CriticalTier.byId(tier.getValue()),
-            CriticalMachineKind.byId(kind.getValue()),
-            a,
-            b,
-            c);
+        return business.getValue()
+            .configuration();
     }
 
     private void constructionTooltip(com.cleanroommc.modularui.screen.RichTooltip tooltip) {
         CriticalConfiguration cfg = configuration();
-        int currentStage = Math.max(0, Math.min(4, stage.getValue()));
+        int currentStage = Math.max(0, Math.min(4, business.getValue().construction.stage()));
         tooltip.add(tr("construction") + " " + currentStage);
-        for (ItemStack stack : constructionCosts.getValue()) {
-            tooltip.add(stack.getDisplayName() + " × " + stack.stackSize);
-        }
+        tooltip.add(
+            business.getValue()
+                .nextItems());
+        tooltip.add(
+            business.getValue()
+                .nextFluids());
         tooltip.add(tr("construction_power") + " " + cfg.tier.constructionVoltage() + " EU/t");
         tooltip.add(tr("cost_hint"));
     }
@@ -637,9 +678,18 @@ public final class MTECriticalMachineTerminalGui extends MTEMultiBlockBaseGui<MT
         for (String section : new String[] { "input", "cycle", "parallel", "energy", "efficiency", "output" }) {
             tooltip.add(operationLine(section));
         }
-        if (current == CriticalMachineKind.BATTERY || current == CriticalMachineKind.TURBINE) {
+        if (current == CriticalMachineKind.TURBINE) {
             tooltip.add(tr("operation.trend"));
             tooltip.add(tr("operation.idle"));
+        }
+        if (current == CriticalMachineKind.BATTERY) {
+            tooltip.add(tr("operation.battery.windows"));
+            tooltip.add(tr("operation.battery.paid"));
+        }
+        if (current == CriticalMachineKind.SUN) {
+            tooltip.add(tr("operation.sun.ignition"));
+            tooltip.add(tr("operation.sun.heat"));
+            tooltip.add(tr("operation.sun.pause"));
         }
         if (current == CriticalMachineKind.SOLAR) tooltip.add(tr("operation.solar.night"));
         tooltip.add(tr("functional.decorative"));

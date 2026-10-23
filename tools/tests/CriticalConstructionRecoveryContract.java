@@ -20,7 +20,9 @@ public final class CriticalConstructionRecoveryContract {
         Field f = type.getDeclaredField(name); f.setAccessible(true); return f;
     }
     private static int failures;
+    private static java.util.Set<String> selectedScenarios = java.util.Collections.emptySet();
     private static void scenario(String name, Run run) throws Exception {
+        if (!selectedScenarios.isEmpty() && !selectedScenarios.contains(name)) return;
         try { run.run(); System.out.println("PASS scenario=" + name); }
         catch (AssertionError failure) { failures++; System.out.println("FAIL scenario=" + name + " " + failure.getMessage()); }
     }
@@ -70,12 +72,14 @@ public final class CriticalConstructionRecoveryContract {
         monitor(f.state).primeConstruction(geometry(f.state).size() + CriticalGeometry.optionalWorkPorts(f.state).size());
     }
     public static void main(String[] args) throws Exception {
+        if (args.length > 1) selectedScenarios = new java.util.HashSet<>(java.util.Arrays.asList(args[1].split(",")));
         Thread.currentThread().setName("Server thread");
         CriticalFoundationContract.source(CriticalMachineState.class, args);
         unsafe = (sun.misc.Unsafe) member(sun.misc.Unsafe.class, "theUnsafe").get(null);
         member(cpw.mods.fml.common.Loader.class, "instance").set(null, unsafe.allocateInstance(cpw.mods.fml.common.Loader.class));
         member(cpw.mods.fml.relauncher.FMLRelaunchLog.class, "side").set(null, cpw.mods.fml.relauncher.Side.SERVER);
         materials();
+        CriticalRC2StateContract.seedCatalog();
         scenario("force-stop-teardown", () -> {
             Fixture f = new Fixture();
             check(f.state.setEnabled(f.player, false), "Public force stop accepted during foundation work");
@@ -165,6 +169,60 @@ public final class CriticalConstructionRecoveryContract {
             check((Long) field(f.state, "pendingGenerated") == 0 && ((BaseMetaTileEntity) f.state.getHost()).getStoredEU() == 71,
                 "Old state-zero journal recovers its exact EU even with GT power disabled");
             check(f.state.canRemove(), "Old completed teardown becomes removable after actual delivery");
+        });
+        scenario("stellar-refund-before-teardown", () -> {
+            Fixture f = new Fixture(); set(f.state, "state", 2); set(f.state, "structureValid", true);
+            NBTTagCompound thermal = f.state.getStellarRuntimeData();
+            thermal.setInteger("schema", CriticalStellarRuntime.SCHEMA);
+            thermal.setInteger("billingVersion", CriticalStellarPolicy.VERSION);
+            thermal.setString("structure", f.state.getStructureId());
+            thermal.setString("host", f.machine.criticalStellarPowerPort().identity());
+            long capacity = f.state.energyCapacity(), paid = capacity + 12345L;
+            thermal.setLong("ignitionPaid", paid);
+            BaseMetaTileEntity host = (BaseMetaTileEntity) f.state.getHost();
+            member(BaseMetaTileEntity.class, "mStoredEnergy").setLong(host, capacity);
+            check(f.state.startDismantle(f.player), "Full-buffer ignition refund accepts a teardown reservation");
+            check(f.state.getState() == 2 && CriticalStellarRuntime.hasAssets(thermal)
+                && thermal.getLong("refund") == paid && thermal.getLong("ignitionPaid") == 0,
+                "Paid ignition moves once into refund journal before any main structure is removed");
+            // Synthetic receiver consumes the real GT buffer between commands. No output hatch is simulated.
+            member(BaseMetaTileEntity.class, "mStoredEnergy").setLong(host, 0L);
+            check(f.state.startDismantle(f.player), "Partially accepted refund keeps teardown reservation");
+            check(f.state.getState() == 2 && thermal.getLong("refund") == 12345L
+                && host.getStoredEU() == capacity, "Only actual local buffer acceptance reduces the refund");
+            member(BaseMetaTileEntity.class, "mStoredEnergy").setLong(host, 0L);
+            check(f.state.startDismantle(f.player), "Fully accepted local refund releases teardown");
+            check(f.state.getState() == 3 && !CriticalStellarRuntime.hasAssets(thermal)
+                && host.getStoredEU() == 12345L,
+                "Common teardown gate reaches state three only after thermal assets are settled");
+        });
+        scenario("legacy-overcap-cancel-retains-real-input-refund", () -> {
+            Fixture f = new Fixture(); ready(f);
+            set(f.state, "batchId", "legacy-overcap");
+            set(f.state, "batchEu", MTECriticalMachine.criticalEnergyTickCap() + 1);
+            set(f.state, "cycleTicks", 17); set(f.state, "cycleDuration", 400);
+            set(f.state, "escrow", new net.minecraft.item.ItemStack[0]);
+            set(f.state, "fluidEscrow", new net.minecraftforge.fluids.FluidStack[] {
+                new net.minecraftforge.fluids.FluidStack(net.minecraftforge.fluids.FluidRegistry.WATER, 250) });
+            set(f.state, "pendingItems", new net.minecraft.item.ItemStack[0]);
+            set(f.state, "pendingFluids", new net.minecraftforge.fluids.FluidStack[] {
+                new net.minecraftforge.fluids.FluidStack(net.minecraftforge.fluids.FluidRegistry.LAVA, 999) });
+            check(f.state.cancelLegacyStellarBatch(f.player), "Owner deterministically cancels a never-delivered overcap batch");
+            check(!f.state.cancelLegacyStellarBatch(f.player), "Already-converted refund cannot be cancelled a second time");
+            check(f.state.startDismantle(f.player), "Cancelled old batch can reserve teardown without new ignition");
+            for (int tick = 0; tick < 2; tick++) {
+                f.state.updateEntity();
+                net.minecraftforge.fluids.FluidStack[] pending = (net.minecraftforge.fluids.FluidStack[]) field(f.state, "pendingFluids");
+                check(f.state.getState() == 2 && "legacy-overcap".equals(f.state.getBatchId())
+                    && pending.length == 1 && pending[0].getFluid() == net.minecraftforge.fluids.FluidRegistry.WATER
+                    && pending[0].amount == 250, "Blocked real output retains original raw input exactly, never old products");
+                check((Long) field(f.state, "batchEu") == 0 && (Long) field(f.state, "batchGenerated") == 0
+                    && !f.state.getStellarRuntimeData().getBoolean("hot"),
+                    "Refund retry neither repays consumed EU nor starts a new stellar session");
+            }
+            NBTTagCompound saved = new NBTTagCompound(); f.state.writeToNBT(saved);
+            check(saved.getCompoundTag("criticalBatchRecipe").getBoolean("cancelRefund")
+                && saved.getString("batchId").equals("legacy-overcap"), "Raw-input refund identity survives world NBT");
         });
         if (failures != 0) throw new AssertionError("Recovery scenarios failed=" + failures);
         System.out.println("PASS CriticalConstructionRecoveryContract checks=" + checks);
