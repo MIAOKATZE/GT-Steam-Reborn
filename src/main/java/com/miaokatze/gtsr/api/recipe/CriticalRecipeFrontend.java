@@ -1,9 +1,9 @@
 package com.miaokatze.gtsr.api.recipe;
 
+import static com.miaokatze.gtsr.api.recipe.CriticalNEILayout.*;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizons.modularui.api.math.Pos2d;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
@@ -46,22 +46,22 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
     public List<Pos2d> getItemInputPositions(int count) {
         // The superclass builds its position suppliers before this.construction is assigned.
         // Suppliers are evaluated later, after frontend construction has completed.
-        return construction ? grid(count, 6, 8, 62) : row(count, 10, 40);
+        return construction ? grid(count, 7, INPUT_X, BUILD_Y) : row(count, INPUT_X, ITEM_Y);
     }
 
     @Override
     public List<Pos2d> getItemOutputPositions(int count) {
-        return row(count, 142, 40);
+        return row(count, OUTPUT_X, construction ? BUILD_OUTPUT_Y : ITEM_Y);
     }
 
     @Override
     public List<Pos2d> getFluidInputPositions(int count) {
-        return row(count, construction ? 142 : 10, construction ? 66 : 40);
+        return row(count, INPUT_X, construction ? BUILD_FLUID_Y : FLUID_Y);
     }
 
     @Override
     public List<Pos2d> getFluidOutputPositions(int count) {
-        return row(count, 142, 40);
+        return row(count, OUTPUT_X, FLUID_Y);
     }
 
     private static List<Pos2d> row(int count, int x, int y) {
@@ -71,7 +71,8 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
     private static List<Pos2d> grid(int count, int columns, int x, int y) {
         List<Pos2d> positions = new ArrayList<>(count);
         // GT205 adds WINDOW_OFFSET=(-5,-11) to these suppliers. Native stack is slot+(1,1).
-        for (int i = 0; i < count; i++) positions.add(new Pos2d(x + i % columns * 22 + 5, y + i / columns * 22 + 11));
+        for (int i = 0; i < count; i++)
+            positions.add(new Pos2d(x + i % columns * PITCH + WINDOW_X, y + i / columns * PITCH + WINDOW_Y));
         return positions;
     }
 
@@ -88,18 +89,4 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
         return tip;
     }
 
-    @Override
-    public List<String> handleNEIItemTooltip(ItemStack stack, List<String> tip,
-        GTNEIDefaultHandler.CachedDefaultRecipe recipe) {
-        super.handleNEIItemTooltip(stack, tip, recipe);
-        CriticalRecipeMaps.DisplayInfo info = CriticalRecipeMaps.displayInfo(recipe.mRecipe);
-        if (info != null && info.construction())
-            tip.add(CriticalRecipeMaps.formatted("showcase.page", info.page + 1, info.pages));
-        if (info != null) {
-            tip.add(CriticalRecipeMaps.text("showcase.details"));
-            tip.addAll(CriticalRecipeMaps.description(recipe.mRecipe));
-            if (info.construction()) tip.add(CriticalRecipeMaps.text("showcase.reference"));
-        }
-        return tip;
-    }
 }

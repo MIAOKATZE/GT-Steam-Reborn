@@ -1,26 +1,35 @@
 package com.miaokatze.gtsr.common.critical;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.critical.recipe.CriticalShellCatalog;
 
+import bartworks.system.material.WerkstoffLoader;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
+import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
 
 /** Immutable full-job price basis. Equipment is installed at one deterministic carrier per macro unit. */
 public final class CriticalConstructionEconomy {
 
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
+    private final int version;
+    private final Set<String> installationMaterials = new HashSet<>();
+    private final Map<String, FluidStack[]> materialFluids = new LinkedHashMap<>();
+    private final Map<Long, FluidStack[]> carrierFluids = new LinkedHashMap<>();
     private final String layoutKey;
     private final ItemStack controller;
     private final Map<String, ItemStack> shells;
@@ -29,6 +38,12 @@ public final class CriticalConstructionEconomy {
 
     private CriticalConstructionEconomy(String layoutKey, ItemStack controller, Map<String, ItemStack> shells,
         Map<Long, ItemStack[]> carriers, ItemStack[] demand) {
+        this(2, layoutKey, controller, shells, carriers, demand);
+    }
+
+    private CriticalConstructionEconomy(int version, String layoutKey, ItemStack controller,
+        Map<String, ItemStack> shells, Map<Long, ItemStack[]> carriers, ItemStack[] demand) {
+        this.version = version;
         this.layoutKey = layoutKey;
         this.controller = controller;
         this.shells = shells;
@@ -115,12 +130,70 @@ public final class CriticalConstructionEconomy {
             shells,
             carriers,
             new ItemStack[0]);
-        return new CriticalConstructionEconomy(
+        CriticalConstructionEconomy result = new CriticalConstructionEconomy(
+            VERSION,
             layoutKey,
             controller,
             shells,
             carriers,
             partial.costs(paid, 0, paid.size()));
+        // Assembly consumables are frozen with the items. They are consumed, never salvageable assets.
+        for (String material : shells.keySet()) {
+            CriticalShellCatalog.Family family = CriticalShellCatalog.family(material);
+            boolean structural = family == CriticalShellCatalog.Family.S || family == CriticalShellCatalog.Family.H;
+            if (!structural) result.installationMaterials.add(material);
+            List<FluidStack> fluids = new ArrayList<>();
+            mergeFluid(fluids, required(Materials.SolderingAlloy.getMolten(structural ? 36 : 72), "solder"));
+            if (family == CriticalShellCatalog.Family.F)
+                mergeFluid(fluids, required(GTModHandler.getDistilledWater(250), "distilled water"));
+            if (family == CriticalShellCatalog.Family.E || family == CriticalShellCatalog.Family.G)
+                mergeFluid(fluids, required(WerkstoffLoader.LiquidHelium.getFluidOrGas(125), "liquid helium"));
+            result.materialFluids.put(material, fluids.toArray(new FluidStack[0]));
+        }
+        for (Long position : carriers.keySet()) result.carrierFluids.put(
+            position,
+            new FluidStack[] { required(Materials.SolderingAlloy.getMolten(2304), "equipment solder"),
+                config.kind == CriticalMachineKind.SUN
+                    ? required(WerkstoffLoader.LiquidHelium.getFluidOrGas(4000), "equipment liquid helium")
+                    : required(Materials.Lubricant.getFluid(1000), "equipment lubricant") });
+        return result;
+    }
+
+    public int version() {
+        return version;
+    }
+
+    /** Frozen work order; the geometry and ownership fingerprint never change. Legacy jobs retain stage 4. */
+    public int stage(CriticalGeometry.Voxel voxel) {
+        if (version < 3 || voxel.stage != 4) return voxel.stage;
+        return CriticalStructures.isController(voxel) || carriers.containsKey(voxel.positionKey())
+            || installationMaterials.contains(voxel.material) ? 5 : 4;
+    }
+
+    public FluidStack[] fluidCosts(List<CriticalGeometry.Voxel> voxels, int start, int end) {
+        List<FluidStack> fluids = new ArrayList<>();
+        for (int i = start; i < end; i++) {
+            CriticalGeometry.Voxel voxel = voxels.get(i);
+            FluidStack[] shell = materialFluids.get(voxel.material);
+            if (!CriticalStructures.isController(voxel) && shell != null)
+                for (FluidStack fluid : shell) mergeFluid(fluids, fluid);
+            FluidStack[] equipment = carrierFluids.get(voxel.positionKey());
+            if (equipment != null) for (FluidStack fluid : equipment) mergeFluid(fluids, fluid);
+        }
+        return fluids.toArray(new FluidStack[0]);
+    }
+
+    private static FluidStack required(FluidStack fluid, String name) {
+        if (fluid == null || fluid.amount <= 0) throw new IllegalStateException("Missing construction fluid " + name);
+        return fluid.copy();
+    }
+
+    private static void mergeFluid(List<FluidStack> fluids, FluidStack fluid) {
+        for (FluidStack current : fluids) if (current.isFluidEqual(fluid)) {
+            current.amount = Math.addExact(current.amount, fluid.amount);
+            return;
+        }
+        fluids.add(fluid.copy());
     }
 
     private static void carrier(Map<Long, ItemStack[]> carriers, List<CriticalGeometry.Voxel> paid, String group,
@@ -234,6 +307,7 @@ public final class CriticalConstructionEconomy {
     }
 
     void write(NBTTagCompound n) {
+        n.setInteger("version", version);
         n.setString("layout", layoutKey);
         n.setTag("controller", CriticalResourceNbt.writeItems(new ItemStack[] { controller }));
         n.setTag("demand", CriticalResourceNbt.writeItems(demand));
@@ -241,6 +315,10 @@ public final class CriticalConstructionEconomy {
         for (Map.Entry<String, ItemStack> entry : shells.entrySet()) {
             NBTTagCompound row = new NBTTagCompound();
             row.setString("alias", entry.getKey());
+            row.setBoolean("installation", installationMaterials.contains(entry.getKey()));
+            row.setTag(
+                "fluids",
+                CriticalResourceNbt.writeFluids(materialFluids.getOrDefault(entry.getKey(), new FluidStack[0])));
             row.setTag("item", CriticalResourceNbt.writeItems(new ItemStack[] { entry.getValue() }));
             materials.appendTag(row);
         }
@@ -249,6 +327,9 @@ public final class CriticalConstructionEconomy {
         for (Map.Entry<Long, ItemStack[]> entry : carriers.entrySet()) {
             NBTTagCompound row = new NBTTagCompound();
             row.setLong("position", entry.getKey());
+            row.setTag(
+                "fluids",
+                CriticalResourceNbt.writeFluids(carrierFluids.getOrDefault(entry.getKey(), new FluidStack[0])));
             row.setTag("bill", CriticalResourceNbt.writeItems(entry.getValue()));
             units.appendTag(row);
         }
@@ -256,6 +337,9 @@ public final class CriticalConstructionEconomy {
     }
 
     static CriticalConstructionEconomy read(NBTTagCompound n) {
+        int version = n.hasKey("version") ? n.getInteger("version") : 2;
+        if (version != 2 && version != VERSION)
+            throw new IllegalArgumentException("Unsupported frozen economy version");
         ItemStack[] main = CriticalResourceNbt.readItems(n.getTagList("controller", 10), 1);
         if (main[0] == null || main[0].stackSize != 1
             || n.getString("layout")
@@ -275,12 +359,36 @@ public final class CriticalConstructionEconomy {
             NBTTagCompound row = units.getCompoundTagAt(i);
             carriers.put(row.getLong("position"), CriticalResourceNbt.readItems(row.getTagList("bill", 10), -1));
         }
-        return new CriticalConstructionEconomy(
+        CriticalConstructionEconomy result = new CriticalConstructionEconomy(
+            version,
             n.getString("layout"),
             main[0],
             shells,
             carriers,
             CriticalResourceNbt.readItems(n.getTagList("demand", 10), -1));
+        if (version >= 3) {
+            for (int i = 0; i < materials.tagCount(); i++) {
+                NBTTagCompound row = materials.getCompoundTagAt(i);
+                String alias = row.getString("alias");
+                if (row.getBoolean("installation")) result.installationMaterials.add(alias);
+                result.materialFluids.put(alias, readFrozenFluids(row));
+            }
+            for (int i = 0; i < units.tagCount(); i++) {
+                NBTTagCompound row = units.getCompoundTagAt(i);
+                result.carrierFluids.put(row.getLong("position"), readFrozenFluids(row));
+            }
+        }
+        return result;
+    }
+
+    private static FluidStack[] readFrozenFluids(NBTTagCompound row) {
+        NBTTagList tags = row.getTagList("fluids", 10);
+        FluidStack[] fluids = CriticalResourceNbt.readFluids(tags, -1);
+        if (tags.tagCount() == 0 || fluids.length != tags.tagCount())
+            throw new IllegalArgumentException("Incomplete frozen construction fluids");
+        for (FluidStack fluid : fluids) if (fluid == null || fluid.amount <= 0)
+            throw new IllegalArgumentException("Missing frozen construction fluid identity");
+        return fluids;
     }
 
     static ItemStack[] copy(ItemStack[] source) {

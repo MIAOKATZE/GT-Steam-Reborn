@@ -2,7 +2,6 @@ package com.miaokatze.gtsr.loader.recipes;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -10,6 +9,7 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.critical.CriticalChemicalMath;
 import com.miaokatze.gtsr.common.critical.CriticalCompiledLayout;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 import com.miaokatze.gtsr.common.critical.CriticalConstructionEconomy;
@@ -25,6 +25,7 @@ import com.miaokatze.gtsr.common.critical.CriticalTier;
 import com.miaokatze.gtsr.common.items.IrradiatedDust;
 
 import gregtech.api.enums.GTValues;
+import gregtech.api.enums.Materials;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
@@ -45,6 +46,7 @@ public final class CriticalMachineRecipes {
         registerSolar();
         registerTurbine();
         registerChemicalFuels();
+        registerStellarLifecycle();
         for (GTRecipe original : RecipeMaps.fusionRecipes.getAllRecipes()) {
             if (!supportedFusion(original)) continue;
             GTRecipe display = original.copy();
@@ -96,29 +98,60 @@ public final class CriticalMachineRecipes {
                 controller,
                 CriticalFoundationMaterials.items(),
                 new FluidStack[] { CriticalFoundationMaterials.fluid(1_000_000) });
-            for (int stage = 1; stage <= 4; stage++) {
+            for (int stage = 1; stage <= 5; stage++) {
                 List<CriticalGeometry.Voxel> group = new ArrayList<>();
-                for (CriticalGeometry.Voxel voxel : paid) if (voxel.stage == stage) group.add(voxel);
-                constructionPages(kind, stage, controller, economy.costs(group, 0, group.size()), new FluidStack[0]);
+                for (CriticalGeometry.Voxel voxel : paid) if (economy.stage(voxel) == stage) group.add(voxel);
+                constructionPages(
+                    kind,
+                    stage,
+                    controller,
+                    economy.costs(group, 0, group.size()),
+                    economy.fluidCosts(group, 0, group.size()));
             }
         }
     }
 
     private static void constructionPages(CriticalMachineKind kind, int stage, ItemStack controller, ItemStack[] costs,
         FluidStack[] fluids) {
-        int size = CriticalRecipeMaps.CONSTRUCTION_PAGE_SIZE;
-        int pages = Math.max(1, (costs.length + size - 1) / size);
-        for (int page = 0; page < pages; page++) {
-            GTRecipe recipe = GTValues.RA.stdBuilder()
-                .itemInputsUnsafe(Arrays.copyOfRange(costs, page * size, Math.min(costs.length, (page + 1) * size)))
-                .itemOutputs(controller.copy())
-                .fluidInputs(fluids)
-                .duration(400)
-                .eut(0)
-                .build()
-                .orElseThrow(() -> new IllegalStateException("Invalid construction catalogue " + kind));
-            CriticalRecipeMaps.addConstruction(recipe, kind, stage, page, pages);
-        }
+        if (costs.length > CriticalRecipeMaps.CONSTRUCTION_PAGE_SIZE)
+            throw new IllegalStateException("Construction phase exceeds native grid: " + kind + "/" + stage);
+        GTRecipe recipe = GTValues.RA.stdBuilder()
+            .itemInputsUnsafe(costs)
+            .itemOutputs(controller.copy())
+            .fluidInputs(fluids)
+            .duration(400)
+            .eut(0)
+            .build()
+            .orElseThrow(() -> new IllegalStateException("Invalid construction catalogue " + kind));
+        CriticalRecipeMaps.addConstruction(recipe, kind, stage, 0, 1);
+    }
+
+    private static void registerStellarLifecycle() {
+        GTRecipe ignition = GTValues.RA.stdBuilder()
+            .fluidInputs(Materials.Helium3.getGas(CriticalStellarPolicy.IGNITION_HELIUM3_L))
+            .fluidOutputs(Materials.Helium.getPlasma(CriticalStellarPolicy.IGNITION_HELIUM3_L / 2))
+            .duration(1)
+            .eut(0)
+            .build()
+            .orElseThrow(() -> new IllegalStateException("Invalid stellar ignition view"));
+        CriticalRecipeMaps.addDisplayRecipe(
+            CriticalMachineKind.SUN,
+            ignition,
+            "stellar_ignition",
+            BigInteger.valueOf(CriticalStellarPolicy.IGNITION_EU));
+        // Two real paid ticks express the half-litre output using native integer fluid stacks.
+        GTRecipe sustain = GTValues.RA.stdBuilder()
+            .fluidInputs(Materials.Helium3.getGas(2 * CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK))
+            .fluidOutputs(Materials.Helium.getPlasma(CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK))
+            .duration(2)
+            .eut(0)
+            .build()
+            .orElseThrow(() -> new IllegalStateException("Invalid stellar sustain view"));
+        CriticalRecipeMaps.addDisplayRecipe(
+            CriticalMachineKind.SUN,
+            sustain,
+            "stellar_sustain",
+            BigInteger.valueOf(CriticalStellarPolicy.SUSTAIN_EUT));
     }
 
     private static void registerSolar() {
@@ -178,7 +211,8 @@ public final class CriticalMachineRecipes {
     }
 
     private static void registerChemicalFuels() {
-        for (CriticalGTRecipes.ChemicalFuel fuel : CriticalGTRecipes.chemicalFuels()) {
+        List<CriticalGTRecipes.ChemicalFuel> fuels = CriticalGTRecipes.chemicalFuels();
+        for (CriticalGTRecipes.ChemicalFuel fuel : fuels) {
             FluidStack fluid = fuel.fluid.copy();
             fluid.amount = 1;
             GTRecipe recipe = GTValues.RA.stdBuilder()
@@ -189,6 +223,63 @@ public final class CriticalMachineRecipes {
                 .orElseThrow(() -> new IllegalStateException("Invalid chemical catalogue fuel"));
             CriticalRecipeMaps
                 .addDisplayRecipe(CriticalMachineKind.BATTERY, recipe, "battery", fuel.euPerL, fuel.spectrum);
+        }
+        registerChemicalMixtures(fuels);
+    }
+
+    /** Smallest native heat values give stable, integer-litre examples without inventing fuel tokens. */
+    private static void registerChemicalMixtures(List<CriticalGTRecipes.ChemicalFuel> fuels) {
+        CriticalGTRecipes.ChemicalFuel[] chosen = new CriticalGTRecipes.ChemicalFuel[3];
+        for (CriticalGTRecipes.ChemicalFuel fuel : fuels) {
+            CriticalGTRecipes.ChemicalFuel previous = chosen[fuel.spectrum];
+            if (previous == null || fuel.euPerL.compareTo(previous.euPerL) < 0
+                || fuel.euPerL.equals(previous.euPerL) && fuel.fluid.getFluid()
+                    .getName()
+                    .compareTo(
+                        previous.fluid.getFluid()
+                            .getName())
+                    < 0)
+                chosen[fuel.spectrum] = fuel;
+        }
+        if (chosen[0] == null || chosen[1] == null || chosen[2] == null) return;
+        int[][] weights = { { 1, 1, 0 }, { 1, 1, 1 }, { 1, 1, 4 } };
+        for (int window = 0; window < weights.length; window++) {
+            BigInteger unit = BigInteger.ONE;
+            for (int i = 0; i < 3; i++) {
+                if (weights[window][i] == 0) continue;
+                BigInteger divisor = chosen[i].euPerL
+                    .divide(chosen[i].euPerL.gcd(BigInteger.valueOf(weights[window][i])));
+                unit = unit.divide(unit.gcd(divisor))
+                    .multiply(divisor);
+            }
+            BigInteger[] heat = new BigInteger[3];
+            List<FluidStack> inputs = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                heat[i] = unit.multiply(BigInteger.valueOf(weights[window][i]));
+                if (heat[i].signum() == 0) continue;
+                FluidStack input = chosen[i].fluid.copy();
+                input.amount = heat[i].divide(chosen[i].euPerL)
+                    .intValueExact();
+                inputs.add(input);
+            }
+            BigInteger total = CriticalChemicalMath.sum(heat);
+            if (total.compareTo(CriticalChemicalMath.cap(window)) > 0)
+                throw new IllegalStateException("Native chemical example exceeds window cap: " + window + "/" + total);
+            if (!java.util.Arrays
+                .equals(heat, CriticalChemicalMath.match(window, heat, CriticalChemicalMath.cap(window))))
+                throw new IllegalStateException("Chemical example must match real paid-heat runtime");
+            GTRecipe recipe = GTValues.RA.stdBuilder()
+                .fluidInputs(inputs.toArray(new FluidStack[0]))
+                .duration(CriticalEnergyMath.CYCLE_TICKS)
+                .eut(0)
+                .build()
+                .orElseThrow(() -> new IllegalStateException("Invalid chemical mixture view"));
+            CriticalRecipeMaps.addDisplayRecipe(
+                CriticalMachineKind.BATTERY,
+                recipe,
+                "chemical_window_" + window,
+                total.multiply(BigInteger.valueOf(CriticalChemicalMath.multiplier(window))),
+                window);
         }
     }
 

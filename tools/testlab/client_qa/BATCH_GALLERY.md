@@ -1,5 +1,13 @@
 # 专用 UI 事件图库
 
+## v2.0.11 紧凑配方与对齐
+
+`prepare_v2011_gallery.py` 准备 `build/v2011-ui-qa/gallery-v2011-compact.json`，不启动客户端。12 个定点包括中文锅炉水/盐、独立辐照、恒星点火/维持/聚变、化学代表混合、建设基础/主体/设备，以及真实恒星冷态终端和英文代表混合。新版 `UiGalleryBatchV2011` 只按真实 `kind/operation` 与匹配配方选择，不调用旧说明页 `page/pages/description`。
+
+验收读取已初始化 GT `modularWindow` 的真实 `SlotWidget` 边框及 cached `PositionedStack`，核对 18×18 槽与 16×16 图标的 1px 内缩，并对每个原生物品/流体栈作坐标命中与对象身份检查。另记录 NEI `RecipeWidget` 的真实 ♥/+ 按钮矩形、真实字体宽度与译文，拒绝连续 ASCII 问号或未翻译键；文字绘制坐标与箭头中线属于有源码 SHA 的声明位置，必须继续用原始截图验证。`analyze_v2011_alignment.py --run <本轮run目录>` 生成独立原图墨迹边缘记录和派生辅助图，不把派生图算成额外实拍。
+
+化学三条 `chemical_window_*` 仅在已加载真实 handler 中只读记录实际流体名、升数及 `baseEu`；恒星冷态仅展示同步状态，不支付点火费用。候选冻结后继续只启动一个 owned hidden desktop 客户端，heap 4 GiB，正常退出；不重跑 v2.0.10 的 28 张说明页。
+
 ## v2.0.10 原生伪 NEI
 
 `prepare_nei_v2010_gallery.py` 准备 `build/nei-v2010-qa`，不启动游戏。`UiGalleryBatchV2010` 通过公开 NEI map 入口打开真实 GT handler，再按 `DisplayInfo.kind/operation/page/pages` 选择已注册配方。正常动画与低动效各保留两个自然 draw tick 时间点；同 JVM 通过真实语言管理器和资源重载切换英文。无世界微缩渲染器探针、业务交易或施工。

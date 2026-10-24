@@ -288,14 +288,14 @@ final class GTSRMachineTooltipProfiles {
                     result,
                     EnumChatFormatting.AQUA,
                     "compact.sun.power",
-                    CriticalStellarPolicy.runEuPerTick(CriticalStellarPolicy.MAX_PARALLEL),
-                    CriticalStellarPolicy.HOLD_EUT);
+                    CriticalStellarPolicy.SUSTAIN_EUT,
+                    CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK);
                 formatted(
                     result,
                     EnumChatFormatting.YELLOW,
                     "compact.sun.ignition",
                     CriticalStellarPolicy.IGNITION_EU,
-                    CriticalStellarPolicy.RESERVE_EU);
+                    CriticalStellarPolicy.IGNITION_HELIUM3_L);
             }
             case CriticalBattery -> {
                 formatted(result, EnumChatFormatting.GRAY, "summary.critical_battery");

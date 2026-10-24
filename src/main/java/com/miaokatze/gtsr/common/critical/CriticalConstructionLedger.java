@@ -62,7 +62,7 @@ final class CriticalConstructionLedger {
     }
 
     int economyVersion() {
-        return isPhysicalJob() ? CriticalConstructionEconomy.VERSION : 0;
+        return isPhysicalJob() ? physicalJob.version() : 0;
     }
 
     CriticalConstructionEconomy physicalJob() {
@@ -82,7 +82,9 @@ final class CriticalConstructionLedger {
     }
 
     void snapshotPhysicalStage(List<CriticalGeometry.Voxel> current) {
-        snapshotStage(physicalJob.costs(current, 0, current.size()), new FluidStack[0]);
+        snapshotStage(
+            physicalJob.costs(current, 0, current.size()),
+            physicalJob.fluidCosts(current, 0, current.size()));
     }
 
     ItemStack[] physicalNextItems(List<CriticalGeometry.Voxel> current) {
@@ -127,7 +129,7 @@ final class CriticalConstructionLedger {
             timing.advance,
             voxelEnd,
             funded ? new ItemStack[0] : copyItems(physicalNext),
-            new FluidStack[0]);
+            funded ? new FluidStack[0] : nextStageFluids());
     }
 
     private Account account(ItemStack item) {
@@ -358,6 +360,7 @@ final class CriticalConstructionLedger {
                 account.paid += item.stackSize;
                 account.escrow += item.stackSize;
             }
+            recordFluids(fluids);
             funded = true;
             return;
         }
@@ -371,6 +374,11 @@ final class CriticalConstructionLedger {
                 }
             if (!merged) spent.add(item.copy());
         }
+        recordFluids(fluids);
+        funded = true;
+    }
+
+    private void recordFluids(FluidStack[] fluids) {
         for (FluidStack fluid : fluids) {
             boolean merged = false;
             for (FluidStack existing : paidFluids)
@@ -385,7 +393,6 @@ final class CriticalConstructionLedger {
                 paidFluids = next;
             }
         }
-        funded = true;
     }
 
     void advanceElapsed(int next) {
@@ -507,8 +514,8 @@ final class CriticalConstructionLedger {
         paidFluids = readFluids(n.getTagList("constructionPaidFluids", 10), -1);
         int version = n.getInteger("constructionEconomyVersion");
         integrityError = n.getBoolean("constructionEconomyUncertain")
-            || version != 0 && version != CriticalConstructionEconomy.VERSION
-            || version == CriticalConstructionEconomy.VERSION && !n.hasKey("constructionPhysicalJob");
+            || version != 0 && version != 2 && version != CriticalConstructionEconomy.VERSION
+            || version >= 2 && !n.hasKey("constructionPhysicalJob");
         unreadableEconomy = null;
         physicalJob = null;
         accounts.clear();
@@ -517,9 +524,11 @@ final class CriticalConstructionLedger {
         previewStageCosts = null;
         physicalNext = new ItemStack[0];
         try {
-            physicalJob = version == CriticalConstructionEconomy.VERSION && n.hasKey("constructionPhysicalJob")
-                ? CriticalConstructionEconomy.read(n.getCompoundTag("constructionPhysicalJob"))
-                : null;
+            physicalJob = (version == 2 || version == CriticalConstructionEconomy.VERSION)
+                && n.hasKey("constructionPhysicalJob")
+                    ? CriticalConstructionEconomy.read(n.getCompoundTag("constructionPhysicalJob"))
+                    : null;
+            if (physicalJob != null && physicalJob.version() != version) integrityError = true;
             accounts.clear();
             NBTTagList balances = n.getTagList("constructionPhysicalBalances", 10);
             if (physicalJob != null) for (int i = 0; i < balances.tagCount(); i++) {

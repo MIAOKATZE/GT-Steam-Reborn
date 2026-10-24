@@ -706,6 +706,38 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             }
 
             @Override
+            public boolean burnHelium3(long requested, java.util.function.LongConsumer confirmed) {
+                java.util.List<com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.Input> inputs = com.miaokatze.gtsr.common.critical.CriticalEnergyPorts
+                    .snapshot(MTECriticalMachine.this);
+                FluidStack helium = gregtech.api.enums.Materials.Helium3.getGas(1);
+                java.math.BigInteger amount = com.miaokatze.gtsr.common.critical.CriticalEnergyPorts
+                    .total(inputs, helium)
+                    .min(java.math.BigInteger.valueOf(requested));
+                com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.DebitResult receipt = com.miaokatze.gtsr.common.critical.CriticalEnergyPorts
+                    .debitConfirmed(
+                        com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.take(inputs, helium, amount),
+                        (source, actual) -> confirmed.accept(actual));
+                return !receipt.uncertain;
+            }
+
+            @Override
+            public long emitHeliumPlasma(long requested) {
+                // Deliver the largest bounded prefix that current real hatches can accept.
+                long low = 0, high = Math.min(requested, Integer.MAX_VALUE);
+                while (low < high) {
+                    long middle = low + (high - low + 1) / 2;
+                    if (stellarPlasmaOutput(middle) != null) low = middle;
+                    else high = middle - 1;
+                }
+                if (low > 0) {
+                    com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.OutputPlan output = stellarPlasmaOutput(low);
+                    if (output == null) return 0;
+                    output.commit();
+                }
+                return low;
+            }
+
+            @Override
             public String identity() {
                 IGregTechTileEntity base = getBaseMetaTileEntity();
                 return base.getWorld().provider.dimensionId + ":"
@@ -721,6 +753,16 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
                 getBaseMetaTileEntity().markDirty();
             }
         };
+    }
+
+    private com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.OutputPlan stellarPlasmaOutput(long litres) {
+        return com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.outputs(
+            this,
+            java.util.Collections.singletonList(
+                new com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.FluidAmount(
+                    gregtech.api.enums.Materials.Helium.getPlasma(1),
+                    java.math.BigInteger.valueOf(litres))),
+            new ItemStack[0]);
     }
 
     public boolean hasCriticalStellarRefundOutput() {
@@ -1121,6 +1163,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         if (presetKind == CriticalMachineKind.SOLAR) {
             return java.util.Arrays.asList(map, com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.stellarIrradiation);
         }
+        if (presetKind == CriticalMachineKind.SUN)
+            return java.util.Arrays.asList(map, com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.stellarLifecycle);
         return java.util.Collections.singletonList(map);
     }
 

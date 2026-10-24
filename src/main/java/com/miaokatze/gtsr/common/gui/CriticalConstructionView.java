@@ -291,7 +291,9 @@ final class CriticalConstructionView {
         if (s.status() == 2) return tr("view.phase.complete");
         if (s.showsFoundation() && s.phase() == 1) return tr("view.phase.pouring");
         if (s.showsFoundation() && s.phase() == 2) return tr("view.phase.curing");
-        return tr(s.stage() == 0 ? "view.phase.loom" : s.stage() <= 3 ? "view.phase.base" : "view.phase.body");
+        return tr(
+            s.stage() == 0 ? "view.phase.loom"
+                : s.stage() <= 3 ? "view.phase.base" : s.stage() == 5 ? "view.phase.equipment" : "view.phase.body");
     }
 
     private String activeLocation() {

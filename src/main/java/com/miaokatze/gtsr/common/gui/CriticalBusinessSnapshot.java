@@ -392,14 +392,19 @@ final class CriticalBusinessSnapshot {
                     + " EU");
             row(
                 rows,
-                "sun.reserve",
-                Long.toString(stellar.getLong("reserve")) + " / "
-                    + Long.toString(stellar.getLong("reserveCapacity"))
-                    + " EU");
-            row(rows, "sun.hold_power", Long.toString(stellar.getLong("holdEuPerTick")) + " EU/t");
+                "sun.ignition_fuel",
+                Long.toString(stellar.getLong("ignitionHelium3Paid")) + " / "
+                    + Long.toString(stellar.getLong("ignitionHelium3Required"))
+                    + " L");
+            row(rows, "sun.sustain_power", Long.toString(stellar.getLong("sustainEuPerTick")) + " EU/t");
+            row(rows, "sun.sustain_fuel", Long.toString(stellar.getLong("sustainHelium3PerTick")) + " L/t");
             row(rows, "sun.run_power", Long.toString(stellar.getLong("runEuPerTick")) + " EU/t");
-            row(rows, "sun.lost_ticks", Integer.toString(stellar.getInteger("lostTicks")));
-            row(rows, "sun.initializing", Integer.toString(stellar.getInteger("initializingTicks")));
+            row(
+                rows,
+                "sun.plasma_pending",
+                Long.toString(stellar.getLong("pendingPlasmaL"))
+                    + (stellar.getInteger("plasmaHalfRemainder") == 1 ? ".5" : "")
+                    + " L");
             row(rows, "sun.refund", Long.toString(stellar.getLong("refund")) + " EU");
         }
         if (state.getKind() != CriticalMachineKind.SUN) row(

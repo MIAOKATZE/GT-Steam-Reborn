@@ -28,10 +28,18 @@ public class CriticalNEIFontContract {
         for(String lang:List.of("en_US","zh_CN"))for(boolean unicode:List.of(false,true)) {
             set(font,"unicodeFlag",unicode);
             for(String line:Files.readAllLines(Path.of(args[0],lang+".lang"))) {
-                if(!line.startsWith("gtsr.critical.nei.card."))continue;
+                if ((line.startsWith("gtsr.critical.") || line.startsWith("gtsr.recipe.critical.")
+                    || line.startsWith("gtsr.recipe.stellar_") || line.startsWith("gt.blockmachines.gtsr.critical.")
+                    || line.startsWith("gtsr.tooltip.machine.compact.sun."))
+                    && (line.contains("??") || line.indexOf('\uFFFD') >= 0))
+                    throw new AssertionError("Corrupt localization encoding: " + lang + " " + line);
+                if(!line.startsWith("gtsr.critical.nei.simple."))continue;
                 String key=line.substring(0,line.indexOf('='));
+                if (lang.equals("zh_CN") && line.substring(line.indexOf('=')+1).codePoints()
+                    .noneMatch(c -> c >= 0x4E00 && c <= 0x9FFF))
+                    throw new AssertionError("Chinese NEI label lost its Han characters: " + key);
                 String text=String.format(Locale.ROOT,line.substring(line.indexOf('=')+1),"9999999999",3,999999);
-                if(key.contains(".stage."))text="5/5 "+text;
+
                 if(key.endsWith(".footer")||key.endsWith("card.footer"))text=text.replace("9999999999","99");
                 if(key.contains(".body.")) {
                     int rows=0;
