@@ -978,16 +978,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         aNBT.setInteger("mCycleTimer", mCycleTimer);
         aNBT.setInteger("mMinerTier", mMinerTier);
         aNBT.setBoolean("mCrushedMode", mCrushedMode);
-        // v1.10.61：pending 掉落余量持久化（矿石已从世界移除，重载后不得丢失）
-        if (!mPendingItems.isEmpty()) {
-            NBTTagList pendingList = new NBTTagList();
-            for (ItemStack stack : mPendingItems) {
-                if (stack != null) {
-                    pendingList.appendTag(stack.writeToNBT(new NBTTagCompound()));
-                }
-            }
-            aNBT.setTag("mPendingItems", pendingList);
-        }
+        savePendingItems(aNBT);
     }
 
     @Override
@@ -997,6 +988,19 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         aNBT.setInteger("mMinerTier", mMinerTier);
         // 保存粉碎矿模式，确保破坏→重新放置后状态不丢失
         aNBT.setBoolean("mCrushedMode", mCrushedMode);
+        savePendingItems(aNBT);
+    }
+
+    private void savePendingItems(NBTTagCompound aNBT) {
+        NBTTagList pendingList = new NBTTagList();
+        for (ItemStack stack : mPendingItems) {
+            if (stack == null || stack.stackSize <= 0) continue;
+            NBTTagCompound entry = stack.writeToNBT(new NBTTagCompound());
+            // Pending balances can exceed the native byte Count, both in world saves and recovered items.
+            entry.setInteger("gtsr.amount", stack.stackSize);
+            pendingList.appendTag(entry);
+        }
+        aNBT.setTag("mPendingItems", pendingList);
     }
 
     @Override
@@ -1032,10 +1036,11 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         if (aNBT.hasKey("mPendingItems")) {
             NBTTagList pendingList = aNBT.getTagList("mPendingItems", 10);
             for (int i = 0; i < pendingList.tagCount(); i++) {
-                ItemStack stack = ItemStack.loadItemStackFromNBT(pendingList.getCompoundTagAt(i));
-                if (stack != null) {
-                    mPendingItems.add(stack);
-                }
+                NBTTagCompound entry = pendingList.getCompoundTagAt(i);
+                ItemStack stack = ItemStack.loadItemStackFromNBT(entry);
+                if (stack == null) continue;
+                if (entry.hasKey("gtsr.amount")) stack.stackSize = entry.getInteger("gtsr.amount");
+                if (stack.stackSize > 0) mPendingItems.add(stack);
             }
         }
     }

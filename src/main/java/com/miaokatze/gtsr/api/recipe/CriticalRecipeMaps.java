@@ -7,10 +7,7 @@ import java.util.List;
 
 import net.minecraft.util.StatCollector;
 
-import com.miaokatze.gtsr.common.critical.CriticalChemicalMath;
-import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
-import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
 
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMapBackend;
@@ -25,17 +22,18 @@ public final class CriticalRecipeMaps {
         CriticalMachineKind.class);
     private static final List<DisplayInfo> DISPLAY_INFO = new ArrayList<>();
     public static final RecipeMap<RecipeMapBackend> construction = displayBuilder("gtsr.recipe.critical.loom")
-        .maxIO(CONSTRUCTION_PAGE_SIZE, 1, 1, 0)
-        .frontend((ui, nei) -> new CriticalRecipeFrontend(ui, nei, true))
-        .build();
-    public static final RecipeMap<RecipeMapBackend> showcase = displayBuilder("gtsr.recipe.critical.showcase")
-        .maxIO(0, 1, 0, 0)
+        .maxIO(CONSTRUCTION_PAGE_SIZE, 1, 4, 0)
         .frontend((ui, nei) -> new CriticalRecipeFrontend(ui, nei, true))
         .build();
     public static final RecipeMap<RecipeMapBackend> stellarIrradiation = displayBuilder(
-        "gtsr.recipe.stellar_irradiation").maxIO(1, 1, 0, 0)
+        "gtsr.recipe.stellar_irradiation").maxIO(3, 1, 3, 1)
             .frontend(CriticalRecipeFrontend::new)
             .build();
+
+    public static final RecipeMap<RecipeMapBackend> stellarLifecycle = displayBuilder("gtsr.recipe.stellar_lifecycle")
+        .maxIO(0, 0, 1, 1)
+        .frontend(CriticalRecipeFrontend::new)
+        .build();
 
     static {
         for (CriticalMachineKind kind : CriticalMachineKind.releasedValues()) MAPS.put(kind, create(kind));
@@ -55,16 +53,16 @@ public final class CriticalRecipeMaps {
 
     public static void addDisplayRecipe(CriticalMachineKind kind, GTRecipe recipe, String operation, BigInteger baseEu,
         int spectrum) {
-        RecipeMap<RecipeMapBackend> map = operation.equals("solar_dust") ? stellarIrradiation : forKind(kind);
-        register(map, recipe, new DisplayInfo(kind, operation, baseEu, spectrum, 0, 1));
+        RecipeMap<RecipeMapBackend> map = operation.equals("solar_dust") ? stellarIrradiation
+            : operation.startsWith("stellar_") ? stellarLifecycle : forKind(kind);
+        register(map, recipe, new DisplayInfo(map, kind, operation, baseEu, spectrum, 0, 1));
     }
 
     public static void addConstruction(GTRecipe recipe, CriticalMachineKind kind, int stage, int page, int pages) {
-        register(construction, recipe, new DisplayInfo(kind, "build_" + stage, BigInteger.ZERO, -1, page, pages));
-    }
-
-    public static void addShowcase(GTRecipe recipe, CriticalMachineKind kind) {
-        register(showcase, recipe, new DisplayInfo(kind, "showcase", BigInteger.ZERO, -1, 0, 1));
+        register(
+            construction,
+            recipe,
+            new DisplayInfo(construction, kind, "build_" + stage, BigInteger.ZERO, -1, page, pages));
     }
 
     private static void register(RecipeMap<RecipeMapBackend> map, GTRecipe recipe, DisplayInfo info) {
@@ -85,71 +83,18 @@ public final class CriticalRecipeMaps {
         return index < 0 || index >= DISPLAY_INFO.size() ? null : DISPLAY_INFO.get(index);
     }
 
-    public static List<String> description(GTRecipe recipe) {
-        List<String> lines = new ArrayList<>();
-        DisplayInfo info = displayInfo(recipe);
-        if (info == null) return lines;
-        switch (info.operation) {
-            case "showcase" -> {
-                lines.add(text("showcase.demo_only"));
-                lines.add(text("showcase.reference"));
-                lines.add(text("showcase.preview_legend"));
-                lines.add(text("showcase.preview_ports"));
-            }
-            case "build_0" -> {
-                lines.add(text("showcase.foundation_bill"));
-                lines.add(text("showcase.foundation_time"));
-                lines.add(text("showcase.foundation_reuse"));
-            }
-            case "build_1", "build_2" -> {
-                lines.add(formatted("showcase.page", info.page + 1, info.pages));
-                lines.add(text("showcase.physical_bill"));
-                lines.add(text("showcase.build_pause"));
-                lines.add(text("showcase.world_product"));
-            }
-            case "sun" -> {
-                lines.add(formatted("showcase.ignition", CriticalStellarPolicy.IGNITION_EU));
-                lines.add(text("showcase.stellar_ready"));
-                lines.add(text("showcase.hold"));
-                lines.add(text("showcase.run"));
-                lines.add(formatted("showcase.fusion_time", recipe.mDuration, CriticalStellarPolicy.MAX_PARALLEL));
-                lines.add(formatted("showcase.fusion_cap", CriticalStellarPolicy.MKV_STARTUP));
-                lines.add(text("showcase.fusion_ratio"));
-            }
-            case "battery" -> {
-                lines.add(formatted("showcase.fuel", info.spectrum + 1, info.baseEu));
-                lines.add(formatted("showcase.chemical_q", CriticalChemicalMath.CHEMICAL_BASE_HEAT_CAP_EU));
-                for (int window = 0; window < CriticalChemicalMath.WINDOW_COUNT; window++)
-                    lines.add(formatted("showcase.window_" + window, CriticalChemicalMath.multiplier(window)));
-                lines.add(text("showcase.chemical_paid"));
-            }
-            case "turbine" -> {
-                lines.add(text("showcase.turbine_cycle"));
-                lines.add(formatted("base_generated", info.baseEu));
-                lines.add(text("showcase.ratchet"));
-                lines.add(text("showcase.ratchet_idle"));
-                lines.add(text("condensation"));
-                lines.add(text("showcase.wireless"));
-            }
-            default -> {
-                lines.add(text("showcase.solar_water"));
-                lines.add(text("showcase.solar_salt"));
-                lines.add(formatted("showcase.solar_dust", CriticalEnergyMath.IRRADIATION_PARALLEL));
-                lines.add(text("showcase.solar_factor"));
-                lines.add(text("showcase.solar_cycle"));
-                lines.add(text("showcase.solar_ratio"));
-            }
-        }
-        return lines;
-    }
-
     private static RecipeMapBuilder<RecipeMapBackend> displayBuilder(String name) {
         return RecipeMapBuilder.of(name)
             .minInputs(0, 0)
             .dontUseProgressBar()
-            .neiTransferRect(59, 46, 75, 18)
-            .neiRecipeBackgroundSize(170, 174)
-            .neiRecipeBackgroundOffset(5, 11)
+            .neiRecipeComparator(java.util.Comparator.comparingInt(recipe -> recipe.mSpecialValue))
+            .neiTransferRect(
+                CriticalNEILayout.ARROW_X + CriticalNEILayout.WINDOW_X,
+                CriticalNEILayout.ITEM_Y + 3 + CriticalNEILayout.WINDOW_Y,
+                CriticalNEILayout.ARROW_WIDTH,
+                37)
+            .neiRecipeBackgroundSize(CriticalNEILayout.WIDTH, CriticalNEILayout.HEIGHT)
+            .neiRecipeBackgroundOffset(CriticalNEILayout.WINDOW_X, CriticalNEILayout.WINDOW_Y)
             .neiHandlerInfo(
                 builder -> builder.setHeight(180)
                     .setMaxRecipesPerPage(1));
@@ -157,7 +102,11 @@ public final class CriticalRecipeMaps {
 
     private static RecipeMap<RecipeMapBackend> create(CriticalMachineKind kind) {
         return displayBuilder("gtsr.recipe.critical." + kind.key)
-            .maxIO(0, 0, kind == CriticalMachineKind.SUN ? 2 : 1, kind == CriticalMachineKind.BATTERY ? 0 : 1)
+            .maxIO(
+                0,
+                0,
+                kind == CriticalMachineKind.SUN || kind == CriticalMachineKind.BATTERY ? 3 : 1,
+                kind == CriticalMachineKind.BATTERY ? 0 : 1)
             .frontend(CriticalRecipeFrontend::new)
             .build();
     }
@@ -172,13 +121,15 @@ public final class CriticalRecipeMaps {
 
     public static final class DisplayInfo {
 
+        public final RecipeMap<?> recipeMap;
         public final CriticalMachineKind kind;
         public final String operation;
         public final BigInteger baseEu;
         public final int spectrum, page, pages;
 
-        private DisplayInfo(CriticalMachineKind kind, String operation, BigInteger baseEu, int spectrum, int page,
-            int pages) {
+        private DisplayInfo(RecipeMap<?> recipeMap, CriticalMachineKind kind, String operation, BigInteger baseEu,
+            int spectrum, int page, int pages) {
+            this.recipeMap = recipeMap;
             this.kind = kind;
             this.operation = operation;
             this.baseEu = baseEu;
@@ -191,8 +142,14 @@ public final class CriticalRecipeMaps {
             return operation.startsWith("build_");
         }
 
-        public boolean showcase() {
-            return operation.equals("showcase");
+        public int constructionStage() {
+            return construction() ? Integer.parseInt(operation.substring(6)) : -1;
+        }
+
+        /** Four visual milestones preserve all six separately billed construction operations. */
+        public int constructionGroup() {
+            int stage = constructionStage();
+            return stage <= 0 ? 0 : stage <= 3 ? 1 : stage - 2;
         }
     }
 }

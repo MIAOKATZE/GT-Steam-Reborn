@@ -16,6 +16,10 @@ public final class ClusterTerminalClientCache {
 
     private ClusterTerminalClientCache() {}
 
+    public static void clear() {
+        current = null;
+    }
+
     public static boolean isAnchored(int x, int y, int z, int dim) {
         return current != null && x == anchorX && y == anchorY && z == anchorZ && dim == anchorDim;
     }

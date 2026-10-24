@@ -82,8 +82,10 @@ public final class AbyssalFluidConversionHandler {
         if (current.getItem() == Items.bucket) {
             if (world.getBlock(target.blockX, target.blockY, target.blockZ) == BlocksGTSR.abyssalFluid
                 && world.getBlockMetadata(target.blockX, target.blockY, target.blockZ) == 0) {
-                if (!world.isRemote && playerCanEdit(event, target)) {
-                    world.setBlockToAir(target.blockX, target.blockY, target.blockZ);
+                if (!playerCanEdit(event, target.blockX, target.blockY, target.blockZ)
+                    || (!world.isRemote && !world.setBlockToAir(target.blockX, target.blockY, target.blockZ))) {
+                    event.setCanceled(true);
+                    return;
                 }
                 event.result = new ItemStack(abyssalBucket);
                 event.setResult(Event.Result.ALLOW);
@@ -100,14 +102,21 @@ public final class AbyssalFluidConversionHandler {
         final int x = offset(target.blockX, target.sideHit, 4, 5);
         final int y = offset(target.blockY, target.sideHit, 0, 1);
         final int z = offset(target.blockZ, target.sideHit, 2, 3);
+        if (!playerCanEdit(event, x, y, z)) {
+            event.setCanceled(true);
+            return;
+        }
         // 繁荣维度的放置转换不要求下方支撑，悬空放水同样生成深渊执念源。
         // 可置性对位 tryPlaceContainedLiquid（ItemBucket.java:185-191）：目标格须 air 或非 solid
         if (world.isAirBlock(x, y, z) || !world.getBlock(x, y, z)
             .getMaterial()
             .isSolid()) {
-            if (!world.isRemote && playerCanEdit(event, target)) {
+            if (!world.isRemote) {
                 // flags=3 对位原版 tryPlaceContainedLiquid（ItemBucket.java:210 setBlock(...,0,3)）
-                world.setBlock(x, y, z, BlocksGTSR.abyssalFluid, 0, 3);
+                if (!world.setBlock(x, y, z, BlocksGTSR.abyssalFluid, 0, 3)) {
+                    event.setCanceled(true);
+                    return;
+                }
             }
             event.result = new ItemStack(Items.bucket);
             event.setResult(Event.Result.ALLOW);
@@ -122,11 +131,13 @@ public final class AbyssalFluidConversionHandler {
         return sideHit == sideHigh ? base + 1 : base;
     }
 
-    /** 编辑权判定对位原版（ItemBucket.java:80/:137 canPlayerEdit，用命中面而非偏移格，同原版口径）。 */
-    private static boolean playerCanEdit(FillBucketEvent event, MovingObjectPosition target) {
-        return event.entityPlayer != null && event.entityPlayer.capabilities != null
-            && event.entityPlayer
-                .canPlayerEdit(target.blockX, target.blockY, target.blockZ, target.sideHit, event.current);
+    /** Validate the actual changed block before allowing vanilla's inventory exchange. */
+    private static boolean playerCanEdit(FillBucketEvent event, int x, int y, int z) {
+        return y >= 0 && y < event.world.getHeight()
+            && event.entityPlayer != null
+            && event.entityPlayer.capabilities != null
+            && event.world.canMineBlock(event.entityPlayer, x, y, z)
+            && event.entityPlayer.canPlayerEdit(x, y, z, event.target.sideHit, event.current);
     }
 
     private static boolean isProsperityDim(World world) {

@@ -80,6 +80,13 @@ public class TerminalNet {
         return ++SNAPSHOT_VERSION_SEQ;
     }
 
+    /** Release legacy state after the final server tick, including integrated-server world switches. */
+    public static void clearServerState() {
+        PENDING.clear();
+        LAST_REQUEST_TICK.clear();
+        TerminalServerSessions.clear();
+    }
+
     /**
      * 注册全部终端包与 C2S 排水监听。需在 {@code GTSRFXNet.init()} 尾部调用一次
      * （双端执行；注册顺序即 discriminator 编号，勿调整已占用编号）。
@@ -92,6 +99,14 @@ public class TerminalNet {
         FMLCommonHandler.instance()
             .bus()
             .register(new ServerDrain());
+        if (FMLCommonHandler.instance()
+            .getSide()
+            .isClient()) registerClientLifecycle();
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static void registerClientLifecycle() {
+        TerminalClientPacketSink.registerLifecycle();
     }
 
     // ==================== 服务端发送入口（M1-M6 触发点 S3-S5 接入） ====================
@@ -142,9 +157,10 @@ public class TerminalNet {
         LAST_REQUEST_TICK.put(player.getUniqueID(), Long.valueOf(now));
         // 服务端复核（PLAN §4.1 轨 A-3）：TE 存活 && 距离 ≤64；失败回 valid=false → 客户端自关
         IGregTechTileEntity base = TerminalServerSessions
-            .getAliveBaseTile(msg.getDim(), msg.getX(), msg.getY(), msg.getZ());
-        if (base == null
-            || !TerminalServerSessions.withinInteractionRange(player, msg.getX(), msg.getY(), msg.getZ())) {
+            .withinInteractionRange(player, msg.getX(), msg.getY(), msg.getZ())
+                ? TerminalServerSessions.getAliveBaseTile(msg.getDim(), msg.getX(), msg.getY(), msg.getZ())
+                : null;
+        if (base == null) {
             TerminalNet.sendData(
                 player,
                 msg.getUiType(),
@@ -195,10 +211,10 @@ public class TerminalNet {
         if (player.dimension != msg.getDim()) {
             return;
         }
+        if (!TerminalServerSessions.withinInteractionRange(player, msg.getX(), msg.getY(), msg.getZ())) return;
         IGregTechTileEntity base = TerminalServerSessions
             .getAliveBaseTile(msg.getDim(), msg.getX(), msg.getY(), msg.getZ());
-        if (base == null
-            || !TerminalServerSessions.withinInteractionRange(player, msg.getX(), msg.getY(), msg.getZ())) {
+        if (base == null) {
             return;
         }
         int digest = TerminalServerSessions.payloadDigest(msg.getPayload());

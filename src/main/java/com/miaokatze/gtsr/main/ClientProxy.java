@@ -78,14 +78,6 @@ public class ClientProxy extends CommonProxy {
 
         hideCriticalMaterialItems();
 
-        // The read-only model catalogue has no recipe inputs; native U access uses explicit catalysts.
-        for (GTSRItemList controller : new GTSRItemList[] { GTSRItemList.CriticalLoom, GTSRItemList.CriticalSolar,
-            GTSRItemList.CriticalTurbine, GTSRItemList.CriticalSun, GTSRItemList.CriticalBattery }) {
-            codechicken.nei.api.API.addRecipeCatalyst(
-                controller.get(1),
-                com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.showcase.unlocalizedName);
-        }
-
         // Keep all legacy MTE IDs registered, while hiding the five frozen controllers from NEI.
         for (GTSRItemList frozen : new GTSRItemList[] { GTSRItemList.CriticalProcessing, GTSRItemList.CriticalEntangler,
             GTSRItemList.CriticalDimension, GTSRItemList.CriticalAssembly, GTSRItemList.CriticalAccelerator }) {

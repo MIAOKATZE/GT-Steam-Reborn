@@ -18,7 +18,6 @@ import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyRuntime;
-import com.miaokatze.gtsr.common.critical.CriticalLayoutDefinition;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.recipe.CriticalShellCatalog;
@@ -143,7 +142,8 @@ final class CriticalBusinessSnapshot {
                 .ordinal(), state.getParallelPlugins(), state.getSpeedPlugins(), state.getEfficiencyPlugins(),
                 state.getBatchProgress(), state.getBatchDuration(), state.getSteamMode(),
                 state.isLoomStructureValid() ? 1 : 0, state.canCancelLegacyStellarBatch() ? 1 : 0,
-                state.getGeometryVersion(), state.getV2LayoutRevision(), state.usesLegacyV2Geometry() ? 1 : 0 },
+                // Keep the version-2 wire width; the former model-layout fields are reserved.
+                state.getGeometryVersion(), 0, 0 },
             materials);
     }
 
@@ -258,15 +258,6 @@ final class CriticalBusinessSnapshot {
             } catch (NumberFormatException ignored) {}
         }
         return item == null ? id : item.getDisplayName();
-    }
-
-    CriticalLayoutDefinition layout() {
-        return CriticalLayoutDefinition.select(
-            configuration[9],
-            configuration[10],
-            configuration[11] != 0,
-            displayConfiguration.tier,
-            displayConfiguration.kind);
     }
 
     boolean hasSample() {
@@ -401,14 +392,19 @@ final class CriticalBusinessSnapshot {
                     + " EU");
             row(
                 rows,
-                "sun.reserve",
-                Long.toString(stellar.getLong("reserve")) + " / "
-                    + Long.toString(stellar.getLong("reserveCapacity"))
-                    + " EU");
-            row(rows, "sun.hold_power", Long.toString(stellar.getLong("holdEuPerTick")) + " EU/t");
+                "sun.ignition_fuel",
+                Long.toString(stellar.getLong("ignitionHelium3Paid")) + " / "
+                    + Long.toString(stellar.getLong("ignitionHelium3Required"))
+                    + " L");
+            row(rows, "sun.sustain_power", Long.toString(stellar.getLong("sustainEuPerTick")) + " EU/t");
+            row(rows, "sun.sustain_fuel", Long.toString(stellar.getLong("sustainHelium3PerTick")) + " L/t");
             row(rows, "sun.run_power", Long.toString(stellar.getLong("runEuPerTick")) + " EU/t");
-            row(rows, "sun.lost_ticks", Integer.toString(stellar.getInteger("lostTicks")));
-            row(rows, "sun.initializing", Integer.toString(stellar.getInteger("initializingTicks")));
+            row(
+                rows,
+                "sun.plasma_pending",
+                Long.toString(stellar.getLong("pendingPlasmaL"))
+                    + (stellar.getInteger("plasmaHalfRemainder") == 1 ? ".5" : "")
+                    + " L");
             row(rows, "sun.refund", Long.toString(stellar.getLong("refund")) + " EU");
         }
         if (state.getKind() != CriticalMachineKind.SUN) row(

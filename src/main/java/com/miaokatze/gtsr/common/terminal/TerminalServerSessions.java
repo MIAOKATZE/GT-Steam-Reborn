@@ -9,6 +9,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
+import net.minecraftforge.common.DimensionManager;
 
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 
@@ -36,6 +37,10 @@ public final class TerminalServerSessions {
     private static final Map<UUID, DebounceEntry> LAST_ACTION = new HashMap<UUID, DebounceEntry>();
 
     private TerminalServerSessions() {}
+
+    public static void clear() {
+        LAST_ACTION.clear();
+    }
 
     /**
      * 防抖判定（主线程调用）：同玩家 + 同 tick + 同 actionCode + 同参数摘要视为重复包，
@@ -74,12 +79,9 @@ public final class TerminalServerSessions {
      * 存活 = 基 TE 非空；调用方（S3-S5 分支）按旧语义追加机器类匹配/canAccessData 等机器级复核。
      */
     public static IGregTechTileEntity getAliveBaseTile(int dim, int x, int y, int z) {
-        MinecraftServer server = MinecraftServer.getServer();
-        if (server == null) {
-            return null;
-        }
-        World world = server.worldServerForDimension(dim);
-        if (world == null) {
+        World world = DimensionManager.getWorld(dim);
+        if (world == null || !world.getChunkProvider()
+            .chunkExists(x >> 4, z >> 4)) {
             return null;
         }
         TileEntity te = world.getTileEntity(x, y, z);

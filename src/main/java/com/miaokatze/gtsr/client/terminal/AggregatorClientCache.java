@@ -54,6 +54,10 @@ public final class AggregatorClientCache {
 
     private static volatile Snapshot snapshot;
 
+    public static void clear() {
+        snapshot = null;
+    }
+
     private AggregatorClientCache() {}
 
     /** @return 当前聚合器快照（无回包/已失效为 null；GUI 须再验锚点） */

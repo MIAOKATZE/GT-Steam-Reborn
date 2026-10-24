@@ -88,7 +88,8 @@ public final class CriticalGTRecipes {
                     host.criticalRecipePower(),
                     MTECriticalMachine.criticalEnergyTickCap(),
                     state.getStellarRuntimeData()
-                        .getBoolean("holdPaid")),
+                        .getBoolean("sustainPaidThisTick")),
+                recipe.mEUt,
                 CriticalStellarPolicy.MAX_PARALLEL);
             if (powerParallel <= 0) continue;
             ParallelHelper limit = helper(
@@ -118,7 +119,7 @@ public final class CriticalGTRecipes {
                 copies(execution.getItemOutputs()),
                 copies(execution.getFluidOutputs()),
                 CriticalStellarPolicy.duration(recipe.mDuration),
-                CriticalStellarPolicy.runEuPerTick(parallel),
+                CriticalStellarPolicy.runEuPerTick(recipe.mEUt, parallel),
                 0,
                 fusionFingerprint(recipe, threshold),
                 recipe.mDuration,

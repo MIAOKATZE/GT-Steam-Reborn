@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.client.terminal;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -21,6 +23,9 @@ import com.miaokatze.gtsr.common.terminal.PacketOpenTerminalUi;
 import com.miaokatze.gtsr.common.terminal.PacketTerminalData;
 import com.miaokatze.gtsr.common.terminal.TerminalUiType;
 
+import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.network.FMLNetworkEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -45,15 +50,55 @@ import gregtech.api.metatileentity.MetaTileEntity;
 @SideOnly(Side.CLIENT)
 public final class TerminalClientPacketSink {
 
+    private static final AtomicLong CONNECTION_EPOCH = new AtomicLong();
+
     private TerminalClientPacketSink() {}
 
-    /** open 包落地入口（Netty 线程调用）：切主线程后校验（零 lambda 纪律：匿名 Runnable） */
-    public static void handleOpenScheduled(final PacketOpenTerminalUi msg) {
+    public static void registerLifecycle() {
+        FMLCommonHandler.instance()
+            .bus()
+            .register(new ConnectionLifecycle());
+    }
+
+    /** Invalidate queued work immediately; all cache writes remain on the client thread. */
+    private static void resetConnection() {
+        final long epoch = CONNECTION_EPOCH.incrementAndGet();
         Minecraft.getMinecraft()
             .func_152344_a(new Runnable() {
 
                 @Override
                 public void run() {
+                    if (epoch != CONNECTION_EPOCH.get()) return;
+                    HubTerminalClientCache.clear();
+                    AggregatorClientCache.clear();
+                    ClusterTerminalClientCache.clear();
+                    GuiTcdsTerminalScreen.clearCache();
+                }
+            });
+    }
+
+    public static final class ConnectionLifecycle {
+
+        @SubscribeEvent
+        public void onDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
+            resetConnection();
+        }
+
+        @SubscribeEvent
+        public void onConnect(FMLNetworkEvent.ClientConnectedToServerEvent event) {
+            resetConnection();
+        }
+    }
+
+    /** open 包落地入口（Netty 线程调用）：切主线程后校验（零 lambda 纪律：匿名 Runnable） */
+    public static void handleOpenScheduled(final PacketOpenTerminalUi msg) {
+        final long epoch = CONNECTION_EPOCH.get();
+        Minecraft.getMinecraft()
+            .func_152344_a(new Runnable() {
+
+                @Override
+                public void run() {
+                    if (epoch != CONNECTION_EPOCH.get()) return;
                     TerminalClientPacketSink.handleOpen(msg);
                 }
             });
@@ -61,11 +106,13 @@ public final class TerminalClientPacketSink {
 
     /** data 包落地入口（Netty 线程调用）：切主线程后写缓存分派 */
     public static void handleDataScheduled(final PacketTerminalData msg) {
+        final long epoch = CONNECTION_EPOCH.get();
         Minecraft.getMinecraft()
             .func_152344_a(new Runnable() {
 
                 @Override
                 public void run() {
+                    if (epoch != CONNECTION_EPOCH.get()) return;
                     TerminalClientPacketSink.handleData(msg);
                 }
             });

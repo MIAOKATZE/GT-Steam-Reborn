@@ -17,7 +17,7 @@ def main():
     parser.add_argument('--jar', type=Path, help='Compile fixture/test only; production classes come exclusively from this candidate')
     parser.add_argument('--baseline', type=Path, help='Dependency baseline for a source-overlay run')
     parser.add_argument('--out', type=Path, default=OUT)
-    parser.add_argument('--template-only', action='store_true', help='Only validate native zero-input showcase template and indexing')
+    parser.add_argument('--template-only', action='store_true', help='Only validate the native construction template and indexing')
     args = parser.parse_args()
     out = args.out.resolve()
     out.relative_to(ROOT / 'build')
@@ -37,10 +37,10 @@ def main():
         ROOT / 'build/classes/java/patchedMc', ROOT / 'build/rfg/recompiled_minecraft-1.7.10.jar',
         ROOT / 'build/rfg/mclauncher-1.7.10.jar', gt, *deps]))
     files = [ROOT / 'src/main/java/com/miaokatze/gtsr' / name for name in (
-        'api/recipe/CriticalRecipeMaps.java', 'api/recipe/CriticalRecipeFrontend.java',
+        'api/recipe/CriticalRecipeMaps.java', 'api/recipe/CriticalRecipeFrontend.java', 'api/recipe/CriticalNEILayout.java', 'config/Config.java',
         'client/nei/CriticalNEIShowcase.java', 'loader/recipes/CriticalMachineRecipes.java')]
     production_sources = files
-    fixtures = [ROOT / 'tools/tests/Issue37RegistrationRegression.java', ROOT / 'tools/tests/CriticalNEICatalogContract.java']
+    fixtures = [ROOT / 'tools/tests/Issue37RegistrationRegression.java', ROOT / 'tools/tests/CriticalNEICatalogContract.java', ROOT / 'tools/tests/CriticalNEIFontContract.java']
     files = fixtures if args.jar else production_sources + fixtures
 
     def run(exe, name, args):
@@ -63,6 +63,8 @@ def main():
     assert hashlib.sha256(baseline.read_bytes()).hexdigest() == candidate_hash, 'Candidate changed during verification'
     if args.jar:
         assert not any((classes / 'com/miaokatze/gtsr').rglob('*.class')), 'Production overlay appeared during jar-only run'
+    font_result = run('java.exe', 'font', ['-cp', cp, 'CriticalNEIFontContract', ROOT / 'src/main/resources/assets/gtsr/lang'])
+    result += font_result
     print(result)
     (out / 'verification.json').write_text(json.dumps({'status': 'PASS', 'productOverlay': not bool(args.jar),
         'jar': str(baseline), 'jarSHA256': candidate_hash, 'jarUnchanged': True,

@@ -211,7 +211,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public boolean shutdownStellar(EntityPlayer player) {
-        return config.kind == CriticalMachineKind.SUN && setEnabled(player, false);
+        if (worldObj.isRemote || !canUse(player)
+            || config.kind != CriticalMachineKind.SUN
+            || !ownsTask() && CriticalStellarRuntime.hasAssets(stellarRuntime)) return false;
+        if (gtMachine() != null)
+            CriticalStellarRuntime.shutdown(stellarRuntime, gtMachine().criticalStellarPowerPort());
+        return setEnabled(player, false);
     }
 
     public void setRuntimeBatch(int progress, int duration, long eut, String message) {
@@ -1070,7 +1075,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             yCoord,
             zCoord)) return fail("施工区与已登记区域重叠");
         structureId = acceptedId;
+        int plasmaHalfRemainder = stellarRuntime.getInteger("plasmaHalfRemainder");
         stellarRuntime = new NBTTagCompound();
+        stellarRuntime.setInteger("plasmaHalfRemainder", plasmaHalfRemainder);
         initialClearanceAccepted = true;
         structureFacing = getStructureFacing();
         structureFacingLocked = true;
@@ -1082,7 +1089,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         recoverySeed = new Random().nextLong();
         jobFingerprint = modelFingerprint;
         constructionLedger.freezeJob(newEconomy);
-        paidStageCache.clear();
+        rebuildConstructionStages(geometryCache);
         state = 1;
         foundationRequired = isLoomJournalOwner();
         foundationCuringCheckTicks = 0;
@@ -1342,8 +1349,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             && config.kind == CriticalMachineKind.SOLAR
             && !data().claimNight(worldObj, structureId)) return fail("本维度已有先启动的辐照锅炉");
         enabled = value;
-        if (!value && config.kind == CriticalMachineKind.SUN && gtMachine() != null)
-            CriticalStellarRuntime.shutdown(stellarRuntime, gtMachine().criticalStellarPowerPort());
         if (host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt) {
             if (value) gt.enableWorking();
             else gt.disableWorking();
@@ -1529,12 +1534,26 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 modelFingerprint = (modelFingerprint ^ v.positionKey()) * 0x100000001b3L;
                 modelFingerprint = (modelFingerprint ^ v.material.hashCode() ^ v.group.hashCode() ^ v.stage)
                     * 0x100000001b3L;
-                while (stageCache.size() <= v.stage) stageCache.add(new ArrayList<>());
-                stageCache.get(v.stage)
-                    .add(v);
             }
+            rebuildConstructionStages(result);
         }
         return geometryCache;
+    }
+
+    private int constructionStage(CriticalGeometry.Voxel voxel) {
+        return constructionLedger.isPhysicalJob() ? constructionLedger.physicalJob()
+            .stage(voxel) : voxel.stage;
+    }
+
+    private void rebuildConstructionStages(List<CriticalGeometry.Voxel> voxels) {
+        stageCache.clear();
+        paidStageCache.clear();
+        for (CriticalGeometry.Voxel voxel : voxels) {
+            int workStage = constructionStage(voxel);
+            while (stageCache.size() <= workStage) stageCache.add(new ArrayList<>());
+            stageCache.get(workStage)
+                .add(voxel);
+        }
     }
 
     /** GT casing is a fabrication host even while the commissioned structure is unfinished. */
@@ -1763,6 +1782,24 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             isEnabled() && !(dismantleRequested && !hasActiveBatch()),
             state == 2 && structureValid && isLoomStructureValid(),
             !batchId.isEmpty() && batchRecipe.getInteger("billingVersion") == 0);
+        if (!batchId.isEmpty() && batchRecipe.getInteger("billingVersion") == 1
+            && CriticalStellarRuntime.supported(stellarRuntime)
+            && !stellarRuntime.getBoolean("uncertain")) {
+            int parallel = batchRecipe.getInteger("parallel");
+            long nativeEu = batchRecipe.getLong("nativeEuPerTick");
+            if (parallel < 1 || parallel > CriticalStellarPolicy.MAX_PARALLEL
+                || !CriticalStellarPolicy.nativeCapability(
+                    batchRecipe.getLong("fusionThreshold"),
+                    nativeEu,
+                    gregtech.api.enums.GTValues.V[10])
+                || !batchRecipe.hasKey("nativeEuPerTick")) {
+                stellarRuntime.setBoolean("uncertain", true);
+            } else {
+                batchEu = CriticalStellarPolicy.runEuPerTick(nativeEu, parallel);
+                batchRecipe.setInteger("billingVersion", CriticalStellarPolicy.VERSION);
+            }
+            markDirty();
+        }
         if (batchRecipe.getBoolean("cancelRefund") && ownsTask() && !nativeFundingUncertain && areaLoaded()) runBatch();
     }
 
@@ -1923,8 +1960,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             }
             emitEnergy();
             runBatch();
-            if (config.kind == CriticalMachineKind.SUN && gtMachine() != null)
-                CriticalStellarRuntime.refillReserve(stellarRuntime, gtMachine().criticalStellarPowerPort());
             if (dismantleRequested && !hasActiveBatch()
                 && !energyRuntime.getBoolean("uncertain")
                 && settleDismantleEnergy()) beginDismantle();
@@ -2019,7 +2054,13 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public FluidStack[] getConstructionFluidCostsForGui() {
-        if (constructionLedger.isPhysicalJob()) return new FluidStack[0];
+        if (constructionLedger.isPhysicalJob()) {
+            if (state != 0 && state != 1 && state != 4) return new FluidStack[0];
+            if (constructionLedger.hasStageSnapshot()) return constructionLedger.stageFluids();
+            List<CriticalGeometry.Voxel> current = currentPaidStage();
+            return constructionLedger.physicalJob()
+                .fluidCosts(current, 0, current.size());
+        }
         if (constructionTimeVersion == 0 && (stageFunded || repairFunded)) return new FluidStack[0];
         if (state != 0 && state != 1 && state != 4) return new FluidStack[0];
         if (constructionLedger.hasStageSnapshot()) return constructionLedger.stageFluids();
@@ -2087,7 +2128,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             return getFoundationPhase() == 1 && !isFoundationCellFunded()
                 ? new FluidStack[] { CriticalFoundationMaterials.fluid(1_000_000) }
                 : new FluidStack[0];
-        if (constructionLedger.isPhysicalJob()) return new FluidStack[0];
+        if (constructionLedger.funded()) return new FluidStack[0];
         if (constructionTimeVersion == 0 && (stageFunded || repairFunded)) return new FluidStack[0];
         if (constructionLedger.hasStageSnapshot()) return constructionLedger.nextStageFluids();
         return constructionLedger.nextFluids(getConstructionFluidCostsForGui(), getConstructionCostsForGui());
@@ -2173,7 +2214,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             List<CriticalGeometry.Voxel> result = new ArrayList<>();
             List<CriticalGeometry.Voxel> voxels = allVoxels();
             for (int i = repairTargets.nextSetBit(0); i >= 0 && i < voxels.size(); i = repairTargets.nextSetBit(i + 1))
-                if (voxels.get(i).stage == stage && !isUserBuilt(voxels.get(i))) result.add(voxels.get(i));
+                if (constructionStage(voxels.get(i)) == stage && !isUserBuilt(voxels.get(i))) result.add(voxels.get(i));
             return result;
         }
         return stage >= 0 && stage < stageCache.size() ? paidStage(stageCache.get(stage)) : Collections.emptyList();
@@ -2316,7 +2357,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                     return;
                 }
                 CriticalGeometry.Voxel v = voxels.get(index);
-                repairStages.get(v.stage)
+                repairStages.get(constructionStage(v))
                     .add(v);
             }
         }
@@ -2611,7 +2652,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         pendingFluids = new FluidStack[0];
         CriticalRenderAnchors.remove(this);
         chunkLoading.release(host);
-        if (foundationRequired) data().discardIncompleteFoundations(loomChunks());
+        if (foundationRequired) data().discardIncompleteFoundations(structureId, loomChunks());
         data().release(structureId);
         state = 0;
         invalidateStructure();
@@ -2710,11 +2751,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         }
         if (stellar && !refund && (batchId.isEmpty() || batchRecipe.getInteger("billingVersion") > 0)) {
             if (!CriticalStellarRuntime.ready(stellarRuntime)) {
-                fail(stellarRuntime.getBoolean("uncertain") ? "恒星支付结果待核验" : "恒星尚未就绪，点火、保火或结构等待");
+                fail(stellarRuntime.getBoolean("uncertain") ? "恒星支付结果待核验" : "恒星尚未就绪，等待点火或持续燃料与电力");
                 return;
             }
             if (stellarRuntime.getBoolean("productionPaused") && !dismantleRequested) {
-                fail("加工已暂停，恒星继续保火");
+                fail("加工已暂停，恒星持续消耗氦三与电力");
                 return;
             }
         }
@@ -2779,7 +2820,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             if (stellar && batchRecipe.getInteger("billingVersion") > 0) {
                 if (gtMachine() == null || !CriticalStellarRuntime
                     .payProcessing(stellarRuntime, gtMachine().criticalStellarPowerPort(), batchId, batchEu)) {
-                    fail("加工缺电，原料与已付进度保留；保火独立结算");
+                    fail("加工缺电，原料与已付进度保留；持续消耗独立结算");
                     return;
                 }
             } else if (stellar && gtMachine() != null) {

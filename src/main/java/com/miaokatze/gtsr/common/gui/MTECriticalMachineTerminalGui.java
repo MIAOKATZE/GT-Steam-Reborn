@@ -400,14 +400,24 @@ public final class MTECriticalMachineTerminalGui {
                 .size(112, 20)
                 .tooltipBuilder(this::constructionTooltip)
                 .tooltipAutoUpdate(true));
-        page.child(
-            action(manager, "power", player -> state.setEnabled(player, !state.isEnabled()))
-                .overlay(
-                    IKey.dynamic(() -> tr(business.getValue().construction.enabled() ? "stop" : "start"))
-                        .color(CriticalGuiStyle.TEXT_CONTROL))
-                .pos(351, 150)
-                .size(112, 20)
-                .tooltipBuilder(t -> t.add(IKey.lang(key("ui.sun.power_hint")))));
+        page.child(action(manager, "power", player -> {
+            if (state.getKind() == CriticalMachineKind.SUN) {
+                if (state.isEnabled() || state.getStellarRuntimeData()
+                    .getBoolean("hot")) return state.shutdownStellar(player);
+                return state.setEnabled(player, true);
+            }
+            return state.setEnabled(player, !state.isEnabled());
+        }).overlay(
+            IKey.dynamic(
+                () -> tr(
+                    configuration().kind == CriticalMachineKind.SUN
+                        ? business.getValue().construction.enabled() || "3".equals(runtimeValue("sun.phase"))
+                            || "4".equals(runtimeValue("sun.phase")) ? "ui.sun.extinguish" : "ui.sun.ignite"
+                        : business.getValue().construction.enabled() ? "stop" : "start"))
+                .color(CriticalGuiStyle.TEXT_CONTROL))
+            .pos(351, 150)
+            .size(112, 20)
+            .tooltipBuilder(t -> t.add(IKey.lang(key("ui.sun.power_hint")))));
         ListWidget<IWidget, ?> feedback = new ListWidget<>().name("critical_action_feedback")
             .pos(0, 176)
             .size(463, 26)
@@ -461,7 +471,7 @@ public final class MTECriticalMachineTerminalGui {
             case BATTERY -> runtimeValue("batch_wireless");
             case TURBINE -> runtimeValue("steam.heat");
             case SOLAR -> runtimeValue("solar.dimension");
-            case SUN -> runtimeValue("sun.reserve");
+            case SUN -> runtimeValue("sun.sustain_power") + " · " + runtimeValue("sun.sustain_fuel") + " He-3";
             default -> business.getValue()
                 .energy() + " / "
                 + business.getValue()
@@ -828,7 +838,7 @@ public final class MTECriticalMachineTerminalGui {
 
     private void constructionTooltip(com.cleanroommc.modularui.screen.RichTooltip tooltip) {
         CriticalConfiguration cfg = configuration();
-        int currentStage = Math.max(0, Math.min(4, business.getValue().construction.stage()));
+        int currentStage = Math.max(0, Math.min(5, business.getValue().construction.stage()));
         tooltip.add(tr("construction") + " " + currentStage);
         tooltip.add(
             business.getValue()

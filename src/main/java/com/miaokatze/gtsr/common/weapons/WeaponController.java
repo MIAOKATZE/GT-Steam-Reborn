@@ -336,7 +336,7 @@ public final class WeaponController {
                 ItemStack returned = (old == 1
                     ? com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSteamEntangledSingularity
                     : com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamEntangledSingularity).get(paid);
-                s.player.inventory.addItemStackToInventory(returned);
+                returnAmmo(s.player, returned);
             } else {
                 ItemStack target = null;
                 for (ItemStack item : s.player.inventory.mainInventory)
@@ -349,13 +349,19 @@ public final class WeaponController {
                     target.setItemDamage(k.capacity);
                     data(target).setString("id", n.getString("returnPack"));
                     target.setItemDamage(Math.max(0, target.getItemDamage() - paid));
-                    s.player.inventory.addItemStackToInventory(target);
+                    returnAmmo(s.player, target);
                 } else target.setItemDamage(Math.max(0, target.getItemDamage() - paid));
             }
         }
         n.setInteger("magazine", 0);
         n.setInteger("paidMagazine", 0);
         n.setString("loadedPack", "");
+    }
+
+    private static void returnAmmo(EntityPlayerMP player, ItemStack returned) {
+        player.inventory.addItemStackToInventory(returned);
+        // Native insertion may accept only part of the stack; deliver its exact remainder before clearing the magazine.
+        if (returned.stackSize > 0) player.entityDropItem(returned, 0);
     }
 
     private void startReload(Session s) {
