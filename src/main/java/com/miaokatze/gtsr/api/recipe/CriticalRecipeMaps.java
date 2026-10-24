@@ -28,6 +28,10 @@ public final class CriticalRecipeMaps {
         .maxIO(CONSTRUCTION_PAGE_SIZE, 1, 1, 0)
         .frontend((ui, nei) -> new CriticalRecipeFrontend(ui, nei, true))
         .build();
+    public static final RecipeMap<RecipeMapBackend> showcase = displayBuilder("gtsr.recipe.critical.showcase")
+        .maxIO(0, 1, 0, 0)
+        .frontend((ui, nei) -> new CriticalRecipeFrontend(ui, nei, true))
+        .build();
     public static final RecipeMap<RecipeMapBackend> stellarIrradiation = displayBuilder(
         "gtsr.recipe.stellar_irradiation").maxIO(1, 1, 0, 0)
             .frontend(CriticalRecipeFrontend::new)
@@ -59,6 +63,10 @@ public final class CriticalRecipeMaps {
         register(construction, recipe, new DisplayInfo(kind, "build_" + stage, BigInteger.ZERO, -1, page, pages));
     }
 
+    public static void addShowcase(GTRecipe recipe, CriticalMachineKind kind) {
+        register(showcase, recipe, new DisplayInfo(kind, "showcase", BigInteger.ZERO, -1, 0, 1));
+    }
+
     private static void register(RecipeMap<RecipeMapBackend> map, GTRecipe recipe, DisplayInfo info) {
         if (map == null) throw new IllegalArgumentException("No released critical catalogue: " + info.kind);
         recipe.mSpecialValue = DISPLAY_INFO.size();
@@ -82,6 +90,12 @@ public final class CriticalRecipeMaps {
         DisplayInfo info = displayInfo(recipe);
         if (info == null) return lines;
         switch (info.operation) {
+            case "showcase" -> {
+                lines.add(text("showcase.demo_only"));
+                lines.add(text("showcase.reference"));
+                lines.add(text("showcase.preview_legend"));
+                lines.add(text("showcase.preview_ports"));
+            }
             case "build_0" -> {
                 lines.add(text("showcase.foundation_bill"));
                 lines.add(text("showcase.foundation_time"));
@@ -175,6 +189,10 @@ public final class CriticalRecipeMaps {
 
         public boolean construction() {
             return operation.startsWith("build_");
+        }
+
+        public boolean showcase() {
+            return operation.equals("showcase");
         }
     }
 }

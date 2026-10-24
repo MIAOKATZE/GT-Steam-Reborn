@@ -96,8 +96,19 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         if (!(tile instanceof TileEntityCriticalRenderAnchor anchor)) return;
         CriticalMachineState controller = anchor.getVisualState();
         CriticalRenderMetrics.renderCalls++;
-        renderingController = controller;
-        currentLight = lightCaches.computeIfAbsent(anchor, ignored -> new CriticalLightCache());
+        try {
+            renderAnchor(anchor, controller, x, y, z, partialTicks);
+        } finally {
+            activeGroups = null;
+            renderingController = null;
+            currentLight = null;
+            CriticalAnimation.endFrame();
+        }
+    }
+
+    private void renderAnchor(TileEntityCriticalRenderAnchor anchor, CriticalMachineState controller, double x,
+        double y, double z, float partialTicks) {
+        TileEntity tile = anchor;
         boolean installation = !controller.getStructureId()
             .isEmpty() && controller.getState() != 0;
         if (!installation && !anchor.isLoomVisible()) return;
@@ -136,6 +147,8 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         cameraZ = controller
             .localPointZ(Minecraft.getMinecraft().thePlayer.posX, Minecraft.getMinecraft().thePlayer.posZ);
         float previousLightX = OpenGlHelper.lastBrightnessX, previousLightY = OpenGlHelper.lastBrightnessY;
+        renderingController = controller;
+        currentLight = lightCaches.computeIfAbsent(anchor, ignored -> new CriticalLightCache());
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
         GL11.glPushMatrix();
         try {
@@ -217,10 +230,6 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             GL11.glPopMatrix();
             GL11.glPopAttrib();
             OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, previousLightX, previousLightY);
-            activeGroups = null;
-            renderingController = null;
-            currentLight = null;
-            CriticalAnimation.endFrame();
         }
     }
 

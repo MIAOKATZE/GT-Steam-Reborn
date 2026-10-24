@@ -39,6 +39,39 @@ class CriticalNEICatalogRuntime {
             result.merge(key,(long)stack.stackSize,Long::sum);}
         return result;
     }
+    static void showcaseTemplate() {
+        var map=CriticalRecipeMaps.showcase;
+        var frontend=map.getFrontend();
+        var properties=frontend.getUIProperties();
+        check(map!=CriticalRecipeMaps.construction,"independent showcase map");
+        check(properties.maxItemInputs==0&&properties.maxFluidInputs==0&&properties.maxFluidOutputs==0,
+            "showcase native template has zero input and fluid slots");
+        check(properties.maxItemOutputs==1,"showcase keeps one native controller link");
+        check(CriticalRecipeMaps.construction.getFrontend().getUIProperties().maxItemInputs==28,
+            "construction retains all 28 native material slots");
+        check(frontend.getNEIProperties().registerNEI,"showcase participates in native automatic NEI registration");
+        var inputs=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(0);
+        var outputs=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(1);
+        var special=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(1);
+        var fluids=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(0);
+        var context=new gregtech.nei.GTNEIDefaultHandler.NEITemplateContext(inputs,outputs,special,fluids,fluids,
+            ()->0f,()->null,new com.gtnewhorizons.modularui.api.math.Pos2d(-5,-11));
+        var template=frontend.createNEITemplate(context).build();
+        int slots=0;
+        for(var child:template.getChildren())if(child instanceof com.gtnewhorizons.modularui.common.widget.SlotWidget slot){
+            slots++;
+            check(slot.getMcSlot().getItemHandler()==outputs,"only controller output has a native slot background");
+            check(slot.getPos().x==147&&slot.getPos().y==35,"controller slot stays at logical 147/35");
+        }
+        check(slots==1,"actual native showcase template contains exactly one slot widget");
+        GTRecipe recipe=GTRecipeBuilder.builder().itemOutputs(new ItemStack(Items.diamond)).duration(400).eut(0).build().orElseThrow();
+        CriticalRecipeMaps.addShowcase(recipe,CriticalMachineKind.SUN);
+        check(map.getAllRecipes().contains(recipe)&&!CriticalRecipeMaps.construction.getAllRecipes().contains(recipe),
+            "showcase entry indexed exclusively in zero-input catalogue");
+        check(recipe.mInputs.length==0&&recipe.mOutputs.length==1&&recipe.mFakeRecipe,
+            "showcase stays a read-only output-linked fake entry");
+        System.out.println("PASS zero-input native showcase template "+checks+" checks; GT205/MUI1; no game client");
+    }
     static void fullConstruction() throws Exception {
         // Fixture identities only: actual geometry, carrier selection, frozen bill, pagination and GT recipe indices.
         GTValues.RA=(gregtech.api.interfaces.internal.IGTRecipeAdder)java.lang.reflect.Proxy.newProxyInstance(
@@ -99,6 +132,7 @@ class CriticalNEICatalogRuntime {
             }
         }
         Issue37Runtime.set(null, cpw.mods.fml.relauncher.FMLRelaunchLog.class, "side", cpw.mods.fml.relauncher.Side.SERVER);
+        if(Boolean.getBoolean("critical.nei.templateOnly")){showcaseTemplate();return;}
         check(CriticalRecipeMaps.forKind(null) == CriticalRecipeMaps.construction, "loom construction catalyst");
         for (CriticalMachineKind kind : CriticalMachineKind.values())
             check((CriticalRecipeMaps.forKind(kind) != null) == kind.isReleased(), "released-only " + kind);

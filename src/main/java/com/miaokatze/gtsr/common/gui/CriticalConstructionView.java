@@ -30,6 +30,8 @@ final class CriticalConstructionView {
 
     CriticalConstructionView(GenericSyncValue<CriticalBusinessSnapshot, ?> business) {
         this.business = business;
+        // The next debit and the actionable deficit are primary information, not hidden diagnostics.
+        expanded[11] = expanded[12] = true;
     }
 
     ParentWidget<?> create() {
@@ -65,7 +67,7 @@ final class CriticalConstructionView {
             new ParentWidget<>().name("critical_construction_preview")
                 .pos(6, 46)
                 .size(274, 119)
-                .background(new CriticalConstructionPreview(this::sample))
+                .background(new CriticalConstructionPreview(business::getValue))
                 .tooltipBuilder(t -> {
                     t.add(IKey.lang(key("view.grid_hint")));
                     t.add(IKey.lang(key("view.ghost_hint")));
@@ -78,8 +80,8 @@ final class CriticalConstructionView {
                 .pos(8, 172)
                 .size(270, 10));
         drawing.child(
-            new ParentWidget<>().pos(8, 189)
-                .size(270, 6)
+            new ParentWidget<>().pos(8, 181)
+                .size(270, 2)
                 .background(new CriticalProgressBar(() -> sample().progress())));
         page.child(drawing);
 
@@ -241,7 +243,7 @@ final class CriticalConstructionView {
 
     private String nextAction() {
         CriticalConstructionSnapshot s = sample();
-        return tr("ui.next_action") + ": " + tr("ui.recover." + (!s.enabled() ? 7 : s.reason()));
+        return tr("ui.next_action") + ": " + tr(s.recoveryKey());
     }
 
     private String familyLines(String family) {

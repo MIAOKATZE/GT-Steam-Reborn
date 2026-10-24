@@ -170,6 +170,11 @@ final class CriticalConstructionSnapshot {
         return values[18] != 0;
     }
 
+    String recoveryKey() {
+        int cause = enabled() ? reason() : 7;
+        return cause == 7 && status() != 2 ? "ui.recover.construction" : "ui.recover." + cause;
+    }
+
     boolean cellFunded() {
         return values[19] != 0;
     }

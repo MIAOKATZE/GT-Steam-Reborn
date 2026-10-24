@@ -846,7 +846,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 / getEffectiveSteamEuPerL(type));
             // v1.10.61：门控 long 化——UIV/UMV 级（V[11]=33.6M、V[12]=134M）+ 3 组/临界模式时
             // 蒸汽消耗 > int max，int 求和溢出为负导致永久假 NO_FUEL（见 getTotalSteamAmount）
-            long totalAvailable = getTotalSteamAmount(type);
+            long totalAvailable = getTotalSteamAmount(type, tFluids);
             if (totalAvailable >= consumption) {
                 selectedType = type;
                 baseEUt = base;
@@ -1023,9 +1023,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     // v1.10.61：求和 long 化——跨仓同型蒸汽累加可超 int max（2.147B L）溢出为负，
     // 与 checkProcessing 门控（consumption 为 long）配套，避免永久假 NO_FUEL。
-    private long getTotalSteamAmount(SteamType type) {
-        return SteamTurbineSteamTypes
-            .totalSteamAmount(type, getStoredFluids(), mPressureSteamInputs, mOverpressureInputs);
+    private long getTotalSteamAmount(SteamType type, List<FluidStack> stored) {
+        return SteamTurbineSteamTypes.totalSteamAmount(type, stored, mPressureSteamInputs, mOverpressureInputs);
     }
 
     // v1.10.88-r2：形参与 remaining 升 long——STEAM/SH_STEAM（euPerL=1）tier11+ 临界档实扣可越 int max；

@@ -238,7 +238,7 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         // v1.10.61：先推 pending（上周期枢纽输出仓放不下的余量，世界油量已扣；每 20 tick 重试推送）
         if (mPendingFluid != null) {
             hub.pushNodeFluidOutput(mPendingFluid);
-            // 销毁模式或已清空：镜像清空；保护模式仍有余量：保持 pending 作为限流门控
+            // 销毁模式或已清空时清账；保护模式下节点独占持有未交付余量并限流
             if (!hub.protectsExcessFluid() || mPendingFluid.amount <= 0) {
                 mPendingFluid = null;
             }
@@ -674,9 +674,7 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
             aNBT.setString("mLockedFluid", mLockedFluid.getName());
         }
         // v1.10.61：pending 流体余量持久化（世界油量已扣，重载后不得丢失）
-        if (mPendingFluid != null && mPendingFluid.amount > 0) {
-            aNBT.setTag("mPendingFluid", mPendingFluid.writeToNBT(new NBTTagCompound()));
-        }
+        savePendingFluid(aNBT);
     }
 
     @Override
@@ -684,6 +682,16 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         super.setItemNBT(aNBT);
         // 保存钻井节点升级等级到掉落物 NBT，确保挖掘后重新放置不会丢失升级
         aNBT.setInteger("mDrillTier", mDrillTier);
+        // 直接拆除或枢纽回收均随唯一节点本体携带未交付流体，放置后由 loadNBTData 恢复。
+        savePendingFluid(aNBT);
+    }
+
+    private void savePendingFluid(NBTTagCompound aNBT) {
+        if (mPendingFluid != null && mPendingFluid.amount > 0) {
+            aNBT.setTag("mPendingFluid", mPendingFluid.writeToNBT(new NBTTagCompound()));
+        } else {
+            aNBT.removeTag("mPendingFluid");
+        }
     }
 
     @Override
@@ -735,9 +743,10 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
             mLockedFluid = net.minecraftforge.fluids.FluidRegistry.getFluid(aNBT.getString("mLockedFluid"));
         }
         // v1.10.61：pending 流体余量恢复（loadFluidStackFromNBT 对无效数据返回 null）
-        if (aNBT.hasKey("mPendingFluid")) {
-            mPendingFluid = FluidStack.loadFluidStackFromNBT(aNBT.getCompoundTag("mPendingFluid"));
-        }
+        mPendingFluid = aNBT.hasKey("mPendingFluid")
+            ? FluidStack.loadFluidStackFromNBT(aNBT.getCompoundTag("mPendingFluid"))
+            : null;
+        if (mPendingFluid != null && mPendingFluid.amount <= 0) mPendingFluid = null;
     }
 
     @Override

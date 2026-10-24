@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -51,9 +52,27 @@ public final class MachineHistoryFactory implements UIFactory<MachineHistoryFact
     }
 
     public static void open(EntityPlayer player) {
+        open(player, data -> GuiManager.open(INSTANCE, data, (EntityPlayerMP) player));
+    }
+
+    static void open(EntityPlayer player, Consumer<Data> opener) {
         if (player instanceof EntityPlayerMP server && !(player instanceof FakePlayer)
-            && MachineTerminalHistory.held(player))
-            GuiManager.open(INSTANCE, new Data(player, MachineTerminalHistory.read(player), true), server);
+            && MachineTerminalHistory.held(player)) {
+            MachineTerminalHistory.terminalId(server);
+            ItemStack requestedTerminal = server.getHeldItem()
+                .copy();
+            int requestedSlot = server.inventory.currentItem;
+            Object previousContainer = server.openContainer;
+            // C08 copies the held stack after onItemRightClick and still queries the old inventory slots.
+            // Bind the session only after that packet has finished; later stack replacements still revoke it.
+            Mui2ServerActions.enqueue(() -> {
+                if (server.isDead || server.openContainer != previousContainer
+                    || server.inventory.currentItem != requestedSlot
+                    || !MachineTerminalHistory.held(server)
+                    || !ItemStack.areItemStacksEqual(requestedTerminal, server.getHeldItem())) return;
+                opener.accept(new Data(server, MachineTerminalHistory.read(server), true));
+            });
+        }
     }
 
     @Override

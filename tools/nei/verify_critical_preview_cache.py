@@ -39,9 +39,10 @@ public class CriticalPreviewTessellatorSupport { public static boolean allows(ne
     'com/miaokatze/miaokatzecore/client/render/TessellatorSlice': '''package com.miaokatze.miaokatzecore.client.render;
 public class TessellatorSlice {
  private int vertices;
- public static TessellatorSlice capture(net.minecraft.client.renderer.Tessellator t,Runnable r){int n=t.vertices;r.run();TessellatorSlice s=new TessellatorSlice();s.vertices=t.vertices-n;return s;}
+ public static int captures, retainedOverride; public static boolean unsupported;
+ public static TessellatorSlice capture(net.minecraft.client.renderer.Tessellator t,Runnable r){captures++;int n=t.vertices;r.run();if(unsupported)return null;TessellatorSlice s=new TessellatorSlice();s.vertices=t.vertices-n;return s;}
  public boolean replay(net.minecraft.client.renderer.Tessellator t){t.vertices+=vertices;return true;}
- public int retainedInts(){return vertices*8;}
+ public int retainedInts(){return retainedOverride>0?retainedOverride:vertices*8;}
 }''',
     'it/unimi/dsi/fastutil/longs/LongConsumer': 'package it.unimi.dsi.fastutil.longs; public interface LongConsumer { void accept(long n); }',
     'it/unimi/dsi/fastutil/longs/LongIterator': 'package it.unimi.dsi.fastutil.longs; public interface LongIterator { boolean hasNext(); long nextLong(); }',
@@ -59,6 +60,7 @@ import com.miaokatze.gtsr.client.nei.*;
 import com.miaokatze.gtsr.common.critical.CriticalMaterials;
 import net.minecraft.client.renderer.*;
 import it.unimi.dsi.fastutil.longs.*;
+import com.miaokatze.miaokatzecore.client.render.TessellatorSlice;
 public class CriticalPreviewCacheProbe {
  static class W extends net.minecraft.world.World implements CriticalPreviewWorld {
   long revision; int reads; Map<Integer,net.minecraft.block.Block> blocks=new HashMap<>(); Set<Integer> tiles=new HashSet<>();
@@ -85,6 +87,21 @@ public class CriticalPreviewCacheProbe {
   new CriticalPreviewCache.Lifecycle().atlasChanged(null);reads=w.reads;c.forEachTile(all,n->{});require(w.reads-reads==3,"resource generation invalidation");
   new CriticalPreviewCache.Lifecycle().guiChanged(null);reads=w.reads;c.forEachTile(all,n->{});require(w.reads-reads==3,"GUI lifecycle invalidation");
   new CriticalPreviewCache(w);reads=w.reads;c.forEachTile(all,n->{});require(w.reads-reads==3,"scene replacement releases previous cache");
+  W budgetWorld=new W();budgetWorld.blocks.put(1,new CriticalMaterials.MaterialBlock());
+  CriticalPreviewCache budget=new CriticalPreviewCache(budgetWorld);LongArrayList one=positions(1);R budgetRenderer=new R();
+  TessellatorSlice.retainedOverride=8_388_609;budget.prepare(one);int attempts=TessellatorSlice.captures;
+  for(int frame=0;frame<20;frame++){budget.prepare(one);budget.append(t,budgetRenderer,false);}
+  require(TessellatorSlice.captures-attempts==1&&budgetRenderer.order.size()==20,"over-budget segment captured once but drawn every frame");
+  budgetWorld.revision++;budget.prepare(one);budget.append(t,budgetRenderer,false);
+  require(TessellatorSlice.captures-attempts==2,"revision permits capture retry");
+  TessellatorSlice.retainedOverride=0;TessellatorSlice.unsupported=true;budget.invalidate();budget.prepare(one);attempts=TessellatorSlice.captures;
+  for(int frame=0;frame<5;frame++)budget.append(t,budgetRenderer,false);
+  require(TessellatorSlice.captures-attempts==1,"unsupported capture does not repeat until invalidation");
+  TessellatorSlice.unsupported=false;new CriticalPreviewCache.Lifecycle().atlasChanged(null);budget.prepare(one);budget.append(t,budgetRenderer,false);
+  require(TessellatorSlice.captures-attempts==2,"atlas invalidation permits capture retry");
+  LongArrayList huge=new LongArrayList(){public int size(){return 2_000_001;}};
+  require(!budget.prepare(huge),"position budget rejects oversized scene");
+  require(budget.prepare(one)&&budget.prepare(one),"smaller replacement clears overflow without revision change");
   System.out.println("PASS: production cache ordering, live unknown path, stable reuse, world/selection/resource/GUI/scene invalidation, TE candidates and final state sentinel; host APIs stubbed, no GL executed");
  }
 }'''

@@ -11,20 +11,23 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyRuntime;
+import com.miaokatze.gtsr.common.critical.CriticalLayoutDefinition;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
+import com.miaokatze.gtsr.common.critical.recipe.CriticalShellCatalog;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
 /** A bounded, read-only S2C sample. No field in this class authorizes payment or construction. */
 final class CriticalBusinessSnapshot {
 
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
     private static final int MAX_TEXT = 4096;
     private static final int TEXT_FIELDS = 11;
     private static final int MAX_IDENTITIES = 64;
@@ -36,9 +39,10 @@ final class CriticalBusinessSnapshot {
     private final String[][] runtime;
     private final int[] configuration;
     private final CriticalConfiguration displayConfiguration;
+    private final CriticalMaterialSnapshot[] materials;
 
     private CriticalBusinessSnapshot(CriticalConstructionSnapshot construction, String[] text, int economyVersion,
-        String[][] identities, String[][] runtime, int[] configuration) {
+        String[][] identities, String[][] runtime, int[] configuration, CriticalMaterialSnapshot[] materials) {
         this.construction = construction;
         this.text = text;
         this.economyVersion = economyVersion;
@@ -46,12 +50,14 @@ final class CriticalBusinessSnapshot {
         this.runtime = runtime;
         this.configuration = configuration;
         this.displayConfiguration = decodeConfiguration();
+        this.materials = materials;
     }
 
     /** Empty client-side bootstrap; never used to validate an action or a payment. */
     static CriticalBusinessSnapshot empty() {
         String[] text = new String[TEXT_FIELDS];
         Arrays.fill(text, "");
+        text[0] = "ui.state.loading";
         text[7] = text[8] = text[9] = "0";
         return new CriticalBusinessSnapshot(
             CriticalConstructionSnapshot.empty(),
@@ -59,7 +65,8 @@ final class CriticalBusinessSnapshot {
             0,
             new String[0][9],
             new String[0][2],
-            new int[9]);
+            new int[12],
+            emptyMaterials());
     }
 
     static GenericSyncValue<CriticalBusinessSnapshot, ?> register(PanelSyncManager manager, CriticalMachineState state,
@@ -84,6 +91,7 @@ final class CriticalBusinessSnapshot {
                     && a.economyVersion == b.economyVersion
                     && Arrays.deepEquals(a.identities, b.identities)
                     && Arrays.deepEquals(a.runtime, b.runtime)
+                    && sameMaterials(a.materials, b.materials)
                     && Arrays.equals(a.configuration, b.configuration))
             .copyImmutable()
             .build();
@@ -94,30 +102,34 @@ final class CriticalBusinessSnapshot {
     private static CriticalBusinessSnapshot capture(CriticalMachineState state, MTECriticalMachine machine) {
         // All getters run in one server-thread call, before any subsequent machine tick can mutate the ledger.
         String[] text = new String[TEXT_FIELDS];
-        text[0] = bounded(state.getStatus());
-        text[1] = itemLines(state.getConstructionNextItemCostsForGui());
-        text[2] = fluidLines(state.getConstructionNextFluidCostsForGui());
-        text[3] = itemLines(state.getConstructionMissingItemsForGui());
-        text[4] = fluidLines(state.getConstructionMissingFluidsForGui());
-        text[5] = machine == null ? ""
-            : bounded(
-                itemLines(machine.criticalPhysicalItemsSnapshot()) + "\n"
-                    + fluidLines(machine.criticalPhysicalFluidsSnapshot()));
-        text[6] = machine == null ? "" : bounded(machine.getCriticalOutputOverviewForGui());
+        Arrays.fill(text, "");
+        text[0] = state.getDisplayStatusKey();
         text[7] = Long.toString(state.getEnergyStored());
         text[8] = Long.toString(state.getEnergyCapacity());
         text[9] = Long.toString(state.getBatchEuPerTick());
-        text[10] = machine == null ? ""
-            : bounded(
-                itemLines(machine.criticalMEItemsSnapshot()) + "\n" + fluidLines(machine.criticalMEFluidsSnapshot()));
+        CriticalMaterialSnapshot[] materials = {
+            CriticalMaterialSnapshot.capture(state.getConstructionNextItemCostsForGui(), new FluidStack[0]),
+            CriticalMaterialSnapshot.capture(new ItemStack[0], state.getConstructionNextFluidCostsForGui()),
+            CriticalMaterialSnapshot.capture(state.getConstructionMissingItemsForGui(), new FluidStack[0]),
+            CriticalMaterialSnapshot.capture(new ItemStack[0], state.getConstructionMissingFluidsForGui()),
+            machine == null ? emptyMaterial()
+                : CriticalMaterialSnapshot
+                    .capture(machine.criticalPhysicalItemsSnapshot(), machine.criticalPhysicalFluidsSnapshot()),
+            machine == null ? emptyMaterial()
+                : CriticalMaterialSnapshot
+                    .capture(machine.criticalOutputItemsSnapshot(), machine.criticalOutputFluidsSnapshot()),
+            machine == null ? emptyMaterial()
+                : CriticalMaterialSnapshot
+                    .capture(machine.criticalMEItemsSnapshot(), machine.criticalMEFluidsSnapshot()) };
         NBTTagCompound economy = state.getConstructionEconomySnapshot();
         NBTTagList rows = economy.getTagList("rows", 10);
         if (rows.tagCount() > MAX_IDENTITIES) throw new IllegalStateException("Too many construction identities");
         String[][] identities = new String[rows.tagCount()][9];
         String[] names = { "family", "key", "name", "demand", "installed", "escrow", "missing", "next", "paid" };
         for (int i = 0; i < identities.length; i++) for (int j = 0; j < names.length; j++) {
-            String value = rows.getCompoundTagAt(i)
-                .getString(names[j]);
+            String value = j == 2 ? ""
+                : rows.getCompoundTagAt(i)
+                    .getString(names[j]);
             if (value.length() > MAX_VALUE) throw new IllegalStateException("Oversized construction identity field");
             identities[i][j] = value;
         }
@@ -130,7 +142,9 @@ final class CriticalBusinessSnapshot {
             new int[] { state.getKind()
                 .ordinal(), state.getParallelPlugins(), state.getSpeedPlugins(), state.getEfficiencyPlugins(),
                 state.getBatchProgress(), state.getBatchDuration(), state.getSteamMode(),
-                state.isLoomStructureValid() ? 1 : 0, state.canCancelLegacyStellarBatch() ? 1 : 0 });
+                state.isLoomStructureValid() ? 1 : 0, state.canCancelLegacyStellarBatch() ? 1 : 0,
+                state.getGeometryVersion(), state.getV2LayoutRevision(), state.usesLegacyV2Geometry() ? 1 : 0 },
+            materials);
     }
 
     private void write(PacketBuffer packet) throws IOException {
@@ -143,6 +157,7 @@ final class CriticalBusinessSnapshot {
         packet.writeVarIntToBuffer(runtime.length);
         for (String[] row : runtime) for (String value : row) packet.writeStringToBuffer(value);
         for (int value : configuration) packet.writeInt(value);
+        for (CriticalMaterialSnapshot value : materials) value.write(packet);
     }
 
     private static CriticalBusinessSnapshot read(PacketBuffer packet) throws IOException {
@@ -162,37 +177,46 @@ final class CriticalBusinessSnapshot {
         String[][] runtime = new String[runtimeCount][2];
         for (String[] row : runtime)
             for (int j = 0; j < row.length; j++) row[j] = packet.readStringFromBuffer(MAX_VALUE);
-        int[] configuration = new int[9];
+        int[] configuration = new int[12];
         for (int i = 0; i < configuration.length; i++) configuration[i] = packet.readInt();
-        return new CriticalBusinessSnapshot(construction, text, economyVersion, identities, runtime, configuration);
+        CriticalMaterialSnapshot[] materials = new CriticalMaterialSnapshot[7];
+        for (int i = 0; i < materials.length; i++) materials[i] = CriticalMaterialSnapshot.read(packet);
+        return new CriticalBusinessSnapshot(
+            construction,
+            text,
+            economyVersion,
+            identities,
+            runtime,
+            configuration,
+            materials);
     }
 
     String detail() {
-        return text[0];
+        return StatCollector.translateToLocal("gtsr.critical." + text[0]);
     }
 
     String nextItems() {
-        return text[1];
+        return materials[0].lines();
     }
 
     String nextFluids() {
-        return text[2];
+        return materials[1].lines();
     }
 
     String missingItems() {
-        return text[3];
+        return materials[2].lines();
     }
 
     String missingFluids() {
-        return text[4];
+        return materials[3].lines();
     }
 
     String inputs() {
-        return text[5];
+        return materials[4].lines();
     }
 
     String outputs() {
-        return text[6];
+        return materials[5].lines();
     }
 
     String energy() {
@@ -208,7 +232,7 @@ final class CriticalBusinessSnapshot {
     }
 
     String networkInputs() {
-        return text[10];
+        return materials[6].lines();
     }
 
     int identityCount() {
@@ -216,7 +240,53 @@ final class CriticalBusinessSnapshot {
     }
 
     String identity(int index, int field) {
+        if (field == 2) return identityName(identities[index][0], identities[index][1]);
         return identities[index][field];
+    }
+
+    private String identityName(String family, String id) {
+        ItemStack item = null;
+        if ("controller".equals(family))
+            return StatCollector.translateToLocal("gtsr.critical.machine." + configuration().kind.key);
+        if (!"equipment".equals(family)) item = CriticalShellCatalog.shell(id, 1);
+        else {
+            int split = id.lastIndexOf(':');
+            if (split > 0) try {
+                net.minecraft.item.Item value = (net.minecraft.item.Item) net.minecraft.item.Item.itemRegistry
+                    .getObject(id.substring(0, split));
+                if (value != null) item = new ItemStack(value, 1, Integer.parseInt(id.substring(split + 1)));
+            } catch (NumberFormatException ignored) {}
+        }
+        return item == null ? id : item.getDisplayName();
+    }
+
+    CriticalLayoutDefinition layout() {
+        return CriticalLayoutDefinition.select(
+            configuration[9],
+            configuration[10],
+            configuration[11] != 0,
+            displayConfiguration.tier,
+            displayConfiguration.kind);
+    }
+
+    boolean hasSample() {
+        return configuration[9] > 0;
+    }
+
+    private static CriticalMaterialSnapshot emptyMaterial() {
+        return CriticalMaterialSnapshot.capture(new ItemStack[0], new FluidStack[0]);
+    }
+
+    private static CriticalMaterialSnapshot[] emptyMaterials() {
+        CriticalMaterialSnapshot[] values = new CriticalMaterialSnapshot[7];
+        Arrays.fill(values, emptyMaterial());
+        return values;
+    }
+
+    private static boolean sameMaterials(CriticalMaterialSnapshot[] a, CriticalMaterialSnapshot[] b) {
+        if (a.length != b.length) return false;
+        for (int i = 0; i < a.length; i++) if (!a[i].same(b[i])) return false;
+        return true;
     }
 
     int runtimeCount() {
@@ -369,35 +439,4 @@ final class CriticalBusinessSnapshot {
             .toPlainString();
     }
 
-    private static String itemLines(ItemStack[] items) {
-        StringBuilder text = new StringBuilder();
-        for (ItemStack stack : items) {
-            if (stack == null) continue;
-            if (text.length() > 0) text.append('\n');
-            text.append(stack.getDisplayName())
-                .append(" × ")
-                .append(stack.stackSize);
-            if (text.length() >= MAX_TEXT) break;
-        }
-        return bounded(text.toString());
-    }
-
-    private static String fluidLines(FluidStack[] fluids) {
-        StringBuilder text = new StringBuilder();
-        for (FluidStack stack : fluids) {
-            if (stack == null) continue;
-            if (text.length() > 0) text.append('\n');
-            text.append(stack.getLocalizedName())
-                .append(" × ")
-                .append(stack.amount)
-                .append(" mB");
-            if (text.length() >= MAX_TEXT) break;
-        }
-        return bounded(text.toString());
-    }
-
-    static String bounded(String value) {
-        if (value == null) return "";
-        return value.length() <= MAX_TEXT ? value : value.substring(0, MAX_TEXT - 1) + "…";
-    }
 }

@@ -24,7 +24,7 @@ def process_memory(proc):
 
 def main():
     global OUT, FIXTURE
-    p=argparse.ArgumentParser();p.add_argument('--workspace',type=Path,default=OUT);p.add_argument('--client-sandbox',type=Path,default=FIXTURE);p.add_argument('--plan',type=Path);p.add_argument('--mode',choices=['ui','gallery','gallery-batch','ticket-restart'],default='ui');p.add_argument('--keep-open',action='store_true');p.add_argument('--jar',type=Path,required=True);p.add_argument('--run',required=True);p.add_argument('--language',default='en_US');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=720);p.add_argument('--scale',type=int,default=2);p.add_argument('--heap-gib',type=int,default=5);p.add_argument('--reserve-gib',type=float,default=4);p.add_argument('--render-distance',type=int,default=3);p.add_argument('--deadline',type=int,default=900);p.add_argument('--allow-low-memory',action='store_true',help='Use only after the user explicitly requests launch below the advisory memory reserve; heap limit still applies');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--workspace',type=Path,default=OUT);p.add_argument('--client-sandbox',type=Path,default=FIXTURE);p.add_argument('--plan',type=Path);p.add_argument('--mode',choices=['ui','gallery','gallery-batch','ticket-restart'],default='ui');p.add_argument('--keep-open',action='store_true');p.add_argument('--jar',type=Path,required=True);p.add_argument('--run',required=True);p.add_argument('--language',default='en_US');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=720);p.add_argument('--scale',type=int,default=2);p.add_argument('--heap-gib',type=int,default=5);p.add_argument('--reserve-gib',type=float,default=4);p.add_argument('--render-distance',type=int,default=3);p.add_argument('--deadline',type=int,default=900);p.add_argument('--hidden-desktop',action='store_true',help='Create a private Windows desktop for the owned child; never switch the user desktop');p.add_argument('--allow-low-memory',action='store_true',help='Use only after the user explicitly requests launch below the advisory memory reserve; heap limit still applies');a=p.parse_args()
     if a.heap_gib>5:raise ValueError('User limit: client Java heap must not exceed 5GiB')
     OUT=a.workspace.resolve();FIXTURE=a.client_sandbox.resolve()
     if OUT.parent!=ROOT/'build' or FIXTURE.parent!=ROOT/'build' or not FIXTURE.name.startswith('client-testlab-'):raise ValueError('Use direct owned build children only')
@@ -42,7 +42,7 @@ def main():
     (result/'preflight.json').write_text(json.dumps(preflight,indent=2))
     if available<required and not a.allow_low_memory:raise RuntimeError(f'Insufficient memory: {available/1024**3:.2f} GiB available, {required/1024**3:.2f} required; no process started')
     fd=os.open(LEASE,os.O_CREAT|os.O_EXCL|os.O_WRONLY);lease_token=dict(pid=os.getpid(),fixture=str(FIXTURE),run=a.run,created=time.time());os.write(fd,json.dumps(lease_token).encode());os.close(fd)
-    proc=None;receipt=dict(status='PREPARED',sourceJar=str(a.jar.resolve()),candidateSHA256=sha(a.jar),helperSHA256=sha(helper),inputType='Synthetic actual ModularScreen hit-test/key/drag dispatch, lwjgl3ify injectTextEvent, legacy GuiScreen.keyTyped and native PlayerController.windowClick; physical mouse/keyboard/IME NOT_RUN',mode='Real full client with integrated server',forcedStop=False,qaMode=a.mode)
+    proc=None;desktop=None;receipt=dict(status='PREPARED',sourceJar=str(a.jar.resolve()),candidateSHA256=sha(a.jar),helperSHA256=sha(helper),inputType='Synthetic actual ModularScreen hit-test/key/drag dispatch, lwjgl3ify injectTextEvent, legacy GuiScreen.keyTyped and native PlayerController.windowClick; physical mouse/keyboard/IME NOT_RUN',mode='Real full client with integrated server',forcedStop=False,qaMode=a.mode)
     if a.mode=='ticket-restart':receipt['inputType']='Synthetic same-JVM Minecraft launchIntegratedServer/loadWorld(null) and production CriticalChunkLoading ensure/release; UI suite and physical input NOT_RUN'
     try:
         destination=FIXTURE/'mods/production-gtsr.jar';destination.chmod(0o666);shutil.copy2(a.jar,destination)
@@ -66,7 +66,18 @@ def main():
         (result/'launch.json').write_text(json.dumps(receipt,indent=2),encoding='utf-8')
         started=time.monotonic()
         with (result/'stdout.log').open('wb') as log:
-            proc=subprocess.Popen(cmd,cwd=FIXTURE,stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
+            startup=None
+            if a.hidden_desktop:
+                user32=ctypes.WinDLL('user32',use_last_error=True)
+                user32.CreateDesktopW.argtypes=[ctypes.c_wchar_p,ctypes.c_void_p,ctypes.c_void_p,ctypes.c_ulong,ctypes.c_ulong,ctypes.c_void_p]
+                user32.CreateDesktopW.restype=ctypes.c_void_p
+                user32.CloseDesktop.argtypes=[ctypes.c_void_p]
+                desktop_name='GTSR-owned-'+a.run+'-'+str(os.getpid())
+                desktop=user32.CreateDesktopW(desktop_name,None,None,0,0x10000000,None)
+                if not desktop:raise ctypes.WinError(ctypes.get_last_error())
+                startup=subprocess.STARTUPINFO();startup.lpDesktop='WinSta0\\'+desktop_name
+                receipt['hiddenDesktop']=dict(name=desktop_name,switched=False,scope='Owned separate desktop from window creation; real GL, never SwitchDesktop')
+            proc=subprocess.Popen(cmd,cwd=FIXTURE,stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW,startupinfo=startup)
             (result/'pid.json').write_text(json.dumps(dict(pid=proc.pid,ownerRunner=os.getpid())))
             print('OWNED CLIENT',proc.pid,'candidate',receipt['candidateSHA256'],flush=True)
             try:
@@ -97,5 +108,8 @@ def main():
         if proc is None or proc.poll() is not None:
             if LEASE.exists() and json.loads(LEASE.read_text()).get('pid')==os.getpid():LEASE.unlink()
         else:print('Owned process remains alive; lease retained for explicit recovery',flush=True)
+        if desktop and (proc is None or proc.poll() is not None):
+            receipt['hiddenDesktop']['handleClosed']=bool(user32.CloseDesktop(desktop))
+            (result/'receipt.json').write_text(json.dumps(receipt,indent=2),encoding='utf-8')
 
 if __name__=='__main__':main()

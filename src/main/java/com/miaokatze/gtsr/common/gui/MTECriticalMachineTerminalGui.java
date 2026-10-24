@@ -48,6 +48,8 @@ public final class MTECriticalMachineTerminalGui {
     private boolean lastActionAccepted;
     private int selectedPage;
     private boolean runtimeExpanded;
+    private boolean initialPageSelected;
+    private boolean pageChosen;
     private CriticalConstructionView constructionView;
     private GenericSyncValue<CriticalBusinessSnapshot, ?> business;
 
@@ -100,9 +102,29 @@ public final class MTECriticalMachineTerminalGui {
     public Flow createMainColumn(ModularPanel panel, PanelSyncManager manager) {
         PagedWidget<?> pages = new PagedWidget<>().name("critical_pages")
             .size(463, 202);
-        pages.addPage(constructionView.create());
+        ParentWidget<?> construction = constructionView.create();
+        construction.child(
+            action(manager, "ui.build_context", player -> state.startConstruction(player)).pos(8, 185)
+                .size(130, 16)
+                .tooltipBuilder(this::constructionTooltip)
+                .tooltipAutoUpdate(true));
+        construction.child(
+            action(manager, "ui.resume_context", player -> state.setEnabled(player, true)).pos(146, 185)
+                .size(130, 16));
+        pages.addPage(construction);
         pages.addPage(controlPage(manager));
         pages.addPage(inventoryPage(manager));
+        pages.onUpdateListener(widget -> {
+            // Wait for the first authoritative descriptor; a remote client may not have the target TE.
+            if (!initialPageSelected && business.getValue()
+                .hasSample() && pages.isValid()) {
+                initialPageSelected = true;
+                if (!pageChosen && business.getValue().construction.status() == 2) {
+                    selectedPage = 1;
+                    pages.setPage(1);
+                }
+            }
+        });
         Flow tabs = Flow.row()
             .size(463, 20)
             .childPadding(4);
@@ -126,6 +148,7 @@ public final class MTECriticalMachineTerminalGui {
                         if (button != 0) return false;
                         pages.setPage(page);
                         selectedPage = page;
+                        pageChosen = true;
                         return true;
                     }));
         }
@@ -179,10 +202,7 @@ public final class MTECriticalMachineTerminalGui {
             textViewport(
                 "critical_status_detail",
                 () -> business.getValue()
-                    .detail()
-                    .equals("\u5f85\u914d\u7f6e") ? tr("status.0")
-                        : business.getValue()
-                            .detail(),
+                    .detail(),
                 307,
                 10,
                 this::statusColor).pos(148, 19)
@@ -196,7 +216,11 @@ public final class MTECriticalMachineTerminalGui {
 
     private String terminalTitle() {
         // A loom's selected target defaults to SUN; it is not the identity of the opened controller.
-        return loomController.getValue() ? StatCollector.translateToLocal("gt.blockmachines.gtsr.critical.loom.name")
+        return loomController.getValue()
+            ? StatCollector.translateToLocal("gt.blockmachines.gtsr.critical.loom.name") + " · "
+                + tr("ui.target")
+                + ": "
+                + tr("machine." + configuration().kind.key)
             : tr("machine." + configuration().kind.key);
     }
 
@@ -258,6 +282,11 @@ public final class MTECriticalMachineTerminalGui {
                         .color(CriticalGuiStyle.TEXT_CONTROL))
                 .pos(380, 0)
                 .size(83, 20)
+                .onMousePressed(button -> {
+                    if (button != 0) return false;
+                    openRecipeCatalogue();
+                    return true;
+                })
                 .setEnabledIf(
                     w -> !business.getValue()
                         .canCancelLegacyStellarBatch())
@@ -273,12 +302,8 @@ public final class MTECriticalMachineTerminalGui {
         page.child(metric("ui.energy", this::primaryMetricValue, () -> 0, 0, 26));
         page.child(
             metric(
-                "batch",
-                () -> time(
-                    business.getValue()
-                        .batchTicks(),
-                    business.getValue()
-                        .batchDuration()),
+                "ui.secondary",
+                this::secondaryMetricValue,
                 () -> ratio(
                     business.getValue()
                         .batchTicks(),
@@ -315,21 +340,37 @@ public final class MTECriticalMachineTerminalGui {
         }
         summary.child(summaryText);
         summary.child(
+            new ParentWidget<>().name("critical_runtime_process")
+                .pos(8, 26)
+                .size(190, 37)
+                .background(new CriticalRuntimeDiagram(business::getValue))
+                .tooltipBuilder(this::operationTooltip)
+                .tooltipAutoUpdate(true)
+                .setEnabledIf(w -> !runtimeExpanded));
+        summary.child(
             textViewport(
                 "critical_runtime_priority",
                 () -> business.getValue()
-                    .detail(),
-                419,
+                    .detail() + "\n"
+                    + sampleScope()
+                    + "\n"
+                    + tr("batch")
+                    + ": "
+                    + time(
+                        business.getValue()
+                            .batchTicks(),
+                        business.getValue()
+                            .batchDuration()),
+                222,
                 37,
-                this::statusColor).pos(8, 26)
+                this::statusColor).pos(205, 26)
                     .setEnabledIf(w -> !runtimeExpanded));
         GTProgressWidget batchProgress = new GTProgressWidget() {
 
             @Override
             public Interactable.Result onMousePressed(int button) {
                 // Resolve from the received descriptor at interaction time, including remote clients without a tile.
-                gregtech.api.recipe.RecipeMap<?> map = CriticalRecipeMaps
-                    .forKind(loomController.getValue() ? null : configuration().kind);
+                gregtech.api.recipe.RecipeMap<?> map = catalogue();
                 if (map == null) return Interactable.Result.IGNORE;
                 neiTransferRect(map);
                 return super.onMousePressed(button);
@@ -382,9 +423,7 @@ public final class MTECriticalMachineTerminalGui {
                         + "\n"
                         + tr("ui.next_action")
                         + ": "
-                        + tr(
-                            "ui.recover." + (!business.getValue().construction.enabled() ? 7
-                                : business.getValue().construction.reason()))
+                        + tr(business.getValue().construction.recoveryKey())
                         + (actionName.getValue()
                             .isEmpty()
                                 ? ""
@@ -401,7 +440,7 @@ public final class MTECriticalMachineTerminalGui {
                 .tooltipBuilder(
                     t -> t.add(
                         actionDetail.getValue()
-                            .equals(key("action.permission")) ? tr("action.permission") : actionDetail.getValue()))
+                            .isEmpty() ? "" : tr(actionDetail.getValue())))
                 .tooltipAutoUpdate(true));
         page.child(feedback);
         return page;
@@ -428,6 +467,39 @@ public final class MTECriticalMachineTerminalGui {
                 + business.getValue()
                     .capacity()
                 + " EU";
+        };
+    }
+
+    private String sampleScope() {
+        return configuration().kind == CriticalMachineKind.SUN ? tr("ui.sun.phase." + runtimeValue("sun.phase"))
+            : tr("ui.sample_scope." + runtimeValue("sample_scope"));
+    }
+
+    private String secondaryMetricLabel() {
+        return tr(switch (configuration().kind) {
+            case BATTERY -> "ui.runtime.chemical.bottleneck";
+            case TURBINE -> "ui.runtime.steam.multiplier";
+            case SOLAR -> "ui.runtime.solar.water_status";
+            case SUN -> "ui.runtime.sun.ignition_paid";
+            default -> "batch";
+        });
+    }
+
+    private String secondaryMetricValue() {
+        return switch (configuration().kind) {
+            case BATTERY -> tr(
+                "ui.chemical.bottleneck."
+                    + (runtimeValue("chemical.bottleneck").isEmpty() ? "none" : runtimeValue("chemical.bottleneck")));
+            case TURBINE -> runtimeValue("steam.multiplier");
+            case SOLAR -> tr(
+                "ui.branch."
+                    + (runtimeValue("solar.water_status").isEmpty() ? "none" : runtimeValue("solar.water_status")));
+            case SUN -> runtimeValue("sun.ignition_paid");
+            default -> time(
+                business.getValue()
+                    .batchTicks(),
+                business.getValue()
+                    .batchDuration());
         };
     }
 
@@ -472,7 +544,9 @@ public final class MTECriticalMachineTerminalGui {
             .size(228, 44)
             .background(CriticalGuiStyle.CARD)
             .child(
-                IKey.dynamic(() -> "ui.energy".equals(label) ? primaryMetricLabel() : tr(label))
+                IKey.dynamic(
+                    () -> "ui.energy".equals(label) ? primaryMetricLabel()
+                        : "ui.secondary".equals(label) ? secondaryMetricLabel() : tr(label))
                     .color(CriticalGuiStyle.TEXT_MUTED)
                     .asWidget()
                     .pos(8, 5)
@@ -622,7 +696,8 @@ public final class MTECriticalMachineTerminalGui {
         int status = business.getValue().construction.status();
         return switch (name) {
             case "kind" -> status == 0 && loomController.getValue();
-            case "build" -> status == 0;
+            case "build", "ui.build_context" -> status == 0;
+            case "ui.resume_context" -> !business.getValue().construction.enabled();
             case "dismantle" -> status == 1 || status == 2 || status == 4;
             case "repair" -> status != 0;
             default -> true;
@@ -632,8 +707,10 @@ public final class MTECriticalMachineTerminalGui {
     private String actionDisabledReason(String name) {
         if (!permitted.getValue()) return tr("action.permission");
         return tr(
-            "ui.action.unavailable." + ("kind".equals(name) ? "configuration"
-                : "build".equals(name) ? "build" : "dismantle".equals(name) ? "dismantle" : "repair"));
+            "ui.resume_context".equals(name) ? "ui.action.unavailable.running"
+                : "ui.action.unavailable." + ("kind".equals(name) ? "configuration"
+                    : "build".equals(name) || "ui.build_context".equals(name) ? "build"
+                        : "dismantle".equals(name) ? "dismantle" : "repair"));
     }
 
     private InteractionSyncHandler interaction(PanelSyncManager manager, String name,
@@ -644,17 +721,17 @@ public final class MTECriticalMachineTerminalGui {
             lastAction = name;
             if (!state.canUse(player)) {
                 lastActionAccepted = false;
-                lastActionDetail = "gtsr.critical.action.permission";
+                lastActionDetail = "action.permission";
                 player.addChatMessage(new ChatComponentTranslation(key("action.permission")));
                 return;
             }
             lastActionAccepted = command.test(player);
-            lastActionDetail = state.getStatus();
+            lastActionDetail = state.getDisplayStatusKey();
             if (!lastActionAccepted) player.addChatMessage(
                 new ChatComponentTranslation(
                     key("action.rejected"),
                     new ChatComponentTranslation(key(lastAction)),
-                    lastActionDetail));
+                    new ChatComponentTranslation(key(lastActionDetail))));
         });
         manager.syncValue("critical.action." + name, handler);
         return handler;
@@ -793,6 +870,18 @@ public final class MTECriticalMachineTerminalGui {
         CriticalMachineKind current = configuration().kind;
         if (!current.isReleased()) return "input".equals(section) ? tr("tooltip.frozen") : "";
         return tr("operation." + current.key + "." + section);
+    }
+
+    private gregtech.api.recipe.RecipeMap<?> catalogue() {
+        return CriticalRecipeMaps.forKind(loomController.getValue() ? null : configuration().kind);
+    }
+
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    private void openRecipeCatalogue() {
+        gregtech.api.recipe.RecipeMap<?> map = catalogue();
+        if (map != null) codechicken.nei.recipe.GuiCraftingRecipe.openRecipeGui(
+            map.getFrontend()
+                .getUIProperties().neiTransferRectId);
     }
 
     private static String key(String suffix) {

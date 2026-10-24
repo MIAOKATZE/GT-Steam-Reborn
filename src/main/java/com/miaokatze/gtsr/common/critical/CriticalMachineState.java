@@ -864,6 +864,14 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return state;
     }
 
+    /** Stable presentation key, independent of the server language and persisted legacy status text. */
+    public String getDisplayStatusKey() {
+        int reason = getReasonCode();
+        if (reason != 0) return "reason." + reason;
+        if (state == 2) return isWorking() ? "ui.state.working" : "ui.state.ready";
+        return "status." + state;
+    }
+
     public static final String[] STATUS_KEYS = { "unbuilt", "building", "ready", "dismantling", "repairing" };
 
     public int getReasonCode() {

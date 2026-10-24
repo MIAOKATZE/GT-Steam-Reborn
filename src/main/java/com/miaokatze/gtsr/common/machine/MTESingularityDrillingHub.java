@@ -170,7 +170,6 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
     // v1.10.61：voidingMode 保护模式下的输出余量缓冲（机器内部暂存，onPostTick 每 tick 重试推送直至清空）
     private ArrayList<ItemStack> gtsr$pendingItemOutputs = null;
-    private FluidStack gtsr$pendingFluidOutput = null;
     // v1.10.61：F 修复——蒸汽不足标记（depleteInput 失败时置位，仅修正显示状态，不停机）
     private boolean mSteamInsufficient = false;
 
@@ -465,7 +464,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             }
         }
 
-        // v1.10.61：每 tick 尝试清空 voidingMode 保护余量（先物品后流体；成功推入才移除）
+        // 每 tick 尝试清空本枢纽托管的物品保护余量，成功推入才移除。
         gtsr$drainPendingOutputs();
 
         super.onPostTick(aBaseMetaTileEntity, aTick);
@@ -846,7 +845,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         gtsr$pendingItemOutputs.add(remainder);
     }
 
-    /** v1.10.61：每 tick 重试推送 pending 余量（先物品后流体；成功推入才移除） */
+    /** 每 tick 重试本枢纽托管的物品余量；流体余量始终由钻井节点持有。 */
     private void gtsr$drainPendingOutputs() {
         if (gtsr$pendingItemOutputs != null) {
             for (int i = gtsr$pendingItemOutputs.size() - 1; i >= 0; i--) {
@@ -857,12 +856,6 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                 } else {
                     pending.stackSize = left;
                 }
-            }
-        }
-        if (gtsr$pendingFluidOutput != null && gtsr$pendingFluidOutput.amount > 0) {
-            gtsr$fillOutputHatches(gtsr$pendingFluidOutput);
-            if (gtsr$pendingFluidOutput.amount <= 0) {
-                gtsr$pendingFluidOutput = null;
             }
         }
     }
@@ -1153,17 +1146,12 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     }
 
     /**
-     * v1.10.61：voidingMode 分流——保护时限流（余量存入 gtsr$pendingFluidOutput，onPostTick 每 tick
-     * 重试推送），销毁时保持现状（剩余丢弃）。返回未放入的余量（fluid.amount 同步缩减），
-     * 供钻井节点按保护模式决定是否镜像到节点 pending。
+     * 仅尝试交付并返回未放入的余量（fluid.amount 同步缩减）。保护模式下余量由钻井节点
+     * 独占持有、持久化并重试；枢纽不再复制同一份余额，避免双端重复交付。
      */
     public int pushNodeFluidOutput(FluidStack fluid) {
         if (fluid == null || fluid.amount <= 0) return 0;
-        int left = gtsr$fillOutputHatches(fluid);
-        if (left > 0 && protectsExcessFluid()) {
-            gtsr$addToPendingFluid(fluid);
-        }
-        return left;
+        return gtsr$fillOutputHatches(fluid);
     }
 
     /** v1.10.61：全 hub 共用的流体试放 helper：逐输出仓 fill 实放，返回未放入余量（fluid.amount 同步缩减） */
@@ -1181,17 +1169,6 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             }
         }
         return fluid.amount;
-    }
-
-    private void gtsr$addToPendingFluid(FluidStack fluid) {
-        if (gtsr$pendingFluidOutput == null) {
-            gtsr$pendingFluidOutput = fluid.copy();
-        } else if (gtsr$pendingFluidOutput.isFluidEqual(fluid)) {
-            gtsr$pendingFluidOutput.amount += fluid.amount;
-        } else {
-            // 钻井节点锁定单一流体，跨流体冲突实际不可达；保守起见保留新流体
-            gtsr$pendingFluidOutput = fluid.copy();
-        }
     }
 
     @Override
@@ -1316,6 +1293,17 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
+        NBTTagList pendingItems = new NBTTagList();
+        if (gtsr$pendingItemOutputs != null) {
+            for (ItemStack stack : gtsr$pendingItemOutputs) {
+                if (stack == null || stack.stackSize <= 0) continue;
+                NBTTagCompound entry = stack.writeToNBT(new NBTTagCompound());
+                // Native ItemStack Count is a byte; pending output may contain a larger balance.
+                entry.setInteger("gtsr.amount", stack.stackSize);
+                pendingItems.appendTag(entry);
+            }
+        }
+        aNBT.setTag("gtsr.pendingItems", pendingItems);
         if (!mBoundNodes.isEmpty()) {
             NBTTagList boundList = new NBTTagList();
             for (BoundDrillNode node : mBoundNodes) {
@@ -1335,6 +1323,17 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
+        gtsr$pendingItemOutputs = null;
+        NBTTagList pendingItems = aNBT.getTagList("gtsr.pendingItems", 10);
+        for (int i = 0; i < pendingItems.tagCount(); i++) {
+            NBTTagCompound entry = pendingItems.getCompoundTagAt(i);
+            ItemStack stack = ItemStack.loadItemStackFromNBT(entry);
+            if (stack == null) continue;
+            if (entry.hasKey("gtsr.amount")) stack.stackSize = entry.getInteger("gtsr.amount");
+            if (stack.stackSize <= 0) continue;
+            if (gtsr$pendingItemOutputs == null) gtsr$pendingItemOutputs = new ArrayList<>();
+            gtsr$pendingItemOutputs.add(stack);
+        }
         mBoundNodes.clear();
         if (aNBT.hasKey("mBoundNodes")) {
             NBTTagList boundList = aNBT.getTagList("mBoundNodes", 10);

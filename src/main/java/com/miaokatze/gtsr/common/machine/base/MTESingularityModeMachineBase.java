@@ -70,7 +70,14 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
      */
     protected void checkSingularityMode() {
         // 开机门控（v1.10.51）：关机/停机不自动消耗奇点（含进入模式与续杯）
-        if (!canConsumeSingularity()) return;
+        if (!canConsumeSingularity()) {
+            if (mSingularityMode != 0 && mSingularityModeTicks <= 0) {
+                mSingularityMode = 0;
+                onSingularityModeExpired();
+                getBaseMetaTileEntity().markDirty();
+            }
+            return;
+        }
         if (mSingularityMode == 0) {
             // 临界奇点优先
             if (consumeSingularityFromInputBuses(1, getSingularityItemForMode(2))) {
@@ -149,16 +156,18 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
             MTEHatchInputBus bus = candidate.getLeft();
             int slot = candidate.getRight();
             ItemStack stack = bus.getStackInSlot(slot);
-            if (stack == null) continue;
+            if (stack == null || !GTUtility.areUnificationsEqual(stack, singularity, true)) continue;
             int toConsume = Math.min(remaining, stack.stackSize);
-            bus.decrStackSize(slot, toConsume);
-            remaining -= toConsume;
+            ItemStack removed = bus.decrStackSize(slot, toConsume);
+            if (removed != null && GTUtility.areUnificationsEqual(removed, singularity, true)) {
+                remaining -= Math.min(toConsume, Math.max(0, removed.stackSize));
+            }
             if (remaining <= 0) break;
         }
         for (MTEHatchInputBus bus : GTUtility.validMTEList(mInputBusses)) {
             if (bus != null) bus.updateSlots();
         }
-        return true;
+        return remaining <= 0;
     }
 
     public int getSingularityModeForGui() {
