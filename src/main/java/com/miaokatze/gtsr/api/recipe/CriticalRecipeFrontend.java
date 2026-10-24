@@ -36,7 +36,9 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
     @Override
     @SideOnly(Side.CLIENT)
     public ModularWindow.Builder createNEITemplate(GTNEIDefaultHandler.NEITemplateContext ctx) {
-        return super.createNEITemplate(ctx).setBackground(CriticalNEIShowcase::background);
+        ModularWindow.Builder builder = super.createNEITemplate(ctx);
+        return construction ? builder.setBackground(CriticalNEIShowcase::constructionBackground)
+            : builder.setBackground(CriticalNEIShowcase::background);
     }
 
     @Override
@@ -46,7 +48,7 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
     public List<Pos2d> getItemInputPositions(int count) {
         // The superclass builds its position suppliers before this.construction is assigned.
         // Suppliers are evaluated later, after frontend construction has completed.
-        return construction ? grid(count, 7, INPUT_X, BUILD_Y) : row(count, INPUT_X, ITEM_Y);
+        return construction ? grid(count, 7, BUILD_X, BUILD_Y) : row(count, INPUT_X, ITEM_Y);
     }
 
     @Override

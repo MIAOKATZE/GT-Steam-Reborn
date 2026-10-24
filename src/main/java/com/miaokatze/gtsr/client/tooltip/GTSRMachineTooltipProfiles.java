@@ -33,7 +33,7 @@ final class GTSRMachineTooltipProfiles {
         List<String> fields = new ArrayList<>(primary);
         fields.addAll(structure);
         fields.addAll(additional);
-        return switch (entry) {
+        List<String> overview = switch (entry) {
             case SteamFluidDrill -> profile(
                 fields,
                 "fluid_drill",
@@ -151,12 +151,7 @@ final class GTSRMachineTooltipProfiles {
                 "shared.steam_cost",
                 "+shared.superheated_quadruples",
                 "+atmospheric_centrifuge.chip_info.1");
-            case GearSteamCompressor -> profile(
-                fields,
-                "gear_compressor",
-                "gear_compressor.desc2",
-                "+gear_compressor.bronze_sh_out",
-                "+gear_compressor.steel_sh_out");
+            case GearSteamCompressor -> gearOverview(primary);
             case ReinforcedBrickBlastFurnace -> profile(
                 fields,
                 "brick_blast_furnace",
@@ -181,20 +176,41 @@ final class GTSRMachineTooltipProfiles {
                 "+@gtsr.critical.foundation.curing",
                 "+@gtsr.critical.foundation.singularity");
             case CriticalSolar, CriticalTurbine, CriticalSun, CriticalBattery -> critical(entry);
-            case SteamCacheNode, ReinforcedSteamCacheNode, OverpressureSteamCacheNode -> profile(fields, "steam_cache");
-            case WaterCacheNode, ReinforcedWaterCacheNode, OverpressureWaterCacheNode -> profile(fields, "fluid_cache");
-            case SingularitySteamCompartment, SingularitySteamOutputCompartment -> profile(fields, "steam_compartment");
-            case SingularityFluidInputCompartment, SingularityFluidOutputCompartment -> profile(
+            case SteamCacheNode, ReinforcedSteamCacheNode, OverpressureSteamCacheNode -> profile(
                 fields,
+                "steam_cache",
+                "shared.fluid_type",
+                "shared.capacity",
+                "shared.output_rate",
+                "shared.singularity_cost",
+                "overpressure_steam_cache_node.singularity_cost",
+                "overpressure_steam_cache_node.bind_requirement",
+                "shared.bind_hint");
+            case WaterCacheNode, ReinforcedWaterCacheNode, OverpressureWaterCacheNode -> profile(
+                fields,
+                "fluid_cache",
+                "shared.fluid_type",
+                "shared.capacity",
+                "shared.output_rate",
+                "water_cache_node.bind_target",
+                "overpressure_water_cache_node.bind_requirement",
+                "shared.bind_hint");
+            case SingularitySteamCompartment, SingularitySteamOutputCompartment -> compartment(
+                additional,
+                "steam_compartment");
+            case SingularityFluidInputCompartment, SingularityFluidOutputCompartment -> compartment(
+                additional,
                 "fluid_compartment");
             case SingularityMinerNode -> profile(
                 fields,
                 "miner_node",
+                "miner_node.table_header",
                 "+~miner_node.row_0_params",
                 "+~miner_node.row_4_params");
             case SingularityDrillingNode -> profile(
                 fields,
                 "drilling_node",
+                "drilling_node.table_header",
                 "+~drilling_node.row_0_params",
                 "+~drilling_node.row_3_params");
             case ClusterController -> profile(
@@ -237,6 +253,7 @@ final class GTSRMachineTooltipProfiles {
             // Frozen kinds and the 18 compact hatches/storage units keep every native warning and parameter.
             default -> nativeSummary(primary);
         };
+        return GTSRMachineTooltipNotes.append(entry, enrich(entry, overview, primary, structure, fields), fields);
     }
 
     /** Dense summaries use the same published business constants; full operating rules remain in Shift. */
@@ -327,6 +344,22 @@ final class GTSRMachineTooltipProfiles {
         result.add(color + String.format(Locale.ROOT, tr(key), values));
     }
 
+    private static List<String> compartment(List<String> additional, String purpose) {
+        // These fields belong to the compartment, not the similar GT hatch it inherits from.
+        return profile(
+            additional,
+            purpose,
+            "singularity_compartment.mode",
+            "shared.capacity",
+            "shared.output_rate",
+            "shared.fluid_type",
+            "singularity_compartment.bind_target_steam",
+            "singularity_compartment.bind_target_fluid",
+            "singularity_compartment.bind_cost_one",
+            "singularity_compartment.bind_cost_free",
+            "shared.bind_hint");
+    }
+
     private static List<String> processing(List<String> fields, String name, String... functions) {
         List<String> result = new ArrayList<>();
         select(result, fields, TOOLTIP + "cluster.unit." + name + ".desc", EnumChatFormatting.GRAY);
@@ -379,7 +412,8 @@ final class GTSRMachineTooltipProfiles {
             String text = plain(line);
             boolean duplicate = false;
             for (String existing : result) if (plain(existing).equals(text)) duplicate = true;
-            if (!duplicate) result.add(color + text);
+            // Native labels, values, warnings and the cluster's process colors are one authored unit.
+            if (!duplicate) result.add(line);
         }
     }
 
@@ -389,6 +423,177 @@ final class GTSRMachineTooltipProfiles {
             if (!GTSRMachineTooltips.isBrand(line) && !GTSRMachineTooltips.isOldShiftHint(line)) result.add(line);
         }
         return result;
+    }
+
+    private static List<String> gearOverview(List<String> primary) {
+        List<String> result = new ArrayList<>();
+        int tier = 0;
+        for (String row : nativeSummary(primary)) {
+            // Both native consumption labels have the same translation. Their authored source order is
+            // bronze then steel; keep each consumption/output/water triple together rather than regrouping
+            // equal labels and making the six rates ambiguous.
+            if (matchesKey(row, TOOLTIP + "gear_compressor.bronze_steam_in")) {
+                result.add(
+                    EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal(tier++ == 0 ? "gtsr.gui.tier.bronze" : "gtsr.gui.tier.steel"));
+            }
+            result.add(row);
+        }
+        return result;
+    }
+
+    /**
+     * Per-machine reading order: native machine type, purpose/process, native parameters, operating limits.
+     * A vertical bar marks a semantic paragraph, never an information quota. The selected source strings keep
+     * their original GT colors and values; the condensed critical arithmetic continues to use policy constants.
+     */
+    private static List<String> enrich(GTSRItemList entry, List<String> overview, List<String> primary,
+        List<String> structure, List<String> fields) {
+        String extra = switch (entry) {
+            case SteamFluidDrill -> "fluid_drill.desc|fluid_drill.mode_switch;fluid_drill.mode_bronze_only;"
+                + "shared.superheated_quadruples|structure.SteamFluidDrill.hatches";
+            case CrustSteamBorer -> "crust_borer.desc;crust_borer.desc_2|structure.CrustSteamBorer.hatches";
+            case CrustMatterAggregator -> "crust_matter_agg.desc2;crust_matter_agg.desc3|"
+                + "crust_matter_agg.desc5;crust_matter_agg.desc5_2;crust_matter_agg.desc8;"
+                + "crust_matter_agg.desc9_2";
+            case VeinSteamPyrolyzer -> "vein_pyrolyzer.desc;vein_pyrolyzer.desc_2|"
+                + "structure.VeinSteamPyrolyzer.hatches";
+            case LargeSteamFurnace -> "steam_furnace.desc;steam_furnace.desc_2|shared.steam_cost;"
+                + "structure.LargeSteamFurnace.hatches";
+            case LargeSolarOverpressureArray -> "solar_array.desc2;solar_array.desc2_2|"
+                + "solar_array.booster_label;solar_array.calcification_d;solar_array.clear_calcification_hint;"
+                + "overpressure.enable;overpressure.effects";
+            case LargeGeothermalSteamBoiler -> "geothermal_boiler.heat|geothermal_boiler.chip_info;"
+                + "geothermal_boiler.chip_info_2;geothermal_boiler.lava_rate_bronze;"
+                + "geothermal_boiler.lava_rate_steel;geothermal_boiler.lava_rate_chip;"
+                + "geothermal_boiler.clear_calcification_hint;overpressure.effects";
+            case SteamSingularityEntangler -> "entangler.desc;entangler.desc_2|entangler.desc2_2;"
+                + "entangler.desc3_2;entangler.overlimit_1;entangler.overlimit_4";
+            case CriticalSingularityCompressor -> "critical_singularity_compressor.desc2|"
+                + "critical_singularity_compressor.desc8;critical_singularity_compressor.desc3_2;"
+                + "critical_singularity_compressor.overlimit_2;critical_singularity_compressor.overlimit_4;"
+                + "critical_singularity_compressor.overlimit_5";
+            case DenseStateManipulator -> "dense_state_manipulator.desc3|dense_state_manipulator.desc4_2;"
+                + "dense_state_manipulator.desc4_3;dense_state_manipulator.desc5;"
+                + "structure.special.dense_ports";
+            case SteamHubArray -> "steam_hub.desc;steam_hub.desc2;steam_hub.desc2_2|"
+                + "shared.screwdriver_overflow;shared.overflow_input_desc";
+            case WaterHubArray -> "water_hub.desc;water_hub.desc2;water_hub.desc2_2|"
+                + "shared.screwdriver_overflow;shared.overflow_input_desc";
+            case SingularityDrillingHub -> "singularity_hub.desc2;singularity_hub.desc2_2|"
+                + "structure.SingularityDrillingHub.hatches";
+            case LargeCokeOven -> "coke_oven.desc;coke_oven.desc_2|coke_oven.formula;coke_oven.accel;"
+                + "structure.LargeCokeOven.hatches";
+            case SiemensMartinFurnace -> "siemens_martin.desc_2;siemens_martin.desc2|shared.steam_cost;"
+                + "siemens_martin.overheat;siemens_martin.air_preheat";
+            case MegaSteamTurbineArray -> "turbine_array.steam_progression|turbine_array.stacking_desc;"
+                + "turbine_array.stacking_desc_2;turbine_array.stacking_desc_3;"
+                + "turbine_array.formula_2;turbine_array.singularity_mode;"
+                + "turbine_array.singularity_mode_3;turbine_array.power_param";
+            case KineticProcessingArray -> "kinetic_array.desc|kinetic_array.desc2_3;~kinetic_array.energy;"
+                + "~kinetic_array.steam_input";
+            case AmmoniaPlant -> "ammonia_plant.desc_line_2;ammonia_plant.desc_line_3|"
+                + "@gtsr.ammonia.output_ports;@gtsr.ammonia.output_ports.steam;"
+                + "ammonia_plant.preheat.1;ammonia_plant.catalyst;@gtsr.ammonia.pending_policy";
+            case AirCompressor -> "air_compressor.desc;air_compressor.desc_2|structure.AirCompressor.hatches";
+            case AtmosphericCentrifuge -> "atmospheric_centrifuge.desc;atmospheric_centrifuge.desc_2|"
+                + "structure.AtmosphericCentrifuge.hatches";
+            case ReinforcedBrickBlastFurnace -> "reinforced_brick_blast_furnace.desc;"
+                + "reinforced_brick_blast_furnace.desc2|reinforced_brick_blast_furnace.parallel_hint;"
+                + "reinforced_brick_blast_furnace.speed_hint;structure.ReinforcedBrickBlastFurnace.hatches";
+            case SpacetimeCalibration -> "|~@gtsr.spacetime.energy;~@gtsr.spacetime.maintenance;"
+                + "@gtsr.spacetime.optional_io";
+            case TcdsController -> "tcds.desc_a;tcds.desc_b|tcds.fuel_consumption;tcds.efficiency;"
+                + "tcds.air_water;tcds.fuel_threshold;tcds.chip_info";
+            case CriticalLoom -> "@gtsr.critical.tooltip.loom_only|@gtsr.critical.foundation.cost;"
+                + "@gtsr.critical.foundation.hatches;@gtsr.critical.v2.loom;@gtsr.critical.v2.safe;"
+                + "@gtsr.critical.management_hint";
+            case CriticalSolar -> "@gtsr.critical.operation.solar.input|@gtsr.critical.operation.solar.output;"
+                + "@gtsr.critical.operation.solar.night;@gtsr.critical.v2.loom;@gtsr.critical.management_hint";
+            case CriticalTurbine -> "@gtsr.critical.operation.turbine.input|@gtsr.critical.operation.turbine.parallel;"
+                + "@gtsr.critical.operation.trend;@gtsr.critical.operation.idle;@gtsr.critical.management_hint";
+            case CriticalSun -> "@gtsr.critical.operation.sun.input|@gtsr.critical.operation.sun.cycle;"
+                + "@gtsr.critical.operation.sun.output;@gtsr.critical.operation.sun.pause;"
+                + "@gtsr.critical.management_hint";
+            case CriticalBattery -> "@gtsr.critical.operation.battery.input|@gtsr.critical.operation.battery.windows;"
+                + "@gtsr.critical.operation.battery.paid;@gtsr.critical.management_hint";
+            case ClusterController -> "cluster.desc|cluster.steam_gate;cluster.segments;"
+                + "cluster.channel_length;cluster.preview_tier";
+            case ClusterUnitCrusher, ClusterUnitOreWasher, ClusterUnitCentrifuge, ClusterUnitThermalCentrifuge, ClusterUnitSifter, ClusterUnitMagneticSeparator, ClusterUnitFurnace -> "cluster.unit.desc_2";
+            case ClusterBoosterParallel -> "cluster.unit.parallel.desc|cluster.unit.parallel.link_apply";
+            case ClusterBoosterSpeed -> "cluster.unit.speed.desc|cluster.unit.speed.link_apply";
+            case ClusterBoosterPrimary -> "cluster.unit.primary.desc|cluster.unit.primary.link_receive";
+            case ClusterBoosterSecondary -> "cluster.unit.secondary.desc|cluster.unit.secondary.link_receive";
+            case ClusterBoosterSteamSaver -> "cluster.unit.steam_saver.desc|cluster.unit.steam_saver.link_receive";
+            case ClusterUnitLogistics -> "cluster.unit.logistics.desc|cluster.unit.logistics.soft_hammer";
+            case SingularityMinerNode -> "miner_node.desc|shared.node_bind_hint;miner_node.upgrade_1;"
+                + "miner_node.crushed_mode_hint";
+            case SingularityDrillingNode -> "drilling_node.desc|shared.node_bind_hint;drilling_node.upgrade_1;"
+                + "drilling_node.upgrade_3";
+            // Native small hatches and storage units already expose their complete 3-6 useful fields.
+            // Frozen controllers must state their real unavailable status, without invented capabilities.
+            default -> null;
+        };
+        if (extra == null) return overview;
+        List<String> result = new ArrayList<>();
+        if (!structure.isEmpty() && !primary.isEmpty()) result.add(primary.get(0));
+        String[] paragraphs = extra.split("\\|", -1);
+        boolean nativePurpose = paragraphs[0].matches(".*\\.desc(?:;.*)?") || paragraphs[0].endsWith(".input");
+        if (!nativePurpose && !overview.isEmpty()) result.add(overview.get(0));
+        appendFields(result, fields, paragraphs[0]);
+        separator(result, primary);
+        for (int i = 1; i < overview.size(); i++) addUnique(result, overview.get(i));
+        for (int i = 1; i < paragraphs.length; i++) {
+            separator(result, primary);
+            appendFields(result, fields, paragraphs[i]);
+        }
+        if (entry.name()
+            .startsWith("ClusterUnit")
+            || entry.name()
+                .startsWith("ClusterBooster")) {
+            separator(result, primary);
+            // Module identity includes its actual footprint and connection/energy obligations.
+            if (!structure.isEmpty()) addUnique(result, structure.get(0));
+            select(result, structure, TOOLTIP + "cluster.unit.hatch.input", EnumChatFormatting.GRAY);
+            select(result, structure, TOOLTIP + "cluster.unit.hatch.energy", EnumChatFormatting.GRAY);
+        }
+        trimSeparators(result);
+        return result;
+    }
+
+    private static void appendFields(List<String> result, List<String> fields, String keys) {
+        for (String key : keys.split(";")) {
+            if (key.isEmpty()) continue;
+            boolean embedded = key.startsWith("~");
+            if (embedded) key = key.substring(1);
+            key = key.startsWith("@") ? key.substring(1) : TOOLTIP + key;
+            select(result, fields, embedded ? "~" + key : key, EnumChatFormatting.GRAY);
+        }
+    }
+
+    private static void addUnique(List<String> result, String row) {
+        for (String existing : result) if (plain(existing).equals(plain(row))) return;
+        result.add(row);
+    }
+
+    private static void separator(List<String> result, List<String> source) {
+        if (result.isEmpty() || isSeparator(result.get(result.size() - 1))) return;
+        for (String row : source) {
+            if (isSeparator(row)) {
+                result.add(row);
+                return;
+            }
+        }
+        result.add(" ");
+    }
+
+    private static boolean isSeparator(String row) {
+        return plain(row).trim()
+            .isEmpty() || plain(row).matches("-{3,}");
+    }
+
+    private static void trimSeparators(List<String> result) {
+        while (!result.isEmpty() && isSeparator(result.get(result.size() - 1))) result.remove(result.size() - 1);
     }
 
     static List<String> nodeDocumentationKeys(GTSRItemList entry) {

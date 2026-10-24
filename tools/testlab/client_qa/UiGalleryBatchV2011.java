@@ -121,6 +121,11 @@ final class UiGalleryBatchV2011 {
             stack.addProperty("nativeOnePixelInset",matched);allInset&=matched;stacks.add(stack);
         }
         observation.add("nativeSlotFrames",frames);observation.add("nativePositionedStacks",stacks);
+        if(UiGalleryBatch.flag(b.row,"v2012")&&!option("operation","").startsWith("build_")){
+            Object flow=call(type(UiGalleryBatch.G+"api.recipe.CriticalNEILayout"),"flow",info,!option("operation","").equals("solar_dust"));
+            JsonObject values=new JsonObject();for(String key:new String[]{"inputRight","outputLeft","centerX","centerY","gapWidth","diagramWidth"})values.addProperty(key,b.q.number(field(flow,key)));
+            observation.add("sourceFlowActualRuntimeValues",values);
+        }
         b.q.check("v2011.geometry.native-inset."+b.row.get("name").getAsString(),allInset&&!all.isEmpty(),"Independently observed ModularWindow SlotWidget18x18 and cached PositionedStack16x16 differ by exactly +1,+1");
         b.q.check("v2011.geometry.native-hit."+b.row.get("name").getAsString(),allHit&&!all.isEmpty(),"Actual GuiRecipe coordinate hit returns identical cached item/fluid stack for every visible native stack; synthetic coordinate query only");
         JsonArray buttons=new JsonArray();
@@ -184,6 +189,7 @@ final class UiGalleryBatchV2011 {
         Object pos=call(b.q.gui,"getRecipePosition",recipeIndex);observation.addProperty("recipeX",b.q.number(field(pos,"x")));observation.addProperty("recipeY",b.q.number(field(pos,"y")));
     }
     void afterCapture(JsonObject event)throws Exception {
+        b.v2012.afterCapture(event);
         if(!active())return;event.add("nativeNeiObservation",observation);
         if(!UiGalleryBatch.flag(b.row,"queryRU"))return;
         Object stack=field(tooltipStack,"item");

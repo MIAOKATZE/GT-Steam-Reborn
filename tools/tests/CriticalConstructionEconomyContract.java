@@ -78,6 +78,57 @@ public final class CriticalConstructionEconomyContract {
         long count = 0; for (FluidStack stack : fluids) if (stack.getFluid() == fluid) count += stack.amount; return count;
     }
 
+    private static CriticalConstructionEconomy currentManifest(CriticalGeometry.Voxel carrier) {
+        NBTTagCompound n = new NBTTagCompound();
+        fluidManifest(carrier).write(n);
+        n.setInteger("version", 4);
+        NBTTagList bases = new NBTTagList();
+        FluidStack[][] fluids = {
+            { new FluidStack(SOLDER, 7), new FluidStack(COOLANT, 11) },
+            { new FluidStack(SOLDER, 13) }, { new FluidStack(COOLANT, 17) } };
+        for (int stage = 1; stage <= 3; stage++) {
+            NBTTagCompound row = new NBTTagCompound();
+            row.setInteger("stage", stage);
+            row.setTag("fluids", CriticalResourceNbt.writeFluids(fluids[stage - 1]));
+            bases.appendTag(row);
+        }
+        n.setTag("baseFluids", bases);
+        return CriticalConstructionEconomy.read(n);
+    }
+
+    private static void currentFluidStages(CriticalGeometry.Voxel carrier, CriticalGeometry.Voxel main) throws Exception {
+        CriticalConstructionEconomy current = currentManifest(carrier);
+        List<CriticalGeometry.Voxel> positions = Arrays.asList(
+            voxel(21, 1, false), voxel(22, 2, false), voxel(23, 3, false), voxel(24, 4, false), carrier, main);
+        check(CriticalConstructionEconomy.VERSION == 4 && current.version() == 4,
+            "Only newly frozen jobs use economy version 4");
+        check(fluidCount(current.fluidCosts(positions, 0, 1), SOLDER) == 7
+            && fluidCount(current.fluidCosts(positions, 1, 2), SOLDER) == 13
+            && fluidCount(current.fluidCosts(positions, 2, 3), COOLANT) == 17
+            && fluidCount(current.fluidCosts(positions, 3, 4), SOLDER) == 36,
+            "The same shell identity uses its frozen base layer recipe or body recipe at the actual work stage");
+        FluidStack[] total = current.fluidCosts(positions, 0, positions.size());
+        check(fluidCount(total, SOLDER) == 2396 && fluidCount(total, COOLANT) == 4028,
+            "Current full-job reference includes every base, body and carrier recipe exactly once");
+        CriticalConstructionLedger ledger = new CriticalConstructionLedger(); ledger.freezeJob(current);
+        NBTTagCompound frozen = save(ledger).getCompoundTag("constructionPhysicalJob");
+        for (CriticalGeometry.Voxel position : positions) ledger = build(ledger, Arrays.asList(position), true);
+        NBTTagCompound saved = save(ledger);
+        FluidStack[] paid = CriticalResourceNbt.readFluids(saved.getTagList("constructionPaidFluids", 10), -1);
+        check(saved.getInteger("constructionEconomyVersion") == 4 && !ledger.hasIntegrityError()
+            && saved.getCompoundTag("constructionPhysicalJob").equals(frozen),
+            "Version 4 retains its original base, body and equipment prices across split payments and reloads");
+        check(fluidCount(paid, SOLDER) == 2396 && fluidCount(paid, COOLANT) == 4028,
+            "Current consumed fluid journal exactly equals the same frozen reference bill");
+        ItemStack[] recovery = ledger.recoveryItems(1);
+        check(count(recovery, CONTROLLER) == 1 && count(recovery, SHELL) == 0 && count(recovery, EQUIPMENT) == 1,
+            "Adding consumed fluids creates no extra recoverable assets or refund rounding");
+        NBTTagCompound broken = save(ledger);
+        broken.getCompoundTag("constructionPhysicalJob").removeTag("baseFluids");
+        CriticalConstructionLedger isolated = new CriticalConstructionLedger(); isolated.read(broken);
+        check(isolated.hasIntegrityError(), "Missing version 4 base prices quarantine rather than waive payment");
+    }
+
     private static void fluidStages(CriticalGeometry.Voxel carrier, List<CriticalGeometry.Voxel> first,
         List<CriticalGeometry.Voxel> last) {
         CriticalConstructionEconomy old = manifest(carrier, 12), current = fluidManifest(carrier);
@@ -242,6 +293,7 @@ public final class CriticalConstructionEconomyContract {
         for (int i = 0; i < 9; i++) first.add(voxel(i, 1, false));
         List<CriticalGeometry.Voxel> last = Arrays.asList(voxel(10, 4, false), voxel(11, 4, false), carrier);
         fluidStages(carrier, first, last);
+        currentFluidStages(carrier, main);
         CriticalConstructionLedger ledger = new CriticalConstructionLedger();
         ledger.freezeJob(manifest(carrier, 12));
         NBTTagCompound frozen = save(ledger).getCompoundTag("constructionPhysicalJob");

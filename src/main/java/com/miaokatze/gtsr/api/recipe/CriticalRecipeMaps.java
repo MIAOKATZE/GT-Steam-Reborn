@@ -55,11 +55,14 @@ public final class CriticalRecipeMaps {
         int spectrum) {
         RecipeMap<RecipeMapBackend> map = operation.equals("solar_dust") ? stellarIrradiation
             : operation.startsWith("stellar_") ? stellarLifecycle : forKind(kind);
-        register(map, recipe, new DisplayInfo(kind, operation, baseEu, spectrum, 0, 1));
+        register(map, recipe, new DisplayInfo(map, kind, operation, baseEu, spectrum, 0, 1));
     }
 
     public static void addConstruction(GTRecipe recipe, CriticalMachineKind kind, int stage, int page, int pages) {
-        register(construction, recipe, new DisplayInfo(kind, "build_" + stage, BigInteger.ZERO, -1, page, pages));
+        register(
+            construction,
+            recipe,
+            new DisplayInfo(construction, kind, "build_" + stage, BigInteger.ZERO, -1, page, pages));
     }
 
     private static void register(RecipeMap<RecipeMapBackend> map, GTRecipe recipe, DisplayInfo info) {
@@ -118,13 +121,15 @@ public final class CriticalRecipeMaps {
 
     public static final class DisplayInfo {
 
+        public final RecipeMap<?> recipeMap;
         public final CriticalMachineKind kind;
         public final String operation;
         public final BigInteger baseEu;
         public final int spectrum, page, pages;
 
-        private DisplayInfo(CriticalMachineKind kind, String operation, BigInteger baseEu, int spectrum, int page,
-            int pages) {
+        private DisplayInfo(RecipeMap<?> recipeMap, CriticalMachineKind kind, String operation, BigInteger baseEu,
+            int spectrum, int page, int pages) {
+            this.recipeMap = recipeMap;
             this.kind = kind;
             this.operation = operation;
             this.baseEu = baseEu;
@@ -139,6 +144,12 @@ public final class CriticalRecipeMaps {
 
         public int constructionStage() {
             return construction() ? Integer.parseInt(operation.substring(6)) : -1;
+        }
+
+        /** Four visual milestones preserve all six separately billed construction operations. */
+        public int constructionGroup() {
+            int stage = constructionStage();
+            return stage <= 0 ? 0 : stage <= 3 ? 1 : stage - 2;
         }
     }
 }

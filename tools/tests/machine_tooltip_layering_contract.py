@@ -147,7 +147,10 @@ public class MachineTooltipLayeringContract {
   List<String> detailedNode=lines("Miner title","Miner");detailedNode.addAll(node.additional);
   check(GTSRMachineTooltips.rewrite(miner,detailedNode,true)&&has(detailedNode,StatCollector.translateToLocal(prefix+"upgrade_1")),"Shift restores the full node upgrade table");
   var sun=GTSRMachineTooltipProfiles.summary(GTSRItemList.CriticalSun,List.of(),List.of(),List.of());
-  check(has(sun,"8196")&&has(sun,"10,000,000")&&has(sun,"1,000,000,000,000,000"),"stellar summary uses actual policy limits and ignition price");
+  check(has(sun,String.valueOf(com.miaokatze.gtsr.common.critical.CriticalStellarPolicy.MAX_PARALLEL))
+    &&has(sun,"sustain "+String.format(java.util.Locale.ROOT,"%,d",com.miaokatze.gtsr.common.critical.CriticalStellarPolicy.SUSTAIN_EUT)+" EU/t")
+    &&has(sun,"Ignition: "+String.format(java.util.Locale.ROOT,"%,d",com.miaokatze.gtsr.common.critical.CriticalStellarPolicy.IGNITION_EU)+" EU"),
+    "stellar summary uses current production policy limits and ignition price");
   var solar=GTSRMachineTooltipProfiles.summary(GTSRItemList.CriticalSolar,List.of(),List.of(),List.of());
   check(has(solar,"400 t")&&has(solar,"256"),"solar cycle and dust parallels come from runtime constants");
   var turbine=GTSRMachineTooltipProfiles.summary(GTSRItemList.CriticalTurbine,List.of(),List.of(),List.of());
@@ -167,7 +170,7 @@ class OwnedMachine implements IMetaTileEntity,ISecondaryDescribable {
 ''', encoding='utf-8')
 
 sources = sorted(JAVA.rglob('*.java')) + [PRODUCTION / (name + '.java')
-    for name in ('GTSRMachineTooltips', 'GTSRMachineTooltipProfiles')]
+    for name in ('GTSRMachineTooltips', 'GTSRMachineTooltipProfiles', 'GTSRMachineTooltipNotes')]
 sources += [ROOT / 'src/main/java/com/miaokatze/gtsr/common/critical' / (name + '.java')
     for name in ('CriticalChemicalMath', 'CriticalEnergyMath', 'CriticalStellarPolicy')]
 subprocess.run(['javac', '-encoding', 'UTF-8', '-d', str(CLASSES), *map(str, sources)], cwd=ROOT, check=True)

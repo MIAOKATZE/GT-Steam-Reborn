@@ -54,17 +54,18 @@ class CriticalNEICatalogRuntime {
             slots++;
             int x=slot.getPos().x,y=slot.getPos().y;
             if(slot.getMcSlot().getItemHandler()==inputs)
-                check(x>=8&&x+18<=146&&y>=43&&y+18<=121,"GT205 material slot exact card bounds");
+                check(x>=CriticalNEILayout.BUILD_X&&x+18<=CriticalNEILayout.BUILD_X+138&&y>=CriticalNEILayout.BUILD_Y&&y+18<=CriticalNEILayout.BUILD_Y+78,"GT205 material slot exact card bounds");
             else if(slot.getMcSlot().getItemHandler()==outputs)
-                check(x==146&&y==23,"GT205 output slot exact card coordinates");
-            else check(x>=8&&x<=68&&y==127,"GT205 concrete fluid slot exact card coordinates");
+                check(x==CriticalNEILayout.OUTPUT_X&&y==CriticalNEILayout.BUILD_OUTPUT_Y,"GT205 output slot exact card coordinates");
+            else check(x>=8&&x<=68&&y==CriticalNEILayout.BUILD_FLUID_Y,"GT205 concrete fluid slot exact card coordinates");
         }
-        check(CriticalNEILayout.arrowCenter(false)==49 && CriticalNEILayout.arrowCenter(true)==73,
+        check(CriticalNEILayout.arrowCenter(false)==53 && CriticalNEILayout.arrowCenter(true)==73,
             "arrows share the exact item/fluid slot centre");
         check(slots==33,"native construction template has 28 materials + controller + four fluids");
         System.out.println("PASS native construction template "+checks+" checks; GT205/MUI1");
     }
     static void runtimeTemplatesAndUniqueness() {
+        Fluid layoutFluid=new Fluid("nei_layout_ports");FluidRegistry.registerFluid(layoutFluid);
         List<RecipeMap<?>> maps=new ArrayList<>();
         for(CriticalMachineKind kind:CriticalMachineKind.releasedValues()) maps.add(CriticalRecipeMaps.forKind(kind));
         maps.add(CriticalRecipeMaps.stellarIrradiation);maps.add(CriticalRecipeMaps.stellarLifecycle);
@@ -82,9 +83,33 @@ class CriticalNEICatalogRuntime {
                 var inventory=slot.getMcSlot().getItemHandler(); int x=slot.getPos().x,y=slot.getPos().y;
                 boolean input=inventory==items||inventory==fluidInputs;
                 boolean fluid=inventory==fluidInputs||inventory==fluidOutputs;
-                check(input?x>=8&&x<=48:x==146,"runtime native slot and label column " + map.unlocalizedName);
-                check(y==(fluid?64:40),"runtime native row aligns arrow centre " + map.unlocalizedName);
+                check(input?x>=8&&x<=48:x==CriticalNEILayout.OUTPUT_X,"runtime native slot and label column " + map.unlocalizedName);
+                check(y==(fluid?CriticalNEILayout.FLUID_Y:CriticalNEILayout.ITEM_Y),"runtime native row aligns arrow centre " + map.unlocalizedName);
                 check(y+9==CriticalNEILayout.arrowCenter(fluid),"actual native slot centre equals shared arrow centre");
+            }
+            CriticalMachineKind owner=CriticalMachineKind.SUN;
+            for(CriticalMachineKind kind:CriticalMachineKind.releasedValues())
+                if(CriticalRecipeMaps.forKind(kind)==map)owner=kind;
+            if(map==CriticalRecipeMaps.stellarIrradiation)owner=CriticalMachineKind.SOLAR;
+            String operation=map==CriticalRecipeMaps.stellarIrradiation?"solar_dust"
+                :map==CriticalRecipeMaps.stellarLifecycle?"stellar_sustain"
+                :owner==CriticalMachineKind.SOLAR?"solar_water":owner.key;
+            GTRecipe geometryRecipe=GTRecipeBuilder.builder().fluidInputs(new FluidStack(layoutFluid,1))
+                .duration(1).eut(0).build().orElseThrow();
+            CriticalRecipeMaps.addDisplayRecipe(owner,geometryRecipe,operation,BigInteger.ZERO);
+            var info=CriticalRecipeMaps.displayInfo(geometryRecipe);
+            check(info.recipeMap==map,"layout metadata retains its actual native map");
+            for(boolean fluid:List.of(false,true)) {
+                var handler=fluid?fluidInputs:items;
+                int right=-1;
+                for(var child:template.getChildren())if(child instanceof com.gtnewhorizons.modularui.common.widget.SlotWidget slot
+                    &&slot.getMcSlot().getItemHandler()==handler)right=Math.max(right,slot.getPos().x+slot.getSize().width);
+                if(right<0)continue;
+                var flow=CriticalNEILayout.flow(info,fluid);
+                check(flow.inputRight==right,"diagram starts from actual complete input group");
+                check(Math.abs((flow.centerX-right)-(CriticalNEILayout.OUTPUT_X-flow.centerX))<=1,
+                    "diagram horizontally centred between native ports: "+map.unlocalizedName);
+                check(flow.diagramWidth<=flow.gapWidth-12,"process diagram leaves native port clearance");
             }
         }
         Fluid fluid=new Fluid("nei_unique");FluidRegistry.registerFluid(fluid);
@@ -178,10 +203,10 @@ class CriticalNEICatalogRuntime {
         Set<String> unique = new HashSet<>();
         for (var p : positions) {
             int x=p.x-5,y=p.y-11;
-            check(x >= 8 && x+18 <= 146 && y >=43 && y+18 <=121, "construction grid bounds");
+            check(x >= CriticalNEILayout.BUILD_X && x+18 <= CriticalNEILayout.BUILD_X+138 && y >=CriticalNEILayout.BUILD_Y && y+18 <=CriticalNEILayout.BUILD_Y+78, "construction grid bounds");
             check(unique.add(x+":"+y), "unique native hit box");
         }
-        check(frontend.getItemOutputPositions(1).get(0).x-5 == 146, "separate clickable product");
+        check(frontend.getItemOutputPositions(1).get(0).x-5 == CriticalNEILayout.OUTPUT_X, "separate clickable product");
         Fluid fluid = new Fluid("nei_contract"); FluidRegistry.registerFluid(fluid);
         for (CriticalMachineKind kind : CriticalMachineKind.releasedValues()) {
             GTRecipe recipe = GTRecipeBuilder.builder().fluidInputs(new FluidStack(fluid, 1))

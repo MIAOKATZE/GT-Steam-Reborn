@@ -15,20 +15,19 @@ import net.minecraftforge.fluids.FluidStack;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.critical.recipe.CriticalShellCatalog;
 
-import bartworks.system.material.WerkstoffLoader;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
-import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
 
 /** Immutable full-job price basis. Equipment is installed at one deterministic carrier per macro unit. */
 public final class CriticalConstructionEconomy {
 
-    public static final int VERSION = 3;
+    public static final int VERSION = 4;
     private final int version;
     private final Set<String> installationMaterials = new HashSet<>();
     private final Map<String, FluidStack[]> materialFluids = new LinkedHashMap<>();
+    private final Map<Integer, FluidStack[]> baseFluids = new LinkedHashMap<>();
     private final Map<Long, FluidStack[]> carrierFluids = new LinkedHashMap<>();
     private final String layoutKey;
     private final ItemStack controller;
@@ -137,30 +136,51 @@ public final class CriticalConstructionEconomy {
             shells,
             carriers,
             partial.costs(paid, 0, paid.size()));
-        // Assembly consumables are frozen with the items. They are consumed, never salvageable assets.
+        // UV fusion plasmas join/condition the structure; UHV grade-7 water flushes and cools the work.
+        // Volumes are per paid position, except equipment recipes which belong to one macro-unit carrier.
+        result.baseFluids.put(1, media(9, 0, 0, 125));
+        result.baseFluids.put(2, media(0, 9, 0, 125));
+        result.baseFluids.put(3, media(9, 9, 4, 125));
         for (String material : shells.keySet()) {
             CriticalShellCatalog.Family family = CriticalShellCatalog.family(material);
             boolean structural = family == CriticalShellCatalog.Family.S || family == CriticalShellCatalog.Family.H;
             if (!structural) result.installationMaterials.add(material);
-            List<FluidStack> fluids = new ArrayList<>();
-            mergeFluid(fluids, required(Materials.SolderingAlloy.getMolten(structural ? 36 : 72), "solder"));
-            if (family == CriticalShellCatalog.Family.F)
-                mergeFluid(fluids, required(GTModHandler.getDistilledWater(250), "distilled water"));
-            if (family == CriticalShellCatalog.Family.E || family == CriticalShellCatalog.Family.G)
-                mergeFluid(fluids, required(WerkstoffLoader.LiquidHelium.getFluidOrGas(125), "liquid helium"));
-            result.materialFluids.put(material, fluids.toArray(new FluidStack[0]));
+            result.materialFluids.put(material, switch (family) {
+                case S, H -> media(9, 9, 0, 125);
+                case E -> media(18, 18, 0, 250);
+                case O -> media(9, 0, 9, 250);
+                case F -> media(0, 18, 4, 250);
+                case M -> media(9, 18, 0, 125);
+                case C -> media(18, 18, 0, 250);
+                case G -> media(18, 36, 18, 500);
+            });
         }
-        for (Long position : carriers.keySet()) result.carrierFluids.put(
-            position,
-            new FluidStack[] { required(Materials.SolderingAlloy.getMolten(2304), "equipment solder"),
-                config.kind == CriticalMachineKind.SUN
-                    ? required(WerkstoffLoader.LiquidHelium.getFluidOrGas(4000), "equipment liquid helium")
-                    : required(Materials.Lubricant.getFluid(1000), "equipment lubricant") });
+        for (Long position : carriers.keySet()) result.carrierFluids.put(position, switch (config.kind) {
+            case SOLAR -> media(1152, 576, 144, 8000);
+            case TURBINE -> media(576, 1152, 72, 16000);
+            case BATTERY -> media(2304, 1152, 144, 16000);
+            case SUN -> media(1152, 2304, 1152, 32000);
+            default -> throw new IllegalArgumentException("Unsupported construction equipment " + config.kind);
+        });
         return result;
+    }
+
+    /** Silver: conductive joining; bismuth: active joining; radon: surface conditioning; grade 7: flush/cooling. */
+    private static FluidStack[] media(int silver, int bismuth, int radon, int water) {
+        List<FluidStack> fluids = new ArrayList<>();
+        if (silver > 0) fluids.add(required(Materials.Silver.getPlasma(silver), "silver plasma"));
+        if (bismuth > 0) fluids.add(required(Materials.Bismuth.getPlasma(bismuth), "bismuth plasma"));
+        if (radon > 0) fluids.add(required(Materials.Radon.getPlasma(radon), "radon plasma"));
+        if (water > 0) fluids.add(required(Materials.Grade7PurifiedWater.getFluid(water), "grade 7 purified water"));
+        return fluids.toArray(new FluidStack[0]);
     }
 
     public int version() {
         return version;
+    }
+
+    static boolean supportsVersion(int version) {
+        return version == 2 || version == 3 || version == VERSION;
     }
 
     /** Frozen work order; the geometry and ownership fingerprint never change. Legacy jobs retain stage 4. */
@@ -174,7 +194,8 @@ public final class CriticalConstructionEconomy {
         List<FluidStack> fluids = new ArrayList<>();
         for (int i = start; i < end; i++) {
             CriticalGeometry.Voxel voxel = voxels.get(i);
-            FluidStack[] shell = materialFluids.get(voxel.material);
+            FluidStack[] shell = version >= 4 && voxel.stage >= 1 && voxel.stage <= 3 ? baseFluids.get(voxel.stage)
+                : materialFluids.get(voxel.material);
             if (!CriticalStructures.isController(voxel) && shell != null)
                 for (FluidStack fluid : shell) mergeFluid(fluids, fluid);
             FluidStack[] equipment = carrierFluids.get(voxel.positionKey());
@@ -334,12 +355,21 @@ public final class CriticalConstructionEconomy {
             units.appendTag(row);
         }
         n.setTag("carriers", units);
+        if (version >= 4) {
+            NBTTagList bases = new NBTTagList();
+            for (Map.Entry<Integer, FluidStack[]> entry : baseFluids.entrySet()) {
+                NBTTagCompound row = new NBTTagCompound();
+                row.setInteger("stage", entry.getKey());
+                row.setTag("fluids", CriticalResourceNbt.writeFluids(entry.getValue()));
+                bases.appendTag(row);
+            }
+            n.setTag("baseFluids", bases);
+        }
     }
 
     static CriticalConstructionEconomy read(NBTTagCompound n) {
         int version = n.hasKey("version") ? n.getInteger("version") : 2;
-        if (version != 2 && version != VERSION)
-            throw new IllegalArgumentException("Unsupported frozen economy version");
+        if (!supportsVersion(version)) throw new IllegalArgumentException("Unsupported frozen economy version");
         ItemStack[] main = CriticalResourceNbt.readItems(n.getTagList("controller", 10), 1);
         if (main[0] == null || main[0].stackSize != 1
             || n.getString("layout")
@@ -377,6 +407,16 @@ public final class CriticalConstructionEconomy {
                 NBTTagCompound row = units.getCompoundTagAt(i);
                 result.carrierFluids.put(row.getLong("position"), readFrozenFluids(row));
             }
+        }
+        if (version >= 4) {
+            NBTTagList bases = n.getTagList("baseFluids", 10);
+            for (int i = 0; i < bases.tagCount(); i++) {
+                NBTTagCompound row = bases.getCompoundTagAt(i);
+                int stage = row.getInteger("stage");
+                if (stage < 1 || stage > 3 || result.baseFluids.put(stage, readFrozenFluids(row)) != null)
+                    throw new IllegalArgumentException("Invalid frozen base fluid stage");
+            }
+            if (result.baseFluids.size() != 3) throw new IllegalArgumentException("Incomplete frozen base fluids");
         }
         return result;
     }

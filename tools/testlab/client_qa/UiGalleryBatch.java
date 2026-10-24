@@ -17,6 +17,7 @@ public final class UiGalleryBatch {
     final UiGalleryBatchV209 v209=new UiGalleryBatchV209(this);
     final UiGalleryBatchV2010 v2010=new UiGalleryBatchV2010(this);
     final UiGalleryBatchV2011 v2011=new UiGalleryBatchV2011(this);
+    final UiGalleryBatchV2012 v2012=new UiGalleryBatchV2012(this);
     final Path directory,workspace;
     final JsonArray events=new JsonArray(),jobs=new JsonArray();
     final Map<String,Object[]> fixtures=new LinkedHashMap<String,Object[]>();
@@ -88,7 +89,12 @@ public final class UiGalleryBatch {
             // Every active waiting stage must be bounded before any per-stage early return.
             if(stage>=11&&stage<=21&&System.nanoTime()-caseStartNanos>integer(row,"timeoutSeconds",12)*1_000_000_000L)throw new AssertionError("Window/data event timed out: stage="+stage+" request="+request+" expectedWindow="+windowId+" actualGui="+field(q.mc,"currentScreen|field_71462_r")+" expectedSync="+expectedValues+" case="+row);
             if(stage==0){if(ticks<40)return;boot();stage=1;return;}
-            if(stage==1){if(player()==null)return;dispatch(1);stage=2;return;}
+            if(stage==1){if(player()==null)return;
+                // A first dimension transfer unloads the login world. Wait for NEI's own completed
+                // plugin/config flag so CollapsibleItems.load cannot race its native saveStates.
+                if(!Boolean.TRUE.equals(call(type("codechicken.nei.NEIClientConfig"),"isLoaded")))return;
+                q.check("batch.nei-config-complete.before-first-transfer",true,"Native NEIClientConfig.isLoaded() is true before owned first dimension transfer; no NEI state is modified");
+                dispatch(1);stage=2;return;}
             if(stage==2){if(request!=0||player()==null||q.serverPlayer==null)return;if(q.number(field(player(),"dimension|field_71093_bK"))!=1048577||q.number(field(q.serverPlayer,"dimension|field_71093_bK"))!=1048577)return;
                 if(q.wire==null)q.wire=UiQaWireCounter.install(q,player());worldReadyMillis=System.currentTimeMillis();q.receipt.addProperty("startupToTestLabReadyMillis",worldReadyMillis-launchMillis);stage=10;return;}
             if(stage==90){if(request==0){closeClient();call(q.mc,"displayGuiScreen|func_147108_a",construct("net.minecraft.client.gui.GuiMainMenu"));done=true;q.receipt.addProperty("batchCleanupVerified",cleaned);q.finish(stoppedByControl?new java.util.concurrent.CancellationException("Explicit owned batch stop"):null);}return;}
@@ -155,7 +161,7 @@ public final class UiGalleryBatch {
         while(index<queue.size()&&captured.contains(queue.get(index).get("name").getAsString()))index++;
         if(index>=queue.size()){completeJob();return;}
         row=queue.get(index);q.phase=2000+index;caseStartNanos=System.nanoTime();fixtureWaitNanos=syncWaitNanos=renderWaitNanos=0;stableFrames=0;signature="";
-        v2010.configure();v2011.configure();
+        v2010.configure();v2011.configure();v2012.configure();
         int width=integer(row,"width",1280),height=integer(row,"height",720),scale=integer(row,"scale",2);
         if(q.number(field(q.mc,"displayWidth|field_71443_c"))!=width||q.number(field(q.mc,"displayHeight|field_71440_d"))!=height){set(field(q.mc,"gameSettings|field_71474_y"),"guiScale|field_74335_Z",scale);call(q.mc,"resize|func_71370_a",width,height);}
         pendingKey=str(row,"kind",str(row,"visual",""))+":"+str(row,"variant","native")+":"+flag(row,"rich")+":"+flag(row,"legacy")+":"+flag(row,"populated")+":"+integer(row,"tcdsFuelKind",-1)+":"+flag(row,"actualHistory")+":"+flag(row,"actualRemote");
@@ -208,7 +214,7 @@ public final class UiGalleryBatch {
     }
     void act()throws Exception {
         if(!screenReady(false))throw new AssertionError("Target window changed before navigation");localTabClick=false;lastNavigationProof=null;localClickProofs=new JsonArray();
-        v2010.navigate();v2011.navigate();
+        v2010.navigate();v2011.navigate();v2012.navigate();
         if(flag(row,"legacy")){if(row.has("page")&&str(row,"kind","").equals("CLUSTER_CONTROLLER"))set(q.gui,"activePage",row.get("page").getAsInt());actionTick=ticks;renderStartNanos=System.nanoTime();stage=14;return;}
         if(row.has("journalTab")||row.has("journalEntry")){Object model=call(q.screen,"model");if(row.has("journalTab"))call(model,"selectTab",Enum.valueOf((Class)type(G+"common.dimension.prosperity.lore.JournalTab"),row.get("journalTab").getAsString()));if(row.has("journalEntry"))call(model,"selectEntry",row.get("journalEntry").getAsString());}
         if(isEntanglement(row)&&row.has("fluidDrafts")){
@@ -249,7 +255,7 @@ public final class UiGalleryBatch {
     void scroll(Object widget,int amount)throws Exception {int[] p=q.screenPoint(widget);Object context=call(q.screen,"getContext");call(context,"updateState",p[0],p[1],0f);call(q.screen,"onFrameUpdate");set(context,"mouseWheel",-120);for(int n=0;n<amount;n++)call(q.screen,"onMouseScroll",Enum.valueOf((Class)type("com.cleanroommc.modularui.api.UpOrDown"),"DOWN"),1);set(context,"mouseWheel",0);}
     @SubscribeEvent public void hover(net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent.Pre e){q.syntheticHover(e);if(q.pendingTooltip==null)try{set(e,"mouseX",-10000);set(e,"mouseY",-10000);if(q.screen!=null)call(call(q.screen,"getContext"),"updateState",-10000,-10000,0f);}catch(Exception failure){fail(failure);}}
     @SubscribeEvent public void tooltip(com.cleanroommc.modularui.screen.RichTooltipEvent.PostText e){q.tooltipPainted(e);}
-    @SubscribeEvent public void neiTooltipDraw(net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent.Post e){try{v2010.drawTooltip();v2011.drawTooltip();}catch(Throwable failure){fail(failure);}}
+    @SubscribeEvent public void neiTooltipDraw(net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent.Post e){try{v2010.drawTooltip();v2011.drawTooltip();v2012.drawTooltip();}catch(Throwable failure){fail(failure);}}
     @SubscribeEvent public void render(TickEvent.RenderTickEvent e){
         if(done||e.phase!=TickEvent.Phase.END||stage!=14||ticks<=actionTick)return;
         try{
@@ -258,7 +264,7 @@ public final class UiGalleryBatch {
             if(row.has("page")&&!flag(row,"legacy")){Object p=q.find(q.panel,str(row,"kind","").equals("CLUSTER_CONTROLLER")?"cluster_pages":"critical_pages");if(p!=null&&q.number(field(p,"currentPageIndex"))!=row.get("page").getAsInt())return;}
             if(!now.equals(signature)){signature=now;stableFrames=1;return;}if(++stableFrames<integer(row,"minimumFrames",2))return;
             if(q.pendingTooltip!=null&&q.tooltipPostDraws<1)return;
-            if(!v2010.ready()||!v2011.ready())return;
+            if(!v2010.ready()||!v2011.ready()||!v2012.ready())return;
             renderWaitNanos=System.nanoTime()-renderStartNanos;capture();q.pendingTooltip=null;index++;row=null;stage=10;
         }catch(Throwable error){fail(error);}
     }

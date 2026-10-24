@@ -72,7 +72,7 @@ public final class GTSRMachineTooltips {
         lines.subList(start, start + displayed.size())
             .clear();
         lines.addAll(start, replacement);
-        if (!details) compactNodeDocumentation(entry, machine, stack, lines, start + replacement.size());
+        if (!details) compactNodeDocumentation(entry, machine, stack, lines, start + replacement.size(), replacement);
         return true;
     }
 
@@ -153,7 +153,7 @@ public final class GTSRMachineTooltips {
      * notably bound coordinates, direction, contents and configured NBT, survives byte-for-byte.
      */
     private static void compactNodeDocumentation(GTSRItemList entry, IMetaTileEntity machine, ItemStack stack,
-        List<String> lines, int from) {
+        List<String> lines, int from, List<String> overview) {
         List<String> documentation = GTSRMachineTooltipProfiles.nodeDocumentationKeys(entry);
         if (documentation.isEmpty()) return;
         List<String> additional = new ArrayList<>();
@@ -163,7 +163,11 @@ public final class GTSRMachineTooltips {
         List<String> compact = new ArrayList<>();
         for (String line : additional) {
             boolean known = GTSRMachineTooltipProfiles.isNodeDocumentationLine(entry, line, documentation);
-            if (!known) compact.add(line);
+            // Only the exact source rows already moved to the overview may be deduplicated here.
+            // A configured NBT value containing the same labels is a different row and survives unchanged.
+            boolean moved = overview.stream()
+                .anyMatch(row -> plain(row).equals(plain(line)));
+            if (!known && !moved) compact.add(line);
         }
         lines.subList(start, start + additional.size())
             .clear();

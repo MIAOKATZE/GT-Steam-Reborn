@@ -37,7 +37,7 @@ def main():
         ROOT / 'build/classes/java/patchedMc', ROOT / 'build/rfg/recompiled_minecraft-1.7.10.jar',
         ROOT / 'build/rfg/mclauncher-1.7.10.jar', gt, *deps]))
     files = [ROOT / 'src/main/java/com/miaokatze/gtsr' / name for name in (
-        'api/recipe/CriticalRecipeMaps.java', 'api/recipe/CriticalRecipeFrontend.java', 'config/Config.java',
+        'api/recipe/CriticalRecipeMaps.java', 'api/recipe/CriticalRecipeFrontend.java', 'api/recipe/CriticalNEILayout.java', 'config/Config.java',
         'client/nei/CriticalNEIShowcase.java', 'loader/recipes/CriticalMachineRecipes.java')]
     production_sources = files
     fixtures = [ROOT / 'tools/tests/Issue37RegistrationRegression.java', ROOT / 'tools/tests/CriticalNEICatalogContract.java', ROOT / 'tools/tests/CriticalNEIFontContract.java']

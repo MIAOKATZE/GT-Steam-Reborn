@@ -514,7 +514,7 @@ final class CriticalConstructionLedger {
         paidFluids = readFluids(n.getTagList("constructionPaidFluids", 10), -1);
         int version = n.getInteger("constructionEconomyVersion");
         integrityError = n.getBoolean("constructionEconomyUncertain")
-            || version != 0 && version != 2 && version != CriticalConstructionEconomy.VERSION
+            || version != 0 && !CriticalConstructionEconomy.supportsVersion(version)
             || version >= 2 && !n.hasKey("constructionPhysicalJob");
         unreadableEconomy = null;
         physicalJob = null;
@@ -524,10 +524,9 @@ final class CriticalConstructionLedger {
         previewStageCosts = null;
         physicalNext = new ItemStack[0];
         try {
-            physicalJob = (version == 2 || version == CriticalConstructionEconomy.VERSION)
-                && n.hasKey("constructionPhysicalJob")
-                    ? CriticalConstructionEconomy.read(n.getCompoundTag("constructionPhysicalJob"))
-                    : null;
+            physicalJob = CriticalConstructionEconomy.supportsVersion(version) && n.hasKey("constructionPhysicalJob")
+                ? CriticalConstructionEconomy.read(n.getCompoundTag("constructionPhysicalJob"))
+                : null;
             if (physicalJob != null && physicalJob.version() != version) integrityError = true;
             accounts.clear();
             NBTTagList balances = n.getTagList("constructionPhysicalBalances", 10);
