@@ -12,8 +12,8 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
  */
 public class Config {
 
-    /** Client presentation only; all real construction and runtime indicators remain visible. */
-    public static boolean criticalPreviewReducedMotion = false;
+    /** Reduce decorative 2D UI animation; authoritative construction and recipe information remain visible. */
+    public static boolean criticalUiReducedMotion = false;
 
     /** Opt-in at startup; changing this setting requires a restart. */
     public static boolean testLabEnabled = false;
@@ -340,11 +340,11 @@ public class Config {
     public static void synchronizeConfiguration(File configFile) {
         Configuration configuration = new Configuration(configFile);
 
-        criticalPreviewReducedMotion = configuration.getBoolean(
-            "criticalPreviewReducedMotion",
+        criticalUiReducedMotion = configuration.getBoolean(
+            "criticalUiReducedMotion",
             "client",
-            criticalPreviewReducedMotion,
-            "Reduce critical machine preview motion; retain construction stage and runtime status.");
+            criticalUiReducedMotion,
+            "Reduce decorative animation in critical construction progress and recipe diagrams.");
 
         metaIdOffset = configuration.getInt(
             "metaIdOffset",

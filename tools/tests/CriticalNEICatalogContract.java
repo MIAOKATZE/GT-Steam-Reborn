@@ -40,37 +40,27 @@ class CriticalNEICatalogRuntime {
         return result;
     }
     static void showcaseTemplate() {
-        var map=CriticalRecipeMaps.showcase;
-        var frontend=map.getFrontend();
-        var properties=frontend.getUIProperties();
-        check(map!=CriticalRecipeMaps.construction,"independent showcase map");
-        check(properties.maxItemInputs==0&&properties.maxFluidInputs==0&&properties.maxFluidOutputs==0,
-            "showcase native template has zero input and fluid slots");
-        check(properties.maxItemOutputs==1,"showcase keeps one native controller link");
-        check(CriticalRecipeMaps.construction.getFrontend().getUIProperties().maxItemInputs==28,
-            "construction retains all 28 native material slots");
-        check(frontend.getNEIProperties().registerNEI,"showcase participates in native automatic NEI registration");
-        var inputs=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(0);
+        var frontend=CriticalRecipeMaps.construction.getFrontend();
+        var inputs=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(12);
         var outputs=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(1);
         var special=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(1);
-        var fluids=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(0);
-        var context=new gregtech.nei.GTNEIDefaultHandler.NEITemplateContext(inputs,outputs,special,fluids,fluids,
+        var fluids=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(1);
+        var empty=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(0);
+        var context=new gregtech.nei.GTNEIDefaultHandler.NEITemplateContext(inputs,outputs,special,fluids,empty,
             ()->0f,()->null,new com.gtnewhorizons.modularui.api.math.Pos2d(-5,-11));
         var template=frontend.createNEITemplate(context).build();
         int slots=0;
         for(var child:template.getChildren())if(child instanceof com.gtnewhorizons.modularui.common.widget.SlotWidget slot){
             slots++;
-            check(slot.getMcSlot().getItemHandler()==outputs,"only controller output has a native slot background");
-            check(slot.getPos().x==147&&slot.getPos().y==35,"controller slot stays at logical 147/35");
+            int x=slot.getPos().x,y=slot.getPos().y;
+            if(slot.getMcSlot().getItemHandler()==inputs)
+                check(x>=8&&x+18<=136&&y>=62&&y+18<=102,"GT205 material slot exact card bounds");
+            else if(slot.getMcSlot().getItemHandler()==outputs)
+                check(x==142&&y==40,"GT205 output slot exact card coordinates");
+            else check(x==142&&y==66,"GT205 concrete fluid slot exact card coordinates");
         }
-        check(slots==1,"actual native showcase template contains exactly one slot widget");
-        GTRecipe recipe=GTRecipeBuilder.builder().itemOutputs(new ItemStack(Items.diamond)).duration(400).eut(0).build().orElseThrow();
-        CriticalRecipeMaps.addShowcase(recipe,CriticalMachineKind.SUN);
-        check(map.getAllRecipes().contains(recipe)&&!CriticalRecipeMaps.construction.getAllRecipes().contains(recipe),
-            "showcase entry indexed exclusively in zero-input catalogue");
-        check(recipe.mInputs.length==0&&recipe.mOutputs.length==1&&recipe.mFakeRecipe,
-            "showcase stays a read-only output-linked fake entry");
-        System.out.println("PASS zero-input native showcase template "+checks+" checks; GT205/MUI1; no game client");
+        check(slots==14,"native construction template has 12 materials + controller + concrete");
+        System.out.println("PASS native construction template "+checks+" checks; GT205/MUI1");
     }
     static void fullConstruction() throws Exception {
         // Fixture identities only: actual geometry, carrier selection, frozen bill, pagination and GT recipe indices.
@@ -109,13 +99,25 @@ class CriticalNEICatalogRuntime {
                 var info=CriticalRecipeMaps.displayInfo(recipe);if(info.kind!=kind)continue;
                 // Ignore the independent synthetic pagination entry above.
                 if(recipe.mOutputs[0].getItem()==Items.diamond)continue;
-                check(recipe.mFakeRecipe && recipe.mInputs.length<=28,"all construction entries fake and paginated");
+                check(recipe.mFakeRecipe && recipe.mInputs.length<=12,"all construction entries fake and paginated");
                 check(recipe.mOutputs.length==1 && recipe.mOutputs[0].stackSize==1,"one clickable whole-machine product marker");
                 check(pages.add(info.operation+":"+info.page),"no duplicate construction page");stages.add(info.operation);
                 if(!info.operation.equals("build_0"))inputs.addAll(Arrays.asList(recipe.mInputs));
                 else check(recipe.mFluidInputs[0].amount==1_000_000,"foundation per-cell bill exact");
             }
-            check(stages.equals(Set.of("build_0","build_1","build_2")),"three stages per released machine");
+            check(stages.equals(Set.of("build_0","build_1","build_2","build_3","build_4")),"foundation plus all four paid voxel stages");
+            for(int stage=1;stage<=4;stage++) {
+                final int currentStage=stage;
+                List<CriticalGeometry.Voxel> group=paid.stream().filter(v->v.stage==currentStage).toList();
+                List<ItemStack> actual=new ArrayList<>();
+                for(GTRecipe entry:CriticalRecipeMaps.construction.getAllRecipes()) {
+                    var info=CriticalRecipeMaps.displayInfo(entry);
+                    if(info.kind==kind&&info.constructionStage()==stage&&entry.mOutputs[0].getItem()!=Items.diamond)
+                        actual.addAll(Arrays.asList(entry.mInputs));
+                }
+                check(totals(actual).equals(totals(Arrays.asList(bill.costs(group,0,group.size())))),
+                    "stage bill equals frozen production economy " + kind + " stage " + stage);
+            }
             check(totals(inputs).equals(totals(Arrays.asList(bill.demand()))),"all page inputs exactly equal frozen whole-job demand "+kind);
         }
     }
@@ -141,15 +143,15 @@ class CriticalNEICatalogRuntime {
         Set<String> unique = new HashSet<>();
         for (var p : positions) {
             int x=p.x-5,y=p.y-11;
-            check(x >= 8 && x+18 <= 137 && y >=57 && y+18 <=129, "construction grid bounds");
+            check(x >= 8 && x+18 <= 136 && y >=62 && y+18 <=102, "construction grid bounds");
             check(unique.add(x+":"+y), "unique native hit box");
         }
-        check(frontend.getItemOutputPositions(1).get(0).x-5 == 147, "separate clickable product");
+        check(frontend.getItemOutputPositions(1).get(0).x-5 == 142, "separate clickable product");
         Fluid fluid = new Fluid("nei_contract"); FluidRegistry.registerFluid(fluid);
         for (CriticalMachineKind kind : CriticalMachineKind.releasedValues()) {
             GTRecipe recipe = GTRecipeBuilder.builder().fluidInputs(new FluidStack(fluid, 1))
                 .duration(31).eut(480).build().orElseThrow();
-            String op = kind == CriticalMachineKind.SOLAR ? "solar_fluid" : kind.key;
+            String op = kind == CriticalMachineKind.SOLAR ? "solar_water" : kind.key;
             CriticalRecipeMaps.addDisplayRecipe(kind, recipe, op, BigInteger.valueOf(500), 2);
             check(recipe.mFakeRecipe && !recipe.mHidden && recipe.mEUt==0, "fake zero-filter entry " + kind);
             check(recipe.mDuration==31, "native runtime timing preserved " + kind);
@@ -174,6 +176,7 @@ class CriticalNEICatalogRuntime {
         check(!(Boolean)filter.invoke(null,fusion), "native fake recipe excluded");
         fusion.mFakeRecipe=false;fusion.mDuration=0;
         check(!(Boolean)filter.invoke(null,fusion), "zero duration excluded");
+        showcaseTemplate();
         fullConstruction();
         System.out.println("PASS NEI catalog " + checks + " checks; "
             + (expectedJar == null ? "source overlay" : "candidate jar-only") + " GT205; no live client");

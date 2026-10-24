@@ -2611,7 +2611,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         pendingFluids = new FluidStack[0];
         CriticalRenderAnchors.remove(this);
         chunkLoading.release(host);
-        if (foundationRequired) data().discardIncompleteFoundations(loomChunks());
+        if (foundationRequired) data().discardIncompleteFoundations(structureId, loomChunks());
         data().release(structureId);
         state = 0;
         invalidateStructure();

@@ -3629,7 +3629,6 @@ gtsr.critical.management_hint=Right-click the controller with a Mechanical Termi
 gtsr.critical.fluid_hint=Use standard GT fluid hatches to fill and drain.
 gt.blockmachines.gtsr.critical.loom.name=Mimetic Loom
 gtsr.recipe.critical.loom=Build Machines · Mimetic Loom
-gtsr.recipe.critical.showcase=Animated Miniatures · Critical Machines
 gt.blockmachines.gtsr.critical.solar.name=Dimensional Irradiance Coupling Boiler
 gtsr.critical.kind.solar=Dimensional Irradiance Coupling Boiler
 gtsr.recipe.critical.solar=Dimensional Irradiance Coupling Boiler
@@ -4635,15 +4634,7 @@ gtsr.tooltip.machine.compact.battery.parameters=%d t cycle; shared base heat Q =
 gtsr.tooltip.machine.compact.battery.economy=Economy 1:1:1: up to %,d wireless EU/cycle at matched full load
 gtsr.tooltip.machine.compact.battery.heavy=Heavy 1:1:4: up to %,d wireless EU/cycle at matched full load
 
-gtsr.critical.nei.showcase.structure=STRUCTURE / ANIMATED MINIATURE
-gtsr.critical.nei.showcase.demo_only=Schematic miniature based on the real structure; not complete geometry or a live site.
 gtsr.critical.nei.showcase.reference=Reference: T3 / 8 parallel plugins / geometry v2 / layout 31.
-gtsr.critical.nei.showcase.preview_legend=Steel/copper forms and moving parts use low-complexity schematic geometry.
-gtsr.critical.nei.showcase.preview_ports=Ports are illustrative; validate real hatches and orientation on site.
-gtsr.critical.nei.showcase.demo_badge=MINIATURE / FIXED VIEW
-gtsr.critical.nei.showcase.loading=Preparing model…
-gtsr.critical.nei.showcase.simplified=Simplified structure diagram
-gtsr.critical.nei.showcase.more=… Hover a stack for full details
 gtsr.critical.nei.showcase.details=Full engineering notes:
 gtsr.critical.ui.materials.omitted=%s more rows omitted; inspect the actual hatches.
 gtsr.critical.ui.materials.nbt_omitted=NBT identity details unavailable
@@ -4656,4 +4647,64 @@ gtsr.critical.ui.build_context=Build structure
 gtsr.critical.ui.resume_context=Resume work
 gtsr.critical.ui.action.unavailable.running=Work is enabled; follow the next action to resolve the blocker.
 
-# Critical read-only miniature and receiving-client presentation
+
+# Native-scale critical engineering cards
+gtsr.critical.nei.card.footer=Guide %s/%s - native R/U
+gtsr.critical.nei.card.build.title=LOOM / STAGE BILL
+gtsr.critical.nei.card.kind.solar=Dimensional irradiator
+gtsr.critical.nei.card.kind.turbine=Critical turbine
+gtsr.critical.nei.card.kind.sun=Artificial star
+gtsr.critical.nei.card.kind.battery=Chemical battery
+gtsr.critical.nei.card.build.stage.0=Foundation cells
+gtsr.critical.nei.card.build.stage.1=Base / lower
+gtsr.critical.nei.card.build.stage.2=Base / middle
+gtsr.critical.nei.card.build.stage.3=Base / top + plugins
+gtsr.critical.nei.card.build.stage.4=Machine + equipment
+gtsr.critical.nei.card.build.footer=Ref T3/8P - bill %s/%s
+gtsr.critical.nei.card.build.body.foundation=Per cell; 16 cells/chunk.|1,000,000 L concrete/cell.|UHV 1A: 400t; cure 72000s.|Cured cells are reusable.
+gtsr.critical.nei.card.build.body.physical=Exact shells + equipment.|All bill pages required.|Round-paid; progress kept.|Load, power and supplies.
+gtsr.critical.nei.card.solar_water.title=IRRADIATION / WATER
+gtsr.critical.nei.card.solar_salt.title=IRRADIATION / SALT
+gtsr.critical.nei.card.solar_dust.title=IRRADIATION / DUST
+gtsr.critical.nei.card.solar_water.section.0=01 Water > steam / ratio
+gtsr.critical.nei.card.solar_water.section.1=01 Water / batch rules
+gtsr.critical.nei.card.solar_salt.section.0=02 Cold > hot salt / ratio
+gtsr.critical.nei.card.solar_salt.section.1=02 Salt / batch rules
+gtsr.critical.nei.card.solar_dust.section.0=03 Dust > irradiated dust
+gtsr.critical.nei.card.solar_dust.section.1=03 Dust / shared rules
+gtsr.critical.nei.card.solar_water.body.0=Stacks show ratios only.|Normal: 1 water > 160 steam|Dense: 25 water > 4 steam|Water stock: log scaling|Then dimension Dyson factor
+gtsr.critical.nei.card.solar_water.body.1=Water / salt / dust run|together, every 400 ticks.|Water and salt scale apart.|No EU cost or generation.|Locks dimension to night.
+gtsr.critical.nei.card.solar_salt.body.0=Stacks show ratios only.|Cold solar salt > hot salt|1 litre in = 1 litre out|Salt stock: log scaling|Then dimension Dyson factor
+gtsr.critical.nei.card.solar_salt.body.1=Water / salt / dust run|together, every 400 ticks.|Water and salt scale apart.|No EU cost or generation.|Locks dimension to night.
+gtsr.critical.nei.card.solar_dust.body.0=1 source dust > 1 product|Both dusts share a pool:|256 parallels / 400 ticks|No EU cost or generation.|Click stacks for recipes.
+gtsr.critical.nei.card.solar_dust.body.1=Water / salt / dust run|together, every 400 ticks.|Dyson scales water + salt.|Dust uses its shared pool.|Locks dimension to night.
+gtsr.ammonia.output_ports=Ammonia and superheated steam use separate outputs
+gtsr.ammonia.output_ports.steam=Steam: pressure hatch or output filtered to superheated steam
+gtsr.critical.nei.card.turbine.title=TURBINE / HEAT CYCLE
+gtsr.critical.nei.card.turbine.section.0=Steam > water + wireless EU
+gtsr.critical.nei.card.turbine.section.1=Heat ratchet / 1x to 20x
+gtsr.critical.nei.card.turbine.body.0=Stacks show return ratios.|Base: %1$s EU|All six steams / 400 ticks|EU to owner wireless team|Water fractions carry over.
+gtsr.critical.nei.card.turbine.body.1=Efficiency: 100%% to 2000%%|Heat >110%%: gain 0.1x|Heat <90%%: lose 0.1x|Idle: -0.1x / 400 loaded t|Heat vs previous cycle
+gtsr.critical.nei.card.sun.title=ARTIFICIAL STAR / FUSION
+gtsr.critical.nei.card.sun.section.0=01 Cold start / ignition
+gtsr.critical.nei.card.sun.section.1=02 Hold / running power
+gtsr.critical.nei.card.sun.section.2=03 Current fusion recipe
+gtsr.critical.nei.card.sun.state.0=Ignite
+gtsr.critical.nei.card.sun.state.1=Hold
+gtsr.critical.nei.card.sun.state.2=Fuse
+gtsr.critical.nei.card.sun.body.0=Cold start: 1e15 EU|Ignition transition: 200t|Real input power required.|Output space must be ready.|Ignite before fusion.
+gtsr.critical.nei.card.sun.body.1=Hold: 1,000,000 EU/t|Reserve / grace: 1200t|Run: 1M+9M*sqrt(n/8196)|Unit: EU/t; n = parallels|Input power limits n.
+gtsr.critical.nei.card.sun.body.2=Stacks are per parallel.|This recipe: %3$s ticks|Max 8196 parallels|Time = ceil(native / 16)|Only native MkV capability
+gtsr.critical.nei.card.solar.lane.0=Water
+gtsr.critical.nei.card.solar.lane.1=Salt
+gtsr.critical.nei.card.solar.lane.2=Dust
+gtsr.critical.nei.card.battery.title=CHEMICAL / HEAT SPECTRA
+gtsr.critical.nei.card.battery.section.0=01 Fuel / paid heat
+gtsr.critical.nei.card.battery.section.1=02 Ratio windows
+gtsr.critical.nei.card.battery.section.2=03 Overdrive / normal
+gtsr.critical.nei.card.battery.body.0=This fuel: spectrum %2$s|Base heat: %1$s EU/L|Four windows / 400 ticks|Ratios use paid heat.|Unused heat carries over.
+gtsr.critical.nei.card.battery.body.1=Spectrum order: 1 : 2 : 3|Dual 1:1:0; cap Q; x8|Economy 1:1:1; cap Q; x20|Q = 167,772,160 base EU|EU to owner wireless team
+gtsr.critical.nei.card.battery.body.2=Overdrive 1:1:4; cap 4Q; x8|Normal: any mix; cap Q; x1|Q = 167,772,160 base EU|Leftover heat stays paid.|EU to owner wireless team
+gtsr.ammonia.nominal_conversion=Nominal conversion
+gtsr.ammonia.parallel_limit=Catalyst limit
+gtsr.ammonia.pending_policy=Protected superheated steam backlog is temporary and is lost on unload.

@@ -1,5 +1,20 @@
 # 专用 UI 事件图库
 
+## v2.0.10 原生伪 NEI
+
+`prepare_nei_v2010_gallery.py` 准备 `build/nei-v2010-qa`，不启动游戏。`UiGalleryBatchV2010` 通过公开 NEI map 入口打开真实 GT handler，再按 `DisplayInfo.kind/operation/page/pages` 选择已注册配方。正常动画与低动效各保留两个自然 draw tick 时间点；同 JVM 通过真实语言管理器和资源重载切换英文。无世界微缩渲染器探针、业务交易或施工。
+
+原生栈核验使用真实 recipe `PositionedStack` 坐标命中实际 NEI slot，并调用原生物品/流体 tooltip 生成链和 NEI `drawPagedTooltip`。这是合成坐标的真实槽与 tooltip 绘制证据，不宣称物理鼠标 hover。R/U 对应公开 recipe/usage 查询使用同一个实际 cached stack；实际 handler ID 保存在收据，不宣称物理按键通过。
+
+生产候选冻结后，只启动一个 owned 客户端，必须附 `--hidden-desktop --heap-gib 4 --reserve-gib 2`；使用既有 `build/client-testlab-mui2-v12138`、全新 run ID 和正常 `finish` 收尾。`UiGalleryBatchV209` 现只保留 C08/history/remote；`prepare_v209_gallery.py` 生成两项 `gallery-v209-history.json`。旧运行归档保留，旧微缩计划不能对新候选执行。
+
+```powershell
+python -X utf8 tools/testlab/client_qa/prepare_nei_v2010_gallery.py
+python -X utf8 tools/testlab/client_qa/compile.py --workspace build/nei-v2010-qa --client-sandbox build/client-testlab-mui2-v12138
+# 收到冻结候选后才运行；本命令不属于准备步骤。
+python -X utf8 tools/testlab/client_qa/run.py --workspace build/nei-v2010-qa --client-sandbox build/client-testlab-mui2-v12138 --jar <候选.jar> --mode gallery-batch --plan build/nei-v2010-qa/gallery-nei-v2010.json --run <唯一ID> --language zh_CN --hidden-desktop --heap-gib 4 --reserve-gib 2 --deadline 900
+```
+
 ## v2.0.8 有限抽样
 
 `prepare_v208_gallery.py` 仅准备 `build/v208-ui-qa/gallery-v208-13.json` 与既有 owned 离线启动描述，不启动游戏。清单只使用 Critical 当前三页（0/1/2）：织机首页、展开账、运行、库存、Sun 运行、narrow 滚动共 6 张；NEI 建设/Sun/化学目录 3 张；真实历史工厂 1 张及真实远程 Sun 1 张；默认/Shift 生产文案的真实字体 renderproof 2 张。旧全量四页清单不作为本轮输入。

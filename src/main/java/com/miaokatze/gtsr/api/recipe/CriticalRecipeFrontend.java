@@ -46,22 +46,22 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
     public List<Pos2d> getItemInputPositions(int count) {
         // The superclass builds its position suppliers before this.construction is assigned.
         // Suppliers are evaluated later, after frontend construction has completed.
-        return construction ? grid(count, 7, 9, 57) : row(count, 22, 35);
+        return construction ? grid(count, 6, 8, 62) : row(count, 10, 40);
     }
 
     @Override
     public List<Pos2d> getItemOutputPositions(int count) {
-        return row(count, construction ? 147 : 140, 35);
+        return row(count, 142, 40);
     }
 
     @Override
     public List<Pos2d> getFluidInputPositions(int count) {
-        return row(count, construction ? 147 : 13, construction ? 59 : 35);
+        return row(count, construction ? 142 : 10, construction ? 66 : 40);
     }
 
     @Override
     public List<Pos2d> getFluidOutputPositions(int count) {
-        return row(count, 140, 35);
+        return row(count, 142, 40);
     }
 
     private static List<Pos2d> row(int count, int x, int y) {
@@ -70,7 +70,8 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
 
     private static List<Pos2d> grid(int count, int columns, int x, int y) {
         List<Pos2d> positions = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) positions.add(new Pos2d(x + i % columns * 18 + 5, y + i / columns * 18 + 11));
+        // GT205 adds WINDOW_OFFSET=(-5,-11) to these suppliers. Native stack is slot+(1,1).
+        for (int i = 0; i < count; i++) positions.add(new Pos2d(x + i % columns * 22 + 5, y + i / columns * 22 + 11));
         return positions;
     }
 
@@ -97,7 +98,7 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
         if (info != null) {
             tip.add(CriticalRecipeMaps.text("showcase.details"));
             tip.addAll(CriticalRecipeMaps.description(recipe.mRecipe));
-            if (info.construction() || info.showcase()) tip.add(CriticalRecipeMaps.text("showcase.reference"));
+            if (info.construction()) tip.add(CriticalRecipeMaps.text("showcase.reference"));
         }
         return tip;
     }

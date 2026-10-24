@@ -20,16 +20,12 @@ import gregtech.api.util.GTRecipe;
 /** Read-only NEI catalogues. Every entry is fake; custom runtimes never execute these maps. */
 public final class CriticalRecipeMaps {
 
-    public static final int CONSTRUCTION_PAGE_SIZE = 28;
+    public static final int CONSTRUCTION_PAGE_SIZE = 12;
     private static final EnumMap<CriticalMachineKind, RecipeMap<RecipeMapBackend>> MAPS = new EnumMap<>(
         CriticalMachineKind.class);
     private static final List<DisplayInfo> DISPLAY_INFO = new ArrayList<>();
     public static final RecipeMap<RecipeMapBackend> construction = displayBuilder("gtsr.recipe.critical.loom")
         .maxIO(CONSTRUCTION_PAGE_SIZE, 1, 1, 0)
-        .frontend((ui, nei) -> new CriticalRecipeFrontend(ui, nei, true))
-        .build();
-    public static final RecipeMap<RecipeMapBackend> showcase = displayBuilder("gtsr.recipe.critical.showcase")
-        .maxIO(0, 1, 0, 0)
         .frontend((ui, nei) -> new CriticalRecipeFrontend(ui, nei, true))
         .build();
     public static final RecipeMap<RecipeMapBackend> stellarIrradiation = displayBuilder(
@@ -56,15 +52,18 @@ public final class CriticalRecipeMaps {
     public static void addDisplayRecipe(CriticalMachineKind kind, GTRecipe recipe, String operation, BigInteger baseEu,
         int spectrum) {
         RecipeMap<RecipeMapBackend> map = operation.equals("solar_dust") ? stellarIrradiation : forKind(kind);
-        register(map, recipe, new DisplayInfo(kind, operation, baseEu, spectrum, 0, 1));
+        int pages = switch (operation) {
+            case "sun", "battery" -> 3;
+            default -> 2;
+        };
+        for (int page = 0; page < pages; page++) register(
+            map,
+            page == 0 ? recipe : recipe.copy(),
+            new DisplayInfo(kind, operation, baseEu, spectrum, page, pages));
     }
 
     public static void addConstruction(GTRecipe recipe, CriticalMachineKind kind, int stage, int page, int pages) {
         register(construction, recipe, new DisplayInfo(kind, "build_" + stage, BigInteger.ZERO, -1, page, pages));
-    }
-
-    public static void addShowcase(GTRecipe recipe, CriticalMachineKind kind) {
-        register(showcase, recipe, new DisplayInfo(kind, "showcase", BigInteger.ZERO, -1, 0, 1));
     }
 
     private static void register(RecipeMap<RecipeMapBackend> map, GTRecipe recipe, DisplayInfo info) {
@@ -90,18 +89,12 @@ public final class CriticalRecipeMaps {
         DisplayInfo info = displayInfo(recipe);
         if (info == null) return lines;
         switch (info.operation) {
-            case "showcase" -> {
-                lines.add(text("showcase.demo_only"));
-                lines.add(text("showcase.reference"));
-                lines.add(text("showcase.preview_legend"));
-                lines.add(text("showcase.preview_ports"));
-            }
             case "build_0" -> {
                 lines.add(text("showcase.foundation_bill"));
                 lines.add(text("showcase.foundation_time"));
                 lines.add(text("showcase.foundation_reuse"));
             }
-            case "build_1", "build_2" -> {
+            case "build_1", "build_2", "build_3", "build_4" -> {
                 lines.add(formatted("showcase.page", info.page + 1, info.pages));
                 lines.add(text("showcase.physical_bill"));
                 lines.add(text("showcase.build_pause"));
@@ -132,9 +125,9 @@ public final class CriticalRecipeMaps {
                 lines.add(text("showcase.wireless"));
             }
             default -> {
-                lines.add(text("showcase.solar_water"));
-                lines.add(text("showcase.solar_salt"));
-                lines.add(formatted("showcase.solar_dust", CriticalEnergyMath.IRRADIATION_PARALLEL));
+                if (info.operation.equals("solar_water")) lines.add(text("showcase.solar_water"));
+                else if (info.operation.equals("solar_salt")) lines.add(text("showcase.solar_salt"));
+                else lines.add(formatted("showcase.solar_dust", CriticalEnergyMath.IRRADIATION_PARALLEL));
                 lines.add(text("showcase.solar_factor"));
                 lines.add(text("showcase.solar_cycle"));
                 lines.add(text("showcase.solar_ratio"));
@@ -147,7 +140,8 @@ public final class CriticalRecipeMaps {
         return RecipeMapBuilder.of(name)
             .minInputs(0, 0)
             .dontUseProgressBar()
-            .neiTransferRect(59, 46, 75, 18)
+            .neiRecipeComparator(java.util.Comparator.comparingInt(recipe -> recipe.mSpecialValue))
+            .neiTransferRect(63, 49, 71, 16)
             .neiRecipeBackgroundSize(170, 174)
             .neiRecipeBackgroundOffset(5, 11)
             .neiHandlerInfo(
@@ -191,8 +185,8 @@ public final class CriticalRecipeMaps {
             return operation.startsWith("build_");
         }
 
-        public boolean showcase() {
-            return operation.equals("showcase");
+        public int constructionStage() {
+            return construction() ? Integer.parseInt(operation.substring(6)) : -1;
         }
     }
 }

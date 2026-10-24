@@ -8,6 +8,7 @@ import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularui.common.widget.ProgressBar;
+import com.miaokatze.gtsr.common.machine.GeothermalByproducts;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.loader.recipes.ProsperityAirCompressorRecipes;
 
@@ -85,7 +86,7 @@ public class GTSRRecipeMaps {
 
     private static final INEISpecialInfoFormatter GEOTHERMAL_CHIP_FORMATTER = recipeInfo -> {
         List<String> result = new ArrayList<>(DefaultSpecialValueFormatter.INSTANCE.format(recipeInfo));
-        if (recipeInfo.recipe.mOutputs != null && recipeInfo.recipe.mOutputs.length > 8) {
+        if (recipeInfo.recipe.mSpecialValue == GeothermalByproducts.CHIP_REQUIRED) {
             result.add(
                 EnumChatFormatting.DARK_AQUA
                     + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_required"));

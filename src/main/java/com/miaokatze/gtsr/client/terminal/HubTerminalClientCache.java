@@ -83,6 +83,11 @@ public final class HubTerminalClientCache {
 
     private HubTerminalClientCache() {}
 
+    public static void clear() {
+        drilling = null;
+        cache = null;
+    }
+
     /** @return 当前钻井枢纽快照（无回包/已失效为 null；GUI 须再验锚点） */
     public static DrillingSnapshot drillingSnapshot() {
         return drilling;

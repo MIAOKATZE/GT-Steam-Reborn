@@ -14,6 +14,7 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.machine.GeothermalByproducts;
 
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
@@ -45,12 +46,12 @@ public final class DisplayRecipes {
                 GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Tin, 1),
                 GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Silver, 1),
                 GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Gold, 1))
-            .outputChances(4500, 1500, 1000, 800, 600, 200, 100, 50, 35)
+            .outputChances(GeothermalByproducts.chances(false))
             .duration(0)
             .eut(0)
             .addTo(geothermalSteamBoilerRecipes);
 
-        // 有芯片配方（额外产出金红石粉和白钨矿粉）
+        // 有芯片配方（额外产出磷粉、金红石粉和白钨矿粉）
         GTValues.RA.stdBuilder()
             .fluidInputs(new FluidStack(net.minecraftforge.fluids.FluidRegistry.getFluid("lava"), 1000))
             .itemOutputs(
@@ -66,7 +67,8 @@ public final class DisplayRecipes {
                 GTOreDictUnificator.get(OrePrefixes.dust, Materials.Phosphorus, 1),
                 GTOreDictUnificator.get(OrePrefixes.dust, Materials.Rutile, 1),
                 GTOreDictUnificator.get(OrePrefixes.dust, Materials.Scheelite, 1))
-            .outputChances(4500, 1500, 1000, 800, 600, 200, 100, 50, 35, 10, 5, 2)
+            .outputChances(GeothermalByproducts.chances(true))
+            .specialValue(GeothermalByproducts.CHIP_REQUIRED)
             .duration(0)
             .eut(0)
             .addTo(geothermalSteamBoilerRecipes);

@@ -90,24 +90,15 @@ public final class CriticalMachineRecipes {
                 case BATTERY -> GTSRItemList.CriticalBattery.get(1);
                 default -> throw new IllegalArgumentException("Unreleased construction " + kind);
             };
-            // A separate fake catalogue entry keeps the complete model clear of all 28 bill slots.
-            CriticalRecipeMaps.addShowcase(
-                GTValues.RA.stdBuilder()
-                    .itemOutputs(controller.copy())
-                    .duration(400)
-                    .eut(0)
-                    .build()
-                    .orElseThrow(() -> new IllegalStateException("Invalid critical showcase " + kind)),
-                kind);
             constructionPages(
                 kind,
                 0,
                 controller,
                 CriticalFoundationMaterials.items(),
                 new FluidStack[] { CriticalFoundationMaterials.fluid(1_000_000) });
-            for (int stage = 1; stage <= 2; stage++) {
+            for (int stage = 1; stage <= 4; stage++) {
                 List<CriticalGeometry.Voxel> group = new ArrayList<>();
-                for (CriticalGeometry.Voxel voxel : paid) if ((voxel.stage < 4) == (stage == 1)) group.add(voxel);
+                for (CriticalGeometry.Voxel voxel : paid) if (voxel.stage == stage) group.add(voxel);
                 constructionPages(kind, stage, controller, economy.costs(group, 0, group.size()), new FluidStack[0]);
             }
         }
@@ -137,7 +128,7 @@ public final class CriticalMachineRecipes {
             steam.amount = mode < 3 ? 160 : 4;
             add(
                 CriticalMachineKind.SOLAR,
-                "solar_fluid",
+                "solar_water",
                 new ItemStack[0],
                 new ItemStack[0],
                 new FluidStack[] { GTModHandler.getDistilledWater(mode < 3 ? 1 : 25) },
@@ -146,7 +137,7 @@ public final class CriticalMachineRecipes {
         }
         add(
             CriticalMachineKind.SOLAR,
-            "solar_fluid",
+            "solar_salt",
             new ItemStack[0],
             new ItemStack[0],
             new FluidStack[] { MaterialMisc.SOLAR_SALT_COLD.getFluidStack(1) },

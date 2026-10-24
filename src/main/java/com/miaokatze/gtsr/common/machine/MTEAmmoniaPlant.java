@@ -40,29 +40,30 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEAmmoniaPlantGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
-import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IOutputHatch;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEHatch;
-import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.FluidEjectionHelper;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
+import gregtech.common.tileentities.machines.outputme.MTEHatchOutputME;
 
 public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> implements ISurvivalConstructable {
 
@@ -99,8 +100,11 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
     public int mParallelCount = 64;
     public long mRealtimeSteamCost = 0;
     public long mRealtimeSteamOutput = 0;
-    // v1.10.61：超热蒸汽待推送余量（voidingMode.protectFluid=true 限流：输出仓放不下时在此累积，
-    // 空间足后由 onRunningTick/onPostTick 的每 tick 推送自动补推；不持久化）
+    // Heat is integrated in twentieths so only actually paid ticks contribute to preheating.
+    private int mHeatRemainder;
+    // Main recipe output/duration and the fixed-load thermal charge must use the same batch profile.
+    private long mBatchExtraSteamPerSec = -1L;
+    // Protected thermal overflow is temporary: later paid ticks retry it; it is not persisted across unload.
     private long gtsr$pendingSuperheatedSteam = 0L;
 
     private int mCasingCount = 0;
@@ -139,16 +143,11 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
             () -> mRealtimeSteamCost);
         registerEntry(
             "hp_steam",
-            "gtsr.gui.ammonia_plant.hp_steam",
+            "gtsr.ammonia.nominal_conversion",
             "%,.0f L/s",
             EnumChatFormatting.LIGHT_PURPLE,
             () -> mRealtimeSteamOutput);
-        registerEntry(
-            "parallel",
-            "gtsr.gui.ammonia_plant.parallel",
-            "%.0f",
-            EnumChatFormatting.GOLD,
-            () -> mParallelCount);
+        registerEntry("parallel", "gtsr.ammonia.parallel_limit", "%.0f", EnumChatFormatting.GOLD, () -> mParallelCount);
     }
 
     @Override
@@ -415,6 +414,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
             mEfficiency = 10000;
             mEfficiencyIncrease = 10000;
             mMaxProgresstime = mReactionTimeSec * 20;
+            mBatchExtraSteamPerSec = (long) mParallelCount * EXTRA_STEAM_FORMULA_CONSTANT / mReactionTimeSec;
             setEnergyUsage(processingLogic);
             mOutputItems = processingLogic.getOutputItems();
             mOutputFluids = outputFluids;
@@ -432,21 +432,18 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
         if (!getBaseMetaTileEntity().isServerSide()) return true;
 
         if (mHeatLevel >= HEAT_MAX && mMaxProgresstime > 0) {
-            // v1.10.8：原子消耗（先模拟后实扣，蒸汽不足不再损失炼油气）
-            if (!consumeFuelAndSteam(MAINTAIN_GAS_PER_TICK, MAINTAIN_STEAM_PER_TICK)) {
+            // Legacy active saves have no batch charge; derive it once from their restored catalyst configuration.
+            if (mBatchExtraSteamPerSec < 0) {
+                mBatchExtraSteamPerSec = (long) mParallelCount * EXTRA_STEAM_FORMULA_CONSTANT / mReactionTimeSec;
+            }
+            long extraSteamPerSec = mBatchExtraSteamPerSec;
+            int steamPerTick = MAINTAIN_STEAM_PER_TICK + (int) (extraSteamPerSec / 20);
+            // Probe the whole running tick before paying either resource, not base and reaction steam separately.
+            if (!consumeFuelAndSteam(MAINTAIN_GAS_PER_TICK, steamPerTick)) {
+                mRealtimeSteamCost = 0;
+                mRealtimeSteamOutput = 0;
                 stopMachine();
                 return false;
-            }
-            pushSuperheatedSteam(MAINTAIN_STEAM_PER_TICK);
-
-            long extraSteamPerSec = (long) mParallelCount * EXTRA_STEAM_FORMULA_CONSTANT / mReactionTimeSec;
-            long extraSteamPerTick = extraSteamPerSec / 20;
-            if (extraSteamPerTick > 0) {
-                if (!consumeSteam((int) Math.min(extraSteamPerTick, Integer.MAX_VALUE))) {
-                    stopMachine();
-                    return false;
-                }
-                pushSuperheatedSteam((int) Math.min(extraSteamPerTick, Integer.MAX_VALUE));
             }
 
             mRealtimeSteamCost = MAINTAIN_STEAM_PER_SEC + extraSteamPerSec;
@@ -468,7 +465,6 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
             mStartUpCheck--;
         }
 
-        boolean isSecondTick = aTick % 20 == 0;
         boolean inGracePeriod = mStartUpCheck > 0;
 
         if (mMachine && aBaseMetaTileEntity.isAllowedToWork()) {
@@ -481,17 +477,13 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
 
                 if (mHeatLevel < HEAT_MAX) {
                     if (consumeFuelAndSteam(PREHEAT_GAS_PER_TICK, PREHEAT_STEAM_PER_TICK)) {
-                        pushSuperheatedSteam(PREHEAT_STEAM_PER_TICK);
-                        if (isSecondTick) {
-                            mHeatLevel = Math.min(HEAT_MAX, mHeatLevel + HEAT_INCREASE_PER_SEC);
-                        }
+                        adjustHeat(HEAT_INCREASE_PER_SEC);
                         mRealtimeSteamCost = PREHEAT_STEAM_PER_SEC;
                         mRealtimeSteamOutput = PREHEAT_STEAM_PER_SEC;
                         consumed = true;
                     }
                 } else {
                     if (consumeFuelAndSteam(MAINTAIN_GAS_PER_TICK, MAINTAIN_STEAM_PER_TICK)) {
-                        pushSuperheatedSteam(MAINTAIN_STEAM_PER_TICK);
                         mRealtimeSteamCost = MAINTAIN_STEAM_PER_SEC;
                         mRealtimeSteamOutput = MAINTAIN_STEAM_PER_SEC;
                         consumed = true;
@@ -499,9 +491,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
                 }
 
                 if (!consumed) {
-                    if (mHeatLevel > 0 && isSecondTick) {
-                        mHeatLevel = Math.max(0, mHeatLevel - HEAT_DECREASE_PER_SEC);
-                    }
+                    adjustHeat(-HEAT_DECREASE_PER_SEC);
                     mRealtimeSteamCost = 0;
                     mRealtimeSteamOutput = 0;
                 }
@@ -510,28 +500,26 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
             if (mMaxProgresstime > 0) {
                 stopMachine();
             }
-            if (mHeatLevel > 0 && isSecondTick) {
-                mHeatLevel = Math.max(0, mHeatLevel - HEAT_DECREASE_PER_SEC);
-            }
+            adjustHeat(-HEAT_DECREASE_PER_SEC);
             mRealtimeSteamCost = 0;
             mRealtimeSteamOutput = 0;
-        } else if (!mMachine && mHeatLevel > 0 && isSecondTick && !inGracePeriod) {
-            mHeatLevel = Math.max(0, mHeatLevel - HEAT_DECREASE_PER_SEC);
+        } else if (!mMachine && !inGracePeriod) {
+            adjustHeat(-HEAT_DECREASE_PER_SEC);
             mRealtimeSteamCost = 0;
             mRealtimeSteamOutput = 0;
         }
     }
 
-    private boolean consumeSteam(int amount) {
-        FluidStack steam = Materials.Steam.getGas(amount);
-        // v1.10.60：窗口外 depleteInput 在 beta-1 + ME 仓会双扣，实扣改访问层跨仓取流
-        return GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, steam) >= amount;
+    private void adjustHeat(int twentieths) {
+        int heat = Math.max(0, Math.min(HEAT_MAX * 20, mHeatLevel * 20 + mHeatRemainder + twentieths));
+        mHeatLevel = heat / 20;
+        mHeatRemainder = heat % 20;
     }
 
     /**
-     * v1.10.8：原子消耗炼油气+蒸汽——先模拟两者均满足，再统一实扣。
-     * 原实现（onRunningTick/onPostTick 各处）先实扣炼油气再查蒸汽，
-     * 蒸汽不足时炼油气每 tick 净损失且持续重复。
+     * Require both full inputs before extraction and verify the actual receipts. This is not an atomic AE transaction:
+     * a network change may still cause a partial payment, which must never authorize heat or recipe progress.
+     * Convert only steam actually extracted, including a partial extraction before a failed tick.
      */
     private boolean consumeFuelAndSteam(int gasAmount, int steamAmount) {
         if (gasAmount > 0 && !hasRefineryGas(gasAmount)) return false;
@@ -540,14 +528,20 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
             && !GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, Materials.Steam.getGas(steamAmount))) {
             return false;
         }
-        if (gasAmount > 0) depleteRefineryGas(gasAmount);
-        if (steamAmount > 0) consumeSteam(steamAmount);
-        return true;
+        if (gasAmount > 0
+            && GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, Materials.Gas.getGas(gasAmount)) < gasAmount) {
+            return false;
+        }
+        int paidSteam = steamAmount > 0
+            ? GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, Materials.Steam.getGas(steamAmount))
+            : 0;
+        pushSuperheatedSteam(paidSteam);
+        return paidSteam == steamAmount;
     }
 
     private boolean hasMaintainInputs() {
         return hasRefineryGas(MAINTAIN_GAS_PER_TICK)
-            && depleteInput(Materials.Steam.getGas(MAINTAIN_STEAM_PER_TICK), true);
+            && GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, Materials.Steam.getGas(MAINTAIN_STEAM_PER_TICK));
     }
 
     // v1.9.39 修复：炼油气取流改用 GT5U 原生 depleteInput(FluidStack, boolean)。
@@ -561,92 +555,63 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
         return GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, Materials.Gas.getGas(amount));
     }
 
-    private boolean depleteRefineryGas(int amount) {
-        // v1.10.60：窗口外 depleteInput 在 beta-1 + ME 仓会双扣，实扣改访问层跨仓取流
-        return GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, Materials.Gas.getGas(amount)) >= amount;
+    /** True only for ports assigned to continuous thermal output, never the unfiltered recipe output fallback. */
+    private boolean isSuperheatedSteamPort(IOutputHatch hatch) {
+        if (hatch instanceof MTEPressureSteamOutputHatch) return true;
+        FluidStack steam = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
+        return steam != null && hatch.isFiltered() && hatch.isFilteredToFluid(GTUtility.FluidId.create(steam));
     }
 
-    /**
-     * v1.10.61：推送超热蒸汽（限流修复）——先补推 gtsr$pendingSuperheatedSteam 待推送余量再推新量；
-     * voidingMode.protectFluid=true（限流）时未放入输出仓的剩余量累计入 pending，输出空间足后由
-     * onRunningTick/onPostTick 的每 tick 调用自然补推（机器不停机）；false（允许销毁）保持原语义丢弃。
-     */
+    @Override
+    public List<IOutputHatch> getOutputHatches() {
+        List<IOutputHatch> hatches = new ArrayList<>(super.getOutputHatches());
+        hatches.removeIf(this::isSuperheatedSteamPort);
+        return hatches;
+    }
+
+    @Override
+    public boolean canDumpFluidToME(List<GTUtility.FluidId> outputs) {
+        // The upstream shortcut scans all mOutputHatches. Use the same primary set as precheck and delivery.
+        List<IOutputHatch> hatches = getOutputHatches();
+        for (GTUtility.FluidId output : outputs) {
+            boolean accepted = false;
+            for (IOutputHatch hatch : hatches) {
+                if (hatch instanceof MTEHatchOutputME me && me.hasPhysicalSpace()
+                    && !me.getCheckMode()
+                    && (!me.isFiltered() || me.isFilteredToFluid(output))) {
+                    accepted = true;
+                    break;
+                }
+            }
+            if (!accepted) return false;
+        }
+        return true;
+    }
+
+    /** Keep the full long balance; each call submits only one bounded native transaction. */
     private void pushSuperheatedSteam(int amount) {
         if (amount <= 0) return;
         FluidStack superheatedSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", amount);
         if (superheatedSteam == null) return;
-        // 合并一趟推送：pending 与新量同为超热蒸汽，先补旧余量再推新量（净效果与分两次推送等价）
         long total = gtsr$pendingSuperheatedSteam + amount;
-        gtsr$pendingSuperheatedSteam = 0;
-        int remaining = fillSuperheatedSteam(superheatedSteam, (int) Math.min(total, Integer.MAX_VALUE));
-        if (voidingMode.protectFluid && remaining > 0) {
-            gtsr$pendingSuperheatedSteam = remaining;
-        }
+        int requested = (int) Math.min(total, Integer.MAX_VALUE);
+        int remaining = fillSuperheatedSteam(superheatedSteam, requested);
+        long delivered = (long) requested - remaining;
+        gtsr$pendingSuperheatedSteam = voidingMode.protectFluid ? total - delivered : 0L;
     }
 
-    /**
-     * 两段式 fill 实推超热蒸汽到输出舱（锁定舱优先 → 蒸汽输出仓 → 通用仓），返回未放入的剩余量
-     * （v1.10.61 从原 pushSuperheatedSteam 抽出，返回值供限流累积）。
-     */
     private int fillSuperheatedSteam(FluidStack superheatedSteam, int amount) {
-        int remaining = amount;
-
-        // 锁定到过热蒸汽的输出舱优先（IFluidLockableMui2 在 beta-1/2 字节一致，安全可用）
-        List<MTEHatchOutput> lockedOutputHatches = new ArrayList<>();
-        for (MTEHatchOutput outputHatch : GTUtility.validMTEList(mOutputHatches)) {
-            if (outputHatch.isFluidLocked()) {
-                if (outputHatch.getLockedFluid() == null || superheatedSteam.getFluid()
-                    .equals(outputHatch.getLockedFluid())) {
-                    lockedOutputHatches.add(outputHatch);
-                }
-            }
+        List<IOutputHatch> hatches = new ArrayList<>();
+        for (IOutputHatch hatch : super.getOutputHatches()) {
+            if (isSuperheatedSteamPort(hatch)) hatches.add(hatch);
         }
-
-        // 优先填入锁定舱。注意：必须用 fill(FluidStack, boolean) 的 simulate→实填两段式，
-        // 不能调用 MTEHatchOutput.storePartial(FluidStack, boolean) 或 addOutputPartial(FluidStack)——
-        // 这两者及 IOutputHatch 接口是 GT5U 5.09.54（beta-2）新增，在 beta-1 (5.09.52) 运行时会导致
-        // NoSuchMethodError/NoClassDefFoundError 并在崩溃报告中被 ItemBlock 二次错误掩盖。
-        for (MTEHatchOutput outputHatch : lockedOutputHatches) {
-            if (remaining <= 0) break;
-            int filled = outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), remaining), false);
-            if (filled > 0) {
-                outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), filled), true);
-                remaining -= filled;
-            }
-        }
-
-        // 无锁定舱或锁定舱仍有余量：蒸汽输出仓优先（耐压蒸汽输出仓收蒸汽+超热蒸汽，
-        // 普通蒸汽输出仓 only 收蒸汽会被 fill 自动过滤）→ 其余输出仓顺序填充
-        // （替代 beta-2-only 的 addOutputPartial）
-        for (MTEHatchOutput outputHatch : GTUtility.validMTEList(mOutputHatches)) {
-            if (remaining <= 0) break;
-            if (outputHatch instanceof MTEPressureSteamOutputHatch || outputHatch instanceof MTESteamOutputHatch) {
-                int filled = outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), remaining), false);
-                if (filled > 0) {
-                    outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), filled), true);
-                    remaining -= filled;
-                }
-            }
-        }
-        // v1.10.8：回退段跳过"锁定其他流体"的通用输出仓——该仓同时是配方氨输出的目标仓，
-        // HP 蒸汽先占位会引发 VOID_NONE 下假性 FLUID_OUTPUT_FULL（机停）或 VOID_FLUID 下氨被销毁。
-        // 锁定语义明确（玩家指定用途），未锁定仓可自由填充。
-        for (MTEHatchOutput outputHatch : GTUtility.validMTEList(mOutputHatches)) {
-            if (remaining <= 0) break;
-            if (outputHatch instanceof MTEPressureSteamOutputHatch || outputHatch instanceof MTESteamOutputHatch) {
-                continue;
-            }
-            if (outputHatch.isFluidLocked() && (outputHatch.getLockedFluid() == null || !superheatedSteam.getFluid()
-                .equals(outputHatch.getLockedFluid()))) {
-                continue;
-            }
-            int filled = outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), remaining), false);
-            if (filled > 0) {
-                outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), filled), true);
-                remaining -= filled;
-            }
-        }
-        return remaining;
+        FluidStack remaining = superheatedSteam.copy();
+        remaining.amount = amount;
+        // GT205's helper applies filtering, canStoreFluid and ME transaction rules; direct storePartial uses raw fill.
+        FluidEjectionHelper helper = new FluidEjectionHelper(hatches, voidingMode.protectFluid);
+        helper.ejectStack(remaining);
+        helper.commit();
+        return remaining.amount;
     }
 
     @Override
@@ -654,6 +619,8 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
         super.saveNBTData(aNBT);
         aNBT.setInteger("mHeatLevel", mHeatLevel);
         aNBT.setInteger("mCatalystType", mCatalystType);
+        aNBT.setInteger("gtsrHeatRemainder", mHeatRemainder);
+        aNBT.setLong("gtsrBatchExtraSteamPerSec", mBatchExtraSteamPerSec);
     }
 
     @Override
@@ -661,6 +628,9 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
         super.loadNBTData(aNBT);
         mHeatLevel = aNBT.getInteger("mHeatLevel");
         mCatalystType = aNBT.getInteger("mCatalystType");
+        mHeatRemainder = Math.max(0, Math.min(19, aNBT.getInteger("gtsrHeatRemainder")));
+        mBatchExtraSteamPerSec = aNBT.hasKey("gtsrBatchExtraSteamPerSec") ? aNBT.getLong("gtsrBatchExtraSteamPerSec")
+            : -1L;
     }
 
     private String getStatusText() {
@@ -727,7 +697,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
                         + EnumChatFormatting.RESET))
             .widget(
                 new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.hp_steam")
+                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.ammonia.nominal_conversion")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
                         + NumberFormatUtil.formatNumber(mRealtimeSteamOutput)
@@ -735,7 +705,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
                         + EnumChatFormatting.RESET))
             .widget(
                 new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.parallel")
+                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.ammonia.parallel_limit")
                         + " "
                         + EnumChatFormatting.GOLD
                         + mParallelCount
@@ -796,7 +766,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
                 + EnumChatFormatting.RESET);
 
         info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.hp_steam")
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.ammonia.nominal_conversion")
                 + " "
                 + EnumChatFormatting.LIGHT_PURPLE
                 + NumberFormatUtil.formatNumber(mRealtimeSteamOutput)
@@ -804,8 +774,11 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
                 + EnumChatFormatting.RESET);
 
         info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
-                "gtsr.gui.parallel") + " " + EnumChatFormatting.GOLD + mParallelCount + EnumChatFormatting.RESET);
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.ammonia.parallel_limit")
+                + " "
+                + EnumChatFormatting.GOLD
+                + mParallelCount
+                + EnumChatFormatting.RESET);
 
         String catalystName = mCatalystType > 0
             ? EnumChatFormatting.GREEN
@@ -858,6 +831,9 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
                     + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc.7"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc_line_2"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc_line_3"))
+            .addInfo(StatCollector.translateToLocal("gtsr.ammonia.output_ports"))
+            .addInfo(StatCollector.translateToLocal("gtsr.ammonia.output_ports.steam"))
+            .addInfo(StatCollector.translateToLocal("gtsr.ammonia.pending_policy"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.preheat.1")

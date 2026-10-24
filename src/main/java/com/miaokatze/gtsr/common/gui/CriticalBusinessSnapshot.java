@@ -18,7 +18,6 @@ import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyRuntime;
-import com.miaokatze.gtsr.common.critical.CriticalLayoutDefinition;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.recipe.CriticalShellCatalog;
@@ -143,7 +142,8 @@ final class CriticalBusinessSnapshot {
                 .ordinal(), state.getParallelPlugins(), state.getSpeedPlugins(), state.getEfficiencyPlugins(),
                 state.getBatchProgress(), state.getBatchDuration(), state.getSteamMode(),
                 state.isLoomStructureValid() ? 1 : 0, state.canCancelLegacyStellarBatch() ? 1 : 0,
-                state.getGeometryVersion(), state.getV2LayoutRevision(), state.usesLegacyV2Geometry() ? 1 : 0 },
+                // Keep the version-2 wire width; the former model-layout fields are reserved.
+                state.getGeometryVersion(), 0, 0 },
             materials);
     }
 
@@ -258,15 +258,6 @@ final class CriticalBusinessSnapshot {
             } catch (NumberFormatException ignored) {}
         }
         return item == null ? id : item.getDisplayName();
-    }
-
-    CriticalLayoutDefinition layout() {
-        return CriticalLayoutDefinition.select(
-            configuration[9],
-            configuration[10],
-            configuration[11] != 0,
-            displayConfiguration.tier,
-            displayConfiguration.kind);
     }
 
     boolean hasSample() {
