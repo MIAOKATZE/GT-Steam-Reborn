@@ -8,12 +8,17 @@ import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.client.resources.IReloadableResourceManager;
 
 import org.lwjgl.opengl.GL11;
 
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.DisplayInfo;
+import com.miaokatze.gtsr.client.critical.CriticalMiniatureRenderer;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
+import com.miaokatze.gtsr.common.critical.CriticalPreviewDescriptor;
+import com.miaokatze.gtsr.common.critical.CriticalTier;
+import com.miaokatze.gtsr.config.Config;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -31,6 +36,12 @@ public final class CriticalNEIShowcase {
     private static String language = "";
 
     private CriticalNEIShowcase() {}
+
+    public static void registerReloadListener() {
+        if (Minecraft.getMinecraft()
+            .getResourceManager() instanceof IReloadableResourceManager resources)
+            resources.registerReloadListener(manager -> PAGES.clear());
+    }
 
     public static void background(float x, float y, float width, float height, float partialTicks) {
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
@@ -60,7 +71,8 @@ public final class CriticalNEIShowcase {
         try {
             GL11.glDisable(GL11.GL_LIGHTING);
             label(page.title, 8, 6, fit(page.title, .8f, 154), GOLD);
-            if (info.construction()) construction(info, page);
+            if (info.showcase()) showcase(info, page);
+            else if (info.construction()) construction(info, page);
             else runtime(info, page);
         } finally {
             GL11.glPopMatrix();
@@ -78,15 +90,15 @@ public final class CriticalNEIShowcase {
         if (cached != null) return cached;
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
         boolean construction = info.construction();
-        String title = CriticalRecipeMaps.text("showcase." + (construction ? "construction" : info.kind.key));
+        String title = CriticalRecipeMaps
+            .text("showcase." + (info.showcase() ? "structure" : construction ? "construction" : info.kind.key));
         List<String> lines = new ArrayList<>();
         for (String text : CriticalRecipeMaps.description(recipe))
-            for (Object wrapped : font.listFormattedStringToWidth(text, construction ? 210 : 202))
-                lines.add((String) wrapped);
+            for (Object wrapped : font.listFormattedStringToWidth(text, 202)) lines.add((String) wrapped);
         String[] phases = new String[3];
         for (int i = 0; i < phases.length; i++) phases[i] = CriticalRecipeMaps
             .text("showcase." + (construction ? "stage_" : info.kind.key + "_phase_") + i);
-        String caption = construction
+        String caption = construction || info.showcase()
             ? net.minecraft.util.StatCollector.translateToLocal("gtsr.critical.kind." + info.kind.key)
             : CriticalRecipeMaps.text("showcase.ratio");
         cached = new Page(title, caption, phases, lines.toArray(new String[0]));
@@ -103,12 +115,12 @@ public final class CriticalNEIShowcase {
         for (int i = 0; i < 3; i++) {
             int x = 8 + i * 53;
             rect(x, 22, x + 48, 32, i == stage ? COPPER : 0xFF17212A);
-            label(page.phases[i], x + 3, 24, .65f, i == stage ? 0xFF141D24 : INK);
+            label(shorten(page.phases[i], .75f, 43), x + 3, 24, .75f, i == stage ? 0xFF141D24 : INK);
             if (i < 2) rect(x + 48, 26, x + 53, 28, GOLD);
         }
-        label(page.caption, 9, 38, fit(page.caption, .7f, 132), INK);
+        label(shorten(page.caption, .75f, 132), 9, 38, .75f, INK);
         // An output slot remains a native NEI controller link; the product is the commissioned world structure.
-        int scan = GTNEIDefaultHandler.getDrawTicks() % 118;
+        int scan = Config.criticalPreviewReducedMotion ? 59 : GTNEIDefaultHandler.getDrawTicks() % 118;
         rect(9 + scan, 51, 10 + scan, 53, GOLD);
         miniature(info.kind, stage);
         rect(8, 129, 162, 130, COPPER);
@@ -138,7 +150,7 @@ public final class CriticalNEIShowcase {
             for (int yy = 91; yy <= 107; yy += 8) rect(146, yy, 162, yy + 5, body);
             rect(152, 89, 156, 113, EDGE);
         }
-        int scan = 86 + GTNEIDefaultHandler.getDrawTicks() % 37;
+        int scan = 86 + (Config.criticalPreviewReducedMotion ? 18 : GTNEIDefaultHandler.getDrawTicks() % 37);
         rect(143, scan, 165, scan + 1, CYAN);
     }
 
@@ -146,11 +158,11 @@ public final class CriticalNEIShowcase {
         for (int i = 0; i < 3; i++) {
             int x = 8 + i * 53;
             rect(x, 22, x + 48, 31, 0xFF17212A);
-            label(page.phases[i], x + 3, 24, .6f, i == 1 ? GOLD : CYAN);
+            label(shorten(page.phases[i], .75f, 43), x + 3, 24, .75f, i == 1 ? GOLD : CYAN);
         }
         // The lane connects native clickable input/output stacks without drawing over their hit boxes.
         rect(54, 43, 129, 44, COPPER);
-        int pulse = GTNEIDefaultHandler.getDrawTicks() % 70;
+        int pulse = Config.criticalPreviewReducedMotion ? 35 : GTNEIDefaultHandler.getDrawTicks() % 70;
         rect(55 + pulse, 41, 58 + pulse, 46, GOLD);
         schematic(info.kind);
         label(page.caption, 9, 58, .65f, CYAN);
@@ -182,20 +194,27 @@ public final class CriticalNEIShowcase {
     }
 
     private static void textLines(String[] lines, int x, int y, int width, int height) {
-        float scale = Math.min(.75f, height / (float) Math.max(1, lines.length * 10));
-        for (String line : lines) scale = Math.min(scale, fit(line, scale, width));
+        // Keep a readable lower bound. The complete text is on every native stack's tooltip.
+        float scale = .75f;
+        int count = Math.max(1, (height - 8) / 8);
         int yy = y;
-        for (String line : lines) {
-            label(line, x, yy, scale, INK);
-            yy += Math.max(1, (int) (10 * scale));
+        for (int i = 0; i < Math.min(count, lines.length); i++) {
+            label(shorten(lines[i], scale, width), x, yy, scale, INK);
+            yy += 8;
         }
+        if (lines.length > count)
+            label(shorten(CriticalRecipeMaps.text("showcase.more"), scale, width), x, yy, scale, GOLD);
     }
 
     private static float fit(String text, float scale, int width) {
-        return Math.min(scale, width / (float) Math.max(1, Minecraft.getMinecraft().fontRenderer.getStringWidth(text)));
+        return Math.max(
+            .75f,
+            Math.min(scale, width / (float) Math.max(1, Minecraft.getMinecraft().fontRenderer.getStringWidth(text))));
     }
 
     private static void label(String text, int x, int y, float scale, int color) {
+        scale = Math.max(.75f, scale);
+        text = shorten(text, scale, 162 - x);
         GL11.glPushMatrix();
         try {
             GL11.glTranslatef(x, y, 0);
@@ -204,6 +223,42 @@ public final class CriticalNEIShowcase {
         } finally {
             GL11.glPopMatrix();
         }
+    }
+
+    private static String shorten(String text, float scale, int width) {
+        FontRenderer font = Minecraft.getMinecraft().fontRenderer;
+        int limit = Math.max(1, (int) (width / scale));
+        return font.getStringWidth(text) <= limit ? text
+            : font.trimStringToWidth(text, Math.max(1, limit - font.getStringWidth("…"))) + "…";
+    }
+
+    private static void showcase(DisplayInfo info, Page page) {
+        label(page.caption, 9, 23, .8f, INK);
+        label(shorten(CriticalRecipeMaps.text("showcase.demo_badge"), .75f, 132), 9, 36, .75f, GOLD);
+        boolean drawn = CriticalMiniatureRenderer.draw(
+            CriticalPreviewDescriptor.demo(info.kind, CriticalTier.T3),
+            8,
+            55,
+            154,
+            80,
+            GTNEIDefaultHandler.getDrawTicks() / 20D,
+            Config.criticalPreviewReducedMotion);
+        if (!drawn) {
+            GL11.glPushMatrix();
+            try {
+                // Existing schematic bounds x=72..96, y=33..55 become x=61..109, y=69..113.
+                // Both the static diagram and its caption stay inside the 8,55 / 154x80 viewport.
+                GL11.glTranslatef(85, 91, 0);
+                GL11.glScalef(2, 2, 1);
+                GL11.glTranslatef(-84, -44, 0);
+                schematic(info.kind);
+            } finally {
+                GL11.glPopMatrix();
+            }
+            label(shorten(CriticalRecipeMaps.text("showcase.simplified"), .75f, 146), 12, 124, .75f, CYAN);
+        }
+        rect(8, 138, 162, 139, COPPER);
+        textLines(page.lines, 9, 142, 153, 28);
     }
 
     private static void rect(int x1, int y1, int x2, int y2, int color) {

@@ -84,6 +84,7 @@ public final class CriticalPreviewCache {
         collection = positions;
         segments.clear();
         retainedInts = 0;
+        overflow = false;
         if (positions.size() > MAX_POSITIONS) return !(overflow = true);
         for (int pass = 0; pass < 2; pass++) {
             Segment tail = null;
@@ -111,7 +112,8 @@ public final class CriticalPreviewCache {
     public void append(Tessellator tessellator, RenderBlocks renderer, boolean allFaces) {
         long renderRevision = revision;
         for (Segment segment : segments) {
-            if (segment.own && renderRevision == ((CriticalPreviewWorld) world).gtsr$previewRevision()
+            if (segment.own && !segment.captureRejected
+                && renderRevision == ((CriticalPreviewWorld) world).gtsr$previewRevision()
                 && CriticalPreviewTessellatorSupport.allows(tessellator)) {
                 // renderV2 changes no RenderBlocks AO or override-texture fields.
                 setup(renderer, allFaces);
@@ -125,7 +127,7 @@ public final class CriticalPreviewCache {
                 if (captured != null && captured.retainedInts() <= MAX_VERTEX_INTS - retainedInts) {
                     segment.slice = captured;
                     retainedInts += captured.retainedInts();
-                }
+                } else segment.captureRejected = true;
             } else render(segment, renderer, allFaces);
         }
     }
@@ -193,6 +195,8 @@ public final class CriticalPreviewCache {
         private final boolean own;
         private final LongArrayList positions = new LongArrayList();
         private TessellatorSlice slice;
+        // Retry only after the collection/model/resource generation changes. Capture already drew this frame.
+        private boolean captureRejected;
 
         private Segment(int pass, boolean own) {
             this.pass = pass;

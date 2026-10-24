@@ -28,6 +28,7 @@ final class UiQaWireCounter extends ChannelDuplexHandler {
     void count(String direction,Object message){
         try {
             String type=message.getClass().getName(),channel=null;Object payload=null;
+            if(type.endsWith(".C08PacketPlayerBlockPlacement"))add("phase"+owner.phase+":"+direction+":native-C08:packets",1);
             if(type.endsWith(".FMLProxyPacket")){channel=String.valueOf(Mui2ClientQa.call(message,"channel"));payload=Mui2ClientQa.call(message,"payload");}
             else if(type.endsWith(".C17PacketCustomPayload")){channel=String.valueOf(Mui2ClientQa.call(message,"getChannelName|func_149559_c"));payload=Mui2ClientQa.call(message,"getBufferData|func_149558_e");}
             else if(type.endsWith(".S3FPacketCustomPayload")){channel=String.valueOf(Mui2ClientQa.call(message,"getChannelName|func_149169_c"));payload=Mui2ClientQa.call(message,"getBufferData|func_149168_d");}

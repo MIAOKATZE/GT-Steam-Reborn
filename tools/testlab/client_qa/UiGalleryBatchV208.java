@@ -323,6 +323,7 @@ final class UiGalleryBatchV208 {
         String kind = UiGalleryBatch.str(batch.row, "neiKind", "LOOM");
         Object maps = UiGalleryBatch.type(G + "api.recipe.CriticalRecipeMaps");
         Object map = kind.equals("LOOM") ? UiGalleryBatch.field(maps, "construction")
+            : kind.equals("SHOWCASE") ? UiGalleryBatch.field(maps, "showcase")
             : UiGalleryBatch.call(maps, "forKind", Enum.valueOf((Class)UiGalleryBatch.type(
                 G + "common.critical.CriticalMachineKind"), kind));
         String id = String.valueOf(UiGalleryBatch.field(map, "unlocalizedName"));

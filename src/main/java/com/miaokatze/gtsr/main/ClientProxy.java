@@ -37,6 +37,7 @@ public class ClientProxy extends CommonProxy {
         com.miaokatze.gtsr.client.tooltip.GTSRTooltipHandler.register();
         com.miaokatze.gtsr.client.critical.CriticalControllerRenderer.register();
         com.miaokatze.gtsr.client.critical.CriticalMaterialRenderer.register();
+        com.miaokatze.gtsr.client.nei.CriticalNEIShowcase.registerReloadListener();
         SpacetimeClient.register();
         com.miaokatze.gtsr.client.travel.SpacetimeBeaconRenderer.register();
         com.miaokatze.gtsr.client.critical.IrradiatedDustRenderer.register();
@@ -76,6 +77,14 @@ public class ClientProxy extends CommonProxy {
             .hideItem(new net.minecraft.item.ItemStack(com.miaokatze.gtsr.common.critical.CriticalRenderAnchors.BLOCK));
 
         hideCriticalMaterialItems();
+
+        // The read-only model catalogue has no recipe inputs; native U access uses explicit catalysts.
+        for (GTSRItemList controller : new GTSRItemList[] { GTSRItemList.CriticalLoom, GTSRItemList.CriticalSolar,
+            GTSRItemList.CriticalTurbine, GTSRItemList.CriticalSun, GTSRItemList.CriticalBattery }) {
+            codechicken.nei.api.API.addRecipeCatalyst(
+                controller.get(1),
+                com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.showcase.unlocalizedName);
+        }
 
         // Keep all legacy MTE IDs registered, while hiding the five frozen controllers from NEI.
         for (GTSRItemList frozen : new GTSRItemList[] { GTSRItemList.CriticalProcessing, GTSRItemList.CriticalEntangler,

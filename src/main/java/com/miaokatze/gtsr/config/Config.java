@@ -12,6 +12,9 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
  */
 public class Config {
 
+    /** Client presentation only; all real construction and runtime indicators remain visible. */
+    public static boolean criticalPreviewReducedMotion = false;
+
     /** Opt-in at startup; changing this setting requires a restart. */
     public static boolean testLabEnabled = false;
     /** Isolated lab IDs avoid GalaxySpace's reserved 80 and Outpost's 1048576; collisions never migrate. */
@@ -336,6 +339,12 @@ public class Config {
      */
     public static void synchronizeConfiguration(File configFile) {
         Configuration configuration = new Configuration(configFile);
+
+        criticalPreviewReducedMotion = configuration.getBoolean(
+            "criticalPreviewReducedMotion",
+            "client",
+            criticalPreviewReducedMotion,
+            "Reduce critical machine preview motion; retain construction stage and runtime status.");
 
         metaIdOffset = configuration.getInt(
             "metaIdOffset",

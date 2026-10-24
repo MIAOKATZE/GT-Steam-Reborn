@@ -90,6 +90,15 @@ public final class CriticalMachineRecipes {
                 case BATTERY -> GTSRItemList.CriticalBattery.get(1);
                 default -> throw new IllegalArgumentException("Unreleased construction " + kind);
             };
+            // A separate fake catalogue entry keeps the complete model clear of all 28 bill slots.
+            CriticalRecipeMaps.addShowcase(
+                GTValues.RA.stdBuilder()
+                    .itemOutputs(controller.copy())
+                    .duration(400)
+                    .eut(0)
+                    .build()
+                    .orElseThrow(() -> new IllegalStateException("Invalid critical showcase " + kind)),
+                kind);
             constructionPages(
                 kind,
                 0,

@@ -798,6 +798,29 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         return text.length() == 0 ? "\u2014" : text.toString();
     }
 
+    /** Read-only output descriptors for receiving-client localization. */
+    public ItemStack[] criticalOutputItemsSnapshot() {
+        java.util.List<ItemStack> result = new java.util.ArrayList<>();
+        for (gregtech.api.metatileentity.implementations.MTEHatchOutputBus bus : mOutputBusses) {
+            if (!bus.isValid()) continue;
+            for (int slot = 0; slot < bus.getSizeInventory(); slot++) {
+                ItemStack stack = bus.getStackInSlot(slot);
+                if (stack != null && stack.stackSize > 0) result.add(stack.copy());
+            }
+        }
+        return result.toArray(new ItemStack[0]);
+    }
+
+    public net.minecraftforge.fluids.FluidStack[] criticalOutputFluidsSnapshot() {
+        java.util.List<net.minecraftforge.fluids.FluidStack> result = new java.util.ArrayList<>();
+        for (gregtech.api.metatileentity.implementations.MTEHatchOutput hatch : mOutputHatches) {
+            if (!hatch.isValid()) continue;
+            for (net.minecraftforge.fluids.FluidTankInfo tank : hatch.getTankInfo(ForgeDirection.UNKNOWN))
+                if (tank != null && tank.fluid != null && tank.fluid.amount > 0) result.add(tank.fluid.copy());
+        }
+        return result.toArray(new net.minecraftforge.fluids.FluidStack[0]);
+    }
+
     private static void appendInputOverview(StringBuilder text, String name, int amount) {
         if (text.length() >= 2048) return;
         if (text.length() > 0) text.append('\n');

@@ -94,6 +94,11 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
         CriticalRecipeMaps.DisplayInfo info = CriticalRecipeMaps.displayInfo(recipe.mRecipe);
         if (info != null && info.construction())
             tip.add(CriticalRecipeMaps.formatted("showcase.page", info.page + 1, info.pages));
+        if (info != null) {
+            tip.add(CriticalRecipeMaps.text("showcase.details"));
+            tip.addAll(CriticalRecipeMaps.description(recipe.mRecipe));
+            if (info.construction() || info.showcase()) tip.add(CriticalRecipeMaps.text("showcase.reference"));
+        }
         return tip;
     }
 }
