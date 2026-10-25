@@ -79,7 +79,7 @@ public final class CriticalV32Fixture {
         for(int i=0;i<ticks;i++){s.tickStructureMonitor();check(monitor(s).getLastChecks()<=128,"bounded server tick");}
     }
     static final class SparseWorld extends World {
-        Map<String,Block> blocks;Map<String,TileEntity> tiles;IChunkProvider chunks;boolean loaded=true;int unloadedReads;
+        Map<String,Block> blocks;Map<String,TileEntity> tiles;IChunkProvider chunks;boolean loaded=true;int unloadedReads;long totalWorldTime;
         SparseWorld(){super(null,"unused",(WorldProvider)null,null,null);}
         void read(){if(!loaded)unloadedReads++;}
         @Override public boolean setBlock(int x,int y,int z,Block block,int meta,int flags){
@@ -94,7 +94,7 @@ public final class CriticalV32Fixture {
         @Override public TileEntity getTileEntity(int x,int y,int z){read();return tiles.get(key(x,y,z));}
         @Override public boolean blockExists(int x,int y,int z){return loaded;}
         @Override public IChunkProvider getChunkProvider(){return chunks;}
-        @Override public long getTotalWorldTime(){return 0;}
+        @Override public long getTotalWorldTime(){return totalWorldTime;}
         @Override public void markBlockForUpdate(int x,int y,int z){}
         @Override public void markTileEntityChunkModified(int x,int y,int z,TileEntity t){}
         @Override public void func_147453_f(int x,int y,int z,Block b){}

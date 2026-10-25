@@ -46,7 +46,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public void bindHost(TileEntity tile) {
         if (host != tile || xCoord != tile.xCoord || yCoord != tile.yCoord || zCoord != tile.zCoord)
-            loomChunksCache = null;
+            loomChunksCache = loomValidationChunksCache = null;
         host = tile;
         worldObj = tile.getWorldObj();
         xCoord = tile.xCoord;
@@ -66,7 +66,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         }
         ForgeDirection frame = getStructureFacing();
         if (boundStructureFacing != frame) {
-            loomChunksCache = null;
+            loomChunksCache = loomValidationChunksCache = null;
             if (boundStructureFacing != ForgeDirection.UNKNOWN && !structureFacingLocked) {
                 if (worldObj != null) CriticalRenderAnchors.remove(this, boundStructureFacing);
                 clearPendingClearance();
@@ -255,6 +255,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private final Map<List<CriticalGeometry.Voxel>, List<CriticalGeometry.Voxel>> paidStageCache = new IdentityHashMap<>();
     private int scanCursor; // Dismantling/removal audit cursor; independent of the continuous monitor.
     private final CriticalStructureMonitor structureMonitor = new CriticalStructureMonitor();
+    public static final int STRUCTURE_LOAD_GRACE_TICKS = 2400;
+    private int structureLoadTicks;
+    private long lastStructureLoadingTick = Long.MIN_VALUE;
     private List<CriticalGeometry.Voxel> integrityOptionalPorts;
     private final BitSet placed = new BitSet();
     private final Map<CriticalGeometry.Voxel, Integer> voxelIndices = new IdentityHashMap<>();
@@ -269,6 +272,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private long clientCycleAnchor;
     private final CriticalChunkLoading chunkLoading = new CriticalChunkLoading();
     private List<net.minecraft.world.ChunkCoordIntPair> loomChunksCache;
+    private List<net.minecraft.world.ChunkCoordIntPair> loomValidationChunksCache;
     private String pendingConstructionPlayer = "";
     private long pendingConstructionDeadline;
     private String visualHostId = UUID.randomUUID()
@@ -865,17 +869,25 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     /** Server-thread only. This method never requests a chunk or reads an unloaded position. */
     void tickStructureMonitor() {
         if (worldObj == null || worldObj.isRemote || state != 2) return;
+        if (!areStructureChunksLoaded()) {
+            boolean before = structureValid;
+            structureMonitor.pauseUnloaded();
+            structureValid = false;
+            if (before) changed();
+            return;
+        }
         List<CriticalGeometry.Voxel> geometry = allVoxels();
         if (integrityOptionalPorts == null) integrityOptionalPorts = CriticalGeometry.optionalWorkPorts(this);
         boolean before = structureValid;
-        structureValid = structureMonitor.tick(geometry.size() + integrityOptionalPorts.size(), index -> {
+        structureValid = structureMonitor.tickSamples(geometry.size() + integrityOptionalPorts.size(), index -> {
             boolean optional = index >= geometry.size();
             CriticalGeometry.Voxel voxel = optional ? integrityOptionalPorts.get(index - geometry.size())
                 : geometry.get(index);
             int x = wx(voxel), y = wy(voxel), z = wz(voxel);
             if (!worldObj.getChunkProvider()
-                .chunkExists(x >> 4, z >> 4)) return false;
-            return optional ? worldObj.isAirBlock(x, y, z) || isStandardHatch(voxel) : matches(voxel);
+                .chunkExists(x >> 4, z >> 4)) return CriticalStructureMonitor.Sample.UNLOADED;
+            boolean matches = optional ? worldObj.isAirBlock(x, y, z) || isStandardHatch(voxel) : matches(voxel);
+            return matches ? CriticalStructureMonitor.Sample.MATCH : CriticalStructureMonitor.Sample.BROKEN;
         });
         if (structureValid) completionValidationPending = false;
         if (before != structureValid) changed();
@@ -1124,7 +1136,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             .toString();
         geometryCache = null;
         hatchPortsCache = null;
-        loomChunksCache = null;
+        loomChunksCache = loomValidationChunksCache = null;
         clearanceTargets = null;
         clearanceCursor = 0;
         clearPendingClearance();
@@ -1589,6 +1601,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public void onChunkUnload() {
         invalidateStructure();
+        structureLoadTicks = 0;
+        lastStructureLoadingTick = Long.MIN_VALUE;
         // Follow GT drillers: Forge persists/unloads tickets, then GT clears owners on server stop.
         // Releasing here runs after Forge's HIGHEST world-unload handler has removed its ticket map.
         if (worldObj != null && !worldObj.isRemote) {
@@ -1850,6 +1864,33 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return loomChunks();
     }
 
+    /** Presence checks only: never ask Minecraft to synchronously load an unknown structure position. */
+    public boolean areLoomChunksLoaded() {
+        if (worldObj == null) return false;
+        if (loomValidationChunksCache == null) {
+            java.util.Map<Long, net.minecraft.world.ChunkCoordIntPair> chunks = new java.util.LinkedHashMap<>();
+            addStructureChunk(chunks, xCoord >> 4, zCoord >> 4);
+            for (CriticalGeometry.Voxel voxel : CriticalLoomStructure.voxels(this))
+                addStructureChunk(chunks, wx(voxel) >> 4, wz(voxel) >> 4);
+            loomValidationChunksCache = new ArrayList<>(chunks.values());
+        }
+        for (net.minecraft.world.ChunkCoordIntPair chunk : loomValidationChunksCache) if (!worldObj.getChunkProvider()
+            .chunkExists(chunk.chunkXPos, chunk.chunkZPos)) return false;
+        return true;
+    }
+
+    private boolean areStructureChunksLoaded() {
+        for (net.minecraft.world.ChunkCoordIntPair chunk : loomChunks()) if (!worldObj.getChunkProvider()
+            .chunkExists(chunk.chunkXPos, chunk.chunkZPos)) return false;
+        return true;
+    }
+
+    private boolean canRecoverLoomLoading() {
+        if (structureLoadTicks >= STRUCTURE_LOAD_GRACE_TICKS || state == 0) return false;
+        allVoxels();
+        return ownsTask() && jobFingerprint == modelFingerprint;
+    }
+
     public CriticalChunkLoading getChunkLoading() {
         return chunkLoading;
     }
@@ -1880,6 +1921,15 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     private void tickStellarSession() {
         if (config.kind != CriticalMachineKind.SUN || gtMachine() == null) return;
+        // A restart/full incremental scan has no formed verdict yet. Do not turn its saved star into
+        // a shutdown/refund, and never carry a previous tick's payment authorization across the wait.
+        if (state == 2 && (!areLoomChunksLoaded() || isLoomGeometryValid())
+            && !structureValid
+            && !structureMonitor.hasKnownDamage()) {
+            stellarRuntime.setBoolean("tickAuthorized", false);
+            stellarRuntime.setBoolean("sustainPaidThisTick", false);
+            return;
+        }
         CriticalStellarRuntime.PowerPort port = gtMachine().criticalStellarPowerPort();
         if (state == 0 || state == 3) {
             CriticalStellarRuntime.settleRefund(stellarRuntime, port);
@@ -1957,11 +2007,21 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 changed();
             }
         }
-        // The formed manual loom is the sole ticket owner, including when idle or soft-mallet paused.
-        if (isLoomGeometryValid()) chunkLoading.ensureAllStructureChunks(worldObj, host, loomChunks());
+        boolean loomLoaded = areLoomChunksLoaded();
+        boolean loomGeometry = loomLoaded && isLoomGeometryValid();
+        // A saved, identity-checked journal may restore its footprint while its loom chunks arrive.
+        // Spend one cumulative budget per load session, only on actual unready world ticks. A ready
+        // interval neither consumes nor renews it, and repeated same-tick calls cannot spend it twice.
+        long loadingTick = worldObj.getTotalWorldTime();
+        if (!areStructureChunksLoaded() && loadingTick != lastStructureLoadingTick) {
+            lastStructureLoadingTick = loadingTick;
+            if (structureLoadTicks < STRUCTURE_LOAD_GRACE_TICKS) structureLoadTicks++;
+        }
+        if (loomGeometry || !loomLoaded && canRecoverLoomLoading())
+            chunkLoading.ensureAllStructureChunks(worldObj, host, loomChunks());
         else {
             chunkLoading.release(host);
-            revokeGeometryValidation();
+            if (loomLoaded) revokeGeometryValidation();
         }
         tickStructureMonitor();
         tickStellarSession();
@@ -1993,6 +2053,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         }
         if (nativeFundingUncertain) {
             fail("ME扣料结果待人工核验，任务已锁定");
+            return;
+        }
+        if (!loomLoaded) {
+            data().releaseNight(structureId);
+            fail(structureLoadTicks >= STRUCTURE_LOAD_GRACE_TICKS ? "结构加载等待超时，保留工单等待区块恢复" : "结构加载等待，保留工单");
             return;
         }
         if (!isLoomStructureValid()) {
@@ -2079,7 +2144,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         else if (state == 2) {
             if (!structureValid) {
                 data().releaseNight(structureId);
-                fail("必要织机或机器结构缺损，暂停");
+                fail(structureMonitor.hasKnownDamage() ? "必要织机或机器结构缺损，暂停" : "结构加载复核中，保留工单并暂停运行");
                 return;
             }
             emitEnergy();
@@ -3585,13 +3650,15 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         jobFingerprint = n.getLong("jobFingerprint");
         geometryCache = null;
         hatchPortsCache = null;
-        loomChunksCache = null;
+        loomChunksCache = loomValidationChunksCache = null;
         stageCache.clear();
         paidStageCache.clear();
         voxelIndices.clear();
         structureMonitor.reset();
         integrityOptionalPorts = null;
         structureValid = false;
+        structureLoadTicks = 0;
+        lastStructureLoadingTick = Long.MIN_VALUE;
     }
 
     public Packet getDescriptionPacket() {

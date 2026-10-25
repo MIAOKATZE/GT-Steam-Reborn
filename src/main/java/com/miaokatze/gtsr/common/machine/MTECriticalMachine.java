@@ -48,6 +48,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     private int previousJournalState = -1;
     private boolean previousCanonicalValidation;
     private boolean loomStructureValid, loomGeometryValid;
+    private boolean loomValidationPending;
     private long loomValidationTick = Long.MIN_VALUE, meSnapshotTick = Long.MIN_VALUE;
     private long hatchDiscoveryTick = Long.MIN_VALUE;
     private int hatchDiscoveryJournalState = -1;
@@ -552,7 +553,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         if (tile == null) return false;
         long now = tile.getWorld()
             .getTotalWorldTime();
-        if (loomValidationTick == Long.MIN_VALUE || now - loomValidationTick >= 100) return forceLoomStructureCheck();
+        if (loomValidationTick == Long.MIN_VALUE || loomValidationPending || now - loomValidationTick >= 100)
+            return forceLoomStructureCheck();
         return loomStructureValid;
     }
 
@@ -561,6 +563,12 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         if (owner != this) return owner.forceLoomStructureCheck();
         IGregTechTileEntity tile = getBaseMetaTileEntity();
         if (tile == null) return false;
+        if (!getCriticalState().areLoomChunksLoaded()) {
+            loomValidationPending = true;
+            loomGeometryValid = loomStructureValid = false;
+            return false;
+        }
+        loomValidationPending = false;
         loomValidationTick = tile.getWorld()
             .getTotalWorldTime();
         clearHatches();
@@ -1128,6 +1136,9 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     @Override
     public void loadNBTData(NBTTagCompound n) {
         super.loadNBTData(n);
+        loomValidationTick = Long.MIN_VALUE;
+        loomValidationPending = true;
+        loomStructureValid = loomGeometryValid = false;
         if (n.hasKey("criticalState", 10)) state.readFromNBT(n.getCompoundTag("criticalState"));
         else state.presetKind(presetKind);
     }
