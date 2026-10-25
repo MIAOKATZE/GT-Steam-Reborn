@@ -63,6 +63,8 @@ class CriticalChemicalRuntime {
         check(CriticalChemicalMath.litresForHeat(b(1001),b(480)).equals(b(3)), "bounded whole litre ceiling");
         seed(gregtech.api.recipe.RecipeMaps.dieselFuels,"gtsr_rc2_diesel",100);
         seed(gregtech.api.recipe.RecipeMaps.gasTurbineFuels,"gtsr_rc2_gas",200);
+        seed(gregtech.api.recipe.RecipeMaps.denseLiquidFuels,"gtsr_rc2_dense",256);
+        seed(gregtech.api.recipe.RecipeMaps.denseLiquidFuels,"gtsr_rc2_diesel",1000);
         var rocket=com.miaokatze.gtsr.api.compat.GTVersionCompat.requireGppRecipeMap("rocketFuels");
         seed(rocket,"gtsr_rc2_rocket",300);seed(rocket,"gtsr_rc2_diesel",999);
         Map<String,CriticalGTRecipes.ChemicalFuel> fuels=new HashMap<>();
@@ -73,6 +75,37 @@ class CriticalChemicalRuntime {
             "native gas-map spectrum");
         check(fuels.get("gtsr_rc2_rocket").spectrum==2&&fuels.get("gtsr_rc2_rocket").euPerL.equals(b(900)),
             "rocket heat normalized exactly once");
+        check(fuels.get("gtsr_rc2_dense").spectrum==0&&fuels.get("gtsr_rc2_dense").euPerL.equals(b(256)),
+            "TCDS dense-liquid fuels enter liquid spectrum without changing old diesel precedence");
+        // Isolated native-map fixtures with GT205's checked values, not full pack registration.
+        String[] materials={"GasolinePremium","NefariousGas","Benzene"};
+        String[] fluidNames={"gtsr_contract_highoctanegasoline","gtsr_contract_nefariousgas","gtsr_contract_benzene"};
+        int[] heatValues={2500,1200,360};
+        for(int i=0;i<materials.length;i++){
+            seed(i==0?gregtech.api.recipe.RecipeMaps.dieselFuels:gregtech.api.recipe.RecipeMaps.gasTurbineFuels,
+                fluidNames[i],heatValues[i]);
+            var material=(gregtech.api.enums.Materials)unsafe.allocateInstance(gregtech.api.enums.Materials.class);
+            material.mFluid=FluidRegistry.getFluid(fluidNames[i]);
+            gregtech.api.enums.Materials.class.getField(materials[i]).set(null,material);
+        }
+        seed(rocket,"gtsr_contract_RP1",512);seed(rocket,"gtsr_contract_H8N4C2O4",4196);
+        for(int window=0;window<3;window++){
+            var choices=CriticalGTRecipes.chemicalMixtureFuels(CriticalGTRecipes.chemicalFuels(),window);
+            check(choices!=null&&choices[0].euPerL.equals(b(2500))&&choices[1].euPerL.equals(b(window==2?360:1200)),
+                "High heat liquid/gas native examples "+window);
+            int[][] weights={{1,1,0},{1,1,1},{1,1,4}};
+            BigInteger unit=BigInteger.ONE;
+            for(int i=0;i<3;i++)if(weights[window][i]>0){
+                BigInteger divisor=choices[i].euPerL.divide(choices[i].euPerL.gcd(b(weights[window][i])));
+                unit=unit.divide(unit.gcd(divisor)).multiply(divisor);
+            }
+            BigInteger[] recipeHeat=new BigInteger[3];
+            for(int i=0;i<3;i++)recipeHeat[i]=unit.multiply(b(weights[window][i]));
+            check(CriticalChemicalMath.sum(recipeHeat).compareTo(CriticalChemicalMath.cap(window))<=0,
+                "Real example below phase cap "+window);
+            check(Arrays.equals(recipeHeat,CriticalChemicalMath.match(window,recipeHeat,CriticalChemicalMath.cap(window))),
+                "Displayed native mixture matches actual runtime proportion "+window);
+        }
 
         Fluid fluid = new Fluid("gtsr_rc2_contract_fuel");
         FluidRegistry.registerFluid(fluid);

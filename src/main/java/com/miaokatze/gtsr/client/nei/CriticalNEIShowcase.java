@@ -2,8 +2,6 @@ package com.miaokatze.gtsr.client.nei;
 
 import static com.miaokatze.gtsr.api.recipe.CriticalNEILayout.*;
 
-import java.math.BigInteger;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 
@@ -12,12 +10,15 @@ import org.lwjgl.opengl.GL11;
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.DisplayInfo;
 import com.miaokatze.gtsr.common.critical.CriticalChemicalMath;
+import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
 import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
 import com.miaokatze.gtsr.config.Config;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import gregtech.api.enums.GTValues;
 import gregtech.api.util.GTRecipe;
+import gregtech.api.util.GTUtility;
 import gregtech.nei.GTNEIDefaultHandler;
 
 /** Native slots and labels surround operation-specific, two-dimensional process diagrams. */
@@ -75,15 +76,20 @@ public final class CriticalNEIShowcase {
             if (operation.equals("battery")) {
                 rows(
                     text("spectrum." + info.spectrum),
-                    energy(info.baseEu) + " / L",
+                    number(new java.math.BigDecimal(info.baseEu)) + " EU/L",
                     text("chemical.normal"),
                     text("chemical.cap"),
                     text("chemical.cycle"));
             } else {
+                java.math.BigDecimal average = new java.math.BigDecimal(info.baseEu)
+                    .divide(java.math.BigDecimal.valueOf(CriticalEnergyMath.CYCLE_TICKS));
                 rows(
-                    energy(info.baseEu),
+                    CriticalRecipeMaps.formatted("simple.chemical.average", number(average)),
+                    voltage(
+                        average.setScale(0, java.math.RoundingMode.CEILING)
+                            .longValueExact(),
+                        true),
                     text("chemical.ratio." + info.spectrum),
-                    text("chemical.cap." + info.spectrum),
                     text("chemical.heat"),
                     text("chemical.cycle"));
             }
@@ -91,37 +97,36 @@ public final class CriticalNEIShowcase {
             stellar(operation, new Plot(flow(info, true)));
             if (operation.equals("stellar_ignition")) {
                 rows(
-                    energy(BigInteger.valueOf(CriticalStellarPolicy.IGNITION_EU)),
+                    text("stellar.phase_time"),
+                    power(CriticalStellarPolicy.IGNITION_EU / CriticalStellarPolicy.DURATION_TICKS),
+                    voltage(CriticalStellarPolicy.IGNITION_EU / CriticalStellarPolicy.DURATION_TICKS),
                     text("ignition.helium"),
-                    text("ignition.time"),
-                    text("ignition.once"),
-                    text("ignition.next"));
+                    text("ignition.once"));
             } else if (operation.equals("stellar_sustain")) {
                 rows(
-                    energy(BigInteger.valueOf(CriticalStellarPolicy.SUSTAIN_EUT)) + "/t",
+                    text("stellar.phase_time"),
+                    power(CriticalStellarPolicy.SUSTAIN_EUT),
+                    voltage(CriticalStellarPolicy.SUSTAIN_EUT),
                     text("sustain.helium"),
-                    text("sustain.display"),
-                    text("sustain.always"),
-                    text("sustain.priority"));
+                    text("sustain.always"));
             } else {
-                rows(
-                    recipe.mDuration + " t  /  "
-                        + energy(
-                            BigInteger.valueOf(CriticalStellarPolicy.runEuPerTick(info.baseEu.longValueExact(), 1)))
-                        + "/t",
-                    text("fusion.parallel"),
-                    text("fusion.native"),
-                    text("fusion.discount"),
-                    text("fusion.sustain"));
+                rows(text("fusion.time"), text("fusion.native"));
             }
         } else if (operation.equals("turbine")) {
             turbine(new Plot(flow(info, true)));
             rows(
-                energy(info.baseEu) + "  " + text("base"),
-                text("turbine.efficiency"),
+                CriticalRecipeMaps.formatted(
+                    "simple.turbine.heat_per_l",
+                    number(
+                        new java.math.BigDecimal(info.baseEu)
+                            .divide(java.math.BigDecimal.valueOf(recipe.mFluidInputs[0].amount)))),
+                CriticalRecipeMaps.formatted(
+                    "simple.turbine.efficiency",
+                    CriticalEnergyMath.MIN_EFFICIENCY / 100,
+                    CriticalEnergyMath.MAX_EFFICIENCY / 100),
+                CriticalRecipeMaps.formatted("simple.turbine.trend", CriticalEnergyMath.EFFICIENCY_STEP / 100.0),
                 text("turbine.cycle"),
-                text("turbine.condensation"),
-                text("turbine.wireless"));
+                text("turbine.condensation"));
         } else if (operation.equals("solar_dust")) {
             irradiation(new Plot(flow(info, false)));
             rows(
@@ -155,8 +160,11 @@ public final class CriticalNEIShowcase {
             }
             centered(text("build.group." + i), x + 18, 33, i <= group ? GOLD : MUTED);
         }
-        label(text("build.stage." + info.constructionStage()), 8, 150, INK);
-        label(text("build.time"), 8, 162, MUTED);
+        for (int row = 0; row < 3; row++) {
+            int y = BUILD_Y + row * BUILD_ROW_PITCH;
+            label(text("build.row." + info.constructionStage() + "." + row), BUILD_X, y - 11, INK);
+        }
+        label(text("build.note." + info.constructionStage()), 8, 158, MUTED);
     }
 
     /** Both collection circuits remain visible; only this recipe's branch carries heat. */
@@ -188,12 +196,16 @@ public final class CriticalNEIShowcase {
         p.line(-31, -5, -14, -5, HEAT);
         p.ring(0, -5, 14, EDGE);
         p.ring(0, -5, 11, HEAT);
-        double angle = phase(48) * Math.PI / 24;
+        int rampTicks = 240;
+        double t = phase(rampTicks);
+        double ratio = (double) CriticalEnergyMath.MAX_EFFICIENCY / CriticalEnergyMath.MIN_EFFICIENCY;
+        double angle = Math.PI / 32 * (t + (ratio - 1) * t * t / (2 * rampTicks));
         for (int i = 0; i < 6; i++) {
             double a = angle + i * Math.PI / 3;
             int x = (int) (Math.cos(a) * 11), y = -5 + (int) (Math.sin(a) * 11);
             p.line(0, -5, x, y, GOLD);
             p.line(x, y, x + (int) (Math.cos(a + 1) * 3), y + (int) (Math.sin(a + 1) * 3), GOLD);
+            if (i == 0) p.rect(x - 1, y - 1, x + 2, y + 2, PLASMA);
         }
         p.rect(-2, -7, 3, -2, INK);
         p.line(14, -5, 28, -5, GOLD);
@@ -373,17 +385,33 @@ public final class CriticalNEIShowcase {
         }
     }
 
-    private static String energy(BigInteger eu) {
-        String[] suffix = { " EU", " kEU", " MEU", " GEU", " TEU", " PEU" };
-        int unit = 0;
-        BigInteger thousand = BigInteger.valueOf(1000);
-        while (unit < suffix.length - 1 && eu.signum() > 0
-            && eu.mod(thousand)
-                .signum() == 0) {
-            eu = eu.divide(thousand);
-            unit++;
+    private static String voltage(long eut) {
+        return voltage(eut, false);
+    }
+
+    private static String voltage(long eut, boolean equivalent) {
+        int maximum = Math.min(14, Math.min(GTValues.V.length, GTValues.VN.length) - 1);
+        int tier = Math.max(0, Math.min(maximum, GTUtility.getTier(eut)));
+        if (eut > GTValues.V[maximum]) {
+            long amps = eut / GTValues.V[maximum] + (eut % GTValues.V[maximum] == 0 ? 0 : 1);
+            return CriticalRecipeMaps.formatted(
+                equivalent ? "simple.chemical.equivalent_amps" : "simple.stellar.voltage_amps",
+                GTValues.VN[maximum],
+                String.format(java.util.Locale.ROOT, "%,d", amps));
         }
-        return eu + suffix[unit];
+        return CriticalRecipeMaps
+            .formatted(equivalent ? "simple.chemical.equivalent_tier" : "simple.stellar.voltage", GTValues.VN[tier]);
+    }
+
+    private static String power(long eut) {
+        return String.format(java.util.Locale.ROOT, "%,d EU/t", eut);
+    }
+
+    private static String number(java.math.BigDecimal value) {
+        java.text.DecimalFormat format = new java.text.DecimalFormat(
+            "#,##0.####",
+            java.text.DecimalFormatSymbols.getInstance(java.util.Locale.ROOT));
+        return format.format(value);
     }
 
     private static void rows(String... rows) {

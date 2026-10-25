@@ -27,6 +27,14 @@ public class CriticalNEIFontContract {
         int maximum=0;
         for(String lang:List.of("en_US","zh_CN"))for(boolean unicode:List.of(false,true)) {
             set(font,"unicodeFlag",unicode);
+            for(long eut:List.of(com.miaokatze.gtsr.common.critical.CriticalStellarPolicy.IGNITION_EU
+                /com.miaokatze.gtsr.common.critical.CriticalStellarPolicy.DURATION_TICKS,
+                com.miaokatze.gtsr.common.critical.CriticalStellarPolicy.SUSTAIN_EUT)) {
+                String power=String.format(Locale.ROOT,"%,d EU/t",eut);
+                if(font.getStringWidth(power)>154)throw new AssertionError("Stellar power width: "+power);
+                checks++;
+            }
+
             for(String line:Files.readAllLines(Path.of(args[0],lang+".lang"))) {
                 if ((line.startsWith("gtsr.critical.") || line.startsWith("gtsr.recipe.critical.")
                     || line.startsWith("gtsr.recipe.stellar_") || line.startsWith("gt.blockmachines.gtsr.critical.")
@@ -38,7 +46,15 @@ public class CriticalNEIFontContract {
                 if (lang.equals("zh_CN") && line.substring(line.indexOf('=')+1).codePoints()
                     .noneMatch(c -> c >= 0x4E00 && c <= 0x9FFF))
                     throw new AssertionError("Chinese NEI label lost its Han characters: " + key);
-                String text=String.format(Locale.ROOT,line.substring(line.indexOf('=')+1),"9999999999",3,999999);
+                String format=line.substring(line.indexOf('=')+1);
+                String text=key.endsWith("turbine.efficiency")?String.format(Locale.ROOT,format,1,20)
+                    :key.endsWith("turbine.trend")?String.format(Locale.ROOT,format,"0.1")
+                    :key.endsWith("stellar.voltage")?String.format(Locale.ROOT,format,"MAX")
+                    :key.endsWith("stellar.voltage_amps")||key.endsWith("chemical.equivalent_amps")?String.format(Locale.ROOT,format,"MAX","1,165")
+                    :key.endsWith("chemical.average")?String.format(Locale.ROOT,format,"5,664,600")
+                    :key.endsWith("chemical.equivalent_tier")?String.format(Locale.ROOT,format,"ZPM")
+                    :key.endsWith("turbine.heat_per_l")?String.format(Locale.ROOT,format,"2,500")
+                    :String.format(Locale.ROOT,format,"9999999999",3,999999);
 
                 if(key.endsWith(".footer")||key.endsWith("card.footer"))text=text.replace("9999999999","99");
                 if(key.contains(".body.")) {
@@ -51,7 +67,8 @@ public class CriticalNEIFontContract {
                     if(rows>limit)throw new AssertionError(lang+" unicode="+unicode+" "+key+" rows="+rows+" limit="+limit+" "+text);
                 } else {
                     int width=font.getStringWidth(text);maximum=Math.max(maximum,width);
-                    if(width>154)throw new AssertionError(lang+" unicode="+unicode+" "+key+" width="+width+" "+text);
+                    int limit=key.contains(".build.note.")||key.endsWith(".build.title")?132:key.contains(".build.row.")?144:154;
+                    if(width>limit)throw new AssertionError(lang+" unicode="+unicode+" "+key+" width="+width+" "+text);
                 }
                 checks++;
             }

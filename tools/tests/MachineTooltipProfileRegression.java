@@ -1,5 +1,4 @@
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Read real 78-machine tooltip builders and their concise profiles without a game or keyboard/GL access. */
+/** Read real 78-machine tooltip builders and additional item parameters without a game or keyboard/GL access. */
 public final class MachineTooltipProfileRegression {
     public static void main(String[] args) throws Exception {
         Issue37RegistrationRegression.launch("MachineTooltipProfileRuntime", args[0]);
@@ -46,11 +45,7 @@ class MachineTooltipProfileRuntime {
         language(root.resolve("src/main/resources/assets/gtsr/lang/"
             + System.getProperty("gtsr.tooltip.locale", "en_US") + ".lang"));
         com.miaokatze.gtsr.loader.MachineLoader.initMachines();
-        Method summary = Class.forName("com.miaokatze.gtsr.client.tooltip.GTSRMachineTooltipProfiles")
-            .getDeclaredMethod("summary", com.miaokatze.gtsr.common.api.enums.GTSRItemList.class,
-                List.class, List.class, List.class);
-        summary.setAccessible(true);
-        int machines = 0, shortProfiles = 0;
+        int machines = 0, structurePages = 0;
         List<String> failures = new ArrayList<>();
         for (var entry : com.miaokatze.gtsr.common.api.enums.GTSRItemList.values()) {
             if (!entry.hasBeenSet() || !(entry.getItem() instanceof gregtech.common.blocks.ItemMachines)) continue;
@@ -63,25 +58,28 @@ class MachineTooltipProfileRuntime {
                 ? s.getSecondaryDescription() : new String[0];
             List<String> additional = new ArrayList<>();
             machine.addAdditionalTooltipInformation(entry.get(1), additional);
-            @SuppressWarnings("unchecked")
-            List<String> rows = (List<String>) summary.invoke(null, entry, Arrays.asList(primary),
-                Arrays.asList(structure), additional);
-            if (rows.isEmpty()) failures.add(entry.name() + ": empty profile");
-            if (machine instanceof gregtech.api.interfaces.ISecondaryDescribable && rows.size() < 2) {
-                failures.add(entry.name() + ": no actual parameter rows selected");
+            List<String> rows = new ArrayList<>(Arrays.asList(primary));
+            rows.addAll(additional);
+            if (rows.isEmpty()) failures.add(entry.name() + ": empty native tooltip");
+            if (structure.length > 0) structurePages++;
+            if (rows.stream().anyMatch(row -> row.contains("gtsr.critical.tooltip.native."))) {
+                failures.add(entry.name() + ": untranslated native tooltip");
             }
-            if (rows.stream().anyMatch(row -> row.contains("gtsr.tooltip.machine."))) {
-                failures.add(entry.name() + ": untranslated summary");
+            if (entry.name().equals("SingularitySteamCompartment")
+                || entry.name().equals("SingularitySteamOutputCompartment")) {
+                long correctParameters = rows.stream().filter(row -> row.contains("8,000,000")).count();
+                if (correctParameters < 2 || rows.stream().anyMatch(row -> row.contains("512,000"))) {
+                    failures.add(entry.name() + ": incorrect steam compartment capacity/rate");
+                }
             }
-            if (rows.size() <= 7) shortProfiles++;
-            System.out.println("PROFILE " + entry.name() + " overview=" + rows.size() + " primary=" + primary.length
+            System.out.println("NATIVE " + entry.name() + " primary=" + primary.length
                 + " structure=" + structure.length + " additional=" + additional.size());
             for (String row : rows) {
                 System.out.println("  " + net.minecraft.util.EnumChatFormatting.getTextWithoutFormattingCodes(row));
             }
         }
-        System.out.println("RESULT profiles machines=" + machines + " atMost7Rows=" + shortProfiles
+        System.out.println("RESULT native tooltips machines=" + machines + " structurePages=" + structurePages
             + " failures=" + failures);
-        if (machines != 78 || !failures.isEmpty()) throw new AssertionError("profile coverage: " + failures);
+        if (machines != 78 || !failures.isEmpty()) throw new AssertionError("native tooltip coverage: " + failures);
     }
 }

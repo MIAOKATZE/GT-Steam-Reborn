@@ -48,7 +48,7 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
     public List<Pos2d> getItemInputPositions(int count) {
         // The superclass builds its position suppliers before this.construction is assigned.
         // Suppliers are evaluated later, after frontend construction has completed.
-        return construction ? grid(count, 7, BUILD_X, BUILD_Y) : row(count, INPUT_X, ITEM_Y);
+        return construction ? constructionGrid(count, BUILD_ITEM_COLUMNS, BUILD_X) : row(count, INPUT_X, ITEM_Y);
     }
 
     @Override
@@ -58,12 +58,20 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
 
     @Override
     public List<Pos2d> getFluidInputPositions(int count) {
-        return row(count, INPUT_X, construction ? BUILD_FLUID_Y : FLUID_Y);
+        return construction ? constructionGrid(count, BUILD_FLUID_COLUMNS, BUILD_FLUID_X)
+            : row(count, INPUT_X, FLUID_Y);
     }
 
     @Override
     public List<Pos2d> getFluidOutputPositions(int count) {
         return row(count, OUTPUT_X, FLUID_Y);
+    }
+
+    private static List<Pos2d> constructionGrid(int count, int columns, int x) {
+        List<Pos2d> positions = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) positions
+            .add(new Pos2d(x + i % columns * SLOT + WINDOW_X, BUILD_Y + i / columns * BUILD_ROW_PITCH + WINDOW_Y));
+        return positions;
     }
 
     private static List<Pos2d> row(int count, int x, int y) {

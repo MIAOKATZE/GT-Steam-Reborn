@@ -60,11 +60,12 @@ final class CriticalConstructionPreview implements IDrawable {
         double scale = Math.min((width - 16) / columns, (height - 12) / rows);
         double originX = x + (width - columns * scale) / 2;
         double originY = y + (height - rows * scale) / 2;
-        double cured = current.phase() >= 3 ? 1
+        double cured = current.phase() == 3 ? 1
             : current.phase() == 2
                 ? 1 - CriticalConstructionSnapshot.ratio(current.curingRemaining(), current.curingDuration())
                 : 0;
         int concrete = mix(0xFF647E92, 0xFF82B49B, cured);
+        if (current.phase() == 4) concrete = mix(0xFF647E92, 0xFFD6A36F, current.progress());
         int activeColor = 0xFFFFCE83;
         if (current.enabled() && current.reason() == 0 && !Config.criticalUiReducedMotion) {
             double pulse = 0.5 + 0.5 * Math.sin((context.getTick() % 40 + context.getPartialTicks()) * Math.PI / 20);
@@ -123,7 +124,7 @@ final class CriticalConstructionPreview implements IDrawable {
         double stageProgress = CriticalConstructionSnapshot.ratio(current.placed(), current.total());
         double baseProgress = complete || current.stage() > 3 ? 1
             : current.stage() > 0 ? (current.stage() - 1 + stageProgress) / 3 : 0;
-        double bodyProgress = complete || current.stage() > 4 ? 1 : current.stage() == 4 ? stageProgress : 0;
+        double bodyProgress = current.bodyProgress();
         if (current.status() == 3) {
             baseProgress = 1 - stageProgress;
             bodyProgress = 1 - stageProgress;
@@ -134,8 +135,11 @@ final class CriticalConstructionPreview implements IDrawable {
         // Keep the complete blueprint visible while its base and body fill from the authoritative cursor.
         ghostBlocks(center - unit * 6, floor - unit * 3, unit, 12, 3, baseProgress, 0xFF72A8B2);
         ghostBlocks(center - unit * 4, floor - unit * 10, unit, 8, 7, bodyProgress, 0xFFC39D62);
-        if (current.stage() == 5 && !complete)
-            ghostBlocks(center - unit * 2, floor - unit * 8, unit, 4, 4, stageProgress, 0xFF91B8DC);
+        if (current.equipmentStage() && !complete) {
+            double equipmentProgress = current.threePartConstruction() ? (current.stage() - 7 + stageProgress) / 3
+                : stageProgress;
+            ghostBlocks(center - unit * 2, floor - unit * 8, unit, 4, 4, equipmentProgress, 0xFF91B8DC);
+        }
         for (int support = -5; support <= 5; support += 10)
             GuiDraw.drawRect(center + unit * support, floor - unit * 10, 1, unit * 10, 0x558999A3);
         GuiDraw.drawRect(center - unit * 7, floor + 1, unit * 14, 1, 0xFF72828E);

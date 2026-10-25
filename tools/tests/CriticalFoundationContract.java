@@ -22,6 +22,7 @@ public final class CriticalFoundationContract {
         source(CriticalWorldData.class, args);
         CriticalWorldData world = new CriticalWorldData();
         CriticalFoundationChunk chunk = world.foundation(-2, 7);
+        chunk.useLegacySchedule();
         check(chunk == world.foundation(-2, 7), "Two looms share the exact chunk journal");
         chunk.pour(400, 1);
         check(chunk.completedCells() == 0, "Unpaid work cannot advance");

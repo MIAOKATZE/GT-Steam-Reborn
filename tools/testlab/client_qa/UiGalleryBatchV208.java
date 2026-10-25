@@ -351,7 +351,6 @@ final class UiGalleryBatchV208 {
 
     private static void openTooltipFontProof(UiGalleryBatch batch) throws Exception {
         String kind = UiGalleryBatch.str(batch.row, "tooltipKind", "SUN");
-        boolean shifted = UiGalleryBatch.flag(batch.row, "tooltipShift");
         String itemEntry = kind.equals("LOOM") ? "CriticalLoom"
             : "Critical" + kind.substring(0, 1) + kind.substring(1).toLowerCase(java.util.Locale.ROOT);
         Object stack = UiGalleryBatch.call(UiGalleryBatch.field(UiGalleryBatch.type(
@@ -362,10 +361,8 @@ final class UiGalleryBatchV208 {
         // Read the real registered item's GT description before Forge's keyboard-selected tooltip event.
         UiGalleryBatch.call(item, "addInformation|func_77624_a", stack, batch.player(), lines, false);
         int originalLineCount = lines.size();
-        boolean replaced = Boolean.TRUE.equals(UiGalleryBatch.call(UiGalleryBatch.type(
-            G + "client.tooltip.GTSRMachineTooltips"), "rewrite", stack, lines, shifted));
-        batch.q.check("v208.tooltip.production-layering." + kind + "." + (shifted ? "details" : "default"), replaced,
-            "Actual GTSRItemList." + itemEntry + " -> ItemMachines.addInformation -> GTSRMachineTooltips.rewrite");
+        batch.q.check("v208.tooltip.native." + kind, lines.size() > 1,
+            "Actual GTSRItemList." + itemEntry + " -> ItemMachines.addInformation");
         UiGalleryBatch.call(UiGalleryBatch.type(G + "client.tooltip.GTSRTooltipHandler"), "normalizeBrand", lines,
             UiGalleryBatch.call(UiGalleryBatch.type(G + "common.util.GTSRUtils"), "getAddedByLine"));
         Object keyType = UiGalleryBatch.type("com.cleanroommc.modularui.api.drawable.IKey");
@@ -375,7 +372,7 @@ final class UiGalleryBatchV208 {
         Array.set(backgrounds, 0, UiGalleryBatch.field(UiGalleryBatch.type(G + "common.gui.mui2.TerminalUiStyle"), "HUB_PANEL"));
         UiGalleryBatch.call(panel, "background", backgrounds);
         Object title = UiGalleryBatch.call(UiGalleryBatch.call(keyType, "str", "FONT RENDER PROOF | " + kind
-            + (shifted ? " | production details page" : " | production overview page")), "asWidget");
+            + " | native operation text"), "asWidget");
         UiGalleryBatch.call(title, "pos", 10, 8); UiGalleryBatch.call(title, "size", 592, 12);
         UiGalleryBatch.call(title, "color", 0xFFF0E8D8);
         UiGalleryBatch.call(panel, "child", title);
@@ -394,18 +391,17 @@ final class UiGalleryBatchV208 {
         UiGalleryBatch.call(UiGalleryBatch.type("com.cleanroommc.modularui.factory.ClientGUI"), "open",
             batch.construct("com.cleanroommc.modularui.screen.ModularScreen", "gtsr", panel));
         JsonObject proof = new JsonObject();
-        proof.addProperty("productionMethod", "ItemMachines.addInformation -> GTSRMachineTooltips.rewrite(details="
-            + shifted + ") -> GTSRTooltipHandler.normalizeBrand");
+        proof.addProperty("productionMethod", "ItemMachines.addInformation -> GTSRTooltipHandler.normalizeBrand");
         proof.addProperty("registeredItem", "GTSRItemList." + itemEntry);
         proof.addProperty("itemMeta", ((Number)UiGalleryBatch.call(stack, "getItemDamage|func_77960_j")).intValue());
-        proof.addProperty("productionLayerReplaced", replaced);
+        proof.addProperty("nativeDescription", true);
         proof.addProperty("originalItemLineCount", originalLineCount);
         proof.addProperty("completeProductionPage", true);
         proof.addProperty("viewport", "Real scrollable ListWidget; complete wrapped production page, no truncation");
-        proof.addProperty("scope", "Real registered item / production layering / client font renderer; page selected by explicit API argument, no item-hover or physical Shift keyboard claim");
+        proof.addProperty("scope", "Real registered item / native description / client font renderer; no item-hover or physical-input claim");
         proof.addProperty("physicalKeyboard", "NOT_RUN");
         proof.addProperty("lineCount", lines.size());
         proof.add("lines", new com.google.gson.Gson().toJsonTree(lines));
-        batch.q.receipt.add("v208TooltipFontProof." + (shifted ? "shift" : "default"), proof);
+        batch.q.receipt.add("v208TooltipFontProof.native", proof);
     }
 }

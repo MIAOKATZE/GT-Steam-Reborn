@@ -38,7 +38,9 @@ def main():
         ROOT / 'build/rfg/mclauncher-1.7.10.jar', gt, *deps]))
     files = [ROOT / 'src/main/java/com/miaokatze/gtsr' / name for name in (
         'api/recipe/CriticalRecipeMaps.java', 'api/recipe/CriticalRecipeFrontend.java', 'api/recipe/CriticalNEILayout.java', 'config/Config.java',
-        'client/nei/CriticalNEIShowcase.java', 'loader/recipes/CriticalMachineRecipes.java')]
+        'client/nei/CriticalNEIShowcase.java', 'loader/recipes/CriticalMachineRecipes.java',
+        'common/critical/CriticalConstructionEconomy.java', 'common/critical/CriticalFoundationMaterials.java',
+        'common/critical/CriticalGTRecipes.java', 'common/critical/CriticalStellarPolicy.java')]
     production_sources = files
     fixtures = [ROOT / 'tools/tests/Issue37RegistrationRegression.java', ROOT / 'tools/tests/CriticalNEICatalogContract.java', ROOT / 'tools/tests/CriticalNEIFontContract.java']
     files = fixtures if args.jar else production_sources + fixtures

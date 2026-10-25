@@ -3,7 +3,7 @@ package audit;
 import com.google.gson.*;
 import java.util.*;
 
-/** Registered GT ItemStacks, production tooltip rewrite, and the native NEI tooltip renderer. */
+/** Registered GT ItemStacks and the native NEI tooltip renderer. */
 final class UiGalleryBatchV2012 {
     final UiGalleryBatch b;
     Object stack;
@@ -16,7 +16,6 @@ final class UiGalleryBatchV2012 {
     void navigate()throws Exception {
         if(!active())return;
         String entry=b.row.get("machineTooltipEntry").getAsString();
-        boolean details=UiGalleryBatch.flag(b.row,"machineTooltipDetails");
         int compared=0;
         if(entry.equals("__LONGEST__")){
             int best=-1;
@@ -27,7 +26,6 @@ final class UiGalleryBatchV2012 {
                 if(!UiGalleryBatch.type("gregtech.common.blocks.ItemMachines").isInstance(trialItem))continue;
                 List<String> trialLines=new ArrayList<String>();trialLines.add(String.valueOf(UiGalleryBatch.call(trial,"getDisplayName|func_82833_r")));
                 UiGalleryBatch.call(trialItem,"addInformation|func_77624_a",trial,b.player(),trialLines,false);
-                if(!Boolean.TRUE.equals(UiGalleryBatch.call(UiGalleryBatch.type(UiGalleryBatch.G+"client.tooltip.GTSRMachineTooltips"),"rewrite",trial,trialLines,details)))continue;
                 compared++;Object trialFont=UiGalleryBatch.call(UiGalleryBatch.type("codechicken.nei.guihook.GuiContainerManager"),"getFontRenderer",trial);
                 for(String line:trialLines){int width=((Number)UiGalleryBatch.call(trialFont,"getStringWidth|func_78256_a",line)).intValue();if(width>best){best=width;entry=String.valueOf(candidate);}}
             }
@@ -39,22 +37,21 @@ final class UiGalleryBatchV2012 {
         lines.add(String.valueOf(UiGalleryBatch.call(stack,"getDisplayName|func_82833_r")));
         UiGalleryBatch.call(item,"addInformation|func_77624_a",stack,b.player(),lines,false);
         List<String> original=new ArrayList<String>(lines);
-        boolean replaced=Boolean.TRUE.equals(UiGalleryBatch.call(UiGalleryBatch.type(UiGalleryBatch.G+"client.tooltip.GTSRMachineTooltips"),"rewrite",stack,lines,details));
         UiGalleryBatch.call(UiGalleryBatch.type(UiGalleryBatch.G+"client.tooltip.GTSRTooltipHandler"),"normalizeBrand",lines,
             UiGalleryBatch.call(UiGalleryBatch.type(UiGalleryBatch.G+"common.util.GTSRUtils"),"getAddedByLine"));
         proof=new JsonObject();proof.addProperty("registeredItem","GTSRItemList."+entry);
-        if(compared>0){proof.addProperty("longestSelection","Maximum actual native font line width among every successfully rewritten registered GT machine");proof.addProperty("comparedRegisteredMachinePages",compared);}
+        if(compared>0){proof.addProperty("longestSelection","Maximum actual native font line width among registered GT machines");proof.addProperty("comparedRegisteredMachinePages",compared);}
         proof.addProperty("registeredItemClass",item.getClass().getName());
         proof.addProperty("itemMeta",((Number)UiGalleryBatch.call(stack,"getItemDamage|func_77960_j")).intValue());
-        proof.addProperty("productionRewrite",replaced);proof.addProperty("explicitDetailsArgument",details);
+        proof.addProperty("nativeDescription",true);
         proof.addProperty("physicalShift","NOT_RUN");proof.addProperty("physicalHover","NOT_RUN");
-        proof.addProperty("scope","Real registered GT ItemStack -> ItemMachines.addInformation -> production GTSRMachineTooltips.rewrite -> normalizeBrand -> native NEI drawPagedTooltip; explicit details argument, no physical Shift claim");
+        proof.addProperty("scope","Real registered GT ItemStack -> ItemMachines.addInformation -> normalizeBrand -> native NEI drawPagedTooltip; no replacement layer or physical-input claim");
         proof.add("originalNativeLines",new Gson().toJsonTree(original));proof.add("renderedProductionLines",new Gson().toJsonTree(lines));
         Object font=UiGalleryBatch.call(UiGalleryBatch.type("codechicken.nei.guihook.GuiContainerManager"),"getFontRenderer",stack);
         int max=0;for(String line:lines)max=Math.max(max,((Number)UiGalleryBatch.call(font,"getStringWidth|func_78256_a",line)).intValue());
         proof.addProperty("lineCount",lines.size());proof.addProperty("maximumNativeFontWidth",max);
         proof.addProperty("nativeFontHeight",((Number)UiGalleryBatch.field(font,"FONT_HEIGHT|field_78288_b")).intValue());
-        b.q.check("v2012.tooltip.real-production."+entry+(details?".details":".default"),replaced&&lines.size()>5,"Actual registered ItemMachines stack and production rewrite; visual structure/color/length reviewed separately");
+        b.q.check("v2012.tooltip.real-production."+entry+".native",lines.size()>1,"Actual registered ItemMachines stack and native description; visual structure/color/length reviewed separately");
     }
     void drawTooltip()throws Exception {
         if(!active()||b.stage!=14||lines==null)return;

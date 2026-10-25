@@ -50,15 +50,14 @@ def main():
     add('turbine.later','TURBINE','turbine',minimumDrawTicks=17,animationPair='turbine')
     add('turbine.reduced.a','TURBINE','turbine',minimumDrawTicks=3,reducedMotion=True)
     add('turbine.reduced.b','TURBINE','turbine',minimumDrawTicks=17,reducedMotion=True)
-    # All tooltip pages originate in the real registered ItemMachines stack; explicit details argument is disclosed.
+    # All tooltip pages originate in the real registered ItemMachines stack; native operation text is used without replacement.
     for name,entry in [('early','LargeSteamFurnace'),('advanced','CriticalSun'),('node','SteamCacheNode'),('small-port','SteamHubInputHatch'),('cluster','ClusterController')]:
         add('tooltip.'+name,'SOLAR','solar_water',machineTooltipEntry=entry,width=1600,height=1000,tooltipX=30,tooltipY=22)
-    add('tooltip.shift.complete','SOLAR','solar_water',machineTooltipEntry='CriticalSun',machineTooltipDetails=True,width=1920,height=1440,tooltipX=30,tooltipY=22)
     add('tooltip.en.longest','SOLAR','solar_water',machineTooltipEntry='__LONGEST__',language='en_US',width=1920,height=1440,tooltipX=30,tooltipY=22)
     add('en.chemical.mixture','BATTERY','chemical_window_1',language='en_US',width=1280,height=720)
     plan=OUT/'gallery-v2012-compact.json'
     plan.write_text(json.dumps(rows,ensure_ascii=False,indent=2),encoding='utf-8')
-    sources=[ROOT/'src/main/java/com/miaokatze/gtsr'/p for p in ['client/nei/CriticalNEIShowcase.java','api/recipe/CriticalNEILayout.java','api/recipe/CriticalRecipeFrontend.java','client/tooltip/GTSRMachineTooltips.java','client/tooltip/GTSRMachineTooltipProfiles.java']]
+    sources=[ROOT/'src/main/java/com/miaokatze/gtsr'/p for p in ['client/nei/CriticalNEIShowcase.java','api/recipe/CriticalNEILayout.java','api/recipe/CriticalRecipeFrontend.java','common/critical/CriticalTooltips.java','client/tooltip/GTSRTooltipHandler.java']]
     manifest=dict(sha256=hashlib.sha256(plan.read_bytes()).hexdigest(),captures=len(rows),status='PREPARED_NOT_LAUNCHED',hiddenDesktopRequired=True,heapGiB=3,reserveGiB=2,
                   physicalInput='NOT_RUN',businessTransactions='NOT_RUN',sourceSHA256={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sources})
     plan.with_suffix('.manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')

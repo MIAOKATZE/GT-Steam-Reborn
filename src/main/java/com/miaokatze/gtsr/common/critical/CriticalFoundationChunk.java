@@ -5,9 +5,12 @@ import net.minecraft.nbt.NBTTagCompound;
 /** Shared, dimension-local foundation work. Cells fill in row-major X/Z order. */
 public final class CriticalFoundationChunk {
 
-    public static final int CELLS = 16, CELL_DURATION = 400, CURING_DURATION = 72_000 * 20;
+    public static final int CELLS = 16, CELL_DURATION = 400, CURING_DURATION = 86_400 * 20;
+    public static final int LEGACY_CURING_DURATION = 72_000 * 20, HEATING_DURATION = 1_800 * 20;
+    public static final int HEATING_STEAM_PER_TICK = 50_000;
     private int completedCells, cellProgress, curingRemaining = CURING_DURATION;
-    private boolean funded, fundingUncertain;
+    private int heatingRemaining = HEATING_DURATION;
+    private boolean funded, fundingUncertain, heatingFunded, modern = true;
     private long lastWorkedTick = Long.MIN_VALUE;
 
     public int completedCells() {
@@ -20,6 +23,37 @@ public final class CriticalFoundationChunk {
 
     public int curingRemaining() {
         return curingRemaining;
+    }
+
+    public int heatingRemaining() {
+        return heatingRemaining;
+    }
+
+    public boolean modern() {
+        return modern;
+    }
+
+    /** Only a newly created journal of an old job uses the historical price and clock. */
+    public void useLegacySchedule() {
+        if (completedCells != 0 || cellProgress != 0 || funded) return;
+        modern = false;
+        heatingRemaining = 0;
+        curingRemaining = LEGACY_CURING_DURATION;
+    }
+
+    public boolean heatingFunded() {
+        return heatingFunded;
+    }
+
+    public void fundHeating() {
+        heatingFunded = true;
+    }
+
+    public void heat(long tick) {
+        if (!poured() || heatingRemaining == 0 || !heatingFunded || workedAt(tick) || fundingUncertain) return;
+        lastWorkedTick = tick;
+        heatingRemaining--;
+        heatingFunded = false;
     }
 
     public boolean funded() {
@@ -35,7 +69,7 @@ public final class CriticalFoundationChunk {
     }
 
     public boolean complete() {
-        return poured() && curingRemaining == 0;
+        return poured() && heatingRemaining == 0 && curingRemaining == 0;
     }
 
     public boolean workedAt(long tick) {
@@ -71,13 +105,14 @@ public final class CriticalFoundationChunk {
     }
 
     public void cure(long tick) {
-        if (!poured() || complete() || workedAt(tick) || fundingUncertain) return;
+        if (!poured() || heatingRemaining > 0 || complete() || workedAt(tick) || fundingUncertain) return;
         lastWorkedTick = tick;
         curingRemaining--;
     }
 
     public void capCuringRemaining(int ticks) {
-        if (poured() && !fundingUncertain) curingRemaining = Math.min(curingRemaining, Math.max(0, ticks));
+        if (poured() && heatingRemaining == 0 && !fundingUncertain)
+            curingRemaining = Math.min(curingRemaining, Math.max(0, ticks));
     }
 
     /** floor(remaining * 20% * n/(16+n)); positive sub-tick fractions stay on the clock. */
@@ -93,24 +128,35 @@ public final class CriticalFoundationChunk {
     }
 
     public void accelerate(long count) {
-        if (poured() && !fundingUncertain) curingRemaining -= curingReduction(curingRemaining, count);
+        if (poured() && heatingRemaining == 0 && !fundingUncertain)
+            curingRemaining -= curingReduction(curingRemaining, count);
     }
 
     public void read(NBTTagCompound n) {
+        modern = n.hasKey("foundationVersion") && n.getInteger("foundationVersion") == 5;
         completedCells = Math.max(0, Math.min(CELLS, n.getInteger("cells")));
         cellProgress = poured() ? 0 : Math.max(0, Math.min(CELL_DURATION - 1, n.getInteger("progress")));
         funded = !poured() && n.getBoolean("funded");
         fundingUncertain = n.getBoolean("uncertain");
         curingRemaining = Math.max(0, Math.min(CURING_DURATION, n.getInteger("curing")));
+        heatingRemaining = modern ? Math.max(0, Math.min(HEATING_DURATION, n.getInteger("heating"))) : 0;
+        heatingFunded = modern && heatingRemaining > 0 && n.getBoolean("heatingFunded");
+        if (n.hasKey("foundationVersion") && n.getInteger("foundationVersion") != 5) fundingUncertain = true;
+        if (modern
+            && (!n.hasKey("heating") || n.getInteger("heating") < 0 || n.getInteger("heating") > HEATING_DURATION))
+            fundingUncertain = true;
         lastWorkedTick = n.hasKey("lastWorkedTick") ? n.getLong("lastWorkedTick") : Long.MIN_VALUE;
     }
 
     public void write(NBTTagCompound n) {
+        if (modern) n.setInteger("foundationVersion", 5);
         n.setInteger("cells", completedCells);
         n.setInteger("progress", cellProgress);
         n.setBoolean("funded", funded);
         n.setBoolean("uncertain", fundingUncertain);
         n.setInteger("curing", curingRemaining);
+        n.setInteger("heating", heatingRemaining);
+        n.setBoolean("heatingFunded", heatingFunded);
         n.setLong("lastWorkedTick", lastWorkedTick);
     }
 }

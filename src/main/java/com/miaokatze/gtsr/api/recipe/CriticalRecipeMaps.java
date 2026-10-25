@@ -5,7 +5,9 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
+import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 
@@ -17,12 +19,14 @@ import gregtech.api.util.GTRecipe;
 /** Read-only NEI catalogues. Every entry is fake; custom runtimes never execute these maps. */
 public final class CriticalRecipeMaps {
 
-    public static final int CONSTRUCTION_PAGE_SIZE = 28;
+    public static final int CONSTRUCTION_PAGE_SIZE = 18;
     private static final EnumMap<CriticalMachineKind, RecipeMap<RecipeMapBackend>> MAPS = new EnumMap<>(
         CriticalMachineKind.class);
     private static final List<DisplayInfo> DISPLAY_INFO = new ArrayList<>();
     public static final RecipeMap<RecipeMapBackend> construction = displayBuilder("gtsr.recipe.critical.loom")
-        .maxIO(CONSTRUCTION_PAGE_SIZE, 1, 4, 0)
+        .maxIO(CONSTRUCTION_PAGE_SIZE, 1, 6, 0)
+        .neiItemInputsGetter(CriticalRecipeMaps::constructionItems)
+        .neiFluidInputsGetter(CriticalRecipeMaps::constructionFluids)
         .frontend((ui, nei) -> new CriticalRecipeFrontend(ui, nei, true))
         .build();
     public static final RecipeMap<RecipeMapBackend> stellarIrradiation = displayBuilder(
@@ -58,11 +62,31 @@ public final class CriticalRecipeMaps {
         register(map, recipe, new DisplayInfo(map, kind, operation, baseEu, spectrum, 0, 1));
     }
 
-    public static void addConstruction(GTRecipe recipe, CriticalMachineKind kind, int stage, int page, int pages) {
-        register(
-            construction,
-            recipe,
-            new DisplayInfo(construction, kind, "build_" + stage, BigInteger.ZERO, -1, page, pages));
+    /** One page per major phase; native slot indices preserve each of the three paid rows. */
+    public static void addConstruction(GTRecipe recipe, CriticalMachineKind kind, int group, ItemStack[][] items,
+        FluidStack[][] fluids) {
+        DisplayInfo info = new DisplayInfo(construction, kind, "build_" + group, BigInteger.ZERO, -1, 0, 1);
+        info.constructionItems = new ItemStack[CONSTRUCTION_PAGE_SIZE];
+        info.constructionFluids = new FluidStack[6];
+        if (items.length != 3 || fluids.length != 3)
+            throw new IllegalArgumentException("Three construction rows required");
+        for (int row = 0; row < 3; row++) {
+            if (items[row].length > 6 || fluids[row].length > 2) throw new IllegalArgumentException(
+                "Construction row exceeds six items / two fluids: " + kind + "/" + group + "/" + row);
+            System.arraycopy(items[row], 0, info.constructionItems, row * 6, items[row].length);
+            System.arraycopy(fluids[row], 0, info.constructionFluids, row * 2, fluids[row].length);
+        }
+        register(construction, recipe, info);
+    }
+
+    public static ItemStack[] constructionItems(GTRecipe recipe) {
+        DisplayInfo info = displayInfo(recipe);
+        return info == null || info.constructionItems == null ? recipe.mInputs : info.constructionItems;
+    }
+
+    public static FluidStack[] constructionFluids(GTRecipe recipe) {
+        DisplayInfo info = displayInfo(recipe);
+        return info == null || info.constructionFluids == null ? recipe.mFluidInputs : info.constructionFluids;
     }
 
     private static void register(RecipeMap<RecipeMapBackend> map, GTRecipe recipe, DisplayInfo info) {
@@ -126,6 +150,8 @@ public final class CriticalRecipeMaps {
         public final String operation;
         public final BigInteger baseEu;
         public final int spectrum, page, pages;
+        private ItemStack[] constructionItems;
+        private FluidStack[] constructionFluids;
 
         private DisplayInfo(RecipeMap<?> recipeMap, CriticalMachineKind kind, String operation, BigInteger baseEu,
             int spectrum, int page, int pages) {
@@ -146,10 +172,9 @@ public final class CriticalRecipeMaps {
             return construction() ? Integer.parseInt(operation.substring(6)) : -1;
         }
 
-        /** Four visual milestones preserve all six separately billed construction operations. */
+        /** Four milestones retain the foundation context beside the three construction pages. */
         public int constructionGroup() {
-            int stage = constructionStage();
-            return stage <= 0 ? 0 : stage <= 3 ? 1 : stage - 2;
+            return constructionStage() + 1;
         }
     }
 }

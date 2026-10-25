@@ -100,8 +100,8 @@ public final class CriticalConstructionEconomyContract {
         CriticalConstructionEconomy current = currentManifest(carrier);
         List<CriticalGeometry.Voxel> positions = Arrays.asList(
             voxel(21, 1, false), voxel(22, 2, false), voxel(23, 3, false), voxel(24, 4, false), carrier, main);
-        check(CriticalConstructionEconomy.VERSION == 4 && current.version() == 4,
-            "Only newly frozen jobs use economy version 4");
+        check(CriticalConstructionEconomy.VERSION == 5 && current.version() == 4,
+            "Only newly frozen jobs use economy version 5; saved version 4 keeps its price basis");
         check(fluidCount(current.fluidCosts(positions, 0, 1), SOLDER) == 7
             && fluidCount(current.fluidCosts(positions, 1, 2), SOLDER) == 13
             && fluidCount(current.fluidCosts(positions, 2, 3), COOLANT) == 17
@@ -225,6 +225,7 @@ public final class CriticalConstructionEconomyContract {
             CriticalMaterials.MaterialBlock block = (CriticalMaterials.MaterialBlock) unsafe.allocateInstance(CriticalMaterials.MaterialBlock.class);
             materialId.set(block, id); blocks.put(id, block);
         }
+        seedSchedule(blocks);
         CriticalMachineKind[] kinds = { CriticalMachineKind.SOLAR, CriticalMachineKind.TURBINE,
             CriticalMachineKind.BATTERY, CriticalMachineKind.SUN };
         int[] expectedShells = { 67996, 118532, 102627, 59203 }, expectedCarriers = { 9, 8, 4, 4 };
@@ -255,7 +256,169 @@ public final class CriticalConstructionEconomyContract {
             int surplus = 0;
             for (int quantity : quantities.values()) surplus += (quantity + 15) / 16 * 16 - quantity;
             check(surplus == expectedSurplus[k], "Full-job per-identity manufacturing rounds once and leaves the original-table surplus");
+            CriticalConstructionEconomy frozen = CriticalConstructionEconomy.freeze(config, paid, layout.cacheKey());
+            check(frozen.version() == 5 && count(frozen.demand(), CONTROLLER) == 1, "New full job freezes v5 and one complete controller " + kinds[k]);
+            long shellsPaid = 0;
+            for (ItemStack item : frozen.demand()) if (item.getItem() != CONTROLLER && item.getItem() != EQUIPMENT) shellsPaid += item.stackSize;
+            check(shellsPaid == expectedShells[k], "Standard family parts preserve all real paid positions " + kinds[k]);
+            List<ItemStack> displayed = new ArrayList<>(); List<FluidStack> displayedFluids = new ArrayList<>();
+            int[] rowPositions = new int[6];
+            for (CriticalGeometry.Voxel voxel : paid) rowPositions[frozen.stage(voxel) - 4]++;
+            for (int group = 1; group <= 2; group++) for (int row = 0; row < 3; row++) {
+                ItemStack[] bill = frozen.itemsForDisplayRow(group, row, paid);
+                FluidStack[] fluids = frozen.fluidsForDisplayRow(group, row, paid);
+                check(bill.length <= 6 && fluids.length <= 2 && rowPositions[(group - 1) * 3 + row] > 0,
+                    "Every visible row is a real bounded payment/work stage " + kinds[k] + "/" + group + "/" + row);
+                boolean localRepair = true;
+                for (CriticalGeometry.Voxel voxel : paid) if (frozen.stage(voxel) == (group == 1 ? 4 : 7) + row) {
+                    for (FluidStack fluid : frozen.fluidCosts(Arrays.asList(voxel), 0, 1))
+                        localRepair &= fluid.amount <= (fluidCount(fluids, fluid.getFluid())
+                            + rowPositions[(group - 1) * 3 + row] - 1) / rowPositions[(group - 1) * 3 + row];
+                }
+                check(localRepair, "Single-position repair never recharges the whole macro-row fluid bill " + kinds[k] + "/" + group + "/" + row);
+                for (ItemStack item : bill) CriticalConstructionEconomy.merge(displayed, item);
+                for (FluidStack fluid : fluids) {
+                    boolean merged = false;
+                    for (FluidStack prior : displayedFluids) if (prior.isFluidEqual(fluid)) { prior.amount += fluid.amount; merged = true; break; }
+                    if (!merged) displayedFluids.add(fluid.copy());
+                }
+            }
+            check(sameBill(displayed.toArray(new ItemStack[0]), frozen.demand()), "Six visible rows exactly equal full-job item debits " + kinds[k]);
+            boolean fluidsEqual = true;
+            for (FluidStack fluid : frozen.fluidCosts(paid, 0, paid.size()))
+                fluidsEqual &= fluidCount(displayedFluids.toArray(new FluidStack[0]), fluid.getFluid()) == fluid.amount;
+            check(fluidsEqual, "Six visible rows exactly equal full-job fluid debits " + kinds[k]);
+            if (kinds[k] == CriticalMachineKind.SUN) {
+                ItemStack[] mechanical = frozen.itemsForDisplayRow(2, 0, paid);
+                ItemStack[] working = frozen.itemsForDisplayRow(2, 1, paid);
+                ItemStack[] wiring = frozen.itemsForDisplayRow(2, 2, paid);
+                check(exactCount(mechanical, gregtech.api.util.GTOreDictUnificator.get(
+                    gregtech.api.enums.OrePrefixes.plate, gregtech.api.enums.Materials.CosmicNeutronium, 1)) == 256,
+                    "SUN mechanical support preserves 256 real GT205 plate units (legacy get() caps each macro stack at 64)");
+                check(exactCount(working, gregtech.api.enums.ItemList.Field_Generator_UHV.get(1)) == 256
+                    && exactCount(working, gregtech.api.enums.ItemList.Emitter_UHV.get(1)) == 128
+                    && exactCount(working, gregtech.api.enums.ItemList.Gravistar.get(1)) == 256,
+                    "SUN active work row pays field generators, emitters and Gravistars together");
+                check(exactCount(wiring, gregtech.api.enums.ItemList.Sensor_UHV.get(1)) == 64
+                    && exactCount(wiring, gregtech.api.util.GTOreDictUnificator.get(
+                        gregtech.api.enums.OrePrefixes.circuit, gregtech.api.enums.Materials.UHV, 1)) == 128
+                    && exactCount(wiring, gregtech.api.util.GTOreDictUnificator.get(
+                        gregtech.api.enums.OrePrefixes.wireFine, gregtech.api.enums.Materials.Neutronium, 1)) == 256
+                    && count(wiring, CONTROLLER) == 1,
+                    "SUN sensing/wiring row pays all sensors, circuits, fine wires and the controller");
+            }
+            NBTTagCompound schedule = new NBTTagCompound(); frozen.write(schedule);
+            CriticalConstructionEconomy restored = CriticalConstructionEconomy.read(schedule);
+            boolean rowsEqual = true;
+            for (CriticalGeometry.Voxel voxel : paid) rowsEqual &= restored.stage(voxel) == frozen.stage(voxel);
+            check(rowsEqual && sameBill(restored.demand(), frozen.demand()), "Frozen price and every position's stage survive NBT " + kinds[k]);
+            if (k == 0) {
+                check(frozen.stage(voxel(800_000, 4, false)) == 0,
+                    "Positions excluded from the frozen price basis remain user-built rather than acquiring a future bill");
+                compactPayments(frozen, paid);
+            }
+            schedule.removeTag("workSchedule");
+            boolean rejected = false; try { CriticalConstructionEconomy.read(schedule); } catch (IllegalArgumentException expected) { rejected = true; }
+            check(rejected, "Missing v5 schedule cannot waive payment " + kinds[k]);
         }
+    }
+
+    private static void compactPayments(CriticalConstructionEconomy frozen, List<CriticalGeometry.Voxel> paid) {
+        List<CriticalGeometry.Voxel> selected = new ArrayList<>();
+        for (int stage = 4; stage <= 9; stage++) {
+            CriticalGeometry.Voxel first = null;
+            for (CriticalGeometry.Voxel voxel : paid) if (frozen.stage(voxel) == stage) {
+                if (first == null || CriticalStructures.isController(voxel)) first = voxel;
+            }
+            selected.add(first);
+        }
+        java.util.Set<Long> positions = new java.util.HashSet<>();
+        for (CriticalGeometry.Voxel voxel : selected) positions.add(voxel.positionKey());
+        NBTTagCompound n = new NBTTagCompound(); frozen.write(n);
+        for (String key : Arrays.asList("workSchedule", "carriers")) {
+            NBTTagList keep = new NBTTagList(), rows = n.getTagList(key, 10);
+            for (int i = 0; i < rows.tagCount(); i++) if (positions.contains(rows.getCompoundTagAt(i).getLong("position")))
+                keep.appendTag(rows.getCompoundTagAt(i));
+            n.setTag(key, keep);
+        }
+        n.setTag("demand", CriticalResourceNbt.writeItems(frozen.costs(selected, 0, selected.size())));
+        CriticalConstructionEconomy compact = CriticalConstructionEconomy.read(n);
+        CriticalConstructionLedger ledger = new CriticalConstructionLedger(); ledger.freezeJob(compact);
+        check(count(ledger.physicalNextItems(Arrays.asList(selected.get(0))), CONTROLLER) == 0,
+            "Version 5 never hides the equipment controller in the first body material payment");
+        for (CriticalGeometry.Voxel voxel : selected) ledger = build(ledger, Arrays.asList(voxel), true);
+        FluidStack[] consumed = CriticalResourceNbt.readFluids(save(ledger).getTagList("constructionPaidFluids", 10), -1);
+        boolean exactFluids = true;
+        for (FluidStack fluid : compact.fluidCosts(selected, 0, selected.size()))
+            exactFluids &= fluidCount(consumed, fluid.getFluid()) == fluid.amount;
+        check(!ledger.hasIntegrityError() && exactFluids,
+            "Six new stages consume their exact frozen fluids after every payment retry and NBT reload");
+        NBTTagList balances = save(ledger).getTagList("constructionPhysicalBalances", 10);
+        List<ItemStack> collected = new ArrayList<>();
+        for (int i = 0; i < balances.tagCount(); i++) {
+            NBTTagCompound row = balances.getCompoundTagAt(i);
+            ItemStack item = CriticalResourceNbt.readItems(row.getTagList("item", 10), 1)[0];
+            item.stackSize = (int) row.getLong("paid"); CriticalConstructionEconomy.merge(collected, item);
+        }
+        check(sameBill(collected.toArray(new ItemStack[0]), compact.demand()),
+            "New-stage actual confirmed item payments exactly equal its frozen bill after every reload");
+        conservation(ledger);
+    }
+
+    private static boolean sameBill(ItemStack[] left, ItemStack[] right) {
+        if (left.length != right.length) return false;
+        for (ItemStack item : left) {
+            boolean match = false;
+            for (ItemStack other : right) if (CriticalConstructionEconomy.same(item, other) && item.stackSize == other.stackSize) match = true;
+            if (!match) return false;
+        }
+        return true;
+    }
+
+    private static long exactCount(ItemStack[] rows, ItemStack wanted) {
+        long count = 0;
+        for (ItemStack item : rows) if (CriticalConstructionEconomy.same(item, wanted)) count += item.stackSize;
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void seedSchedule(java.util.Map<String, Block> blocks) throws Exception {
+        gregtech.api.GregTechAPI.sPreloadStarted = true;
+        java.lang.reflect.Field access = sun.misc.Unsafe.class.getDeclaredField("theUnsafe"); access.setAccessible(true);
+        sun.misc.Unsafe unsafe = (sun.misc.Unsafe) access.get(null);
+        Class.forName("net.minecraft.init.Items");
+        java.lang.reflect.Field feather = net.minecraft.init.Items.class.getDeclaredField("feather");
+        unsafe.putObject(unsafe.staticFieldBase(feather), unsafe.staticFieldOffset(feather), EQUIPMENT);
+        int registry = 1000, component = 1;
+        java.lang.reflect.Method addBlock = Block.blockRegistry.getClass().getDeclaredMethod("addObjectRaw", int.class, String.class, Object.class);
+        java.lang.reflect.Method addItem = Item.itemRegistry.getClass().getDeclaredMethod("addObjectRaw", int.class, String.class, Object.class);
+        addBlock.setAccessible(true); addItem.setAccessible(true);
+        for (java.util.Map.Entry<String, Block> entry : blocks.entrySet()) {
+            addBlock.invoke(Block.blockRegistry, registry, "gtsr:" + entry.getKey(), entry.getValue());
+            addItem.invoke(Item.itemRegistry, registry++, "gtsr:" + entry.getKey(), new net.minecraft.item.ItemBlock(entry.getValue()));
+        }
+        for (String name : Arrays.asList("Electric_Motor_UHV", "Electric_Pump_UHV", "Electric_Piston_UHV",
+            "Field_Generator_UHV", "Emitter_UHV", "Sensor_UHV", "Gravistar"))
+            gregtech.api.enums.ItemList.valueOf(name).set(new ItemStack(EQUIPMENT, 1, component++));
+        for (String name : Arrays.asList("CriticalSolar", "CriticalTurbine", "CriticalBattery", "CriticalSun"))
+            com.miaokatze.gtsr.common.api.enums.GTSRItemList.valueOf(name).set(new ItemStack(CONTROLLER, 1, component++));
+        for (gregtech.api.enums.OrePrefixes prefix : new gregtech.api.enums.OrePrefixes[] {
+            gregtech.api.enums.OrePrefixes.circuit, gregtech.api.enums.OrePrefixes.pipeMedium, gregtech.api.enums.OrePrefixes.gearGt,
+            gregtech.api.enums.OrePrefixes.stickLong, gregtech.api.enums.OrePrefixes.rotor, gregtech.api.enums.OrePrefixes.plate,
+            gregtech.api.enums.OrePrefixes.wireFine })
+            for (gregtech.api.enums.Materials material : new gregtech.api.enums.Materials[] {
+                gregtech.api.enums.Materials.UHV, gregtech.api.enums.Materials.Neutronium, gregtech.api.enums.Materials.NaquadahAlloy,
+                gregtech.api.enums.Materials.Europium, gregtech.api.enums.Materials.Platinum, gregtech.api.enums.Materials.Iridium,
+                gregtech.api.enums.Materials.Osmium, gregtech.api.enums.Materials.CosmicNeutronium })
+                gregtech.api.util.GTOreDictUnificator.getName2StackMap().put(prefix.get(material).toString(), new ItemStack(EQUIPMENT, 1, component++));
+        java.lang.reflect.Field ic2 = gregtech.api.util.GTModHandler.class.getDeclaredField("sIC2ItemMap"); ic2.setAccessible(true);
+        ((java.util.Map<String, ItemStack>) ic2.get(null)).put("carbonPlate", new ItemStack(EQUIPMENT, 1, component++));
+        for (gregtech.api.enums.Materials material : new gregtech.api.enums.Materials[] {
+            gregtech.api.enums.Materials.Silver, gregtech.api.enums.Materials.Bismuth, gregtech.api.enums.Materials.Radon }) {
+            Fluid fluid = new Fluid("schedule_plasma_" + material.mName); FluidRegistry.registerFluid(fluid); material.mPlasma = fluid;
+        }
+        Fluid water = new Fluid("schedule_water7"); FluidRegistry.registerFluid(water);
+        gregtech.api.enums.Materials.Grade7PurifiedWater.mFluid = water;
     }
 
     public static void main(String[] args) throws Exception {

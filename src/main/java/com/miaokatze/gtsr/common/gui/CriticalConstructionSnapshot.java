@@ -14,7 +14,7 @@ import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 /** One immutable S2C sample: the map, stage cursor and clocks always refer to the same server tick. */
 final class CriticalConstructionSnapshot {
 
-    private static final int HEADER_SIZE = 21;
+    private static final int HEADER_SIZE = 22;
     private final int[] values;
 
     private CriticalConstructionSnapshot(int[] values) {
@@ -68,6 +68,7 @@ final class CriticalConstructionSnapshot {
         values[18] = state.isEnabled() ? 1 : 0;
         values[19] = state.isFoundationCellFunded() ? 1 : 0;
         values[20] = state.isLoomJournalOwner() ? 1 : 0;
+        values[21] = state.usesThreePartConstruction() ? 1 : 0;
         for (int i = 0; i < chunks.size(); i++) {
             ChunkCoordIntPair chunk = chunks.get(i);
             values[HEADER_SIZE + i * 3] = chunk.chunkXPos;
@@ -183,6 +184,25 @@ final class CriticalConstructionSnapshot {
         return values[20] != 0;
     }
 
+    boolean threePartConstruction() {
+        return values[21] != 0;
+    }
+
+    boolean equipmentStage() {
+        return threePartConstruction() ? stage() >= 7 && stage() <= 9 : stage() == 5;
+    }
+
+    double bodyProgress() {
+        if (status() == 2) return 1;
+        double cursor = ratio(placed(), total());
+        if (threePartConstruction()) return stage() > 6 ? 1 : stage() >= 4 ? (stage() - 4 + cursor) / 3 : 0;
+        return stage() > 4 ? 1 : stage() == 4 ? cursor : 0;
+    }
+
+    int heatingRemaining() {
+        return phase() == 4 ? Math.max(0, constructionDuration() - constructionTicks()) : 0;
+    }
+
     int chunkCount() {
         return (values.length - HEADER_SIZE) / 3;
     }
@@ -200,7 +220,7 @@ final class CriticalConstructionSnapshot {
     }
 
     boolean showsFoundation() {
-        return status() == 0 || status() == 1 && foundationRequired() && (phase() == 1 || phase() == 2);
+        return status() == 0 || status() == 1 && foundationRequired() && (phase() == 1 || phase() == 2 || phase() == 4);
     }
 
     double progress() {
@@ -208,6 +228,7 @@ final class CriticalConstructionSnapshot {
         if (showsFoundation()) {
             if (phase() == 1) return ratio(completedCells() + ratio(cellTicks(), cellDuration()), totalCells());
             if (phase() == 2) return 1 - ratio(curingRemaining(), curingDuration());
+            if (phase() == 4) return ratio(constructionTicks(), constructionDuration());
         }
         return ratio(placed(), total());
     }

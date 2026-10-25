@@ -41,10 +41,10 @@ class CriticalNEICatalogRuntime {
     }
     static void showcaseTemplate() {
         var frontend=CriticalRecipeMaps.construction.getFrontend();
-        var inputs=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(28);
+        var inputs=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(18);
         var outputs=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(1);
         var special=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(1);
-        var fluids=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(4);
+        var fluids=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(6);
         var empty=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(0);
         var context=new gregtech.nei.GTNEIDefaultHandler.NEITemplateContext(inputs,outputs,special,fluids,empty,
             ()->0f,()->null,new com.gtnewhorizons.modularui.api.math.Pos2d(-5,-11));
@@ -53,15 +53,17 @@ class CriticalNEICatalogRuntime {
         for(var child:template.getChildren())if(child instanceof com.gtnewhorizons.modularui.common.widget.SlotWidget slot){
             slots++;
             int x=slot.getPos().x,y=slot.getPos().y;
+            check(!(x<166&&x+18>154&&y<174&&y+18>149),
+                "native construction slots leave NEI favorite/overlay buttons clear");
             if(slot.getMcSlot().getItemHandler()==inputs)
-                check(x>=CriticalNEILayout.BUILD_X&&x+18<=CriticalNEILayout.BUILD_X+138&&y>=CriticalNEILayout.BUILD_Y&&y+18<=CriticalNEILayout.BUILD_Y+78,"GT205 material slot exact card bounds");
+                check(x==CriticalNEILayout.BUILD_X+slot.getMcSlot().getSlotIndex()%6*18 && y==CriticalNEILayout.BUILD_Y+slot.getMcSlot().getSlotIndex()/6*36,"GT205 six-item native row coordinates");
             else if(slot.getMcSlot().getItemHandler()==outputs)
                 check(x==CriticalNEILayout.OUTPUT_X&&y==CriticalNEILayout.BUILD_OUTPUT_Y,"GT205 output slot exact card coordinates");
-            else check(x>=8&&x<=68&&y==CriticalNEILayout.BUILD_FLUID_Y,"GT205 concrete fluid slot exact card coordinates");
+            else check(x==CriticalNEILayout.BUILD_FLUID_X+slot.getMcSlot().getSlotIndex()%2*18 && y==CriticalNEILayout.BUILD_Y+slot.getMcSlot().getSlotIndex()/2*36,"GT205 two-fluid native row coordinates");
         }
         check(CriticalNEILayout.arrowCenter(false)==53 && CriticalNEILayout.arrowCenter(true)==73,
             "arrows share the exact item/fluid slot centre");
-        check(slots==33,"native construction template has 28 materials + controller + four fluids");
+        check(slots==25,"native construction template has three six-item/two-fluid rows plus controller");
         System.out.println("PASS native construction template "+checks+" checks; GT205/MUI1");
     }
     static void runtimeTemplatesAndUniqueness() {
@@ -140,12 +142,17 @@ class CriticalNEICatalogRuntime {
         for(OrePrefixes prefix:List.of(OrePrefixes.circuit,OrePrefixes.pipeMedium,OrePrefixes.plate,OrePrefixes.gearGt,
             OrePrefixes.stickLong,OrePrefixes.rotor,OrePrefixes.wireFine))
             for(Materials material:List.of(Materials.UHV,Materials.Neutronium,Materials.Europium,Materials.NaquadahAlloy,
-                Materials.Platinum,Materials.Iridium,Materials.Osmium,Materials.CosmicNeutronium))
+                Materials.Platinum,Materials.Iridium,Materials.Osmium,Materials.CosmicNeutronium,Materials.TungstenSteel))
                 gregtech.api.util.GTOreDictUnificator.getName2StackMap().put(prefix.get(material).toString(),new ItemStack(Items.feather,1,id++));
         Field ic2=gregtech.api.util.GTModHandler.class.getDeclaredField("sIC2ItemMap");ic2.setAccessible(true);
         ((Map<String,ItemStack>)ic2.get(null)).put("carbonPlate",new ItemStack(Items.feather,1,id++));
         Field concrete=CriticalFoundationMaterials.class.getDeclaredField("concrete");concrete.setAccessible(true);
         Fluid foundation=new Fluid("nei_foundation");FluidRegistry.registerFluid(foundation);concrete.set(null,foundation);
+        for(Materials material:List.of(Materials.Silver,Materials.Bismuth,Materials.Radon)) {
+            Fluid plasma=new Fluid("nei_plasma_"+material.name());FluidRegistry.registerFluid(plasma);material.mPlasma=plasma;
+        }
+        Fluid water7=new Fluid("nei_water7");FluidRegistry.registerFluid(water7);Materials.Grade7PurifiedWater.mFluid=water7;
+        FluidRegistry.registerFluid(new Fluid("ic2superheatedsteam"));
         Method register=CriticalMachineRecipes.class.getDeclaredMethod("registerConstruction");register.setAccessible(true);register.invoke(null);
         for(CriticalMachineKind kind:CriticalMachineKind.releasedValues()) {
             CriticalConfiguration config=new CriticalConfiguration(CriticalTier.T3,kind,8,0,0);
@@ -154,32 +161,53 @@ class CriticalNEICatalogRuntime {
             for(var voxel:CriticalCompiledLayout.get(definition,config).voxels())
                 if(!CriticalLayoutDefinition.isLoom(voxel))paid.add(voxel);
             CriticalConstructionEconomy bill=CriticalConstructionEconomy.freeze(config,paid,definition.cacheKey());
-            List<ItemStack> inputs=new ArrayList<>();Set<String> pages=new HashSet<>();Set<String> stages=new HashSet<>();
+            List<ItemStack> inputs=new ArrayList<>();Set<Integer> groups=new HashSet<>();
             for(GTRecipe recipe:CriticalRecipeMaps.construction.getAllRecipes()) {
                 var info=CriticalRecipeMaps.displayInfo(recipe);if(info.kind!=kind)continue;
-                // Ignore the independent synthetic pagination entry above.
                 if(recipe.mOutputs[0].getItem()==Items.diamond)continue;
-                check(recipe.mFakeRecipe && recipe.mInputs.length<=28,"all construction entries fake and unpaginated");
-                check(recipe.mOutputs.length==1 && recipe.mOutputs[0].stackSize==1,"one clickable whole-machine product marker");
-                check(pages.add(info.operation+":"+info.page),"no duplicate construction page");stages.add(info.operation);
-                if(!info.operation.equals("build_0"))inputs.addAll(Arrays.asList(recipe.mInputs));
-                else check(recipe.mFluidInputs[0].amount==1_000_000,"foundation per-cell bill exact");
-            }
-            check(stages.equals(Set.of("build_0","build_1","build_2","build_3","build_4","build_5")),"foundation plus all five paid voxel stages");
-            for(int stage=1;stage<=5;stage++) {
-                final int currentStage=stage;
-                List<CriticalGeometry.Voxel> group=paid.stream().filter(v->bill.stage(v)==currentStage).toList();
-                List<ItemStack> actual=new ArrayList<>();
-                for(GTRecipe entry:CriticalRecipeMaps.construction.getAllRecipes()) {
-                    var info=CriticalRecipeMaps.displayInfo(entry);
-                    if(info.kind==kind&&info.constructionStage()==stage&&entry.mOutputs[0].getItem()!=Items.diamond)
-                        actual.addAll(Arrays.asList(entry.mInputs));
+                int group=info.constructionStage();
+                check(recipe.mFakeRecipe && groups.add(group),"exactly one native entry per major construction phase");
+                check(recipe.mOutputs.length==1 && recipe.mOutputs[0].stackSize==1,"one clickable whole-machine marker");
+                var displayItems=CriticalRecipeMaps.constructionItems(recipe);
+                var displayFluids=CriticalRecipeMaps.constructionFluids(recipe);
+                check(displayItems.length==18&&displayFluids.length==6,"three fully indexed native rows");
+                List<ItemStack> shown=new ArrayList<>();
+                for(int row=0;row<3;row++) {
+                    var expected=bill.itemsForDisplayRow(group,row,paid);
+                    var actual=new ArrayList<ItemStack>();
+                    for(int i=row*6;i<(row+1)*6;i++)if(displayItems[i]!=null)actual.add(displayItems[i]);
+                    check(totals(actual).equals(totals(Arrays.asList(expected))),"row bill exactly matches runtime paid construction API");
+                    shown.addAll(actual);
+                    var expectedFluids=bill.fluidsForDisplayRow(group,row,paid);
+                    for(int i=0;i<expectedFluids.length;i++) {
+                        FluidStack actualFluid=displayFluids[row*2+i];
+                        check(actualFluid!=null&&actualFluid.isFluidEqual(expectedFluids[i])&&actualFluid.amount==expectedFluids[i].amount,
+                            "native row fluid identity and exact volume");
+                    }
                 }
-                check(totals(actual).equals(totals(Arrays.asList(bill.costs(group,0,group.size())))),
-                    "stage bill equals frozen production economy " + kind + " stage " + stage);
+                check(totals(shown).equals(totals(Arrays.asList(recipe.mInputs))),"every clickable item is in the real indexed recipe bill");
+                if(group!=0)inputs.addAll(Arrays.asList(recipe.mInputs));
             }
-            check(totals(inputs).equals(totals(Arrays.asList(bill.demand()))),"all page inputs exactly equal frozen whole-job demand "+kind);
+            check(groups.equals(Set.of(0,1,2)),"base, body, equipment: three pages per released machine");
+            check(totals(inputs).equals(totals(Arrays.asList(bill.demand()))),"all body/equipment rows exactly equal frozen whole-job demand "+kind);
         }
+    }
+    static void stellarLifecycle() throws Exception {
+        Fluid helium3=new Fluid("nei_helium3");FluidRegistry.registerFluid(helium3);Materials.Helium3.mGas=helium3;
+        Fluid plasma=new Fluid("nei_helium_plasma");FluidRegistry.registerFluid(plasma);Materials.Helium.mPlasma=plasma;
+        Method register=CriticalMachineRecipes.class.getDeclaredMethod("registerStellarLifecycle");
+        register.setAccessible(true);register.invoke(null);
+        Set<String> phases=new HashSet<>();
+        for(GTRecipe recipe:CriticalRecipeMaps.stellarLifecycle.getAllRecipes()) {
+            var info=CriticalRecipeMaps.displayInfo(recipe);if(!info.operation.startsWith("stellar_"))continue;
+            check(phases.add(info.operation),"one entry per stellar lifecycle phase");
+            check(recipe.mDuration==CriticalStellarPolicy.DURATION_TICKS,"stellar lifecycle phase is exactly twenty seconds");
+            long expected=info.operation.equals("stellar_ignition")?CriticalStellarPolicy.IGNITION_HELIUM3_L
+                :CriticalStellarPolicy.DURATION_TICKS*CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK;
+            check(recipe.mFluidInputs[0].amount==expected&&recipe.mFluidOutputs[0].amount==expected/2,
+                "stellar phase fluid bill matches paid runtime amounts");
+        }
+        check(phases.equals(Set.of("stellar_ignition","stellar_sustain")),"ignition and sustain both indexed");
     }
     public static void run(String version) throws Exception {
         Issue37Runtime.bootstrap(version);
@@ -203,7 +231,7 @@ class CriticalNEICatalogRuntime {
         Set<String> unique = new HashSet<>();
         for (var p : positions) {
             int x=p.x-5,y=p.y-11;
-            check(x >= CriticalNEILayout.BUILD_X && x+18 <= CriticalNEILayout.BUILD_X+138 && y >=CriticalNEILayout.BUILD_Y && y+18 <=CriticalNEILayout.BUILD_Y+78, "construction grid bounds");
+            check(x >= CriticalNEILayout.BUILD_X && x+18 <= CriticalNEILayout.BUILD_X+108 && y >=CriticalNEILayout.BUILD_Y && y+18 <=CriticalNEILayout.BUILD_Y+90, "construction grid bounds");
             check(unique.add(x+":"+y), "unique native hit box");
         }
         check(frontend.getItemOutputPositions(1).get(0).x-5 == CriticalNEILayout.OUTPUT_X, "separate clickable product");
@@ -222,7 +250,8 @@ class CriticalNEICatalogRuntime {
         }
         GTRecipe build=GTRecipeBuilder.builder().itemInputs(new ItemStack(Items.iron_ingot, 4))
             .itemOutputs(new ItemStack(Items.diamond, 1)).duration(400).eut(0).build().orElseThrow();
-        CriticalRecipeMaps.addConstruction(build, CriticalMachineKind.SUN, 2, 0, 1);
+        CriticalRecipeMaps.addConstruction(build, CriticalMachineKind.SUN, 2, new ItemStack[][] { build.mInputs, {}, {} },
+            new FluidStack[][] { {}, {}, {} });
         check(build.mFakeRecipe && CriticalRecipeMaps.displayInfo(build).pages==1, "single semantic world product marker");
         check(CriticalRecipeMaps.construction.getAllRecipes().contains(build), "construction R/U indexed");
         Method filter=CriticalMachineRecipes.class.getDeclaredMethod("supportedFusion",GTRecipe.class);
@@ -231,7 +260,7 @@ class CriticalNEICatalogRuntime {
             .fluidOutputs(new FluidStack(fluid, 1)).duration(33).eut(100)
             .metadata(GTRecipeConstants.FUSION_THRESHOLD,CriticalStellarPolicy.MKV_STARTUP).build().orElseThrow();
         check((Boolean)filter.invoke(null,fusion), "MkV boundary accepted");
-        check(CriticalStellarPolicy.duration(fusion.mDuration)==3,"ceil native/16");
+        check(CriticalStellarPolicy.duration(fusion.mDuration)==400,"all native fusion durations become twenty seconds");
         fusion.mEUt=(int)GTValues.V[10]+1;
         check(!(Boolean)filter.invoke(null,fusion), "voltage overcap excluded");
         fusion.mEUt=100;fusion.mFakeRecipe=true;
@@ -240,6 +269,7 @@ class CriticalNEICatalogRuntime {
         check(!(Boolean)filter.invoke(null,fusion), "zero duration excluded");
         showcaseTemplate();
         fullConstruction();
+        stellarLifecycle();
         System.out.println("PASS NEI catalog " + checks + " checks; "
             + (expectedJar == null ? "source overlay" : "candidate jar-only") + " GT205; no live client");
     }

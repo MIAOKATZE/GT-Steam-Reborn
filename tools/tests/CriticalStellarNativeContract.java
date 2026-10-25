@@ -58,7 +58,7 @@ class CriticalStellarNativeRuntime {
         contract.setAccessible(true);
         check((Boolean) contract.invoke(null, legal), "Real GT205 builder defaults satisfy the native fusion contract");
         check(capability(legal), "Typed MkV long threshold and voltage are accepted");
-        check(CriticalStellarPolicy.duration(legal.mDuration) == 2, "Real native duration rounds upward by sixteen");
+        check(CriticalStellarPolicy.duration(legal.mDuration) == 400, "Real native duration is fixed at twenty seconds");
         GTRecipe missing = recipe(input, output).specialValue(1).build().orElseThrow();
         check(!capability(missing), "Legacy mSpecialValue does not impersonate typed threshold");
         GTRecipe over = recipe(input, output).metadata(GTRecipeConstants.FUSION_THRESHOLD, 20_480_000_001L).build().orElseThrow();

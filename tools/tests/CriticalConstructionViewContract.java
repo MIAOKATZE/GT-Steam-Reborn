@@ -26,7 +26,7 @@ public final class CriticalConstructionViewContract {
             .equals(Paths.get(args[0]).toRealPath()), "GUI sample must come from the candidate JAR");
         Constructor<?> constructor = type.getDeclaredConstructor(int[].class);
         constructor.setAccessible(true);
-        int[] values = new int[21];
+        int[] values = new int[22];
         values[0] = 2; // Persistent foundation is still curing when dismantling begins.
         values[5] = 720000;
         values[6] = 1440000;
@@ -54,6 +54,24 @@ public final class CriticalConstructionViewContract {
         Object curing = constructor.newInstance((Object) values.clone());
         check((Boolean) call(curing, "showsFoundation"), "Active foundation work retains the grid");
         check((Double) call(curing, "progress") == .5, "Active curing retains its remaining-time progress");
+        values[0] = 4;
+        values[13] = 9000;
+        values[14] = 36000;
+        Object heating = constructor.newInstance((Object) values.clone());
+        check((Boolean) call(heating, "showsFoundation"), "Heat curing retains the foundation grid");
+        check((Double) call(heating, "progress") == .25, "Heat curing uses its own paid-time clock");
+        check((Integer) call(heating, "heatingRemaining") == 27000, "Heat curing remaining time is authoritative");
+        values[0] = 3;
+        values[21] = 1;
+        values[9] = 5;
+        values[10] = 50;
+        values[11] = 100;
+        Object body = constructor.newInstance((Object) values.clone());
+        check(!(Boolean) call(body, "equipmentStage"), "New stage five remains body work, not legacy equipment");
+        check((Double) call(body, "bodyProgress") == .5, "Middle of the second body part is half complete");
+        values[21] = 0;
+        Object legacyEquipment = constructor.newInstance((Object) values.clone());
+        check((Boolean) call(legacyEquipment, "equipmentStage"), "Legacy stage five retains its equipment meaning");
         System.out.println("PASS CriticalConstructionViewContract checks=" + checks);
     }
 }

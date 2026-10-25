@@ -100,7 +100,7 @@ final class CriticalConstructionLedger {
         // The complete controller is reserved on the first material payment, before its marker is installed.
         ItemStack controller = physicalJob.controller();
         Account controllerAccount = findAccount(controller);
-        if (controllerAccount.paid == 0) {
+        if (physicalJob.version() < 5 && controllerAccount.paid == 0) {
             boolean included = false;
             for (ItemStack item : bill) if (same(item, controller)) included = true;
             if (!included) bill.add(controller);

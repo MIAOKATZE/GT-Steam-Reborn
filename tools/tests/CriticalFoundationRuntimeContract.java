@@ -119,7 +119,76 @@ public final class CriticalFoundationRuntimeContract {
         saved.removeTag("foundationRequired");
         legacy.readFromNBT(saved);
         check(!legacy.isFoundationRequired(), "Old saved construction journals do not acquire a foundation requirement");
+        modernHeating(world);
         System.out.println("PASS CriticalFoundationRuntimeContract checks=" + checks);
+    }
+
+    private static void modernHeating(ClockWorld world) throws Exception {
+        Field loader = cpw.mods.fml.common.Loader.class.getDeclaredField("instance"); loader.setAccessible(true);
+        loader.set(null, unsafe.allocateInstance(cpw.mods.fml.common.Loader.class));
+        java.lang.reflect.Method blocks = net.minecraft.block.Block.blockRegistry.getClass()
+            .getDeclaredMethod("addObjectRaw", int.class, String.class, Object.class);
+        blocks.setAccessible(true);
+        blocks.invoke(net.minecraft.block.Block.blockRegistry, 9, "minecraft:water",
+            new net.minecraft.block.Block(net.minecraft.block.material.Material.water) {});
+        blocks.invoke(net.minecraft.block.Block.blockRegistry, 11, "minecraft:lava",
+            new net.minecraft.block.Block(net.minecraft.block.material.Material.lava) {});
+        net.minecraftforge.fluids.FluidRegistry.registerFluid(new net.minecraftforge.fluids.Fluid("ic2superheatedsteam"));
+        FundingState state = new FundingState(); state.worldObj = world; state.setLoomController(true);
+        field(state, "foundationRequired", true); field(state, "foundationModern", true);
+        field(state, "state", 1); field(state, "debugSpeed", 3);
+        field(state, "loomChunksCache", Collections.singletonList(new ChunkCoordIntPair(-3, 7)));
+        CriticalFoundationChunk chunk = CriticalWorldData.get(world).foundation(-3, 7);
+        NBTTagCompound poured = new NBTTagCompound();
+        poured.setInteger("foundationVersion", 5); poured.setInteger("cells", 16);
+        poured.setInteger("curing", CriticalFoundationChunk.CURING_DURATION);
+        poured.setInteger("heating", CriticalFoundationChunk.HEATING_DURATION);
+        chunk.read(poured);
+        field(state, "energy", UHV * 3); state.steam = 49_999;
+        advance(state, world);
+        check(state.getFoundationPhase() == 4 && chunk.heatingRemaining() == 36_000 && state.getEnergy() == UHV * 3,
+            "Steam shortage neither advances heat curing nor spends EU");
+        state.steam = 100_000;
+        advance(state, world);
+        check(chunk.heatingRemaining() == 35_999 && state.steam == 50_000 && state.debited == 50_000,
+            "Instant debug cannot bypass heat curing: exactly 50,000 L buys exactly one loaded tick");
+        tick.invoke(state);
+        check(chunk.heatingRemaining() == 35_999 && state.debited == 50_000, "Shared world tick cannot double-debit heat steam");
+        chunk.accelerate(Long.MAX_VALUE);
+        check(chunk.curingRemaining() == 1_728_000 && chunk.heatingRemaining() == 35_999,
+            "Singularities cannot accelerate or skip the heat phase");
+        advance(state, world);
+        check(chunk.heatingRemaining() == 35_998 && state.debited == 100_000, "Heat supply is one million L per twenty powered ticks");
+        advance(state, world);
+        check(chunk.heatingRemaining() == 35_998 && state.getEnergy() == UHV, "Interrupted supply preserves both exact clocks");
+        chunk.fundHeating(); // Successful drain persisted before an energy/placement retry.
+        NBTTagCompound paid = new NBTTagCompound(); chunk.write(paid);
+        chunk.read(paid);
+        check(state.getConstructionNextFluidCostsForGui().length == 0,
+            "A persisted prepaid heat tick honestly shows no second steam payment due");
+        advance(state, world);
+        check(chunk.heatingRemaining() == 35_997 && state.debited == 100_000 && !chunk.heatingFunded(),
+            "Reloaded paid heat tick resumes once without requesting steam again");
+        paid.setInteger("heating", 1); paid.setBoolean("heatingFunded", false); chunk.read(paid);
+        state.steam = 50_000; field(state, "energy", UHV * 2); field(state, "debugSpeed", 0);
+        advance(state, world);
+        check(state.getFoundationPhase() == 2 && chunk.heatingRemaining() == 0 && chunk.curingRemaining() == 1_728_000,
+            "The final heated tick transitions to a full 24-hour static cure without double-progress");
+        advance(state, world);
+        check(chunk.curingRemaining() == 1_727_999 && state.debited == 150_000,
+            "Static curing starts next tick and consumes no more heat steam");
+        check((long) CriticalFoundationChunk.HEATING_DURATION * CriticalFoundationChunk.HEATING_STEAM_PER_TICK == 1_800_000_000L,
+            "Thirty-minute heat total is exactly 1.8 billion L");
+    }
+
+    private static final class FundingState extends CriticalMachineState {
+        long steam, debited;
+        @Override public boolean fundCriticalInputs(net.minecraft.item.ItemStack[] items, net.minecraftforge.fluids.FluidStack[] fluids) {
+            if (items.length != 0 || fluids.length != 1 || fluids[0] == null || fluids[0].amount != 50_000)
+                throw new AssertionError("Unexpected heat-phase payment request");
+            if (steam < fluids[0].amount) return false;
+            steam -= fluids[0].amount; debited += fluids[0].amount; return true;
+        }
     }
 
     private static final class ClockWorld extends World {
