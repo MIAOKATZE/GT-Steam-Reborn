@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.common.critical;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ public final class CriticalChemicalRecipes {
 
     private static Map<GTUtility.FluidId, BigInteger> cachedPrices = ImmutableMap.of();
     private static List<CompoundRecipe> cachedCatalog = ImmutableList.of();
+    private static List<CompoundRecipe> cachedLegacyV4Catalog = ImmutableList.of();
     private static List<CompoundRecipe> cachedLegacyV3Catalog = ImmutableList.of();
     private static List<CompoundRecipe> cachedLegacyV2Catalog = ImmutableList.of();
     private static List<GTUtility.FluidId> cachedIdentities = ImmutableList.of();
@@ -142,16 +144,19 @@ public final class CriticalChemicalRecipes {
                     component(ozone, 1));
             }
         List<CompoundRecipe> legacyV3 = ImmutableList.copyOf(result);
-        result = buildCircuitCatalog(selected, promoter);
+        List<CompoundRecipe> legacyV4 = ImmutableList.copyOf(buildLegacyV4Catalog(selected, promoter));
+        result = buildCircuitCatalog(selected, promoter, ozone);
         List<CompoundRecipe> immutable = ImmutableList.copyOf(result);
         cachedLegacyV2Catalog = ImmutableList.copyOf(legacy);
         cachedLegacyV3Catalog = legacyV3;
-        if (legacyV3.size() >= legacyDisplayCatalog.size()) {
+        cachedLegacyV4Catalog = legacyV4;
+        if (legacyV3.size() + legacyV4.size() >= legacyDisplayCatalog.size()) {
             Map<String, CompoundRecipe> labels = new LinkedHashMap<>();
             for (CompoundRecipe recipe : legacyV3) labels.put(recipe.id, recipe);
+            for (CompoundRecipe recipe : legacyV4) labels.put(recipe.id, recipe);
             legacyDisplayCatalog = ImmutableMap.copyOf(labels);
         }
-        // All three pricing catalogues belong to this exact signature, including empty outcomes.
+        // All four pricing catalogues belong to this exact signature, including empty outcomes.
         // Native identity/price registration changes invalidate an early empty registration result.
         cachedPrices = ImmutableMap.copyOf(signature);
         cachedCatalog = immutable;
@@ -194,6 +199,18 @@ public final class CriticalChemicalRecipes {
         String id) {
         if (circuit < 2 || circuit > 9 || id == null || id.isEmpty()) return null;
         return select(fuels, litres, catalog(fuels), circuit, id);
+    }
+
+    /** Frozen schema-4 identities, ratios, selectors and reward bands; never reinterpret an old ID. */
+    public static Match matchExactLegacyV4(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres,
+        int circuit, String id) {
+        if (circuit < 2 || circuit > 9 || id == null || id.isEmpty()) return null;
+        return select(fuels, litres, catalogLegacyV4(fuels), circuit, id);
+    }
+
+    public static synchronized List<CompoundRecipe> catalogLegacyV4(List<ChemicalFuel> fuels) {
+        catalog(fuels);
+        return cachedLegacyV4Catalog;
     }
 
     /** Only for already-captured schema-2 payments; its prices never enter the current NEI catalogue. */
@@ -251,7 +268,7 @@ public final class CriticalChemicalRecipes {
         return best;
     }
 
-    private static List<CompoundRecipe> buildCircuitCatalog(ChemicalFuel[] selected, ChemicalFuel promoter) {
+    private static List<CompoundRecipe> buildLegacyV4Catalog(ChemicalFuel[] selected, ChemicalFuel promoter) {
         // Each reaction has just two ordinary feedstocks. Additional slots require more industrial products:
         // regular gasoline -> premium gasoline -> RP-1 -> dense hydrazine -> CN3H7O3 -> H8N4C2O4 -> promoter.
         // The four rocket blends require chemical-plant casing tiers 3 through 6; they are not each
@@ -274,6 +291,81 @@ public final class CriticalChemicalRecipes {
                     add(result, "compound." + size + "." + first + "." + second, circuitPeak(size, variant), parts);
                     variant++;
                 }
+        }
+        return result;
+    }
+
+    /**
+     * One acquisition gate per group, two only for the final promoted reaction. Remaining materials are
+     * genuine subsets of all eligible feedstocks, including lower-tier industrial products; a higher
+     * circuit never accumulates a fixed tail of every preceding gate.
+     */
+    private static List<CompoundRecipe> buildCircuitCatalog(ChemicalFuel[] selected, ChemicalFuel promoter,
+        ChemicalFuel ozone) {
+        ChemicalFuel[] materials = new ChemicalFuel[26];
+        System.arraycopy(selected, 0, materials, 0, selected.length);
+        materials[24] = promoter;
+        materials[25] = ozone;
+        int[] base = { 0, 1, 2, 3, 6, 7, 8, 9, 10, 16, 17, 18, 19, 20, 21, 22, 23 };
+        int[] gates = { 4, 5, 12, 13, 14, 15 };
+        List<CompoundRecipe> result = new ArrayList<>(1024);
+        for (int size = 2; size <= 9; size++) {
+            int gateCount = size == 2 ? 0 : size == 9 ? 2 : 1;
+            List<Integer> pool = new ArrayList<>();
+            for (int index : base) pool.add(index);
+            for (int i = 0; i < Math.min(size - 3, gates.length - 1); i++) pool.add(gates[i]);
+            if (size >= 4) pool.add(25);
+            int variableCount = size - gateCount;
+            long combinations = choose(pool.size(), variableCount);
+            for (int variant = 0; variant < 128; variant++) {
+                // Equal rank strata cover the entire combinatorial space, including its far end.
+                // A fixed in-stratum offset avoids both a lexicographic prefix and order/random-seed drift.
+                long lower = combinations * variant / 128;
+                long upper = combinations * (variant + 1) / 128;
+                long rank = lower + (variant == 0 ? 0 : (variant * 37L + size * 17L) % (upper - lower));
+                int[] subset = unrank(pool.size(), variableCount, rank);
+                int[] identities = new int[size];
+                int cursor = 0;
+                if (gateCount > 0) identities[cursor++] = gates[Math.min(size - 3, gates.length - 1)];
+                if (gateCount > 1) identities[cursor++] = 24;
+                for (int index : subset) identities[cursor++] = pool.get(index);
+                Component[] parts = new Component[size];
+                for (int i = 0; i < identities.length; i++) {
+                    int identity = identities[i];
+                    parts[i] = component(materials[identity], identity >= 24 ? 1 : 2 + identity % 4);
+                }
+                // Stable identities encode the actual set, never a presentation slot or sample ordinal.
+                Arrays.sort(identities);
+                StringBuilder id = new StringBuilder("reaction.").append(size);
+                for (int identity : identities) id.append('.')
+                    .append(identity);
+                add(result, id.toString(), circuitPeak(size, variant), parts);
+            }
+        }
+        return result;
+    }
+
+    private static long choose(int n, int k) {
+        if (k < 0 || k > n) return 0;
+        long result = 1;
+        for (int i = 1; i <= k; i++) result = result * (n - k + i) / i;
+        return result;
+    }
+
+    /** Lexicographic combinadic unranking; ranks themselves are sampled across the full range. */
+    private static int[] unrank(int poolSize, int count, long rank) {
+        int[] result = new int[count];
+        int first = 0;
+        for (int slot = 0; slot < count; slot++) {
+            for (int candidate = first; candidate < poolSize; candidate++) {
+                long block = choose(poolSize - candidate - 1, count - slot - 1);
+                if (rank < block) {
+                    result[slot] = candidate;
+                    first = candidate + 1;
+                    break;
+                }
+                rank -= block;
+            }
         }
         return result;
     }

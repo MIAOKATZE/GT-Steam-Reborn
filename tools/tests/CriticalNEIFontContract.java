@@ -28,6 +28,17 @@ public class CriticalNEIFontContract {
         for(String lang:List.of("en_US","zh_CN"))for(boolean unicode:List.of(false,true)) {
             set(font,"unicodeFlag",unicode);
             var locale=Files.readAllLines(Path.of(args[0],lang+".lang"));
+            for(String key:List.of("instant","construction_immediate","scope")) {
+                String prefix="gtsr.wand.debug."+key+"=";
+                String value=locale.stream().filter(s->s.startsWith(prefix)).findFirst().orElseThrow().substring(prefix.length());
+                int width=key.equals("instant")?184:300;
+                int maxLines=key.equals("instant")?1:key.equals("construction_immediate")?2:3;
+                var lines=font.listFormattedStringToWidth(value,width);
+                if(lines.size()>maxLines)throw new AssertionError("Debug speed text crosses neighboring controls: "+lang+" "+key);
+                for(String line:lines)if(font.getStringWidth(line)>width)
+                    throw new AssertionError("Debug speed text exceeds native control width: "+lang+" "+key);
+                checks++;
+            }
             for(String name:List.of("gtsr.recipe.critical.sun","gtsr.critical.nei.simple.sun.title","gtsr.critical.nei.simple.intro.sun")) {
                 String value=locale.stream().filter(line->line.startsWith(name+"="))
                     .findFirst().orElseThrow().substring(name.length()+1);
@@ -47,7 +58,7 @@ public class CriticalNEIFontContract {
                     throw new AssertionError("Missing localized selector tooltip: "+lang+" "+key);
                 checks++;
             }
-            for(int group:List.of(1,2))for(int row=0;row<3;row++)for(int steps:List.of(1,8,25,200)) {
+            for(int group:List.of(1,2))for(int row=0;row<3;row++)for(int steps:List.of(1,8,25,128,200,512,1024,2048,4096)) {
                 String titleKey="gtsr.critical.nei.simple.build.row."+group+"."+row+"=";
                 String title=locale.stream().filter(s->s.startsWith(titleKey)).findFirst().orElseThrow().substring(titleKey.length());
                 String format=locale.stream().filter(s->s.startsWith("gtsr.critical.nei.simple.build.time.steps="))
@@ -114,7 +125,7 @@ public class CriticalNEIFontContract {
                     :key.endsWith("chemical.output_heat")?String.format(Locale.ROOT,format,"123,456,700")
                     :key.endsWith("chemical.equivalent_tier")?String.format(Locale.ROOT,format,"ZPM")
                     :key.endsWith("fusion.discount")?String.format(Locale.ROOT,format,"99.9")
-                    :key.endsWith(".build.time.steps")?String.format(Locale.ROOT,format,20,200)
+                    :key.endsWith(".build.time.steps")?String.format(Locale.ROOT,format,20,4096)
                     :key.contains(".build.time.")?String.format(Locale.ROOT,format,
                         key.endsWith(".minutes")?30:key.endsWith(".hours")?24:20)
                     :key.endsWith("turbine.heat_per_l")?String.format(Locale.ROOT,format,"2,500")

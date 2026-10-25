@@ -100,8 +100,8 @@ public final class CriticalConstructionEconomyContract {
         CriticalConstructionEconomy current = currentManifest(carrier);
         List<CriticalGeometry.Voxel> positions = Arrays.asList(
             voxel(21, 1, false), voxel(22, 2, false), voxel(23, 3, false), voxel(24, 4, false), carrier, main);
-        check(CriticalConstructionEconomy.VERSION == 6 && current.version() == 4,
-            "Only newly frozen jobs use economy version 6; saved version 4 keeps its price basis");
+        check(CriticalConstructionEconomy.VERSION == 7 && current.version() == 4,
+            "Only newly frozen jobs use economy version 7; saved version 4 keeps its price basis");
         check(fluidCount(current.fluidCosts(positions, 0, 1), SOLDER) == 7
             && fluidCount(current.fluidCosts(positions, 1, 2), SOLDER) == 13
             && fluidCount(current.fluidCosts(positions, 2, 3), COOLANT) == 17
@@ -230,6 +230,9 @@ public final class CriticalConstructionEconomyContract {
             CriticalMachineKind.BATTERY, CriticalMachineKind.SUN };
         int[] expectedShells = { 67996, 118532, 102627, 59203 }, expectedCarriers = { 9, 8, 4, 4 };
         int[] expectedSurplus = { 100, 140, 93, 141 };
+        int[] extraShells = { 1526, 2920, 2149, 1097 };
+        int[][] expectedSteps = { { 1024, 128, 64, 32, 32, 1 }, { 2048, 128, 512, 32, 32, 1 },
+            { 1024, 256, 256, 32, 32, 1 }, { 512, 128, 256, 32, 32, 1 } };
         int[][] expectedStages = { { 6730, 8950, 9198, 43118 }, { 6730, 8950, 9198, 93654 },
             { 6730, 8950, 9198, 77749 }, { 6730, 8950, 9198, 34325 } };
         for (int k = 0; k < kinds.length; k++) {
@@ -257,18 +260,28 @@ public final class CriticalConstructionEconomyContract {
             for (int quantity : quantities.values()) surplus += (quantity + 15) / 16 * 16 - quantity;
             check(surplus == expectedSurplus[k], "Full-job per-identity manufacturing rounds once and leaves the original-table surplus");
             CriticalConstructionEconomy frozen = CriticalConstructionEconomy.freeze(config, paid, layout.cacheKey());
-            check(frozen.version() == 6 && count(frozen.demand(), CONTROLLER) == 1, "New full job freezes v6 and one complete controller " + kinds[k]);
+            check(frozen.version() == 7 && count(frozen.demand(), CONTROLLER) == 1, "New full job freezes v7 and one complete controller " + kinds[k]);
             long shellsPaid = 0;
             for (ItemStack item : frozen.demand()) if (item.getItem() != CONTROLLER && item.getItem() != EQUIPMENT) shellsPaid += item.stackSize;
-            check(shellsPaid == expectedShells[k], "Standard family parts preserve all real paid positions " + kinds[k]);
+            check(shellsPaid == expectedShells[k] + extraShells[k], "Rounded family parts include every local real shell allocation " + kinds[k]);
             List<ItemStack> displayed = new ArrayList<>(); List<FluidStack> displayedFluids = new ArrayList<>();
             int[] rowPositions = new int[6];
             for (CriticalGeometry.Voxel voxel : paid) rowPositions[frozen.stage(voxel) - 4]++;
             for (int group = 1; group <= 2; group++) for (int row = 0; row < 3; row++) {
                 CriticalConstructionEconomy.DisplayRow profile = frozen.displayRowProfile(group, row, paid);
-                check(profile.steps >= 1 && profile.steps <= 200 && (group != 2 || row != 2 || profile.steps == 1),
+                check(profile.steps == expectedSteps[k][(group - 1) * 3 + row]
+                    && profile.steps <= CriticalConstructionEconomy.MAX_WORK_STEPS,
                     "Real repeated work count and one merged sensing/wiring step " + kinds[k] + "/" + group + "/" + row);
                 System.out.println("STEPS " + kinds[k] + "/" + group + "/" + row + "=" + profile.steps);
+                int itemCount = 0;
+                for (ItemStack item : profile.perStepItems()) {
+                    itemCount += item.stackSize;
+                    check(group == 2 && row == 2 || item.stackSize <= 64,
+                        "Each real work-step identity fits one inventory stack");
+                    System.out.println("ITEM " + kinds[k] + "/" + group + "/" + row + " "
+                        + frozen.identity(item) + "=" + item.stackSize);
+                }
+                check(group == 2 && row == 2 || itemCount <= 128, "Each actual work step uses at most 128 items");
                 for (FluidStack medium : profile.perStepFluids())
                     System.out.println("MEDIUM " + kinds[k] + "/" + group + "/" + row + " " + medium.getFluid().getName() + "=" + medium.amount);
                 boolean advanced = false;
@@ -336,13 +349,132 @@ public final class CriticalConstructionEconomyContract {
             if (k == 0) {
                 check(frozen.stage(voxel(800_000, 4, false)) == 0,
                     "Positions excluded from the frozen price basis remain user-built rather than acquiring a future bill");
-                compactPayments(frozen, paid);
-                repeatedPayments(frozen, paid);
+                compactPayments(legacyPriceBasis(frozen), paid);
+                repeatedPayments(legacyPriceBasis(frozen), paid);
+                roundedPayments(frozen, paid);
             }
             schedule.removeTag("workSchedule");
             boolean rejected = false; try { CriticalConstructionEconomy.read(schedule); } catch (IllegalArgumentException expected) { rejected = true; }
             check(rejected, "Missing v5 schedule cannot waive payment " + kinds[k]);
         }
+    }
+
+    /** Derive an explicit legacy fixture; live v7 padding is never silently imported into saved v5/v6 assets. */
+    private static CriticalConstructionEconomy legacyPriceBasis(CriticalConstructionEconomy frozen) {
+        NBTTagCompound n = new NBTTagCompound(); frozen.write(n);
+        ItemStack[] demand = frozen.demand();
+        NBTTagList schedule = n.getTagList("workSchedule", 10);
+        java.util.Map<Integer, NBTTagList> media = new java.util.HashMap<>();
+        for (int i = 0; i < schedule.tagCount(); i++) {
+            NBTTagCompound row = schedule.getCompoundTagAt(i);
+            int stage = row.getInteger("stage");
+            if (!media.containsKey(stage)) media.put(stage, row.getTagList("fluids", 10));
+            row.setTag("fluids", media.get(stage).copy());
+            for (ItemStack extra : CriticalResourceNbt.readItems(row.getTagList("extraItems", 10), -1))
+                for (ItemStack total : demand) if (CriticalConstructionEconomy.same(extra, total)) total.stackSize -= extra.stackSize;
+            row.removeTag("extraItems");
+        }
+        n.setTag("demand", CriticalResourceNbt.writeItems(demand));
+        n.setInteger("version", 5); n.removeTag("stepProfiles");
+        return CriticalConstructionEconomy.read(n);
+    }
+
+    /** Six-position v7 fixture exercises hundreds of actual payments without traversing a full world. */
+    private static void roundedPayments(CriticalConstructionEconomy frozen, List<CriticalGeometry.Voxel> paid) {
+        CriticalConstructionEconomy basis = legacyPriceBasis(frozen);
+        List<CriticalGeometry.Voxel> selected = new ArrayList<>();
+        for (int stage = 4; stage <= 9; stage++) {
+            CriticalGeometry.Voxel chosen = null;
+            for (CriticalGeometry.Voxel voxel : paid) if (basis.stage(voxel) == stage
+                && (chosen == null || CriticalStructures.isController(voxel))) chosen = voxel;
+            selected.add(chosen);
+        }
+        java.util.Set<Long> keys = new java.util.HashSet<>();
+        for (CriticalGeometry.Voxel voxel : selected) keys.add(voxel.positionKey());
+        NBTTagCompound n = new NBTTagCompound(); basis.write(n); n.setInteger("version", 7);
+        for (String key : Arrays.asList("workSchedule", "carriers")) {
+            NBTTagList keep = new NBTTagList(), all = n.getTagList(key, 10);
+            for (int i = 0; i < all.tagCount(); i++) if (keys.contains(all.getCompoundTagAt(i).getLong("position")))
+                keep.appendTag(all.getCompoundTagAt(i));
+            n.setTag(key, keep);
+        }
+        NBTTagList profiles = new NBTTagList(); List<ItemStack> demand = new ArrayList<>();
+        int[] steps = {128, 128, 64, 32, 32, 1};
+        for (int i = 0; i < selected.size(); i++) {
+            CriticalGeometry.Voxel voxel = selected.get(i);
+            ItemStack[] bill = basis.bill(voxel); List<ItemStack> extras = new ArrayList<>();
+            for (ItemStack item : bill) {
+                int original = item.stackSize;
+                item.stackSize = (original + steps[i] - 1) / steps[i] * steps[i];
+                CriticalConstructionEconomy.merge(demand, item);
+                if (original < item.stackSize) {
+                    ItemStack extra = item.copy(); extra.stackSize -= original; extras.add(extra);
+                }
+                item.stackSize /= steps[i];
+            }
+            FluidStack[] fluids = basis.fluidCosts(Arrays.asList(voxel), 0, 1);
+            NBTTagCompound row = new NBTTagCompound(); row.setInteger("stage", i + 4); row.setInteger("steps", steps[i]);
+            row.setTag("items", CriticalResourceNbt.writeItems(bill)); row.setTag("fluids", CriticalResourceNbt.writeFluids(fluids));
+            profiles.appendTag(row);
+            for (FluidStack fluid : fluids) fluid.amount *= steps[i];
+            NBTTagList schedule = n.getTagList("workSchedule", 10);
+            for (int j = 0; j < schedule.tagCount(); j++) {
+                NBTTagCompound local = schedule.getCompoundTagAt(j);
+                if (local.getLong("position") != voxel.positionKey()) continue;
+                local.setTag("extraItems", CriticalResourceNbt.writeItems(extras.toArray(new ItemStack[0])));
+                local.setTag("fluids", CriticalResourceNbt.writeFluids(fluids));
+            }
+        }
+        n.setTag("demand", CriticalResourceNbt.writeItems(demand.toArray(new ItemStack[0]))); n.setTag("stepProfiles", profiles);
+        CriticalConstructionEconomy compact = CriticalConstructionEconomy.read(n);
+        NBTTagCompound saved = new NBTTagCompound(); compact.write(saved);
+        check(saved.equals(n), "v7 local extra allocations and all frozen profiles round-trip exactly");
+        CriticalConstructionLedger unplaced = new CriticalConstructionLedger(); unplaced.freezeJob(compact);
+        List<CriticalGeometry.Voxel> first = Arrays.asList(selected.get(0)); unplaced.snapshotPhysicalStage(first);
+        CriticalConstructionLedger.Round reserved = unplaced.planPhysicalRound(400, first);
+        unplaced.recordRoundPayment(reserved.items(), reserved.fluids()); unplaced = reload(unplaced);
+        check(exactCount(unplaced.recoveryItems(1), compact.bill(selected.get(0))[0]) == 1,
+            "A paid but uninstalled rounded shell remains real escrow and returns in full");
+        unplaced.clearSpentItems(); conservation(unplaced);
+        check(unplaced.recoveryItems(1).length == 0, "Uninstalled rounded-shell escrow settles exactly once");
+        CriticalConstructionLedger ledger = new CriticalConstructionLedger(); ledger.freezeJob(compact);
+        for (int i = 0; i < selected.size(); i++) {
+            List<CriticalGeometry.Voxel> local = Arrays.asList(selected.get(i)); ledger.snapshotPhysicalStage(local);
+            int rowSteps = steps[i];
+            check(ledger.stageDuration() == rowSteps * 400, "v7 duration counts every real repeated work step");
+            for (int step = 0; step < rowSteps; step++) {
+                CriticalConstructionLedger.Round round = ledger.planPhysicalRound(400, local);
+                check(sameBill(round.items(), compact.displayRowProfile(i < 3 ? 1 : 2, i % 3, selected).perStepItems()),
+                    "v7 actual debit equals its displayed fixed work unit");
+                ledger.recordRoundPayment(round.items(), round.fluids()); ledger.advanceElapsed(round.next);
+                ledger = reload(ledger);
+                check(!ledger.hasIntegrityError() && ledger.planPhysicalRound(400, local).items().length == 0,
+                    "v7 funded rounds survive reload without duplicate item payment");
+                if (round.voxelEnd > 0) ledger.markPhysicalInstalled(selected.get(i));
+                ledger.completeRound(); conservation(ledger);
+            }
+            ledger.resetStage();
+        }
+        ItemStack[] firstBill = compact.bill(selected.get(0));
+        check(firstBill[0].stackSize == 128 && balance(ledger, firstBill[0].getItem(), "escrow") == 0,
+            "All 127 extra local shells are actually installed rather than left in escrow");
+        long installedBefore = balance(ledger, firstBill[0].getItem(), "installed");
+        ledger.markPhysicalDamaged(selected.get(0));
+        check(balance(ledger, firstBill[0].getItem(), "installed") == installedBefore - 128,
+            "Damage destroys the same complete local rounded shell bill");
+        ledger = build(ledger, Arrays.asList(selected.get(0)), true);
+        check(balance(ledger, firstBill[0].getItem(), "installed") == installedBefore,
+            "Repair collects and installs the exact same local rounded shell bill");
+        conservation(ledger);
+        ItemStack[] refund = ledger.recoveryItems(1);
+        check(exactCount(refund, firstBill[0]) == balance(ledger, firstBill[0].getItem(), "installed") / 10,
+            "Extra real shells use the same deterministic installed salvage fraction");
+        ledger.clearSpentItems(); conservation(ledger);
+        check(ledger.recoveryItems(1).length == 0, "Rounded allocation refunds settle once without duplicate entitlement");
+        NBTTagCompound broken = new NBTTagCompound(); compact.write(broken);
+        broken.getTagList("workSchedule", 10).getCompoundTagAt(0).removeTag("extraItems");
+        boolean rejected = false; try { CriticalConstructionEconomy.read(broken); } catch (IllegalArgumentException expected) { rejected = true; }
+        check(rejected, "A missing real local shell allocation cannot waive payment or physical-position validation");
     }
 
     private static void compactPayments(CriticalConstructionEconomy frozen, List<CriticalGeometry.Voxel> paid) {
@@ -404,6 +536,7 @@ public final class CriticalConstructionEconomyContract {
         java.util.Set<Long> positions = new java.util.HashSet<>();
         for (CriticalGeometry.Voxel voxel : selected) positions.add(voxel.positionKey());
         NBTTagCompound n = new NBTTagCompound(); frozen.write(n);
+        n.setInteger("version", 6);
         for (String key : Arrays.asList("workSchedule", "carriers")) {
             NBTTagList kept = new NBTTagList(), rows = n.getTagList(key, 10);
             for (int i = 0; i < rows.tagCount(); i++) if (positions.contains(rows.getCompoundTagAt(i).getLong("position")))

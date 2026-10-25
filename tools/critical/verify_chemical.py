@@ -66,7 +66,7 @@ def main():
     run('javac.exe','compile',['-encoding','UTF-8','-proc:none','-sourcepath',empty,'-cp',cp,'-d',classes,*sources])
     result = '' if args.compound_only else run('java.exe','contract',['-Xmx1G','-cp',cp,'CriticalChemicalContract'])
     result += run('java.exe','compound',['-Xmx1G','-cp',cp,'CriticalCompoundContract'])
-    lines = [line for line in result.splitlines() if line.startswith(('PASS ','SOURCE ','CATALOG '))]
+    lines = [line for line in result.splitlines() if line.startswith(('PASS ','SOURCE ','CATALOG ','DIVERSITY '))]
     receipt = {'status':'PASS','productOverlay':not bool(args.jar),'gtJar':str(gt),'aeJar':str(ae),
         'baselineJar':str(baseline),'baselineSHA256':hashlib.sha256(baseline.read_bytes()).hexdigest(),
         'sourceSHA256':hashes,'result':lines,

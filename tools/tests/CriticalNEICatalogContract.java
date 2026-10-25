@@ -328,11 +328,18 @@ class CriticalNEICatalogRuntime {
         check(map.getAllRecipes().size()==before+expected.size(),"compound-only indexed entries without single-fuel pages");
         Set<String> seen=new HashSet<>();
         Map<Integer,Integer> componentCounts=new TreeMap<>();
+        Map<Integer,Set<Set<Integer>>> identitySets=new TreeMap<>();
         int previousPeak=0;
         for(GTRecipe recipe:map.getAllRecipes()) {
             var info=CriticalRecipeMaps.displayInfo(recipe);if(info.compound==null)continue;
             var compound=info.compound;check(seen.add(compound.id),"unique compound scheme");
+            check(compound.id.startsWith("reaction."),"NEI indexes the current policy without reusing frozen legacy compound IDs");
             int components=compound.components.size();componentCounts.merge(components,1,Integer::sum);
+            Set<Integer> identities=new TreeSet<>();
+            for(var component:compound.components)identities.add(component.fuel.fluid.getFluidID());
+            check(identities.size()==components,"every visible component is a distinct real fluid identity");
+            check(identitySets.computeIfAbsent(components,ignored->new HashSet<>()).add(identities),
+                "native component family varies real fluid sets instead of reordering the same ingredients");
             int[] minimum={2,13,25,37,49,61,73,87},maximum={12,24,36,48,60,72,86,100};
             check(compound.peakMultiplier>=minimum[components-2]
                 &&compound.peakMultiplier<=maximum[components-2],"native example uses its component complexity efficiency band");
@@ -362,8 +369,12 @@ class CriticalNEICatalogRuntime {
                 "example cycle and native no-byproduct output");
         }
         check(seen.size()==expected.size(),"every actual compound indexed once");
+        check(seen.equals(expected.stream().map(recipe->recipe.id).collect(java.util.stream.Collectors.toSet())),
+            "native NEI IDs equal the current runtime catalog exactly");
         check(componentCounts.equals(Map.of(2,128,3,128,4,128,5,128,6,128,7,128,8,128,9,128)),
             "native indexed examples evenly cover every 2-9 component family");
+        for(int components=2;components<=9;components++)check(identitySets.get(components).size()==128,
+            "all 128 native entries in each component family have different material identities");
     }
     public static void run(String version) throws Exception {
         Issue37Runtime.bootstrap(version);

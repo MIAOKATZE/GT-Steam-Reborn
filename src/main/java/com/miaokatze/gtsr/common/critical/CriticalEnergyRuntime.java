@@ -33,10 +33,11 @@ import gtnhintergalactic.config.IGConfig;
 public final class CriticalEnergyRuntime {
 
     public static final int CYCLE_TICKS = CriticalEnergyMath.CYCLE_TICKS;
-    public static final int CHEMICAL_COMPOUND_SCHEMA = 4;
+    public static final int CHEMICAL_COMPOUND_SCHEMA = 5;
     private static final int CHEMICAL_POLICY_LEGACY_V2 = 2;
     private static final int CHEMICAL_POLICY_COMPOUND_V3 = 3;
     private static final int CHEMICAL_POLICY_CIRCUIT_V4 = 4;
+    private static final int CHEMICAL_POLICY_REACTION_V5 = 5;
     private static final ItemStack[] NO_ITEMS = new ItemStack[0];
     private static final FluidStack[] NO_FLUIDS = new FluidStack[0];
 
@@ -358,7 +359,7 @@ public final class CriticalEnergyRuntime {
             payment.appendTag(entry);
         }
         data.setTag("chemicalCompoundPayment", payment);
-        data.setInteger("chemicalPaymentPolicy", CHEMICAL_POLICY_CIRCUIT_V4);
+        data.setInteger("chemicalPaymentPolicy", CHEMICAL_POLICY_REACTION_V5);
         data.setInteger("chemicalPaymentCircuit", circuit);
         data.setString("chemicalPaymentRecipe", match.recipe.id);
         data.setString("chemicalEscrowOwner", owner.toString());
@@ -397,7 +398,9 @@ public final class CriticalEnergyRuntime {
         }
         int policy = data.getInteger("chemicalPaymentPolicy");
         if (policy != CHEMICAL_POLICY_LEGACY_V2 && policy != CHEMICAL_POLICY_COMPOUND_V3
-            && policy != CHEMICAL_POLICY_CIRCUIT_V4) throw new IllegalStateException("Unknown compound payment policy");
+            && policy != CHEMICAL_POLICY_CIRCUIT_V4
+            && policy != CHEMICAL_POLICY_REACTION_V5)
+            throw new IllegalStateException("Unknown compound payment policy");
         if (schema < CHEMICAL_POLICY_LEGACY_V2 || policy > schema)
             throw new IllegalStateException("Compound payment policy does not match schema");
         return policy;
@@ -414,7 +417,7 @@ public final class CriticalEnergyRuntime {
         data.setString("chemicalRecipe", match.recipe.id);
         data.setInteger(
             "chemicalBatchCircuit",
-            policy == CHEMICAL_POLICY_CIRCUIT_V4 ? data.getInteger("chemicalPaymentCircuit") : 0);
+            policy >= CHEMICAL_POLICY_CIRCUIT_V4 ? data.getInteger("chemicalPaymentCircuit") : 0);
         data.setInteger("chemicalBatchRule", policy);
         data.setInteger("chemicalEfficiencyHundredths", evaluation.efficiencyHundredths());
         data.setString("chemicalBatchHeat", match.rawHeat.toString());
@@ -464,7 +467,9 @@ public final class CriticalEnergyRuntime {
         String recipe = data.getString("chemicalPaymentRecipe");
         if (circuit < 2 || circuit > 9 || recipe.isEmpty())
             throw new IllegalStateException("Missing frozen compound selection");
-        return CriticalChemicalRecipes.matchExact(fuels, paid, circuit, recipe);
+        return policy == CHEMICAL_POLICY_CIRCUIT_V4
+            ? CriticalChemicalRecipes.matchExactLegacyV4(fuels, paid, circuit, recipe)
+            : CriticalChemicalRecipes.matchExact(fuels, paid, circuit, recipe);
     }
 
     public static boolean hasChemicalEscrow(NBTTagCompound data) {

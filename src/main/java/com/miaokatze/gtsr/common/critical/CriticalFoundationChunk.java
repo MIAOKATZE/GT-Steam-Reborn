@@ -9,8 +9,8 @@ public final class CriticalFoundationChunk {
     public static final int LEGACY_CURING_DURATION = 72_000 * 20, HEATING_DURATION = 1_800 * 20;
     public static final int HEATING_STEAM_PER_TICK = 50_000;
     private int completedCells, cellProgress, curingRemaining = CURING_DURATION;
-    private int heatingRemaining = HEATING_DURATION;
-    private boolean funded, fundingUncertain, heatingFunded, modern = true;
+    private int heatingRemaining = HEATING_DURATION, heatingPaidWork;
+    private boolean funded, fundingUncertain, modern = true;
     private long lastWorkedTick = Long.MIN_VALUE;
 
     public int completedCells() {
@@ -42,18 +42,32 @@ public final class CriticalFoundationChunk {
     }
 
     public boolean heatingFunded() {
-        return heatingFunded;
+        return heatingPaidWork > 0;
+    }
+
+    public int heatingPaidWork() {
+        return heatingPaidWork;
     }
 
     public void fundHeating() {
-        heatingFunded = true;
+        fundHeating(1);
+    }
+
+    public void fundHeating(int work) {
+        if (heatingPaidWork == 0) heatingPaidWork = Math.min(heatingRemaining, Math.max(0, work));
     }
 
     public void heat(long tick) {
-        if (!poured() || heatingRemaining == 0 || !heatingFunded || workedAt(tick) || fundingUncertain) return;
+        heat(1, tick);
+    }
+
+    public void heat(int work, long tick) {
+        if (!poured() || heatingRemaining == 0 || !heatingFunded() || workedAt(tick) || fundingUncertain) return;
+        int advance = Math.min(heatingRemaining, Math.min(heatingPaidWork, Math.max(0, work)));
+        if (advance == 0) return;
         lastWorkedTick = tick;
-        heatingRemaining--;
-        heatingFunded = false;
+        heatingRemaining -= advance;
+        heatingPaidWork -= advance;
     }
 
     public boolean funded() {
@@ -105,9 +119,13 @@ public final class CriticalFoundationChunk {
     }
 
     public void cure(long tick) {
-        if (!poured() || heatingRemaining > 0 || complete() || workedAt(tick) || fundingUncertain) return;
+        cure(1, tick);
+    }
+
+    public void cure(int work, long tick) {
+        if (!poured() || heatingRemaining > 0 || complete() || workedAt(tick) || fundingUncertain || work <= 0) return;
         lastWorkedTick = tick;
-        curingRemaining--;
+        curingRemaining = Math.max(0, curingRemaining - work);
     }
 
     public void capCuringRemaining(int ticks) {
@@ -140,7 +158,13 @@ public final class CriticalFoundationChunk {
         fundingUncertain = n.getBoolean("uncertain");
         curingRemaining = Math.max(0, Math.min(CURING_DURATION, n.getInteger("curing")));
         heatingRemaining = modern ? Math.max(0, Math.min(HEATING_DURATION, n.getInteger("heating"))) : 0;
-        heatingFunded = modern && heatingRemaining > 0 && n.getBoolean("heatingFunded");
+        heatingPaidWork = modern && heatingRemaining > 0 && n.getBoolean("heatingFunded")
+            ? n.hasKey("heatingPaidWork") ? n.getInteger("heatingPaidWork") : 1
+            : 0;
+        if (heatingPaidWork < 0 || heatingPaidWork > heatingRemaining) {
+            fundingUncertain = true;
+            heatingPaidWork = 0;
+        }
         if (n.hasKey("foundationVersion") && n.getInteger("foundationVersion") != 5) fundingUncertain = true;
         if (modern
             && (!n.hasKey("heating") || n.getInteger("heating") < 0 || n.getInteger("heating") > HEATING_DURATION))
@@ -156,7 +180,8 @@ public final class CriticalFoundationChunk {
         n.setBoolean("uncertain", fundingUncertain);
         n.setInteger("curing", curingRemaining);
         n.setInteger("heating", heatingRemaining);
-        n.setBoolean("heatingFunded", heatingFunded);
+        n.setBoolean("heatingFunded", heatingFunded());
+        n.setInteger("heatingPaidWork", heatingPaidWork);
         n.setLong("lastWorkedTick", lastWorkedTick);
     }
 }

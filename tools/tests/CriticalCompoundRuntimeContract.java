@@ -110,7 +110,7 @@ class CriticalCompoundRuntime {
             &&state.n.getString("chemicalBatchLitres").equals("210")
             &&new BigInteger(state.n.getString("eu")).equals(expected.evaluation.generatedEU),
             "all recognized native heat uses exact whole-snapshot proportion");
-        check(!state.n.hasKey("chemicalCompoundPayment")&&state.n.getInteger("chemicalBatchRule")==4
+        check(!state.n.hasKey("chemicalCompoundPayment")&&state.n.getInteger("chemicalBatchRule")==5
             &&state.n.getInteger("chemicalBatchCircuit")==2&&bus.mInventory[0].stackSize==1
             &&state.n.getTagList("chemicalBatchCredits",10).tagCount()==4,
             "fully paid manifest becomes frozen batch receipts");
@@ -148,7 +148,7 @@ class CriticalCompoundRuntime {
             .filter(r->r.components.size()==2).findFirst().orElseThrow();
         set(host,"mInputHatches",recipeHatches(unsafe,tile,migrationPair,volumes(migrationPair,20)));
         before=gregtech.common.misc.WirelessNetworkManager.getUserEU(owner);
-        check((boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("chemicalSchema")==4
+        check((boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("chemicalSchema")==5
             &&!state.n.hasKey("chemicalCredits")&&gregtech.common.misc.WirelessNetworkManager.getUserEU(owner)
                 .subtract(before).equals(b(439)),"v1 residual migrates at frozen base heat before new compound starts");
         state.n=(NBTTagCompound)state.n.copy();state.n.setInteger("progress",399);CriticalEnergyRuntime.tick(state,host);
@@ -173,7 +173,15 @@ class CriticalCompoundRuntime {
         gtPlusPlus.core.fluids.GTPPFluids.CN3H7O3RocketFuel=FluidRegistry.getFluid(rockets[2]);
         gtPlusPlus.core.fluids.GTPPFluids.H8N4C2O4RocketFuel=FluidRegistry.getFluid(rockets[3]);
         FluidRegistry.registerFluid(new Fluid("combustionpromotor"));
+        // The diverse catalogue samples the full feedstock pool, unlike the former fixed tail.
+        // Seed those native identities instead of assuming a three-base subset contains a nine-fluid sample.
+        String[] extraBase={"HeavyFuel","NitroFuel","Ethanol","Methanol","Methane","Benzene","Ethylene",
+            "Propene","Butene","Butadiene","Ethane","Propane","Butane","Toluene"};
+        for(int i=0;i<extraBase.length;i++)seed(unsafe,extraBase[i],"gtsr_compound_"+extraBase[i].toLowerCase(java.util.Locale.ROOT),100+i*20,i>=4);
+        Fluid ozone=new Fluid("gtsr_compound_ozone");FluidRegistry.registerFluid(ozone);
+        gregtech.api.enums.Materials.Ozone.mGas=ozone;
         var fuels=CriticalGTRecipes.chemicalFuels();
+        check(CriticalChemicalRecipes.catalog(fuels).size()==1024,"migration fixture registers the complete diverse catalogue");
         var promoted=CriticalChemicalRecipes.catalogLegacyV3(fuels).stream().filter(r->r.id.equals("promoted.3")).findFirst().orElseThrow();
         var amounts=volumes(promoted,13);
         var old=CriticalChemicalRecipes.bestLegacyV2(fuels,amounts);
@@ -190,7 +198,7 @@ class CriticalCompoundRuntime {
             if(policy==3)state.n.setInteger("chemicalPaymentPolicy",3);
             hatches.get(0).limit=1;set(host,"mInputHatches",hatches);
             check(!(boolean)start.invoke(null,state,host,state.n)&&!state.n.getBoolean("uncertain")
-                &&state.n.getInteger("chemicalSchema")==4&&state.n.getInteger("chemicalPaymentPolicy")==policy,
+                &&state.n.getInteger("chemicalSchema")==5&&state.n.getInteger("chemicalPaymentPolicy")==policy,
                 "legacy pending upgrades envelope without circuit or repricing "+policy);
             state.n=reload(state.n);hatches.get(0).limit=Integer.MAX_VALUE;
             var expected=policy==2?old:v3;
@@ -202,6 +210,33 @@ class CriticalCompoundRuntime {
             check(gregtech.common.misc.WirelessNetworkManager.getUserEU(owner).subtract(before).equals(expected.evaluation.generatedEU),
                 "legacy funded batch delivers frozen output "+policy);
         }
+        // A v4 debit must still use the original recipe identities, ratios and captured prices.
+        var v4Recipe=CriticalChemicalRecipes.catalogLegacyV4(fuels).stream()
+            .filter(r->r.id.equals("compound.2.0.1")).findFirst().orElseThrow();
+        var v4Amounts=volumes(v4Recipe,37);
+        var v4Expected=CriticalChemicalRecipes.matchExactLegacyV4(fuels,v4Amounts,2,v4Recipe.id);
+        var v4Hatches=recipeHatches(unsafe,tile,v4Recipe,v4Amounts);
+        state.n=new NBTTagCompound();state.n.setInteger("chemicalSchema",4);
+        state.n.setInteger("chemicalPaymentPolicy",4);state.n.setInteger("chemicalPaymentCircuit",2);
+        state.n.setString("chemicalPaymentRecipe",v4Recipe.id);state.n.setString("chemicalEscrowOwner",owner.toString());
+        NBTTagList v4Payment=payment(v4Recipe,v4Amounts);
+        v4Payment.getCompoundTagAt(0).setString("confirmedLitres","1");v4Hatches.get(0).stock--;
+        state.n.setTag("chemicalCompoundPayment",v4Payment);v4Hatches.get(0).limit=2;
+        set(host,"mInputHatches",v4Hatches);
+        check(!(boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("chemicalSchema")==5
+            &&state.n.getInteger("chemicalPaymentPolicy")==4
+            &&state.n.getString("chemicalPaymentRecipe").equals(v4Recipe.id),
+            "v4 partial debit upgrades only envelope and retains its exact old manifest without a selector");
+        state.n=reload(state.n);v4Hatches.get(0).limit=Integer.MAX_VALUE;
+        check((boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("chemicalBatchRule")==4
+            &&state.n.getInteger("chemicalBatchCircuit")==2&&state.n.getString("chemicalRecipe").equals(v4Recipe.id)
+            &&state.n.getString("eu").equals(v4Expected.evaluation.generatedEU.toString())
+            &&v4Hatches.stream().allMatch(h->h.stock==0),
+            "v4 receipt completes with its original ratio and frozen valuation after NBT reload");
+        BigInteger v4Before=gregtech.common.misc.WirelessNetworkManager.getUserEU(owner);
+        state.n=reload(state.n);state.n.setInteger("progress",399);CriticalEnergyRuntime.tick(state,host);
+        check(gregtech.common.misc.WirelessNetworkManager.getUserEU(owner).subtract(v4Before)
+            .equals(v4Expected.evaluation.generatedEU),"v4 funded receipt settles once to the captured owner");
         Item circuitItem=gregtech.api.enums.ItemList.Circuit_Integrated.getItem();
         FakeBus bus=bus(unsafe,circuitItem,9);set(host,"mInputBusses",new ArrayList<>(List.of(bus)));
         var pair=CriticalChemicalRecipes.catalog(fuels).stream().filter(r->r.components.size()==2).findFirst().orElseThrow();
@@ -226,7 +261,7 @@ class CriticalCompoundRuntime {
             var expected=CriticalChemicalRecipes.best(fuels,amounts,size);bus.mInventory[0]=new ItemStack(circuitItem,1,size);
             state.n=new NBTTagCompound();state.n.setInteger("chemicalSchema",2);
             hatches=recipeHatches(unsafe,tile,recipe,amounts);hatches.get(0).limit=5;set(host,"mInputHatches",hatches);
-            check(!(boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("chemicalPaymentPolicy")==4
+            check(!(boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("chemicalPaymentPolicy")==5
                 &&state.n.getInteger("chemicalPaymentCircuit")==size&&state.n.getString("chemicalPaymentRecipe").equals(expected.recipe.id)
                 &&state.n.getTagList("chemicalCompoundPayment",10).tagCount()==size,"selector and recipe freeze before debit "+size);
             int remaining=hatches.get(0).stock;String recipeId=state.n.getString("chemicalPaymentRecipe");
@@ -239,7 +274,7 @@ class CriticalCompoundRuntime {
             check(!(boolean)start.invoke(null,state,host,state.n)&&state.n.getBoolean("uncertain")&&hatches.get(0).stock==remaining,
                 "unknown policy locks before debit "+size);
             state.n=reload(saved);bus.mInventory[0]=null;hatches.get(0).limit=Integer.MAX_VALUE;
-            check((boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("chemicalBatchRule")==4
+            check((boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("chemicalBatchRule")==5
                 &&state.n.getInteger("chemicalBatchCircuit")==size&&state.n.getString("chemicalRecipe").equals(recipeId)
                 &&hatches.stream().allMatch(h->h.stock==0)&&state.n.getString("eu").equals(expected.evaluation.generatedEU.toString()),
                 "removed circuit preserves frozen paid manifest "+size);

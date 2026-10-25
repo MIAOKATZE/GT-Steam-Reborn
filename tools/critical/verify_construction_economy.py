@@ -80,8 +80,14 @@ def main():
         *[ROOT / 'tools/tests' / (name + '.java') for name in NAMES]])
     results = {name: run('java.exe', name, ['-cp', cp, 'com.miaokatze.gtsr.common.critical.' + name, candidate]) for name in NAMES}
     assert hashlib.sha256(candidate.read_bytes()).hexdigest() == candidate_hash
+    economy_output = results['CriticalConstructionEconomyContract']
+    work_steps = {name: int(count) for name, count in re.findall(r'^STEPS (\S+)=(\d+)$', economy_output, re.M)}
+    row_items = {}
+    for row, identity, count in re.findall(r'^ITEM (\S+) (.+)=(\d+)$', economy_output, re.M):
+        row_items.setdefault(row, {})[identity] = int(count)
     (OUT / 'verification.json').write_text(json.dumps({'productOverlay': False, 'jar': str(candidate),
-        'jarSHA256': candidate_hash, 'results': results, 'registrations': registrations}, indent=2), encoding='utf-8')
+        'jarSHA256': candidate_hash, 'results': results, 'registrations': registrations,
+        'workSteps': work_steps, 'perStepItems': row_items}, indent=2), encoding='utf-8')
     print(json.dumps({name: re.findall(r'PASS .*', output)[-1] for name, output in results.items()}))
 
 

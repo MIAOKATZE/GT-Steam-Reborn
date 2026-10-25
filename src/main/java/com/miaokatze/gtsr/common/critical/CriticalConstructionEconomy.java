@@ -23,20 +23,22 @@ import gregtech.api.util.GTOreDictUnificator;
 /** Immutable full-job price basis. Equipment is installed at one deterministic carrier per macro unit. */
 public final class CriticalConstructionEconomy {
 
-    public static final int VERSION = 6;
+    public static final int VERSION = 7;
+    public static final int MAX_WORK_STEPS = 4096;
     private final int version;
     private final Set<String> installationMaterials = new HashSet<>();
     private final Map<String, FluidStack[]> materialFluids = new LinkedHashMap<>();
     private final Map<Integer, FluidStack[]> baseFluids = new LinkedHashMap<>();
     private final Map<Long, FluidStack[]> carrierFluids = new LinkedHashMap<>();
     private final Map<Long, Integer> workStages = new LinkedHashMap<>();
+    private final Map<Long, ItemStack[]> positionExtraItems = new LinkedHashMap<>();
     private final Map<Long, FluidStack[]> positionFluids = new LinkedHashMap<>();
     private final Map<Integer, DisplayRow> stepProfiles = new LinkedHashMap<>();
     private final String layoutKey;
     private final ItemStack controller;
     private final Map<String, ItemStack> shells;
     private final Map<Long, ItemStack[]> carriers;
-    private final ItemStack[] demand;
+    private ItemStack[] demand;
 
     private CriticalConstructionEconomy(String layoutKey, ItemStack controller, Map<String, ItemStack> shells,
         Map<Long, ItemStack[]> carriers, ItemStack[] demand) {
@@ -304,15 +306,82 @@ public final class CriticalConstructionEconomy {
             List<CriticalGeometry.Voxel> positions = next.displayRow(group, row, paid);
             ItemStack[] items = next.costs(positions, 0, positions.size());
             FluidStack[] fluids = next.fluidCosts(positions, 0, positions.size());
-            int steps = group == 2 && row == 2 ? 1 : exactStepCount(items, fluids);
+            int steps = boundedStepCount(items, group, row);
+            next.padLocalBills(positions, items, fluids, steps);
+            items = next.costs(positions, 0, positions.size());
+            fluids = next.fluidCosts(positions, 0, positions.size());
             next.stepProfiles
                 .put((group == 1 ? 4 : 7) + row, new DisplayRow(steps, divide(items, steps), divide(fluids, steps)));
         }
+        next.demand = next.costs(paid, 0, paid.size());
         for (int group = 1; group <= 2; group++)
             for (int row = 0; row < 3; row++) if (next.itemsForDisplayRow(group, row, paid).length > 6
                 || next.fluidsForDisplayRow(group, row, paid).length > 2)
                 throw new IllegalStateException("Construction row exceeds six items/two fluids");
         return next;
+    }
+
+    /** Size actual work units first; rounding prices can never collapse a long row to its GCD. */
+    private static int boundedStepCount(ItemStack[] items, int group, int row) {
+        if (group == 2 && row == 2) return 1;
+        int steps = group == 1 ? row < 2 ? 128 : 64 : 32;
+        while (steps <= MAX_WORK_STEPS) {
+            long total = 0;
+            boolean bounded = true;
+            for (ItemStack item : items) {
+                long units = ((long) item.stackSize + steps - 1) / steps;
+                total += units;
+                bounded &= units <= 64;
+            }
+            if (bounded && total <= 128) return steps;
+            steps *= 2;
+        }
+        throw new IllegalStateException("Construction exceeds bounded work-step capacity");
+    }
+
+    /** Rounded units belong to real local positions; installation, repair and salvage share this bill. */
+    private void padLocalBills(List<CriticalGeometry.Voxel> positions, ItemStack[] items, FluidStack[] fluids,
+        int steps) {
+        for (ItemStack item : items) {
+            int extra = (steps - item.stackSize % steps) % steps;
+            if (extra == 0) continue;
+            List<CriticalGeometry.Voxel> owners = new ArrayList<>();
+            for (CriticalGeometry.Voxel voxel : positions) {
+                for (ItemStack local : bill(voxel)) if (same(local, item)) {
+                    owners.add(voxel);
+                    break;
+                }
+            }
+            if (owners.isEmpty()) throw new IllegalStateException("Missing local rounded item owner");
+            for (int i = 0; i < owners.size() && extra > 0; i++) {
+                int count = (extra + owners.size() - i - 1) / (owners.size() - i);
+                ItemStack addition = quantity(item, count);
+                long position = owners.get(i)
+                    .positionKey();
+                List<ItemStack> local = new ArrayList<>();
+                ItemStack[] prior = positionExtraItems.get(position);
+                if (prior != null) for (ItemStack stack : prior) merge(local, stack);
+                merge(local, addition);
+                positionExtraItems.put(position, local.toArray(new ItemStack[0]));
+                extra -= count;
+            }
+        }
+        for (FluidStack fluid : fluids) {
+            int extra = (steps - fluid.amount % steps) % steps;
+            for (int i = 0; i < positions.size() && extra > 0; i++) {
+                int count = (extra + positions.size() - i - 1) / (positions.size() - i);
+                FluidStack[] local = positionFluids.get(
+                    positions.get(i)
+                        .positionKey());
+                boolean found = false;
+                for (FluidStack stack : local) if (fluid.isFluidEqual(stack)) {
+                    stack.amount = Math.addExact(stack.amount, count);
+                    found = true;
+                }
+                if (!found) throw new IllegalStateException("Missing local rounded fluid owner");
+                extra -= count;
+            }
+        }
     }
 
     private void assignRows(List<CriticalGeometry.Voxel> voxels, int firstStage) {
@@ -613,6 +682,8 @@ public final class CriticalConstructionEconomy {
         merge(result, shell);
         ItemStack[] equipment = carriers.get(voxel.positionKey());
         if (equipment != null) for (ItemStack stack : equipment) merge(result, stack);
+        ItemStack[] extra = positionExtraItems.get(voxel.positionKey());
+        if (extra != null) for (ItemStack stack : extra) merge(result, stack);
         return result.toArray(new ItemStack[0]);
     }
 
@@ -712,6 +783,9 @@ public final class CriticalConstructionEconomy {
                 NBTTagCompound row = new NBTTagCompound();
                 row.setLong("position", entry.getKey());
                 row.setInteger("stage", entry.getValue());
+                if (version >= 7) row.setTag(
+                    "extraItems",
+                    CriticalResourceNbt.writeItems(positionExtraItems.getOrDefault(entry.getKey(), new ItemStack[0])));
                 row.setTag(
                     "fluids",
                     CriticalResourceNbt.writeFluids(positionFluids.getOrDefault(entry.getKey(), new FluidStack[0])));
@@ -789,6 +863,21 @@ public final class CriticalConstructionEconomy {
                 if (fluids.length != tags.tagCount() || fluids.length > 2)
                     throw new IllegalArgumentException("Invalid frozen construction row fluids");
                 if (fluids.length > 0) result.positionFluids.put(position, fluids);
+                if (version >= 7) {
+                    NBTTagList extraTags = row.getTagList("extraItems", 10);
+                    ItemStack[] extra = CriticalResourceNbt.readItems(extraTags, -1);
+                    if (extra.length != extraTags.tagCount() || extra.length > 6)
+                        throw new IllegalArgumentException("Invalid local rounded item bill");
+                    for (ItemStack item : extra) {
+                        boolean valid = false;
+                        for (ItemStack shell : shells.values()) if (same(item, shell)) valid = true;
+                        ItemStack[] equipment = carriers.get(position);
+                        if (equipment != null) for (ItemStack part : equipment) if (same(item, part)) valid = true;
+                        if (!valid || item.stackSize <= 0 || result.isController(item))
+                            throw new IllegalArgumentException("Invalid local rounded item identity");
+                    }
+                    if (extra.length > 0) result.positionExtraItems.put(position, extra);
+                }
             }
             long expectedPositions = 0;
             for (ItemStack item : result.demand) {
@@ -796,6 +885,11 @@ public final class CriticalConstructionEconomy {
                 for (ItemStack shell : shells.values()) if (same(item, shell)) physical = true;
                 if (physical) expectedPositions += item.stackSize;
             }
+            for (ItemStack[] extra : result.positionExtraItems.values())
+                for (ItemStack item : extra) for (ItemStack shell : shells.values()) if (same(item, shell)) {
+                    expectedPositions -= item.stackSize;
+                    break;
+                }
             if (expectedPositions != result.workStages.size())
                 throw new IllegalArgumentException("Incomplete frozen construction positions");
             for (Long position : carriers.keySet())
@@ -822,20 +916,26 @@ public final class CriticalConstructionEconomy {
                 FluidStack[] fluids = readFrozenFluids(row);
                 if (stage < 4 || stage > 9
                     || count < 1
-                    || count > 200
+                    || count > (version >= 7 ? MAX_WORK_STEPS : 200)
+                    || version >= 7 && stage < 9
+                        && (count < (stage < 6 ? 128 : stage == 6 ? 64 : 32) || (count & (count - 1)) != 0)
                     || stage == 9 && count != 1
                     || items.length == 0
                     || items.length > 6
                     || fluids.length > 2
                     || result.stepProfiles.put(stage, new DisplayRow(count, items, fluids)) != null)
                     throw new IllegalArgumentException("Invalid frozen repeated work profile");
+                long perStepCount = 0;
                 for (ItemStack item : items) {
-                    if (item == null || item.stackSize <= 0)
+                    if (item == null || item.stackSize <= 0 || version >= 7 && stage < 9 && item.stackSize > 64)
                         throw new IllegalArgumentException("Invalid repeated item debit");
+                    perStepCount += item.stackSize;
                     ItemStack total = item.copy();
                     total.stackSize = Math.multiplyExact(total.stackSize, count);
                     merge(totalItems, total);
                 }
+                if (version >= 7 && stage < 9 && perStepCount > 128)
+                    throw new IllegalArgumentException("Oversized repeated item debit");
                 List<FluidStack> actual = new ArrayList<>();
                 for (Map.Entry<Long, Integer> position : result.workStages.entrySet())
                     if (position.getValue() == stage) {

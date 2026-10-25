@@ -506,6 +506,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private ItemStack[] uncertainFundingItems = new ItemStack[0];
     private FluidStack[] uncertainFundingFluids = new FluidStack[0];
     private int repairScanCursor, constructionTickBudget = 1, constructionLastAdvance;
+    private int constructionBlockBudget = 128, constructionLightBudget = 16;
     private boolean repairScanPending, completionValidationPending;
     private boolean foundationRequired, foundationModern;
     private int foundationCuringCheckTicks;
@@ -700,18 +701,20 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 }
             }
             if (heating.isEmpty()) return;
+            int work = foundationHeatingWork(heating);
+            long eu = voltage * work;
             if (!debugIgnoreEnergy && gtMachine() != null && gtMachine().criticalRecipeVoltage() < voltage) {
                 fail("GT仓口额定功率不足，缺电暂停");
                 return;
             }
-            if (!debugIgnoreEnergy && !canConsumeConstructionEnergy(voltage)) {
+            if (!debugIgnoreEnergy && !canConsumeConstructionEnergy(eu)) {
                 fail("缺电暂停");
                 return;
             }
             if (needsPayment) {
                 FluidStack[] steam = ignoresConstructionFluids() ? new FluidStack[0]
                     : new FluidStack[] { gregtech.api.util.GTModHandler
-                        .getSuperHeatedSteam(CriticalFoundationChunk.HEATING_STEAM_PER_TICK) };
+                        .getSuperHeatedSteam(CriticalFoundationChunk.HEATING_STEAM_PER_TICK * work) };
                 if (!fundCriticalInputs(new ItemStack[0], steam)) {
                     if (nativeFundingUncertain) {
                         for (CriticalFoundationChunk chunk : heating) chunk.lockFunding();
@@ -719,11 +722,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                     }
                     return;
                 }
-                for (CriticalFoundationChunk chunk : heating) chunk.fundHeating();
+                for (CriticalFoundationChunk chunk : heating) chunk.fundHeating(work);
                 data().markDirty();
             }
-            if (!debugIgnoreEnergy && !consumeEnergy(voltage)) return;
-            for (CriticalFoundationChunk chunk : heating) chunk.heat(tick);
+            if (!debugIgnoreEnergy && !consumeEnergy(eu)) return;
+            for (CriticalFoundationChunk chunk : heating) chunk.heat(work, tick);
             data().markDirty();
             constructionAdvancing = true;
             status = "地基热养护中";
@@ -738,18 +741,19 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 if (!chunk.complete() && !chunk.workedAt(tick)) curing.add(chunk);
             }
             if (curing.isEmpty()) return;
+            int work = foundationPoweredWork(
+                Math.min(
+                    getFoundationCuringRemainingTicks(),
+                    CriticalConstructionDebugPolicy.work(1, debugSpeed, getFoundationCuringDurationTicks())));
             if (!debugIgnoreEnergy && gtMachine() != null && gtMachine().criticalRecipeVoltage() < voltage) {
                 fail("GT仓口额定功率不足，缺电暂停");
                 return;
             }
-            if (!debugIgnoreEnergy && !consumeEnergy(voltage)) {
+            if (!debugIgnoreEnergy && !consumeEnergy(voltage * work)) {
                 fail("缺电暂停");
                 return;
             }
-            for (CriticalFoundationChunk chunk : curing) {
-                if (debugSpeed == 3) chunk.capCuringRemaining(100);
-                chunk.cure(tick);
-            }
+            for (CriticalFoundationChunk chunk : curing) chunk.cure(work, tick);
             foundationCuringCheckTicks++;
             if (foundationCuringCheckTicks >= 400) {
                 foundationCuringCheckTicks = 0;
@@ -777,6 +781,36 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             status = "地基静态养护中";
         }
         markDirty();
+    }
+
+    private int foundationHeatingWork(List<CriticalFoundationChunk> heating) {
+        int work = Math.min(
+            getFoundationHeatingRemainingTicks(),
+            CriticalConstructionDebugPolicy.work(1, debugSpeed, CriticalFoundationChunk.HEATING_DURATION));
+        // A saved payment can belong to a slower setting or an interrupted earlier tick.
+        for (CriticalFoundationChunk chunk : heating)
+            if (chunk.heatingFunded()) work = Math.min(work, chunk.heatingPaidWork());
+        return foundationPoweredWork(work);
+    }
+
+    private int foundationPoweredWork(int work) {
+        if (debugIgnoreEnergy || work <= 1) return work;
+        com.miaokatze.gtsr.common.machine.MTECriticalMachine machine = gtMachine();
+        long available = machine == null ? energy : machine.criticalRecipePower();
+        // Debug work can use real available power, but never raises the native per-tick ceiling.
+        return (int) Math.min(work, Math.max(1L, available / gregtech.api.enums.GTValues.V[9]));
+    }
+
+    private int foundationHeatingSteamDue() {
+        if (worldObj == null || worldObj.isRemote) return CriticalFoundationChunk.HEATING_STEAM_PER_TICK * Math.min(
+            getFoundationHeatingRemainingTicks(),
+            CriticalConstructionDebugPolicy.work(1, debugSpeed, CriticalFoundationChunk.HEATING_DURATION));
+        List<CriticalFoundationChunk> heating = new ArrayList<>();
+        for (int i = 0; i < loomChunks().size(); i++) {
+            CriticalFoundationChunk chunk = findFoundation(i);
+            if (chunk != null && chunk.heatingRemaining() > 0) heating.add(chunk);
+        }
+        return CriticalFoundationChunk.HEATING_STEAM_PER_TICK * foundationHeatingWork(heating);
     }
 
     public CriticalTier getTier() {
@@ -1807,7 +1841,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private int loadedWindowEnd(List<CriticalGeometry.Voxel> voxels, int start, int end) {
-        return ensureConstructionWindow(voxels, start, end) ? Math.min(end, start + 128) : start == end ? end : -1;
+        return ensureConstructionWindow(voxels, start, end) ? Math.min(end, start + constructionBlockBudget)
+            : start == end ? end : -1;
     }
 
     /** Canonical coordinates for the native restart callback; never trust a saved arbitrary chunk list. */
@@ -1909,6 +1944,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public void updateEntity() {
         constructionAdvancing = false;
         blocksChangedThisTick = lightsChangedThisTick = 0;
+        constructionBlockBudget = 128;
+        constructionLightBudget = 16;
         blockBudgetStarted = 0;
         if (worldObj == null || worldObj.isRemote) return;
         CriticalEnergyRuntime.idleTick(this);
@@ -2009,12 +2046,17 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                     return;
                 }
             }
-            constructionTickBudget = debugSpeed == 3 ? Integer.MAX_VALUE
-                : overclock * (debugSpeed == 2 ? 10 : debugSpeed == 1 ? 2 : 1);
+            constructionTickBudget = CriticalConstructionDebugPolicy
+                .work(overclock, debugSpeed, getConstructionDurationTicks());
+            if (debugSpeed == 3) {
+                // Headroom absorbs bursts where several paid steps unlock their physical carriers together.
+                constructionBlockBudget = CriticalConstructionDebugPolicy.placementBudget(currentPaidStage().size());
+                constructionLightBudget = constructionBlockBudget;
+            }
             boolean anyAdvance = false;
             for (int steps = 0; steps < 8192 && constructionTickBudget > 0
-                && blocksChangedThisTick < 128
-                && lightsChangedThisTick < 16
+                && blocksChangedThisTick < constructionBlockBudget
+                && lightsChangedThisTick < constructionLightBudget
                 && (state == 1 || state == 4); steps++) {
                 int oldStage = stage, oldCursor = cursor, oldRepairScan = repairScanCursor;
                 int oldBlockChanges = blocksChangedThisTick;
@@ -2025,6 +2067,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 if (legacyStep) break;
                 anyAdvance |= constructionLastAdvance > 0 || blocksChangedThisTick > oldBlockChanges;
                 constructionTickBudget -= constructionLastAdvance;
+                // Keep each completed row visible; unused debug budget never spills into the next row.
+                if (debugSpeed > 0 && oldStage != stage && anyAdvance) break;
                 if (constructionLastAdvance == 0 && oldStage == stage
                     && oldCursor == cursor
                     && oldRepairScan == repairScanCursor) break;
@@ -2118,6 +2162,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public int getConstructionDurationTicks() {
+        if (worldObj != null && worldObj.isRemote && (state == 1 || state == 4)) return cycleDuration;
         if (state == 1 && foundationRequired && getFoundationPhase() == 4)
             return CriticalFoundationChunk.HEATING_DURATION;
         if (state == 1 && foundationRequired && getFoundationPhase() == 2) return getFoundationCuringDurationTicks();
@@ -2148,8 +2193,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (state == 1 && foundationRequired && getFoundationPhase() != 3) return getFoundationPhase() == 1
             ? new FluidStack[] { CriticalFoundationMaterials.fluid(1_000_000) }
             : getFoundationPhase() == 4
-                ? new FluidStack[] {
-                    gregtech.api.util.GTModHandler.getSuperHeatedSteam(CriticalFoundationChunk.HEATING_STEAM_PER_TICK) }
+                ? new FluidStack[] { gregtech.api.util.GTModHandler.getSuperHeatedSteam(foundationHeatingSteamDue()) }
                 : new FluidStack[0];
         if (constructionLedger.isPhysicalJob()) {
             if (state != 0 && state != 1 && state != 4) return new FluidStack[0];
@@ -2237,8 +2281,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             return getFoundationPhase() == 1 && !isFoundationCellFunded()
                 ? new FluidStack[] { CriticalFoundationMaterials.fluid(1_000_000) }
                 : getFoundationPhase() == 4 && !isFoundationHeatingFunded()
-                    ? new FluidStack[] { gregtech.api.util.GTModHandler
-                        .getSuperHeatedSteam(CriticalFoundationChunk.HEATING_STEAM_PER_TICK) }
+                    ? new FluidStack[] {
+                        gregtech.api.util.GTModHandler.getSuperHeatedSteam(foundationHeatingSteamDue()) }
                     : new FluidStack[0];
         if (constructionLedger.funded()) return new FluidStack[0];
         if (constructionTimeVersion == 0 && (stageFunded || repairFunded)) return new FluidStack[0];
@@ -2651,9 +2695,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private boolean hasBlockBudget(CriticalGeometry.Voxel v) {
-        return blocksChangedThisTick < 128
-            && (blockBudgetStarted == 0 || System.nanoTime() - blockBudgetStarted < 6_000_000L)
-            && (lightsChangedThisTick < 16 || v.block.getLightValue(worldObj, wx(v), wy(v), wz(v)) == 0);
+        return blocksChangedThisTick < constructionBlockBudget
+            && (blockBudgetStarted == 0 || System.nanoTime() - blockBudgetStarted
+                < (debugSpeed == 3 && (state == 1 || state == 4) ? 45_000_000L : 6_000_000L))
+            && (lightsChangedThisTick < constructionLightBudget
+                || v.block.getLightValue(worldObj, wx(v), wy(v), wz(v)) == 0);
     }
 
     private boolean placeOwnedBlock(CriticalGeometry.Voxel v) {
@@ -3588,6 +3634,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         n.setBoolean("working", isWorking());
         n.setInteger("constructionElapsed", getConstructionElapsedTicks());
         n.setInteger("constructionDuration", getConstructionDurationTicks());
+        n.setInteger("constructionDebugSpeed", debugSpeed);
         n.setBoolean("constructionWorking", isConstructionWorking());
         n.setString("structureId", structureId);
         n.setString("batchId", batchId);
@@ -3612,6 +3659,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         clientFoundationHeatingRemaining = n.getInteger("foundationHeatingRemaining");
         clientFoundationHeatingFunded = n.getBoolean("foundationHeatingFunded");
         clientFoundationCells = n.getIntArray("foundationCells");
+        debugSpeed = Math.max(0, Math.min(3, n.getInteger("constructionDebugSpeed")));
         geometryVersion = n.hasKey("geometryVersion") ? n.getInteger("geometryVersion") : 1;
         v2LayoutRevision = readV2LayoutRevision(n);
         structureFacing = v2LayoutRevision <= 26 ? ForgeDirection.NORTH
