@@ -23,7 +23,7 @@ import gregtech.api.util.GTOreDictUnificator;
 /** Immutable full-job price basis. Equipment is installed at one deterministic carrier per macro unit. */
 public final class CriticalConstructionEconomy {
 
-    public static final int VERSION = 5;
+    public static final int VERSION = 6;
     private final int version;
     private final Set<String> installationMaterials = new HashSet<>();
     private final Map<String, FluidStack[]> materialFluids = new LinkedHashMap<>();
@@ -31,6 +31,7 @@ public final class CriticalConstructionEconomy {
     private final Map<Long, FluidStack[]> carrierFluids = new LinkedHashMap<>();
     private final Map<Long, Integer> workStages = new LinkedHashMap<>();
     private final Map<Long, FluidStack[]> positionFluids = new LinkedHashMap<>();
+    private final Map<Integer, DisplayRow> stepProfiles = new LinkedHashMap<>();
     private final String layoutKey;
     private final ItemStack controller;
     private final Map<String, ItemStack> shells;
@@ -68,17 +69,17 @@ public final class CriticalConstructionEconomy {
                     carriers,
                     paid,
                     "petal_" + n,
-                    new ItemStack[] { ItemList.Electric_Motor_UHV.get(8), ItemList.Electric_Pump_UHV.get(8),
-                        ItemList.Field_Generator_UHV.get(4), ItemList.Emitter_UHV.get(8), ItemList.Sensor_UHV.get(4),
+                    new ItemStack[] { ItemList.Electric_Motor_UHV.get(4), ItemList.Electric_Pump_UHV.get(16),
+                        ItemList.Field_Generator_UHV.get(2), ItemList.Emitter_UHV.get(16), ItemList.Sensor_UHV.get(4),
                         ore(OrePrefixes.circuit, Materials.UHV, 8),
                         ore(OrePrefixes.pipeMedium, Materials.Neutronium, 64) });
                 carrier(
                     carriers,
                     paid,
                     "receiver",
-                    new ItemStack[] { ItemList.Electric_Pump_UHV.get(32), ItemList.Sensor_UHV.get(16),
+                    new ItemStack[] { ItemList.Electric_Pump_UHV.get(48), ItemList.Sensor_UHV.get(16),
                         ore(OrePrefixes.circuit, Materials.UHV, 16),
-                        ore(OrePrefixes.pipeMedium, Materials.Neutronium, 128),
+                        quantity(ore(OrePrefixes.pipeMedium, Materials.Neutronium, 1), 96),
                         ore(OrePrefixes.plate, Materials.Europium, 256) });
             }
             case TURBINE -> {
@@ -87,12 +88,12 @@ public final class CriticalConstructionEconomy {
                         carriers,
                         paid,
                         "rotor_" + n,
-                        new ItemStack[] { ItemList.Electric_Motor_UHV.get(32), ItemList.Electric_Piston_UHV.get(16),
-                            ItemList.Field_Generator_UHV.get(16), ItemList.Sensor_UHV.get(8),
+                        new ItemStack[] { ItemList.Electric_Motor_UHV.get(48), ItemList.Electric_Piston_UHV.get(32),
+                            ItemList.Field_Generator_UHV.get(8), ItemList.Sensor_UHV.get(8),
                             ore(OrePrefixes.circuit, Materials.UHV, 8),
-                            ore(OrePrefixes.gearGt, Materials.NaquadahAlloy, 64),
-                            ore(OrePrefixes.stickLong, Materials.Neutronium, 64),
-                            ore(OrePrefixes.rotor, Materials.NaquadahAlloy, 128) });
+                            quantity(ore(OrePrefixes.gearGt, Materials.NaquadahAlloy, 1), 96),
+                            quantity(ore(OrePrefixes.stickLong, Materials.Neutronium, 1), 96),
+                            quantity(ore(OrePrefixes.rotor, Materials.NaquadahAlloy, 1), 96) });
                     carrier(
                         carriers,
                         paid,
@@ -107,21 +108,24 @@ public final class CriticalConstructionEconomy {
                     carriers,
                     paid,
                     "electrode_" + n,
-                    new ItemStack[] { ItemList.Electric_Pump_UHV.get(32), ItemList.Electric_Motor_UHV.get(8),
-                        ItemList.Emitter_UHV.get(16), ItemList.Sensor_UHV.get(16),
-                        ore(OrePrefixes.circuit, Materials.UHV, 16), ore(OrePrefixes.plate, Materials.Platinum, 256),
-                        ore(OrePrefixes.plate, Materials.Iridium, 128), ore(OrePrefixes.plate, Materials.Osmium, 64),
-                        CriticalShellCatalog.carbon(128), ore(OrePrefixes.pipeMedium, Materials.Neutronium, 128) });
+                    new ItemStack[] { ItemList.Electric_Pump_UHV.get(48), ItemList.Electric_Motor_UHV.get(16),
+                        ItemList.Emitter_UHV.get(8), ItemList.Sensor_UHV.get(16),
+                        ore(OrePrefixes.circuit, Materials.UHV, 16),
+                        quantity(ore(OrePrefixes.plate, Materials.Platinum, 1), 96),
+                        quantity(ore(OrePrefixes.plate, Materials.Iridium, 1), 96),
+                        ore(OrePrefixes.plate, Materials.Osmium, 64), CriticalShellCatalog.carbon(128),
+                        ore(OrePrefixes.pipeMedium, Materials.Neutronium, 128) });
             }
             case SUN -> {
                 for (int n = 0; n < 4; n++) carrier(
                     carriers,
                     paid,
                     "confinement_" + n,
-                    new ItemStack[] { ItemList.Field_Generator_UHV.get(64), ItemList.Emitter_UHV.get(32),
+                    new ItemStack[] { quantity(ItemList.Field_Generator_UHV.get(1), 96), ItemList.Emitter_UHV.get(48),
                         ItemList.Sensor_UHV.get(16), ore(OrePrefixes.circuit, Materials.UHV, 32),
-                        ore(OrePrefixes.plate, Materials.CosmicNeutronium, 128),
-                        ore(OrePrefixes.wireFine, Materials.Neutronium, 256), ItemList.Gravistar.get(64) });
+                        quantity(ore(OrePrefixes.plate, Materials.CosmicNeutronium, 1), 96),
+                        ore(OrePrefixes.wireFine, Materials.Neutronium, 256),
+                        quantity(ItemList.Gravistar.get(1), 96) });
             }
             default -> throw new IllegalArgumentException("Unsupported RC2 construction kind " + config.kind);
         }
@@ -164,7 +168,7 @@ public final class CriticalConstructionEconomy {
             case SUN -> media(1152, 2304, 1152, 32000);
             default -> throw new IllegalArgumentException("Unsupported construction equipment " + config.kind);
         });
-        return result.threeRowSchedule(paid);
+        return result.threeRowSchedule(paid, config.kind);
     }
 
     /** Silver: conductive joining; bismuth: active joining; radon: surface conditioning; grade 7: flush/cooling. */
@@ -182,7 +186,7 @@ public final class CriticalConstructionEconomy {
     }
 
     static boolean supportsVersion(int version) {
-        return version == 2 || version == 3 || version == 4 || version == VERSION;
+        return version >= 2 && version <= VERSION;
     }
 
     /** Frozen work order; the geometry and ownership fingerprint never change. Legacy jobs retain stage 4. */
@@ -246,7 +250,7 @@ public final class CriticalConstructionEconomy {
     }
 
     /** Same-family finishes share one real manufactured standard part, one part per physical position. */
-    private CriticalConstructionEconomy threeRowSchedule(List<CriticalGeometry.Voxel> paid) {
+    private CriticalConstructionEconomy threeRowSchedule(List<CriticalGeometry.Voxel> paid, CriticalMachineKind kind) {
         Map<String, ItemStack> standard = new LinkedHashMap<>();
         for (String alias : shells.keySet())
             standard.put(alias, CriticalShellCatalog.shell(CriticalShellCatalog.family(alias).identities.get(0), 1));
@@ -293,19 +297,17 @@ public final class CriticalConstructionEconomy {
                 .add(voxel);
         next.assignRows(body, 4);
         next.assignRows(installation, 7);
-        // Preserve all four joining/cooling media totals. Each plasma is scheduled in its own real row;
-        // purified water accompanies the first row. Equipment macro-unit media stay with equipment work.
-        List<FluidStack> bodyMedia = new ArrayList<>(), equipmentMedia = new ArrayList<>();
-        for (CriticalGeometry.Voxel voxel : paid) {
-            FluidStack[] shell = voxel.stage >= 1 && voxel.stage <= 3 ? baseFluids.get(voxel.stage)
-                : materialFluids.get(voxel.material);
-            if (!CriticalStructures.isController(voxel) && shell != null)
-                for (FluidStack fluid : shell) mergeFluid(bodyMedia, fluid);
-            FluidStack[] unit = carrierFluids.get(voxel.positionKey());
-            if (unit != null) for (FluidStack fluid : unit) mergeFluid(equipmentMedia, fluid);
+        // Each new job freezes a local machine-specific commissioning recipe at every position.
+        for (CriticalGeometry.Voxel voxel : paid)
+            next.positionFluids.put(voxel.positionKey(), commissioningMedia(kind, next.stage(voxel)));
+        for (int group = 1; group <= 2; group++) for (int row = 0; row < 3; row++) {
+            List<CriticalGeometry.Voxel> positions = next.displayRow(group, row, paid);
+            ItemStack[] items = next.costs(positions, 0, positions.size());
+            FluidStack[] fluids = next.fluidCosts(positions, 0, positions.size());
+            int steps = group == 2 && row == 2 ? 1 : exactStepCount(items, fluids);
+            next.stepProfiles
+                .put((group == 1 ? 4 : 7) + row, new DisplayRow(steps, divide(items, steps), divide(fluids, steps)));
         }
-        next.assignMedia(body, 4, bodyMedia.toArray(new FluidStack[0]));
-        next.assignMedia(installation, 7, equipmentMedia.toArray(new FluidStack[0]));
         for (int group = 1; group <= 2; group++)
             for (int row = 0; row < 3; row++) if (next.itemsForDisplayRow(group, row, paid).length > 6
                 || next.fluidsForDisplayRow(group, row, paid).length > 2)
@@ -353,31 +355,173 @@ public final class CriticalConstructionEconomy {
         throw new IllegalArgumentException("Unclassified construction equipment");
     }
 
-    private void assignMedia(List<CriticalGeometry.Voxel> voxels, int firstStage, FluidStack[] fluids) {
-        for (FluidStack fluid : fluids) {
-            int row = fluid.isFluidEqual(Materials.Silver.getPlasma(1)) ? 0
-                : fluid.isFluidEqual(Materials.Bismuth.getPlasma(1)) ? 1
-                    : fluid.isFluidEqual(Materials.Radon.getPlasma(1)) ? 2 : 0;
-            List<CriticalGeometry.Voxel> positions = new ArrayList<>();
-            for (CriticalGeometry.Voxel voxel : voxels) if (stage(voxel) == firstStage + row) positions.add(voxel);
-            positions.sort(java.util.Comparator.comparingLong(CriticalGeometry.Voxel::positionKey));
-            if (positions.isEmpty()) throw new IllegalStateException("Missing process fluid positions");
-            // Exact quotient/remainder allocation keeps single-block repairs local instead of charging
-            // the complete macro-stage's joining/cooling bill again at one arbitrary carrier.
-            for (int i = 0; i < positions.size(); i++) {
-                int amount = fluid.amount / positions.size() + (i < fluid.amount % positions.size() ? 1 : 0);
-                if (amount == 0) continue;
-                long position = positions.get(i)
-                    .positionKey();
-                List<FluidStack> bill = new ArrayList<>();
-                FluidStack[] existing = positionFluids.get(position);
-                if (existing != null) for (FluidStack prior : existing) mergeFluid(bill, prior);
-                FluidStack share = fluid.copy();
-                share.amount = amount;
-                mergeFluid(bill, share);
-                positionFluids.put(position, bill.toArray(new FluidStack[0]));
-            }
+    /** Joining, heat exchange, catalyst preparation and confinement use distinct real process media. */
+    private static FluidStack[] commissioningMedia(CriticalMachineKind kind, int stage) {
+        int row = stage - 4;
+        switch (kind) {
+            case SOLAR:
+                switch (row) {
+                    case 0:
+                        return pair(Materials.Silver.getPlasma(9), Materials.Grade7PurifiedWater.getFluid(125));
+                    case 1:
+                        return pair(
+                            Materials.SodiumPotassium.getFluid(250),
+                            Materials.Grade8PurifiedWater.getFluid(125));
+                    case 2:
+                        return pair(Materials.Radon.getPlasma(9), Materials.Argon.getGas(125));
+                    case 3:
+                        return pair(Materials.Lubricant.getFluid(250), Materials.Silver.getPlasma(144));
+                    case 4:
+                        return pair(
+                            Materials.SodiumPotassium.getFluid(1000),
+                            Materials.Grade7PurifiedWater.getFluid(500));
+                    default:
+                        return pair(
+                            Materials.SolderingAlloy.getMolten(144),
+                            Materials.Grade7PurifiedWater.getFluid(1000));
+                }
+            case TURBINE:
+                switch (row) {
+                    case 0:
+                        return pair(Materials.Bismuth.getPlasma(9), Materials.Grade7PurifiedWater.getFluid(125));
+                    case 1:
+                        return pair(Materials.Lubricant.getFluid(250), Materials.Grade7PurifiedWater.getFluid(250));
+                    case 2:
+                        return pair(Materials.Silver.getPlasma(18), Materials.Argon.getGas(125));
+                    case 3:
+                        return pair(Materials.Lubricant.getFluid(1000), Materials.Bismuth.getPlasma(144));
+                    case 4:
+                        return pair(
+                            Materials.SodiumPotassium.getFluid(500),
+                            Materials.Grade7PurifiedWater.getFluid(1000));
+                    default:
+                        return pair(
+                            Materials.SolderingAlloy.getMolten(144),
+                            Materials.Grade7PurifiedWater.getFluid(1000));
+                }
+            case BATTERY:
+                switch (row) {
+                    case 0:
+                        return pair(Materials.Silver.getPlasma(18), Materials.Grade7PurifiedWater.getFluid(250));
+                    case 1:
+                        return pair(Materials.Platinum.getMolten(144), Materials.Grade7PurifiedWater.getFluid(250));
+                    case 2:
+                        return pair(Materials.Radon.getPlasma(9), Materials.Nitrogen.getGas(250));
+                    case 3:
+                        return pair(Materials.Platinum.getMolten(144), Materials.Grade8PurifiedWater.getFluid(1000));
+                    case 4:
+                        return pair(
+                            Materials.SulfuricAcid.getFluid(1000),
+                            Materials.Grade7PurifiedWater.getFluid(1000));
+                    default:
+                        return pair(
+                            Materials.SolderingAlloy.getMolten(144),
+                            Materials.Grade7PurifiedWater.getFluid(500));
+                }
+            case SUN:
+                switch (row) {
+                    case 0:
+                        return pair(Materials.Bismuth.getPlasma(18), Materials.Grade7PurifiedWater.getFluid(500));
+                    case 1:
+                        return pair(Materials.Helium.getGas(1000), Materials.Radon.getPlasma(18));
+                    case 2:
+                        return pair(Materials.Silver.getPlasma(36), Materials.Argon.getGas(500));
+                    case 3:
+                        return pair(Materials.Naquadria.getMolten(144), Materials.Grade8PurifiedWater.getFluid(1000));
+                    case 4:
+                        return pair(Materials.Helium.getGas(2000), Materials.Radon.getPlasma(144));
+                    default:
+                        return pair(Materials.SolderingAlloy.getMolten(288), Materials.Radon.getPlasma(144));
+                }
+            default:
+                throw new IllegalArgumentException("Unsupported construction process " + kind);
         }
+    }
+
+    private static FluidStack[] pair(FluidStack first, FluidStack second) {
+        return new FluidStack[] { required(first, "commissioning first medium"),
+            required(second, "commissioning second medium") };
+    }
+
+    /** One exact repeated work unit; callers never receive the mutable frozen arrays. */
+    public static final class DisplayRow {
+
+        public final int steps;
+        private final ItemStack[] items;
+        private final FluidStack[] fluids;
+
+        private DisplayRow(int steps, ItemStack[] items, FluidStack[] fluids) {
+            this.steps = steps;
+            this.items = copy(items);
+            this.fluids = copyFluids(fluids);
+        }
+
+        public ItemStack[] perStepItems() {
+            return copy(items);
+        }
+
+        public FluidStack[] perStepFluids() {
+            return copyFluids(fluids);
+        }
+    }
+
+    public DisplayRow displayRowProfile(int group, int row, List<CriticalGeometry.Voxel> paid) {
+        checkDisplayRow(group, row);
+        if (version < 6 || group == 0)
+            throw new IllegalStateException("Repeated work profiles require a v6 body/equipment row");
+        return stepProfiles.get((group == 1 ? 4 : 7) + row);
+    }
+
+    /** Complete rows retain the frozen count; repairs derive a count from their own local bill. */
+    int stepsForStage(int stage, ItemStack[] items, FluidStack[] fluids) {
+        DisplayRow frozen = stepProfiles.get(stage);
+        if (frozen != null && frozen.items.length == items.length && frozen.fluids.length == fluids.length) {
+            boolean exact = true;
+            for (ItemStack item : items) {
+                boolean found = false;
+                for (ItemStack unit : frozen.items)
+                    if (same(item, unit) && (long) unit.stackSize * frozen.steps == item.stackSize) found = true;
+                if (!found) exact = false;
+            }
+            for (FluidStack fluid : fluids) {
+                boolean found = false;
+                for (FluidStack unit : frozen.fluids)
+                    if (fluid.isFluidEqual(unit) && (long) unit.amount * frozen.steps == fluid.amount) found = true;
+                if (!found) exact = false;
+            }
+            if (exact) return frozen.steps;
+        }
+        return stage == 9 ? 1 : exactStepCount(items, fluids);
+    }
+
+    /** Largest divisor at most 200: capping a larger GCD with min would silently lose units. */
+    static int exactStepCount(ItemStack[] items, FluidStack[] fluids) {
+        if (items.length == 0 && fluids.length == 0) return 1;
+        for (int steps = 200; steps > 1; steps--) {
+            boolean exact = true;
+            for (ItemStack item : items) if (item.stackSize % steps != 0) exact = false;
+            for (FluidStack fluid : fluids) if (fluid.amount % steps != 0) exact = false;
+            if (exact) return steps;
+        }
+        return 1;
+    }
+
+    private static ItemStack[] divide(ItemStack[] totals, int steps) {
+        ItemStack[] result = copy(totals);
+        for (ItemStack item : result) item.stackSize /= steps;
+        return result;
+    }
+
+    private static FluidStack[] divide(FluidStack[] totals, int steps) {
+        FluidStack[] result = copyFluids(totals);
+        for (FluidStack fluid : result) fluid.amount /= steps;
+        return result;
+    }
+
+    private static FluidStack[] copyFluids(FluidStack[] source) {
+        FluidStack[] result = new FluidStack[source.length];
+        for (int i = 0; i < source.length; i++) result[i] = source[i].copy();
+        return result;
     }
 
     private static FluidStack required(FluidStack fluid, String name) {
@@ -532,6 +676,26 @@ public final class CriticalConstructionEconomy {
             units.appendTag(row);
         }
         n.setTag("carriers", units);
+        if (version >= 6) {
+            NBTTagList steps = new NBTTagList();
+            for (Map.Entry<Integer, DisplayRow> entry : stepProfiles.entrySet()) {
+                NBTTagCompound row = new NBTTagCompound();
+                row.setInteger("stage", entry.getKey());
+                row.setInteger("steps", entry.getValue().steps);
+                row.setTag(
+                    "items",
+                    CriticalResourceNbt.writeItems(
+                        entry.getValue()
+                            .perStepItems()));
+                row.setTag(
+                    "fluids",
+                    CriticalResourceNbt.writeFluids(
+                        entry.getValue()
+                            .perStepFluids()));
+                steps.appendTag(row);
+            }
+            n.setTag("stepProfiles", steps);
+        }
         if (version >= 4) {
             NBTTagList bases = new NBTTagList();
             for (Map.Entry<Integer, FluidStack[]> entry : baseFluids.entrySet()) {
@@ -648,6 +812,54 @@ public final class CriticalConstructionEconomy {
                 if (!present || fluids.size() > 2) throw new IllegalArgumentException("Invalid frozen work row");
             }
         }
+        if (version >= 6) {
+            NBTTagList steps = n.getTagList("stepProfiles", 10);
+            List<ItemStack> totalItems = new ArrayList<>();
+            for (int i = 0; i < steps.tagCount(); i++) {
+                NBTTagCompound row = steps.getCompoundTagAt(i);
+                int stage = row.getInteger("stage"), count = row.getInteger("steps");
+                ItemStack[] items = CriticalResourceNbt.readItems(row.getTagList("items", 10), -1);
+                FluidStack[] fluids = readFrozenFluids(row);
+                if (stage < 4 || stage > 9
+                    || count < 1
+                    || count > 200
+                    || stage == 9 && count != 1
+                    || items.length == 0
+                    || items.length > 6
+                    || fluids.length > 2
+                    || result.stepProfiles.put(stage, new DisplayRow(count, items, fluids)) != null)
+                    throw new IllegalArgumentException("Invalid frozen repeated work profile");
+                for (ItemStack item : items) {
+                    if (item == null || item.stackSize <= 0)
+                        throw new IllegalArgumentException("Invalid repeated item debit");
+                    ItemStack total = item.copy();
+                    total.stackSize = Math.multiplyExact(total.stackSize, count);
+                    merge(totalItems, total);
+                }
+                List<FluidStack> actual = new ArrayList<>();
+                for (Map.Entry<Long, Integer> position : result.workStages.entrySet())
+                    if (position.getValue() == stage) {
+                        FluidStack[] local = result.positionFluids.get(position.getKey());
+                        if (local != null) for (FluidStack fluid : local) mergeFluid(actual, fluid);
+                    }
+                if (actual.size() != fluids.length)
+                    throw new IllegalArgumentException("Repeated fluid identity mismatch");
+                for (FluidStack fluid : fluids) {
+                    boolean matches = false;
+                    for (FluidStack total : actual)
+                        if (fluid.isFluidEqual(total) && (long) fluid.amount * count == total.amount) matches = true;
+                    if (!matches) throw new IllegalArgumentException("Repeated fluid total mismatch");
+                }
+            }
+            if (result.stepProfiles.size() != 6 || totalItems.size() != result.demand.length)
+                throw new IllegalArgumentException("Incomplete frozen repeated work profiles");
+            for (ItemStack wanted : result.demand) {
+                boolean matches = false;
+                for (ItemStack actual : totalItems)
+                    if (same(wanted, actual) && wanted.stackSize == actual.stackSize) matches = true;
+                if (!matches) throw new IllegalArgumentException("Repeated item total mismatch");
+            }
+        }
         return result;
     }
 
@@ -679,6 +891,13 @@ public final class CriticalConstructionEconomy {
                 return;
             }
         list.add(stack.copy());
+    }
+
+    /** GT's ore lookup may cap requests at 64; this is an exact ledger quantity, not an inventory stack. */
+    private static ItemStack quantity(ItemStack identity, int count) {
+        ItemStack item = identity.copy();
+        item.stackSize = count;
+        return item;
     }
 
     private static ItemStack ore(OrePrefixes prefix, Materials material, int count) {

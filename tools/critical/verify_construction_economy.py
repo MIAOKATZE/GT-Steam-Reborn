@@ -47,9 +47,12 @@ def registration_gates():
 
 
 def main():
+    global OUT
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jar', type=Path, required=True)
+    parser.add_argument('--out', type=Path, default=OUT)
     args = parser.parse_args()
+    OUT = args.out.resolve()
     candidate = args.jar.resolve()
     candidate_hash = hashlib.sha256(candidate.read_bytes()).hexdigest()
     registrations = registration_gates()

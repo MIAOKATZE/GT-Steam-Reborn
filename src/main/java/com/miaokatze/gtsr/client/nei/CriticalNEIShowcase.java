@@ -48,6 +48,17 @@ public final class CriticalNEIShowcase {
         background(x, y, true);
     }
 
+    public static void chemicalBackground(float x, float y, float width, float height, float partialTicks) {
+        background(x, y, true);
+        GL11.glPushMatrix();
+        try {
+            GL11.glTranslatef(x, y, 0);
+            rect(5, CHEMICAL_DIVIDER_Y, 165, CHEMICAL_DIVIDER_Y + 1, EDGE);
+        } finally {
+            GL11.glPopMatrix();
+        }
+    }
+
     private static void background(float x, float y, boolean construction) {
         GL11.glPushMatrix();
         try {
@@ -73,7 +84,7 @@ public final class CriticalNEIShowcase {
         label(text("intro." + operation), 8, 21, MUTED);
         boolean chemical = operation.equals("chemical_compound");
         if (!chemical) label(text("output"), OUTPUT_X, 32, MUTED);
-        label(text(chemical ? "chemical.inputs" : "input"), INPUT_X, 32, MUTED);
+        label(text(chemical ? "chemical.inputs" : "input"), INPUT_X, chemical ? 30 : 32, MUTED);
         if (chemical) {
             chemical(info, new Plot(flow(info, true)));
             chemicalRows(
@@ -159,13 +170,15 @@ public final class CriticalNEIShowcase {
                 : info.constructionStage() == 0 && row == 2 ? 20 * 60 * 60 : 20);
             String unit = info.constructionStage() == 0 && row == 1 ? "minutes"
                 : info.constructionStage() == 0 && row == 2 ? "hours" : "step";
-            String duration = CriticalRecipeMaps.formatted("simple.build.time." + unit, time);
+            String duration = info.constructionStage() == 0
+                ? CriticalRecipeMaps.formatted("simple.build.time." + unit, time)
+                : CriticalRecipeMaps.formatted("simple.build.time.steps", time, info.constructionSteps(row));
             var font = Minecraft.getMinecraft().fontRenderer;
             int timeX = BUILD_TIME_RIGHT_X - font.getStringWidth(duration);
             String title = text("build.row." + info.constructionStage() + "." + row);
-            if (info.constructionStage() == 0 && row == 2) {
-                // At most two native-font lines fit between the previous row's bottom (113)
-                // and this row's unchanged slot top (131). Keep five pixels before the time.
+            if (info.constructionStage() != 0 || row == 2) {
+                // Two native-font lines fit above a row without touching the previous slots.
+                // Keep five pixels before the right-aligned duration.
                 var lines = font.listFormattedStringToWidth(title, timeX - BUILD_X - 5);
                 int titleY = lines.size() == 1 ? y - 11 : y - 18;
                 for (String line : lines) {
@@ -439,9 +452,10 @@ public final class CriticalNEIShowcase {
     }
 
     private static void chemicalRows(String... rows) {
-        int y = 97;
+        int y = CHEMICAL_TEXT_Y;
         for (int i = 0; i < rows.length; i++) {
-            for (String line : Minecraft.getMinecraft().fontRenderer.listFormattedStringToWidth(rows[i], 154)) {
+            for (String line : Minecraft.getMinecraft().fontRenderer
+                .listFormattedStringToWidth(rows[i], CHEMICAL_TEXT_WIDTH)) {
                 label(line, 8, y, i == 0 ? GOLD : INK);
                 y += 11;
             }

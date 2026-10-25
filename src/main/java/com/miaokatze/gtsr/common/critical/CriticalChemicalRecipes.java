@@ -19,15 +19,17 @@ import gregtech.api.enums.Materials;
 import gregtech.api.util.GTUtility;
 import gtPlusPlus.core.fluids.GTPPFluids;
 
-/** Fixed GT205 identities: 120 binary, 136 ternary, 96 quaternary, 80 quinary and 80 senary blends. */
+/** Fixed GT205 identities: 128 distinct blends in each circuit group from two to nine fluids. */
 public final class CriticalChemicalRecipes {
 
     private static Map<GTUtility.FluidId, BigInteger> cachedPrices = ImmutableMap.of();
     private static List<CompoundRecipe> cachedCatalog = ImmutableList.of();
+    private static List<CompoundRecipe> cachedLegacyV3Catalog = ImmutableList.of();
     private static List<CompoundRecipe> cachedLegacyV2Catalog = ImmutableList.of();
     private static List<GTUtility.FluidId> cachedIdentities = ImmutableList.of();
     private static Fluid cachedPromoter, cachedOzone;
     private static volatile Map<String, CompoundRecipe> displayCatalog = ImmutableMap.of();
+    private static volatile Map<String, CompoundRecipe> legacyDisplayCatalog = ImmutableMap.of();
 
     private CriticalChemicalRecipes() {}
 
@@ -37,7 +39,9 @@ public final class CriticalChemicalRecipes {
             fluid(Materials.Ethanol), fluid(Materials.Methanol), fluid(Materials.Hydrogen), fluid(Materials.Methane),
             fluid(Materials.Benzene), fluid(Materials.NefariousGas), stack(GTPPFluids.RP1RocketFuel),
             stack(GTPPFluids.DenseHydrazineFuelMixture), stack(GTPPFluids.CN3H7O3RocketFuel),
-            stack(GTPPFluids.H8N4C2O4RocketFuel) };
+            stack(GTPPFluids.H8N4C2O4RocketFuel), fluid(Materials.Ethylene), fluid(Materials.Propene),
+            fluid(Materials.Butene), fluid(Materials.Butadiene), fluid(Materials.Ethane), fluid(Materials.Propane),
+            fluid(Materials.Butane), fluid(Materials.Toluene) };
         ChemicalFuel[] selected = new ChemicalFuel[identities.length];
         Map<GTUtility.FluidId, ChemicalFuel> prices = prices(fuels);
         Map<GTUtility.FluidId, BigInteger> signature = new LinkedHashMap<>();
@@ -48,8 +52,7 @@ public final class CriticalChemicalRecipes {
         List<GTUtility.FluidId> identitySignature = new ArrayList<>();
         for (FluidStack identity : identities)
             identitySignature.add(identity == null ? null : GTUtility.FluidId.create(identity));
-        if (!cachedCatalog.isEmpty() && signature.equals(cachedPrices)
-            && identitySignature.equals(cachedIdentities)
+        if (signature.equals(cachedPrices) && identitySignature.equals(cachedIdentities)
             && promoterFluid == cachedPromoter
             && ozoneFluid == cachedOzone) return cachedCatalog;
         for (int i = 0; i < identities.length; i++) {
@@ -59,7 +62,7 @@ public final class CriticalChemicalRecipes {
         }
         List<CompoundRecipe> result = new ArrayList<>(512);
         List<CompoundRecipe> legacy = new ArrayList<>(256);
-        for (int i = 0; i < selected.length; i++) for (int j = i + 1; j < selected.length; j++) {
+        for (int i = 0; i < 16; i++) for (int j = i + 1; j < 16; j++) {
             int family = (i / 8 == j / 8 ? 0 : 12) + (j >= 12 ? 12 : 0);
             addLegacy(
                 result,
@@ -138,25 +141,32 @@ public final class CriticalChemicalRecipes {
                     component(promoter, 1),
                     component(ozone, 1));
             }
+        List<CompoundRecipe> legacyV3 = ImmutableList.copyOf(result);
+        result = buildCircuitCatalog(selected, promoter);
         List<CompoundRecipe> immutable = ImmutableList.copyOf(result);
-        // Do not freeze the early registration phase's empty catalogue.
-        if (!immutable.isEmpty()) {
-            cachedPrices = ImmutableMap.copyOf(signature);
-            cachedCatalog = immutable;
-            cachedLegacyV2Catalog = ImmutableList.copyOf(legacy);
-            cachedIdentities = identitySignature;
-            cachedPromoter = promoterFluid;
-            cachedOzone = ozoneFluid;
-            if (immutable.size() >= displayCatalog.size()) {
-                Map<String, CompoundRecipe> index = new LinkedHashMap<>();
-                for (CompoundRecipe recipe : immutable) index.put(recipe.id, recipe);
-                displayCatalog = ImmutableMap.copyOf(index);
-            }
+        cachedLegacyV2Catalog = ImmutableList.copyOf(legacy);
+        cachedLegacyV3Catalog = legacyV3;
+        if (legacyV3.size() >= legacyDisplayCatalog.size()) {
+            Map<String, CompoundRecipe> labels = new LinkedHashMap<>();
+            for (CompoundRecipe recipe : legacyV3) labels.put(recipe.id, recipe);
+            legacyDisplayCatalog = ImmutableMap.copyOf(labels);
+        }
+        // All three pricing catalogues belong to this exact signature, including empty outcomes.
+        // Native identity/price registration changes invalidate an early empty registration result.
+        cachedPrices = ImmutableMap.copyOf(signature);
+        cachedCatalog = immutable;
+        cachedIdentities = identitySignature;
+        cachedPromoter = promoterFluid;
+        cachedOzone = ozoneFluid;
+        if (immutable.size() >= displayCatalog.size()) {
+            Map<String, CompoundRecipe> index = new LinkedHashMap<>();
+            for (CompoundRecipe recipe : immutable) index.put(recipe.id, recipe);
+            displayCatalog = ImmutableMap.copyOf(index);
         }
         return immutable;
     }
 
-    /** Complexity bands are disjoint; only six-component reactions can reach 100x. */
+    /** Frozen schema-3 complexity bands. */
     private static int tierPeak(int components, int variant) {
         return components == 2 ? 2 + variant % 19 : (components - 2) * 20 + 1 + variant % 20;
     }
@@ -164,24 +174,50 @@ public final class CriticalChemicalRecipes {
     /** Lookup for client labels; callers localize the component FluidStacks using the active language. */
     public static CompoundRecipe byId(String id) {
         if (displayCatalog.isEmpty()) catalog(CriticalGTRecipes.chemicalFuels());
-        return displayCatalog.get(id);
+        CompoundRecipe current = displayCatalog.get(id);
+        return current != null ? current : legacyDisplayCatalog.get(id);
     }
 
-    /** Frozen receipt prices can be supplied here without revaluing already-paid fuel. */
+    /** Compatibility bridge for schema-3 receipts; new captures must supply a circuit. */
     public static Match best(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres) {
-        return best(fuels, litres, false);
+        return bestLegacyV3(fuels, litres);
     }
 
-    /** Only for an already-captured schema-2 payment; never publishes legacy values to NEI/byId. */
+    /** A selected group never falls back to a less complex reaction. Exact ties keep catalogue order. */
+    public static Match best(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres, int circuit) {
+        if (circuit < 2 || circuit > 9) return null;
+        return select(fuels, litres, catalog(fuels), circuit, null);
+    }
+
+    /** Validate an already-frozen identity without selecting a replacement reaction. */
+    public static Match matchExact(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres, int circuit,
+        String id) {
+        if (circuit < 2 || circuit > 9 || id == null || id.isEmpty()) return null;
+        return select(fuels, litres, catalog(fuels), circuit, id);
+    }
+
+    /** Only for already-captured schema-2 payments; its prices never enter the current NEI catalogue. */
     public static Match bestLegacyV2(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres) {
-        return best(fuels, litres, true);
+        return select(fuels, litres, catalogLegacyV2(fuels), 0, null);
     }
 
-    private static synchronized List<CompoundRecipe> legacyV2Catalog(List<ChemicalFuel> fuels) {
-        return catalog(fuels).isEmpty() ? ImmutableList.of() : cachedLegacyV2Catalog;
+    /** Frozen 512-entry, two-to-six-fluid schema-3 catalogue and complexity rewards. */
+    public static Match bestLegacyV3(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres) {
+        return select(fuels, litres, catalogLegacyV3(fuels), 0, null);
     }
 
-    private static Match best(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres, boolean legacyV2) {
+    public static synchronized List<CompoundRecipe> catalogLegacyV2(List<ChemicalFuel> fuels) {
+        catalog(fuels);
+        return cachedLegacyV2Catalog;
+    }
+
+    public static synchronized List<CompoundRecipe> catalogLegacyV3(List<ChemicalFuel> fuels) {
+        catalog(fuels);
+        return cachedLegacyV3Catalog;
+    }
+
+    private static Match select(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres,
+        List<CompoundRecipe> recipes, int circuit, String exactId) {
         BigInteger total = BigInteger.ZERO, heat = BigInteger.ZERO;
         Map<GTUtility.FluidId, ChemicalFuel> prices = prices(fuels);
         for (Map.Entry<GTUtility.FluidId, BigInteger> entry : litres.entrySet()) {
@@ -195,7 +231,9 @@ public final class CriticalChemicalRecipes {
         }
         if (total.signum() == 0 || heat.signum() == 0) return null;
         Match best = null;
-        for (CompoundRecipe recipe : legacyV2 ? legacyV2Catalog(fuels) : catalog(fuels)) {
+        for (CompoundRecipe recipe : recipes) {
+            if (circuit != 0 && recipe.selectorCircuit != circuit) continue;
+            if (exactId != null && !recipe.id.equals(exactId)) continue;
             BigInteger[] amounts = new BigInteger[recipe.components.size()];
             int[] ratios = new int[amounts.length];
             for (int i = 0; i < amounts.length; i++) {
@@ -211,6 +249,39 @@ public final class CriticalChemicalRecipes {
                 best = new Match(recipe, value, total, heat);
         }
         return best;
+    }
+
+    private static List<CompoundRecipe> buildCircuitCatalog(ChemicalFuel[] selected, ChemicalFuel promoter) {
+        // Each reaction has just two ordinary feedstocks. Additional slots require more industrial products:
+        // regular gasoline -> premium gasoline -> RP-1 -> dense hydrazine -> CN3H7O3 -> H8N4C2O4 -> promoter.
+        // The four rocket blends require chemical-plant casing tiers 3 through 6; they are not each
+        // other's ingredients. The final promoter adds a separate MV synthesis branch, not a voltage tier.
+        ChemicalFuel[] base = { selected[0], selected[1], selected[2], selected[3], selected[6], selected[7],
+            selected[8], selected[9], selected[10], selected[16], selected[17], selected[18], selected[19],
+            selected[20], selected[21], selected[22], selected[23] };
+        ChemicalFuel[] chain = { selected[4], selected[5], selected[12], selected[13], selected[14], selected[15],
+            promoter };
+        List<CompoundRecipe> result = new ArrayList<>(1024);
+        for (int size = 2; size <= 9; size++) {
+            int variant = 0;
+            for (int first = 0; first < base.length; first++)
+                for (int second = first + 1; second < base.length; second++) {
+                    if (variant >= 128) continue;
+                    Component[] parts = new Component[size];
+                    parts[0] = component(base[first], 4 + first % 3);
+                    parts[1] = component(base[second], 2 + second % 3);
+                    for (int i = 2; i < size; i++) parts[i] = component(chain[i - 2], i < 5 ? 3 : 1);
+                    add(result, "compound." + size + "." + first + "." + second, circuitPeak(size, variant), parts);
+                    variant++;
+                }
+        }
+        return result;
+    }
+
+    private static int circuitPeak(int size, int variant) {
+        int[] minimum = { 2, 13, 25, 37, 49, 61, 73, 87 };
+        int[] maximum = { 12, 24, 36, 48, 60, 72, 86, 100 };
+        return minimum[size - 2] + variant % (maximum[size - 2] - minimum[size - 2] + 1);
     }
 
     private static Map<GTUtility.FluidId, ChemicalFuel> prices(List<ChemicalFuel> fuels) {

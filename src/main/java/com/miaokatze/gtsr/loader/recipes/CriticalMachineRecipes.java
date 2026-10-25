@@ -30,6 +30,7 @@ import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTRecipeConstants;
+import gregtech.api.util.GTUtility;
 import gtPlusPlus.core.material.MaterialMisc;
 
 /** Physical manufacturing recipes plus real work-recipe views. */
@@ -94,11 +95,19 @@ public final class CriticalMachineRecipes {
             for (int group = 0; group < 3; group++) {
                 ItemStack[][] items = new ItemStack[3][];
                 FluidStack[][] fluids = new FluidStack[3][];
+                int[] steps = new int[] { 1, 1, 1 };
                 List<ItemStack> allItems = new ArrayList<>();
                 List<FluidStack> allFluids = new ArrayList<>();
                 for (int row = 0; row < 3; row++) {
-                    items[row] = economy.itemsForDisplayRow(group, row, paid);
-                    fluids[row] = economy.fluidsForDisplayRow(group, row, paid);
+                    if (group == 0) {
+                        items[row] = economy.itemsForDisplayRow(group, row, paid);
+                        fluids[row] = economy.fluidsForDisplayRow(group, row, paid);
+                    } else {
+                        CriticalConstructionEconomy.DisplayRow profile = economy.displayRowProfile(group, row, paid);
+                        steps[row] = profile.steps;
+                        items[row] = profile.perStepItems();
+                        fluids[row] = profile.perStepFluids();
+                    }
                     java.util.Collections.addAll(allItems, items[row]);
                     java.util.Collections.addAll(allFluids, fluids[row]);
                 }
@@ -110,7 +119,7 @@ public final class CriticalMachineRecipes {
                     .eut(0)
                     .build()
                     .orElseThrow(() -> new IllegalStateException("Invalid construction catalogue " + kind));
-                CriticalRecipeMaps.addConstruction(recipe, kind, group, items, fluids);
+                CriticalRecipeMaps.addConstruction(recipe, kind, group, items, fluids, steps);
             }
         }
     }
@@ -221,7 +230,10 @@ public final class CriticalMachineRecipes {
                 inputs.add(input);
                 inputHeat = inputHeat.add(component.fuel.euPerL.multiply(BigInteger.valueOf(component.ratio)));
             }
+            ItemStack circuit = GTUtility.getIntegratedCircuit(compound.selectorCircuit);
+            circuit.stackSize = 0;
             GTRecipe recipe = GTValues.RA.stdBuilder()
+                .itemInputs(circuit)
                 .fluidInputs(inputs.toArray(new FluidStack[0]))
                 .duration(CriticalEnergyMath.CYCLE_TICKS)
                 .eut(0)

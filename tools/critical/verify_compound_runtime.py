@@ -36,7 +36,7 @@ def main():
     sources = [ROOT / 'tools/tests' / n for n in ('Issue37RegistrationRegression.java','CriticalCompoundRuntimeContract.java')]
     if not args.jar:
         sources += [ROOT / 'src/main/java/com/miaokatze/gtsr/common/critical' / (name + '.java') for name in
-            ('CriticalChemicalMath','CriticalChemicalRecipes','CompoundRecipe','CriticalEnergyMath','CriticalEnergyPorts','CriticalEnergyRuntime','CriticalGTRecipes',
+            ('CriticalChemicalMath','CriticalChemicalRecipes','CompoundRecipe','CriticalChemicalCircuit','CriticalEnergyMath','CriticalEnergyPorts','CriticalEnergyRuntime','CriticalGTRecipes',
              'CriticalEnergyDebit','CriticalStellarPolicy','CriticalStellarRuntime','CriticalAdvancedRecipes',
              'CriticalProcessingModes')]
         sources += [ROOT / 'src/main/java/com/miaokatze/gtsr' / n for n in

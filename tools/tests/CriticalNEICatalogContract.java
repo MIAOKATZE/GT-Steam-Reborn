@@ -74,6 +74,8 @@ class CriticalNEICatalogRuntime {
         maps.add(CriticalRecipeMaps.stellarIrradiation);maps.add(CriticalRecipeMaps.stellarLifecycle);
         for(RecipeMap<?> map:maps) {
             var frontend=map.getFrontend(); var ui=frontend.getUIProperties();
+            if(map==CriticalRecipeMaps.forKind(CriticalMachineKind.BATTERY))
+                check(ui.maxItemInputs==1&&ui.maxFluidInputs==9,"native chemical template reserves selector and nine fluid slots");
             var items=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(ui.maxItemInputs);
             var outputs=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(ui.maxItemOutputs);
             var fluidInputs=new com.gtnewhorizons.modularui.api.forge.ItemStackHandler(ui.maxFluidInputs);
@@ -86,16 +88,27 @@ class CriticalNEICatalogRuntime {
                 var inventory=slot.getMcSlot().getItemHandler(); int x=slot.getPos().x,y=slot.getPos().y;
                 boolean input=inventory==items||inventory==fluidInputs;
                 boolean fluid=inventory==fluidInputs||inventory==fluidOutputs;
-                boolean chemical=map==CriticalRecipeMaps.forKind(CriticalMachineKind.BATTERY)&&inventory==fluidInputs;
-                check(input?x>=8&&x<=48:x==CriticalNEILayout.OUTPUT_X,"runtime native slot and label column " + map.unlocalizedName);
+                boolean chemicalMap=map==CriticalRecipeMaps.forKind(CriticalMachineKind.BATTERY);
+                boolean chemical=chemicalMap&&inventory==fluidInputs;
+                boolean circuit=chemicalMap&&inventory==items;
+                check(circuit?x==CriticalNEILayout.CHEMICAL_CIRCUIT_X:
+                    input?x>=8&&x<=48:x==CriticalNEILayout.OUTPUT_X,"runtime native slot and label column " + map.unlocalizedName);
                 int index=slot.getMcSlot().getSlotIndex();
                 int expectedY=chemical?CriticalNEILayout.CHEMICAL_FLUID_Y+index/3*CriticalNEILayout.PITCH
-                    :fluid?CriticalNEILayout.FLUID_Y:CriticalNEILayout.ITEM_Y;
+                    :circuit?CriticalNEILayout.CHEMICAL_CIRCUIT_Y:fluid?CriticalNEILayout.FLUID_Y:CriticalNEILayout.ITEM_Y;
                 check(y==expectedY,"runtime native row matches its real input slot " + map.unlocalizedName);
                 if(chemical)check(x==CriticalNEILayout.INPUT_X+index%3*CriticalNEILayout.PITCH,
-                    "six chemical native slots form two rows of three");
-                else check(y+9==CriticalNEILayout.arrowCenter(fluid),"actual native slot centre equals shared arrow centre");
+                    "nine chemical native slots form three rows of three");
+                else if(!circuit)check(y+9==CriticalNEILayout.arrowCenter(fluid),"actual native slot centre equals shared arrow centre");
+                if(chemical)check(y+18<=CriticalNEILayout.CHEMICAL_DIVIDER_Y,"native chemical grid clears result text");
+                if(circuit)check(x>=CriticalNEILayout.INPUT_X+2*CriticalNEILayout.PITCH+18+4
+                    &&x+18<99,"native selector clears fluid slots and efficiency bar");
                 check(!(x<166&&x+18>154&&y<174&&y+18>149),"native runtime slots leave favorite/overlay buttons clear");
+                if(chemicalMap)for(java.awt.Rectangle configured:ui.neiTransferRect) {
+                    java.awt.Rectangle nativeRect=new java.awt.Rectangle(configured);nativeRect.translate(-5,-11);
+                    check(!nativeRect.intersects(new java.awt.Rectangle(x,y,18,18)),
+                        "native chemical transfer rect never masks a clickable circuit/fluid slot");
+                }
             }
             CriticalMachineKind owner=CriticalMachineKind.SUN;
             for(CriticalMachineKind kind:CriticalMachineKind.releasedValues())
@@ -125,7 +138,8 @@ class CriticalNEICatalogRuntime {
                     check(left>flow.inputRight&&left+CriticalNEILayout.CHEMICAL_BAR_WIDTH<flow.outputLeft,
                         "single chemical vertical bar clears native fluid query slots");
                     check(CriticalNEILayout.CHEMICAL_BAR_Y>=32&&CriticalNEILayout.CHEMICAL_BAR_Y
-                        +CriticalNEILayout.CHEMICAL_BAR_HEIGHT<91,"chemical full bar height remains inside process panel");
+                        +CriticalNEILayout.CHEMICAL_BAR_HEIGHT<CriticalNEILayout.CHEMICAL_DIVIDER_Y,
+                        "chemical full bar height remains inside process panel");
                 }
             }
         }
@@ -168,6 +182,16 @@ class CriticalNEICatalogRuntime {
             Fluid plasma=new Fluid("nei_plasma_"+material.name());FluidRegistry.registerFluid(plasma);material.mPlasma=plasma;
         }
         Fluid water7=new Fluid("nei_water7");FluidRegistry.registerFluid(water7);Materials.Grade7PurifiedWater.mFluid=water7;
+        Fluid water8=new Fluid("nei_water8");FluidRegistry.registerFluid(water8);Materials.Grade8PurifiedWater.mFluid=water8;
+        for(Materials material:List.of(Materials.SodiumPotassium,Materials.Lubricant,Materials.SulfuricAcid)) {
+            Fluid fluid=new Fluid("nei_process_fluid_"+material.name());FluidRegistry.registerFluid(fluid);material.mFluid=fluid;
+        }
+        for(Materials material:List.of(Materials.Helium,Materials.Argon,Materials.Nitrogen)) {
+            Fluid fluid=new Fluid("nei_process_gas_"+material.name());FluidRegistry.registerFluid(fluid);material.mGas=fluid;
+        }
+        for(Materials material:List.of(Materials.SolderingAlloy,Materials.Platinum,Materials.Naquadria)) {
+            Fluid fluid=new Fluid("nei_process_molten_"+material.name());FluidRegistry.registerFluid(fluid);material.mStandardMoltenFluid=fluid;
+        }
         FluidRegistry.registerFluid(new Fluid("ic2superheatedsteam"));
         Method register=CriticalMachineRecipes.class.getDeclaredMethod("registerConstruction");register.setAccessible(true);register.invoke(null);
         for(CriticalMachineKind kind:CriticalMachineKind.releasedValues()) {
@@ -196,20 +220,25 @@ class CriticalNEICatalogRuntime {
                 }
                 List<ItemStack> shown=new ArrayList<>();
                 for(int row=0;row<3;row++) {
-                    var expected=bill.itemsForDisplayRow(group,row,paid);
+                    var profile=group==0?null:bill.displayRowProfile(group,row,paid);
+                    int steps=profile==null?1:profile.steps;
+                    check(info.constructionSteps(row)==steps,"NEI step count equals frozen scheduler profile");
+                    var expected=profile==null?bill.itemsForDisplayRow(group,row,paid):profile.perStepItems();
                     var actual=new ArrayList<ItemStack>();
                     for(int i=row*6;i<(row+1)*6;i++)if(displayItems[i]!=null)actual.add(displayItems[i]);
                     check(totals(actual).equals(totals(Arrays.asList(expected))),"row bill exactly matches runtime paid construction API");
                     shown.addAll(actual);
-                    var expectedFluids=bill.fluidsForDisplayRow(group,row,paid);
+                    var expectedFluids=profile==null?bill.fluidsForDisplayRow(group,row,paid):profile.perStepFluids();
                     for(int i=0;i<expectedFluids.length;i++) {
                         FluidStack actualFluid=displayFluids[row*2+i];
                         check(actualFluid!=null&&actualFluid.isFluidEqual(expectedFluids[i])&&actualFluid.amount==expectedFluids[i].amount,
                             "native row fluid identity and exact volume");
                     }
+                    if(group!=0)for(ItemStack stack:actual)if(stack.stackSize>0) {
+                        ItemStack total=stack.copy();total.stackSize*=steps;inputs.add(total);
+                    }
                 }
                 check(totals(shown).equals(totals(Arrays.asList(recipe.mInputs))),"every clickable item is in the real indexed recipe bill");
-                if(group!=0)inputs.addAll(Arrays.asList(recipe.mInputs));
             }
             check(groups.equals(Set.of(0,1,2)),"base, body, equipment: three pages per released machine");
             check(totals(inputs).equals(totals(Arrays.asList(bill.demand()))),"all body/equipment rows exactly equal frozen whole-job demand "+kind);
@@ -261,11 +290,15 @@ class CriticalNEICatalogRuntime {
         check(phases.equals(Set.of("stellar_ignition","stellar_sustain")),"ignition and sustain both indexed");
     }
     static void chemicalCompounds() throws Exception {
+        // Identity fixture only; the actual GT205 helper still creates zero-sized selector stacks.
+        ItemList.Circuit_Integrated.set(new ItemStack(Items.comparator));
         List<CriticalGTRecipes.ChemicalFuel> fuels=new ArrayList<>();
         int id=0;
         for(Materials material:List.of(Materials.Diesel,Materials.LightFuel,Materials.HeavyFuel,Materials.NitroFuel,
             Materials.GasolineRegular,Materials.GasolinePremium,Materials.Ethanol,Materials.Methanol,
-            Materials.Hydrogen,Materials.Methane,Materials.Benzene,Materials.NefariousGas)) {
+            Materials.Hydrogen,Materials.Methane,Materials.Benzene,Materials.NefariousGas,
+            Materials.Ethylene,Materials.Propene,Materials.Butene,Materials.Butadiene,
+            Materials.Ethane,Materials.Propane,Materials.Butane,Materials.Toluene)) {
             Fluid fluid=new Fluid("nei_compound_"+id);FluidRegistry.registerFluid(fluid);material.mFluid=fluid;
             fuels.add(new CriticalGTRecipes.ChemicalFuel(new FluidStack(fluid,1),BigInteger.valueOf(1000L+id++*7000),0));
         }
@@ -277,11 +310,21 @@ class CriticalNEICatalogRuntime {
         Fluid promoter=new Fluid("combustionpromotor");FluidRegistry.registerFluid(promoter);
         Fluid ozone=new Fluid("nei_compound_ozone");FluidRegistry.registerFluid(ozone);Materials.Ozone.mFluid=ozone;
         var expected=CriticalChemicalRecipes.catalog(fuels);
-        check(expected.size()==512,"complete native compound catalog has 512 examples");
+        check(expected.size()==1024,"complete native compound catalog has 1024 examples");
         var map=CriticalRecipeMaps.forKind(CriticalMachineKind.BATTERY);
         int before=map.getAllRecipes().size();
         Method register=CriticalMachineRecipes.class.getDeclaredMethod("registerChemicalMixtures",List.class);
         register.setAccessible(true);register.invoke(null,fuels);
+        Method tooltip=CriticalRecipeFrontend.class.getDeclaredMethod("handleNEIItemInputTooltip",List.class,
+            gregtech.nei.GTNEIDefaultHandler.FixedPositionedStack.class);tooltip.setAccessible(true);
+        ItemStack selector=gregtech.api.util.GTUtility.getIntegratedCircuit(9);
+        var selectorStack=new gregtech.nei.GTNEIDefaultHandler.FixedPositionedStack(null,selector,true,
+            CriticalNEILayout.CHEMICAL_CIRCUIT_X+1,CriticalNEILayout.CHEMICAL_CIRCUIT_Y+1,10000,false,true);
+        check(selectorStack.isNotConsumed(),"GT205 native zero-size selector example is not consumed");
+        List<String> expectedTip=new ArrayList<>();
+        for(String key:List.of("bus","not_consumed","number"))expectedTip.add(CriticalRecipeMaps.text("showcase.circuit."+key));
+        check(tooltip.invoke(map.getFrontend(),new ArrayList<String>(),selectorStack).equals(expectedTip),
+            "selector tooltip states bus, non-consumption and component-number relation");
         check(map.getAllRecipes().size()==before+expected.size(),"compound-only indexed entries without single-fuel pages");
         Set<String> seen=new HashSet<>();
         Map<Integer,Integer> componentCounts=new TreeMap<>();
@@ -290,12 +333,18 @@ class CriticalNEICatalogRuntime {
             var info=CriticalRecipeMaps.displayInfo(recipe);if(info.compound==null)continue;
             var compound=info.compound;check(seen.add(compound.id),"unique compound scheme");
             int components=compound.components.size();componentCounts.merge(components,1,Integer::sum);
-            check(compound.peakMultiplier>=(components==2?2:(components-2)*20+1)
-                &&compound.peakMultiplier<=(components-1)*20,"native example uses its component complexity efficiency band");
+            int[] minimum={2,13,25,37,49,61,73,87},maximum={12,24,36,48,60,72,86,100};
+            check(compound.peakMultiplier>=minimum[components-2]
+                &&compound.peakMultiplier<=maximum[components-2],"native example uses its component complexity efficiency band");
             check(compound.peakMultiplier>=previousPeak,"native examples sorted from low to high efficiency");previousPeak=compound.peakMultiplier;
             check(recipe.mFakeRecipe&&!recipe.mHidden&&recipe.mEUt==0,"native indexed read-only compound query entry");
             check(recipe.mFluidInputs.length==compound.components.size()&&recipe.mFluidInputs.length>=2
-                &&recipe.mFluidInputs.length<=6,"two through six native clickable fluid inputs");
+                &&recipe.mFluidInputs.length<=9,"two through nine native clickable fluid inputs");
+            check(recipe.mInputs.length==1&&recipe.mInputs[0].stackSize==0
+                &&recipe.mInputs[0].getItemDamage()==compound.selectorCircuit
+                &&gregtech.api.util.GTUtility.areStacksEqual(recipe.mInputs[0],
+                    gregtech.api.util.GTUtility.getIntegratedCircuit(components)),
+                "native non-consumed integrated circuit selects the exact component group");
             BigInteger heat=BigInteger.ZERO,total=BigInteger.ZERO;
             BigInteger[] litres=new BigInteger[compound.components.size()];int[] ratios=new int[litres.length];
             for(int i=0;i<litres.length;i++) {
@@ -313,7 +362,8 @@ class CriticalNEICatalogRuntime {
                 "example cycle and native no-byproduct output");
         }
         check(seen.size()==expected.size(),"every actual compound indexed once");
-        check(componentCounts.equals(Map.of(2,120,3,136,4,96,5,80,6,80)),"native indexed examples cover every 2-6 component family");
+        check(componentCounts.equals(Map.of(2,128,3,128,4,128,5,128,6,128,7,128,8,128,9,128)),
+            "native indexed examples evenly cover every 2-9 component family");
     }
     public static void run(String version) throws Exception {
         Issue37Runtime.bootstrap(version);

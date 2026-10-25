@@ -22,7 +22,11 @@ public final class CriticalConstructionProgress {
     }
 
     public void advance(int ticks) {
-        elapsed = Math.max(0, Math.min(STAGE_DURATION, ticks));
+        advance(ticks, STAGE_DURATION);
+    }
+
+    void advance(int ticks, int duration) {
+        elapsed = Math.max(0, Math.min(duration, ticks));
     }
 
     public void reset() {

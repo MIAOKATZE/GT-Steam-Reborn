@@ -41,6 +41,49 @@ public class CriticalNEIFontContract {
                     throw new AssertionError("Missing localized singularity tooltip fact: "+lang+" "+key);
                 checks++;
             }
+            for(String key:List.of("bus","not_consumed","number")) {
+                String prefix="gtsr.critical.nei.showcase.circuit."+key+"=";
+                if(locale.stream().noneMatch(line->line.startsWith(prefix)&&line.length()>prefix.length()))
+                    throw new AssertionError("Missing localized selector tooltip: "+lang+" "+key);
+                checks++;
+            }
+            for(int group:List.of(1,2))for(int row=0;row<3;row++)for(int steps:List.of(1,8,25,200)) {
+                String titleKey="gtsr.critical.nei.simple.build.row."+group+"."+row+"=";
+                String title=locale.stream().filter(s->s.startsWith(titleKey)).findFirst().orElseThrow().substring(titleKey.length());
+                String format=locale.stream().filter(s->s.startsWith("gtsr.critical.nei.simple.build.time.steps="))
+                    .findFirst().orElseThrow().split("=",2)[1];
+                String duration=String.format(Locale.ROOT,format,20,steps);
+                int timeX=com.miaokatze.gtsr.api.recipe.CriticalNEILayout.BUILD_TIME_RIGHT_X-font.getStringWidth(duration);
+                int available=timeX-com.miaokatze.gtsr.api.recipe.CriticalNEILayout.BUILD_X-5;
+                var lines=font.listFormattedStringToWidth(title,available);
+                int slotY=com.miaokatze.gtsr.api.recipe.CriticalNEILayout.BUILD_Y+row*36;
+                int y=slotY-(lines.size()==1?11:18);
+                if(lines.size()>2||y<(row==0?44:slotY-18))
+                    throw new AssertionError("Construction step title crosses tabs or previous slots: "+lang+" "+title+" "+duration);
+                for(String titleLine:lines)if(font.getStringWidth(titleLine)>available)
+                    throw new AssertionError("Construction title collides with step duration: "+lang);
+                checks++;
+            }
+            int chemicalLines=0;
+            for(String key:List.of("efficiency","input_heat","output_heat")) {
+                String prefix="gtsr.critical.nei.simple.chemical."+key+"=";
+                String format=locale.stream().filter(s->s.startsWith(prefix)).findFirst().orElseThrow().substring(prefix.length());
+                String value=String.format(Locale.ROOT,format,key.equals("efficiency")?"100":"123,456,789,012,345,678");
+                var lines=font.listFormattedStringToWidth(value,com.miaokatze.gtsr.api.recipe.CriticalNEILayout.CHEMICAL_TEXT_WIDTH);
+                chemicalLines+=lines.size();
+                for(String resultLine:lines)if(font.getStringWidth(resultLine)>140)
+                    throw new AssertionError("Chemical result crosses native buttons: "+lang);
+                checks++;
+            }
+            if(com.miaokatze.gtsr.api.recipe.CriticalNEILayout.CHEMICAL_TEXT_Y+(chemicalLines-1)*11+9>174)
+                throw new AssertionError("Chemical results leave card: "+lang+" lines="+chemicalLines);
+            for(String key:List.of("inputs","bar")) {
+                String prefix="gtsr.critical.nei.simple.chemical."+key+"=";
+                String value=locale.stream().filter(s->s.startsWith(prefix)).findFirst().orElseThrow().substring(prefix.length());
+                if(font.getStringWidth(value)>(key.equals("inputs")?81:66))
+                    throw new AssertionError("Chemical label crosses efficiency heading or card: "+lang);
+                checks++;
+            }
             for(long eut:List.of(com.miaokatze.gtsr.common.critical.CriticalStellarPolicy.IGNITION_EU
                 /com.miaokatze.gtsr.common.critical.CriticalStellarPolicy.DURATION_TICKS,
                 com.miaokatze.gtsr.common.critical.CriticalStellarPolicy.SUSTAIN_EUT)) {
@@ -71,6 +114,7 @@ public class CriticalNEIFontContract {
                     :key.endsWith("chemical.output_heat")?String.format(Locale.ROOT,format,"123,456,700")
                     :key.endsWith("chemical.equivalent_tier")?String.format(Locale.ROOT,format,"ZPM")
                     :key.endsWith("fusion.discount")?String.format(Locale.ROOT,format,"99.9")
+                    :key.endsWith(".build.time.steps")?String.format(Locale.ROOT,format,20,200)
                     :key.contains(".build.time.")?String.format(Locale.ROOT,format,
                         key.endsWith(".minutes")?30:key.endsWith(".hours")?24:20)
                     :key.endsWith("turbine.heat_per_l")?String.format(Locale.ROOT,format,"2,500")
@@ -103,7 +147,7 @@ public class CriticalNEIFontContract {
                     if(rows>limit)throw new AssertionError(lang+" unicode="+unicode+" "+key+" rows="+rows+" limit="+limit+" "+text);
                 } else {
                     int width=font.getStringWidth(text);maximum=Math.max(maximum,width);
-                    int limit=key.contains(".build.group.")?44:key.contains(".build.time.")?51:key.contains(".build.row.")?88:
+                    int limit=key.contains(".build.group.")?44:key.endsWith(".build.time.steps")?100:key.contains(".build.time.")?51:key.contains(".build.row.")?88:
                         key.contains(".build.note.")||key.endsWith(".build.title")?132:154;
                     if(width>limit)throw new AssertionError(lang+" unicode="+unicode+" "+key+" width="+width+" "+text);
                 }

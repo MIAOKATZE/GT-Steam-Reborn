@@ -2121,7 +2121,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (state == 1 && foundationRequired && getFoundationPhase() == 4)
             return CriticalFoundationChunk.HEATING_DURATION;
         if (state == 1 && foundationRequired && getFoundationPhase() == 2) return getFoundationCuringDurationTicks();
-        return CriticalConstructionProgress.STAGE_DURATION;
+        if (state == 1 && foundationRequired && getFoundationPhase() == 1)
+            return CriticalConstructionProgress.STAGE_DURATION;
+        return constructionLedger.economyVersion() >= 6
+            ? CriticalConstructionProgress.STAGE_DURATION * getConstructionRoundTotal()
+            : CriticalConstructionProgress.STAGE_DURATION;
     }
 
     private boolean ignoresConstructionItems() {
@@ -2183,19 +2187,32 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return constructionLedger.round();
     }
 
+    private boolean usesExactConstructionSteps() {
+        return constructionLedger.economyVersion() >= 6
+            && !(state == 1 && foundationRequired && getFoundationPhase() != 3);
+    }
+
     public int getConstructionRoundTotal() {
-        return CriticalConstructionLedger.roundCount(
+        if (!usesExactConstructionSteps()) return CriticalConstructionLedger.roundCount(
             constructionLedger.hasStageSnapshot() ? constructionLedger.stageItems() : getConstructionCostsForGui());
+        return constructionLedger.stageRoundCount(
+            constructionLedger.hasStageSnapshot() ? constructionLedger.stageItems() : getConstructionCostsForGui(),
+            constructionLedger.hasStageSnapshot() ? constructionLedger.stageFluids()
+                : getConstructionFluidCostsForGui(),
+            stage);
     }
 
     public int getConstructionRoundElapsedTicks() {
         return Math.max(
             0,
-            getConstructionElapsedTicks() - CriticalConstructionProgress.STAGE_DURATION * constructionLedger.round()
-                / getConstructionRoundTotal());
+            getConstructionElapsedTicks() - (usesExactConstructionSteps()
+                ? CriticalConstructionProgress.STAGE_DURATION * constructionLedger.round()
+                : CriticalConstructionProgress.STAGE_DURATION * constructionLedger.round()
+                    / getConstructionRoundTotal()));
     }
 
     public int getConstructionRoundDurationTicks() {
+        if (usesExactConstructionSteps()) return CriticalConstructionProgress.STAGE_DURATION;
         int rounds = getConstructionRoundTotal();
         return CriticalConstructionProgress.STAGE_DURATION * (constructionLedger.round() + 1) / rounds
             - CriticalConstructionProgress.STAGE_DURATION * constructionLedger.round() / rounds;
@@ -2226,6 +2243,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (constructionLedger.funded()) return new FluidStack[0];
         if (constructionTimeVersion == 0 && (stageFunded || repairFunded)) return new FluidStack[0];
         if (constructionLedger.hasStageSnapshot()) return constructionLedger.nextStageFluids();
+        if (constructionLedger.economyVersion() >= 6) {
+            FluidStack[] fluids = getConstructionFluidCostsForGui();
+            for (FluidStack fluid : fluids) fluid.amount /= getConstructionRoundTotal();
+            return fluids;
+        }
         return constructionLedger.nextFluids(getConstructionFluidCostsForGui(), getConstructionCostsForGui());
     }
 
@@ -2350,6 +2372,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             ? constructionLedger.planPhysicalRound(constructionTickBudget, current)
             : constructionLedger.planRound(constructionTickBudget, current.size());
         int roundEnd = round.end, next = round.next, roundVoxelEnd = round.voxelEnd;
+        if (constructionLedger.economyVersion() >= 6 && (roundVoxelEnd < cursor || roundVoxelEnd > current.size())) {
+            nativeFundingUncertain = true;
+            fail("施工已付边界异常，任务待人工核验");
+            markDirty();
+            return;
+        }
         int end = loadedWindowEnd(current, cursor, roundVoxelEnd);
         if (end < 0) {
             fail("施工区块加载等待");
@@ -2400,17 +2428,13 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             }
         }
         constructionAdvancing = advance > 0;
-        status = (repairing ? "修复阶段 " : "施工阶段 ") + stage
-            + " "
-            + next
-            + "/"
-            + CriticalConstructionProgress.STAGE_DURATION;
+        status = (repairing ? "修复阶段 " : "施工阶段 ") + stage + " " + next + "/" + constructionLedger.stageDuration();
         if (cursor < roundVoxelEnd) {
             markDirty();
             return;
         }
         constructionLedger.completeRound();
-        if (next == CriticalConstructionProgress.STAGE_DURATION && cursor == current.size()) {
+        if (next == constructionLedger.stageDuration() && cursor == current.size()) {
             stage++;
             cursor = 0;
             resetConstructionStage();

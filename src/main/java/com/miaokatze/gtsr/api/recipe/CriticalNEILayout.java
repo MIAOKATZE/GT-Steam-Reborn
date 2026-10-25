@@ -13,8 +13,10 @@ public final class CriticalNEILayout {
     public static final int BUILD_FLUID_Y = BUILD_Y, BUILD_OUTPUT_Y = 2;
     public static final int WINDOW_X = 5, WINDOW_Y = 11;
     public static final int ARROW_X = 78, ARROW_WIDTH = 55;
-    public static final int CHEMICAL_BAR_Y = 43, CHEMICAL_BAR_WIDTH = 12, CHEMICAL_BAR_HEIGHT = 42;
-    public static final int CHEMICAL_COLUMNS = 3, CHEMICAL_FLUID_Y = 44;
+    public static final int CHEMICAL_BAR_X = 99, CHEMICAL_BAR_Y = 43, CHEMICAL_BAR_WIDTH = 12, CHEMICAL_BAR_HEIGHT = 52;
+    public static final int CHEMICAL_COLUMNS = 3, CHEMICAL_FLUID_Y = 40;
+    public static final int CHEMICAL_CIRCUIT_X = 76, CHEMICAL_CIRCUIT_Y = 60;
+    public static final int CHEMICAL_DIVIDER_Y = 102, CHEMICAL_TEXT_Y = 105, CHEMICAL_TEXT_WIDTH = 140;
     public static final int CURING_EXAMPLE_INDEX = 12;
 
     private CriticalNEILayout() {}
@@ -30,8 +32,9 @@ public final class CriticalNEILayout {
         int slots = fluid ? properties.maxFluidInputs : properties.maxItemInputs;
         if (info.kind == com.miaokatze.gtsr.common.critical.CriticalMachineKind.BATTERY)
             slots = Math.min(CHEMICAL_COLUMNS, slots);
-        int inputRight = INPUT_X + (Math.max(1, slots) - 1) * PITCH + SLOT;
-        return new Flow(inputRight, OUTPUT_X, arrowCenter(fluid));
+        boolean circuit = !fluid && info.kind == com.miaokatze.gtsr.common.critical.CriticalMachineKind.BATTERY;
+        int inputRight = (circuit ? CHEMICAL_CIRCUIT_X : INPUT_X) + (Math.max(1, slots) - 1) * PITCH + SLOT;
+        return new Flow(inputRight, OUTPUT_X, circuit ? CHEMICAL_CIRCUIT_Y + SLOT / 2 : arrowCenter(fluid));
     }
 
     public static final class Flow {

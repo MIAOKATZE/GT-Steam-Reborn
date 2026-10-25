@@ -45,7 +45,8 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
     public ModularWindow.Builder createNEITemplate(GTNEIDefaultHandler.NEITemplateContext ctx) {
         ModularWindow.Builder builder = super.createNEITemplate(ctx);
         return construction ? builder.setBackground(CriticalNEIShowcase::constructionBackground)
-            : builder.setBackground(CriticalNEIShowcase::background);
+            : chemical ? builder.setBackground(CriticalNEIShowcase::chemicalBackground)
+                : builder.setBackground(CriticalNEIShowcase::background);
     }
 
     @Override
@@ -55,7 +56,8 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
     public List<Pos2d> getItemInputPositions(int count) {
         // The superclass builds its position suppliers before this.construction is assigned.
         // Suppliers are evaluated later, after frontend construction has completed.
-        return construction ? constructionGrid(count, BUILD_ITEM_COLUMNS, BUILD_X) : row(count, INPUT_X, ITEM_Y);
+        return construction ? constructionGrid(count, BUILD_ITEM_COLUMNS, BUILD_X)
+            : chemical ? row(count, CHEMICAL_CIRCUIT_X, CHEMICAL_CIRCUIT_Y) : row(count, INPUT_X, ITEM_Y);
     }
 
     @Override
@@ -101,6 +103,10 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
 
     @Override
     protected List<String> handleNEIItemInputTooltip(List<String> tip, GTNEIDefaultHandler.FixedPositionedStack stack) {
+        if (chemical && stack.isNotConsumed()) {
+            for (String key : new String[] { "bus", "not_consumed", "number" })
+                tip.add(CriticalRecipeMaps.text("showcase.circuit." + key));
+        }
         if (construction && stack.isNotConsumed()
             && com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSteamEntangledSingularity
                 .isStackEqual(stack.item)) {

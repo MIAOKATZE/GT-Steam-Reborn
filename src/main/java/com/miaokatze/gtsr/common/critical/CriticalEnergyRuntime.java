@@ -33,9 +33,10 @@ import gtnhintergalactic.config.IGConfig;
 public final class CriticalEnergyRuntime {
 
     public static final int CYCLE_TICKS = CriticalEnergyMath.CYCLE_TICKS;
-    public static final int CHEMICAL_COMPOUND_SCHEMA = 3;
+    public static final int CHEMICAL_COMPOUND_SCHEMA = 4;
     private static final int CHEMICAL_POLICY_LEGACY_V2 = 2;
     private static final int CHEMICAL_POLICY_COMPOUND_V3 = 3;
+    private static final int CHEMICAL_POLICY_CIRCUIT_V4 = 4;
     private static final ItemStack[] NO_ITEMS = new ItemStack[0];
     private static final FluidStack[] NO_FLUIDS = new FluidStack[0];
 
@@ -243,8 +244,8 @@ public final class CriticalEnergyRuntime {
         // paid at its recorded base value to the recorded owner, never repriced.
         if (data.getTagList("chemicalCredits", 10)
             .tagCount() != 0 && !settleChemicalEscrow(state, host)) return false;
-        // v2 pending payments froze prices, but not the catalogue peak. Bind their old
-        // 256-recipe policy before upgrading the envelope; an idle v2 machine uses v3.
+        // Existing payments retain their catalogue policy before the envelope upgrades.
+        // Only a fresh manifest reads today's bus circuit and uses the new catalogue.
         if (data.hasKey("chemicalCompoundPayment")) compoundPaymentPolicy(data, schema);
         if (schema != CHEMICAL_COMPOUND_SCHEMA || data.hasKey("chemicalWindow")) {
             data.setInteger("chemicalSchema", CHEMICAL_COMPOUND_SCHEMA);
@@ -255,13 +256,20 @@ public final class CriticalEnergyRuntime {
         UUID owner = WirelessNetworkManager.processInitialSettings(host.getBaseMetaTileEntity());
         if (owner == null) return state.fail("无线网络缺少控制器owner身份");
         if (!data.hasKey("chemicalCompoundPayment")) {
-            if (!captureCompoundPayment(state, data, snapshot, owner)) return false;
+            int circuit = CriticalChemicalCircuit.read(host.getCriticalInputBusses());
+            if (circuit == CriticalChemicalCircuit.MISSING) return state.fail("输入总线缺少编程电路，需设置编号2至9");
+            if (circuit == CriticalChemicalCircuit.INVALID) return state.fail("编程电路编号必须为2至9，原料保留");
+            if (circuit == CriticalChemicalCircuit.CONFLICT) return state.fail("输入总线存在不同编号的编程电路，原料保留");
+            if (!captureCompoundPayment(state, data, snapshot, owner, circuit)) return false;
         } else if (!owner.toString()
             .equals(data.getString("chemicalEscrowOwner"))) {
                 return state.fail("化学已付燃料收款人变化，需先核验托管");
             }
         NBTTagList payment = data.getTagList("chemicalCompoundPayment", 10);
         validateCompoundPayment(payment);
+        // Validate frozen selector/identity before touching any remaining physical source.
+        if (compoundPaymentMatch(data, false) == null)
+            throw new IllegalStateException("Invalid frozen compound selection");
         CriticalEnergyPorts.Allocation allocation = new CriticalEnergyPorts.Allocation(snapshot);
         List<CriticalEnergyPorts.Debit> debits = new ArrayList<>();
         Map<CriticalEnergyPorts.Debit, NBTTagCompound> paidEntries = new java.util.IdentityHashMap<>();
@@ -316,7 +324,7 @@ public final class CriticalEnergyRuntime {
 
     /** Fix the complete visible snapshot before extracting any source, including zero-heat diluents. */
     private static boolean captureCompoundPayment(CriticalMachineState state, NBTTagCompound data,
-        List<CriticalEnergyPorts.Input> snapshot, UUID owner) {
+        List<CriticalEnergyPorts.Input> snapshot, UUID owner, int circuit) {
         Map<GTUtility.FluidId, BigInteger> volumes = new LinkedHashMap<>();
         Map<GTUtility.FluidId, FluidStack> fluids = new LinkedHashMap<>();
         for (CriticalEnergyPorts.Input input : snapshot) {
@@ -325,7 +333,7 @@ public final class CriticalEnergyRuntime {
             fluids.putIfAbsent(id, input.fluid);
         }
         List<CriticalGTRecipes.ChemicalFuel> fuels = CriticalGTRecipes.chemicalFuels();
-        CriticalChemicalRecipes.Match match = CriticalChemicalRecipes.best(fuels, volumes);
+        CriticalChemicalRecipes.Match match = CriticalChemicalRecipes.best(fuels, volumes, circuit);
         if (match == null || !match.evaluation.eligible) {
             state.setRuntimeBatch(0, 0, 0, "至少需要一种完整复合方案的全部流体，原料保留");
             return false;
@@ -350,7 +358,9 @@ public final class CriticalEnergyRuntime {
             payment.appendTag(entry);
         }
         data.setTag("chemicalCompoundPayment", payment);
-        data.setInteger("chemicalPaymentPolicy", CHEMICAL_POLICY_COMPOUND_V3);
+        data.setInteger("chemicalPaymentPolicy", CHEMICAL_POLICY_CIRCUIT_V4);
+        data.setInteger("chemicalPaymentCircuit", circuit);
+        data.setString("chemicalPaymentRecipe", match.recipe.id);
         data.setString("chemicalEscrowOwner", owner.toString());
         data.setString(
             "chemicalPaymentId",
@@ -386,10 +396,9 @@ public final class CriticalEnergyRuntime {
             data.setInteger("chemicalPaymentPolicy", CHEMICAL_POLICY_LEGACY_V2);
         }
         int policy = data.getInteger("chemicalPaymentPolicy");
-        if (policy != CHEMICAL_POLICY_LEGACY_V2 && policy != CHEMICAL_POLICY_COMPOUND_V3)
-            throw new IllegalStateException("Unknown compound payment policy");
-        if (schema < CHEMICAL_POLICY_LEGACY_V2
-            || (schema == CHEMICAL_POLICY_LEGACY_V2 && policy != CHEMICAL_POLICY_LEGACY_V2))
+        if (policy != CHEMICAL_POLICY_LEGACY_V2 && policy != CHEMICAL_POLICY_COMPOUND_V3
+            && policy != CHEMICAL_POLICY_CIRCUIT_V4) throw new IllegalStateException("Unknown compound payment policy");
+        if (schema < CHEMICAL_POLICY_LEGACY_V2 || policy > schema)
             throw new IllegalStateException("Compound payment policy does not match schema");
         return policy;
     }
@@ -398,26 +407,14 @@ public final class CriticalEnergyRuntime {
         NBTTagList payment = data.getTagList("chemicalCompoundPayment", 10);
         validateCompoundPayment(payment);
         int policy = compoundPaymentPolicy(data, data.getInteger("chemicalSchema"));
-        List<CriticalGTRecipes.ChemicalFuel> fuels = new ArrayList<>();
-        Map<GTUtility.FluidId, BigInteger> paid = new LinkedHashMap<>();
-        for (int i = 0; i < payment.tagCount(); i++) {
-            NBTTagCompound entry = payment.getCompoundTagAt(i);
-            BigInteger litres = number(entry, "confirmedLitres");
-            if (!litres.equals(number(entry, "targetLitres")))
-                throw new IllegalStateException("Compound batch not fully paid");
-            FluidStack fluid = FluidStack.loadFluidStackFromNBT(entry);
-            paid.put(GTUtility.FluidId.create(fluid), litres);
-            BigInteger price = number(entry, "euPerL");
-            if (price.signum() > 0)
-                fuels.add(new CriticalGTRecipes.ChemicalFuel(fluid, price, entry.getInteger("spectrum")));
-        }
-        CriticalChemicalRecipes.Match match = policy == CHEMICAL_POLICY_LEGACY_V2
-            ? CriticalChemicalRecipes.bestLegacyV2(fuels, paid)
-            : CriticalChemicalRecipes.best(fuels, paid);
+        CriticalChemicalRecipes.Match match = compoundPaymentMatch(data, true);
         if (match == null || !match.evaluation.eligible) return state.fail("实付组成缺少完整复合方案，已付原料托管");
         CriticalChemicalMath.Evaluation evaluation = match.evaluation;
         data.setString("owner", owner.toString());
         data.setString("chemicalRecipe", match.recipe.id);
+        data.setInteger(
+            "chemicalBatchCircuit",
+            policy == CHEMICAL_POLICY_CIRCUIT_V4 ? data.getInteger("chemicalPaymentCircuit") : 0);
         data.setInteger("chemicalBatchRule", policy);
         data.setInteger("chemicalEfficiencyHundredths", evaluation.efficiencyHundredths());
         data.setString("chemicalBatchHeat", match.rawHeat.toString());
@@ -426,6 +423,8 @@ public final class CriticalEnergyRuntime {
         data.setTag("chemicalBatchCredits", payment.copy());
         data.removeTag("chemicalCompoundPayment");
         data.removeTag("chemicalPaymentPolicy");
+        data.removeTag("chemicalPaymentCircuit");
+        data.removeTag("chemicalPaymentRecipe");
         data.removeTag("chemicalEscrowOwner");
         data.setTag("outputs", new NBTTagList());
         data.setTag("items", new NBTTagList());
@@ -441,6 +440,31 @@ public final class CriticalEnergyRuntime {
                 .toString());
         state.markDirty();
         return true;
+    }
+
+    private static CriticalChemicalRecipes.Match compoundPaymentMatch(NBTTagCompound data, boolean requireFullyPaid) {
+        NBTTagList payment = data.getTagList("chemicalCompoundPayment", 10);
+        int policy = compoundPaymentPolicy(data, data.getInteger("chemicalSchema"));
+        List<CriticalGTRecipes.ChemicalFuel> fuels = new ArrayList<>();
+        Map<GTUtility.FluidId, BigInteger> paid = new LinkedHashMap<>();
+        for (int i = 0; i < payment.tagCount(); i++) {
+            NBTTagCompound entry = payment.getCompoundTagAt(i);
+            BigInteger litres = number(entry, "targetLitres");
+            if (requireFullyPaid && !litres.equals(number(entry, "confirmedLitres")))
+                throw new IllegalStateException("Compound batch not fully paid");
+            FluidStack fluid = FluidStack.loadFluidStackFromNBT(entry);
+            paid.put(GTUtility.FluidId.create(fluid), litres);
+            BigInteger price = number(entry, "euPerL");
+            if (price.signum() > 0)
+                fuels.add(new CriticalGTRecipes.ChemicalFuel(fluid, price, entry.getInteger("spectrum")));
+        }
+        if (policy == CHEMICAL_POLICY_LEGACY_V2) return CriticalChemicalRecipes.bestLegacyV2(fuels, paid);
+        if (policy == CHEMICAL_POLICY_COMPOUND_V3) return CriticalChemicalRecipes.bestLegacyV3(fuels, paid);
+        int circuit = data.getInteger("chemicalPaymentCircuit");
+        String recipe = data.getString("chemicalPaymentRecipe");
+        if (circuit < 2 || circuit > 9 || recipe.isEmpty())
+            throw new IllegalStateException("Missing frozen compound selection");
+        return CriticalChemicalRecipes.matchExact(fuels, paid, circuit, recipe);
     }
 
     public static boolean hasChemicalEscrow(NBTTagCompound data) {
@@ -503,6 +527,8 @@ public final class CriticalEnergyRuntime {
             data.removeTag("chemicalCredits");
             data.removeTag("chemicalCompoundPayment");
             data.removeTag("chemicalPaymentPolicy");
+            data.removeTag("chemicalPaymentCircuit");
+            data.removeTag("chemicalPaymentRecipe");
             data.removeTag("chemicalEscrowOwner");
             data.setBoolean("uncertain", false);
             state.markDirty();

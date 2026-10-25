@@ -10,12 +10,15 @@ public final class CompoundRecipe {
     public final String id;
     public final List<Component> components;
     public final int peakMultiplier;
+    /** Non-consumed integrated-circuit setting, equal to the required fluid count. */
+    public final int selectorCircuit;
 
     CompoundRecipe(String id, int peakMultiplier, Component... components) {
-        if (components.length < 2 || components.length > 6 || peakMultiplier < 1 || peakMultiplier > 100)
+        if (components.length < 2 || components.length > 9 || peakMultiplier < 1 || peakMultiplier > 100)
             throw new IllegalArgumentException("Invalid compound recipe");
         this.id = id;
         this.peakMultiplier = peakMultiplier;
+        this.selectorCircuit = components.length;
         this.components = ImmutableList.copyOf(components);
     }
 

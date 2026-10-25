@@ -100,8 +100,8 @@ public final class CriticalConstructionEconomyContract {
         CriticalConstructionEconomy current = currentManifest(carrier);
         List<CriticalGeometry.Voxel> positions = Arrays.asList(
             voxel(21, 1, false), voxel(22, 2, false), voxel(23, 3, false), voxel(24, 4, false), carrier, main);
-        check(CriticalConstructionEconomy.VERSION == 5 && current.version() == 4,
-            "Only newly frozen jobs use economy version 5; saved version 4 keeps its price basis");
+        check(CriticalConstructionEconomy.VERSION == 6 && current.version() == 4,
+            "Only newly frozen jobs use economy version 6; saved version 4 keeps its price basis");
         check(fluidCount(current.fluidCosts(positions, 0, 1), SOLDER) == 7
             && fluidCount(current.fluidCosts(positions, 1, 2), SOLDER) == 13
             && fluidCount(current.fluidCosts(positions, 2, 3), COOLANT) == 17
@@ -193,7 +193,7 @@ public final class CriticalConstructionEconomyContract {
     private static CriticalConstructionLedger build(CriticalConstructionLedger ledger, List<CriticalGeometry.Voxel> stage,
         boolean install) {
         ledger.snapshotPhysicalStage(stage);
-        int rounds = CriticalConstructionLedger.roundCount(ledger.stageItems()), cursor = 0;
+        int rounds = ledger.stageRoundCount(ledger.stageItems(), ledger.stageFluids(), ledger.physicalJob().stage(stage.get(0))), cursor = 0;
         for (int r = 0; r < rounds; r++) {
             CriticalConstructionLedger.Round round = ledger.planPhysicalRound(400, stage);
             ledger.recordRoundPayment(round.items(), round.fluids());
@@ -257,7 +257,7 @@ public final class CriticalConstructionEconomyContract {
             for (int quantity : quantities.values()) surplus += (quantity + 15) / 16 * 16 - quantity;
             check(surplus == expectedSurplus[k], "Full-job per-identity manufacturing rounds once and leaves the original-table surplus");
             CriticalConstructionEconomy frozen = CriticalConstructionEconomy.freeze(config, paid, layout.cacheKey());
-            check(frozen.version() == 5 && count(frozen.demand(), CONTROLLER) == 1, "New full job freezes v5 and one complete controller " + kinds[k]);
+            check(frozen.version() == 6 && count(frozen.demand(), CONTROLLER) == 1, "New full job freezes v6 and one complete controller " + kinds[k]);
             long shellsPaid = 0;
             for (ItemStack item : frozen.demand()) if (item.getItem() != CONTROLLER && item.getItem() != EQUIPMENT) shellsPaid += item.stackSize;
             check(shellsPaid == expectedShells[k], "Standard family parts preserve all real paid positions " + kinds[k]);
@@ -265,8 +265,29 @@ public final class CriticalConstructionEconomyContract {
             int[] rowPositions = new int[6];
             for (CriticalGeometry.Voxel voxel : paid) rowPositions[frozen.stage(voxel) - 4]++;
             for (int group = 1; group <= 2; group++) for (int row = 0; row < 3; row++) {
+                CriticalConstructionEconomy.DisplayRow profile = frozen.displayRowProfile(group, row, paid);
+                check(profile.steps >= 1 && profile.steps <= 200 && (group != 2 || row != 2 || profile.steps == 1),
+                    "Real repeated work count and one merged sensing/wiring step " + kinds[k] + "/" + group + "/" + row);
+                System.out.println("STEPS " + kinds[k] + "/" + group + "/" + row + "=" + profile.steps);
+                for (FluidStack medium : profile.perStepFluids())
+                    System.out.println("MEDIUM " + kinds[k] + "/" + group + "/" + row + " " + medium.getFluid().getName() + "=" + medium.amount);
+                boolean advanced = false;
+                for (FluidStack medium : profile.perStepFluids()) {
+                    for (gregtech.api.enums.Materials plasma : new gregtech.api.enums.Materials[] {
+                        gregtech.api.enums.Materials.Silver, gregtech.api.enums.Materials.Bismuth, gregtech.api.enums.Materials.Radon })
+                        advanced |= medium.isFluidEqual(plasma.getPlasma(1));
+                    advanced |= medium.isFluidEqual(gregtech.api.enums.Materials.Grade7PurifiedWater.getFluid(1))
+                        || medium.isFluidEqual(gregtech.api.enums.Materials.Grade8PurifiedWater.getFluid(1));
+                }
+                check(advanced, "Every UHV commissioning row retains a genuinely advanced process medium");
                 ItemStack[] bill = frozen.itemsForDisplayRow(group, row, paid);
                 FluidStack[] fluids = frozen.fluidsForDisplayRow(group, row, paid);
+                ItemStack[] repeated = profile.perStepItems();
+                for (ItemStack item : repeated) item.stackSize *= profile.steps;
+                check(sameBill(repeated, bill), "Repeated NEI item slots equal exact full physical row");
+                for (FluidStack fluid : profile.perStepFluids())
+                    check((long) fluid.amount * profile.steps == fluidCount(fluids, fluid.getFluid()),
+                        "Repeated NEI fluid slots equal exact full physical row");
                 check(bill.length <= 6 && fluids.length <= 2 && rowPositions[(group - 1) * 3 + row] > 0,
                     "Every visible row is a real bounded payment/work stage " + kinds[k] + "/" + group + "/" + row);
                 boolean localRepair = true;
@@ -293,11 +314,11 @@ public final class CriticalConstructionEconomyContract {
                 ItemStack[] working = frozen.itemsForDisplayRow(2, 1, paid);
                 ItemStack[] wiring = frozen.itemsForDisplayRow(2, 2, paid);
                 check(exactCount(mechanical, gregtech.api.util.GTOreDictUnificator.get(
-                    gregtech.api.enums.OrePrefixes.plate, gregtech.api.enums.Materials.CosmicNeutronium, 1)) == 256,
-                    "SUN mechanical support preserves 256 real GT205 plate units (legacy get() caps each macro stack at 64)");
-                check(exactCount(working, gregtech.api.enums.ItemList.Field_Generator_UHV.get(1)) == 256
-                    && exactCount(working, gregtech.api.enums.ItemList.Emitter_UHV.get(1)) == 128
-                    && exactCount(working, gregtech.api.enums.ItemList.Gravistar.get(1)) == 256,
+                    gregtech.api.enums.OrePrefixes.plate, gregtech.api.enums.Materials.CosmicNeutronium, 1)) == 384,
+                    "SUN v6 confinement support pays 384 exact plate units beyond the GT ore lookup cap");
+                check(exactCount(working, gregtech.api.enums.ItemList.Field_Generator_UHV.get(1)) == 384
+                    && exactCount(working, gregtech.api.enums.ItemList.Emitter_UHV.get(1)) == 192
+                    && exactCount(working, gregtech.api.enums.ItemList.Gravistar.get(1)) == 384,
                     "SUN active work row pays field generators, emitters and Gravistars together");
                 check(exactCount(wiring, gregtech.api.enums.ItemList.Sensor_UHV.get(1)) == 64
                     && exactCount(wiring, gregtech.api.util.GTOreDictUnificator.get(
@@ -316,6 +337,7 @@ public final class CriticalConstructionEconomyContract {
                 check(frozen.stage(voxel(800_000, 4, false)) == 0,
                     "Positions excluded from the frozen price basis remain user-built rather than acquiring a future bill");
                 compactPayments(frozen, paid);
+                repeatedPayments(frozen, paid);
             }
             schedule.removeTag("workSchedule");
             boolean rejected = false; try { CriticalConstructionEconomy.read(schedule); } catch (IllegalArgumentException expected) { rejected = true; }
@@ -335,6 +357,7 @@ public final class CriticalConstructionEconomyContract {
         java.util.Set<Long> positions = new java.util.HashSet<>();
         for (CriticalGeometry.Voxel voxel : selected) positions.add(voxel.positionKey());
         NBTTagCompound n = new NBTTagCompound(); frozen.write(n);
+        n.setInteger("version", 5); n.removeTag("stepProfiles");
         for (String key : Arrays.asList("workSchedule", "carriers")) {
             NBTTagList keep = new NBTTagList(), rows = n.getTagList(key, 10);
             for (int i = 0; i < rows.tagCount(); i++) if (positions.contains(rows.getCompoundTagAt(i).getLong("position")))
@@ -363,6 +386,121 @@ public final class CriticalConstructionEconomyContract {
         check(sameBill(collected.toArray(new ItemStack[0]), compact.demand()),
             "New-stage actual confirmed item payments exactly equal its frozen bill after every reload");
         conservation(ledger);
+    }
+
+    private static void repeatedPayments(CriticalConstructionEconomy frozen, List<CriticalGeometry.Voxel> paid) {
+        List<CriticalGeometry.Voxel> selected = new ArrayList<>();
+        String material = null;
+        for (CriticalGeometry.Voxel voxel : paid) if (frozen.stage(voxel) == 4) {
+            if (material == null) material = voxel.material;
+            if (voxel.material.equals(material) && selected.size() < 12) selected.add(voxel);
+        }
+        for (int stage = 5; stage <= 9; stage++) {
+            CriticalGeometry.Voxel chosen = null;
+            for (CriticalGeometry.Voxel voxel : paid) if (frozen.stage(voxel) == stage
+                && (chosen == null || CriticalStructures.isController(voxel))) chosen = voxel;
+            selected.add(chosen);
+        }
+        java.util.Set<Long> positions = new java.util.HashSet<>();
+        for (CriticalGeometry.Voxel voxel : selected) positions.add(voxel.positionKey());
+        NBTTagCompound n = new NBTTagCompound(); frozen.write(n);
+        for (String key : Arrays.asList("workSchedule", "carriers")) {
+            NBTTagList kept = new NBTTagList(), rows = n.getTagList(key, 10);
+            for (int i = 0; i < rows.tagCount(); i++) if (positions.contains(rows.getCompoundTagAt(i).getLong("position")))
+                kept.appendTag(rows.getCompoundTagAt(i));
+            n.setTag(key, kept);
+        }
+        n.setTag("demand", CriticalResourceNbt.writeItems(frozen.costs(selected, 0, selected.size())));
+        NBTTagList profiles = new NBTTagList();
+        for (int stage = 4; stage <= 9; stage++) {
+            List<CriticalGeometry.Voxel> local = new ArrayList<>();
+            for (CriticalGeometry.Voxel voxel : selected) if (frozen.stage(voxel) == stage) local.add(voxel);
+            ItemStack[] items = frozen.costs(local, 0, local.size());
+            FluidStack[] fluids = frozen.fluidCosts(local, 0, local.size());
+            int steps = stage == 9 ? 1 : CriticalConstructionEconomy.exactStepCount(items, fluids);
+            for (ItemStack item : items) item.stackSize /= steps;
+            for (FluidStack fluid : fluids) fluid.amount /= steps;
+            NBTTagCompound row = new NBTTagCompound(); row.setInteger("stage", stage); row.setInteger("steps", steps);
+            row.setTag("items", CriticalResourceNbt.writeItems(items)); row.setTag("fluids", CriticalResourceNbt.writeFluids(fluids));
+            profiles.appendTag(row);
+        }
+        n.setTag("stepProfiles", profiles);
+        CriticalConstructionEconomy compact = CriticalConstructionEconomy.read(n);
+        NBTTagCompound restored = new NBTTagCompound(); compact.write(restored);
+        check(restored.equals(n), "All v6 frozen work profiles and local recipes round-trip exactly");
+        check(compact.displayRowProfile(1, 0, selected).steps == 12, "Twelve identical local shells form twelve real work steps");
+        check(CriticalConstructionEconomy.exactStepCount(new ItemStack[] { item(SHELL, 360) }, new FluidStack[0]) == 180,
+            "Large GCD selects the largest divisor below 200 rather than min(GCD,200)");
+        check(CriticalConstructionEconomy.exactStepCount(new ItemStack[0], new FluidStack[0]) == 1,
+            "An empty work bill has one step rather than 200 artificial steps");
+        check(CriticalConstructionEconomy.exactStepCount(new ItemStack[] { item(SHELL, 211) }, new FluidStack[0]) == 1,
+            "Prime demand keeps a truthful single step without padded material cost");
+        List<CriticalGeometry.Voxel> debugStage = selected.subList(0, 12);
+        CriticalConstructionLedger debug = new CriticalConstructionLedger(); debug.freezeJob(compact);
+        debug.snapshotPhysicalStage(debugStage);
+        CriticalConstructionLedger.Round debugStart = debug.planPhysicalRound(123, debugStage);
+        debug.recordRoundPayment(new ItemStack[0], new FluidStack[0]); debug.advanceElapsed(debugStart.next);
+        NBTTagCompound debugPaid = save(debug);
+        check(debugPaid.getInteger("constructionRoundVoxelEnd") == debugStart.voxelEnd,
+            "Debug ignore-material work persists the funded physical boundary independently of escrow");
+        debug = reload(debug);
+        CriticalConstructionLedger.Round debugFinish = debug.planPhysicalRound(400, debugStage);
+        check(!debug.hasIntegrityError() && debugFinish.voxelEnd == debugStart.voxelEnd && debugFinish.advance == 277
+            && debugFinish.items().length == 0 && debugFinish.fluids().length == 0,
+            "Debug ignore-material work reloads its exact paid boundary and remaining time without charging");
+        debugPaid.setInteger("cursor", debugStart.voxelEnd + 1);
+        CriticalConstructionLedger invalidBoundary = new CriticalConstructionLedger(); invalidBoundary.read(debugPaid);
+        check(invalidBoundary.hasIntegrityError(), "A paid boundary below the saved placement cursor is quarantined");
+        CriticalConstructionLedger ledger = new CriticalConstructionLedger(); ledger.freezeJob(compact);
+        for (int stage = 4; stage <= 9; stage++) {
+            List<CriticalGeometry.Voxel> local = new ArrayList<>();
+            for (CriticalGeometry.Voxel voxel : selected) if (compact.stage(voxel) == stage) local.add(voxel);
+            ledger.snapshotPhysicalStage(local);
+            int steps = ledger.stageRoundCount(ledger.stageItems(), ledger.stageFluids(), stage), cursor = 0;
+            check(ledger.stageDuration() == steps * 400, "v6 duration is 400 ticks per real work step");
+            for (int step = 0; step < steps; step++) {
+                CriticalConstructionLedger.Round begin = ledger.planPhysicalRound(123, local);
+                check(begin.end == (step + 1) * 400 && begin.advance == 123, "Every step starts with a full 400-tick budget");
+                check(sameBill(begin.items(), compact.displayRowProfile(stage < 7 ? 1 : 2,
+                    stage < 7 ? stage - 4 : stage - 7, selected).perStepItems()), "Actual item debit equals the frozen NEI work unit");
+                ledger.recordRoundPayment(begin.items(), begin.fluids()); ledger.advanceElapsed(begin.next); ledger = reload(ledger);
+                check(!ledger.hasIntegrityError() && ledger.funded() && ledger.elapsed() == step * 400 + 123,
+                    "Paid partial work time survives NBT reload beyond the old 400-tick limit");
+                CriticalConstructionLedger.Round finish = ledger.planPhysicalRound(400, local);
+                check(finish.advance == 277 && finish.items().length == 0 && finish.fluids().length == 0,
+                    "Paid work retries consume only remaining time and never debit twice");
+                ledger.advanceElapsed(finish.next);
+                for (; cursor < finish.voxelEnd; cursor++) {
+                    ledger.markPhysicalInstalled(local.get(cursor)); ledger = reload(ledger);
+                    check(!ledger.hasIntegrityError(), "Every placement including final-step partial placement reloads safely");
+                    ledger.markPhysicalInstalled(local.get(cursor));
+                }
+                conservation(ledger); ledger.completeRound();
+            }
+            check(cursor == local.size(), "Last real work step installs every selected local position");
+            ledger.resetStage();
+        }
+        FluidStack[] before = CriticalResourceNbt.readFluids(save(ledger).getTagList("constructionPaidFluids", 10), -1);
+        for (FluidStack fluid : compact.fluidCosts(selected, 0, selected.size()))
+            check(fluidCount(before, fluid.getFluid()) == fluid.amount, "Confirmed v6 fluid debits equal frozen local total");
+        CriticalGeometry.Voxel damaged = selected.get(0); ledger.markPhysicalDamaged(damaged);
+        ledger = build(ledger, Arrays.asList(damaged), true);
+        FluidStack[] after = CriticalResourceNbt.readFluids(save(ledger).getTagList("constructionPaidFluids", 10), -1);
+        for (FluidStack fluid : compact.fluidCosts(Arrays.asList(damaged), 0, 1))
+            check(fluidCount(after, fluid.getFluid()) - fluidCount(before, fluid.getFluid()) == fluid.amount,
+                "v6 single-position repair charges only its frozen local fluid bill");
+        conservation(ledger);
+        NBTTagCompound broken = save(ledger); broken.getCompoundTag("constructionPhysicalJob").removeTag("stepProfiles");
+        CriticalConstructionLedger invalid = new CriticalConstructionLedger(); invalid.read(broken);
+        check(invalid.hasIntegrityError(), "Missing v6 profiles quarantine instead of reconstructing a new bill");
+        NBTTagCompound legacy = save(ledger); legacy.setInteger("constructionEconomyVersion", 5);
+        legacy.getCompoundTag("constructionPhysicalJob").setInteger("version", 5);
+        legacy.getCompoundTag("constructionPhysicalJob").removeTag("stepProfiles"); legacy.removeTag("constructionStepCount");
+        CriticalConstructionLedger old = new CriticalConstructionLedger(); old.read(legacy);
+        old.snapshotPhysicalStage(selected.subList(0, 12));
+        check(old.economyVersion() == 5 && !old.hasIntegrityError() && old.stageDuration() == 400
+            && old.planPhysicalRound(400, selected.subList(0, 12)).end < 400,
+            "Saved v5 job retains its original 400-tick whole-stage scheduler");
     }
 
     private static boolean sameBill(ItemStack[] left, ItemStack[] right) {
@@ -419,6 +557,21 @@ public final class CriticalConstructionEconomyContract {
         }
         Fluid water = new Fluid("schedule_water7"); FluidRegistry.registerFluid(water);
         gregtech.api.enums.Materials.Grade7PurifiedWater.mFluid = water;
+        Fluid water8 = new Fluid("schedule_water8"); FluidRegistry.registerFluid(water8);
+        gregtech.api.enums.Materials.Grade8PurifiedWater.mFluid = water8;
+        for (gregtech.api.enums.Materials material : new gregtech.api.enums.Materials[] {
+            gregtech.api.enums.Materials.SodiumPotassium, gregtech.api.enums.Materials.Lubricant,
+            gregtech.api.enums.Materials.SulfuricAcid }) {
+            Fluid fluid = new Fluid("schedule_fluid_" + material.mName); FluidRegistry.registerFluid(fluid); material.mFluid = fluid;
+        }
+        for (gregtech.api.enums.Materials material : new gregtech.api.enums.Materials[] {
+            gregtech.api.enums.Materials.Helium, gregtech.api.enums.Materials.Argon, gregtech.api.enums.Materials.Nitrogen }) {
+            Fluid fluid = new Fluid("schedule_gas_" + material.mName); FluidRegistry.registerFluid(fluid); material.mGas = fluid;
+        }
+        for (gregtech.api.enums.Materials material : new gregtech.api.enums.Materials[] {
+            gregtech.api.enums.Materials.Platinum, gregtech.api.enums.Materials.SolderingAlloy, gregtech.api.enums.Materials.Naquadria }) {
+            Fluid fluid = new Fluid("schedule_molten_" + material.mName); FluidRegistry.registerFluid(fluid); material.mStandardMoltenFluid = fluid;
+        }
     }
 
     public static void main(String[] args) throws Exception {

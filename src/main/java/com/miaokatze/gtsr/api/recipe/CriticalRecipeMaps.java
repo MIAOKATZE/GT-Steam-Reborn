@@ -92,12 +92,19 @@ public final class CriticalRecipeMaps {
     /** One page per major phase; native slot indices preserve each of the three paid rows. */
     public static void addConstruction(GTRecipe recipe, CriticalMachineKind kind, int group, ItemStack[][] items,
         FluidStack[][] fluids) {
+        addConstruction(recipe, kind, group, items, fluids, new int[] { 1, 1, 1 });
+    }
+
+    public static void addConstruction(GTRecipe recipe, CriticalMachineKind kind, int group, ItemStack[][] items,
+        FluidStack[][] fluids, int[] steps) {
         DisplayInfo info = new DisplayInfo(construction, kind, "build_" + group, BigInteger.ZERO, -1, 0, 1);
         info.constructionItems = new ItemStack[CONSTRUCTION_PAGE_SIZE];
         info.constructionFluids = new FluidStack[6];
-        if (items.length != 3 || fluids.length != 3)
+        if (items.length != 3 || fluids.length != 3 || steps.length != 3)
             throw new IllegalArgumentException("Three construction rows required");
         for (int row = 0; row < 3; row++) {
+            if (steps[row] < 1) throw new IllegalArgumentException("Positive construction step count required");
+            info.constructionSteps[row] = steps[row];
             if (items[row].length > 6 || fluids[row].length > 2) throw new IllegalArgumentException(
                 "Construction row exceeds six items / two fluids: " + kind + "/" + group + "/" + row);
             System.arraycopy(items[row], 0, info.constructionItems, row * 6, items[row].length);
@@ -142,15 +149,20 @@ public final class CriticalRecipeMaps {
     }
 
     private static RecipeMapBuilder<RecipeMapBackend> displayBuilder(String name) {
+        return displayBuilder(name, false);
+    }
+
+    private static RecipeMapBuilder<RecipeMapBackend> displayBuilder(String name, boolean chemical) {
         return RecipeMapBuilder.of(name)
             .minInputs(0, 0)
             .dontUseProgressBar()
             .neiRecipeComparator(java.util.Comparator.comparingInt(recipe -> recipe.mSpecialValue))
             .neiTransferRect(
-                CriticalNEILayout.ARROW_X + CriticalNEILayout.WINDOW_X,
-                CriticalNEILayout.ITEM_Y + 3 + CriticalNEILayout.WINDOW_Y,
-                CriticalNEILayout.ARROW_WIDTH,
-                37)
+                (chemical ? CriticalNEILayout.CHEMICAL_BAR_X : CriticalNEILayout.ARROW_X) + CriticalNEILayout.WINDOW_X,
+                (chemical ? CriticalNEILayout.CHEMICAL_BAR_Y : CriticalNEILayout.ITEM_Y + 3)
+                    + CriticalNEILayout.WINDOW_Y,
+                chemical ? CriticalNEILayout.CHEMICAL_BAR_WIDTH : CriticalNEILayout.ARROW_WIDTH,
+                chemical ? CriticalNEILayout.CHEMICAL_BAR_HEIGHT : 37)
             .neiRecipeBackgroundSize(CriticalNEILayout.WIDTH, CriticalNEILayout.HEIGHT)
             .neiRecipeBackgroundOffset(CriticalNEILayout.WINDOW_X, CriticalNEILayout.WINDOW_Y)
             .neiHandlerInfo(
@@ -159,11 +171,11 @@ public final class CriticalRecipeMaps {
     }
 
     private static RecipeMap<RecipeMapBackend> create(CriticalMachineKind kind) {
-        return displayBuilder("gtsr.recipe.critical." + kind.key)
+        return displayBuilder("gtsr.recipe.critical." + kind.key, kind == CriticalMachineKind.BATTERY)
             .maxIO(
+                kind == CriticalMachineKind.BATTERY ? 1 : 0,
                 0,
-                0,
-                kind == CriticalMachineKind.BATTERY ? 6 : kind == CriticalMachineKind.SUN ? 3 : 1,
+                kind == CriticalMachineKind.BATTERY ? 9 : kind == CriticalMachineKind.SUN ? 3 : 1,
                 kind == CriticalMachineKind.BATTERY ? 0 : 1)
             .frontend((ui, nei) -> new CriticalRecipeFrontend(ui, nei, false, kind == CriticalMachineKind.BATTERY))
             .build();
@@ -186,6 +198,7 @@ public final class CriticalRecipeMaps {
         public final int spectrum, page, pages;
         private ItemStack[] constructionItems;
         private FluidStack[] constructionFluids;
+        private final int[] constructionSteps = { 1, 1, 1 };
         public CompoundRecipe compound;
         public BigInteger inputHeat = BigInteger.ZERO;
         public long nativeEut;
@@ -213,6 +226,10 @@ public final class CriticalRecipeMaps {
         /** Three major phases map directly to the three construction pages. */
         public int constructionGroup() {
             return constructionStage();
+        }
+
+        public int constructionSteps(int row) {
+            return constructionSteps[row];
         }
     }
 }
