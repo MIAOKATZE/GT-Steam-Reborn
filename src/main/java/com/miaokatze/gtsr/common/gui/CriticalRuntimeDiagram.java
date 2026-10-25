@@ -24,15 +24,14 @@ final class CriticalRuntimeDiagram implements IDrawable {
         int laneWidth = width - 52;
         switch (data.configuration().kind) {
             case BATTERY -> {
-                for (int i = 0; i < 3; i++) {
-                    int yy = y + 3 + i * 10;
-                    GuiDraw.drawRect(x, yy, laneWidth, 6, MUTED);
-                    float share = (float) Math.max(0, Math.min(1, number(data, "chemical.share." + i) / 100));
-                    GuiDraw.drawRect(x, yy, laneWidth * share, 6, i == 0 ? COPPER : i == 1 ? GOLD : LIVE);
+                // One sampled efficiency scale: 1x at the bottom, 100x at the top.
+                int barX = x + 3, barY = y + 2, barHeight = height - 4;
+                GuiDraw.drawRect(barX, barY, 12, barHeight, MUTED);
+                if ("current".equals(value(data, "chemical.state"))) {
+                    double efficiency = Math.max(1, Math.min(100, number(data, "chemical.efficiency")));
+                    float fill = (float) Math.max(1, (efficiency - 1) / 99 * barHeight);
+                    GuiDraw.drawRect(barX, barY + barHeight - fill, 12, fill, GOLD);
                 }
-                int window = (int) number(data, "chemical.window");
-                for (int i = 0; i < 4; i++)
-                    GuiDraw.drawRect(x + width - 42 + i * 10, y + 10, 8, 18, i == window ? GOLD : MUTED);
             }
             case TURBINE -> {
                 for (int i = 0; i < 6; i++) {

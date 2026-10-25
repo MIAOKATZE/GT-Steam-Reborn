@@ -1,0 +1,203 @@
+package com.miaokatze.gtsr.common.critical;
+
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.miaokatze.gtsr.common.critical.CompoundRecipe.Component;
+import com.miaokatze.gtsr.common.critical.CriticalGTRecipes.ChemicalFuel;
+
+import gregtech.api.enums.Materials;
+import gregtech.api.util.GTUtility;
+import gtPlusPlus.core.fluids.GTPPFluids;
+
+/** Fixed GT205 identities: 120 binary, 128 liquid/gas/rocket and eight promoted blends. */
+public final class CriticalChemicalRecipes {
+
+    private static Map<GTUtility.FluidId, BigInteger> cachedPrices = ImmutableMap.of();
+    private static List<CompoundRecipe> cachedCatalog = ImmutableList.of();
+    private static List<GTUtility.FluidId> cachedIdentities = ImmutableList.of();
+    private static Fluid cachedPromoter, cachedOzone;
+    private static volatile Map<String, CompoundRecipe> displayCatalog = ImmutableMap.of();
+
+    private CriticalChemicalRecipes() {}
+
+    public static synchronized List<CompoundRecipe> catalog(List<ChemicalFuel> fuels) {
+        FluidStack[] identities = { fluid(Materials.Diesel), fluid(Materials.LightFuel), fluid(Materials.HeavyFuel),
+            fluid(Materials.NitroFuel), fluid(Materials.GasolineRegular), fluid(Materials.GasolinePremium),
+            fluid(Materials.Ethanol), fluid(Materials.Methanol), fluid(Materials.Hydrogen), fluid(Materials.Methane),
+            fluid(Materials.Benzene), fluid(Materials.NefariousGas), stack(GTPPFluids.RP1RocketFuel),
+            stack(GTPPFluids.DenseHydrazineFuelMixture), stack(GTPPFluids.CN3H7O3RocketFuel),
+            stack(GTPPFluids.H8N4C2O4RocketFuel) };
+        ChemicalFuel[] selected = new ChemicalFuel[identities.length];
+        Map<GTUtility.FluidId, ChemicalFuel> prices = prices(fuels);
+        Map<GTUtility.FluidId, BigInteger> signature = new LinkedHashMap<>();
+        for (ChemicalFuel fuel : prices.values()) signature.put(GTUtility.FluidId.create(fuel.fluid), fuel.euPerL);
+        Fluid promoterFluid = FluidRegistry.getFluid("combustionpromotor");
+        FluidStack ozoneStack = fluid(Materials.Ozone);
+        Fluid ozoneFluid = ozoneStack == null ? null : ozoneStack.getFluid();
+        List<GTUtility.FluidId> identitySignature = new ArrayList<>();
+        for (FluidStack identity : identities)
+            identitySignature.add(identity == null ? null : GTUtility.FluidId.create(identity));
+        if (!cachedCatalog.isEmpty() && signature.equals(cachedPrices)
+            && identitySignature.equals(cachedIdentities)
+            && promoterFluid == cachedPromoter
+            && ozoneFluid == cachedOzone) return cachedCatalog;
+        for (int i = 0; i < identities.length; i++) {
+            if (identities[i] == null) continue;
+            ChemicalFuel fuel = prices.get(GTUtility.FluidId.create(identities[i]));
+            if (fuel != null && fuel.euPerL.signum() > 0) selected[i] = fuel;
+        }
+        List<CompoundRecipe> result = new ArrayList<>(256);
+        for (int i = 0; i < selected.length; i++) for (int j = i + 1; j < selected.length; j++) {
+            int family = (i / 8 == j / 8 ? 0 : 12) + (j >= 12 ? 12 : 0);
+            add(
+                result,
+                "pair." + i + "." + j,
+                12 + family + (i % 4) * 3 + j % 4,
+                component(selected[i], 1 + i % 4),
+                component(selected[j], 1 + j % 3));
+        }
+        for (int liquid = 0; liquid < 8; liquid++)
+            for (int gas = 0; gas < 4; gas++) for (int rocket = 0; rocket < 4; rocket++) {
+                add(
+                    result,
+                    "blend." + liquid + "." + gas + "." + rocket,
+                    48 + liquid * 3 + gas * 4 + rocket * 5,
+                    component(selected[liquid], 4 + liquid % 3),
+                    component(selected[8 + gas], 2 + gas),
+                    component(selected[12 + rocket], 1 + rocket));
+            }
+        ChemicalFuel promoter = auxiliary("combustionpromotor", prices);
+        ChemicalFuel ozone = auxiliary(fluid(Materials.Ozone), prices);
+        for (int rocket = 0; rocket < 4; rocket++) {
+            add(
+                result,
+                "promoted." + rocket,
+                94 + rocket * 2,
+                component(selected[5], 8),
+                component(selected[12 + rocket], 2 + rocket),
+                component(promoter, 1));
+            add(
+                result,
+                "ozonated." + rocket,
+                88 + rocket * 3,
+                component(selected[11], 6),
+                component(selected[12 + rocket], 2 + rocket),
+                component(ozone, 1));
+        }
+        List<CompoundRecipe> immutable = ImmutableList.copyOf(result);
+        // Do not freeze the early registration phase's empty catalogue.
+        if (!immutable.isEmpty()) {
+            cachedPrices = ImmutableMap.copyOf(signature);
+            cachedCatalog = immutable;
+            cachedIdentities = identitySignature;
+            cachedPromoter = promoterFluid;
+            cachedOzone = ozoneFluid;
+            if (immutable.size() >= displayCatalog.size()) {
+                Map<String, CompoundRecipe> index = new LinkedHashMap<>();
+                for (CompoundRecipe recipe : immutable) index.put(recipe.id, recipe);
+                displayCatalog = ImmutableMap.copyOf(index);
+            }
+        }
+        return immutable;
+    }
+
+    /** Lookup for client labels; callers localize the component FluidStacks using the active language. */
+    public static CompoundRecipe byId(String id) {
+        if (displayCatalog.isEmpty()) catalog(CriticalGTRecipes.chemicalFuels());
+        return displayCatalog.get(id);
+    }
+
+    /** Frozen receipt prices can be supplied here without revaluing already-paid fuel. */
+    public static Match best(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres) {
+        BigInteger total = BigInteger.ZERO, heat = BigInteger.ZERO;
+        Map<GTUtility.FluidId, ChemicalFuel> prices = prices(fuels);
+        for (Map.Entry<GTUtility.FluidId, BigInteger> entry : litres.entrySet()) {
+            if (entry.getValue()
+                .signum() < 0) throw new IllegalArgumentException("Negative input volume");
+            total = total.add(entry.getValue());
+            ChemicalFuel fuel = prices.get(entry.getKey());
+            if (fuel != null) heat = heat.add(
+                entry.getValue()
+                    .multiply(fuel.euPerL));
+        }
+        if (total.signum() == 0 || heat.signum() == 0) return null;
+        Match best = null;
+        for (CompoundRecipe recipe : catalog(fuels)) {
+            BigInteger[] amounts = new BigInteger[recipe.components.size()];
+            int[] ratios = new int[amounts.length];
+            for (int i = 0; i < amounts.length; i++) {
+                Component part = recipe.components.get(i);
+                amounts[i] = litres.getOrDefault(GTUtility.FluidId.create(part.fuel.fluid), BigInteger.ZERO);
+                ratios[i] = part.ratio;
+            }
+            CriticalChemicalMath.Evaluation value = CriticalChemicalMath
+                .evaluate(amounts, ratios, total, heat, recipe.peakMultiplier);
+            if (!value.eligible) continue;
+            if (best == null || value.generatedNumerator.multiply(best.evaluation.generatedDenominator)
+                .compareTo(best.evaluation.generatedNumerator.multiply(value.generatedDenominator)) > 0)
+                best = new Match(recipe, value, total, heat);
+        }
+        return best;
+    }
+
+    private static Map<GTUtility.FluidId, ChemicalFuel> prices(List<ChemicalFuel> fuels) {
+        Map<GTUtility.FluidId, ChemicalFuel> result = new LinkedHashMap<>();
+        for (ChemicalFuel fuel : fuels) result.putIfAbsent(GTUtility.FluidId.create(fuel.fluid), fuel);
+        return result;
+    }
+
+    private static FluidStack fluid(Materials material) {
+        if (material == null) return null;
+        FluidStack fluid = material.getFluid(1);
+        return fluid != null ? fluid : material.getGas(1);
+    }
+
+    private static FluidStack stack(Fluid fluid) {
+        return fluid == null ? null : new FluidStack(fluid, 1);
+    }
+
+    private static ChemicalFuel auxiliary(String name, Map<GTUtility.FluidId, ChemicalFuel> prices) {
+        return auxiliary(stack(FluidRegistry.getFluid(name)), prices);
+    }
+
+    private static ChemicalFuel auxiliary(FluidStack fluid, Map<GTUtility.FluidId, ChemicalFuel> prices) {
+        if (fluid == null) return null;
+        return prices.getOrDefault(GTUtility.FluidId.create(fluid), new ChemicalFuel(fluid, BigInteger.ZERO, -1));
+    }
+
+    private static Component component(ChemicalFuel fuel, int ratio) {
+        return fuel == null ? null : new Component(fuel, ratio);
+    }
+
+    private static void add(List<CompoundRecipe> target, String id, int peak, Component... components) {
+        for (Component component : components) if (component == null) return;
+        for (int i = 0; i < components.length; i++) for (int j = i + 1; j < components.length; j++)
+            if (components[i].fuel.fluid.isFluidEqual(components[j].fuel.fluid)) return;
+        target.add(new CompoundRecipe(id, peak, components));
+    }
+
+    public static final class Match {
+
+        public final CompoundRecipe recipe;
+        public final CriticalChemicalMath.Evaluation evaluation;
+        public final BigInteger totalLitres, rawHeat;
+
+        private Match(CompoundRecipe recipe, CriticalChemicalMath.Evaluation evaluation, BigInteger totalLitres,
+            BigInteger rawHeat) {
+            this.recipe = recipe;
+            this.evaluation = evaluation;
+            this.totalLitres = totalLitres;
+            this.rawHeat = rawHeat;
+        }
+    }
+}

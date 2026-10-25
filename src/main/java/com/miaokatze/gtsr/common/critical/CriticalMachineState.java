@@ -197,12 +197,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return constructionLedger.guiSnapshot();
     }
 
-    public boolean selectChemicalWindow(EntityPlayer player) {
-        if (worldObj.isRemote || !canUse(player) || config.kind != CriticalMachineKind.BATTERY || !batchId.isEmpty())
-            return false;
-        return CriticalEnergyRuntime.cycleChemicalWindow(this);
-    }
-
     public boolean selectStellarProductionPaused(EntityPlayer player) {
         if (worldObj.isRemote || !canUse(player) || config.kind != CriticalMachineKind.SUN) return false;
         stellarRuntime.setBoolean("productionPaused", !stellarRuntime.getBoolean("productionPaused"));

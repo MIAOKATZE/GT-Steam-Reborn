@@ -9,7 +9,8 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
-import com.miaokatze.gtsr.common.critical.CriticalChemicalMath;
+import com.miaokatze.gtsr.common.critical.CompoundRecipe;
+import com.miaokatze.gtsr.common.critical.CriticalChemicalRecipes;
 import com.miaokatze.gtsr.common.critical.CriticalCompiledLayout;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 import com.miaokatze.gtsr.common.critical.CriticalConstructionEconomy;
@@ -207,64 +208,35 @@ public final class CriticalMachineRecipes {
     }
 
     private static void registerChemicalFuels() {
-        List<CriticalGTRecipes.ChemicalFuel> fuels = CriticalGTRecipes.chemicalFuels();
-        for (CriticalGTRecipes.ChemicalFuel fuel : fuels) {
-            FluidStack fluid = fuel.fluid.copy();
-            fluid.amount = 1;
-            GTRecipe recipe = GTValues.RA.stdBuilder()
-                .fluidInputs(fluid)
-                .duration(CriticalEnergyMath.CYCLE_TICKS)
-                .eut(0)
-                .build()
-                .orElseThrow(() -> new IllegalStateException("Invalid chemical catalogue fuel"));
-            CriticalRecipeMaps
-                .addDisplayRecipe(CriticalMachineKind.BATTERY, recipe, "battery", fuel.euPerL, fuel.spectrum);
-        }
-        registerChemicalMixtures(fuels);
+        registerChemicalMixtures(CriticalGTRecipes.chemicalFuels());
     }
 
-    /** High-value native fuels selected under the real reaction heat cap. */
     private static void registerChemicalMixtures(List<CriticalGTRecipes.ChemicalFuel> fuels) {
-        int[][] weights = { { 1, 1, 0 }, { 1, 1, 1 }, { 1, 1, 4 } };
-        for (int window = 0; window < weights.length; window++) {
-            CriticalGTRecipes.ChemicalFuel[] chosen = CriticalGTRecipes.chemicalMixtureFuels(fuels, window);
-            if (chosen == null) continue;
-            BigInteger unit = BigInteger.ONE;
-            for (int i = 0; i < 3; i++) {
-                if (weights[window][i] == 0) continue;
-                BigInteger divisor = chosen[i].euPerL
-                    .divide(chosen[i].euPerL.gcd(BigInteger.valueOf(weights[window][i])));
-                unit = unit.divide(unit.gcd(divisor))
-                    .multiply(divisor);
-            }
-            BigInteger[] heat = new BigInteger[3];
+        List<CompoundRecipe> catalog = new ArrayList<>(CriticalChemicalRecipes.catalog(fuels));
+        catalog.sort(
+            java.util.Comparator.comparingInt((CompoundRecipe entry) -> entry.peakMultiplier)
+                .reversed()
+                .thenComparing(entry -> entry.id));
+        for (CompoundRecipe compound : catalog) {
             List<FluidStack> inputs = new ArrayList<>();
-            for (int i = 0; i < 3; i++) {
-                heat[i] = unit.multiply(BigInteger.valueOf(weights[window][i]));
-                if (heat[i].signum() == 0) continue;
-                FluidStack input = chosen[i].fluid.copy();
-                input.amount = heat[i].divide(chosen[i].euPerL)
-                    .intValueExact();
+            BigInteger inputHeat = BigInteger.ZERO;
+            for (CompoundRecipe.Component component : compound.components) {
+                FluidStack input = component.fuel.fluid.copy();
+                input.amount = component.ratio;
                 inputs.add(input);
+                inputHeat = inputHeat.add(component.fuel.euPerL.multiply(BigInteger.valueOf(component.ratio)));
             }
-            BigInteger total = CriticalChemicalMath.sum(heat);
-            if (total.compareTo(CriticalChemicalMath.cap(window)) > 0)
-                throw new IllegalStateException("Native chemical example exceeds window cap: " + window + "/" + total);
-            if (!java.util.Arrays
-                .equals(heat, CriticalChemicalMath.match(window, heat, CriticalChemicalMath.cap(window))))
-                throw new IllegalStateException("Chemical example must match real paid-heat runtime");
             GTRecipe recipe = GTValues.RA.stdBuilder()
                 .fluidInputs(inputs.toArray(new FluidStack[0]))
                 .duration(CriticalEnergyMath.CYCLE_TICKS)
                 .eut(0)
                 .build()
-                .orElseThrow(() -> new IllegalStateException("Invalid chemical mixture view"));
-            CriticalRecipeMaps.addDisplayRecipe(
-                CriticalMachineKind.BATTERY,
+                .orElseThrow(() -> new IllegalStateException("Invalid chemical compound view: " + compound.id));
+            CriticalRecipeMaps.addChemicalRecipe(
                 recipe,
-                "chemical_window_" + window,
-                total.multiply(BigInteger.valueOf(CriticalChemicalMath.multiplier(window))),
-                window);
+                compound,
+                inputHeat,
+                inputHeat.multiply(BigInteger.valueOf(compound.peakMultiplier)));
         }
     }
 

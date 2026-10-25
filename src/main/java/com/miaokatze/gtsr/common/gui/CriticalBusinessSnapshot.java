@@ -17,7 +17,6 @@ import net.minecraftforge.fluids.FluidStack;
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
-import com.miaokatze.gtsr.common.critical.CriticalEnergyRuntime;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.recipe.CriticalShellCatalog;
@@ -332,23 +331,7 @@ final class CriticalBusinessSnapshot {
         if (state.getKind() != CriticalMachineKind.SUN)
             row(rows, "sample_scope", data.getBoolean("funded") ? "active" : "last");
         if (state.getKind() == CriticalMachineKind.BATTERY) {
-            row(rows, "chemical.window", Integer.toString(CriticalEnergyRuntime.getChemicalWindow(data)));
-            row(rows, "chemical.batch_window", Integer.toString(data.getInteger("chemicalBatchWindow")));
-            BigInteger total = number(data, "chemicalBatchHeat");
-            for (int i = 0; i < 3; i++) {
-                BigInteger heat = number(data, "chemicalHeat" + i);
-                row(rows, "chemical.heat." + i, heat + " EU");
-                row(
-                    rows,
-                    "chemical.share." + i,
-                    total.signum() == 0 ? "—"
-                        : new BigDecimal(heat).multiply(BigDecimal.valueOf(100))
-                            .divide(new BigDecimal(total), 4, java.math.RoundingMode.DOWN)
-                            .stripTrailingZeros()
-                            .toPlainString() + "%");
-                row(rows, "chemical.flow." + i, decimal(number(data, "chemicalLitres" + i), 20) + " L/s");
-            }
-            row(rows, "chemical.bottleneck", data.getString("chemicalBottleneck"));
+            chemicalRows(rows, data);
             row(rows, "batch_wireless", number(data, "eu") + " EU");
             row(rows, "mean_power", decimal(number(data, "eu"), 400) + " EU/t");
             row(rows, "last_wireless", number(data, "lastGeneratedEU") + " EU");
@@ -427,6 +410,30 @@ final class CriticalBusinessSnapshot {
         } catch (NumberFormatException invalid) {
             return BigInteger.ZERO;
         }
+    }
+
+    private static void chemicalRows(List<String[]> rows, NBTTagCompound data) {
+        // Chemical fields and rule generation come from this one copied runtime.
+        boolean funded = data.getBoolean("funded");
+        String recipe = data.getString("chemicalRecipe");
+        boolean current = funded && data.getInteger("chemicalBatchRule") >= 2 && !recipe.isEmpty();
+        row(rows, "chemical.state", current ? "current" : funded ? "legacy" : "awaiting");
+        row(rows, "chemical.recipe", recipe);
+        int efficiency = Math.max(100, Math.min(10000, data.getInteger("chemicalEfficiencyHundredths")));
+        row(
+            rows,
+            "chemical.efficiency",
+            data.hasKey("chemicalEfficiencyHundredths") ? decimal(BigInteger.valueOf(efficiency), 100) + "x"
+                : "\u2014");
+        row(rows, "chemical.heat", number(data, "chemicalBatchHeat") + " EU");
+        row(
+            rows,
+            "chemical.litres",
+            data.hasKey("chemicalBatchLitres") ? number(data, "chemicalBatchLitres") + " L" : "\u2014");
+        row(
+            rows,
+            "chemical.flow",
+            data.hasKey("chemicalBatchLitres") ? decimal(number(data, "chemicalBatchLitres"), 20) + " L/s" : "\u2014");
     }
 
     private static String decimal(BigInteger number, int divisor) {

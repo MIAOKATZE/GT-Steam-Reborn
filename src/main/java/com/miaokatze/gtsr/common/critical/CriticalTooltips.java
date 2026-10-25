@@ -109,16 +109,13 @@ public final class CriticalTooltips {
         info(tt, EnumChatFormatting.WHITE, "battery.purpose");
         info(tt, EnumChatFormatting.AQUA, "battery.input");
         info(tt, EnumChatFormatting.GREEN, "battery.output");
-        info(tt, EnumChatFormatting.YELLOW, "cycle");
-        info(tt, EnumChatFormatting.GOLD, "battery.windows");
-        info(tt, EnumChatFormatting.LIGHT_PURPLE, "battery.base");
+        info(tt, EnumChatFormatting.YELLOW, "battery.cycle");
+        info(tt, EnumChatFormatting.GOLD, "battery.compounds");
+        info(tt, EnumChatFormatting.LIGHT_PURPLE, "battery.efficiency");
         tt.addSeparator();
-        info(tt, EnumChatFormatting.AQUA, "battery.dual");
-        info(tt, EnumChatFormatting.GREEN, "battery.economy");
-        info(tt, EnumChatFormatting.RED, "battery.overload");
-        info(tt, EnumChatFormatting.GOLD, "battery.mixed");
-        info(tt, EnumChatFormatting.LIGHT_PURPLE, "battery.rocket");
-        info(tt, EnumChatFormatting.YELLOW, "battery.paid");
+        info(tt, EnumChatFormatting.AQUA, "battery.ratio");
+        info(tt, EnumChatFormatting.GREEN, "battery.scaling");
+        info(tt, EnumChatFormatting.YELLOW, "battery.heat");
         info(tt, EnumChatFormatting.GREEN, "battery.unused");
     }
 

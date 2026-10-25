@@ -88,6 +88,7 @@ class CriticalNEICatalogRuntime {
                 check(input?x>=8&&x<=48:x==CriticalNEILayout.OUTPUT_X,"runtime native slot and label column " + map.unlocalizedName);
                 check(y==(fluid?CriticalNEILayout.FLUID_Y:CriticalNEILayout.ITEM_Y),"runtime native row aligns arrow centre " + map.unlocalizedName);
                 check(y+9==CriticalNEILayout.arrowCenter(fluid),"actual native slot centre equals shared arrow centre");
+                check(!(x<166&&x+18>154&&y<174&&y+18>149),"native runtime slots leave favorite/overlay buttons clear");
             }
             CriticalMachineKind owner=CriticalMachineKind.SUN;
             for(CriticalMachineKind kind:CriticalMachineKind.releasedValues())
@@ -112,6 +113,13 @@ class CriticalNEICatalogRuntime {
                 check(Math.abs((flow.centerX-right)-(CriticalNEILayout.OUTPUT_X-flow.centerX))<=1,
                     "diagram horizontally centred between native ports: "+map.unlocalizedName);
                 check(flow.diagramWidth<=flow.gapWidth-12,"process diagram leaves native port clearance");
+                if(owner==CriticalMachineKind.BATTERY&&fluid) {
+                    int left=flow.centerX-CriticalNEILayout.CHEMICAL_BAR_WIDTH/2;
+                    check(left>flow.inputRight&&left+CriticalNEILayout.CHEMICAL_BAR_WIDTH<flow.outputLeft,
+                        "single chemical vertical bar clears native fluid query slots");
+                    check(CriticalNEILayout.CHEMICAL_BAR_Y>=32&&CriticalNEILayout.CHEMICAL_BAR_Y
+                        +CriticalNEILayout.CHEMICAL_BAR_HEIGHT<91,"chemical full bar height remains inside process panel");
+                }
             }
         }
         Fluid fluid=new Fluid("nei_unique");FluidRegistry.registerFluid(fluid);
@@ -209,6 +217,56 @@ class CriticalNEICatalogRuntime {
         }
         check(phases.equals(Set.of("stellar_ignition","stellar_sustain")),"ignition and sustain both indexed");
     }
+    static void chemicalCompounds() throws Exception {
+        List<CriticalGTRecipes.ChemicalFuel> fuels=new ArrayList<>();
+        int id=0;
+        for(Materials material:List.of(Materials.Diesel,Materials.LightFuel,Materials.HeavyFuel,Materials.NitroFuel,
+            Materials.GasolineRegular,Materials.GasolinePremium,Materials.Ethanol,Materials.Methanol,
+            Materials.Hydrogen,Materials.Methane,Materials.Benzene,Materials.NefariousGas)) {
+            Fluid fluid=new Fluid("nei_compound_"+id);FluidRegistry.registerFluid(fluid);material.mFluid=fluid;
+            fuels.add(new CriticalGTRecipes.ChemicalFuel(new FluidStack(fluid,1),BigInteger.valueOf(1000L+id++*7000),0));
+        }
+        for(String name:List.of("RP1RocketFuel","DenseHydrazineFuelMixture","CN3H7O3RocketFuel","H8N4C2O4RocketFuel")) {
+            Fluid fluid=new Fluid("nei_compound_"+id);FluidRegistry.registerFluid(fluid);
+            gtPlusPlus.core.fluids.GTPPFluids.class.getField(name).set(null,fluid);
+            fuels.add(new CriticalGTRecipes.ChemicalFuel(new FluidStack(fluid,1),BigInteger.valueOf(1000L+id++*7000),2));
+        }
+        Fluid promoter=new Fluid("combustionpromotor");FluidRegistry.registerFluid(promoter);
+        Fluid ozone=new Fluid("nei_compound_ozone");FluidRegistry.registerFluid(ozone);Materials.Ozone.mFluid=ozone;
+        var expected=CriticalChemicalRecipes.catalog(fuels);
+        check(expected.size()>=200&&expected.size()<=300,"200-300 actual compound schemes");
+        var map=CriticalRecipeMaps.forKind(CriticalMachineKind.BATTERY);
+        int before=map.getAllRecipes().size();
+        Method register=CriticalMachineRecipes.class.getDeclaredMethod("registerChemicalMixtures",List.class);
+        register.setAccessible(true);register.invoke(null,fuels);
+        check(map.getAllRecipes().size()==before+expected.size(),"compound-only indexed entries without single-fuel pages");
+        Set<String> seen=new HashSet<>();
+        int previousPeak=101;
+        for(GTRecipe recipe:map.getAllRecipes()) {
+            var info=CriticalRecipeMaps.displayInfo(recipe);if(info.compound==null)continue;
+            var compound=info.compound;check(seen.add(compound.id),"unique compound scheme");
+            check(compound.peakMultiplier<=previousPeak,"high-efficiency examples sorted first");previousPeak=compound.peakMultiplier;
+            check(recipe.mFakeRecipe&&!recipe.mHidden&&recipe.mEUt==0,"native indexed read-only compound query entry");
+            check(recipe.mFluidInputs.length==compound.components.size()&&recipe.mFluidInputs.length>=2
+                &&recipe.mFluidInputs.length<=3,"two or three native clickable fluid inputs");
+            BigInteger heat=BigInteger.ZERO,total=BigInteger.ZERO;
+            BigInteger[] litres=new BigInteger[compound.components.size()];int[] ratios=new int[litres.length];
+            for(int i=0;i<litres.length;i++) {
+                var component=compound.components.get(i);var actual=recipe.mFluidInputs[i];
+                check(actual.isFluidEqual(component.fuel.fluid)&&actual.amount==component.ratio,"exact shared example identity/volume");
+                litres[i]=BigInteger.valueOf(actual.amount);ratios[i]=component.ratio;total=total.add(litres[i]);
+                heat=heat.add(component.fuel.euPerL.multiply(litres[i]));
+            }
+            var evaluation=CriticalChemicalMath.evaluate(litres,ratios,total,heat,compound.peakMultiplier);
+            check(info.inputHeat.equals(heat)&&info.baseEu.equals(evaluation.generatedEU),"example heat and output equal actual compound arithmetic");
+            check(evaluation.efficiencyHundredths()==compound.peakMultiplier*100,"displayed example efficiency equals runtime");
+            check(com.miaokatze.gtsr.client.nei.CriticalNEIShowcase.chemicalFillHeight(compound.peakMultiplier)
+                ==(CriticalNEILayout.CHEMICAL_BAR_HEIGHT-4)*compound.peakMultiplier/100.0,"fixed-height vertical fill scales to 100x");
+            check(recipe.mDuration==CriticalEnergyMath.CYCLE_TICKS&&recipe.mOutputs.length==0&&recipe.mFluidOutputs.length==0,
+                "example cycle and native no-byproduct output");
+        }
+        check(seen.size()==expected.size(),"every actual compound indexed once");
+    }
     public static void run(String version) throws Exception {
         Issue37Runtime.bootstrap(version);
         String expectedJar=System.getProperty("critical.nei.expectedJar");
@@ -270,6 +328,8 @@ class CriticalNEICatalogRuntime {
         showcaseTemplate();
         fullConstruction();
         stellarLifecycle();
+        chemicalCompounds();
+        runtimeTemplatesAndUniqueness();
         System.out.println("PASS NEI catalog " + checks + " checks; "
             + (expectedJar == null ? "source overlay" : "candidate jar-only") + " GT205; no live client");
     }

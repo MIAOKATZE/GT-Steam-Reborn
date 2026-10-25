@@ -52,7 +52,12 @@ public class CriticalNEIFontContract {
                     :key.endsWith("stellar.voltage")?String.format(Locale.ROOT,format,"MAX")
                     :key.endsWith("stellar.voltage_amps")||key.endsWith("chemical.equivalent_amps")?String.format(Locale.ROOT,format,"MAX","1,165")
                     :key.endsWith("chemical.average")?String.format(Locale.ROOT,format,"5,664,600")
+                    :key.endsWith("chemical.efficiency")?String.format(Locale.ROOT,format,100)
+                    :key.endsWith("chemical.input_heat")?String.format(Locale.ROOT,format,"1,234,567")
+                    :key.endsWith("chemical.output_heat")?String.format(Locale.ROOT,format,"123,456,700")
                     :key.endsWith("chemical.equivalent_tier")?String.format(Locale.ROOT,format,"ZPM")
+                    :key.contains(".build.time.")?String.format(Locale.ROOT,format,
+                        key.endsWith(".minutes")?30:key.endsWith(".hours")?24:20)
                     :key.endsWith("turbine.heat_per_l")?String.format(Locale.ROOT,format,"2,500")
                     :String.format(Locale.ROOT,format,"9999999999",3,999999);
 
@@ -67,7 +72,8 @@ public class CriticalNEIFontContract {
                     if(rows>limit)throw new AssertionError(lang+" unicode="+unicode+" "+key+" rows="+rows+" limit="+limit+" "+text);
                 } else {
                     int width=font.getStringWidth(text);maximum=Math.max(maximum,width);
-                    int limit=key.contains(".build.note.")||key.endsWith(".build.title")?132:key.contains(".build.row.")?144:154;
+                    int limit=key.contains(".build.time.")?51:key.contains(".build.row.")?88:
+                        key.contains(".build.note.")||key.endsWith(".build.title")?132:154;
                     if(width>limit)throw new AssertionError(lang+" unicode="+unicode+" "+key+" width="+width+" "+text);
                 }
                 checks++;

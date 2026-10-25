@@ -9,8 +9,9 @@ import org.lwjgl.opengl.GL11;
 
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.DisplayInfo;
-import com.miaokatze.gtsr.common.critical.CriticalChemicalMath;
+import com.miaokatze.gtsr.common.critical.CriticalConstructionProgress;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
+import com.miaokatze.gtsr.common.critical.CriticalFoundationChunk;
 import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
 import com.miaokatze.gtsr.config.Config;
 
@@ -67,32 +68,17 @@ public final class CriticalNEIShowcase {
         String operation = info.operation;
         label(text(operation + ".title"), 8, 6, GOLD);
         label(text("intro." + operation), 8, 21, MUTED);
-        label(text("input"), INPUT_X, 32, MUTED);
-        boolean chemical = operation.equals("battery") || operation.startsWith("chemical_window_");
-        label(text(chemical ? "energy" : "output"), OUTPUT_X, 32, MUTED);
+        boolean chemical = operation.equals("chemical_compound");
+        if (!chemical) label(text("output"), OUTPUT_X, 32, MUTED);
+        label(text(chemical ? "chemical.inputs" : "input"), INPUT_X, 32, MUTED);
         if (chemical) {
             chemical(info, new Plot(flow(info, true)));
-            label("EU", OUTPUT_X, FLUID_Y + 5, GOLD);
-            if (operation.equals("battery")) {
-                rows(
-                    text("spectrum." + info.spectrum),
-                    number(new java.math.BigDecimal(info.baseEu)) + " EU/L",
-                    text("chemical.normal"),
-                    text("chemical.cap"),
-                    text("chemical.cycle"));
-            } else {
-                java.math.BigDecimal average = new java.math.BigDecimal(info.baseEu)
-                    .divide(java.math.BigDecimal.valueOf(CriticalEnergyMath.CYCLE_TICKS));
-                rows(
-                    CriticalRecipeMaps.formatted("simple.chemical.average", number(average)),
-                    voltage(
-                        average.setScale(0, java.math.RoundingMode.CEILING)
-                            .longValueExact(),
-                        true),
-                    text("chemical.ratio." + info.spectrum),
-                    text("chemical.heat"),
-                    text("chemical.cycle"));
-            }
+            chemicalRows(
+                CriticalRecipeMaps.formatted("simple.chemical.efficiency", info.compound.peakMultiplier),
+                CriticalRecipeMaps
+                    .formatted("simple.chemical.input_heat", number(new java.math.BigDecimal(info.inputHeat))),
+                CriticalRecipeMaps
+                    .formatted("simple.chemical.output_heat", number(new java.math.BigDecimal(info.baseEu))));
         } else if (operation.startsWith("stellar_") || operation.equals("sun")) {
             stellar(operation, new Plot(flow(info, true)));
             if (operation.equals("stellar_ignition")) {
@@ -162,9 +148,16 @@ public final class CriticalNEIShowcase {
         }
         for (int row = 0; row < 3; row++) {
             int y = BUILD_Y + row * BUILD_ROW_PITCH;
+            int ticks = info.constructionStage() != 0 ? CriticalConstructionProgress.STAGE_DURATION
+                : row == 0 ? CriticalFoundationChunk.CELL_DURATION
+                    : row == 1 ? CriticalFoundationChunk.HEATING_DURATION : CriticalFoundationChunk.CURING_DURATION;
+            int time = ticks / (info.constructionStage() == 0 && row == 1 ? 20 * 60
+                : info.constructionStage() == 0 && row == 2 ? 20 * 60 * 60 : 20);
             label(text("build.row." + info.constructionStage() + "." + row), BUILD_X, y - 11, INK);
+            String unit = info.constructionStage() == 0 && row == 1 ? "minutes"
+                : info.constructionStage() == 0 && row == 2 ? "hours" : "step";
+            label(CriticalRecipeMaps.formatted("simple.build.time." + unit, time), BUILD_TIME_X, y - 11, MUTED);
         }
-        label(text("build.note." + info.constructionStage()), 8, 158, MUTED);
     }
 
     /** Both collection circuits remain visible; only this recipe's branch carries heat. */
@@ -275,22 +268,23 @@ public final class CriticalNEIShowcase {
     }
 
     private static void chemical(DisplayInfo info, Plot p) {
-        int window = info.operation.equals("battery") ? 3 : info.spectrum;
-        for (int i = 0; i < 4; i++) {
-            int x = -27 + i % 2 * 29, y = -29 + i / 2 * 21;
-            p.frame(x, y, 26, 18, i == window ? GOLD : EDGE);
-            if (i == window) p.rect(x + 1, y + 1, x + 25, y + 17, 0xFF4C473A);
-            centered("x" + CriticalChemicalMath.multiplier(i), p.x(x + 13), p.y(y + 5), i == window ? GOLD : MUTED);
-            if (i == window) p.rect(x + 2, y + 16, x + 3 + phase(22), y + 17, GOLD);
+        int x = p.flow.centerX - CHEMICAL_BAR_WIDTH / 2;
+        label(text("chemical.bar"), x - 5, 29, MUTED);
+        frame(x, CHEMICAL_BAR_Y, CHEMICAL_BAR_WIDTH, CHEMICAL_BAR_HEIGHT, EDGE);
+        GL11.glPushMatrix();
+        try {
+            GL11.glTranslatef(x, CHEMICAL_BAR_Y + CHEMICAL_BAR_HEIGHT - 2, 0);
+            GL11.glScalef(1, info.compound.peakMultiplier / 100.0F, 1);
+            rect(2, -(CHEMICAL_BAR_HEIGHT - 4), CHEMICAL_BAR_WIDTH - 2, 0, GOLD);
+        } finally {
+            GL11.glPopMatrix();
         }
-        for (int i = 0; i < 3; i++) {
-            int size = window == 0 && i == 2 ? 2 : window == 2 && i == 2 ? 16 : 9;
-            p.rect(-27 + i * 18, 12, -27 + i * 18 + size, 16, SPECTRA[i]);
-        }
-        p.input(GOLD);
-        p.line(28, -20, 31, -20, GOLD);
-        p.line(31, -20, 31, 0, GOLD);
-        p.output(GOLD);
+        label("100x", x + CHEMICAL_BAR_WIDTH + 4, CHEMICAL_BAR_Y, GOLD);
+        label("1x", x + CHEMICAL_BAR_WIDTH + 4, CHEMICAL_BAR_Y + CHEMICAL_BAR_HEIGHT - 9, MUTED);
+    }
+
+    public static double chemicalFillHeight(int exampleMultiplier) {
+        return (CHEMICAL_BAR_HEIGHT - 4) * exampleMultiplier / 100.0;
     }
 
     private static int phase(int duration) {
@@ -412,6 +406,16 @@ public final class CriticalNEIShowcase {
             "#,##0.####",
             java.text.DecimalFormatSymbols.getInstance(java.util.Locale.ROOT));
         return format.format(value);
+    }
+
+    private static void chemicalRows(String... rows) {
+        int y = 97;
+        for (int i = 0; i < rows.length; i++) {
+            for (String line : Minecraft.getMinecraft().fontRenderer.listFormattedStringToWidth(rows[i], 154)) {
+                label(line, 8, y, i == 0 ? GOLD : INK);
+                y += 11;
+            }
+        }
     }
 
     private static void rows(String... rows) {

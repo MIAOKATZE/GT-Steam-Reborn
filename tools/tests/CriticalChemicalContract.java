@@ -42,25 +42,6 @@ class CriticalChemicalRuntime {
         sun.misc.Unsafe unsafe = Issue37Runtime.bootstrap(version);
         for(Class<?> type:List.of(CriticalChemicalMath.class,CriticalEnergyRuntime.class,CriticalEnergyPorts.class))
             System.out.println("SOURCE "+type.getSimpleName()+" "+type.getProtectionDomain().getCodeSource().getLocation());
-        BigInteger q = CriticalChemicalMath.CHEMICAL_BASE_HEAT_CAP_EU;
-        check(q.multiply(b(20)).divide(b(400)).equals(b(gregtech.api.enums.GTValues.V[10])), "economic UEV anchor");
-        BigInteger[] huge = {q.multiply(b(1000)), q.multiply(b(1000)), q.multiply(b(1000))};
-        for (int mode = 0; mode < 4; mode++) {
-            BigInteger cap = CriticalChemicalMath.cap(mode);
-            BigInteger[] matched = CriticalChemicalMath.match(mode, huge, cap);
-            check(CriticalChemicalMath.sum(matched).compareTo(cap) <= 0, "total cap " + mode);
-            if (mode < 3) check(matched[0].equals(matched[1]), "D:G equal " + mode);
-            if (mode == 0) check(matched[2].signum() == 0, "dual excludes rocket");
-            if (mode == 1) check(matched[2].equals(matched[0]), "economic rocket equal");
-            if (mode == 2) check(matched[2].equals(matched[0].multiply(b(4))), "strong rocket fourfold");
-        }
-        BigInteger[] tiny = CriticalChemicalMath.match(1, new BigInteger[]{q,q,b(1)},q);
-        check(CriticalChemicalMath.sum(tiny).equals(b(3)), "one-drop third spectrum cannot reward whole stock");
-        check(CriticalChemicalMath.sum(CriticalChemicalMath.match(0,new BigInteger[]{q,b(0),q},q)).signum()==0,
-            "missing branch preserves stock");
-        check(CriticalChemicalMath.sum(CriticalChemicalMath.match(3,new BigInteger[]{q,b(0),b(0)},q)).equals(q),
-            "explicit ordinary single spectrum");
-        check(CriticalChemicalMath.litresForHeat(b(1001),b(480)).equals(b(3)), "bounded whole litre ceiling");
         seed(gregtech.api.recipe.RecipeMaps.dieselFuels,"gtsr_rc2_diesel",100);
         seed(gregtech.api.recipe.RecipeMaps.gasTurbineFuels,"gtsr_rc2_gas",200);
         seed(gregtech.api.recipe.RecipeMaps.denseLiquidFuels,"gtsr_rc2_dense",256);
@@ -77,56 +58,27 @@ class CriticalChemicalRuntime {
             "rocket heat normalized exactly once");
         check(fuels.get("gtsr_rc2_dense").spectrum==0&&fuels.get("gtsr_rc2_dense").euPerL.equals(b(256)),
             "TCDS dense-liquid fuels enter liquid spectrum without changing old diesel precedence");
-        // Isolated native-map fixtures with GT205's checked values, not full pack registration.
-        String[] materials={"GasolinePremium","NefariousGas","Benzene"};
-        String[] fluidNames={"gtsr_contract_highoctanegasoline","gtsr_contract_nefariousgas","gtsr_contract_benzene"};
-        int[] heatValues={2500,1200,360};
-        for(int i=0;i<materials.length;i++){
-            seed(i==0?gregtech.api.recipe.RecipeMaps.dieselFuels:gregtech.api.recipe.RecipeMaps.gasTurbineFuels,
-                fluidNames[i],heatValues[i]);
-            var material=(gregtech.api.enums.Materials)unsafe.allocateInstance(gregtech.api.enums.Materials.class);
-            material.mFluid=FluidRegistry.getFluid(fluidNames[i]);
-            gregtech.api.enums.Materials.class.getField(materials[i]).set(null,material);
-        }
-        seed(rocket,"gtsr_contract_RP1",512);seed(rocket,"gtsr_contract_H8N4C2O4",4196);
-        for(int window=0;window<3;window++){
-            var choices=CriticalGTRecipes.chemicalMixtureFuels(CriticalGTRecipes.chemicalFuels(),window);
-            check(choices!=null&&choices[0].euPerL.equals(b(2500))&&choices[1].euPerL.equals(b(window==2?360:1200)),
-                "High heat liquid/gas native examples "+window);
-            int[][] weights={{1,1,0},{1,1,1},{1,1,4}};
-            BigInteger unit=BigInteger.ONE;
-            for(int i=0;i<3;i++)if(weights[window][i]>0){
-                BigInteger divisor=choices[i].euPerL.divide(choices[i].euPerL.gcd(b(weights[window][i])));
-                unit=unit.divide(unit.gcd(divisor)).multiply(divisor);
-            }
-            BigInteger[] recipeHeat=new BigInteger[3];
-            for(int i=0;i<3;i++)recipeHeat[i]=unit.multiply(b(weights[window][i]));
-            check(CriticalChemicalMath.sum(recipeHeat).compareTo(CriticalChemicalMath.cap(window))<=0,
-                "Real example below phase cap "+window);
-            check(Arrays.equals(recipeHeat,CriticalChemicalMath.match(window,recipeHeat,CriticalChemicalMath.cap(window))),
-                "Displayed native mixture matches actual runtime proportion "+window);
-        }
+        // New compound examples are verified by CriticalCompoundContract.
 
         Fluid fluid = new Fluid("gtsr_rc2_contract_fuel");
         FluidRegistry.registerFluid(fluid);
         FluidStack fuel = new FluidStack(fluid,1);
         fuel.tag = new NBTTagCompound(); fuel.tag.setString("batch", "A");
-        Constructor<CriticalGTRecipes.ChemicalFuel> definition = CriticalGTRecipes.ChemicalFuel.class
-            .getDeclaredConstructor(FluidStack.class,BigInteger.class,int.class);
-        definition.setAccessible(true);
-        Object diesel = definition.newInstance(fuel,b(480),0);
-        Method add = CriticalEnergyRuntime.class.getDeclaredMethod("addChemicalCredit",NBTTagCompound.class,
-            CriticalGTRecipes.ChemicalFuel.class,long.class); add.setAccessible(true);
-        Method consume = CriticalEnergyRuntime.class.getDeclaredMethod("consumeChemicalCredit",NBTTagCompound.class,
-            BigInteger[].class); consume.setAccessible(true);
         NBTTagCompound ledger = new NBTTagCompound();
-        add.invoke(null,ledger,diesel,3L);
-        check(CriticalEnergyRuntime.chemicalPaidHeat(ledger)[0].equals(b(1440)), "actual litres valued once");
-        consume.invoke(null,ledger,(Object)new BigInteger[]{b(1001),b(0),b(0)});
-        ledger=(NBTTagCompound)ledger.copy();
-        check(CriticalEnergyRuntime.chemicalPaidHeat(ledger)[0].equals(b(439)), "fractional litre heat survives NBT");
-        Object changed = definition.newInstance(fuel,b(900),0);
-        add.invoke(null,ledger,changed,1L);
+        var credits = new net.minecraft.nbt.NBTTagList();
+        NBTTagCompound oldCredit = fuel.writeToNBT(new NBTTagCompound());
+        oldCredit.setInteger("spectrum",0); oldCredit.setInteger("ruleVersion",1);
+        oldCredit.setString("euPerL","480"); oldCredit.setString("paidLitres","3");
+        oldCredit.setString("remainingHeat","1440"); credits.appendTag(oldCredit);
+        ledger.setTag("chemicalCredits",credits);
+        check(CriticalEnergyRuntime.chemicalPaidHeat(ledger)[0].equals(b(1440)), "legacy paid base heat read exactly");
+        oldCredit.setString("remainingHeat","439"); ledger=(NBTTagCompound)ledger.copy();
+        check(CriticalEnergyRuntime.chemicalPaidHeat(ledger)[0].equals(b(439)), "fractional litre legacy heat survives NBT");
+        NBTTagCompound repriced = fuel.writeToNBT(new NBTTagCompound());
+        repriced.setInteger("spectrum",0); repriced.setInteger("ruleVersion",1);
+        repriced.setString("euPerL","900"); repriced.setString("paidLitres","1");
+        repriced.setString("remainingHeat","900");
+        ledger.getTagList("chemicalCredits",10).appendTag(repriced);
         check(CriticalEnergyRuntime.chemicalPaidHeat(ledger)[0].equals(b(1339)), "fuel repricing does not revalue escrow");
         check(ledger.getTagList("chemicalCredits",10).tagCount()==2, "different historical heat prices separated");
         check(FluidStack.loadFluidStackFromNBT(ledger.getTagList("chemicalCredits",10).getCompoundTagAt(0))

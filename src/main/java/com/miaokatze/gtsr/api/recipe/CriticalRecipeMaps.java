@@ -9,6 +9,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.miaokatze.gtsr.common.critical.CompoundRecipe;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 
 import gregtech.api.recipe.RecipeMap;
@@ -60,6 +61,15 @@ public final class CriticalRecipeMaps {
         RecipeMap<RecipeMapBackend> map = operation.equals("solar_dust") ? stellarIrradiation
             : operation.startsWith("stellar_") ? stellarLifecycle : forKind(kind);
         register(map, recipe, new DisplayInfo(map, kind, operation, baseEu, spectrum, 0, 1));
+    }
+
+    public static void addChemicalRecipe(GTRecipe recipe, CompoundRecipe compound, BigInteger inputHeat,
+        BigInteger outputHeat) {
+        RecipeMap<RecipeMapBackend> map = forKind(CriticalMachineKind.BATTERY);
+        DisplayInfo info = new DisplayInfo(map, CriticalMachineKind.BATTERY, "chemical_compound", outputHeat, -1, 0, 1);
+        info.compound = compound;
+        info.inputHeat = inputHeat;
+        register(map, recipe, info);
     }
 
     /** One page per major phase; native slot indices preserve each of the three paid rows. */
@@ -152,6 +162,8 @@ public final class CriticalRecipeMaps {
         public final int spectrum, page, pages;
         private ItemStack[] constructionItems;
         private FluidStack[] constructionFluids;
+        public CompoundRecipe compound;
+        public BigInteger inputHeat = BigInteger.ZERO;
 
         private DisplayInfo(RecipeMap<?> recipeMap, CriticalMachineKind kind, String operation, BigInteger baseEu,
             int spectrum, int page, int pages) {

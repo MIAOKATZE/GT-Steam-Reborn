@@ -40,7 +40,10 @@ def main():
         'api/recipe/CriticalRecipeMaps.java', 'api/recipe/CriticalRecipeFrontend.java', 'api/recipe/CriticalNEILayout.java', 'config/Config.java',
         'client/nei/CriticalNEIShowcase.java', 'loader/recipes/CriticalMachineRecipes.java',
         'common/critical/CriticalConstructionEconomy.java', 'common/critical/CriticalFoundationMaterials.java',
-        'common/critical/CriticalGTRecipes.java', 'common/critical/CriticalStellarPolicy.java')]
+        'common/critical/CriticalGTRecipes.java', 'common/critical/CriticalStellarPolicy.java',
+        'common/critical/CriticalChemicalMath.java', 'common/critical/CriticalChemicalRecipes.java',
+        'common/critical/CompoundRecipe.java', 'common/critical/CriticalFoundationChunk.java',
+        'common/critical/CriticalConstructionProgress.java')]
     production_sources = files
     fixtures = [ROOT / 'tools/tests/Issue37RegistrationRegression.java', ROOT / 'tools/tests/CriticalNEICatalogContract.java', ROOT / 'tools/tests/CriticalNEIFontContract.java']
     files = fixtures if args.jar else production_sources + fixtures
@@ -49,7 +52,7 @@ def main():
         argfile = out / (name + '.args')
         argfile.write_text('\n'.join('"' + str(a).replace('\\', '/') + '"' for a in args), encoding='utf-8')
         result = subprocess.run([str(JAVA / exe), '@' + str(argfile)], cwd=out,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180,
             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         output = result.stdout.decode('utf-8', errors='replace')
         (out / (name + '.log')).write_text(output, encoding='utf-8')

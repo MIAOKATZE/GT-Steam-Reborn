@@ -63,7 +63,11 @@ public final class CriticalEnergyPorts {
                         FluidStack config = me.getSlotConfig(i);
                         if (config == null || !types.add(GTUtility.FluidId.create(config))) continue;
                         IAEFluidStack request = AEFluidStack.create(config);
-                        request.setStackSize(Long.MAX_VALUE);
+                        // Query only configured, finite real network stock; never invent unlimited supply.
+                        IAEFluidStack stored = monitor.getStorageList()
+                            .findPrecise(request);
+                        if (stored == null || stored.getStackSize() <= 0) continue;
+                        request.setStackSize(stored.getStackSize());
                         IAEFluidStack available = monitor.extractItems(
                             request,
                             Actionable.SIMULATE,

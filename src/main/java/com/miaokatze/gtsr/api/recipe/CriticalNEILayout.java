@@ -7,11 +7,13 @@ public final class CriticalNEILayout {
     public static final int INPUT_X = 8, OUTPUT_X = 144, SLOT = 18, PITCH = 20;
     public static final int ITEM_Y = 44, FLUID_Y = 64;
     public static final int BUILD_X = 13, BUILD_Y = 59, BUILD_ROW_PITCH = 36;
+    public static final int BUILD_TIME_X = 107;
     public static final int BUILD_ITEM_COLUMNS = 6, BUILD_FLUID_COLUMNS = 2;
     public static final int BUILD_FLUID_X = BUILD_X + BUILD_ITEM_COLUMNS * SLOT;
     public static final int BUILD_FLUID_Y = BUILD_Y, BUILD_OUTPUT_Y = 2;
     public static final int WINDOW_X = 5, WINDOW_Y = 11;
     public static final int ARROW_X = 78, ARROW_WIDTH = 55;
+    public static final int CHEMICAL_BAR_Y = 43, CHEMICAL_BAR_WIDTH = 12, CHEMICAL_BAR_HEIGHT = 42;
 
     private CriticalNEILayout() {}
 

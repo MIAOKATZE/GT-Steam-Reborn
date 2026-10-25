@@ -37,7 +37,9 @@ public final class CriticalGTRecipes {
         /** First native map wins: diesel=0, gas=1, rocket=2; new dense-liquid fuels join spectrum 0. */
         public final int spectrum;
 
-        private ChemicalFuel(FluidStack fluid, BigInteger euPerL, int spectrum) {
+        public ChemicalFuel(FluidStack fluid, BigInteger euPerL, int spectrum) {
+            if (fluid == null || fluid.getFluid() == null || euPerL == null || euPerL.signum() < 0)
+                throw new IllegalArgumentException("Invalid chemical fuel price");
             this.fluid = fluid.copy();
             this.fluid.amount = 1;
             this.euPerL = euPerL;
@@ -53,29 +55,6 @@ public final class CriticalGTRecipes {
         addChemicalFuels(fuels, GTVersionCompat.requireGppRecipeMap("rocketFuels"), 3, 2);
         addChemicalFuels(fuels, RecipeMaps.denseLiquidFuels, 1, 0);
         return new ArrayList<>(fuels.values());
-    }
-
-    /** Real high-heat fuels: examples share the exact catalogue and spectrum routing used by production. */
-    public static ChemicalFuel[] chemicalMixtureFuels(List<ChemicalFuel> fuels, int window) {
-        if (window < 0 || window > 2) throw new IllegalArgumentException("window");
-        ChemicalFuel[] result = new ChemicalFuel[3];
-        FluidStack liquid = gregtech.api.enums.Materials.GasolinePremium.getFluid(1);
-        FluidStack gas = (window == 2 ? gregtech.api.enums.Materials.Benzene
-            : gregtech.api.enums.Materials.NefariousGas).getFluid(1);
-        List<ChemicalFuel> rockets = new ArrayList<>();
-        for (ChemicalFuel fuel : fuels) {
-            if (fuel.spectrum == 0 && liquid != null && fuel.fluid.isFluidEqual(liquid)) result[0] = fuel;
-            if (fuel.spectrum == 1 && gas != null && fuel.fluid.isFluidEqual(gas)) result[1] = fuel;
-            if (fuel.spectrum == 2) rockets.add(fuel);
-        }
-        rockets.sort(
-            java.util.Comparator.comparing((ChemicalFuel fuel) -> fuel.euPerL)
-                .thenComparing(
-                    fuel -> fuel.fluid.getFluid()
-                        .getName()));
-        if (!rockets.isEmpty()) result[2] = rockets.get(window == 2 ? rockets.size() - 1 : 0);
-        // Publish only checked high-heat combinations; a changed catalogue cannot restore a low-tier example.
-        return result[0] == null || result[1] == null || result[2] == null ? null : result;
     }
 
     private static void addChemicalFuels(Map<GTUtility.FluidId, ChemicalFuel> fuels, RecipeMap<?> map, int bonus,
