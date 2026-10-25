@@ -7,6 +7,8 @@ import net.minecraft.client.gui.Gui;
 
 import org.lwjgl.opengl.GL11;
 
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.options.FormatOptions;
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.DisplayInfo;
 import com.miaokatze.gtsr.common.critical.CriticalConstructionProgress;
@@ -20,6 +22,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.enums.GTValues;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.tooltip.TooltipHelper;
 import gregtech.nei.GTNEIDefaultHandler;
 
 /** Native slots and labels surround operation-specific, two-dimensional process diagrams. */
@@ -85,18 +88,19 @@ public final class CriticalNEIShowcase {
                 rows(
                     text("stellar.phase_time"),
                     power(CriticalStellarPolicy.IGNITION_EU / CriticalStellarPolicy.DURATION_TICKS),
-                    voltage(CriticalStellarPolicy.IGNITION_EU / CriticalStellarPolicy.DURATION_TICKS),
                     text("ignition.helium"),
                     text("ignition.once"));
             } else if (operation.equals("stellar_sustain")) {
                 rows(
                     text("stellar.phase_time"),
                     power(CriticalStellarPolicy.SUSTAIN_EUT),
-                    voltage(CriticalStellarPolicy.SUSTAIN_EUT),
                     text("sustain.helium"),
                     text("sustain.always"));
             } else {
-                rows(text("fusion.time"), text("fusion.native"));
+                rows(
+                    text("fusion.time"),
+                    power(info.baseEu.longValueExact()),
+                    CriticalRecipeMaps.formatted("simple.fusion.discount", fusionDiscount(info)));
             }
         } else if (operation.equals("turbine")) {
             turbine(new Plot(flow(info, true)));
@@ -136,15 +140,15 @@ public final class CriticalNEIShowcase {
         label(text("build.title"), 8, 6, GOLD);
         label(text("build.target." + info.kind.key), 8, 20, INK);
         int group = info.constructionGroup();
-        for (int i = 0; i < 4; i++) {
-            int x = 8 + i * 39;
-            frame(x, 31, 37, 13, i <= group ? GOLD : EDGE);
-            if (i < group) rect(x + 1, 32, x + 36, 43, 0xFF3D443F);
+        for (int i = 0; i < 3; i++) {
+            int x = 8 + i * 53;
+            frame(x, 31, 48, 13, i <= group ? GOLD : EDGE);
+            if (i < group) rect(x + 1, 32, x + 47, 43, 0xFF3D443F);
             if (i == group) {
-                rect(x + 1, 32, x + 36, 43, 0xFF5B5140);
-                rect(x + 1, 43, x + 2 + phase(34), 44, GOLD);
+                rect(x + 1, 32, x + 47, 43, 0xFF5B5140);
+                rect(x + 1, 43, x + 2 + phase(45), 44, GOLD);
             }
-            centered(text("build.group." + i), x + 18, 33, i <= group ? GOLD : MUTED);
+            centered(text("build.group." + i), x + 24, 33, i <= group ? GOLD : MUTED);
         }
         for (int row = 0; row < 3; row++) {
             int y = BUILD_Y + row * BUILD_ROW_PITCH;
@@ -153,10 +157,23 @@ public final class CriticalNEIShowcase {
                     : row == 1 ? CriticalFoundationChunk.HEATING_DURATION : CriticalFoundationChunk.CURING_DURATION;
             int time = ticks / (info.constructionStage() == 0 && row == 1 ? 20 * 60
                 : info.constructionStage() == 0 && row == 2 ? 20 * 60 * 60 : 20);
-            label(text("build.row." + info.constructionStage() + "." + row), BUILD_X, y - 11, INK);
             String unit = info.constructionStage() == 0 && row == 1 ? "minutes"
                 : info.constructionStage() == 0 && row == 2 ? "hours" : "step";
-            label(CriticalRecipeMaps.formatted("simple.build.time." + unit, time), BUILD_TIME_X, y - 11, MUTED);
+            String duration = CriticalRecipeMaps.formatted("simple.build.time." + unit, time);
+            var font = Minecraft.getMinecraft().fontRenderer;
+            int timeX = BUILD_TIME_RIGHT_X - font.getStringWidth(duration);
+            String title = text("build.row." + info.constructionStage() + "." + row);
+            if (info.constructionStage() == 0 && row == 2) {
+                // At most two native-font lines fit between the previous row's bottom (113)
+                // and this row's unchanged slot top (131). Keep five pixels before the time.
+                var lines = font.listFormattedStringToWidth(title, timeX - BUILD_X - 5);
+                int titleY = lines.size() == 1 ? y - 11 : y - 18;
+                for (String line : lines) {
+                    label(line, BUILD_X, titleY, INK);
+                    titleY += 9;
+                }
+            } else label(title, BUILD_X, y - 11, INK);
+            label(duration, timeX, y - 11, MUTED);
         }
     }
 
@@ -379,26 +396,39 @@ public final class CriticalNEIShowcase {
         }
     }
 
-    private static String voltage(long eut) {
-        return voltage(eut, false);
+    public static String power(long eut) {
+        // GT205 TooltipHelper.euRateText style; keep full integers even above its default
+        // exponent threshold by passing the native formatter an explicit display option.
+        String value = TooltipHelper.EU_VOLT_COLOR
+            + NumberFormatUtil.formatNumber(
+                eut,
+                new FormatOptions().setDecimalPlaces(0)
+                    .disableExponentialFormatting())
+            + TooltipHelper.TIER_COLOR
+            + " EU/t"
+            + net.minecraft.util.EnumChatFormatting.GRAY;
+        int maximum = gregtech.api.enums.VoltageIndex.MAX;
+        int tier = Math.max(1, Math.min(maximum, GTUtility.getTier(eut)));
+        long amps = eut <= GTValues.V[maximum] ? 1
+            : eut / GTValues.V[maximum] + (eut % GTValues.V[maximum] == 0 ? 0 : 1);
+        return value + " ("
+            + TooltipHelper.AMP_COLOR
+            + NumberFormatUtil.formatNumber(
+                amps,
+                new FormatOptions().setDecimalPlaces(0)
+                    .disableExponentialFormatting())
+            + "A "
+            + GTUtility.getColoredTierNameFromTier((byte) tier)
+            + ")";
     }
 
-    private static String voltage(long eut, boolean equivalent) {
-        int maximum = Math.min(14, Math.min(GTValues.V.length, GTValues.VN.length) - 1);
-        int tier = Math.max(0, Math.min(maximum, GTUtility.getTier(eut)));
-        if (eut > GTValues.V[maximum]) {
-            long amps = eut / GTValues.V[maximum] + (eut % GTValues.V[maximum] == 0 ? 0 : 1);
-            return CriticalRecipeMaps.formatted(
-                equivalent ? "simple.chemical.equivalent_amps" : "simple.stellar.voltage_amps",
-                GTValues.VN[maximum],
-                String.format(java.util.Locale.ROOT, "%,d", amps));
-        }
-        return CriticalRecipeMaps
-            .formatted(equivalent ? "simple.chemical.equivalent_tier" : "simple.stellar.voltage", GTValues.VN[tier]);
-    }
-
-    private static String power(long eut) {
-        return String.format(java.util.Locale.ROOT, "%,d EU/t", eut);
+    public static String fusionDiscount(DisplayInfo info) {
+        if (info.nativeEut <= 0) return "0";
+        return number(
+            java.math.BigDecimal.valueOf(info.nativeEut)
+                .subtract(new java.math.BigDecimal(info.baseEu))
+                .multiply(java.math.BigDecimal.valueOf(100))
+                .divide(java.math.BigDecimal.valueOf(info.nativeEut), 4, java.math.RoundingMode.HALF_UP));
     }
 
     private static String number(java.math.BigDecimal value) {
@@ -419,7 +449,21 @@ public final class CriticalNEIShowcase {
     }
 
     private static void rows(String... rows) {
-        for (int i = 0; i < rows.length; i++) label(rows[i], 8, 97 + i * 13, i == 0 ? GOLD : i == 4 ? MUTED : INK);
+        int y = 97;
+        var font = Minecraft.getMinecraft().fontRenderer;
+        for (int i = 0; i < rows.length; i++) {
+            java.util.List<String> lines;
+            int suffix = rows[i].lastIndexOf(" (");
+            if (rows[i].contains(" EU/t") && suffix >= 0 && font.getStringWidth(rows[i]) > 154) {
+                // Keep the complete current/tier suffix together when the paid number needs its own line.
+                lines = new java.util.ArrayList<>(font.listFormattedStringToWidth(rows[i].substring(0, suffix), 154));
+                lines.add(net.minecraft.util.EnumChatFormatting.GRAY + rows[i].substring(suffix + 1));
+            } else lines = font.listFormattedStringToWidth(rows[i], 154);
+            for (String line : lines) {
+                label(line, 8, y, i == 0 ? GOLD : i == 4 ? MUTED : INK);
+                y += 11;
+            }
+        }
     }
 
     private static String text(String key) {

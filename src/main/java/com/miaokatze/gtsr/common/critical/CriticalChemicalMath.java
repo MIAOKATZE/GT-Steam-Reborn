@@ -13,7 +13,7 @@ public final class CriticalChemicalMath {
     public static Evaluation evaluate(BigInteger[] componentLitres, int[] ratios, BigInteger totalLitres,
         BigInteger rawHeat, int peakMultiplier) {
         if (componentLitres.length != ratios.length || ratios.length < 2
-            || ratios.length > 3
+            || ratios.length > 6
             || totalLitres.signum() < 0
             || rawHeat.signum() < 0
             || peakMultiplier < 1

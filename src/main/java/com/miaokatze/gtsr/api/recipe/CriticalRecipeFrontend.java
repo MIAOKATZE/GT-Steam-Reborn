@@ -21,6 +21,7 @@ import gregtech.nei.RecipeDisplayInfo;
 public final class CriticalRecipeFrontend extends RecipeMapFrontend {
 
     private final boolean construction;
+    private final boolean chemical;
 
     public CriticalRecipeFrontend(BasicUIPropertiesBuilder uiPropertiesBuilder,
         NEIRecipePropertiesBuilder neiPropertiesBuilder) {
@@ -29,8 +30,14 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
 
     public CriticalRecipeFrontend(BasicUIPropertiesBuilder uiPropertiesBuilder,
         NEIRecipePropertiesBuilder neiPropertiesBuilder, boolean construction) {
+        this(uiPropertiesBuilder, neiPropertiesBuilder, construction, false);
+    }
+
+    public CriticalRecipeFrontend(BasicUIPropertiesBuilder uiPropertiesBuilder,
+        NEIRecipePropertiesBuilder neiPropertiesBuilder, boolean construction, boolean chemical) {
         super(uiPropertiesBuilder, neiPropertiesBuilder);
         this.construction = construction;
+        this.chemical = chemical;
     }
 
     @Override
@@ -59,7 +66,7 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
     @Override
     public List<Pos2d> getFluidInputPositions(int count) {
         return construction ? constructionGrid(count, BUILD_FLUID_COLUMNS, BUILD_FLUID_X)
-            : row(count, INPUT_X, FLUID_Y);
+            : chemical ? grid(count, CHEMICAL_COLUMNS, INPUT_X, CHEMICAL_FLUID_Y) : row(count, INPUT_X, FLUID_Y);
     }
 
     @Override
@@ -90,6 +97,17 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
     @SideOnly(Side.CLIENT)
     public void drawDescription(RecipeDisplayInfo recipeInfo) {
         CriticalNEIShowcase.draw(recipeInfo.recipe);
+    }
+
+    @Override
+    protected List<String> handleNEIItemInputTooltip(List<String> tip, GTNEIDefaultHandler.FixedPositionedStack stack) {
+        if (construction && stack.isNotConsumed()
+            && com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSteamEntangledSingularity
+                .isStackEqual(stack.item)) {
+            for (String key : new String[] { "title", "optional", "interval", "reduction", "scope" })
+                tip.add(CriticalRecipeMaps.text("showcase.curing." + key));
+        }
+        return tip;
     }
 
     @Override

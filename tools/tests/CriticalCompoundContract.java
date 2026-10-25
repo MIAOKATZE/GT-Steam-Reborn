@@ -27,16 +27,23 @@ class CriticalCompoundRuntime {
     }
     static void verifyCatalog(List<CriticalGTRecipes.ChemicalFuel> fuels) {
         var catalog=CriticalChemicalRecipes.catalog(fuels);
-        check(catalog.size()==256,"256 distinct fixed combinations");
+        check(catalog.size()==512,"512 distinct fixed combinations");
         check(catalog==CriticalChemicalRecipes.catalog(fuels),"immutable catalogue cached");
         Set<String> ids=new HashSet<>(),identities=new HashSet<>(); Set<Integer> peaks=new HashSet<>();
+        int[] counts=new int[7], minPeak=new int[7], maxPeak=new int[7]; Arrays.fill(minPeak,101);
         for(var recipe:catalog) {
             check(ids.add(recipe.id),"stable ID unique "+recipe.id);
+            int size=recipe.components.size(); counts[size]++;
+            minPeak[size]=Math.min(minPeak[size],recipe.peakMultiplier);
+            maxPeak[size]=Math.max(maxPeak[size],recipe.peakMultiplier);
+            check(CriticalChemicalRecipes.byId(recipe.id)==recipe,"indexed identity "+recipe.id);
             List<String> names=new ArrayList<>(); BigInteger raw=b(0),total=b(0);
+            Map<GTUtility.FluidId,BigInteger> input=new LinkedHashMap<>();
             BigInteger[] amounts=new BigInteger[recipe.components.size()]; int[] ratios=new int[amounts.length];
             for(int i=0;i<amounts.length;i++) {
                 var part=recipe.components.get(i); names.add(part.fuel.fluid.getFluid().getName());
                 amounts[i]=b(part.ratio); ratios[i]=part.ratio;
+                input.put(GTUtility.FluidId.create(part.fuel.fluid),amounts[i]);
                 total=total.add(amounts[i]); raw=raw.add(amounts[i].multiply(part.fuel.euPerL));
             }
             Collections.sort(names);
@@ -44,14 +51,66 @@ class CriticalCompoundRuntime {
             var value=CriticalChemicalMath.evaluate(amounts,ratios,total,raw,recipe.peakMultiplier);
             check(value.eligible&&value.generatedEU.equals(raw.multiply(b(recipe.peakMultiplier)))
                 &&value.efficiencyHundredths()==100*recipe.peakMultiplier,"NEI ideal agrees "+recipe.id);
+            var match=CriticalChemicalRecipes.best(fuels,input);
+            check(match!=null&&match.recipe.id.equals(recipe.id)&&match.evaluation.generatedEU.equals(value.generatedEU),
+                "ideal selection preserves complexity reward "+recipe.id);
+            if(size<=3) {
+                var legacy=CriticalChemicalRecipes.bestLegacyV2(fuels,input);
+                check(legacy!=null&&legacy.recipe.id.equals(recipe.id)&&legacy.recipe.peakMultiplier==legacyPeak(recipe.id)
+                    &&legacy.evaluation.generatedEU.equals(raw.multiply(b(legacyPeak(recipe.id)))),
+                    "schema-2 frozen ideal reward "+recipe.id);
+                check(CriticalChemicalRecipes.byId(recipe.id)==recipe,"legacy lookup cannot replace new display "+recipe.id);
+            }
             peaks.add(recipe.peakMultiplier);
         }
+        check(Arrays.equals(counts,new int[]{0,0,120,136,96,80,80}),"exact complexity distribution");
+        for(int size=2;size<=6;size++) {
+            check(minPeak[size]==(size==2?2:(size-2)*20+1)&&maxPeak[size]==(size-1)*20,
+                "complete complexity peak band "+size);
+            if(size>2) check(minPeak[size]>maxPeak[size-1],"strictly increasing complexity reward "+size);
+        }
+        verifyLegacyIdentities();
+        System.out.println("CATALOG count="+catalog.size()+" complexity="+Arrays.toString(counts)
+            +" minPeak="+Arrays.toString(minPeak)+" maxPeak="+Arrays.toString(maxPeak));
         check(peaks.size()>25&&Collections.max(peaks)==100,"meaningful peak range with 100x ceiling");
         check(CriticalChemicalRecipes.byId("promoted.3")!=null,"cached localization lookup");
         var reversed=new ArrayList<>(fuels); Collections.reverse(reversed);
         check(CriticalChemicalRecipes.catalog(reversed)==catalog,"native registration order cannot change catalogue");
         try { catalog.clear(); throw new AssertionError("mutable catalogue"); }
         catch(UnsupportedOperationException expected) { checks++; }
+    }
+
+    static int legacyPeak(String id) {
+        String[] fields=id.split("\\.");
+        int first=Integer.parseInt(fields[1]);
+        if(fields[0].equals("pair")) {
+            int second=Integer.parseInt(fields[2]);
+            return 12+(first/8==second/8?0:12)+(second>=12?12:0)+(first%4)*3+second%4;
+        }
+        if(fields[0].equals("blend")) return 48+first*3+Integer.parseInt(fields[2])*4+Integer.parseInt(fields[3])*5;
+        return fields[0].equals("promoted")?94+first*2:88+first*3;
+    }
+
+    static void verifyLegacyIdentities() {
+        for(int i=0;i<16;i++) for(int j=i+1;j<16;j++) {
+            var recipe=CriticalChemicalRecipes.byId("pair."+i+"."+j);
+            check(recipe!=null&&recipe.components.size()==2&&recipe.components.get(0).ratio==1+i%4
+                &&recipe.components.get(1).ratio==1+j%3,"legacy pair ID and ratios");
+        }
+        for(int liquid=0;liquid<8;liquid++) for(int gas=0;gas<4;gas++) for(int rocket=0;rocket<4;rocket++) {
+            var recipe=CriticalChemicalRecipes.byId("blend."+liquid+"."+gas+"."+rocket);
+            check(recipe!=null&&recipe.components.size()==3&&recipe.components.get(0).ratio==4+liquid%3
+                &&recipe.components.get(1).ratio==2+gas&&recipe.components.get(2).ratio==1+rocket,
+                "legacy blend ID and ratios");
+        }
+        for(int rocket=0;rocket<4;rocket++) {
+            var promoted=CriticalChemicalRecipes.byId("promoted."+rocket);
+            var ozonated=CriticalChemicalRecipes.byId("ozonated."+rocket);
+            check(promoted!=null&&promoted.components.get(0).ratio==8&&promoted.components.get(1).ratio==2+rocket
+                &&promoted.components.get(2).ratio==1,"legacy promoted ID and ratios");
+            check(ozonated!=null&&ozonated.components.get(0).ratio==6&&ozonated.components.get(1).ratio==2+rocket
+                &&ozonated.components.get(2).ratio==1,"legacy ozonated ID and ratios");
+        }
     }
 
     static void verifyMathAndSelection(List<CriticalGTRecipes.ChemicalFuel> fuels) {
@@ -76,6 +135,23 @@ class CriticalCompoundRuntime {
             "missing component cannot start");
         check(!CriticalChemicalMath.evaluate(new BigInteger[]{b(0),b(0)},new int[]{2,3},b(0),b(0),100).eligible,
             "empty input cannot start");
+        for(int size=2;size<=6;size++) {
+            BigInteger[] amounts=new BigInteger[size],scaled=new BigInteger[size]; int[] ratios=new int[size];
+            BigInteger total=b(0);
+            for(int i=0;i<size;i++) {ratios[i]=i+1;amounts[i]=b(i+1);scaled[i]=amounts[i].multiply(scale);total=total.add(amounts[i]);}
+            var exact=CriticalChemicalMath.evaluate(amounts,ratios,total,b(101),100);
+            var diluted=CriticalChemicalMath.evaluate(amounts,ratios,total.multiply(b(2)),b(101),100);
+            var big=CriticalChemicalMath.evaluate(scaled,ratios,total.multiply(b(2)).multiply(scale),b(101).multiply(scale),100);
+            check(exact.eligible&&exact.generatedEU.equals(b(10100)),"ideal any complexity "+size);
+            check(diluted.qualityNumerator.equals(b(1))&&diluted.qualityDenominator.equals(b(2))
+                &&diluted.generatedEU.equals(b(2600)),"dilution floors only final rational "+size);
+            check(big.generatedNumerator.multiply(diluted.generatedDenominator).equals(
+                diluted.generatedNumerator.multiply(scale).multiply(big.generatedDenominator)),"unbounded scaling "+size);
+            amounts[size-1]=b(0);
+            check(!CriticalChemicalMath.evaluate(amounts,ratios,total,b(101),100).eligible,"all components required "+size);
+        }
+        try {CriticalChemicalMath.evaluate(new BigInteger[7],new int[7],b(1),b(1),100);
+            throw new AssertionError("seven components accepted");} catch(IllegalArgumentException expected){checks++;}
         selection(fuels);
     }
 
@@ -93,6 +169,10 @@ class CriticalCompoundRuntime {
             amounts.containsKey(GTUtility.FluidId.create(f.fluid))).toList();
         check(CriticalChemicalRecipes.best(frozen,amounts).recipe.id.equals(ideal.recipe.id),
             "receipt manifest price subset keeps same stable recipe");
+        var legacy=CriticalChemicalRecipes.bestLegacyV2(frozen,amounts);
+        check(legacy.recipe.id.equals("pair.0.1")&&legacy.recipe.peakMultiplier==13
+            &&legacy.evaluation.generatedEU.equals(b(14170)),"schema-2 price subset keeps its original 13x reward");
+        check(CriticalChemicalRecipes.byId("pair.0.1").peakMultiplier==3,"legacy price subset never reprices display");
         var unknown=GTUtility.FluidId.create(register("gtsr_compound_unknown"));
         amounts.put(unknown,b(3)); var diluted=CriticalChemicalRecipes.best(fuels,amounts);
         check(diluted.rawHeat.equals(ideal.rawHeat)&&diluted.totalLitres.equals(b(6))

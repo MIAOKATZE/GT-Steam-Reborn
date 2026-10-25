@@ -51,11 +51,7 @@ public final class CriticalMachineRecipes {
             if (!supportedFusion(original)) continue;
             GTRecipe display = original.copy();
             display.mDuration = CriticalStellarPolicy.duration(original.mDuration);
-            CriticalRecipeMaps.addDisplayRecipe(
-                CriticalMachineKind.SUN,
-                display,
-                "sun",
-                BigInteger.valueOf(CriticalStellarPolicy.runEuPerTick(original.mEUt, original.mDuration, 1)));
+            CriticalRecipeMaps.addFusionRecipe(display, original.mEUt, original.mDuration);
         }
         registered = true;
     }
@@ -215,7 +211,6 @@ public final class CriticalMachineRecipes {
         List<CompoundRecipe> catalog = new ArrayList<>(CriticalChemicalRecipes.catalog(fuels));
         catalog.sort(
             java.util.Comparator.comparingInt((CompoundRecipe entry) -> entry.peakMultiplier)
-                .reversed()
                 .thenComparing(entry -> entry.id));
         for (CompoundRecipe compound : catalog) {
             List<FluidStack> inputs = new ArrayList<>();

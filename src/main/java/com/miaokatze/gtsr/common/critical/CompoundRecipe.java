@@ -12,7 +12,7 @@ public final class CompoundRecipe {
     public final int peakMultiplier;
 
     CompoundRecipe(String id, int peakMultiplier, Component... components) {
-        if (components.length < 2 || components.length > 3 || peakMultiplier < 1 || peakMultiplier > 100)
+        if (components.length < 2 || components.length > 6 || peakMultiplier < 1 || peakMultiplier > 100)
             throw new IllegalArgumentException("Invalid compound recipe");
         this.id = id;
         this.peakMultiplier = peakMultiplier;

@@ -27,6 +27,20 @@ public class CriticalNEIFontContract {
         int maximum=0;
         for(String lang:List.of("en_US","zh_CN"))for(boolean unicode:List.of(false,true)) {
             set(font,"unicodeFlag",unicode);
+            var locale=Files.readAllLines(Path.of(args[0],lang+".lang"));
+            for(String name:List.of("gtsr.recipe.critical.sun","gtsr.critical.nei.simple.sun.title","gtsr.critical.nei.simple.intro.sun")) {
+                String value=locale.stream().filter(line->line.startsWith(name+"="))
+                    .findFirst().orElseThrow().substring(name.length()+1);
+                if(value.toLowerCase(Locale.ROOT).contains("mkv")||font.getStringWidth(value)>154)
+                    throw new AssertionError("Fusion name must omit capability tier and fit: "+name+" "+value);
+                checks++;
+            }
+            for(String key:List.of("title","optional","interval","reduction","scope")) {
+                String prefix="gtsr.critical.nei.showcase.curing."+key+"=";
+                if(locale.stream().noneMatch(line->line.startsWith(prefix)&&line.length()>prefix.length()))
+                    throw new AssertionError("Missing localized singularity tooltip fact: "+lang+" "+key);
+                checks++;
+            }
             for(long eut:List.of(com.miaokatze.gtsr.common.critical.CriticalStellarPolicy.IGNITION_EU
                 /com.miaokatze.gtsr.common.critical.CriticalStellarPolicy.DURATION_TICKS,
                 com.miaokatze.gtsr.common.critical.CriticalStellarPolicy.SUSTAIN_EUT)) {
@@ -35,7 +49,7 @@ public class CriticalNEIFontContract {
                 checks++;
             }
 
-            for(String line:Files.readAllLines(Path.of(args[0],lang+".lang"))) {
+            for(String line:locale) {
                 if ((line.startsWith("gtsr.critical.") || line.startsWith("gtsr.recipe.critical.")
                     || line.startsWith("gtsr.recipe.stellar_") || line.startsWith("gt.blockmachines.gtsr.critical.")
                     || line.startsWith("gtsr.tooltip.machine.compact.sun."))
@@ -56,12 +70,29 @@ public class CriticalNEIFontContract {
                     :key.endsWith("chemical.input_heat")?String.format(Locale.ROOT,format,"1,234,567")
                     :key.endsWith("chemical.output_heat")?String.format(Locale.ROOT,format,"123,456,700")
                     :key.endsWith("chemical.equivalent_tier")?String.format(Locale.ROOT,format,"ZPM")
+                    :key.endsWith("fusion.discount")?String.format(Locale.ROOT,format,"99.9")
                     :key.contains(".build.time.")?String.format(Locale.ROOT,format,
                         key.endsWith(".minutes")?30:key.endsWith(".hours")?24:20)
                     :key.endsWith("turbine.heat_per_l")?String.format(Locale.ROOT,format,"2,500")
                     :String.format(Locale.ROOT,format,"9999999999",3,999999);
 
                 if(key.endsWith(".footer")||key.endsWith("card.footer"))text=text.replace("9999999999","99");
+                if(key.endsWith(".build.row.0.2")) {
+                    String durationFormat=locale.stream().filter(s->s.startsWith("gtsr.critical.nei.simple.build.time.hours="))
+                        .findFirst().orElseThrow().split("=",2)[1];
+                    String duration=String.format(Locale.ROOT,durationFormat,24);
+                    int timeX=com.miaokatze.gtsr.api.recipe.CriticalNEILayout.BUILD_TIME_RIGHT_X-font.getStringWidth(duration);
+                    int available=timeX-com.miaokatze.gtsr.api.recipe.CriticalNEILayout.BUILD_X-5;
+                    var lines=font.listFormattedStringToWidth(text,available);
+                    if(lines.size()>2)throw new AssertionError(lang+" unicode="+unicode+" curing title has "+lines.size()+" lines");
+                    int y=lines.size()==1?120:113;
+                    for(String titleLine:lines){
+                        int width=font.getStringWidth(titleLine);maximum=Math.max(maximum,width);
+                        if(width>available||y<113||y+9>131)throw new AssertionError("Curing title/time or slot overlap: "+lang);
+                        y+=9;checks++;
+                    }
+                    checks++;continue;
+                }
                 if(key.contains(".body.")) {
                     int rows=0;
                     for(String row:text.split("\\|")) {
@@ -72,7 +103,7 @@ public class CriticalNEIFontContract {
                     if(rows>limit)throw new AssertionError(lang+" unicode="+unicode+" "+key+" rows="+rows+" limit="+limit+" "+text);
                 } else {
                     int width=font.getStringWidth(text);maximum=Math.max(maximum,width);
-                    int limit=key.contains(".build.time.")?51:key.contains(".build.row.")?88:
+                    int limit=key.contains(".build.group.")?44:key.contains(".build.time.")?51:key.contains(".build.row.")?88:
                         key.contains(".build.note.")||key.endsWith(".build.title")?132:154;
                     if(width>limit)throw new AssertionError(lang+" unicode="+unicode+" "+key+" width="+width+" "+text);
                 }

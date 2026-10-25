@@ -35,7 +35,8 @@ class CriticalNEICatalogRuntime {
     }
     static Map<String,Long> totals(Collection<ItemStack> items) {
         Map<String,Long> result=new TreeMap<>();
-        for(ItemStack stack:items){String key=net.minecraft.item.Item.itemRegistry.getNameForObject(stack.getItem())+":"+stack.getItemDamage();
+        for(ItemStack stack:items){if(stack==null||stack.stackSize==0)continue;
+            String key=net.minecraft.item.Item.itemRegistry.getNameForObject(stack.getItem())+":"+stack.getItemDamage();
             result.merge(key,(long)stack.stackSize,Long::sum);}
         return result;
     }
@@ -85,9 +86,15 @@ class CriticalNEICatalogRuntime {
                 var inventory=slot.getMcSlot().getItemHandler(); int x=slot.getPos().x,y=slot.getPos().y;
                 boolean input=inventory==items||inventory==fluidInputs;
                 boolean fluid=inventory==fluidInputs||inventory==fluidOutputs;
+                boolean chemical=map==CriticalRecipeMaps.forKind(CriticalMachineKind.BATTERY)&&inventory==fluidInputs;
                 check(input?x>=8&&x<=48:x==CriticalNEILayout.OUTPUT_X,"runtime native slot and label column " + map.unlocalizedName);
-                check(y==(fluid?CriticalNEILayout.FLUID_Y:CriticalNEILayout.ITEM_Y),"runtime native row aligns arrow centre " + map.unlocalizedName);
-                check(y+9==CriticalNEILayout.arrowCenter(fluid),"actual native slot centre equals shared arrow centre");
+                int index=slot.getMcSlot().getSlotIndex();
+                int expectedY=chemical?CriticalNEILayout.CHEMICAL_FLUID_Y+index/3*CriticalNEILayout.PITCH
+                    :fluid?CriticalNEILayout.FLUID_Y:CriticalNEILayout.ITEM_Y;
+                check(y==expectedY,"runtime native row matches its real input slot " + map.unlocalizedName);
+                if(chemical)check(x==CriticalNEILayout.INPUT_X+index%3*CriticalNEILayout.PITCH,
+                    "six chemical native slots form two rows of three");
+                else check(y+9==CriticalNEILayout.arrowCenter(fluid),"actual native slot centre equals shared arrow centre");
                 check(!(x<166&&x+18>154&&y<174&&y+18>149),"native runtime slots leave favorite/overlay buttons clear");
             }
             CriticalMachineKind owner=CriticalMachineKind.SUN;
@@ -146,7 +153,8 @@ class CriticalNEICatalogRuntime {
         for(var item:List.of(com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSolar,
             com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSun,
             com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalTurbine,
-            com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalBattery))item.set(new ItemStack(Items.feather,1,id++));
+            com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalBattery,
+            com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSteamEntangledSingularity))item.set(new ItemStack(Items.feather,1,id++));
         for(OrePrefixes prefix:List.of(OrePrefixes.circuit,OrePrefixes.pipeMedium,OrePrefixes.plate,OrePrefixes.gearGt,
             OrePrefixes.stickLong,OrePrefixes.rotor,OrePrefixes.wireFine))
             for(Materials material:List.of(Materials.UHV,Materials.Neutronium,Materials.Europium,Materials.NaquadahAlloy,
@@ -179,6 +187,13 @@ class CriticalNEICatalogRuntime {
                 var displayItems=CriticalRecipeMaps.constructionItems(recipe);
                 var displayFluids=CriticalRecipeMaps.constructionFluids(recipe);
                 check(displayItems.length==18&&displayFluids.length==6,"three fully indexed native rows");
+                if(group==0){
+                    var optional=displayItems[CriticalNEILayout.CURING_EXAMPLE_INDEX];
+                    check(optional!=null&&optional.stackSize==0&&com.miaokatze.gtsr.common.api.enums.GTSRItemList
+                        .CriticalSteamEntangledSingularity.isStackEqual(optional),"zero-size actual singularity at curing row");
+                    check(Arrays.stream(recipe.mInputs).noneMatch(s->com.miaokatze.gtsr.common.api.enums.GTSRItemList
+                        .CriticalSteamEntangledSingularity.isStackEqual(s)),"optional curing marker never enters paid recipe bill");
+                }
                 List<ItemStack> shown=new ArrayList<>();
                 for(int row=0;row<3;row++) {
                     var expected=bill.itemsForDisplayRow(group,row,paid);
@@ -199,6 +214,34 @@ class CriticalNEICatalogRuntime {
             check(groups.equals(Set.of(0,1,2)),"base, body, equipment: three pages per released machine");
             check(totals(inputs).equals(totals(Arrays.asList(bill.demand()))),"all body/equipment rows exactly equal frozen whole-job demand "+kind);
         }
+        curingTooltipContract();
+    }
+    static List<String> curingTooltip(ItemStack item, boolean construction, boolean input) throws Exception {
+        var stack=new gregtech.nei.GTNEIDefaultHandler.FixedPositionedStack(null,item,true,13,131,10000,false,input);
+        check(stack.item.stackSize==item.stackSize,"native FixedPositionedStack retains zero-count marker");
+        Method hook=CriticalRecipeFrontend.class.getDeclaredMethod("handleNEIItemInputTooltip",List.class,
+            gregtech.nei.GTNEIDefaultHandler.FixedPositionedStack.class);hook.setAccessible(true);
+        var frontend=(construction?CriticalRecipeMaps.construction:CriticalRecipeMaps.forKind(CriticalMachineKind.SUN)).getFrontend();
+        @SuppressWarnings("unchecked") List<String> tip=(List<String>)hook.invoke(frontend,new ArrayList<String>(),stack);
+        return tip;
+    }
+    static void curingTooltipContract() throws Exception {
+        var marker=com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSteamEntangledSingularity.get(1);
+        marker.stackSize=0;
+        List<String> tip=curingTooltip(marker,true,true);
+        List<String> expected=new ArrayList<>();
+        for(String key:List.of("title","optional","interval","reduction","scope"))
+            expected.add(CriticalRecipeMaps.text("showcase.curing."+key));
+        check(tip.equals(expected),"native input tooltip hook emits exactly the five curing facts");
+        check(curingTooltip(marker,false,true).isEmpty(),"runtime maps do not receive curing tooltip");
+        check(curingTooltip(marker,true,false).isEmpty(),"output stacks do not receive curing input tooltip");
+        var consumed=marker.copy();consumed.stackSize=1;
+        check(curingTooltip(consumed,true,true).isEmpty(),"consumed singularity is not marked optional");
+        var other=new ItemStack(Items.diamond,0);
+        check(curingTooltip(other,true,true).isEmpty(),"unrelated zero-count input has no curing tooltip");
+        check(CriticalFoundationChunk.curingReduction(1000,16)==100,"16 singularities remove exactly 10 percent");
+        check(CriticalFoundationChunk.curingReduction(1000,1)==11,"single-singularity cure reduction rounds down");
+        check(CriticalFoundationChunk.curingReduction(1000,0)==0,"zero singularities grant no cure reduction");
     }
     static void stellarLifecycle() throws Exception {
         Fluid helium3=new Fluid("nei_helium3");FluidRegistry.registerFluid(helium3);Materials.Helium3.mGas=helium3;
@@ -234,21 +277,25 @@ class CriticalNEICatalogRuntime {
         Fluid promoter=new Fluid("combustionpromotor");FluidRegistry.registerFluid(promoter);
         Fluid ozone=new Fluid("nei_compound_ozone");FluidRegistry.registerFluid(ozone);Materials.Ozone.mFluid=ozone;
         var expected=CriticalChemicalRecipes.catalog(fuels);
-        check(expected.size()>=200&&expected.size()<=300,"200-300 actual compound schemes");
+        check(expected.size()==512,"complete native compound catalog has 512 examples");
         var map=CriticalRecipeMaps.forKind(CriticalMachineKind.BATTERY);
         int before=map.getAllRecipes().size();
         Method register=CriticalMachineRecipes.class.getDeclaredMethod("registerChemicalMixtures",List.class);
         register.setAccessible(true);register.invoke(null,fuels);
         check(map.getAllRecipes().size()==before+expected.size(),"compound-only indexed entries without single-fuel pages");
         Set<String> seen=new HashSet<>();
-        int previousPeak=101;
+        Map<Integer,Integer> componentCounts=new TreeMap<>();
+        int previousPeak=0;
         for(GTRecipe recipe:map.getAllRecipes()) {
             var info=CriticalRecipeMaps.displayInfo(recipe);if(info.compound==null)continue;
             var compound=info.compound;check(seen.add(compound.id),"unique compound scheme");
-            check(compound.peakMultiplier<=previousPeak,"high-efficiency examples sorted first");previousPeak=compound.peakMultiplier;
+            int components=compound.components.size();componentCounts.merge(components,1,Integer::sum);
+            check(compound.peakMultiplier>=(components==2?2:(components-2)*20+1)
+                &&compound.peakMultiplier<=(components-1)*20,"native example uses its component complexity efficiency band");
+            check(compound.peakMultiplier>=previousPeak,"native examples sorted from low to high efficiency");previousPeak=compound.peakMultiplier;
             check(recipe.mFakeRecipe&&!recipe.mHidden&&recipe.mEUt==0,"native indexed read-only compound query entry");
             check(recipe.mFluidInputs.length==compound.components.size()&&recipe.mFluidInputs.length>=2
-                &&recipe.mFluidInputs.length<=3,"two or three native clickable fluid inputs");
+                &&recipe.mFluidInputs.length<=6,"two through six native clickable fluid inputs");
             BigInteger heat=BigInteger.ZERO,total=BigInteger.ZERO;
             BigInteger[] litres=new BigInteger[compound.components.size()];int[] ratios=new int[litres.length];
             for(int i=0;i<litres.length;i++) {
@@ -266,6 +313,7 @@ class CriticalNEICatalogRuntime {
                 "example cycle and native no-byproduct output");
         }
         check(seen.size()==expected.size(),"every actual compound indexed once");
+        check(componentCounts.equals(Map.of(2,120,3,136,4,96,5,80,6,80)),"native indexed examples cover every 2-6 component family");
     }
     public static void run(String version) throws Exception {
         Issue37Runtime.bootstrap(version);
@@ -319,6 +367,26 @@ class CriticalNEICatalogRuntime {
             .metadata(GTRecipeConstants.FUSION_THRESHOLD,CriticalStellarPolicy.MKV_STARTUP).build().orElseThrow();
         check((Boolean)filter.invoke(null,fusion), "MkV boundary accepted");
         check(CriticalStellarPolicy.duration(fusion.mDuration)==400,"all native fusion durations become twenty seconds");
+        for(int nativeTicks:List.of(1,200,800,1600)){
+            long nativeEut=2_000_000L;
+            GTRecipe display=GTRecipeBuilder.builder().fluidInputs(new FluidStack(fluid,10))
+                .fluidOutputs(new FluidStack(fluid,1)).duration(400).eut(0).build().orElseThrow();
+            CriticalRecipeMaps.addFusionRecipe(display,nativeEut,nativeTicks);
+            var info=CriticalRecipeMaps.displayInfo(display);
+            check(info.nativeEut==nativeEut&&info.nativeTicks==nativeTicks,"fusion native power/time retained by indexed display");
+            long runtimePower=CriticalStellarPolicy.runEuPerTick(nativeEut,nativeTicks,1);
+            check(info.baseEu.equals(BigInteger.valueOf(runtimePower)),"fusion displayed EU/t equals runtime charged EU/t");
+            java.math.BigDecimal saved=new java.math.BigDecimal(com.miaokatze.gtsr.client.nei.CriticalNEIShowcase
+                .fusionDiscount(info).replace(",",""));
+            check(saved.compareTo(java.math.BigDecimal.valueOf(nativeEut-runtimePower)
+                .multiply(java.math.BigDecimal.valueOf(100)).divide(java.math.BigDecimal.valueOf(nativeEut)))==0,
+                "fusion displayed discount uses actual rounded runtime power");
+            String power=com.miaokatze.gtsr.client.nei.CriticalNEIShowcase.power(runtimePower);
+            check(power.contains("EU/t")&&power.indexOf('\u00a7')>=0&&!power.matches(".*[0-9][Ee][+-]?[0-9].*"),
+                "GT power line retains unit, native tier colors and full integer formatting");
+            check(power.replaceAll("\u00a7.","").matches("[0-9,]+ EU/t \\([0-9,]+A .+\\)"),
+                "native GT power line includes a complete parenthesized current and tier");
+        }
         fusion.mEUt=(int)GTValues.V[10]+1;
         check(!(Boolean)filter.invoke(null,fusion), "voltage overcap excluded");
         fusion.mEUt=100;fusion.mFakeRecipe=true;

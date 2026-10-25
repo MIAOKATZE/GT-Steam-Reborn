@@ -9,6 +9,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.critical.CompoundRecipe;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 
@@ -72,6 +73,22 @@ public final class CriticalRecipeMaps {
         register(map, recipe, info);
     }
 
+    public static void addFusionRecipe(GTRecipe recipe, long nativeEut, int nativeTicks) {
+        RecipeMap<RecipeMapBackend> map = forKind(CriticalMachineKind.SUN);
+        DisplayInfo info = new DisplayInfo(
+            map,
+            CriticalMachineKind.SUN,
+            "sun",
+            BigInteger.valueOf(
+                com.miaokatze.gtsr.common.critical.CriticalStellarPolicy.runEuPerTick(nativeEut, nativeTicks, 1)),
+            -1,
+            0,
+            1);
+        info.nativeEut = nativeEut;
+        info.nativeTicks = nativeTicks;
+        register(map, recipe, info);
+    }
+
     /** One page per major phase; native slot indices preserve each of the three paid rows. */
     public static void addConstruction(GTRecipe recipe, CriticalMachineKind kind, int group, ItemStack[][] items,
         FluidStack[][] fluids) {
@@ -85,6 +102,13 @@ public final class CriticalRecipeMaps {
                 "Construction row exceeds six items / two fluids: " + kind + "/" + group + "/" + row);
             System.arraycopy(items[row], 0, info.constructionItems, row * 6, items[row].length);
             System.arraycopy(fluids[row], 0, info.constructionFluids, row * 2, fluids[row].length);
+        }
+        if (group == 0) {
+            // Display-only optional accelerator, absent from recipe.mInputs and the paid bill.
+            // Zero size uses GT205's native non-consumed example marker.
+            ItemStack accelerator = GTSRItemList.CriticalSteamEntangledSingularity.get(1);
+            accelerator.stackSize = 0;
+            info.constructionItems[CriticalNEILayout.CURING_EXAMPLE_INDEX] = accelerator;
         }
         register(construction, recipe, info);
     }
@@ -139,9 +163,9 @@ public final class CriticalRecipeMaps {
             .maxIO(
                 0,
                 0,
-                kind == CriticalMachineKind.SUN || kind == CriticalMachineKind.BATTERY ? 3 : 1,
+                kind == CriticalMachineKind.BATTERY ? 6 : kind == CriticalMachineKind.SUN ? 3 : 1,
                 kind == CriticalMachineKind.BATTERY ? 0 : 1)
-            .frontend(CriticalRecipeFrontend::new)
+            .frontend((ui, nei) -> new CriticalRecipeFrontend(ui, nei, false, kind == CriticalMachineKind.BATTERY))
             .build();
     }
 
@@ -164,6 +188,8 @@ public final class CriticalRecipeMaps {
         private FluidStack[] constructionFluids;
         public CompoundRecipe compound;
         public BigInteger inputHeat = BigInteger.ZERO;
+        public long nativeEut;
+        public int nativeTicks;
 
         private DisplayInfo(RecipeMap<?> recipeMap, CriticalMachineKind kind, String operation, BigInteger baseEu,
             int spectrum, int page, int pages) {
@@ -184,9 +210,9 @@ public final class CriticalRecipeMaps {
             return construction() ? Integer.parseInt(operation.substring(6)) : -1;
         }
 
-        /** Four milestones retain the foundation context beside the three construction pages. */
+        /** Three major phases map directly to the three construction pages. */
         public int constructionGroup() {
-            return constructionStage() + 1;
+            return constructionStage();
         }
     }
 }

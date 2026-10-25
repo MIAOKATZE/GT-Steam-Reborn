@@ -30,7 +30,10 @@ def main():
         raise RuntimeError('Jar-only fixture output contains production overlays; choose a fresh --out')
     empty.mkdir(exist_ok=True)
     gt = next((CACHE / 'com.github.GTNewHorizons/GT5-Unofficial/5.09.54.205').glob('*/*-dev.jar'))
-    deps = [p for p in CACHE.glob('*/*/*/*/*.jar') if '/GT5-Unofficial/' not in p.as_posix()]
+    # Use the project's RC2 NEI dependency, not an older API left in the shared cache.
+    nei = next((CACHE / 'com.github.GTNewHorizons/NotEnoughItems/2.8.145-GTNH').glob('*/*-dev.jar'))
+    deps = [nei, *[p for p in CACHE.glob('*/*/*/*/*.jar')
+                   if '/GT5-Unofficial/' not in p.as_posix() and '/NotEnoughItems/' not in p.as_posix()]]
     baseline = args.jar.resolve() if args.jar else args.baseline.resolve() if args.baseline else ROOT / 'build/libs/gtsr-v2.0.7-dev.jar'
     candidate_hash = hashlib.sha256(baseline.read_bytes()).hexdigest()
     cp = os.pathsep.join(map(str, [classes, baseline,

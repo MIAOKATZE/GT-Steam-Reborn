@@ -19,11 +19,12 @@ import gregtech.api.enums.Materials;
 import gregtech.api.util.GTUtility;
 import gtPlusPlus.core.fluids.GTPPFluids;
 
-/** Fixed GT205 identities: 120 binary, 128 liquid/gas/rocket and eight promoted blends. */
+/** Fixed GT205 identities: 120 binary, 136 ternary, 96 quaternary, 80 quinary and 80 senary blends. */
 public final class CriticalChemicalRecipes {
 
     private static Map<GTUtility.FluidId, BigInteger> cachedPrices = ImmutableMap.of();
     private static List<CompoundRecipe> cachedCatalog = ImmutableList.of();
+    private static List<CompoundRecipe> cachedLegacyV2Catalog = ImmutableList.of();
     private static List<GTUtility.FluidId> cachedIdentities = ImmutableList.of();
     private static Fluid cachedPromoter, cachedOzone;
     private static volatile Map<String, CompoundRecipe> displayCatalog = ImmutableMap.of();
@@ -56,21 +57,26 @@ public final class CriticalChemicalRecipes {
             ChemicalFuel fuel = prices.get(GTUtility.FluidId.create(identities[i]));
             if (fuel != null && fuel.euPerL.signum() > 0) selected[i] = fuel;
         }
-        List<CompoundRecipe> result = new ArrayList<>(256);
+        List<CompoundRecipe> result = new ArrayList<>(512);
+        List<CompoundRecipe> legacy = new ArrayList<>(256);
         for (int i = 0; i < selected.length; i++) for (int j = i + 1; j < selected.length; j++) {
             int family = (i / 8 == j / 8 ? 0 : 12) + (j >= 12 ? 12 : 0);
-            add(
+            addLegacy(
                 result,
+                legacy,
                 "pair." + i + "." + j,
+                tierPeak(2, i * 16 + j),
                 12 + family + (i % 4) * 3 + j % 4,
                 component(selected[i], 1 + i % 4),
                 component(selected[j], 1 + j % 3));
         }
         for (int liquid = 0; liquid < 8; liquid++)
             for (int gas = 0; gas < 4; gas++) for (int rocket = 0; rocket < 4; rocket++) {
-                add(
+                addLegacy(
                     result,
+                    legacy,
                     "blend." + liquid + "." + gas + "." + rocket,
+                    tierPeak(3, liquid * 16 + gas * 4 + rocket),
                     48 + liquid * 3 + gas * 4 + rocket * 5,
                     component(selected[liquid], 4 + liquid % 3),
                     component(selected[8 + gas], 2 + gas),
@@ -79,26 +85,65 @@ public final class CriticalChemicalRecipes {
         ChemicalFuel promoter = auxiliary("combustionpromotor", prices);
         ChemicalFuel ozone = auxiliary(fluid(Materials.Ozone), prices);
         for (int rocket = 0; rocket < 4; rocket++) {
-            add(
+            addLegacy(
                 result,
+                legacy,
                 "promoted." + rocket,
+                37 + rocket,
                 94 + rocket * 2,
                 component(selected[5], 8),
                 component(selected[12 + rocket], 2 + rocket),
                 component(promoter, 1));
-            add(
+            addLegacy(
                 result,
+                legacy,
                 "ozonated." + rocket,
+                34 + rocket,
                 88 + rocket * 3,
                 component(selected[11], 6),
                 component(selected[12 + rocket], 2 + rocket),
                 component(ozone, 1));
         }
+        for (int liquid = 0; liquid < 8; liquid++)
+            for (int gas = 0; gas < 4; gas++) for (int rocket = 0; rocket < 4; rocket++) {
+                int variant = gas * 4 + rocket;
+                if (rocket < 3) add(
+                    result,
+                    "quaternary." + liquid + "." + gas + "." + rocket,
+                    tierPeak(4, liquid * 12 + gas * 3 + rocket),
+                    component(selected[liquid], 4 + liquid % 3),
+                    component(selected[8 + gas], 2 + gas),
+                    component(selected[12 + rocket], 1 + rocket),
+                    component(promoter, 1));
+                if (variant >= 10) continue;
+                add(
+                    result,
+                    "quinary." + liquid + "." + gas + "." + rocket,
+                    tierPeak(5, liquid * 10 + variant),
+                    component(selected[liquid], 4 + liquid % 3),
+                    component(selected[8 + gas], 2 + gas),
+                    component(selected[12 + rocket], 1 + rocket),
+                    component(promoter, 1),
+                    component(ozone, 1));
+                // The cyclic neighbouring liquid gives eight distinct liquid pairs, never an alias.
+                int secondLiquid = (liquid + 1) % 8;
+                add(
+                    result,
+                    "senary." + liquid + "." + gas + "." + rocket,
+                    tierPeak(6, liquid * 10 + variant),
+                    component(selected[liquid], 4 + liquid % 3),
+                    component(selected[secondLiquid], 2 + secondLiquid % 3),
+                    component(selected[8 + gas], 2 + gas),
+                    component(selected[12 + rocket], 1 + rocket),
+                    component(promoter, 1),
+                    component(ozone, 1));
+            }
         List<CompoundRecipe> immutable = ImmutableList.copyOf(result);
         // Do not freeze the early registration phase's empty catalogue.
         if (!immutable.isEmpty()) {
             cachedPrices = ImmutableMap.copyOf(signature);
             cachedCatalog = immutable;
+            cachedLegacyV2Catalog = ImmutableList.copyOf(legacy);
             cachedIdentities = identitySignature;
             cachedPromoter = promoterFluid;
             cachedOzone = ozoneFluid;
@@ -111,6 +156,11 @@ public final class CriticalChemicalRecipes {
         return immutable;
     }
 
+    /** Complexity bands are disjoint; only six-component reactions can reach 100x. */
+    private static int tierPeak(int components, int variant) {
+        return components == 2 ? 2 + variant % 19 : (components - 2) * 20 + 1 + variant % 20;
+    }
+
     /** Lookup for client labels; callers localize the component FluidStacks using the active language. */
     public static CompoundRecipe byId(String id) {
         if (displayCatalog.isEmpty()) catalog(CriticalGTRecipes.chemicalFuels());
@@ -119,6 +169,19 @@ public final class CriticalChemicalRecipes {
 
     /** Frozen receipt prices can be supplied here without revaluing already-paid fuel. */
     public static Match best(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres) {
+        return best(fuels, litres, false);
+    }
+
+    /** Only for an already-captured schema-2 payment; never publishes legacy values to NEI/byId. */
+    public static Match bestLegacyV2(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres) {
+        return best(fuels, litres, true);
+    }
+
+    private static synchronized List<CompoundRecipe> legacyV2Catalog(List<ChemicalFuel> fuels) {
+        return catalog(fuels).isEmpty() ? ImmutableList.of() : cachedLegacyV2Catalog;
+    }
+
+    private static Match best(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres, boolean legacyV2) {
         BigInteger total = BigInteger.ZERO, heat = BigInteger.ZERO;
         Map<GTUtility.FluidId, ChemicalFuel> prices = prices(fuels);
         for (Map.Entry<GTUtility.FluidId, BigInteger> entry : litres.entrySet()) {
@@ -132,7 +195,7 @@ public final class CriticalChemicalRecipes {
         }
         if (total.signum() == 0 || heat.signum() == 0) return null;
         Match best = null;
-        for (CompoundRecipe recipe : catalog(fuels)) {
+        for (CompoundRecipe recipe : legacyV2 ? legacyV2Catalog(fuels) : catalog(fuels)) {
             BigInteger[] amounts = new BigInteger[recipe.components.size()];
             int[] ratios = new int[amounts.length];
             for (int i = 0; i < amounts.length; i++) {
@@ -177,6 +240,12 @@ public final class CriticalChemicalRecipes {
 
     private static Component component(ChemicalFuel fuel, int ratio) {
         return fuel == null ? null : new Component(fuel, ratio);
+    }
+
+    private static void addLegacy(List<CompoundRecipe> target, List<CompoundRecipe> legacy, String id, int peak,
+        int legacyPeak, Component... components) {
+        add(target, id, peak, components);
+        add(legacy, id, legacyPeak, components);
     }
 
     private static void add(List<CompoundRecipe> target, String id, int peak, Component... components) {
