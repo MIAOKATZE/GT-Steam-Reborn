@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.air;
 
 import net.minecraft.world.World;
+import net.minecraft.world.biome.WorldChunkManager;
 
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
@@ -25,15 +26,14 @@ import gregtech.api.enums.Materials;
  * </ul>
  * <b>第五气的身份判定（T5 落位）</b>：sanzu 是 populate 后置写入平面的第 5 群系，链身份面
  * （{@link GTSRBiomeAuthority#ordinalAt} 的 Source=GenLayer 链 4 家 selector）<b>永远解析不到它</b>
- * ——故四气照走链身份，sanzu 一支改判 {@link GTSRVoronoiRiverField#isSanzuColumn}（与
+ * ——故四气走世界自身 manager 的细层方块身份，sanzu 一支改判 {@link GTSRVoronoiRiverField#isSanzuColumn}（与
  * {@code ChunkProviderProsperityRuins.onPopulate} 写平面<b>同一份谓词</b>，无第二真值：写什么列、
  * 压缩机就认什么列），且仅在 sanzu 已配槽（账本点名得到实例 ⇒ 平面才可能写它）时启用。
- * <b>P2b 身份读面收口 L1</b>（plan §2.1 L1 禁止项，GTSRBiomeAuthority 类注释登记的
- * "P2/后续"遗留处）：改造前经 {@code world.getBiomeGenForCoords}（读 Chunk 保存的 byte
- * biome 平面）+ {@code instanceof BiomeXxx} 四分支链判定；现走
- * {@link GTSRBiomeAuthority#ordinalAt(int, int)}——解析链是"绑定采样源（chunk manager 的
- * 确定性纯函数，与表层生成同表同种子）→ 实例账本"，不读 byte 平面、不做 {@code id - idStart}
- * 减法、不留 instanceof 链（sanzu 支同样不读平面——谓词是纯函数）。降级保护语义不变：群系未注册
+ * 方块身份由 {@code world.getWorldChunkManager().getBiomeGenAt(x,z)} 取本世界种子的细层 1:1
+ * 群系，再由 {@link GTSRBiomeAuthority#of} 按实例账本解析。不能使用 {@code ordinalAt}：它保留
+ * 结构用的 chunk 中心粗层语义，会将边界的不同列合并，且其绑定采样源可以被另一世界覆盖。
+ * 不读 byte 平面、不做 {@code id - idStart} 减法、不留 instanceof 链（sanzu 支同样不读平面——
+ * 谓词是纯函数）。降级保护语义不变：群系未注册
  * （账本点名不到）返回 null，由调用方回落（压缩机回落 Air）；非 dim78 维度经
  * {@link GTSRBiomeAuthority#forDimension(int)} 的未绑定空权威同样解析为 null。四对配对关系零改动
  * （只改"怎么判定是哪个群系"）。
@@ -43,7 +43,7 @@ public final class ProsperityAirLookup {
     private ProsperityAirLookup() {}
 
     /**
-     * 查询 (world,x,z) 处群系对应的繁荣空气材料（块坐标，L1 内部按 chunk 粒度解析）。
+     * 查询 (world,x,z) 处方块列群系对应的繁荣空气材料（块坐标，细层 1:1）。
      *
      * @return 命中名册群系时返回对应材料（注册失败降级时可能为 null），未命中返回 null
      */
@@ -51,8 +51,12 @@ public final class ProsperityAirLookup {
         if (world == null || world.provider == null) {
             return null;
         }
-        final BiomeId resolved = GTSRBiomeAuthority.forDimension(world.provider.dimensionId)
-            .ordinalAt(x, z).biomeId;
+        final WorldChunkManager manager = world.getWorldChunkManager();
+        if (manager == null) {
+            return null;
+        }
+        final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimension(world.provider.dimensionId);
+        final BiomeId resolved = authority.of(manager.getBiomeGenAt(x, z)).biomeId;
         if (resolved == null) {
             return null;
         }
@@ -60,8 +64,8 @@ public final class ProsperityAirLookup {
         // ═══ T5 第五气判定（plan §3.3/§3.4）：链身份面解析不到 populate 后置写入的第 5 群系 ⇒
         // sanzu 一支改判与平面写入同一谓词（isSanzuColumn 对 rosterIndex 构造不变 ⇒ 块级同解）；
         // sanzu 未配槽时账本无实例 ⇒ 平面永不写 sanzu ⇒ 不得配出三途余汽。═══
-        if (key != BiomeId.SANZU_RIVER && GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY)
-            .biomeOf(BiomeId.SANZU_RIVER) != null && GTSRVoronoiRiverField.isSanzuColumn(world.getSeed(), x, z)) {
+        if (key != BiomeId.SANZU_RIVER && authority.biomeOf(BiomeId.SANZU_RIVER) != null
+            && GTSRVoronoiRiverField.isSanzuColumn(world.getSeed(), x, z)) {
             key = BiomeId.SANZU_RIVER;
         }
         // ═══ P25 第七气判定（v1.20.48 用户裁定）：枯竭河床同样是 populate 后置写入平面的
@@ -70,8 +74,7 @@ public final class ProsperityAirLookup {
         // 平面永不写它 ⇒ 不得配出枯竭气息。次序：本支必须排在 sanzu 支之后——
         // isDryRiverColumn 冻结接口内含 !isSanzuColumn ⇒ sanzu 命中列在本支恒 false，
         // 两支互斥、无覆盖竞争（sanzu 优先级由谓词内含保证，不靠分支顺序之外的东西）。═══
-        if (key != BiomeId.WITHERED_RIVERBED && GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY)
-            .biomeOf(BiomeId.WITHERED_RIVERBED) != null
+        if (key != BiomeId.WITHERED_RIVERBED && authority.biomeOf(BiomeId.WITHERED_RIVERBED) != null
             && GTSRVoronoiRiverField.isDryRiverColumn(world.getSeed(), x, z)) {
             key = BiomeId.WITHERED_RIVERBED;
         }

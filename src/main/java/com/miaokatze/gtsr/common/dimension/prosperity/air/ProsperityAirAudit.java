@@ -14,6 +14,7 @@ import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.FictionTimeline;
+import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.loader.recipes.ProsperityAirCompressorRecipes;
 
@@ -66,18 +67,29 @@ public final class ProsperityAirAudit {
 
         int[][] samples = new int[6][];
         int found = 0;
-        // Pure authority/river queries: this does not generate or load terrain chunks.
+        // Independent expected identity: real fine block plane plus the populate-only dry river overlay.
+        // Do not choose expected feeds from Lookup itself: that accepts a consistently wrong dispatch.
+        // Pure manager/river queries: this does not generate or load terrain chunks.
         long sequence = world.getSeed();
         for (int n = 0; n < 32768 && found < 6; n++) {
             sequence = sequence * 6364136223846793005L + 1442695040888963407L;
             int x = (int) (sequence >>> 32) % 32768;
             sequence = sequence * 6364136223846793005L + 1442695040888963407L;
             int z = (int) (sequence >>> 32) % 32768;
+            BiomeId expected = authority.of(
+                world.getWorldChunkManager()
+                    .getBiomeGenAt(x, z)).biomeId;
+            if (expected != null && authority.biomeOf(BiomeId.WITHERED_RIVERBED) != null
+                && GTSRVoronoiRiverField.isDryRiverColumn(world.getSeed(), x, z)) {
+                expected = BiomeId.WITHERED_RIVERBED;
+            }
             Materials actual = ProsperityAirLookup.of(world, x, z);
-            for (int i = 0; i < 6; i++) if (actual == feeds[i] && samples[i] == null) {
-                require(authority.ordinalAt(x, z).biomeId != null, "unresolved sample authority");
-                samples[i] = new int[] { x, z };
-                found++;
+            for (int i = 0; i < 6; i++) if (expected == biomes[i]) {
+                require(actual == feeds[i], "block biome air mismatch at " + x + "," + z + " expected=" + expected);
+                if (samples[i] == null) {
+                    samples[i] = new int[] { x, z };
+                    found++;
+                }
             }
         }
         require(found == 6, "actual six-air samples incomplete: " + found + "/6");
