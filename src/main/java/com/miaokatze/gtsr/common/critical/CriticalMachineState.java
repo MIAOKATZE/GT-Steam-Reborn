@@ -232,6 +232,18 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return true;
     }
 
+    public boolean getSolarSaltMode() {
+        return energyRuntime.getBoolean("solarSaltMode");
+    }
+
+    /** Changes the next batch only; the prepaid runtime retains its frozen output route. */
+    public boolean selectSolarSaltMode(EntityPlayer player) {
+        if (!canUse(player) || config.kind != CriticalMachineKind.SOLAR) return false;
+        energyRuntime.setBoolean("solarSaltMode", !getSolarSaltMode());
+        markDirty();
+        return true;
+    }
+
     public String getProcessingMode() {
         return processingMode;
     }

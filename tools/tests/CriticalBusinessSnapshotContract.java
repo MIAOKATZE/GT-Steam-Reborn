@@ -27,6 +27,7 @@ public final class CriticalBusinessSnapshotContract {
     }
 
     public static void main(String[] args) throws Exception {
+        energyProjection();
         Constructor<CriticalConstructionSnapshot> mapConstructor = CriticalConstructionSnapshot.class
             .getDeclaredConstructor(int[].class);
         mapConstructor.setAccessible(true);
@@ -134,6 +135,53 @@ public final class CriticalBusinessSnapshotContract {
         tooManyIdentities.writeVarIntToBuffer(65);
         rejects(read, tooManyIdentities, "identity count must be bounded before allocation");
         System.out.println("PASS CriticalBusinessSnapshotContract checks=" + checks);
+    }
+
+    private static void energyProjection() throws Exception {
+        com.miaokatze.gtsr.common.critical.CriticalMachineState state =
+            new com.miaokatze.gtsr.common.critical.CriticalMachineState();
+        java.lang.reflect.Field config = state.getClass().getDeclaredField("config");
+        config.setAccessible(true);
+        config.set(state, new com.miaokatze.gtsr.common.critical.CriticalConfiguration(
+            com.miaokatze.gtsr.common.critical.CriticalTier.T3,
+            com.miaokatze.gtsr.common.critical.CriticalMachineKind.SOLAR, 0, 0, 0));
+        NBTTagCompound data = state.energyRuntimeData();
+        data.setBoolean("solarSaltMode", true);
+        data.setBoolean("solarBatchSaltMode", false);
+        data.setString("solarCoolant", "cryotheum");
+        data.setString("solarExciter", "helium");
+        java.math.BigInteger max = java.math.BigInteger.valueOf(
+            com.miaokatze.gtsr.common.critical.CriticalSolarPolicy.MAX_VOLTAGE);
+        data.setString("solarEquivalentEU", max.multiply(java.math.BigInteger.valueOf(864L * 400L))
+            .add(java.math.BigInteger.ONE).toString());
+        data.setString("solarRatedEUt", "999999999999999");
+        data.setDouble("solarLoad", 0.75D);
+        Method projection = CriticalBusinessSnapshot.class.getDeclaredMethod("runtime", state.getClass());
+        projection.setAccessible(true);
+        String[][] rows = (String[][]) projection.invoke(null, state);
+        check(value(rows, "solar.route").equals("1") && value(rows, "solar.batch_route").equals("0"),
+            "next route and prepaid route remain distinct in one sample");
+        check(value(rows, "solar.coolant").equals("cryotheum") && value(rows, "solar.exciter").equals("helium"),
+            "paid coolant and exciter identities are sampled together");
+        check(value(rows, "solar.equivalent_power").equals("864A MAX"),
+            "equivalent power uses actual batch EU rather than the rated maximum");
+        check(value(rows, "solar.load").equals("75.0%"), "partial load is explicit");
+        data.setString("solarEquivalentEU", max.multiply(java.math.BigInteger.valueOf(400))
+            .divide(java.math.BigInteger.valueOf(3)).toString());
+        rows = (String[][]) projection.invoke(null, state);
+        check(value(rows, "solar.equivalent_power").equals("0.333A MAX"),
+            "a non-terminating MAX fraction rounds without crashing the UI sampler");
+        check(!data.getBoolean("funded") && state.getSolarSaltMode(), "projection cannot mutate payment or selection");
+        config.set(state, new com.miaokatze.gtsr.common.critical.CriticalConfiguration(
+            com.miaokatze.gtsr.common.critical.CriticalTier.T3,
+            com.miaokatze.gtsr.common.critical.CriticalMachineKind.TURBINE, 0, 0, 0));
+        data.setInteger("turbineRunTicks", 1234);
+        data.setInteger("turbineTargetWarmupTicks", 1600);
+        rows = (String[][]) projection.invoke(null, state);
+        check(value(rows, "steam.warmup").equals("1234 / 1600 t"), "equivalent-heat target replaces old trend thresholds");
+        check(Arrays.stream(rows).noneMatch(row -> row[0].equals("ui.runtime.steam.rise")
+            || row[0].equals("ui.runtime.steam.fall")), "removed rise/fall rewards cannot leak into the terminal");
+        check(rows.length <= 40, "runtime sample remains within the native packet row bound");
     }
 
     private static String value(String[][] rows, String suffix) {

@@ -249,6 +249,15 @@ public final class MTECriticalMachineTerminalGui {
                 .setEnabledIf(w -> loomController.getValue())
                 .tooltipBuilder(t -> t.add(IKey.lang(key("configuration_hint")))));
         page.child(
+            action(manager, "ui.solar.change_route", player -> state.selectSolarSaltMode(player))
+                .overlay(
+                    IKey.dynamic(() -> tr("ui.solar.route." + runtimeValue("solar.route")))
+                        .color(CriticalGuiStyle.TEXT_CONTROL))
+                .pos(0, 0)
+                .size(210, 20)
+                .setEnabledIf(w -> configuration().kind == CriticalMachineKind.SOLAR && !loomController.getValue())
+                .tooltipBuilder(t -> t.add(IKey.lang(key("ui.solar.route_hint")))));
+        page.child(
             action(manager, "ui.change_mode", player -> state.selectSteamMode(player))
                 .overlay(
                     IKey.dynamic(
@@ -500,7 +509,7 @@ public final class MTECriticalMachineTerminalGui {
         return tr(switch (configuration().kind) {
             case BATTERY -> "ui.runtime.chemical.efficiency";
             case TURBINE -> "ui.runtime.steam.multiplier";
-            case SOLAR -> "ui.runtime.solar.water_status";
+            case SOLAR -> "ui.runtime.solar.route";
             case SUN -> "ui.runtime.sun.ignition_paid";
             default -> "batch";
         });
@@ -510,9 +519,7 @@ public final class MTECriticalMachineTerminalGui {
         return switch (configuration().kind) {
             case BATTERY -> runtimeValue("chemical.efficiency");
             case TURBINE -> runtimeValue("steam.multiplier");
-            case SOLAR -> tr(
-                "ui.branch."
-                    + (runtimeValue("solar.water_status").isEmpty() ? "none" : runtimeValue("solar.water_status")));
+            case SOLAR -> tr("ui.solar.route." + runtimeValue("solar.route"));
             case SUN -> runtimeValue("sun.ignition_paid");
             default -> time(
                 business.getValue()
@@ -586,6 +593,10 @@ public final class MTECriticalMachineTerminalGui {
         else if (label.equals("ui.runtime.sun.production_paused")) value = tr("ui.sun.paused." + value);
         else if ((label.equals("ui.runtime.solar.mode") || label.equals("ui.runtime.solar.batch_mode")))
             value = tr("steam_mode." + value);
+        else if (label.equals("ui.runtime.solar.route") || label.equals("ui.runtime.solar.batch_route"))
+            value = tr("ui.solar.route." + value);
+        else if (label.equals("ui.runtime.solar.coolant")) value = value.isEmpty() ? "—" : tr("solar.coolant." + value);
+        else if (label.equals("ui.runtime.solar.exciter")) value = value.isEmpty() ? "—" : tr("solar.exciter." + value);
         else if (label.equals("ui.runtime.settlement")) value = tr("ui.settlement." + value);
         if (sample.configuration().kind == CriticalMachineKind.BATTERY) {
             if (label.equals("ui.runtime.batch_wireless")) label = "ui.chemical.receivable";
@@ -916,7 +927,7 @@ public final class MTECriticalMachineTerminalGui {
             tooltip.add(operationLine(section));
         }
         if (current == CriticalMachineKind.TURBINE) {
-            tooltip.add(tr("operation.trend"));
+            tooltip.add(tr("operation.warmup"));
             tooltip.add(tr("operation.idle"));
         }
         if (current == CriticalMachineKind.BATTERY) {

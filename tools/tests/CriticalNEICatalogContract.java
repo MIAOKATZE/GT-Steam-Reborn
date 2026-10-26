@@ -289,6 +289,99 @@ class CriticalNEICatalogRuntime {
         }
         check(phases.equals(Set.of("stellar_ignition","stellar_sustain")),"ignition and sustain both indexed");
     }
+    static Fluid solarFluid(String name) {
+        Fluid fluid=FluidRegistry.getFluid(name);
+        if(fluid==null){fluid=new Fluid(name);FluidRegistry.registerFluid(fluid);}
+        return fluid;
+    }
+    static void solarCatalogue() throws Exception {
+        // Fluid identities only; invoke the production loader and compare all paid sample quantities.
+        solarFluid("ic2distilledwater");
+        Materials.Steam.mGas=solarFluid("steam");
+        Materials.DenseSteam.mGas=solarFluid("densesteam");
+        Materials.DenseSuperheatedSteam.mGas=solarFluid("densesuperheatedsteam");
+        Materials.DenseSupercriticalSteam.mGas=solarFluid("densesupercriticalsteam");
+        Materials.SuperCoolant.mFluid=solarFluid("nei_solar_supercoolant");
+        solarFluid("cryotheum");
+        Materials.Time.mStandardMoltenFluid=solarFluid("nei_solar_tachyon");
+        Materials.Space.mStandardMoltenFluid=solarFluid("nei_solar_spatial");
+        Materials.Helium.mPlasma=solarFluid("nei_solar_helium");
+        Materials.Helium.mGas=solarFluid("nei_solar_helium_gas");
+        Materials.Iron.mPlasma=solarFluid("nei_solar_iron");
+        Materials.Americium.mPlasma=solarFluid("nei_solar_americium");
+        bartworks.system.material.WerkstoffLoader.molten.put(goodgenerator.items.GGMaterial.atomicSeparationCatalyst,
+            solarFluid("nei_solar_atomic"));
+        gtPlusPlus.core.material.MaterialMisc.SOLAR_SALT_COLD.setFluid(solarFluid("nei_solar_cold_salt"));
+        gtPlusPlus.core.material.MaterialMisc.SOLAR_SALT_HOT.setFluid(solarFluid("nei_solar_hot_salt"));
+        gregtech.api.util.GTOreDictUnificator.getName2StackMap().put(OrePrefixes.dust.get(Materials.Stone).toString(),
+            new ItemStack(Items.flint));
+        com.miaokatze.gtsr.common.api.enums.GTSRItemList.IrradiatedStoneDust.set(new ItemStack(Items.quartz));
+        Set<GTRecipe> previous=Collections.newSetFromMap(new IdentityHashMap<>());
+        previous.addAll(CriticalRecipeMaps.forKind(CriticalMachineKind.SOLAR).getAllRecipes());
+        Method register=CriticalMachineRecipes.class.getDeclaredMethod("registerSolar");
+        register.setAccessible(true);register.invoke(null);
+        var coolant=CriticalSolarPolicy.COOLANTS.get(0);
+        var activator=CriticalSolarPolicy.EXCITERS.get(0);
+        BigInteger rated=CriticalSolarPolicy.batchBudgetEU(1D,coolant,activator,false);
+        Set<String> media=new HashSet<>();Set<Integer> steamModes=new HashSet<>();
+        BigInteger waterEU=null,saltEU=null;
+        for(GTRecipe recipe:CriticalRecipeMaps.forKind(CriticalMachineKind.SOLAR).getAllRecipes()) {
+            if(previous.contains(recipe))continue;
+            var info=CriticalRecipeMaps.displayInfo(recipe);
+            if(info.solarMedium!=null) {
+                check(media.add(info.solarMedium.id),"one concise entry per distinct solar medium");
+                check(recipe.mFluidInputs.length==1&&recipe.mFluidInputs[0].amount
+                    ==CriticalSolarPolicy.paidLitres(info.solarMedium,BigInteger.ONE,BigInteger.ONE).intValueExact(),
+                    "solar medium example bill uses the runtime policy");
+                check(CriticalSolarPolicy.COOLANTS.contains(info.solarMedium)
+                    ||CriticalSolarPolicy.EXCITERS.contains(info.solarMedium),"NEI retains canonical policy entry identity");
+                continue;
+            }
+            if(!Set.of("solar_water","solar_salt").contains(info.operation)||info.baseEu.signum()==0)continue;
+            check(recipe.mFluidInputs.length==3,"every operating route shows mandatory coolant AND activator beside its working fluid");
+            check(recipe.mFluidInputs[1].isFluidEqual(CriticalEnergyRuntime.solarCoolant(coolant)),
+                "operating example shows the actual native Super Coolant fluid");
+            check(recipe.mFluidInputs[1].amount==CriticalSolarPolicy.paidLitres(coolant,info.baseEu,rated).intValueExact(),
+                "low-load operating coolant amount uses whole-batch proportional ceiling");
+            check(recipe.mFluidInputs[2].isFluidEqual(CriticalEnergyRuntime.solarExciter(activator))
+                &&recipe.mFluidInputs[2].amount==CriticalSolarPolicy.paidLitres(activator,info.baseEu,rated).intValueExact(),
+                "low-load example also prepays the actual helium-gas activator using the shared policy");
+            check(recipe.mDuration==CriticalEnergyMath.CYCLE_TICKS,"all solar views keep a fixed 400-tick batch");
+            if(info.operation.equals("solar_salt")) {
+                saltEU=info.baseEu;
+                check(recipe.mFluidInputs[0].amount==CriticalSolarPolicy.saltLitres(saltEU).intValueExact()
+                    &&recipe.mFluidOutputs[0].amount==recipe.mFluidInputs[0].amount,"salt example pays equal-volume hot salt");
+            } else {
+                if(waterEU==null)waterEU=info.baseEu;
+                check(waterEU.equals(info.baseEu),"six water-route steam forms retain equal equivalent EU");
+                int mode=-1;for(int i=0;i<6;i++)if(recipe.mFluidOutputs[0].isFluidEqual(CriticalEnergyRuntime.steam(i)))mode=i;
+                check(mode>=0&&steamModes.add(mode),"one operation example per native steam form");
+                BigInteger heat=BigInteger.valueOf(recipe.mFluidOutputs[0].amount)
+                    .multiply(CriticalEnergyMath.steamHeatPerL(mode));
+                check(heat.equals(CriticalSolarPolicy.waterHalfHeat(info.baseEu)),"all steam volumes use the common exact heat quantum");
+            }
+        }
+        check(media.size()==CriticalSolarPolicy.COOLANTS.size()+CriticalSolarPolicy.EXCITERS.size(),
+            "all three coolant and six required activator alternatives indexed");
+        check(steamModes.size()==6,"all six water-route steam forms indexed: "+steamModes);
+        check(saltEU.equals(waterEU.multiply(BigInteger.valueOf(CriticalSolarPolicy.SALT_POWER_MULTIPLIER))),
+            "salt sample demonstrates exactly twice the same-grade water-route equivalent EU: water="+waterEU+" salt="+saltEU);
+        int dust=0;
+        for(GTRecipe recipe:CriticalRecipeMaps.stellarIrradiation.getAllRecipes()) {
+            var info=CriticalRecipeMaps.displayInfo(recipe);
+            if(!info.operation.equals("solar_dust")||recipe.mFluidInputs.length==0)continue;
+            dust++;
+            check(recipe.mFluidInputs.length==2,"dust irradiation visibly requires both media");
+            for(int i=0;i<2;i++) {
+                var entry=i==0?coolant:activator;
+                check(recipe.mFluidInputs[i].isFluidEqual(i==0?CriticalEnergyRuntime.solarCoolant(entry)
+                    :CriticalEnergyRuntime.solarExciter(entry))&&recipe.mFluidInputs[i].amount
+                    ==CriticalSolarPolicy.paidLitres(entry,CriticalSolarPolicy.irradiationBudgetEU(rated),rated).intValueExact(),
+                    "dust-only coolant/activator payments use the runtime minimum-load policy");
+            }
+        }
+        check(dust>0,"a real dust operation example covers the dual-mandatory-media contract");
+    }
     static void chemicalCompounds() throws Exception {
         // Identity fixture only; the actual GT205 helper still creates zero-sized selector stacks.
         ItemList.Circuit_Integrated.set(new ItemStack(Items.comparator));
@@ -457,6 +550,7 @@ class CriticalNEICatalogRuntime {
         showcaseTemplate();
         fullConstruction();
         stellarLifecycle();
+        solarCatalogue();
         chemicalCompounds();
         runtimeTemplatesAndUniqueness();
         System.out.println("PASS NEI catalog " + checks + " checks; "

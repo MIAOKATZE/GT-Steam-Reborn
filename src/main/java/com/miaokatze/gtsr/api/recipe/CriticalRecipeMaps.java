@@ -12,6 +12,7 @@ import net.minecraftforge.fluids.FluidStack;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.critical.CompoundRecipe;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
+import com.miaokatze.gtsr.common.critical.CriticalSolarPolicy;
 
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMapBackend;
@@ -86,6 +87,21 @@ public final class CriticalRecipeMaps {
             1);
         info.nativeEut = nativeEut;
         info.nativeTicks = nativeTicks;
+        register(map, recipe, info);
+    }
+
+    /** The same immutable entry drives the paid runtime medium and its NEI example. */
+    public static void addSolarMedium(GTRecipe recipe, CriticalSolarPolicy.Entry entry, boolean coolant) {
+        RecipeMap<RecipeMapBackend> map = forKind(CriticalMachineKind.SOLAR);
+        DisplayInfo info = new DisplayInfo(
+            map,
+            CriticalMachineKind.SOLAR,
+            coolant ? "solar_coolant" : "solar_exciter",
+            BigInteger.ZERO,
+            -1,
+            0,
+            1);
+        info.solarMedium = entry;
         register(map, recipe, info);
     }
 
@@ -175,7 +191,8 @@ public final class CriticalRecipeMaps {
             .maxIO(
                 kind == CriticalMachineKind.BATTERY ? 1 : 0,
                 0,
-                kind == CriticalMachineKind.BATTERY ? 9 : kind == CriticalMachineKind.SUN ? 3 : 1,
+                kind == CriticalMachineKind.BATTERY ? 9
+                    : kind == CriticalMachineKind.SUN ? 3 : kind == CriticalMachineKind.SOLAR ? 3 : 1,
                 kind == CriticalMachineKind.BATTERY ? 0 : 1)
             .frontend((ui, nei) -> new CriticalRecipeFrontend(ui, nei, false, kind == CriticalMachineKind.BATTERY))
             .build();
@@ -203,6 +220,7 @@ public final class CriticalRecipeMaps {
         public BigInteger inputHeat = BigInteger.ZERO;
         public long nativeEut;
         public int nativeTicks;
+        public CriticalSolarPolicy.Entry solarMedium;
 
         private DisplayInfo(RecipeMap<?> recipeMap, CriticalMachineKind kind, String operation, BigInteger baseEu,
             int spectrum, int page, int pages) {

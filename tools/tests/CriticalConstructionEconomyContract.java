@@ -18,7 +18,7 @@ import net.minecraftforge.fluids.FluidStack;
 /** Real ledger and NBT with an explicit frozen manifest; no world, ME simulation or FML startup. */
 public final class CriticalConstructionEconomyContract {
     private static int checks;
-    private static final Item SHELL = new Item(), EQUIPMENT = new Item(), CONTROLLER = new Item();
+    private static final Item SHELL = new Item(), EQUIPMENT = new Item(), CONTROLLER = new Item(), SINGULARITY = new Item();
     private static final Fluid SOLDER = new Fluid("gtsr_economy_solder"), COOLANT = new Fluid("gtsr_economy_coolant");
 
     private static void check(boolean pass, String message) {
@@ -100,8 +100,8 @@ public final class CriticalConstructionEconomyContract {
         CriticalConstructionEconomy current = currentManifest(carrier);
         List<CriticalGeometry.Voxel> positions = Arrays.asList(
             voxel(21, 1, false), voxel(22, 2, false), voxel(23, 3, false), voxel(24, 4, false), carrier, main);
-        check(CriticalConstructionEconomy.VERSION == 7 && current.version() == 4,
-            "Only newly frozen jobs use economy version 7; saved version 4 keeps its price basis");
+        check(CriticalConstructionEconomy.VERSION == 8 && current.version() == 4,
+            "Only newly frozen jobs use economy version 8; saved version 4 keeps its price basis");
         check(fluidCount(current.fluidCosts(positions, 0, 1), SOLDER) == 7
             && fluidCount(current.fluidCosts(positions, 1, 2), SOLDER) == 13
             && fluidCount(current.fluidCosts(positions, 2, 3), COOLANT) == 17
@@ -233,6 +233,9 @@ public final class CriticalConstructionEconomyContract {
         int[] extraShells = { 1526, 2920, 2149, 1097 };
         int[][] expectedSteps = { { 1024, 128, 64, 32, 32, 1 }, { 2048, 128, 512, 32, 32, 1 },
             { 1024, 256, 256, 32, 32, 1 }, { 512, 128, 256, 32, 32, 1 } };
+        int[] expectedSingularities = { 1409, 833, 801, 1984 };
+        int[][] perStepSingularities = { { 3, 3, 3, 2, 0, 1 }, { 1, 2, 1, 0, 2, 1 },
+            { 1, 1, 1, 0, 1, 1 }, { 3, 3, 3, 1, 1, 0 } };
         int[][] expectedStages = { { 6730, 8950, 9198, 43118 }, { 6730, 8950, 9198, 93654 },
             { 6730, 8950, 9198, 77749 }, { 6730, 8950, 9198, 34325 } };
         for (int k = 0; k < kinds.length; k++) {
@@ -260,28 +263,30 @@ public final class CriticalConstructionEconomyContract {
             for (int quantity : quantities.values()) surplus += (quantity + 15) / 16 * 16 - quantity;
             check(surplus == expectedSurplus[k], "Full-job per-identity manufacturing rounds once and leaves the original-table surplus");
             CriticalConstructionEconomy frozen = CriticalConstructionEconomy.freeze(config, paid, layout.cacheKey());
-            check(frozen.version() == 7 && count(frozen.demand(), CONTROLLER) == 1, "New full job freezes v7 and one complete controller " + kinds[k]);
+            check(frozen.version() == 8 && count(frozen.demand(), CONTROLLER) == 1, "New full job freezes v8 and one complete controller " + kinds[k]);
+            check(count(frozen.demand(), SINGULARITY) == expectedSingularities[k], "New construction adds the complete machine-specific singularity price " + kinds[k]);
             long shellsPaid = 0;
-            for (ItemStack item : frozen.demand()) if (item.getItem() != CONTROLLER && item.getItem() != EQUIPMENT) shellsPaid += item.stackSize;
+            for (ItemStack item : frozen.demand()) if (item.getItem() != CONTROLLER && item.getItem() != EQUIPMENT && item.getItem() != SINGULARITY) shellsPaid += item.stackSize;
             check(shellsPaid == expectedShells[k] + extraShells[k], "Rounded family parts include every local real shell allocation " + kinds[k]);
             List<ItemStack> displayed = new ArrayList<>(); List<FluidStack> displayedFluids = new ArrayList<>();
             int[] rowPositions = new int[6];
             for (CriticalGeometry.Voxel voxel : paid) rowPositions[frozen.stage(voxel) - 4]++;
             for (int group = 1; group <= 2; group++) for (int row = 0; row < 3; row++) {
                 CriticalConstructionEconomy.DisplayRow profile = frozen.displayRowProfile(group, row, paid);
-                check(profile.steps == expectedSteps[k][(group - 1) * 3 + row]
+                check(profile.steps == Math.min(256, expectedSteps[k][(group - 1) * 3 + row])
                     && profile.steps <= CriticalConstructionEconomy.MAX_WORK_STEPS,
                     "Real repeated work count and one merged sensing/wiring step " + kinds[k] + "/" + group + "/" + row);
                 System.out.println("STEPS " + kinds[k] + "/" + group + "/" + row + "=" + profile.steps);
                 int itemCount = 0;
                 for (ItemStack item : profile.perStepItems()) {
                     itemCount += item.stackSize;
-                    check(group == 2 && row == 2 || item.stackSize <= 64,
-                        "Each real work-step identity fits one inventory stack");
+                    check(item.stackSize > 0, "Every merged work-step identity retains its full positive quantity");
                     System.out.println("ITEM " + kinds[k] + "/" + group + "/" + row + " "
                         + frozen.identity(item) + "=" + item.stackSize);
                 }
-                check(group == 2 && row == 2 || itemCount <= 128, "Each actual work step uses at most 128 items");
+                check(itemCount > 0, "Every actual work step has its complete item debit");
+                check(count(profile.perStepItems(), SINGULARITY) == perStepSingularities[k][(group - 1) * 3 + row],
+                    "Small repeated singularity doses use spare identity slots throughout body and installation work");
                 for (FluidStack medium : profile.perStepFluids())
                     System.out.println("MEDIUM " + kinds[k] + "/" + group + "/" + row + " " + medium.getFluid().getName() + "=" + medium.amount);
                 boolean advanced = false;
@@ -346,6 +351,11 @@ public final class CriticalConstructionEconomyContract {
             boolean rowsEqual = true;
             for (CriticalGeometry.Voxel voxel : paid) rowsEqual &= restored.stage(voxel) == frozen.stage(voxel);
             check(rowsEqual && sameBill(restored.demand(), frozen.demand()), "Frozen price and every position's stage survive NBT " + kinds[k]);
+            singularityDistribution(frozen, paid, kinds[k]);
+            mergedPayments(frozen, paid);
+            CriticalConstructionEconomy legacy = legacySevenPayments(frozen, paid, expectedSteps[k]);
+            concentratedEightPayments(legacy, paid, kinds[k]);
+            singularityRecovery(frozen, paid, expectedSingularities[k]);
             if (k == 0) {
                 check(frozen.stage(voxel(800_000, 4, false)) == 0,
                     "Positions excluded from the frozen price basis remain user-built rather than acquiring a future bill");
@@ -357,6 +367,173 @@ public final class CriticalConstructionEconomyContract {
             boolean rejected = false; try { CriticalConstructionEconomy.read(schedule); } catch (IllegalArgumentException expected) { rejected = true; }
             check(rejected, "Missing v5 schedule cannot waive payment " + kinds[k]);
         }
+    }
+
+    private static void singularityDistribution(CriticalConstructionEconomy frozen, List<CriticalGeometry.Voxel> paid,
+        CriticalMachineKind kind) {
+        int[] positions = new int[6], owners = new int[6], totals = new int[6], maximum = new int[6];
+        for (CriticalGeometry.Voxel voxel : paid) {
+            int row = frozen.stage(voxel) - 4, local = Math.toIntExact(count(frozen.bill(voxel), SINGULARITY));
+            positions[row]++; totals[row] += local; maximum[row] = Math.max(maximum[row], local);
+            if (local > 0) owners[row]++;
+        }
+        for (int row = 0; row < 6; row++) {
+            check(owners[row] == Math.min(positions[row], totals[row])
+                && maximum[row] <= (totals[row] + positions[row] - 1) / positions[row],
+                "Each row spreads singularities evenly over real local repair bills");
+            System.out.println("DISTRIBUTION " + kind + "/" + (row / 3 + 1) + "/" + row % 3
+                + " owners=" + owners[row] + " max=" + maximum[row] + " total=" + totals[row]);
+        }
+    }
+
+    private static void mergedPayments(CriticalConstructionEconomy frozen, List<CriticalGeometry.Voxel> paid) {
+        List<CriticalGeometry.Voxel> first = new ArrayList<>();
+        for (CriticalGeometry.Voxel voxel : paid) if (frozen.stage(voxel) == 4) first.add(voxel);
+        CriticalConstructionLedger ledger = new CriticalConstructionLedger(); ledger.freezeJob(frozen); ledger.snapshotPhysicalStage(first);
+        CriticalConstructionLedger.Round round = ledger.planPhysicalRound(400, first);
+        ItemStack[] expected = frozen.displayRowProfile(1, 0, paid).perStepItems();
+        check(sameBill(round.items(), expected), "Merged real payment equals the displayed per-step quantities beyond 64 items");
+        ledger.recordRoundPayment(round.items(), round.fluids()); ledger.advanceElapsed(round.next); ledger = reload(ledger);
+        check(!ledger.hasIntegrityError() && ledger.stageRoundCount(ledger.stageItems(), ledger.stageFluids(), 4) == 256
+            && ledger.planPhysicalRound(400, first).items().length == 0 && sameBill(ledger.recoveryItems(1), expected),
+            "Merged schema8 checkpoint retains every paid unit as escrow across reload without duplicate payment");
+        NBTTagCompound oversized = save(ledger); oversized.setInteger("constructionStepCount", 512);
+        CriticalConstructionLedger isolated = new CriticalConstructionLedger(); isolated.read(oversized);
+        check(isolated.hasIntegrityError(), "Schema8 rejects an out-of-range 512-step checkpoint while schema7 still supports its frozen larger counts");
+        ledger.clearSpentItems(); ledger = reload(ledger); conservation(ledger);
+        check(ledger.recoveryItems(1).length == 0, "Merged large escrow is refunded at most once");
+    }
+
+    /** Expanded legacy work counts and paid checkpoints remain untouched by the new schema's 256-step limit. */
+    private static CriticalConstructionEconomy legacySevenPayments(CriticalConstructionEconomy frozen, List<CriticalGeometry.Voxel> paid, int[] counts) {
+        NBTTagCompound n = new NBTTagCompound(); frozen.write(n); n.setInteger("version", 7);
+        n.setTag("demand", withoutSingularities(n.getTagList("demand", 10)));
+        NBTTagList schedule = n.getTagList("workSchedule", 10), profiles = n.getTagList("stepProfiles", 10);
+        for (int i = 0; i < schedule.tagCount(); i++) {
+            NBTTagCompound row = schedule.getCompoundTagAt(i);
+            row.setTag("extraItems", withoutSingularities(row.getTagList("extraItems", 10)));
+        }
+        for (int i = 0; i < profiles.tagCount(); i++) {
+            NBTTagCompound row = profiles.getCompoundTagAt(i); int index = row.getInteger("stage") - 4;
+            int divisor = counts[index] / row.getInteger("steps");
+            ItemStack[] items = CriticalResourceNbt.readItems(withoutSingularities(row.getTagList("items", 10)), -1);
+            FluidStack[] fluids = CriticalResourceNbt.readFluids(row.getTagList("fluids", 10), -1);
+            for (ItemStack item : items) item.stackSize /= divisor;
+            for (FluidStack fluid : fluids) fluid.amount /= divisor;
+            row.setInteger("steps", counts[index]); row.setTag("items", CriticalResourceNbt.writeItems(items));
+            row.setTag("fluids", CriticalResourceNbt.writeFluids(fluids));
+        }
+        CriticalConstructionEconomy legacy = CriticalConstructionEconomy.read(n);
+        NBTTagCompound copy = new NBTTagCompound(); legacy.write(copy);
+        check(copy.equals(n) && count(legacy.demand(), SINGULARITY) == 0, "Saved schema7 retains all original prices, work counts and no new singularity cost");
+        List<CriticalGeometry.Voxel> first = new ArrayList<>();
+        for (CriticalGeometry.Voxel voxel : paid) if (legacy.stage(voxel) == 4) first.add(voxel);
+        CriticalConstructionLedger ledger = new CriticalConstructionLedger(); ledger.freezeJob(legacy); ledger.snapshotPhysicalStage(first);
+        check(ledger.stageRoundCount(ledger.stageItems(), ledger.stageFluids(), 4) == counts[0], "Legacy stage keeps its original 512/1024/2048-step count");
+        CriticalConstructionLedger.Round round = ledger.planPhysicalRound(400, first);
+        ledger.recordRoundPayment(round.items(), round.fluids()); ledger.advanceElapsed(round.next);
+        NBTTagCompound saved = save(ledger); ledger = reload(ledger);
+        check(!ledger.hasIntegrityError() && save(ledger).equals(saved) && ledger.planPhysicalRound(400, first).items().length == 0,
+            "Paid legacy schema7 high-step checkpoint reloads without migration or duplicate collection");
+        return legacy;
+    }
+
+    /** Prior schema8 prototypes concentrated the complete price on one carrier; paid jobs keep that frozen basis. */
+    private static void concentratedEightPayments(CriticalConstructionEconomy legacy, List<CriticalGeometry.Voxel> paid,
+        CriticalMachineKind kind) {
+        int count = switch (kind) {
+            case SOLAR -> 1500;
+            case TURBINE -> 750;
+            case BATTERY -> 500;
+            case SUN -> 2000;
+            default -> throw new AssertionError(kind);
+        };
+        int targetStage = kind == CriticalMachineKind.SUN ? 7 : 9;
+        CriticalGeometry.Voxel owner = null;
+        List<CriticalGeometry.Voxel> positions = new ArrayList<>();
+        for (CriticalGeometry.Voxel voxel : paid) if (legacy.stage(voxel) == targetStage) {
+            positions.add(voxel);
+            if (owner == null || CriticalStructures.isController(voxel)) owner = voxel;
+        }
+        ItemStack singularity = item(SINGULARITY, count);
+        NBTTagCompound n = new NBTTagCompound(); legacy.write(n); n.setInteger("version", 8);
+        List<ItemStack> demand = new ArrayList<>(Arrays.asList(legacy.demand()));
+        CriticalConstructionEconomy.merge(demand, singularity);
+        n.setTag("demand", CriticalResourceNbt.writeItems(demand.toArray(new ItemStack[0])));
+        NBTTagList schedule = n.getTagList("workSchedule", 10), profiles = n.getTagList("stepProfiles", 10);
+        for (int i = 0; i < schedule.tagCount(); i++) {
+            NBTTagCompound row = schedule.getCompoundTagAt(i);
+            if (row.getLong("position") != owner.positionKey()) continue;
+            List<ItemStack> extras = new ArrayList<>(Arrays.asList(CriticalResourceNbt.readItems(row.getTagList("extraItems", 10), -1)));
+            CriticalConstructionEconomy.merge(extras, singularity);
+            row.setTag("extraItems", CriticalResourceNbt.writeItems(extras.toArray(new ItemStack[0])));
+        }
+        for (int i = 0; i < profiles.tagCount(); i++) {
+            NBTTagCompound row = profiles.getCompoundTagAt(i);
+            int stage = row.getInteger("stage"), oldSteps = row.getInteger("steps");
+            int steps = kind == CriticalMachineKind.SUN && stage == 7 ? 16 : Math.min(256, oldSteps);
+            List<ItemStack> items = new ArrayList<>(Arrays.asList(CriticalResourceNbt.readItems(row.getTagList("items", 10), -1)));
+            FluidStack[] fluids = CriticalResourceNbt.readFluids(row.getTagList("fluids", 10), -1);
+            for (ItemStack item : items) item.stackSize *= oldSteps / steps;
+            for (FluidStack fluid : fluids) fluid.amount *= oldSteps / steps;
+            if (stage == targetStage) CriticalConstructionEconomy.merge(items, item(SINGULARITY, count / steps));
+            row.setInteger("steps", steps); row.setTag("items", CriticalResourceNbt.writeItems(items.toArray(new ItemStack[0])));
+            row.setTag("fluids", CriticalResourceNbt.writeFluids(fluids));
+        }
+        CriticalConstructionEconomy prior = CriticalConstructionEconomy.read(n);
+        NBTTagCompound copy = new NBTTagCompound(); prior.write(copy);
+        check(copy.equals(n) && count(prior.demand(), SINGULARITY) == count,
+            "Saved schema8 concentrated prices remain byte-for-byte unchanged by new distributed freezes");
+        CriticalConstructionLedger ledger = new CriticalConstructionLedger(); ledger.freezeJob(prior); ledger.snapshotPhysicalStage(positions);
+        CriticalConstructionLedger.Round round = ledger.planPhysicalRound(400, positions);
+        ledger.recordRoundPayment(round.items(), round.fluids()); ledger.advanceElapsed(round.next);
+        NBTTagCompound saved = save(ledger); ledger = reload(ledger);
+        check(!ledger.hasIntegrityError() && save(ledger).equals(saved) && ledger.planPhysicalRound(400, positions).items().length == 0
+            && save(ledger).getCompoundTag("constructionPhysicalJob").equals(n),
+            "Paid old-schema8 checkpoints retain concentrated singularities and never collect new distributed prices");
+    }
+
+    private static NBTTagList withoutSingularities(NBTTagList tags) {
+        List<ItemStack> kept = new ArrayList<>();
+        for (ItemStack item : CriticalResourceNbt.readItems(tags, -1)) if (item.getItem() != SINGULARITY) kept.add(item);
+        return CriticalResourceNbt.writeItems(kept.toArray(new ItemStack[0]));
+    }
+
+    private static void singularityRecovery(CriticalConstructionEconomy frozen, List<CriticalGeometry.Voxel> paid, int machineCount) {
+        List<CriticalGeometry.Voxel> local = new ArrayList<>();
+        CriticalGeometry.Voxel panel = null;
+        int count = 0, stage = 4;
+        for (CriticalGeometry.Voxel voxel : paid) {
+            int share = Math.toIntExact(count(frozen.bill(voxel), SINGULARITY));
+            if (share == 0) panel = voxel;
+            else if (count < 10 && frozen.stage(voxel) == stage) {
+                local.add(voxel); count += share;
+            }
+        }
+        CriticalGeometry.Voxel main = local.get(0);
+        int damaged = Math.toIntExact(count(frozen.bill(main), SINGULARITY));
+        check(count >= 10 && count < machineCount && damaged <= 8 && count(frozen.bill(panel), SINGULARITY) == 0,
+            "Local repairs replace a small distributed share rather than the whole machine singularity price");
+        CriticalConstructionLedger ledger = new CriticalConstructionLedger(); ledger.freezeJob(frozen);
+        ledger.snapshotPhysicalStage(local);
+        CriticalConstructionLedger.Round round = ledger.planPhysicalRound(400, local);
+        int steps = ledger.stageRoundCount(ledger.stageItems(), ledger.stageFluids(), frozen.stage(main));
+        check(count(round.items(), SINGULARITY) * steps == count,
+            "Repeated local commissioning debits preserve every distributed singularity");
+        ledger = build(ledger, local, false);
+        check(!ledger.hasIntegrityError() && count(ledger.recoveryItems(1), SINGULARITY) == count,
+            "Uninstalled singularity escrow survives NBT and refunds completely");
+        for (CriticalGeometry.Voxel voxel : local) ledger.markPhysicalInstalled(voxel);
+        ledger.resetStage(); ledger = reload(ledger);
+        check(count(ledger.recoveryItems(1), SINGULARITY) == count / 10, "Installed singularities follow deterministic ten-percent salvage");
+        ledger.markPhysicalDamaged(main);
+        check(count(ledger.recoveryItems(1), SINGULARITY) == (count - damaged) / 10,
+            "Destroyed local commissioning allocation cannot be salvaged again");
+        ledger = build(ledger, Arrays.asList(main), true);
+        check(balance(ledger, SINGULARITY, "paid") == count + damaged && count(ledger.recoveryItems(1), SINGULARITY) == count / 10,
+            "Carrier repair pays its local singularities once and restores one salvage allocation");
+        ledger.clearSpentItems(); ledger = reload(ledger); conservation(ledger);
+        check(count(ledger.recoveryItems(1), SINGULARITY) == 0, "Settled singularity salvage cannot be collected repeatedly after reload");
     }
 
     /** Derive an explicit legacy fixture; live v7 padding is never silently imported into saved v5/v6 assets. */
@@ -374,7 +551,9 @@ public final class CriticalConstructionEconomyContract {
                 for (ItemStack total : demand) if (CriticalConstructionEconomy.same(extra, total)) total.stackSize -= extra.stackSize;
             row.removeTag("extraItems");
         }
-        n.setTag("demand", CriticalResourceNbt.writeItems(demand));
+        List<ItemStack> positive = new ArrayList<>();
+        for (ItemStack item : demand) if (item.stackSize > 0) positive.add(item);
+        n.setTag("demand", CriticalResourceNbt.writeItems(positive.toArray(new ItemStack[0])));
         n.setInteger("version", 5); n.removeTag("stepProfiles");
         return CriticalConstructionEconomy.read(n);
     }
@@ -673,6 +852,7 @@ public final class CriticalConstructionEconomyContract {
             gregtech.api.enums.ItemList.valueOf(name).set(new ItemStack(EQUIPMENT, 1, component++));
         for (String name : Arrays.asList("CriticalSolar", "CriticalTurbine", "CriticalBattery", "CriticalSun"))
             com.miaokatze.gtsr.common.api.enums.GTSRItemList.valueOf(name).set(new ItemStack(CONTROLLER, 1, component++));
+        com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSteamEntangledSingularity.set(new ItemStack(SINGULARITY, 1, 0));
         for (gregtech.api.enums.OrePrefixes prefix : new gregtech.api.enums.OrePrefixes[] {
             gregtech.api.enums.OrePrefixes.circuit, gregtech.api.enums.OrePrefixes.pipeMedium, gregtech.api.enums.OrePrefixes.gearGt,
             gregtech.api.enums.OrePrefixes.stickLong, gregtech.api.enums.OrePrefixes.rotor, gregtech.api.enums.OrePrefixes.plate,
@@ -725,6 +905,7 @@ public final class CriticalConstructionEconomyContract {
         register.invoke(Item.itemRegistry, 31010, "gtsr:economy_shell", SHELL);
         register.invoke(Item.itemRegistry, 31011, "gtsr:economy_equipment", EQUIPMENT);
         register.invoke(Item.itemRegistry, 31012, "gtsr:economy_controller", CONTROLLER);
+        register.invoke(Item.itemRegistry, 31013, "gtsr:economy_singularity", SINGULARITY);
         java.lang.reflect.Method registerBlock = Block.blockRegistry.getClass()
             .getDeclaredMethod("addObjectRaw", int.class, String.class, Object.class);
         registerBlock.setAccessible(true);

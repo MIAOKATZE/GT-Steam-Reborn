@@ -620,7 +620,7 @@ final class CriticalConstructionLedger {
                 if (exactVoxelEnd < 0 || exactVoxelEnd > voxelCount || exactVoxelEnd < n.getInteger("cursor"))
                     integrityError = true;
             }
-            int maxSteps = version >= 7 ? CriticalConstructionEconomy.MAX_WORK_STEPS : 200;
+            int maxSteps = CriticalConstructionEconomy.maxWorkSteps(version);
             if (version >= 6 && (snapshot && (exactSteps < 1 || exactSteps > maxSteps) || !snapshot && exactSteps != 0
                 || snapshot && round >= exactSteps)) integrityError = true;
             if (version >= 6 && snapshot && exactSteps > 0) {

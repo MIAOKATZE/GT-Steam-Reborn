@@ -21,6 +21,7 @@ import com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.FluidAmount;
 import com.miaokatze.gtsr.common.items.IrradiatedDust;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
+import goodgenerator.items.GGMaterial;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Mods;
 import gregtech.api.util.GTModHandler;
@@ -43,7 +44,7 @@ public final class CriticalEnergyRuntime {
 
     private CriticalEnergyRuntime() {}
 
-    /** Only the steam turbine has an adaptive idle efficiency. Compound batches have no idle decay. */
+    /** Warmth tracks paid work ticks; idle ticks remove the same amount of warmth. */
     public static void idleTick(CriticalMachineState state) {
         if (!adaptive(state)) return;
         NBTTagCompound data = state.energyRuntimeData();
@@ -57,15 +58,9 @@ public final class CriticalEnergyRuntime {
             }
             return;
         }
-        int idle = data.getInteger("idleTicks") + 1;
-        if (idle >= CYCLE_TICKS) {
-            data.setInteger(
-                "efficiency",
-                CriticalEnergyMath.efficiency(
-                    CriticalEnergyMath.efficiency(data.getInteger("efficiency")) - CriticalEnergyMath.EFFICIENCY_STEP));
-            idle = 0;
-        }
-        data.setInteger("idleTicks", idle);
+        int ticks = Math.max(0, data.getInteger("turbineRunTicks") - 1);
+        data.setInteger("turbineRunTicks", ticks);
+        data.setInteger("efficiency", CriticalEnergyMath.runningEfficiency(ticks));
         state.markDirty();
     }
 
@@ -86,8 +81,12 @@ public final class CriticalEnergyRuntime {
 
     /** Mirrors the GT205 Dyson instance resolver without requiring a Dyson controller. */
     public static double dimensionFactor(World world) {
-        if (!Mods.GalacticraftCore.isModLoaded()) return 1D;
         WorldProvider provider = world.provider;
+        if (provider.getClass()
+            .getName()
+            .equals("me.eigenraven.personalspace.world.PersonalWorldProvider"))
+            return CriticalSolarPolicy.PRIVATE_DIMENSION_FACTOR;
+        if (!Mods.GalacticraftCore.isModLoaded()) return 1D;
         try {
             Class<?> orbit = Class.forName("micdoodle8.mods.galacticraft.api.world.IOrbitDimension");
             if (orbit.isInstance(provider)) return IGConfig.dysonSwarm.getPowerFactor(
@@ -97,10 +96,6 @@ public final class CriticalEnergyRuntime {
         } catch (ReflectiveOperationException failure) {
             throw new IllegalStateException("Cannot resolve loaded Galacticraft orbit provider", failure);
         }
-        if (provider.getClass()
-            .getName()
-            .equals("me.eigenraven.personalspace.world.PersonalWorldProvider"))
-            return IGConfig.dysonSwarm.getPowerFactor("PS");
         return IGConfig.dysonSwarm.getPowerFactor(String.valueOf(provider.dimensionId));
     }
 
@@ -140,6 +135,18 @@ public final class CriticalEnergyRuntime {
         if (progress < CYCLE_TICKS) {
             data.setInteger("progress", ++progress);
             data.setLong("lastWorkTick", state.worldObj.getTotalWorldTime());
+            if (adaptive(state) && (data.getInteger("turbinePolicy") == 2 || data.getInteger("turbinePolicy") == 3)) {
+                int ticks = Math
+                    .max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, data.getInteger("turbineRunTicks")));
+                int target = data.getInteger("turbinePolicy") == 3
+                    ? Math.max(
+                        0,
+                        Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, data.getInteger("turbineTargetWarmupTicks")))
+                    : CriticalEnergyMath.TURBINE_WARMUP_TICKS;
+                ticks += Integer.compare(target, ticks);
+                data.setInteger("turbineRunTicks", ticks);
+                data.setInteger("efficiency", CriticalEnergyMath.runningEfficiency(ticks));
+            }
             state.setRuntimeBatch(progress, CYCLE_TICKS, 0, "工作 " + progress + "/" + CYCLE_TICKS);
             state.markDirty();
             if (progress < CYCLE_TICKS) return;
@@ -551,13 +558,17 @@ public final class CriticalEnergyRuntime {
 
     private static boolean fundAdaptive(CriticalMachineState state, NBTTagCompound data,
         List<CriticalEnergyPorts.Debit> debits, List<FluidAmount> outputs, BigInteger heat, int waterRemainder) {
-        int efficiency = CriticalEnergyMath
-            .trendEfficiency(data.getInteger("efficiency"), number(data, "lastRawHeat"), heat);
+        // Migration only happens while funding a new batch; old paid EU/output manifests stay frozen.
+        int runTicks = data.getInteger("turbinePolicy") == 3 ? data.getInteger("turbineRunTicks") : 0;
+        int efficiency = CriticalEnergyMath.runningEfficiency(runTicks);
         // Common unit is half-EU; keep even fractional efficiency EU across batches (denominator 200).
         BigInteger[] energy = heat.multiply(BigInteger.valueOf(efficiency))
             .add(BigInteger.valueOf(data.getInteger("generationRemainder")))
             .divideAndRemainder(BigInteger.valueOf(200));
         if (!fund(state, data, debits, outputs, NO_ITEMS, energy[0], waterRemainder)) return false;
+        data.setInteger("turbinePolicy", 3);
+        data.setInteger("turbineTargetWarmupTicks", CriticalEnergyMath.targetWarmupTicks(heat));
+        data.setInteger("turbineRunTicks", Math.max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, runTicks)));
         data.setInteger("nextGenerationRemainder", energy[1].intValue());
         data.setInteger("efficiency", efficiency);
         data.setInteger("idleTicks", 0);
@@ -574,49 +585,33 @@ public final class CriticalEnergyRuntime {
         BigInteger paidWater = BigInteger.ZERO, paidSalt = BigInteger.ZERO;
         String waterStatus = "no_input", saltStatus = "no_input";
         int mode = Math.floorMod(data.getInteger("steamMode"), 6);
-        FluidStack water = GTModHandler.getDistilledWater(1);
-        BigInteger q = CriticalEnergyMath.logarithmic(
-            CriticalEnergyPorts.total(snapshot, water),
-            factor,
-            CriticalEnergyMath.WATER_A,
-            CriticalEnergyMath.WATER_B);
-        if (mode >= 3) q = q.divide(BigInteger.valueOf(25))
-            .multiply(BigInteger.valueOf(25));
-        if (q.signum() > 0 && steam(mode) != null) {
-            waterStatus = "output_full";
-            BigInteger steamAmount = mode < 3 ? q.multiply(BigInteger.valueOf(160))
-                : q.divide(BigInteger.valueOf(25))
-                    .multiply(BigInteger.valueOf(4));
-            List<FluidAmount> candidate = new ArrayList<>(outputs);
-            candidate.add(new FluidAmount(steam(mode), steamAmount));
-            if (CriticalEnergyPorts.outputs(host, candidate, NO_ITEMS) != null) {
-                outputs = candidate;
-                debits.addAll(CriticalEnergyPorts.take(snapshot, water, q));
-                paidWater = q;
-                waterStatus = "paid";
-            }
-        }
-        FluidStack cold = MaterialMisc.SOLAR_SALT_COLD.getFluidStack(1);
-        BigInteger salt = CriticalEnergyMath.logarithmic(
-            CriticalEnergyPorts.total(snapshot, cold),
-            factor,
-            CriticalEnergyMath.SALT_A,
-            CriticalEnergyMath.SALT_B);
-        if (salt.signum() > 0) {
-            saltStatus = "output_full";
-            List<FluidAmount> candidate = new ArrayList<>(outputs);
-            candidate.add(new FluidAmount(MaterialMisc.SOLAR_SALT_HOT.getFluidStack(1), salt));
-            if (CriticalEnergyPorts.outputs(host, candidate, NO_ITEMS) != null) {
-                outputs = candidate;
-                debits.addAll(CriticalEnergyPorts.take(snapshot, cold, salt));
-                paidSalt = salt;
-                saltStatus = "paid";
-            }
-        }
-        List<ItemStack> materialInputs = new ArrayList<>(), materialOutputs = new ArrayList<>();
+        boolean saltMode = data.getBoolean("solarSaltMode");
         List<ItemStack> stock = new ArrayList<>();
         java.util.Collections.addAll(stock, host.criticalPhysicalItemsSnapshot());
         java.util.Collections.addAll(stock, host.criticalMEItemsSnapshot());
+        boolean irradiation = stock.stream()
+            .anyMatch(
+                item -> item != null && item.stackSize > 0
+                    && (same(item, IrradiatedDust.source(true)) || same(item, IrradiatedDust.source(false))));
+        SolarSelection selection = selectSolar(snapshot, factor, mode, saltMode, irradiation);
+        if (selection == null) return state.fail("缺少足额批次冷却剂、激活剂或工作流体；未扣料");
+        if (selection.outputLitres.signum() > 0) outputs.add(new FluidAmount(selection.output, selection.outputLitres));
+        if (CriticalEnergyPorts.outputs(host, outputs, NO_ITEMS) == null) return state.fail("批次输出空间不足，工作流体和增效料已保留");
+        CriticalEnergyPorts.Allocation allocation = new CriticalEnergyPorts.Allocation(snapshot);
+        if (selection.inputLitres.signum() > 0) debits.addAll(allocation.take(selection.input, selection.inputLitres));
+        debits.addAll(allocation.take(solarCoolant(selection.coolant), selection.coolantLitres));
+        if (selection.exciterLitres.signum() > 0)
+            debits.addAll(allocation.take(solarExciter(selection.exciter), selection.exciterLitres));
+        if (saltMode) {
+            paidSalt = selection.inputLitres;
+            saltStatus = "paid";
+            waterStatus = "inactive_mode";
+        } else {
+            paidWater = selection.inputLitres;
+            waterStatus = "paid";
+            saltStatus = "inactive_mode";
+        }
+        List<ItemStack> materialInputs = new ArrayList<>(), materialOutputs = new ArrayList<>();
         int remaining = CriticalEnergyMath.IRRADIATION_PARALLEL;
         for (int i = 0; i < 2; i++) {
             ItemStack input = IrradiatedDust.source(i == 0);
@@ -636,7 +631,7 @@ public final class CriticalEnergyRuntime {
             materialOutputs = candidate;
             remaining -= count;
         }
-        if (debits.isEmpty() && materialInputs.isEmpty()) {
+        if (outputs.isEmpty() && materialInputs.isEmpty()) {
             state.setRuntimeBatch(0, 0, 0, "没有完整可执行批次或输出空间不足");
             return false;
         }
@@ -654,6 +649,18 @@ public final class CriticalEnergyRuntime {
             data.getInteger("waterRemainder"));
         if (!funded) return false;
         data.setDouble("solarFactor", factor);
+        data.setInteger("solarPolicy", CriticalSolarPolicy.VERSION);
+        data.setBoolean("solarBatchSaltMode", saltMode);
+        data.setString("solarCoolant", selection.coolant.id);
+        data.setString("solarExciter", selection.exciter.id);
+        data.setString("solarCoolantLitres", selection.coolantLitres.toString());
+        data.setString("solarExciterLitres", selection.exciterLitres.toString());
+        data.setString("solarEquivalentEU", selection.equivalentEU.toString());
+        data.setString(
+            "solarRatedEUt",
+            selection.ratedEU.divide(BigInteger.valueOf(CYCLE_TICKS))
+                .toString());
+        data.setDouble("solarLoad", selection.load);
         data.setString("solarWater", paidWater.toString());
         data.setString("solarSalt", paidSalt.toString());
         data.setString("solarWaterStatus", waterStatus);
@@ -668,6 +675,91 @@ public final class CriticalEnergyRuntime {
         }
         state.markDirty();
         return true;
+    }
+
+    /** Native GT205 identities, shared by recipes/NEI and actual hatch payment. */
+    public static FluidStack solarCoolant(CriticalSolarPolicy.Entry entry) {
+        return switch (entry.id) {
+            case "supercoolant" -> Materials.SuperCoolant.getFluid(1);
+            case "cryotheum" -> FluidRegistry.getFluidStack("cryotheum", 1);
+            case "tachyon" -> Materials.Time.getMolten(1);
+            default -> null;
+        };
+    }
+
+    public static FluidStack solarExciter(CriticalSolarPolicy.Entry entry) {
+        return switch (entry.id) {
+            case "helium_gas" -> Materials.Helium.getGas(1);
+            case "helium" -> Materials.Helium.getPlasma(1);
+            case "iron" -> Materials.Iron.getPlasma(1);
+            case "americium" -> Materials.Americium.getPlasma(1);
+            case "atomic" -> GGMaterial.atomicSeparationCatalyst.getMolten(1);
+            case "spatial" -> Materials.Space.getMolten(1);
+            default -> null;
+        };
+    }
+
+    private static final class SolarSelection {
+
+        CriticalSolarPolicy.Entry coolant, exciter;
+        FluidStack input, output;
+        BigInteger inputLitres, outputLitres, coolantLitres, exciterLitres, equivalentEU, ratedEU;
+        double load;
+    }
+
+    private static SolarSelection selectSolar(List<CriticalEnergyPorts.Input> snapshot, double factor, int mode,
+        boolean saltMode, boolean irradiation) {
+        SolarSelection best = null;
+        for (CriticalSolarPolicy.Entry coolant : CriticalSolarPolicy.COOLANTS) {
+            BigInteger coolantStock = CriticalEnergyPorts.total(snapshot, solarCoolant(coolant));
+            if (coolantStock.signum() <= 0) continue;
+            for (CriticalSolarPolicy.Entry exciter : CriticalSolarPolicy.EXCITERS) {
+                BigInteger waterBudget = CriticalSolarPolicy.batchBudgetEU(factor, coolant, exciter, false);
+                BigInteger budget = waterBudget.multiply(BigInteger.valueOf(saltMode ? 2 : 1));
+                if (budget.signum() <= 0) continue;
+                SolarSelection candidate = new SolarSelection();
+                candidate.coolant = coolant;
+                candidate.exciter = exciter;
+                candidate.input = saltMode ? MaterialMisc.SOLAR_SALT_COLD.getFluidStack(1)
+                    : GTModHandler.getDistilledWater(1);
+                candidate.output = saltMode ? MaterialMisc.SOLAR_SALT_HOT.getFluidStack(1) : steam(mode);
+                if (candidate.output == null) continue;
+                BigInteger available = CriticalEnergyPorts.total(snapshot, candidate.input);
+                if (saltMode) {
+                    candidate.inputLitres = available.min(CriticalSolarPolicy.saltLitres(budget));
+                    candidate.outputLitres = candidate.inputLitres;
+                    candidate.equivalentEU = candidate.outputLitres.multiply(BigInteger.valueOf(30_000));
+                } else {
+                    BigInteger availableHeat = available.multiply(BigInteger.valueOf(160))
+                        .multiply(CriticalEnergyMath.steamHeatPerL(mode))
+                        .divide(BigInteger.valueOf(mode < 3 ? 1 : 1000));
+                    BigInteger heat = CriticalSolarPolicy.waterHalfHeat(budget)
+                        .min(availableHeat)
+                        .divide(BigInteger.valueOf(15000))
+                        .multiply(BigInteger.valueOf(15000));
+                    candidate.outputLitres = CriticalSolarPolicy.steamLitres(heat, mode);
+                    candidate.inputLitres = CriticalSolarPolicy.waterLitres(candidate.outputLitres, mode);
+                    candidate.equivalentEU = heat.multiply(BigInteger.TEN);
+                }
+                BigInteger workload = candidate.equivalentEU;
+                if (workload.signum() == 0) {
+                    // Dust-only operation pays both mandatory media at a bounded 1/256 water-route load.
+                    if (!irradiation) continue;
+                    workload = CriticalSolarPolicy.irradiationBudgetEU(waterBudget);
+                }
+                candidate.coolantLitres = CriticalSolarPolicy.paidLitres(coolant, workload, waterBudget);
+                candidate.exciterLitres = CriticalSolarPolicy.paidLitres(exciter, workload, waterBudget);
+                // Modifier scarcity selects a lower, fully funded catalogue entry; it never grants a free boost.
+                if (coolantStock.compareTo(candidate.coolantLitres) < 0
+                    || CriticalEnergyPorts.total(snapshot, solarExciter(exciter))
+                        .compareTo(candidate.exciterLitres) < 0)
+                    continue;
+                candidate.ratedEU = budget;
+                candidate.load = workload.doubleValue() / budget.doubleValue();
+                if (best == null || candidate.equivalentEU.compareTo(best.equivalentEU) > 0) best = candidate;
+            }
+        }
+        return best;
     }
 
     private static boolean fund(CriticalMachineState state, NBTTagCompound data, List<CriticalEnergyPorts.Debit> debits,

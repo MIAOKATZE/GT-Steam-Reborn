@@ -20,6 +20,7 @@ import com.miaokatze.gtsr.common.critical.CriticalGTRecipes;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
 import com.miaokatze.gtsr.common.critical.CriticalLayoutDefinition;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
+import com.miaokatze.gtsr.common.critical.CriticalSolarPolicy;
 import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
 import com.miaokatze.gtsr.common.critical.CriticalTier;
 import com.miaokatze.gtsr.common.items.IrradiatedDust;
@@ -157,27 +158,50 @@ public final class CriticalMachineRecipes {
     }
 
     private static void registerSolar() {
+        CriticalSolarPolicy.Entry coolant = CriticalSolarPolicy.COOLANTS.get(0);
+        CriticalSolarPolicy.Entry activator = CriticalSolarPolicy.EXCITERS.get(0);
+        BigInteger ratedBatch = CriticalSolarPolicy
+            .batchBudgetEU(1D, coolant, CriticalSolarPolicy.EXCITERS.get(0), false);
+        BigInteger waterSampleEU = BigInteger.valueOf(150000);
         for (int mode = 0; mode < 6; mode++) {
             FluidStack steam = CriticalEnergyRuntime.steam(mode);
             if (steam == null) continue;
-            steam.amount = mode < 3 ? 160 : 4;
+            // A small common energy sample fits native int fluid stacks in all six forms.
+            steam.amount = CriticalSolarPolicy.steamLitres(CriticalSolarPolicy.waterHalfHeat(waterSampleEU), mode)
+                .intValueExact();
+            FluidStack cooling = CriticalEnergyRuntime.solarCoolant(coolant);
+            cooling.amount = CriticalSolarPolicy.paidLitres(coolant, waterSampleEU, ratedBatch)
+                .intValueExact();
             add(
                 CriticalMachineKind.SOLAR,
                 "solar_water",
                 new ItemStack[0],
                 new ItemStack[0],
-                new FluidStack[] { GTModHandler.getDistilledWater(mode < 3 ? 1 : 25) },
+                new FluidStack[] {
+                    GTModHandler.getDistilledWater(
+                        CriticalSolarPolicy.waterLitres(BigInteger.valueOf(steam.amount), mode)
+                            .intValueExact()),
+                    cooling, solarMediumPayment(activator, false, waterSampleEU, ratedBatch) },
                 new FluidStack[] { steam },
-                BigInteger.ZERO);
+                waterSampleEU);
         }
+        BigInteger saltSampleEU = waterSampleEU.multiply(BigInteger.valueOf(CriticalSolarPolicy.SALT_POWER_MULTIPLIER));
+        FluidStack saltCooling = CriticalEnergyRuntime.solarCoolant(coolant);
+        saltCooling.amount = CriticalSolarPolicy.paidLitres(coolant, saltSampleEU, ratedBatch)
+            .intValueExact();
+        int saltLitres = CriticalSolarPolicy.saltLitres(saltSampleEU)
+            .intValueExact();
         add(
             CriticalMachineKind.SOLAR,
             "solar_salt",
             new ItemStack[0],
             new ItemStack[0],
-            new FluidStack[] { MaterialMisc.SOLAR_SALT_COLD.getFluidStack(1) },
-            new FluidStack[] { MaterialMisc.SOLAR_SALT_HOT.getFluidStack(1) },
-            BigInteger.ZERO);
+            new FluidStack[] { MaterialMisc.SOLAR_SALT_COLD.getFluidStack(saltLitres), saltCooling,
+                solarMediumPayment(activator, false, saltSampleEU, ratedBatch) },
+            new FluidStack[] { MaterialMisc.SOLAR_SALT_HOT.getFluidStack(saltLitres) },
+            saltSampleEU);
+        for (CriticalSolarPolicy.Entry entry : CriticalSolarPolicy.COOLANTS) registerSolarMedium(entry, true);
+        for (CriticalSolarPolicy.Entry entry : CriticalSolarPolicy.EXCITERS) registerSolarMedium(entry, false);
         for (int i = 0; i < 2; i++) {
             ItemStack source = IrradiatedDust.source(i == 0);
             if (source == null) continue;
@@ -187,10 +211,40 @@ public final class CriticalMachineRecipes {
                 new ItemStack[] { source },
                 new ItemStack[] {
                     (i == 0 ? GTSRItemList.IrradiatedMoonDust : GTSRItemList.IrradiatedStoneDust).get(1) },
-                new FluidStack[0],
+                new FluidStack[] {
+                    solarMediumPayment(coolant, true, CriticalSolarPolicy.irradiationBudgetEU(ratedBatch), ratedBatch),
+                    solarMediumPayment(
+                        activator,
+                        false,
+                        CriticalSolarPolicy.irradiationBudgetEU(ratedBatch),
+                        ratedBatch) },
                 new FluidStack[0],
                 BigInteger.ZERO);
         }
+    }
+
+    private static FluidStack solarMediumPayment(CriticalSolarPolicy.Entry entry, boolean coolant, BigInteger actualEU,
+        BigInteger ratedBatch) {
+        FluidStack medium = coolant ? CriticalEnergyRuntime.solarCoolant(entry)
+            : CriticalEnergyRuntime.solarExciter(entry);
+        medium.amount = CriticalSolarPolicy.paidLitres(entry, actualEU, ratedBatch)
+            .intValueExact();
+        return medium;
+    }
+
+    private static void registerSolarMedium(CriticalSolarPolicy.Entry entry, boolean coolant) {
+        FluidStack medium = coolant ? CriticalEnergyRuntime.solarCoolant(entry)
+            : CriticalEnergyRuntime.solarExciter(entry);
+        if (medium == null) throw new IllegalStateException("Missing solar medium: " + entry.id);
+        medium.amount = CriticalSolarPolicy.paidLitres(entry, BigInteger.ONE, BigInteger.ONE)
+            .intValueExact();
+        GTRecipe recipe = GTValues.RA.stdBuilder()
+            .fluidInputs(medium)
+            .duration(CriticalEnergyMath.CYCLE_TICKS)
+            .eut(0)
+            .build()
+            .orElseThrow(() -> new IllegalStateException("Invalid solar medium view: " + entry.id));
+        CriticalRecipeMaps.addSolarMedium(recipe, entry, coolant);
     }
 
     private static void registerTurbine() {

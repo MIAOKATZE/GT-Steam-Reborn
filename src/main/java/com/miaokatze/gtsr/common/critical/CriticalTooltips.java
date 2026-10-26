@@ -60,6 +60,20 @@ public final class CriticalTooltips {
         info(tt, EnumChatFormatting.GOLD, "solar.salt");
         info(tt, EnumChatFormatting.LIGHT_PURPLE, "solar.dust");
         info(tt, EnumChatFormatting.YELLOW, "cycle");
+        info(tt, EnumChatFormatting.AQUA, "solar.coolant");
+        info(tt, EnumChatFormatting.LIGHT_PURPLE, "solar.excitation");
+        for (CriticalSolarPolicy.Entry entry : CriticalSolarPolicy.COOLANTS)
+            policyEntry(tt, "coolant", entry, EnumChatFormatting.AQUA);
+        for (CriticalSolarPolicy.Entry entry : CriticalSolarPolicy.EXCITERS)
+            policyEntry(tt, "exciter", entry, EnumChatFormatting.LIGHT_PURPLE);
+        tt.addInfo(
+            EnumChatFormatting.GOLD + formatted(
+                "solar.rated",
+                CriticalSolarPolicy.BASE_AMPS_MAX,
+                CriticalSolarPolicy.MAX_WATER_AMPS_MAX,
+                CriticalSolarPolicy.MAX_SALT_AMPS_MAX));
+        tt.addInfo(
+            EnumChatFormatting.YELLOW + formatted("solar.private", CriticalSolarPolicy.PRIVATE_DIMENSION_FACTOR));
         info(tt, EnumChatFormatting.RED, "solar.dimension");
         tt.addSeparator();
         info(tt, EnumChatFormatting.AQUA, "solar.steam");
@@ -67,6 +81,8 @@ public final class CriticalTooltips {
         info(tt, EnumChatFormatting.GREEN, "solar.inventory");
         info(tt, EnumChatFormatting.LIGHT_PURPLE, "solar.parallel");
         info(tt, EnumChatFormatting.YELLOW, "solar.energy");
+        info(tt, EnumChatFormatting.GREEN, "solar.helium");
+        info(tt, EnumChatFormatting.GOLD, "solar.limits");
     }
 
     private static void turbine(MultiblockTooltipBuilder tt) {
@@ -79,9 +95,9 @@ public final class CriticalTooltips {
         tt.addSeparator();
         info(tt, EnumChatFormatting.GOLD, "turbine.heat");
         info(tt, EnumChatFormatting.AQUA, "turbine.dense");
-        info(tt, EnumChatFormatting.GREEN, "turbine.rise");
-        info(tt, EnumChatFormatting.RED, "turbine.fall");
-        info(tt, EnumChatFormatting.YELLOW, "turbine.equal");
+        info(tt, EnumChatFormatting.GREEN, "turbine.warmup");
+        info(tt, EnumChatFormatting.RED, "turbine.stable");
+        info(tt, EnumChatFormatting.YELLOW, "turbine.load");
         info(tt, EnumChatFormatting.RED, "turbine.idle");
         info(tt, EnumChatFormatting.AQUA, "turbine.water");
         info(tt, EnumChatFormatting.LIGHT_PURPLE, "turbine.remainders");
@@ -139,6 +155,20 @@ public final class CriticalTooltips {
 
     private static void info(MultiblockTooltipBuilder tt, EnumChatFormatting color, String key) {
         tt.addInfo(color + tr("tooltip.native." + key));
+    }
+
+    private static void policyEntry(MultiblockTooltipBuilder tt, String group, CriticalSolarPolicy.Entry entry,
+        EnumChatFormatting color) {
+        tt.addInfo(
+            color + formatted(
+                "solar.medium",
+                tr("solar." + group + "." + entry.id),
+                entry.multiplier,
+                entry.litresPerSecond));
+    }
+
+    private static String formatted(String key, Object... values) {
+        return StatCollector.translateToLocalFormatted("gtsr.critical.tooltip.native." + key, values);
     }
 
     private static void v2Structure(MultiblockTooltipBuilder tt, CriticalMachineKind preset) {

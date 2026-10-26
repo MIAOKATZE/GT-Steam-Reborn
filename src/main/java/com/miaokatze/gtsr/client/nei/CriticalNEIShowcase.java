@@ -14,6 +14,7 @@ import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.DisplayInfo;
 import com.miaokatze.gtsr.common.critical.CriticalConstructionProgress;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
 import com.miaokatze.gtsr.common.critical.CriticalFoundationChunk;
+import com.miaokatze.gtsr.common.critical.CriticalSolarPolicy;
 import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
 import com.miaokatze.gtsr.config.Config;
 
@@ -83,9 +84,18 @@ public final class CriticalNEIShowcase {
         label(text(operation + ".title"), 8, 6, GOLD);
         label(text("intro." + operation), 8, 21, MUTED);
         boolean chemical = operation.equals("chemical_compound");
-        if (!chemical) label(text("output"), OUTPUT_X, 32, MUTED);
+        boolean medium = info.solarMedium != null;
+        if (!chemical && !medium) label(text("output"), OUTPUT_X, 32, MUTED);
         label(text(chemical ? "chemical.inputs" : "input"), INPUT_X, chemical ? 30 : 32, MUTED);
-        if (chemical) {
+        if (medium) {
+            solarMedium(info, new Plot(flow(info, true)));
+            rows(
+                text(operation.equals("solar_coolant") ? "solar.medium.required" : "solar.medium.activation"),
+                CriticalRecipeMaps.formatted("simple.solar.medium.factor", info.solarMedium.multiplier),
+                CriticalRecipeMaps.formatted("simple.solar.medium.flow", info.solarMedium.litresPerSecond),
+                text("solar.medium.load"),
+                text("solar.medium.salt"));
+        } else if (chemical) {
             chemical(info, new Plot(flow(info, true)));
             chemicalRows(
                 CriticalRecipeMaps.formatted("simple.chemical.efficiency", info.compound.peakMultiplier),
@@ -125,7 +135,7 @@ public final class CriticalNEIShowcase {
                     "simple.turbine.efficiency",
                     CriticalEnergyMath.MIN_EFFICIENCY / 100,
                     CriticalEnergyMath.MAX_EFFICIENCY / 100),
-                CriticalRecipeMaps.formatted("simple.turbine.trend", CriticalEnergyMath.EFFICIENCY_STEP / 100.0),
+                CriticalRecipeMaps.formatted("simple.turbine.warmup", CriticalEnergyMath.TURBINE_WARMUP_TICKS / 20),
                 text("turbine.cycle"),
                 text("turbine.condensation"));
         } else if (operation.equals("solar_dust")) {
@@ -140,10 +150,14 @@ public final class CriticalNEIShowcase {
             boiler(operation.equals("solar_salt"), new Plot(flow(info, true)));
             rows(
                 text("solar.cycle"),
-                text("solar.stock"),
-                text("solar.dimension"),
+                CriticalRecipeMaps.formatted(
+                    operation.equals("solar_salt") ? "simple.solar.salt_rated" : "simple.solar.rated",
+                    maxAmps(
+                        operation.equals("solar_salt") ? CriticalSolarPolicy.MAX_SALT_AMPS_MAX
+                            : CriticalSolarPolicy.MAX_WATER_AMPS_MAX)),
+                CriticalRecipeMaps.formatted("simple.solar.sample", number(new java.math.BigDecimal(info.baseEu))),
                 text(operation.equals("solar_salt") ? "solar.salt" : "solar.water"),
-                text("solar.night"));
+                text("solar.stock"));
         }
     }
 
@@ -210,6 +224,20 @@ public final class CriticalNEIShowcase {
         p.line(31, activeY, 31, 0, color);
         p.input(color);
         p.output(color);
+    }
+
+    private static void solarMedium(DisplayInfo info, Plot p) {
+        boolean coolant = info.operation.equals("solar_coolant");
+        int color = coolant ? WATER : PLASMA;
+        p.input(color);
+        p.line(-31, 0, -14, 0, color);
+        p.ring(0, 0, 13, color);
+        for (int i = 0; i < 3; i++) {
+            int y = -7 + i * 7;
+            p.line(-8, y, 8, y, color);
+            int x = -8 + (phase(16) + i * 4) % 16;
+            p.rect(x, y - 1, x + 2, y + 2, GOLD);
+        }
     }
 
     /** A ratchet rotor drives the power shaft; the lower pipe closes the condensate loop. */
@@ -433,6 +461,16 @@ public final class CriticalNEIShowcase {
             + "A "
             + GTUtility.getColoredTierNameFromTier((byte) tier)
             + ")";
+    }
+
+    private static String maxAmps(int amps) {
+        return TooltipHelper.AMP_COLOR + NumberFormatUtil.formatNumber(
+            amps,
+            new FormatOptions().setDecimalPlaces(0)
+                .disableExponentialFormatting())
+            + "A "
+            + GTUtility.getColoredTierNameFromTier((byte) gregtech.api.enums.VoltageIndex.MAX)
+            + net.minecraft.util.EnumChatFormatting.GRAY;
     }
 
     public static String fusionDiscount(DisplayInfo info) {

@@ -116,7 +116,12 @@ public class CriticalNEIFontContract {
                     throw new AssertionError("Chinese NEI label lost its Han characters: " + key);
                 String format=line.substring(line.indexOf('=')+1);
                 String text=key.endsWith("turbine.efficiency")?String.format(Locale.ROOT,format,1,20)
-                    :key.endsWith("turbine.trend")?String.format(Locale.ROOT,format,"0.1")
+                    :key.endsWith("turbine.trend")||key.endsWith("turbine.warmup")?String.format(Locale.ROOT,format,
+                        com.miaokatze.gtsr.common.critical.CriticalEnergyMath.TURBINE_WARMUP_TICKS/20)
+                    :key.endsWith("solar.rated")||key.endsWith("solar.salt_rated")?String.format(Locale.ROOT,format,"8,192A MAX")
+                    :key.endsWith("solar.sample")?String.format(Locale.ROOT,format,"300,000")
+                    :key.endsWith("solar.medium.factor")?String.format(Locale.ROOT,format,"2.5")
+                    :key.endsWith("solar.medium.flow")?String.format(Locale.ROOT,format,"1600.0")
                     :key.endsWith("stellar.voltage")?String.format(Locale.ROOT,format,"MAX")
                     :key.endsWith("stellar.voltage_amps")||key.endsWith("chemical.equivalent_amps")?String.format(Locale.ROOT,format,"MAX","1,165")
                     :key.endsWith("chemical.average")?String.format(Locale.ROOT,format,"5,664,600")

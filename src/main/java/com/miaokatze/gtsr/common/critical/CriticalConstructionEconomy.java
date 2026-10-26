@@ -23,8 +23,9 @@ import gregtech.api.util.GTOreDictUnificator;
 /** Immutable full-job price basis. Equipment is installed at one deterministic carrier per macro unit. */
 public final class CriticalConstructionEconomy {
 
-    public static final int VERSION = 7;
-    public static final int MAX_WORK_STEPS = 4096;
+    public static final int VERSION = 8;
+    public static final int MAX_WORK_STEPS = 256;
+    private static final int LEGACY_MAX_WORK_STEPS = 4096;
     private final int version;
     private final Set<String> installationMaterials = new HashSet<>();
     private final Map<String, FluidStack[]> materialFluids = new LinkedHashMap<>();
@@ -191,6 +192,10 @@ public final class CriticalConstructionEconomy {
         return version >= 2 && version <= VERSION;
     }
 
+    static int maxWorkSteps(int version) {
+        return version >= 8 ? MAX_WORK_STEPS : version >= 7 ? LEGACY_MAX_WORK_STEPS : 200;
+    }
+
     /** Frozen work order; the geometry and ownership fingerprint never change. Legacy jobs retain stage 4. */
     public int stage(CriticalGeometry.Voxel voxel) {
         if (version >= 5 && !workStages.isEmpty()) {
@@ -306,8 +311,13 @@ public final class CriticalConstructionEconomy {
             List<CriticalGeometry.Voxel> positions = next.displayRow(group, row, paid);
             ItemStack[] items = next.costs(positions, 0, positions.size());
             FluidStack[] fluids = next.fluidCosts(positions, 0, positions.size());
-            int steps = boundedStepCount(items, group, row);
-            next.padLocalBills(positions, items, fluids, steps);
+            // Preserve every v7 rounded local allocation before combining its repeated work units.
+            int legacySteps = boundedStepCount(items, group, row);
+            next.padLocalBills(positions, items, fluids, legacySteps);
+            int steps = Math.min(legacySteps, MAX_WORK_STEPS);
+            // A full six-identity row keeps its original bill; the other rows consume small work-step doses.
+            if (items.length < 6)
+                next.installSingularities(positions, Math.multiplyExact(steps, singularitiesPerStep(kind, group, row)));
             items = next.costs(positions, 0, positions.size());
             fluids = next.fluidCosts(positions, 0, positions.size());
             next.stepProfiles
@@ -321,11 +331,40 @@ public final class CriticalConstructionEconomy {
         return next;
     }
 
+    private static int singularitiesPerStep(CriticalMachineKind kind, int group, int row) {
+        return switch (kind) {
+            case SOLAR -> group == 1 ? 3 : row == 2 ? 1 : 2;
+            case TURBINE -> group == 1 ? row == 1 ? 2 : 1 : row == 2 ? 1 : 2;
+            case BATTERY -> 1;
+            case SUN -> group == 1 ? 3 : row < 2 ? 1 : 0;
+            default -> throw new IllegalArgumentException("Unsupported construction singularities " + kind);
+        };
+    }
+
+    /** Spread each row's exact price across its real positions so a local repair replaces only its local share. */
+    private void installSingularities(List<CriticalGeometry.Voxel> positions, int count) {
+        if (count == 0) return;
+        if (positions.isEmpty()) throw new IllegalStateException("Missing commissioning singularity positions");
+        List<CriticalGeometry.Voxel> owners = new ArrayList<>(positions);
+        owners.sort(java.util.Comparator.comparingLong(CriticalGeometry.Voxel::positionKey));
+        for (int i = 0; i < owners.size(); i++) {
+            int units = (int) ((long) count * (i + 1) / owners.size() - (long) count * i / owners.size());
+            if (units == 0) continue;
+            long position = owners.get(i)
+                .positionKey();
+            List<ItemStack> local = new ArrayList<>();
+            ItemStack[] prior = positionExtraItems.get(position);
+            if (prior != null) for (ItemStack item : prior) merge(local, item);
+            merge(local, quantity(GTSRItemList.CriticalSteamEntangledSingularity.get(1), units));
+            positionExtraItems.put(position, local.toArray(new ItemStack[0]));
+        }
+    }
+
     /** Size actual work units first; rounding prices can never collapse a long row to its GCD. */
     private static int boundedStepCount(ItemStack[] items, int group, int row) {
         if (group == 2 && row == 2) return 1;
         int steps = group == 1 ? row < 2 ? 128 : 64 : 32;
-        while (steps <= MAX_WORK_STEPS) {
+        while (steps <= LEGACY_MAX_WORK_STEPS) {
             long total = 0;
             boolean bounded = true;
             for (ItemStack item : items) {
@@ -869,7 +908,8 @@ public final class CriticalConstructionEconomy {
                     if (extra.length != extraTags.tagCount() || extra.length > 6)
                         throw new IllegalArgumentException("Invalid local rounded item bill");
                     for (ItemStack item : extra) {
-                        boolean valid = false;
+                        boolean valid = version >= 8
+                            && same(item, GTSRItemList.CriticalSteamEntangledSingularity.get(1));
                         for (ItemStack shell : shells.values()) if (same(item, shell)) valid = true;
                         ItemStack[] equipment = carriers.get(position);
                         if (equipment != null) for (ItemStack part : equipment) if (same(item, part)) valid = true;
@@ -916,8 +956,8 @@ public final class CriticalConstructionEconomy {
                 FluidStack[] fluids = readFrozenFluids(row);
                 if (stage < 4 || stage > 9
                     || count < 1
-                    || count > (version >= 7 ? MAX_WORK_STEPS : 200)
-                    || version >= 7 && stage < 9
+                    || count > maxWorkSteps(version)
+                    || version == 7 && stage < 9
                         && (count < (stage < 6 ? 128 : stage == 6 ? 64 : 32) || (count & (count - 1)) != 0)
                     || stage == 9 && count != 1
                     || items.length == 0
@@ -927,14 +967,14 @@ public final class CriticalConstructionEconomy {
                     throw new IllegalArgumentException("Invalid frozen repeated work profile");
                 long perStepCount = 0;
                 for (ItemStack item : items) {
-                    if (item == null || item.stackSize <= 0 || version >= 7 && stage < 9 && item.stackSize > 64)
+                    if (item == null || item.stackSize <= 0 || version == 7 && stage < 9 && item.stackSize > 64)
                         throw new IllegalArgumentException("Invalid repeated item debit");
                     perStepCount += item.stackSize;
                     ItemStack total = item.copy();
                     total.stackSize = Math.multiplyExact(total.stackSize, count);
                     merge(totalItems, total);
                 }
-                if (version >= 7 && stage < 9 && perStepCount > 128)
+                if (version == 7 && stage < 9 && perStepCount > 128)
                     throw new IllegalArgumentException("Oversized repeated item debit");
                 List<FluidStack> actual = new ArrayList<>();
                 for (Map.Entry<Long, Integer> position : result.workStages.entrySet())

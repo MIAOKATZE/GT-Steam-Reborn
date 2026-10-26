@@ -339,8 +339,10 @@ final class CriticalBusinessSnapshot {
             BigInteger heat = number(data, "turbineRawHeat");
             row(rows, "steam.heat", decimal(heat, 2) + " EU");
             row(rows, "steam.multiplier", data.getInteger("efficiency") + "%");
-            row(rows, "steam.rise", decimal(heat.multiply(BigInteger.valueOf(11)), 20) + " EU");
-            row(rows, "steam.fall", decimal(heat.multiply(BigInteger.valueOf(9)), 20) + " EU");
+            row(
+                rows,
+                "steam.warmup",
+                data.getInteger("turbineRunTicks") + " / " + data.getInteger("turbineTargetWarmupTicks") + " t");
             row(rows, "steam.water_remainder", Integer.toString(data.getInteger("waterRemainder")));
             row(rows, "steam.return_water", number(data, "turbineWater") + " L");
             for (int i = 0; i < 6; i++) row(rows, "steam.volume." + i, number(data, "turbineVolume" + i) + " L");
@@ -349,12 +351,31 @@ final class CriticalBusinessSnapshot {
             row(rows, "mean_power", decimal(number(data, "eu"), 400) + " EU/t");
             row(rows, "last_wireless", number(data, "lastGeneratedEU") + " EU");
         } else if (state.getKind() == CriticalMachineKind.SOLAR) {
+            row(rows, "solar.route", state.getSolarSaltMode() ? "1" : "0");
+            row(rows, "solar.batch_route", data.getBoolean("solarBatchSaltMode") ? "1" : "0");
             row(rows, "solar.mode", Integer.toString(state.getSteamMode()));
             row(rows, "solar.batch_mode", Integer.toString(data.getInteger("solarBatchSteamMode")));
             row(
                 rows,
                 "solar.dimension",
                 data.hasKey("solarFactor") ? Double.toString(data.getDouble("solarFactor")) : "—");
+            row(rows, "solar.coolant", data.getString("solarCoolant"));
+            row(rows, "solar.exciter", data.getString("solarExciter"));
+            row(rows, "solar.coolant_litres", number(data, "solarCoolantLitres") + " L / 20 s");
+            row(rows, "solar.exciter_litres", number(data, "solarExciterLitres") + " L / 20 s");
+            row(
+                rows,
+                "solar.equivalent_power",
+                new BigDecimal(number(data, "solarEquivalentEU"))
+                    .divide(
+                        BigDecimal.valueOf(com.miaokatze.gtsr.common.critical.CriticalSolarPolicy.MAX_VOLTAGE)
+                            .multiply(
+                                BigDecimal.valueOf(com.miaokatze.gtsr.common.critical.CriticalEnergyMath.CYCLE_TICKS)),
+                        3,
+                        java.math.RoundingMode.HALF_UP)
+                    .stripTrailingZeros()
+                    .toPlainString() + "A MAX");
+            row(rows, "solar.load", String.format(java.util.Locale.ROOT, "%.1f%%", data.getDouble("solarLoad") * 100D));
             row(rows, "solar.powder_cap", "256 / 400 t");
             row(rows, "solar.water", number(data, "solarWater") + " L");
             row(rows, "solar.salt", number(data, "solarSalt") + " L");
