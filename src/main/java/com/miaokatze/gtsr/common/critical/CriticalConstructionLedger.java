@@ -22,7 +22,7 @@ final class CriticalConstructionLedger {
 
     private final CriticalConstructionProgress progress = new CriticalConstructionProgress();
     private final List<ItemStack> spent = new ArrayList<>();
-    private int round;
+    private int round, exactSteps, exactVoxelEnd = -1;
     private boolean funded, snapshot;
     private ItemStack[] stageItems = new ItemStack[0];
     private FluidStack[] stageFluids = new FluidStack[0], paidFluids = new FluidStack[0];
@@ -62,7 +62,7 @@ final class CriticalConstructionLedger {
     }
 
     int economyVersion() {
-        return isPhysicalJob() ? CriticalConstructionEconomy.VERSION : 0;
+        return isPhysicalJob() ? physicalJob.version() : 0;
     }
 
     CriticalConstructionEconomy physicalJob() {
@@ -82,7 +82,21 @@ final class CriticalConstructionLedger {
     }
 
     void snapshotPhysicalStage(List<CriticalGeometry.Voxel> current) {
-        snapshotStage(physicalJob.costs(current, 0, current.size()), new FluidStack[0]);
+        snapshotStage(
+            physicalJob.costs(current, 0, current.size()),
+            physicalJob.fluidCosts(current, 0, current.size()));
+        if (physicalJob.version() >= 6)
+            exactSteps = physicalJob.stepsForStage(physicalJob.stage(current.get(0)), stageItems, stageFluids);
+    }
+
+    int stageRoundCount(ItemStack[] items, FluidStack[] fluids, int stage) {
+        return economyVersion() >= 6 ? snapshot ? exactSteps : physicalJob.stepsForStage(stage, items, fluids)
+            : roundCount(items);
+    }
+
+    int stageDuration() {
+        return economyVersion() >= 6 ? CriticalConstructionProgress.STAGE_DURATION * Math.max(1, exactSteps)
+            : CriticalConstructionProgress.STAGE_DURATION;
     }
 
     ItemStack[] physicalNextItems(List<CriticalGeometry.Voxel> current) {
@@ -90,6 +104,7 @@ final class CriticalConstructionLedger {
             previewStage = current;
             previewStageCosts = physicalJob.costs(current, 0, current.size());
         }
+        if (physicalJob.version() >= 6) return exactNextItems(current);
         int rounds = roundCount(snapshot ? stageItems : previewStageCosts);
         int start = (int) ((long) current.size() * round / rounds);
         int end = (int) ((long) current.size() * (round + 1) / rounds);
@@ -98,7 +113,7 @@ final class CriticalConstructionLedger {
         // The complete controller is reserved on the first material payment, before its marker is installed.
         ItemStack controller = physicalJob.controller();
         Account controllerAccount = findAccount(controller);
-        if (controllerAccount.paid == 0) {
+        if (physicalJob.version() < 5 && controllerAccount.paid == 0) {
             boolean included = false;
             for (ItemStack item : bill) if (same(item, controller)) included = true;
             if (!included) bill.add(controller);
@@ -118,6 +133,19 @@ final class CriticalConstructionLedger {
 
     /** The paid identities are exactly those installed inside this voxel boundary, including carrier equipment. */
     Round planPhysicalRound(int tickBudget, List<CriticalGeometry.Voxel> current) {
+        if (physicalJob.version() >= 6) {
+            int end = CriticalConstructionProgress.STAGE_DURATION * (round + 1);
+            int next = (int) Math.min(end, (long) progress.elapsed() + tickBudget);
+            ItemStack[] debit = funded ? new ItemStack[0] : physicalNextItems(current);
+            if (!funded || exactVoxelEnd < 0) exactVoxelEnd = affordableVoxelEnd(current, debit);
+            return new Round(
+                end,
+                next,
+                next - progress.elapsed(),
+                exactVoxelEnd,
+                debit,
+                funded ? new FluidStack[0] : nextStageFluids());
+        }
         Round timing = planRound(tickBudget, current.size());
         physicalNext = physicalNextItems(current);
         int voxelEnd = (int) ((long) current.size() * (round + 1) / roundCount(stageItems));
@@ -127,7 +155,55 @@ final class CriticalConstructionLedger {
             timing.advance,
             voxelEnd,
             funded ? new ItemStack[0] : copyItems(physicalNext),
-            new FluidStack[0]);
+            funded ? new FluidStack[0] : nextStageFluids());
+    }
+
+    private ItemStack[] exactNextItems(List<CriticalGeometry.Voxel> current) {
+        ItemStack[] totals = snapshot ? stageItems : previewStageCosts;
+        FluidStack[] fluids = snapshot ? stageFluids : physicalJob.fluidCosts(current, 0, current.size());
+        int steps = stageRoundCount(totals, fluids, current.isEmpty() ? 9 : physicalJob.stage(current.get(0)));
+        List<ItemStack> installed = new ArrayList<>();
+        for (CriticalGeometry.Voxel voxel : current) if (installedPositions.contains(voxel.positionKey()))
+            for (ItemStack item : physicalJob.bill(voxel)) CriticalConstructionEconomy.merge(installed, item);
+        List<ItemStack> debit = new ArrayList<>();
+        for (ItemStack item : totals) {
+            long missing = (long) item.stackSize / steps * (round + 1) - findAccount(item).escrow;
+            for (ItemStack placed : installed) if (same(item, placed)) missing -= placed.stackSize;
+            if (missing > 0) {
+                ItemStack wanted = item.copy();
+                wanted.stackSize = Math.toIntExact(missing);
+                debit.add(wanted);
+            }
+        }
+        physicalNext = debit.toArray(new ItemStack[0]);
+        return copyItems(physicalNext);
+    }
+
+    /** A fixed repeated debit can precede its physical installation; escrow must cover each placed identity. */
+    private int affordableVoxelEnd(List<CriticalGeometry.Voxel> current, ItemStack[] debit) {
+        List<ItemStack> budget = new ArrayList<>();
+        for (Account account : accounts) if (account.escrow > 0) {
+            ItemStack item = account.item.copy();
+            item.stackSize = Math.toIntExact(account.escrow);
+            CriticalConstructionEconomy.merge(budget, item);
+        }
+        for (ItemStack item : debit) CriticalConstructionEconomy.merge(budget, item);
+        int end = 0;
+        for (CriticalGeometry.Voxel voxel : current) {
+            if (!installedPositions.contains(voxel.positionKey())) {
+                ItemStack[] bill = physicalJob.bill(voxel);
+                for (ItemStack wanted : bill) {
+                    boolean covered = false;
+                    for (ItemStack available : budget)
+                        if (same(wanted, available) && available.stackSize >= wanted.stackSize) covered = true;
+                    if (!covered) return end;
+                }
+                for (ItemStack wanted : bill) for (ItemStack available : budget)
+                    if (same(wanted, available)) available.stackSize -= wanted.stackSize;
+            }
+            end++;
+        }
+        return end;
     }
 
     private Account account(ItemStack item) {
@@ -272,6 +348,8 @@ final class CriticalConstructionLedger {
     void resetStage() {
         progress.reset();
         round = 0;
+        exactSteps = 0;
+        exactVoxelEnd = -1;
         funded = false;
         snapshot = false;
         stageItems = new ItemStack[0];
@@ -321,7 +399,7 @@ final class CriticalConstructionLedger {
 
     FluidStack[] nextFluids(FluidStack[] totals, ItemStack[] itemTotals) {
         List<FluidStack> costs = new ArrayList<>();
-        int rounds = roundCount(itemTotals);
+        int rounds = economyVersion() >= 6 && snapshot ? Math.max(1, exactSteps) : roundCount(itemTotals);
         for (FluidStack total : totals) if (total != null) {
             int delta = (int) ((long) total.amount * (round + 1) / rounds - (long) total.amount * round / rounds);
             if (delta > 0) {
@@ -358,6 +436,7 @@ final class CriticalConstructionLedger {
                 account.paid += item.stackSize;
                 account.escrow += item.stackSize;
             }
+            recordFluids(fluids);
             funded = true;
             return;
         }
@@ -371,6 +450,11 @@ final class CriticalConstructionLedger {
                 }
             if (!merged) spent.add(item.copy());
         }
+        recordFluids(fluids);
+        funded = true;
+    }
+
+    private void recordFluids(FluidStack[] fluids) {
         for (FluidStack fluid : fluids) {
             boolean merged = false;
             for (FluidStack existing : paidFluids)
@@ -385,14 +469,14 @@ final class CriticalConstructionLedger {
                 paidFluids = next;
             }
         }
-        funded = true;
     }
 
     void advanceElapsed(int next) {
-        progress.advance(next);
+        progress.advance(next, stageDuration());
     }
 
     void completeRound() {
+        exactVoxelEnd = -1;
         funded = false;
         round++;
     }
@@ -452,6 +536,11 @@ final class CriticalConstructionLedger {
     void write(NBTTagCompound n) {
         n.setBoolean("constructionRoundFunded", funded);
         n.setInteger("constructionRound", round);
+        if (economyVersion() >= 6 && funded && exactVoxelEnd >= 0)
+            n.setInteger("constructionRoundVoxelEnd", exactVoxelEnd);
+        else n.removeTag("constructionRoundVoxelEnd");
+        if (economyVersion() >= 6) n.setInteger("constructionStepCount", exactSteps);
+        else n.removeTag("constructionStepCount");
         progress.write(n);
         n.setBoolean("constructionCostSnapshot", snapshot);
         n.setTag("constructionStageCosts", writeItems(stageItems));
@@ -500,6 +589,7 @@ final class CriticalConstructionLedger {
     void read(NBTTagCompound n) {
         funded = n.getBoolean("constructionRoundFunded");
         round = Math.max(0, n.getInteger("constructionRound"));
+        exactVoxelEnd = -1;
         progress.read(n);
         snapshot = n.getBoolean("constructionCostSnapshot");
         stageItems = readItems(n.getTagList("constructionStageCosts", 10), -1);
@@ -507,8 +597,8 @@ final class CriticalConstructionLedger {
         paidFluids = readFluids(n.getTagList("constructionPaidFluids", 10), -1);
         int version = n.getInteger("constructionEconomyVersion");
         integrityError = n.getBoolean("constructionEconomyUncertain")
-            || version != 0 && version != CriticalConstructionEconomy.VERSION
-            || version == CriticalConstructionEconomy.VERSION && !n.hasKey("constructionPhysicalJob");
+            || version != 0 && !CriticalConstructionEconomy.supportsVersion(version)
+            || version >= 2 && !n.hasKey("constructionPhysicalJob");
         unreadableEconomy = null;
         physicalJob = null;
         accounts.clear();
@@ -517,9 +607,27 @@ final class CriticalConstructionLedger {
         previewStageCosts = null;
         physicalNext = new ItemStack[0];
         try {
-            physicalJob = version == CriticalConstructionEconomy.VERSION && n.hasKey("constructionPhysicalJob")
+            physicalJob = CriticalConstructionEconomy.supportsVersion(version) && n.hasKey("constructionPhysicalJob")
                 ? CriticalConstructionEconomy.read(n.getCompoundTag("constructionPhysicalJob"))
                 : null;
+            if (physicalJob != null && physicalJob.version() != version) integrityError = true;
+            exactSteps = version >= 6 ? n.getInteger("constructionStepCount") : 0;
+            if (version >= 6 && funded && n.hasKey("constructionRoundVoxelEnd")) {
+                exactVoxelEnd = n.getInteger("constructionRoundVoxelEnd");
+                long voxelCount = 0;
+                for (ItemStack item : stageItems) if (physicalJob.isController(item) || physicalJob.family(item)
+                    .length() == 1) voxelCount += item.stackSize;
+                if (exactVoxelEnd < 0 || exactVoxelEnd > voxelCount || exactVoxelEnd < n.getInteger("cursor"))
+                    integrityError = true;
+            }
+            int maxSteps = CriticalConstructionEconomy.maxWorkSteps(version);
+            if (version >= 6 && (snapshot && (exactSteps < 1 || exactSteps > maxSteps) || !snapshot && exactSteps != 0
+                || snapshot && round >= exactSteps)) integrityError = true;
+            if (version >= 6 && snapshot && exactSteps > 0) {
+                for (ItemStack item : stageItems) if (item.stackSize % exactSteps != 0) integrityError = true;
+                for (FluidStack fluid : stageFluids) if (fluid.amount % exactSteps != 0) integrityError = true;
+            }
+            if (version >= 6) progress.advance(n.getInteger("constructionElapsed"), stageDuration());
             accounts.clear();
             NBTTagList balances = n.getTagList("constructionPhysicalBalances", 10);
             if (physicalJob != null) for (int i = 0; i < balances.tagCount(); i++) {

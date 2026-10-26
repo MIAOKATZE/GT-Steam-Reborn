@@ -47,9 +47,13 @@ def registration_gates():
 
 
 def main():
+    global OUT
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jar', type=Path, required=True)
+    parser.add_argument('--out', type=Path, default=OUT)
+    parser.add_argument('--baseline', type=Path, help='Frozen pre-change verification.json for exact per-row total comparison')
     args = parser.parse_args()
+    OUT = args.out.resolve()
     candidate = args.jar.resolve()
     candidate_hash = hashlib.sha256(candidate.read_bytes()).hexdigest()
     registrations = registration_gates()
@@ -77,8 +81,50 @@ def main():
         *[ROOT / 'tools/tests' / (name + '.java') for name in NAMES]])
     results = {name: run('java.exe', name, ['-cp', cp, 'com.miaokatze.gtsr.common.critical.' + name, candidate]) for name in NAMES}
     assert hashlib.sha256(candidate.read_bytes()).hexdigest() == candidate_hash
+    economy_output = results['CriticalConstructionEconomyContract']
+    work_steps = {name: int(count) for name, count in re.findall(r'^STEPS (\S+)=(\d+)$', economy_output, re.M)}
+    row_items = {}
+    for row, identity, count in re.findall(r'^ITEM (\S+) (.+)=(\d+)$', economy_output, re.M):
+        row_items.setdefault(row, {})[identity] = int(count)
+    row_fluids = {}
+    for row, identity, count in re.findall(r'^MEDIUM (\S+) (.+)=(\d+)$', economy_output, re.M):
+        row_fluids.setdefault(row, {})[identity] = int(count)
+    distribution = {row: {'owners': int(owners), 'maximumLocalCost': int(maximum), 'total': int(total)}
+                    for row, owners, maximum, total in re.findall(
+                        r'^DISTRIBUTION (\S+) owners=(\d+) max=(\d+) total=(\d+)$', economy_output, re.M)}
+    comparison = None
+    if args.baseline:
+        baseline = json.loads(args.baseline.read_text(encoding='utf-8'))
+        old_output = baseline['results']['CriticalConstructionEconomyContract']
+        old_fluids = {}
+        for row, identity, count in re.findall(r'^MEDIUM (\S+) (.+)=(\d+)$', old_output, re.M):
+            old_fluids.setdefault(row, {})[identity] = int(count)
+        singularity_key = 'gtsr:economy_singularity:0'
+        singularity_totals = {'SOLAR': 1409, 'TURBINE': 833, 'BATTERY': 801, 'SUN': 1984}
+        singularity_doses = {'SOLAR': [3, 3, 3, 2, 0, 1], 'TURBINE': [1, 2, 1, 0, 2, 1],
+                            'BATTERY': [1, 1, 1, 0, 1, 1], 'SUN': [3, 3, 3, 1, 1, 0]}
+        comparisons = 0
+        for row, steps in work_steps.items():
+            old_steps = baseline['workSteps'][row]
+            current = {key: value * steps for key, value in row_items[row].items() if key != singularity_key}
+            old = {key: value * old_steps for key, value in baseline['perStepItems'][row].items()}
+            assert current == old, ('item totals changed', row, current, old)
+            assert {key: value * steps for key, value in row_fluids[row].items()} == {
+                key: value * old_steps for key, value in old_fluids[row].items()}, ('fluid totals changed', row)
+            kind, group, index = row.split('/')
+            expected = singularity_doses[kind][(int(group) - 1) * 3 + int(index)] * steps
+            assert row_items[row].get(singularity_key, 0) * steps == expected, ('singularity total', row)
+            assert steps <= 256 and (not row.endswith('/2/2') or steps == 1), ('step limit', row)
+            comparisons += 1
+        for kind, total in singularity_totals.items():
+            assert sum(row_items[row].get(singularity_key, 0) * steps
+                       for row, steps in work_steps.items() if row.startswith(kind + '/')) == total
+        comparison = {'baseline': str(args.baseline.resolve()), 'baselineJarSHA256': baseline['jarSHA256'],
+                      'unchangedItemAndFluidRows': comparisons, 'newSingularityTotals': singularity_totals}
     (OUT / 'verification.json').write_text(json.dumps({'productOverlay': False, 'jar': str(candidate),
-        'jarSHA256': candidate_hash, 'results': results, 'registrations': registrations}, indent=2), encoding='utf-8')
+        'jarSHA256': candidate_hash, 'results': results, 'registrations': registrations,
+        'workSteps': work_steps, 'perStepItems': row_items, 'perStepFluids': row_fluids,
+        'singularityDistribution': distribution, 'baselineComparison': comparison}, indent=2), encoding='utf-8')
     print(json.dumps({name: re.findall(r'PASS .*', output)[-1] for name, output in results.items()}))
 
 

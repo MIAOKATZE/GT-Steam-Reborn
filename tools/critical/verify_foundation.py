@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CACHE = Path.home() / '.gradle/caches/modules-2/files-2.1'
 CONTRACTS = ('CriticalFoundationContract', 'CriticalFoundationRuntimeContract', 'CriticalFoundationPortsContract',
              'CriticalConstructionOwnershipContract', 'CriticalConstructionLedgerContract', 'CriticalConstructionRecoveryContract',
-             'CriticalConstructionViewContract')
+             'CriticalConstructionViewContract', 'CriticalConstructionDebugContract')
 
 
 def sha(path):
@@ -76,8 +76,8 @@ def main():
             raise RuntimeError(f'{name} returned no receipt')
         results[name] = int(match.group(1))
         origins.update(dict(re.findall(r'^SOURCE ([^=]+)=(.+)$', text, re.MULTILINE)))
-    if not args.contract and len(origins) != 11:
-        raise RuntimeError(f'Expected eleven bound production classes, found {origins}')
+    if not args.contract and len(origins) != 13:
+        raise RuntimeError(f'Expected thirteen bound production classes, found {origins}')
     if sha(candidate) != candidate_hash or before != {str(path.relative_to(ROOT)): sha(path) for path in sources}:
         raise RuntimeError('Candidate or fixture changed during verification')
     receipt = {'status': 'PASS', 'jar': str(candidate), 'jarSHA256': candidate_hash,

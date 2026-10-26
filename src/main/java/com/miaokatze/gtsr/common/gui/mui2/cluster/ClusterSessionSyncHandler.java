@@ -258,6 +258,7 @@ public final class ClusterSessionSyncHandler extends SyncHandler<ClusterSessionS
         ClusterSnapshot next = ClusterSnapshot.merge(snapshot, version, payload);
         if (next == snapshot) return;
         snapshot = next;
+        performance.update(snapshot);
         generation = nextGeneration;
         if ((next.changedMask & (1 << 10)) != 0) topology = next.getBytes(ClusterTerminalData.KEY_TOPO);
         if ((next.changedMask & (1 << 11)) != 0) run = next.getBytes(ClusterTerminalData.KEY_RUN);

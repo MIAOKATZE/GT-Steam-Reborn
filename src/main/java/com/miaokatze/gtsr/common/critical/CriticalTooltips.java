@@ -23,40 +23,20 @@ public final class CriticalTooltips {
             return tt;
         }
         if (preset == null) {
-            tt.addInfo(tr("tooltip.selection"))
-                .addInfo(EnumChatFormatting.AQUA + tr("tooltip.loom_only"))
-                .addInfo(tr("foundation.cycle"))
-                .addInfo(tr("foundation.cost"))
-                .addInfo(tr("foundation.curing"))
-                .addInfo(tr("foundation.singularity"))
-                .addInfo(tr("foundation.hatches"));
+            loom(tt);
         } else {
-            tt.addInfo(EnumChatFormatting.AQUA + tr("operation." + preset.key + ".input"))
-                .addInfo(tr("operation." + preset.key + ".cycle"))
-                .addInfo(tr("operation." + preset.key + ".parallel"))
-                .addInfo(EnumChatFormatting.YELLOW + tr("operation." + preset.key + ".energy"))
-                .addInfo(tr("operation." + preset.key + ".efficiency"))
-                .addInfo(EnumChatFormatting.GREEN + tr("operation." + preset.key + ".output"));
-            if (preset == CriticalMachineKind.TURBINE) {
-                tt.addInfo(tr("operation.trend"))
-                    .addInfo(tr("operation.idle"));
+            switch (preset) {
+                case SOLAR -> solar(tt);
+                case TURBINE -> turbine(tt);
+                case SUN -> sun(tt);
+                case BATTERY -> battery(tt);
+                default -> throw new IllegalArgumentException("Unreleased critical machine: " + preset);
             }
-            if (preset == CriticalMachineKind.BATTERY) {
-                tt.addInfo(tr("operation.battery.windows"))
-                    .addInfo(tr("operation.battery.paid"));
-            }
-            if (preset == CriticalMachineKind.SUN) {
-                tt.addInfo(tr("operation.sun.ignition"))
-                    .addInfo(tr("operation.sun.heat"))
-                    .addInfo(tr("operation.sun.pause"));
-            }
-            if (preset == CriticalMachineKind.SOLAR) tt.addInfo(tr("operation.solar.night"));
         }
-        tt.addInfo(tr("functional.decorative"))
-            .addInfo(tr("tooltip.manufacturing.controllers"))
-            .addInfo(tr("tooltip.manufacturing.casings"))
-            .addInfo(tr("management_hint"))
-            .addSeparator();
+        if (preset != null) {
+            tt.addSeparator()
+                .addInfo(EnumChatFormatting.BOLD + tr("tooltip.native.construction"));
+        }
         if (preset == null || CriticalMachineState.supportsV2Kind(preset)) {
             v2Structure(tt, preset);
         } else {
@@ -67,33 +47,141 @@ public final class CriticalTooltips {
         return tt;
     }
 
+    private static void loom(MultiblockTooltipBuilder tt) {
+        info(tt, "loom.purpose");
+        info(tt, "loom.machines");
+        tt.addSeparator();
+        info(tt, "loom.manage");
+        info(tt, "loom.ports");
+    }
+
+    private static void solar(MultiblockTooltipBuilder tt) {
+        info(tt, "solar.purpose");
+        info(tt, "solar.water");
+        info(tt, "solar.salt");
+        info(tt, "cycle");
+        info(tt, "solar.energy");
+        tt.addSeparator();
+        info(tt, "solar.steam_amount");
+        info(tt, "solar.salt_amount");
+        info(tt, "solar.stock");
+        info(tt, "solar.private");
+        info(tt, "solar.water_cost");
+        info(tt, "solar.steam_heat");
+        info(tt, "solar.other_steam");
+        info(tt, "solar.salt_heat");
+        info(tt, "solar.dimension");
+        tt.addSeparator();
+        info(tt, "solar.medium_reference");
+        info(tt, "solar.coolant");
+        for (CriticalSolarPolicy.Entry entry : CriticalSolarPolicy.COOLANTS)
+            policyEntry(tt, "coolant", entry, EnumChatFormatting.AQUA);
+        tt.addSeparator();
+        info(tt, "solar.excitation");
+        for (CriticalSolarPolicy.Entry entry : CriticalSolarPolicy.EXCITERS)
+            policyEntry(tt, "exciter", entry, EnumChatFormatting.LIGHT_PURPLE);
+        info(tt, "solar.helium");
+        tt.addSeparator();
+        info(tt, "solar.example_water_combination");
+        info(tt, "solar.example_water_output");
+        info(tt, "solar.example_salt_output");
+    }
+
+    private static void turbine(MultiblockTooltipBuilder tt) {
+        info(tt, "turbine.purpose");
+        info(tt, "turbine.input");
+        info(tt, "turbine.output");
+        info(tt, "cycle");
+        tt.addSeparator();
+        info(tt, "turbine.heat");
+        info(tt, "turbine.dense");
+        info(tt, "turbine.generation");
+        info(tt, "turbine.example");
+        tt.addSeparator();
+        info(tt, "turbine.efficiency");
+        info(tt, "turbine.load");
+        info(tt, "turbine.warmup");
+        info(tt, "turbine.idle");
+        info(tt, "turbine.water");
+    }
+
+    private static void sun(MultiblockTooltipBuilder tt) {
+        info(tt, "sun.purpose");
+        info(tt, "sun.recipe");
+        info(tt, "cycle");
+        info(tt, "sun.parallel");
+        tt.addSeparator();
+        info(tt, "sun.ignition");
+        info(tt, "sun.ignition_time");
+        info(tt, "sun.sustain");
+        info(tt, "sun.pause");
+        info(tt, "sun.extinguish");
+        info(tt, "sun.plasma");
+        tt.addSeparator();
+        info(tt, "sun.discount");
+        info(tt, "sun.power");
+        info(tt, "sun.example");
+        info(tt, "sun.limits");
+        info(tt, "sun.switch");
+    }
+
+    private static void battery(MultiblockTooltipBuilder tt) {
+        info(tt, "battery.purpose");
+        info(tt, "battery.input");
+        info(tt, "battery.output");
+        info(tt, "cycle");
+        tt.addSeparator();
+        info(tt, "battery.compounds");
+        info(tt, "battery.ratio");
+        info(tt, "battery.scaling");
+        tt.addSeparator();
+        info(tt, "battery.quality");
+        info(tt, "battery.efficiency");
+        info(tt, "battery.heat");
+        info(tt, "battery.example");
+    }
+
+    private static void info(MultiblockTooltipBuilder tt, String key) {
+        tt.addInfo(EnumChatFormatting.GRAY + tr("tooltip.native." + key));
+    }
+
+    private static void policyEntry(MultiblockTooltipBuilder tt, String group, CriticalSolarPolicy.Entry entry,
+        EnumChatFormatting color) {
+        tt.addInfo(
+            EnumChatFormatting.GRAY + formatted(
+                "solar.medium",
+                color + tr("solar." + group + "." + entry.id) + EnumChatFormatting.GRAY,
+                java.math.BigDecimal.valueOf(entry.multiplier)
+                    .stripTrailingZeros()
+                    .toPlainString(),
+                String.format(java.util.Locale.ROOT, "%,d", (long) entry.litresPerSecond)));
+    }
+
+    private static String formatted(String key, Object... values) {
+        return StatCollector.translateToLocalFormatted("gtsr.critical.tooltip.native." + key, values);
+    }
+
     private static void v2Structure(MultiblockTooltipBuilder tt, CriticalMachineKind preset) {
-        tt.addInfo(tr("v2.shared"))
-            .addInfo(tr("v2.loom"))
-            .addInfo(tr("v2.safe"))
-            .addInfo(tr("v2.dismantle"))
-            .addInfo(tr("v2.legacy"))
-            .beginStructureBlock(112, 180, 112, false)
+        tt.beginStructureBlock(112, 180, 112, false)
             .addController(tr(preset == null ? "v2.loom_controller" : "v2.main_controller"))
-            .addStructureInfo(tr("v2.region"))
-            .addStructureInfo(tr("v2.controllers"))
+            .addStructureInfo(tr("tooltip.native.structure.region"))
+            .addStructureInfo(tr("tooltip.native.structure.base"))
             .addInputBus(tr("v2.ports"))
             .addInputHatch(tr("v2.ports"))
             .addOutputBus(tr("v2.ports"))
             .addOutputHatch(tr("v2.ports"))
-            .addEnergyHatch(tr("v2.ports"))
-            .addStructureInfo(tr("v2.loom_ports"))
-            .addStructureInfo(tr("v2.main_ports"))
-            .addStructureInfo(tr("tooltip.physical_inputs"))
-            .addStructureInfo(tr("tooltip.port_hint"));
+            .addEnergyHatch(tr("v2.ports"));
+        if (preset == null) {
+            tt.addStructureInfo(tr("tooltip.native.structure.loom_ports"));
+        } else {
+            tt.addStructureInfo(tr("tooltip.native.structure.main_ports"));
+        }
+        tt.addStructureInfo(tr("tooltip.physical_inputs"))
+            .addStructureInfo(tr("tooltip.native.structure.hatches"));
     }
 
     private static void legacyStructure(MultiblockTooltipBuilder tt) {
-        tt.addInfo(tr("tooltip.loom_build"))
-            .addInfo(tr("tooltip.loom_preview"))
-            .addInfo(tr("tooltip.build"))
-            .addInfo(tr("tooltip.safe"))
-            .beginStructureBlock(80, 162, 80, false)
+        tt.beginStructureBlock(80, 162, 80, false)
             .addController(tr("tooltip.controller"))
             .addInputBus(tr("tooltip.ports"))
             .addInputHatch(tr("tooltip.ports"))

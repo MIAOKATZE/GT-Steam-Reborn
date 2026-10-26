@@ -34,10 +34,12 @@ public final class CriticalGTRecipes {
 
         public final FluidStack fluid;
         public final BigInteger euPerL;
-        /** First native map wins: diesel=0, gas=1, rocket=2. */
+        /** First native map wins: diesel=0, gas=1, rocket=2; new dense-liquid fuels join spectrum 0. */
         public final int spectrum;
 
-        private ChemicalFuel(FluidStack fluid, BigInteger euPerL, int spectrum) {
+        public ChemicalFuel(FluidStack fluid, BigInteger euPerL, int spectrum) {
+            if (fluid == null || fluid.getFluid() == null || euPerL == null || euPerL.signum() < 0)
+                throw new IllegalArgumentException("Invalid chemical fuel price");
             this.fluid = fluid.copy();
             this.fluid.amount = 1;
             this.euPerL = euPerL;
@@ -45,12 +47,13 @@ public final class CriticalGTRecipes {
         }
     }
 
-    /** Same maps, fuel-container decoding and rocket bonus as GT205's UCFE, without its promoter. */
+    /** GT205 UCFE fuels and rocket bonus, plus the dense-liquid family accepted by our TCDS. */
     public static List<ChemicalFuel> chemicalFuels() {
         Map<GTUtility.FluidId, ChemicalFuel> fuels = new LinkedHashMap<>();
         addChemicalFuels(fuels, RecipeMaps.dieselFuels, 1, 0);
         addChemicalFuels(fuels, RecipeMaps.gasTurbineFuels, 1, 1);
         addChemicalFuels(fuels, GTVersionCompat.requireGppRecipeMap("rocketFuels"), 3, 2);
+        addChemicalFuels(fuels, RecipeMaps.denseLiquidFuels, 1, 0);
         return new ArrayList<>(fuels.values());
     }
 
@@ -88,7 +91,9 @@ public final class CriticalGTRecipes {
                     host.criticalRecipePower(),
                     MTECriticalMachine.criticalEnergyTickCap(),
                     state.getStellarRuntimeData()
-                        .getBoolean("holdPaid")),
+                        .getBoolean("sustainPaidThisTick")),
+                recipe.mEUt,
+                recipe.mDuration,
                 CriticalStellarPolicy.MAX_PARALLEL);
             if (powerParallel <= 0) continue;
             ParallelHelper limit = helper(
@@ -118,7 +123,7 @@ public final class CriticalGTRecipes {
                 copies(execution.getItemOutputs()),
                 copies(execution.getFluidOutputs()),
                 CriticalStellarPolicy.duration(recipe.mDuration),
-                CriticalStellarPolicy.runEuPerTick(parallel),
+                CriticalStellarPolicy.runEuPerTick(recipe.mEUt, recipe.mDuration, parallel),
                 0,
                 fusionFingerprint(recipe, threshold),
                 recipe.mDuration,

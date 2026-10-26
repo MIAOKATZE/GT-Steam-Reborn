@@ -627,34 +627,42 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
         java.util.Random rng = getBaseMetaTileEntity().getWorld().rand;
 
         // 20% 黑曜石
-        if (rng.nextDouble() < 0.20) outputs.add(new ItemStack(Blocks.obsidian, 1));
+        if (rng.nextDouble() < GeothermalByproducts.probability(0)) outputs.add(new ItemStack(Blocks.obsidian, 1));
         // 10% 灰烬粉
-        if (rng.nextDouble() < 0.10) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Ash, 1));
+        if (rng.nextDouble() < GeothermalByproducts.probability(1))
+            outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Ash, 1));
         // 8% 硫粉
-        if (rng.nextDouble() < 0.08) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Sulfur, 1));
+        if (rng.nextDouble() < GeothermalByproducts.probability(2))
+            outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Sulfur, 1));
         // 4% 钽铁矿粉
-        if (rng.nextDouble() < 0.04) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Tantalite, 1));
+        if (rng.nextDouble() < GeothermalByproducts.probability(3))
+            outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Tantalite, 1));
         // 6% 氧化铝粉
-        if (rng.nextDouble() < 0.06)
+        if (rng.nextDouble() < GeothermalByproducts.probability(4))
             outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Aluminiumoxide, 1));
         // 2% 铜锭
-        if (rng.nextDouble() < 0.02) outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Copper, 1));
+        if (rng.nextDouble() < GeothermalByproducts.probability(5))
+            outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Copper, 1));
         // 1% 锡锭
-        if (rng.nextDouble() < 0.01) outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Tin, 1));
+        if (rng.nextDouble() < GeothermalByproducts.probability(6))
+            outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Tin, 1));
         // 0.5% 银锭
-        if (rng.nextDouble() < 0.005) outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Silver, 1));
+        if (rng.nextDouble() < GeothermalByproducts.probability(7))
+            outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Silver, 1));
         // 0.35% 金锭
-        if (rng.nextDouble() < 0.0035) outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Gold, 1));
+        if (rng.nextDouble() < GeothermalByproducts.probability(8))
+            outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Gold, 1));
 
         // 装载地热过热芯片后额外产出
         if (hasChip) {
             // 0.1% 磷粉
-            if (rng.nextDouble() < 0.001)
+            if (rng.nextDouble() < GeothermalByproducts.probability(9))
                 outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Phosphorus, 1));
             // 0.05% 金红石粉
-            if (rng.nextDouble() < 0.0005) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Rutile, 1));
+            if (rng.nextDouble() < GeothermalByproducts.probability(10))
+                outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Rutile, 1));
             // 0.02% 白钨矿粉
-            if (rng.nextDouble() < 0.0002)
+            if (rng.nextDouble() < GeothermalByproducts.probability(11))
                 outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Scheelite, 1));
         }
 

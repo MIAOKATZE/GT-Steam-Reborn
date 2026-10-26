@@ -1,280 +1,518 @@
 package com.miaokatze.gtsr.client.nei;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import static com.miaokatze.gtsr.api.recipe.CriticalNEILayout.*;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.resources.IReloadableResourceManager;
 
 import org.lwjgl.opengl.GL11;
 
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.options.FormatOptions;
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.DisplayInfo;
-import com.miaokatze.gtsr.client.critical.CriticalMiniatureRenderer;
-import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
-import com.miaokatze.gtsr.common.critical.CriticalPreviewDescriptor;
-import com.miaokatze.gtsr.common.critical.CriticalTier;
+import com.miaokatze.gtsr.common.critical.CriticalConstructionProgress;
+import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
+import com.miaokatze.gtsr.common.critical.CriticalFoundationChunk;
+import com.miaokatze.gtsr.common.critical.CriticalSolarPolicy;
+import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
 import com.miaokatze.gtsr.config.Config;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import gregtech.api.enums.GTValues;
 import gregtech.api.util.GTRecipe;
+import gregtech.api.util.GTUtility;
+import gregtech.api.util.tooltip.TooltipHelper;
 import gregtech.nei.GTNEIDefaultHandler;
 
-/** Hand-drawn steel/copper engineering cards. No world, dummy structure or per-frame geometry build. */
+/** Native slots and labels surround operation-specific, two-dimensional process diagrams. */
 @SideOnly(Side.CLIENT)
 public final class CriticalNEIShowcase {
 
-    private static final int STEEL = 0xFF26313A, EDGE = 0xFF64737D, COPPER = 0xFFC48A50;
-    private static final int GOLD = 0xFFEAC879, INK = 0xFFD6DEE2, CYAN = 0xFF79B9C8;
-    private static final int CACHE_LIMIT = 256;
-    private static final Map<GTRecipe, Page> PAGES = new LinkedHashMap<>(32, .75f, true);
-    private static String language = "";
+    private static final int INK = 0xFFE1E8EB, MUTED = 0xFFADBDC6, GOLD = 0xFFEAC879;
+    private static final int EDGE = 0xFF53646F, DARK = 0xFF17212A;
+    private static final int WATER = 0xFF75CAD8, HEAT = 0xFFF1AB70, PLASMA = 0xFFD2A4EB;
+    private static final int[] SPECTRA = { HEAT, WATER, PLASMA };
 
     private CriticalNEIShowcase() {}
 
     public static void registerReloadListener() {
-        if (Minecraft.getMinecraft()
-            .getResourceManager() instanceof IReloadableResourceManager resources)
-            resources.registerReloadListener(manager -> PAGES.clear());
+        // Labels use the live language table; no cached text survives a resource reload.
     }
 
     public static void background(float x, float y, float width, float height, float partialTicks) {
-        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+        background(x, y, false);
+    }
+
+    public static void constructionBackground(float x, float y, float width, float height, float partialTicks) {
+        background(x, y, true);
+    }
+
+    public static void chemicalBackground(float x, float y, float width, float height, float partialTicks) {
+        background(x, y, true);
         GL11.glPushMatrix();
         try {
             GL11.glTranslatef(x, y, 0);
-            rect(0, 0, 170, 174, 0xFF10171D);
-            rect(1, 1, 169, 173, EDGE);
-            rect(2, 2, 168, 172, STEEL);
-            rect(4, 4, 166, 16, 0xFF141D24);
-            rect(4, 17, 166, 18, COPPER);
-            for (int yy = 22; yy < 170; yy += 12) rect(5, yy, 165, yy + 1, 0xFF2C3842);
-            for (int xx = 4; xx < 170; xx += 160)
-                for (int yy = 4; yy < 174; yy += 164) rect(xx, yy, xx + 2, yy + 2, GOLD);
+            rect(5, CHEMICAL_DIVIDER_Y, 165, CHEMICAL_DIVIDER_Y + 1, EDGE);
         } finally {
             GL11.glPopMatrix();
-            GL11.glPopAttrib();
+        }
+    }
+
+    private static void background(float x, float y, boolean construction) {
+        GL11.glPushMatrix();
+        try {
+            GL11.glTranslatef(x, y, 0);
+            rect(0, 0, WIDTH, HEIGHT, DARK);
+            rect(1, 1, WIDTH - 1, HEIGHT - 1, 0xFF26313A);
+            rect(5, 17, 165, 18, EDGE);
+            if (!construction) rect(5, 91, 165, 92, EDGE);
+        } finally {
+            GL11.glPopMatrix();
         }
     }
 
     public static void draw(GTRecipe recipe) {
         DisplayInfo info = CriticalRecipeMaps.displayInfo(recipe);
         if (info == null) return;
-        Page page = page(recipe, info);
-        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
-        GL11.glPushMatrix();
-        try {
-            GL11.glDisable(GL11.GL_LIGHTING);
-            label(page.title, 8, 6, fit(page.title, .8f, 154), GOLD);
-            if (info.showcase()) showcase(info, page);
-            else if (info.construction()) construction(info, page);
-            else runtime(info, page);
-        } finally {
-            GL11.glPopMatrix();
-            GL11.glPopAttrib();
+        if (info.construction()) {
+            construction(info);
+            return;
         }
-    }
-
-    private static Page page(GTRecipe recipe, DisplayInfo info) {
-        String current = Minecraft.getMinecraft().gameSettings.language;
-        if (!current.equals(language)) {
-            language = current;
-            PAGES.clear();
-        }
-        Page cached = PAGES.get(recipe);
-        if (cached != null) return cached;
-        FontRenderer font = Minecraft.getMinecraft().fontRenderer;
-        boolean construction = info.construction();
-        String title = CriticalRecipeMaps
-            .text("showcase." + (info.showcase() ? "structure" : construction ? "construction" : info.kind.key));
-        List<String> lines = new ArrayList<>();
-        for (String text : CriticalRecipeMaps.description(recipe))
-            for (Object wrapped : font.listFormattedStringToWidth(text, 202)) lines.add((String) wrapped);
-        String[] phases = new String[3];
-        for (int i = 0; i < phases.length; i++) phases[i] = CriticalRecipeMaps
-            .text("showcase." + (construction ? "stage_" : info.kind.key + "_phase_") + i);
-        String caption = construction || info.showcase()
-            ? net.minecraft.util.StatCollector.translateToLocal("gtsr.critical.kind." + info.kind.key)
-            : CriticalRecipeMaps.text("showcase.ratio");
-        cached = new Page(title, caption, phases, lines.toArray(new String[0]));
-        PAGES.put(recipe, cached);
-        if (PAGES.size() > CACHE_LIMIT) PAGES.remove(
-            PAGES.keySet()
-                .iterator()
-                .next());
-        return cached;
-    }
-
-    private static void construction(DisplayInfo info, Page page) {
-        int stage = info.operation.charAt(info.operation.length() - 1) - '0';
-        for (int i = 0; i < 3; i++) {
-            int x = 8 + i * 53;
-            rect(x, 22, x + 48, 32, i == stage ? COPPER : 0xFF17212A);
-            label(shorten(page.phases[i], .75f, 43), x + 3, 24, .75f, i == stage ? 0xFF141D24 : INK);
-            if (i < 2) rect(x + 48, 26, x + 53, 28, GOLD);
-        }
-        label(shorten(page.caption, .75f, 132), 9, 38, .75f, INK);
-        // An output slot remains a native NEI controller link; the product is the commissioned world structure.
-        int scan = Config.criticalPreviewReducedMotion ? 59 : GTNEIDefaultHandler.getDrawTicks() % 118;
-        rect(9 + scan, 51, 10 + scan, 53, GOLD);
-        miniature(info.kind, stage);
-        rect(8, 129, 162, 130, COPPER);
-        textLines(page.lines, 9, 134, 153, 36);
-    }
-
-    private static void miniature(CriticalMachineKind kind, int stage) {
-        // A deliberately schematic elevation, kept outside every native stack/tooltip hit box.
-        rect(144, 121, 164, 124, stage == 0 ? GOLD : EDGE);
-        rect(147, 116, 161, 121, stage == 1 ? COPPER : EDGE);
-        rect(149, 112, 159, 116, EDGE);
-        int body = stage == 2 ? COPPER : 0xFF43535F;
-        if (kind == CriticalMachineKind.SOLAR) {
-            rect(153, 94, 155, 112, body);
-            rect(144, 93, 164, 96, body);
-            rect(147, 88, 150, 94, body);
-            rect(158, 88, 161, 94, body);
-        } else if (kind == CriticalMachineKind.SUN) {
-            rect(147, 90, 150, 110, body);
-            rect(158, 90, 161, 110, body);
-            rect(150, 88, 158, 91, body);
-            rect(150, 108, 158, 111, body);
-            rect(152, 97, 156, 102, GOLD);
-        } else if (kind == CriticalMachineKind.TURBINE) {
-            for (int i = 0; i < 3; i++) rect(146 + i * 6, 91 + i % 2 * 5, 150 + i * 6, 112, body);
-        } else {
-            for (int yy = 91; yy <= 107; yy += 8) rect(146, yy, 162, yy + 5, body);
-            rect(152, 89, 156, 113, EDGE);
-        }
-        int scan = 86 + (Config.criticalPreviewReducedMotion ? 18 : GTNEIDefaultHandler.getDrawTicks() % 37);
-        rect(143, scan, 165, scan + 1, CYAN);
-    }
-
-    private static void runtime(DisplayInfo info, Page page) {
-        for (int i = 0; i < 3; i++) {
-            int x = 8 + i * 53;
-            rect(x, 22, x + 48, 31, 0xFF17212A);
-            label(shorten(page.phases[i], .75f, 43), x + 3, 24, .75f, i == 1 ? GOLD : CYAN);
-        }
-        // The lane connects native clickable input/output stacks without drawing over their hit boxes.
-        rect(54, 43, 129, 44, COPPER);
-        int pulse = Config.criticalPreviewReducedMotion ? 35 : GTNEIDefaultHandler.getDrawTicks() % 70;
-        rect(55 + pulse, 41, 58 + pulse, 46, GOLD);
-        schematic(info.kind);
-        label(page.caption, 9, 58, .65f, CYAN);
-        rect(8, 68, 162, 69, COPPER);
-        textLines(page.lines, 9, 74, 153, 95);
-    }
-
-    private static void schematic(CriticalMachineKind kind) {
-        // Fixed bounded primitives: steam rotor, stellar cage, three irradiator rays or four chemical windows.
-        if (kind == CriticalMachineKind.SUN) {
-            rect(75, 33, 95, 51, EDGE);
-            rect(78, 35, 92, 49, 0xFF17212A);
-            rect(82, 39, 88, 45, GOLD);
-        } else if (kind == CriticalMachineKind.TURBINE) {
-            for (int i = 0; i < 5; i++) rect(74 + i * 4, 35 + i % 2 * 3, 76 + i * 4, 51 - i % 2 * 3, EDGE);
-            rect(72, 42, 96, 44, GOLD);
-        } else if (kind == CriticalMachineKind.SOLAR) {
-            for (int i = 0; i < 3; i++) {
-                rect(75, 35 + i * 6, 96, 36 + i * 6, GOLD);
-                rect(72, 34 + i * 6, 75, 38 + i * 6, CYAN);
+        String operation = info.operation;
+        label(text(operation + ".title"), 8, 6, GOLD);
+        label(text("intro." + operation), 8, 21, MUTED);
+        boolean chemical = operation.equals("chemical_compound");
+        if (!chemical) label(text("output"), OUTPUT_X, 32, MUTED);
+        label(text(chemical ? "chemical.inputs" : "input"), INPUT_X, chemical ? 30 : 32, MUTED);
+        if (chemical) {
+            chemical(info, new Plot(flow(info, true)));
+            chemicalRows(
+                CriticalRecipeMaps.formatted("simple.chemical.efficiency", info.compound.peakMultiplier),
+                CriticalRecipeMaps
+                    .formatted("simple.chemical.input_heat", number(new java.math.BigDecimal(info.inputHeat))),
+                CriticalRecipeMaps
+                    .formatted("simple.chemical.output_heat", number(new java.math.BigDecimal(info.baseEu))));
+        } else if (operation.startsWith("stellar_") || operation.equals("sun")) {
+            stellar(operation, new Plot(flow(info, true)));
+            if (operation.equals("stellar_ignition")) {
+                rows(
+                    text("stellar.phase_time"),
+                    power(CriticalStellarPolicy.IGNITION_EU / CriticalStellarPolicy.DURATION_TICKS),
+                    CriticalRecipeMaps.formatted(
+                        "simple.ignition.helium",
+                        number(java.math.BigDecimal.valueOf(CriticalStellarPolicy.IGNITION_HELIUM3_L))),
+                    text("ignition.once"));
+            } else if (operation.equals("stellar_sustain")) {
+                rows(
+                    text("stellar.phase_time"),
+                    power(CriticalStellarPolicy.SUSTAIN_EUT),
+                    CriticalRecipeMaps.formatted(
+                        "simple.sustain.helium",
+                        number(
+                            java.math.BigDecimal.valueOf(
+                                CriticalStellarPolicy.DURATION_TICKS
+                                    * CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK))),
+                    text("sustain.always"));
+            } else {
+                rows(
+                    text("fusion.time"),
+                    power(info.baseEu.longValueExact()),
+                    CriticalRecipeMaps.formatted("simple.fusion.discount", fusionDiscount(info)));
             }
+        } else if (operation.equals("turbine")) {
+            turbine(new Plot(flow(info, true)));
+            rows(
+                CriticalRecipeMaps.formatted(
+                    "simple.turbine.heat_per_l",
+                    number(
+                        new java.math.BigDecimal(info.baseEu)
+                            .divide(java.math.BigDecimal.valueOf(recipe.mFluidInputs[0].amount)))),
+                CriticalRecipeMaps.formatted(
+                    "simple.turbine.efficiency",
+                    CriticalEnergyMath.MIN_EFFICIENCY / 100,
+                    CriticalEnergyMath.MAX_EFFICIENCY / 100),
+                CriticalRecipeMaps.formatted("simple.turbine.warmup", CriticalEnergyMath.TURBINE_WARMUP_TICKS / 20),
+                text("turbine.cycle"),
+                text("turbine.condensation"));
+        } else if (operation.equals("solar_dust")) {
+            irradiation(new Plot(flow(info, false)));
+            rows(
+                text("irradiation.cycle"),
+                text("irradiation.parallel"),
+                text("irradiation.no_energy"),
+                text("irradiation.output"));
         } else {
+            boiler(operation.equals("solar_salt"), new Plot(flow(info, true)));
+            rows(
+                text("solar.cycle"),
+                CriticalRecipeMaps.formatted(
+                    "simple.solar.sample",
+                    number(
+                        new java.math.BigDecimal(info.baseEu)
+                            .divide(java.math.BigDecimal.valueOf(CriticalSolarPolicy.FULL_TURBINE_MULTIPLIER)))),
+                text(operation.equals("solar_salt") ? "solar.salt" : "solar.water"));
+        }
+    }
+
+    private static void construction(DisplayInfo info) {
+        label(text("build.title"), 8, 6, GOLD);
+        label(text("build.target." + info.kind.key), 8, 20, INK);
+        int group = info.constructionGroup();
+        for (int i = 0; i < 3; i++) {
+            int x = 8 + i * 53;
+            frame(x, 31, 48, 13, i <= group ? GOLD : EDGE);
+            if (i < group) rect(x + 1, 32, x + 47, 43, 0xFF3D443F);
+            if (i == group) {
+                rect(x + 1, 32, x + 47, 43, 0xFF5B5140);
+                rect(x + 1, 43, x + 2 + phase(45), 44, GOLD);
+            }
+            centered(text("build.group." + i), x + 24, 33, i <= group ? GOLD : MUTED);
+        }
+        for (int row = 0; row < 3; row++) {
+            int y = BUILD_Y + row * BUILD_ROW_PITCH;
+            int ticks = info.constructionStage() != 0 ? CriticalConstructionProgress.STAGE_DURATION
+                : row == 0 ? CriticalFoundationChunk.CELL_DURATION
+                    : row == 1 ? CriticalFoundationChunk.HEATING_DURATION : CriticalFoundationChunk.CURING_DURATION;
+            int time = ticks / (info.constructionStage() == 0 && row == 1 ? 20 * 60
+                : info.constructionStage() == 0 && row == 2 ? 20 * 60 * 60 : 20);
+            String unit = info.constructionStage() == 0 && row == 1 ? "minutes"
+                : info.constructionStage() == 0 && row == 2 ? "hours"
+                    : info.constructionStage() == 0 && row == 0 ? "cell" : "step";
+            String duration = info.constructionStage() == 0
+                ? CriticalRecipeMaps.formatted("simple.build.time." + unit, time)
+                : CriticalRecipeMaps.formatted("simple.build.time.steps", time, info.constructionSteps(row));
+            var font = Minecraft.getMinecraft().fontRenderer;
+            int timeX = BUILD_TIME_RIGHT_X - font.getStringWidth(duration);
+            String title = text("build.row." + info.constructionStage() + "." + row);
+            if (info.constructionStage() != 0 || row == 2) {
+                // Two native-font lines fit above a row without touching the previous slots.
+                // Keep five pixels before the right-aligned duration.
+                var lines = font.listFormattedStringToWidth(title, timeX - BUILD_X - 5);
+                int titleY = lines.size() == 1 ? y - 11 : y - 18;
+                for (String line : lines) {
+                    label(line, BUILD_X, titleY, INK);
+                    titleY += 9;
+                }
+            } else label(title, BUILD_X, y - 11, INK);
+            label(duration, timeX, y - 11, MUTED);
+        }
+    }
+
+    /** Both collection circuits remain visible; only this recipe's branch carries heat. */
+    private static void boiler(boolean salt, Plot p) {
+        for (int branch = 0; branch < 2; branch++) {
+            int y = -20 + branch * 22;
+            boolean active = salt == (branch == 1);
+            int color = active ? (salt ? HEAT : WATER) : EDGE;
+            p.line(-31, y + 7, -13, y + 7, color);
+            p.frame(-13, y, 26, 16, color);
             for (int i = 0; i < 4; i++) {
-                int x = 73 + i % 2 * 12, y = 34 + i / 2 * 10;
-                rect(x, y, x + 10, y + 8, EDGE);
-                rect(x + 2, y + 2, x + 8, y + 6, COPPER);
+                int level = active ? 4 + (phase(20) + i * 3) % 8 : 4;
+                p.rect(-9 + i * 5, y + 14 - level, -6 + i * 5, y + 14, color);
+            }
+            p.line(13, y + 7, 31, y + 7, color);
+            if (active) p.rect(15 + phase(14), y + 6, 18 + phase(14), y + 9, color);
+        }
+        int activeY = salt ? 9 : -13, color = salt ? HEAT : WATER;
+        p.line(-31, 0, -31, activeY, color);
+        p.line(31, activeY, 31, 0, color);
+        p.input(color);
+        p.output(color);
+    }
+
+    /** A ratchet rotor drives the power shaft; the lower pipe closes the condensate loop. */
+    private static void turbine(Plot p) {
+        p.input(HEAT);
+        p.line(-31, 0, -31, -5, HEAT);
+        p.line(-31, -5, -14, -5, HEAT);
+        p.ring(0, -5, 14, EDGE);
+        p.ring(0, -5, 11, HEAT);
+        int rampTicks = 240;
+        double t = phase(rampTicks);
+        double ratio = (double) CriticalEnergyMath.MAX_EFFICIENCY / CriticalEnergyMath.MIN_EFFICIENCY;
+        double angle = Math.PI / 32 * (t + (ratio - 1) * t * t / (2 * rampTicks));
+        for (int i = 0; i < 6; i++) {
+            double a = angle + i * Math.PI / 3;
+            int x = (int) (Math.cos(a) * 11), y = -5 + (int) (Math.sin(a) * 11);
+            p.line(0, -5, x, y, GOLD);
+            p.line(x, y, x + (int) (Math.cos(a + 1) * 3), y + (int) (Math.sin(a + 1) * 3), GOLD);
+            if (i == 0) p.rect(x - 1, y - 1, x + 2, y + 2, PLASMA);
+        }
+        p.rect(-2, -7, 3, -2, INK);
+        p.line(14, -5, 28, -5, GOLD);
+        p.chevron(29, -5, GOLD);
+        p.line(31, 0, 31, 15, WATER);
+        p.line(31, 15, -29, 15, WATER);
+        p.line(-29, 15, -29, 7, WATER);
+        p.rect(28 - phase(56), 14, 31 - phase(56), 17, WATER);
+        p.output(WATER);
+    }
+
+    private static void irradiation(Plot p) {
+        p.input(GOLD);
+        p.line(-31, 0, -24, 0, GOLD);
+        p.ring(-8, 0, 10, GOLD);
+        p.rect(-13, -5, -2, 6, HEAT);
+        for (int i = 0; i < 8; i++) {
+            double a = i * Math.PI / 4;
+            p.line(
+                -8 + (int) (Math.cos(a) * 13),
+                (int) (Math.sin(a) * 13),
+                -8 + (int) (Math.cos(a) * 16),
+                (int) (Math.sin(a) * 16),
+                GOLD);
+        }
+        for (int i = 0; i < 3; i++) {
+            int x = 11 + (phase(18) + i * 6) % 18;
+            p.line(x, -6, x + 3, -9, PLASMA);
+            p.line(x, 0, x + 3, 0, GOLD);
+            p.line(x, 6, x + 3, 9, PLASMA);
+        }
+        p.output(GOLD);
+        p.frame(23, 18, 6, 6, PLASMA);
+        p.rect(12, 23, 15, 26, GOLD);
+        p.rect(19, 27, 22, 30, HEAT);
+    }
+
+    /** Ignition expands, sustain orbits steadily, fusion feeds three converging streams. */
+    private static void stellar(String operation, Plot p) {
+        boolean ignition = operation.equals("stellar_ignition"), fusion = operation.equals("sun");
+        int radius = ignition ? 6 + phase(28) / 4 : 12;
+        p.input(ignition ? HEAT : WATER);
+        p.line(-31, 0, -17, 0, ignition ? HEAT : WATER);
+        p.ring(0, 0, radius + 3, PLASMA);
+        p.ring(0, 0, radius, ignition ? HEAT : GOLD);
+        if (fusion) {
+            for (int i = 0; i < 3; i++) {
+                int y = -14 + i * 14;
+                p.line(-31, y, -12, 0, SPECTRA[i]);
+                int x = -31 + phase(24) * 19 / 24;
+                int py = y - y * (x + 31) / 19;
+                p.rect(x, py, x + 3, py + 2, SPECTRA[i]);
+            }
+        } else {
+            double angle = phase(64) * Math.PI / 32;
+            for (int i = 0; i < 2; i++) {
+                int x = (int) (Math.cos(angle + i * Math.PI) * (radius + 3));
+                int y = (int) (Math.sin(angle + i * Math.PI) * (radius + 3));
+                p.rect(x - 1, y - 1, x + 2, y + 2, ignition ? HEAT : WATER);
             }
         }
+        p.line(16, 0, 31, 0, PLASMA);
+        p.output(PLASMA);
+        p.rect(-4, -4, 5, 5, HEAT);
+        p.rect(-2, -2, 3, 3, GOLD);
+        p.rect(0, -1, 2, 2, INK);
     }
 
-    private static void textLines(String[] lines, int x, int y, int width, int height) {
-        // Keep a readable lower bound. The complete text is on every native stack's tooltip.
-        float scale = .75f;
-        int count = Math.max(1, (height - 8) / 8);
-        int yy = y;
-        for (int i = 0; i < Math.min(count, lines.length); i++) {
-            label(shorten(lines[i], scale, width), x, yy, scale, INK);
-            yy += 8;
-        }
-        if (lines.length > count)
-            label(shorten(CriticalRecipeMaps.text("showcase.more"), scale, width), x, yy, scale, GOLD);
-    }
-
-    private static float fit(String text, float scale, int width) {
-        return Math.max(
-            .75f,
-            Math.min(scale, width / (float) Math.max(1, Minecraft.getMinecraft().fontRenderer.getStringWidth(text))));
-    }
-
-    private static void label(String text, int x, int y, float scale, int color) {
-        scale = Math.max(.75f, scale);
-        text = shorten(text, scale, 162 - x);
+    private static void chemical(DisplayInfo info, Plot p) {
+        int x = p.flow.centerX - CHEMICAL_BAR_WIDTH / 2;
+        label(text("chemical.bar"), x - 5, 29, MUTED);
+        frame(x, CHEMICAL_BAR_Y, CHEMICAL_BAR_WIDTH, CHEMICAL_BAR_HEIGHT, EDGE);
         GL11.glPushMatrix();
         try {
-            GL11.glTranslatef(x, y, 0);
-            GL11.glScalef(scale, scale, 1);
-            Minecraft.getMinecraft().fontRenderer.drawString(text, 0, 0, color);
+            GL11.glTranslatef(x, CHEMICAL_BAR_Y + CHEMICAL_BAR_HEIGHT - 2, 0);
+            GL11.glScalef(1, info.compound.peakMultiplier / 100.0F, 1);
+            rect(2, -(CHEMICAL_BAR_HEIGHT - 4), CHEMICAL_BAR_WIDTH - 2, 0, GOLD);
         } finally {
             GL11.glPopMatrix();
         }
+        label("100x", x + CHEMICAL_BAR_WIDTH + 4, CHEMICAL_BAR_Y, GOLD);
+        label("1x", x + CHEMICAL_BAR_WIDTH + 4, CHEMICAL_BAR_Y + CHEMICAL_BAR_HEIGHT - 9, MUTED);
     }
 
-    private static String shorten(String text, float scale, int width) {
-        FontRenderer font = Minecraft.getMinecraft().fontRenderer;
-        int limit = Math.max(1, (int) (width / scale));
-        return font.getStringWidth(text) <= limit ? text
-            : font.trimStringToWidth(text, Math.max(1, limit - font.getStringWidth("…"))) + "…";
+    public static double chemicalFillHeight(int exampleMultiplier) {
+        return (CHEMICAL_BAR_HEIGHT - 4) * exampleMultiplier / 100.0;
     }
 
-    private static void showcase(DisplayInfo info, Page page) {
-        label(page.caption, 9, 23, .8f, INK);
-        label(shorten(CriticalRecipeMaps.text("showcase.demo_badge"), .75f, 132), 9, 36, .75f, GOLD);
-        boolean drawn = CriticalMiniatureRenderer.draw(
-            CriticalPreviewDescriptor.demo(info.kind, CriticalTier.T3),
-            8,
-            55,
-            154,
-            80,
-            GTNEIDefaultHandler.getDrawTicks() / 20D,
-            Config.criticalPreviewReducedMotion);
-        if (!drawn) {
-            GL11.glPushMatrix();
-            try {
-                // Existing schematic bounds x=72..96, y=33..55 become x=61..109, y=69..113.
-                // Both the static diagram and its caption stay inside the 8,55 / 154x80 viewport.
-                GL11.glTranslatef(85, 91, 0);
-                GL11.glScalef(2, 2, 1);
-                GL11.glTranslatef(-84, -44, 0);
-                schematic(info.kind);
-            } finally {
-                GL11.glPopMatrix();
-            }
-            label(shorten(CriticalRecipeMaps.text("showcase.simplified"), .75f, 146), 12, 124, .75f, CYAN);
+    private static int phase(int duration) {
+        return Config.criticalUiReducedMotion ? duration / 2
+            : Math.floorMod(GTNEIDefaultHandler.getDrawTicks(), duration);
+    }
+
+    private static void chevron(int x, int y, int color) {
+        line(x - 3, y - 3, x, y, color);
+        line(x, y, x - 3, y + 3, color);
+    }
+
+    private static void frame(int x, int y, int width, int height, int color) {
+        rect(x, y, x + width, y + 1, color);
+        rect(x, y + height - 1, x + width, y + height, color);
+        rect(x, y, x + 1, y + height, color);
+        rect(x + width - 1, y, x + width, y + height, color);
+    }
+
+    /** Diagram geometry is local to the real native slot gap; labels retain their native 1x font. */
+    private static final class Plot {
+
+        private final Flow flow;
+        private final int width;
+
+        private Plot(Flow flow) {
+            this.flow = flow;
+            width = flow.diagramWidth;
         }
-        rect(8, 138, 162, 139, COPPER);
-        textLines(page.lines, 9, 142, 153, 28);
+
+        private int x(int offset) {
+            return flow.centerX + Math.round(offset * width / 64.0F);
+        }
+
+        private int y(int offset) {
+            return flow.centerY + offset;
+        }
+
+        private void rect(int x1, int y1, int x2, int y2, int color) {
+            CriticalNEIShowcase.rect(x(x1), y(y1), x(x2), y(y2), color);
+        }
+
+        private void line(int x1, int y1, int x2, int y2, int color) {
+            CriticalNEIShowcase.line(x(x1), y(y1), x(x2), y(y2), color);
+        }
+
+        private void frame(int x, int y, int width, int height, int color) {
+            line(x, y, x + width - 1, y, color);
+            line(x, y + height - 1, x + width - 1, y + height - 1, color);
+            line(x, y, x, y + height - 1, color);
+            line(x + width - 1, y, x + width - 1, y + height - 1, color);
+        }
+
+        private void ring(int x, int y, int radius, int color) {
+            for (int i = 0; i < 24; i++) {
+                double a = i * Math.PI / 12, b = (i + 1) * Math.PI / 12;
+                line(
+                    x + (int) Math.round(Math.cos(a) * radius),
+                    y + (int) Math.round(Math.sin(a) * radius),
+                    x + (int) Math.round(Math.cos(b) * radius),
+                    y + (int) Math.round(Math.sin(b) * radius),
+                    color);
+            }
+        }
+
+        private void chevron(int x, int y, int color) {
+            line(x - 3, y - 3, x, y, color);
+            line(x, y, x - 3, y + 3, color);
+        }
+
+        private void input(int color) {
+            CriticalNEIShowcase.line(flow.inputRight + 1, flow.centerY, x(-31), flow.centerY, color);
+        }
+
+        private void output(int color) {
+            int edge = flow.outputLeft - 3;
+            CriticalNEIShowcase.line(x(31), flow.centerY, edge, flow.centerY, color);
+            CriticalNEIShowcase.chevron(edge, flow.centerY, color);
+        }
+    }
+
+    private static void line(int x1, int y1, int x2, int y2, int color) {
+        if (x1 == x2 || y1 == y2) {
+            rect(Math.min(x1, x2), Math.min(y1, y2), Math.max(x1, x2) + 1, Math.max(y1, y2) + 1, color);
+            return;
+        }
+        int steps = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
+        for (int i = 0; i <= steps; i++) {
+            int x = x1 + (steps == 0 ? 0 : (x2 - x1) * i / steps);
+            int y = y1 + (steps == 0 ? 0 : (y2 - y1) * i / steps);
+            rect(x, y, x + 1, y + 1, color);
+        }
+    }
+
+    public static String power(long eut) {
+        // GT205 TooltipHelper.euRateText style; keep full integers even above its default
+        // exponent threshold by passing the native formatter an explicit display option.
+        String value = TooltipHelper.EU_VOLT_COLOR
+            + NumberFormatUtil.formatNumber(
+                eut,
+                new FormatOptions().setDecimalPlaces(0)
+                    .disableExponentialFormatting())
+            + TooltipHelper.TIER_COLOR
+            + " EU/t"
+            + net.minecraft.util.EnumChatFormatting.GRAY;
+        int maximum = gregtech.api.enums.VoltageIndex.MAX;
+        int tier = Math.max(1, Math.min(maximum, GTUtility.getTier(eut)));
+        long amps = eut <= GTValues.V[maximum] ? 1
+            : eut / GTValues.V[maximum] + (eut % GTValues.V[maximum] == 0 ? 0 : 1);
+        return value + " ("
+            + TooltipHelper.AMP_COLOR
+            + NumberFormatUtil.formatNumber(
+                amps,
+                new FormatOptions().setDecimalPlaces(0)
+                    .disableExponentialFormatting())
+            + "A "
+            + GTUtility.getColoredTierNameFromTier((byte) tier)
+            + ")";
+    }
+
+    private static String maxAmps(int amps) {
+        return TooltipHelper.AMP_COLOR + NumberFormatUtil.formatNumber(
+            amps,
+            new FormatOptions().setDecimalPlaces(0)
+                .disableExponentialFormatting())
+            + "A "
+            + GTUtility.getColoredTierNameFromTier((byte) gregtech.api.enums.VoltageIndex.MAX)
+            + net.minecraft.util.EnumChatFormatting.GRAY;
+    }
+
+    public static String fusionDiscount(DisplayInfo info) {
+        if (info.nativeEut <= 0) return "0";
+        return number(
+            java.math.BigDecimal.valueOf(info.nativeEut)
+                .subtract(new java.math.BigDecimal(info.baseEu))
+                .multiply(java.math.BigDecimal.valueOf(100))
+                .divide(java.math.BigDecimal.valueOf(info.nativeEut), 4, java.math.RoundingMode.HALF_UP));
+    }
+
+    private static String number(java.math.BigDecimal value) {
+        java.text.DecimalFormat format = new java.text.DecimalFormat(
+            "#,##0.####",
+            java.text.DecimalFormatSymbols.getInstance(java.util.Locale.ROOT));
+        return format.format(value);
+    }
+
+    private static void chemicalRows(String... rows) {
+        int y = CHEMICAL_TEXT_Y;
+        for (int i = 0; i < rows.length; i++) {
+            for (String line : Minecraft.getMinecraft().fontRenderer
+                .listFormattedStringToWidth(rows[i], CHEMICAL_TEXT_WIDTH)) {
+                label(line, 8, y, i == 0 ? GOLD : INK);
+                y += 11;
+            }
+        }
+    }
+
+    private static void rows(String... rows) {
+        int y = 97;
+        var font = Minecraft.getMinecraft().fontRenderer;
+        for (int i = 0; i < rows.length; i++) {
+            java.util.List<String> lines;
+            int suffix = rows[i].lastIndexOf(" (");
+            if (rows[i].contains(" EU/t") && suffix >= 0 && font.getStringWidth(rows[i]) > 154) {
+                // Keep the complete current/tier suffix together when the paid number needs its own line.
+                lines = new java.util.ArrayList<>(font.listFormattedStringToWidth(rows[i].substring(0, suffix), 154));
+                lines.add(net.minecraft.util.EnumChatFormatting.GRAY + rows[i].substring(suffix + 1));
+            } else lines = font.listFormattedStringToWidth(rows[i], 154);
+            for (String line : lines) {
+                label(line, 8, y, i == 0 ? GOLD : i == 4 ? MUTED : INK);
+                y += 11;
+            }
+        }
+    }
+
+    private static String text(String key) {
+        return CriticalRecipeMaps.text("simple." + key);
+    }
+
+    private static void centered(String text, int center, int y, int color) {
+        label(text, center - Minecraft.getMinecraft().fontRenderer.getStringWidth(text) / 2, y, color);
+    }
+
+    private static void label(String text, int x, int y, int color) {
+        Minecraft.getMinecraft().fontRenderer.drawString(text, x, y, color);
     }
 
     private static void rect(int x1, int y1, int x2, int y2, int color) {
         Gui.drawRect(x1, y1, x2, y2, color);
-    }
-
-    private static final class Page {
-
-        final String title, caption;
-        final String[] phases, lines;
-
-        Page(String title, String caption, String[] phases, String[] lines) {
-            this.title = title;
-            this.caption = caption;
-            this.phases = phases;
-            this.lines = lines;
-        }
     }
 }

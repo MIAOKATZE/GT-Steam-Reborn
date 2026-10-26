@@ -17,7 +17,7 @@ def main():
     parser.add_argument('--jar', type=Path, help='Compile fixture/test only; production classes come exclusively from this candidate')
     parser.add_argument('--baseline', type=Path, help='Dependency baseline for a source-overlay run')
     parser.add_argument('--out', type=Path, default=OUT)
-    parser.add_argument('--template-only', action='store_true', help='Only validate native zero-input showcase template and indexing')
+    parser.add_argument('--template-only', action='store_true', help='Only validate the native construction template and indexing')
     args = parser.parse_args()
     out = args.out.resolve()
     out.relative_to(ROOT / 'build')
@@ -30,24 +30,32 @@ def main():
         raise RuntimeError('Jar-only fixture output contains production overlays; choose a fresh --out')
     empty.mkdir(exist_ok=True)
     gt = next((CACHE / 'com.github.GTNewHorizons/GT5-Unofficial/5.09.54.205').glob('*/*-dev.jar'))
-    deps = [p for p in CACHE.glob('*/*/*/*/*.jar') if '/GT5-Unofficial/' not in p.as_posix()]
+    # Use the project's RC2 NEI dependency, not an older API left in the shared cache.
+    nei = next((CACHE / 'com.github.GTNewHorizons/NotEnoughItems/2.8.145-GTNH').glob('*/*-dev.jar'))
+    deps = [nei, *[p for p in CACHE.glob('*/*/*/*/*.jar')
+                   if '/GT5-Unofficial/' not in p.as_posix() and '/NotEnoughItems/' not in p.as_posix()]]
     baseline = args.jar.resolve() if args.jar else args.baseline.resolve() if args.baseline else ROOT / 'build/libs/gtsr-v2.0.7-dev.jar'
     candidate_hash = hashlib.sha256(baseline.read_bytes()).hexdigest()
     cp = os.pathsep.join(map(str, [classes, baseline,
         ROOT / 'build/classes/java/patchedMc', ROOT / 'build/rfg/recompiled_minecraft-1.7.10.jar',
         ROOT / 'build/rfg/mclauncher-1.7.10.jar', gt, *deps]))
     files = [ROOT / 'src/main/java/com/miaokatze/gtsr' / name for name in (
-        'api/recipe/CriticalRecipeMaps.java', 'api/recipe/CriticalRecipeFrontend.java',
-        'client/nei/CriticalNEIShowcase.java', 'loader/recipes/CriticalMachineRecipes.java')]
+        'api/recipe/CriticalRecipeMaps.java', 'api/recipe/CriticalRecipeFrontend.java', 'api/recipe/CriticalNEILayout.java', 'config/Config.java',
+        'client/nei/CriticalNEIShowcase.java', 'loader/recipes/CriticalMachineRecipes.java',
+        'common/critical/CriticalConstructionEconomy.java', 'common/critical/CriticalFoundationMaterials.java',
+        'common/critical/CriticalGTRecipes.java', 'common/critical/CriticalStellarPolicy.java',
+        'common/critical/CriticalChemicalMath.java', 'common/critical/CriticalChemicalRecipes.java',
+        'common/critical/CompoundRecipe.java', 'common/critical/CriticalFoundationChunk.java',
+        'common/critical/CriticalConstructionProgress.java')]
     production_sources = files
-    fixtures = [ROOT / 'tools/tests/Issue37RegistrationRegression.java', ROOT / 'tools/tests/CriticalNEICatalogContract.java']
+    fixtures = [ROOT / 'tools/tests/Issue37RegistrationRegression.java', ROOT / 'tools/tests/CriticalNEICatalogContract.java', ROOT / 'tools/tests/CriticalNEIFontContract.java']
     files = fixtures if args.jar else production_sources + fixtures
 
     def run(exe, name, args):
         argfile = out / (name + '.args')
         argfile.write_text('\n'.join('"' + str(a).replace('\\', '/') + '"' for a in args), encoding='utf-8')
         result = subprocess.run([str(JAVA / exe), '@' + str(argfile)], cwd=out,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180,
             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         output = result.stdout.decode('utf-8', errors='replace')
         (out / (name + '.log')).write_text(output, encoding='utf-8')
@@ -63,6 +71,8 @@ def main():
     assert hashlib.sha256(baseline.read_bytes()).hexdigest() == candidate_hash, 'Candidate changed during verification'
     if args.jar:
         assert not any((classes / 'com/miaokatze/gtsr').rglob('*.class')), 'Production overlay appeared during jar-only run'
+    font_result = run('java.exe', 'font', ['-cp', cp, 'CriticalNEIFontContract', ROOT / 'src/main/resources/assets/gtsr/lang'])
+    result += font_result
     print(result)
     (out / 'verification.json').write_text(json.dumps({'status': 'PASS', 'productOverlay': not bool(args.jar),
         'jar': str(baseline), 'jarSHA256': candidate_hash, 'jarUnchanged': True,

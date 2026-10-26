@@ -17,8 +17,6 @@ import net.minecraftforge.fluids.FluidStack;
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
-import com.miaokatze.gtsr.common.critical.CriticalEnergyRuntime;
-import com.miaokatze.gtsr.common.critical.CriticalLayoutDefinition;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.recipe.CriticalShellCatalog;
@@ -143,7 +141,8 @@ final class CriticalBusinessSnapshot {
                 .ordinal(), state.getParallelPlugins(), state.getSpeedPlugins(), state.getEfficiencyPlugins(),
                 state.getBatchProgress(), state.getBatchDuration(), state.getSteamMode(),
                 state.isLoomStructureValid() ? 1 : 0, state.canCancelLegacyStellarBatch() ? 1 : 0,
-                state.getGeometryVersion(), state.getV2LayoutRevision(), state.usesLegacyV2Geometry() ? 1 : 0 },
+                // Keep the version-2 wire width; the former model-layout fields are reserved.
+                state.getGeometryVersion(), 0, 0 },
             materials);
     }
 
@@ -260,15 +259,6 @@ final class CriticalBusinessSnapshot {
         return item == null ? id : item.getDisplayName();
     }
 
-    CriticalLayoutDefinition layout() {
-        return CriticalLayoutDefinition.select(
-            configuration[9],
-            configuration[10],
-            configuration[11] != 0,
-            displayConfiguration.tier,
-            displayConfiguration.kind);
-    }
-
     boolean hasSample() {
         return configuration[9] > 0;
     }
@@ -341,23 +331,7 @@ final class CriticalBusinessSnapshot {
         if (state.getKind() != CriticalMachineKind.SUN)
             row(rows, "sample_scope", data.getBoolean("funded") ? "active" : "last");
         if (state.getKind() == CriticalMachineKind.BATTERY) {
-            row(rows, "chemical.window", Integer.toString(CriticalEnergyRuntime.getChemicalWindow(data)));
-            row(rows, "chemical.batch_window", Integer.toString(data.getInteger("chemicalBatchWindow")));
-            BigInteger total = number(data, "chemicalBatchHeat");
-            for (int i = 0; i < 3; i++) {
-                BigInteger heat = number(data, "chemicalHeat" + i);
-                row(rows, "chemical.heat." + i, heat + " EU");
-                row(
-                    rows,
-                    "chemical.share." + i,
-                    total.signum() == 0 ? "—"
-                        : new BigDecimal(heat).multiply(BigDecimal.valueOf(100))
-                            .divide(new BigDecimal(total), 4, java.math.RoundingMode.DOWN)
-                            .stripTrailingZeros()
-                            .toPlainString() + "%");
-                row(rows, "chemical.flow." + i, decimal(number(data, "chemicalLitres" + i), 20) + " L/s");
-            }
-            row(rows, "chemical.bottleneck", data.getString("chemicalBottleneck"));
+            chemicalRows(rows, data);
             row(rows, "batch_wireless", number(data, "eu") + " EU");
             row(rows, "mean_power", decimal(number(data, "eu"), 400) + " EU/t");
             row(rows, "last_wireless", number(data, "lastGeneratedEU") + " EU");
@@ -365,8 +339,10 @@ final class CriticalBusinessSnapshot {
             BigInteger heat = number(data, "turbineRawHeat");
             row(rows, "steam.heat", decimal(heat, 2) + " EU");
             row(rows, "steam.multiplier", data.getInteger("efficiency") + "%");
-            row(rows, "steam.rise", decimal(heat.multiply(BigInteger.valueOf(11)), 20) + " EU");
-            row(rows, "steam.fall", decimal(heat.multiply(BigInteger.valueOf(9)), 20) + " EU");
+            row(
+                rows,
+                "steam.warmup",
+                data.getInteger("turbineRunTicks") + " / " + data.getInteger("turbineTargetWarmupTicks") + " t");
             row(rows, "steam.water_remainder", Integer.toString(data.getInteger("waterRemainder")));
             row(rows, "steam.return_water", number(data, "turbineWater") + " L");
             for (int i = 0; i < 6; i++) row(rows, "steam.volume." + i, number(data, "turbineVolume" + i) + " L");
@@ -375,12 +351,32 @@ final class CriticalBusinessSnapshot {
             row(rows, "mean_power", decimal(number(data, "eu"), 400) + " EU/t");
             row(rows, "last_wireless", number(data, "lastGeneratedEU") + " EU");
         } else if (state.getKind() == CriticalMachineKind.SOLAR) {
+            row(rows, "solar.route", state.getSolarSaltMode() ? "1" : "0");
+            row(rows, "solar.batch_route", data.getBoolean("solarBatchSaltMode") ? "1" : "0");
             row(rows, "solar.mode", Integer.toString(state.getSteamMode()));
             row(rows, "solar.batch_mode", Integer.toString(data.getInteger("solarBatchSteamMode")));
             row(
                 rows,
                 "solar.dimension",
                 data.hasKey("solarFactor") ? Double.toString(data.getDouble("solarFactor")) : "—");
+            row(rows, "solar.coolant", data.getString("solarCoolant"));
+            row(rows, "solar.exciter", data.getString("solarExciter"));
+            row(rows, "solar.coolant_litres", number(data, "solarCoolantLitres") + " L / 20 s");
+            row(rows, "solar.exciter_litres", number(data, "solarExciterLitres") + " L / 20 s");
+            row(
+                rows,
+                "solar.equivalent_power",
+                new BigDecimal(number(data, "solarEquivalentEU"))
+                    .divide(
+                        BigDecimal
+                            .valueOf(com.miaokatze.gtsr.common.critical.CriticalSolarPolicy.FULL_TURBINE_MULTIPLIER)
+                            .multiply(
+                                BigDecimal.valueOf(com.miaokatze.gtsr.common.critical.CriticalEnergyMath.CYCLE_TICKS)),
+                        3,
+                        java.math.RoundingMode.HALF_UP)
+                    .stripTrailingZeros()
+                    .toPlainString() + " EU/t");
+            row(rows, "solar.load", String.format(java.util.Locale.ROOT, "%.1f%%", data.getDouble("solarLoad") * 100D));
             row(rows, "solar.powder_cap", "256 / 400 t");
             row(rows, "solar.water", number(data, "solarWater") + " L");
             row(rows, "solar.salt", number(data, "solarSalt") + " L");
@@ -401,14 +397,19 @@ final class CriticalBusinessSnapshot {
                     + " EU");
             row(
                 rows,
-                "sun.reserve",
-                Long.toString(stellar.getLong("reserve")) + " / "
-                    + Long.toString(stellar.getLong("reserveCapacity"))
-                    + " EU");
-            row(rows, "sun.hold_power", Long.toString(stellar.getLong("holdEuPerTick")) + " EU/t");
+                "sun.ignition_fuel",
+                Long.toString(stellar.getLong("ignitionHelium3Paid")) + " / "
+                    + Long.toString(stellar.getLong("ignitionHelium3Required"))
+                    + " L");
+            row(rows, "sun.sustain_power", Long.toString(stellar.getLong("sustainEuPerTick")) + " EU/t");
+            row(rows, "sun.sustain_fuel", Long.toString(stellar.getLong("sustainHelium3PerTick")) + " L/t");
             row(rows, "sun.run_power", Long.toString(stellar.getLong("runEuPerTick")) + " EU/t");
-            row(rows, "sun.lost_ticks", Integer.toString(stellar.getInteger("lostTicks")));
-            row(rows, "sun.initializing", Integer.toString(stellar.getInteger("initializingTicks")));
+            row(
+                rows,
+                "sun.plasma_pending",
+                Long.toString(stellar.getLong("pendingPlasmaL"))
+                    + (stellar.getInteger("plasmaHalfRemainder") == 1 ? ".5" : "")
+                    + " L");
             row(rows, "sun.refund", Long.toString(stellar.getLong("refund")) + " EU");
         }
         if (state.getKind() != CriticalMachineKind.SUN) row(
@@ -431,6 +432,30 @@ final class CriticalBusinessSnapshot {
         } catch (NumberFormatException invalid) {
             return BigInteger.ZERO;
         }
+    }
+
+    private static void chemicalRows(List<String[]> rows, NBTTagCompound data) {
+        // Chemical fields and rule generation come from this one copied runtime.
+        boolean funded = data.getBoolean("funded");
+        String recipe = data.getString("chemicalRecipe");
+        boolean current = funded && data.getInteger("chemicalBatchRule") >= 2 && !recipe.isEmpty();
+        row(rows, "chemical.state", current ? "current" : funded ? "legacy" : "awaiting");
+        row(rows, "chemical.recipe", recipe);
+        int efficiency = Math.max(100, Math.min(10000, data.getInteger("chemicalEfficiencyHundredths")));
+        row(
+            rows,
+            "chemical.efficiency",
+            data.hasKey("chemicalEfficiencyHundredths") ? decimal(BigInteger.valueOf(efficiency), 100) + "x"
+                : "\u2014");
+        row(rows, "chemical.heat", number(data, "chemicalBatchHeat") + " EU");
+        row(
+            rows,
+            "chemical.litres",
+            data.hasKey("chemicalBatchLitres") ? number(data, "chemicalBatchLitres") + " L" : "\u2014");
+        row(
+            rows,
+            "chemical.flow",
+            data.hasKey("chemicalBatchLitres") ? decimal(number(data, "chemicalBatchLitres"), 20) + " L/s" : "\u2014");
     }
 
     private static String decimal(BigInteger number, int divisor) {

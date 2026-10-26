@@ -8,6 +8,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
 
 import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
+import com.miaokatze.gtsr.common.dimension.framework.GTSROwnedGenerator;
 import com.miaokatze.gtsr.config.Config;
 
 import cpw.mods.fml.common.IWorldGenerator;
@@ -25,7 +26,7 @@ import cpw.mods.fml.common.IWorldGenerator;
  * type 仍 NATURAL（机器管理逻辑零触碰）。主世界/下界路径的频率公式、参数掷骰顺序与生成参数逐字节不动
  * （破碎分支掷骰仅在 shattered 为真时消耗随机数）。
  */
-public class WorldGenRunawaySingularity implements IWorldGenerator {
+public class WorldGenRunawaySingularity implements IWorldGenerator, GTSROwnedGenerator {
 
     @Override
     public void generate(Random random, int chunkX, int chunkZ, World world, IChunkProvider chunkGenerator,

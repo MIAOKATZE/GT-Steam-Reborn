@@ -24,9 +24,12 @@ import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
 import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
+import com.miaokatze.gtsr.common.critical.CompoundRecipe;
+import com.miaokatze.gtsr.common.critical.CriticalChemicalRecipes;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
+import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
 import com.miaokatze.gtsr.common.critical.CriticalTier;
 import com.miaokatze.gtsr.common.gui.mui2.TerminalViewport;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
@@ -176,17 +179,10 @@ public final class MTECriticalMachineTerminalGui {
             .size(463, 32)
             .background(CriticalGuiStyle.CARD);
         header.child(
-            textViewport("critical_terminal_title", this::terminalTitle, 389, 12, () -> CriticalGuiStyle.TEXT_TITLE)
+            textViewport("critical_terminal_title", this::terminalTitle, 447, 12, () -> CriticalGuiStyle.TEXT_TITLE)
                 .pos(8, 4)
                 .tooltipBuilder(t -> t.add(terminalTitle()))
                 .tooltipAutoUpdate(true));
-        header.child(
-            IKey.dynamic(() -> configuration().tier.name())
-                .color(CriticalGuiStyle.TEXT_ACCENT)
-                .asWidget()
-                .background(CriticalGuiStyle.CHIP)
-                .pos(405, 3)
-                .size(50, 14));
         header.child(
             IKey.dynamic(
                 () -> tr(
@@ -247,24 +243,35 @@ public final class MTECriticalMachineTerminalGui {
                 .setEnabledIf(w -> loomController.getValue())
                 .tooltipBuilder(t -> t.add(IKey.lang(key("configuration_hint")))));
         page.child(
-            action(
-                manager,
-                "ui.change_mode",
-                player -> state.getKind() == CriticalMachineKind.BATTERY ? state.selectChemicalWindow(player)
-                    : state.selectSteamMode(player))
-                        .overlay(
-                            IKey.dynamic(
-                                () -> configuration().kind == CriticalMachineKind.BATTERY
-                                    ? tr("ui.chemical.window." + runtimeValue("chemical.window"))
-                                    : tr(
-                                        "steam_mode." + business.getValue()
-                                            .steamMode()))
-                                .color(CriticalGuiStyle.TEXT_CONTROL))
-                        .pos(215, 0)
-                        .size(160, 20)
-                        .setEnabledIf(
-                            w -> configuration().kind == CriticalMachineKind.SOLAR
-                                || configuration().kind == CriticalMachineKind.BATTERY));
+            action(manager, "ui.solar.change_route", player -> state.selectSolarSaltMode(player))
+                .overlay(
+                    IKey.dynamic(() -> tr("ui.solar.route." + runtimeValue("solar.route")))
+                        .color(CriticalGuiStyle.TEXT_CONTROL))
+                .pos(0, 0)
+                .size(210, 20)
+                .setEnabledIf(w -> configuration().kind == CriticalMachineKind.SOLAR && !loomController.getValue())
+                .tooltipBuilder(t -> t.add(IKey.lang(key("ui.solar.route_hint")))));
+        page.child(
+            action(manager, "ui.change_mode", player -> state.selectSteamMode(player))
+                .overlay(
+                    IKey.dynamic(
+                        () -> tr(
+                            "steam_mode." + business.getValue()
+                                .steamMode()))
+                        .color(CriticalGuiStyle.TEXT_CONTROL))
+                .pos(215, 0)
+                .size(160, 20)
+                .setEnabledIf(w -> configuration().kind == CriticalMachineKind.SOLAR));
+        page.child(
+            textViewport(
+                "critical_chemical_recipe",
+                this::chemicalRecipeTitle,
+                160,
+                20,
+                () -> CriticalGuiStyle.TEXT_ACCENT).pos(215, 0)
+                    .setEnabledIf(w -> configuration().kind == CriticalMachineKind.BATTERY)
+                    .tooltipBuilder(t -> t.add(chemicalRecipeTitle()))
+                    .tooltipAutoUpdate(true));
         page.child(
             action(manager, "ui.sun.production_pause", player -> state.selectStellarProductionPaused(player))
                 .overlay(
@@ -348,19 +355,24 @@ public final class MTECriticalMachineTerminalGui {
                 .tooltipAutoUpdate(true)
                 .setEnabledIf(w -> !runtimeExpanded));
         summary.child(
+            textViewport("critical_chemical_flow", this::chemicalFlowSummary, 164, 37, () -> CriticalGuiStyle.TEXT_BODY)
+                .pos(29, 26)
+                .setEnabledIf(w -> !runtimeExpanded && configuration().kind == CriticalMachineKind.BATTERY));
+        summary.child(
             textViewport(
                 "critical_runtime_priority",
-                () -> business.getValue()
-                    .detail() + "\n"
-                    + sampleScope()
-                    + "\n"
-                    + tr("batch")
-                    + ": "
-                    + time(
-                        business.getValue()
-                            .batchTicks(),
-                        business.getValue()
-                            .batchDuration()),
+                () -> configuration().kind == CriticalMachineKind.BATTERY ? chemicalProgressSummary()
+                    : business.getValue()
+                        .detail() + "\n"
+                        + sampleScope()
+                        + "\n"
+                        + tr("batch")
+                        + ": "
+                        + time(
+                            business.getValue()
+                                .batchTicks(),
+                            business.getValue()
+                                .batchDuration()),
                 222,
                 37,
                 this::statusColor).pos(205, 26)
@@ -400,14 +412,24 @@ public final class MTECriticalMachineTerminalGui {
                 .size(112, 20)
                 .tooltipBuilder(this::constructionTooltip)
                 .tooltipAutoUpdate(true));
-        page.child(
-            action(manager, "power", player -> state.setEnabled(player, !state.isEnabled()))
-                .overlay(
-                    IKey.dynamic(() -> tr(business.getValue().construction.enabled() ? "stop" : "start"))
-                        .color(CriticalGuiStyle.TEXT_CONTROL))
-                .pos(351, 150)
-                .size(112, 20)
-                .tooltipBuilder(t -> t.add(IKey.lang(key("ui.sun.power_hint")))));
+        page.child(action(manager, "power", player -> {
+            if (state.getKind() == CriticalMachineKind.SUN) {
+                if (state.isEnabled() || state.getStellarRuntimeData()
+                    .getBoolean("hot")) return state.shutdownStellar(player);
+                return state.setEnabled(player, true);
+            }
+            return state.setEnabled(player, !state.isEnabled());
+        }).overlay(
+            IKey.dynamic(
+                () -> tr(
+                    configuration().kind == CriticalMachineKind.SUN
+                        ? business.getValue().construction.enabled() || "3".equals(runtimeValue("sun.phase"))
+                            || "4".equals(runtimeValue("sun.phase")) ? "ui.sun.extinguish" : "ui.sun.ignite"
+                        : business.getValue().construction.enabled() ? "stop" : "start"))
+                .color(CriticalGuiStyle.TEXT_CONTROL))
+            .pos(351, 150)
+            .size(112, 20)
+            .tooltipBuilder(t -> t.add(IKey.lang(key("ui.sun.power_hint")))));
         ListWidget<IWidget, ?> feedback = new ListWidget<>().name("critical_action_feedback")
             .pos(0, 176)
             .size(463, 26)
@@ -448,7 +470,7 @@ public final class MTECriticalMachineTerminalGui {
 
     private String primaryMetricLabel() {
         return tr(switch (configuration().kind) {
-            case BATTERY -> "ui.runtime.batch_wireless";
+            case BATTERY -> "ui.runtime.chemical.heat";
             case TURBINE -> "ui.runtime.steam.heat";
             case SOLAR -> "ui.runtime.solar.dimension";
             case SUN -> "ui.runtime.sun.reserve";
@@ -458,10 +480,10 @@ public final class MTECriticalMachineTerminalGui {
 
     private String primaryMetricValue() {
         return switch (configuration().kind) {
-            case BATTERY -> runtimeValue("batch_wireless");
+            case BATTERY -> runtimeValue("chemical.heat");
             case TURBINE -> runtimeValue("steam.heat");
             case SOLAR -> runtimeValue("solar.dimension");
-            case SUN -> runtimeValue("sun.reserve");
+            case SUN -> runtimeValue("sun.sustain_power") + " · " + runtimeValue("sun.sustain_fuel") + " He-3";
             default -> business.getValue()
                 .energy() + " / "
                 + business.getValue()
@@ -471,15 +493,17 @@ public final class MTECriticalMachineTerminalGui {
     }
 
     private String sampleScope() {
+        if (configuration().kind == CriticalMachineKind.BATTERY)
+            return tr("ui.chemical.sample_scope." + runtimeValue("sample_scope"));
         return configuration().kind == CriticalMachineKind.SUN ? tr("ui.sun.phase." + runtimeValue("sun.phase"))
             : tr("ui.sample_scope." + runtimeValue("sample_scope"));
     }
 
     private String secondaryMetricLabel() {
         return tr(switch (configuration().kind) {
-            case BATTERY -> "ui.runtime.chemical.bottleneck";
+            case BATTERY -> "ui.runtime.chemical.efficiency";
             case TURBINE -> "ui.runtime.steam.multiplier";
-            case SOLAR -> "ui.runtime.solar.water_status";
+            case SOLAR -> "ui.runtime.solar.route";
             case SUN -> "ui.runtime.sun.ignition_paid";
             default -> "batch";
         });
@@ -487,13 +511,9 @@ public final class MTECriticalMachineTerminalGui {
 
     private String secondaryMetricValue() {
         return switch (configuration().kind) {
-            case BATTERY -> tr(
-                "ui.chemical.bottleneck."
-                    + (runtimeValue("chemical.bottleneck").isEmpty() ? "none" : runtimeValue("chemical.bottleneck")));
+            case BATTERY -> runtimeValue("chemical.efficiency");
             case TURBINE -> runtimeValue("steam.multiplier");
-            case SOLAR -> tr(
-                "ui.branch."
-                    + (runtimeValue("solar.water_status").isEmpty() ? "none" : runtimeValue("solar.water_status")));
+            case SOLAR -> tr("ui.solar.route." + runtimeValue("solar.route"));
             case SUN -> runtimeValue("sun.ignition_paid");
             default -> time(
                 business.getValue()
@@ -503,8 +523,49 @@ public final class MTECriticalMachineTerminalGui {
         };
     }
 
-    private String runtimeValue(String suffix) {
+    private String chemicalProgressSummary() {
         CriticalBusinessSnapshot sample = business.getValue();
+        return tr("ui.chemical.state." + runtimeValue(sample, "chemical.state")) + "\n"
+            + tr("ui.chemical.sample_scope." + runtimeValue(sample, "sample_scope"))
+            + "\n"
+            + tr("ui.chemical.progress")
+            + ": "
+            + time(sample.batchTicks(), sample.batchDuration());
+    }
+
+    private String chemicalRecipeTitle() {
+        CriticalBusinessSnapshot sample = business.getValue();
+        String status = runtimeValue(sample, "chemical.state");
+        return "current".equals(status) ? chemicalRecipeName(runtimeValue(sample, "chemical.recipe"))
+            : tr("ui.chemical.state." + ("legacy".equals(status) ? "legacy" : "awaiting"));
+    }
+
+    private static String chemicalRecipeName(String id) {
+        if (id.isEmpty()) return tr("ui.chemical.state.awaiting");
+        CompoundRecipe recipe = CriticalChemicalRecipes.byId(id);
+        if (recipe == null) return tr("ui.chemical.recipe.unknown");
+        java.util.StringJoiner names = new java.util.StringJoiner(" + ");
+        for (CompoundRecipe.Component component : recipe.components) names.add(component.fuel.fluid.getLocalizedName());
+        return names.toString();
+    }
+
+    private String chemicalFlowSummary() {
+        CriticalBusinessSnapshot sample = business.getValue();
+        return tr("ui.chemical.efficiency_scale") + "\n"
+            + tr("ui.runtime.chemical.flow")
+            + ": "
+            + runtimeValue(sample, "chemical.flow")
+            + "\n"
+            + tr("ui.runtime.chemical.litres")
+            + ": "
+            + runtimeValue(sample, "chemical.litres");
+    }
+
+    private String runtimeValue(String suffix) {
+        return runtimeValue(business.getValue(), suffix);
+    }
+
+    private static String runtimeValue(CriticalBusinessSnapshot sample, String suffix) {
         for (int i = 0; i < sample.runtimeCount(); i++)
             if (("ui.runtime." + suffix).equals(sample.runtime(i, 0))) return sample.runtime(i, 1);
         return "\u2014";
@@ -514,19 +575,27 @@ public final class MTECriticalMachineTerminalGui {
         CriticalBusinessSnapshot sample = business.getValue();
         if (row >= sample.runtimeCount()) return "";
         String label = sample.runtime(row, 0), value = sample.runtime(row, 1);
-        if (label.equals("ui.runtime.chemical.bottleneck"))
-            value = tr("ui.chemical.bottleneck." + (value.isEmpty() ? "none" : value));
+        if (label.equals("ui.runtime.chemical.state")) value = tr("ui.chemical.state." + value);
+        else if (label.equals("ui.runtime.chemical.recipe")) value = chemicalRecipeName(value);
         else if (label.equals("ui.runtime.solar.water_status") || label.equals("ui.runtime.solar.salt_status"))
             value = tr("ui.branch." + (value.isEmpty() ? "none" : value));
         else if (label.equals("ui.runtime.solar.night")) value = tr("ui.solar.night." + value);
-        else if (label.equals("ui.runtime.sample_scope")) value = tr("ui.sample_scope." + value);
-        else if (label.equals("ui.runtime.chemical.window") || label.equals("ui.runtime.chemical.batch_window"))
-            value = tr("ui.chemical.window." + value);
+        else if (label.equals("ui.runtime.sample_scope")) value = tr(
+            (sample.configuration().kind == CriticalMachineKind.BATTERY ? "ui.chemical.sample_scope."
+                : "ui.sample_scope.") + value);
         else if (label.equals("ui.runtime.sun.phase")) value = tr("ui.sun.phase." + value);
         else if (label.equals("ui.runtime.sun.production_paused")) value = tr("ui.sun.paused." + value);
         else if ((label.equals("ui.runtime.solar.mode") || label.equals("ui.runtime.solar.batch_mode")))
             value = tr("steam_mode." + value);
+        else if (label.equals("ui.runtime.solar.route") || label.equals("ui.runtime.solar.batch_route"))
+            value = tr("ui.solar.route." + value);
+        else if (label.equals("ui.runtime.solar.coolant")) value = value.isEmpty() ? "—" : tr("solar.coolant." + value);
+        else if (label.equals("ui.runtime.solar.exciter")) value = value.isEmpty() ? "—" : tr("solar.exciter." + value);
         else if (label.equals("ui.runtime.settlement")) value = tr("ui.settlement." + value);
+        if (sample.configuration().kind == CriticalMachineKind.BATTERY) {
+            if (label.equals("ui.runtime.batch_wireless")) label = "ui.chemical.receivable";
+            else if (label.equals("ui.runtime.last_wireless")) label = "ui.chemical.last_wireless";
+        }
         return tr(label) + ": " + value;
     }
 
@@ -567,7 +636,9 @@ public final class MTECriticalMachineTerminalGui {
                 new ParentWidget<>().background(new CriticalProgressBar(progress))
                     .pos(8, 35)
                     .size(212, 4)
-                    .setEnabledIf(w -> !"ui.energy".equals(label)));
+                    .setEnabledIf(
+                        w -> !"ui.energy".equals(label)
+                            && !(configuration().kind == CriticalMachineKind.BATTERY && "ui.secondary".equals(label))));
     }
 
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager manager, ModularPanel parent) {
@@ -828,7 +899,7 @@ public final class MTECriticalMachineTerminalGui {
 
     private void constructionTooltip(com.cleanroommc.modularui.screen.RichTooltip tooltip) {
         CriticalConfiguration cfg = configuration();
-        int currentStage = Math.max(0, Math.min(4, business.getValue().construction.stage()));
+        int currentStage = Math.max(0, Math.min(5, business.getValue().construction.stage()));
         tooltip.add(tr("construction") + " " + currentStage);
         tooltip.add(
             business.getValue()
@@ -850,7 +921,7 @@ public final class MTECriticalMachineTerminalGui {
             tooltip.add(operationLine(section));
         }
         if (current == CriticalMachineKind.TURBINE) {
-            tooltip.add(tr("operation.trend"));
+            tooltip.add(tr("operation.warmup"));
             tooltip.add(tr("operation.idle"));
         }
         if (current == CriticalMachineKind.BATTERY) {
@@ -858,8 +929,16 @@ public final class MTECriticalMachineTerminalGui {
             tooltip.add(tr("operation.battery.paid"));
         }
         if (current == CriticalMachineKind.SUN) {
-            tooltip.add(tr("operation.sun.ignition"));
-            tooltip.add(tr("operation.sun.heat"));
+            tooltip.add(
+                StatCollector.translateToLocalFormatted(
+                    key("operation.sun.ignition"),
+                    CriticalStellarPolicy.IGNITION_EU / CriticalStellarPolicy.DURATION_TICKS,
+                    CriticalStellarPolicy.IGNITION_HELIUM3_L / CriticalStellarPolicy.DURATION_TICKS));
+            tooltip.add(
+                StatCollector.translateToLocalFormatted(
+                    key("operation.sun.heat"),
+                    CriticalStellarPolicy.SUSTAIN_EUT,
+                    CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK));
             tooltip.add(tr("operation.sun.pause"));
         }
         if (current == CriticalMachineKind.SOLAR) tooltip.add(tr("operation.solar.night"));

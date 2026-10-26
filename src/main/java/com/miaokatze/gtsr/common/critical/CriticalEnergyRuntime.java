@@ -2,7 +2,9 @@ package com.miaokatze.gtsr.common.critical;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import net.minecraft.item.ItemStack;
@@ -19,9 +21,11 @@ import com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.FluidAmount;
 import com.miaokatze.gtsr.common.items.IrradiatedDust;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
+import goodgenerator.items.GGMaterial;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Mods;
 import gregtech.api.util.GTModHandler;
+import gregtech.api.util.GTUtility;
 import gregtech.common.misc.WirelessNetworkManager;
 import gtPlusPlus.core.material.MaterialMisc;
 import gtnhintergalactic.config.IGConfig;
@@ -30,15 +34,23 @@ import gtnhintergalactic.config.IGConfig;
 public final class CriticalEnergyRuntime {
 
     public static final int CYCLE_TICKS = CriticalEnergyMath.CYCLE_TICKS;
+    public static final int CHEMICAL_COMPOUND_SCHEMA = 5;
+    private static final int CHEMICAL_POLICY_LEGACY_V2 = 2;
+    private static final int CHEMICAL_POLICY_COMPOUND_V3 = 3;
+    private static final int CHEMICAL_POLICY_CIRCUIT_V4 = 4;
+    private static final int CHEMICAL_POLICY_REACTION_V5 = 5;
+    private static final int TURBINE_POLICY = 4;
+    private static final int LEGACY_TURBINE_WARMUP_TICKS = 3600;
     private static final ItemStack[] NO_ITEMS = new ItemStack[0];
     private static final FluidStack[] NO_FLUIDS = new FluidStack[0];
 
     private CriticalEnergyRuntime() {}
 
-    /** Only the steam turbine has an adaptive idle efficiency. Chemical windows have no idle decay. */
+    /** Warmth tracks paid work ticks; idle ticks remove the same amount of warmth. */
     public static void idleTick(CriticalMachineState state) {
         if (!adaptive(state)) return;
         NBTTagCompound data = state.energyRuntimeData();
+        migrateTurbineWarmth(state, data);
         long now = state.worldObj.getTotalWorldTime();
         if (data.hasKey("lastIdleTick") && data.getLong("lastIdleTick") == now) return;
         data.setLong("lastIdleTick", now);
@@ -49,20 +61,37 @@ public final class CriticalEnergyRuntime {
             }
             return;
         }
-        int idle = data.getInteger("idleTicks") + 1;
-        if (idle >= CYCLE_TICKS) {
-            data.setInteger(
-                "efficiency",
-                CriticalEnergyMath.efficiency(
-                    CriticalEnergyMath.efficiency(data.getInteger("efficiency")) - CriticalEnergyMath.EFFICIENCY_STEP));
-            idle = 0;
-        }
-        data.setInteger("idleTicks", idle);
+        int ticks = Math.max(0, data.getInteger("turbineRunTicks") - 1);
+        data.setInteger("turbineRunTicks", ticks);
+        data.setInteger("efficiency", CriticalEnergyMath.runningEfficiency(ticks));
         state.markDirty();
     }
 
     private static boolean adaptive(CriticalMachineState state) {
         return state.getMachineKind() == CriticalMachineKind.TURBINE;
+    }
+
+    /** Preserve the old warmth fraction independently of every already-paid batch receipt. */
+    private static void migrateTurbineWarmth(CriticalMachineState state, NBTTagCompound data) {
+        if (data.getInteger("turbineWarmthScale") == TURBINE_POLICY) return;
+        int policy = data.getInteger("turbinePolicy");
+        int ticks = 0, target = 0;
+        if (policy == 2 || policy == 3) {
+            ticks = Math.max(0, Math.min(LEGACY_TURBINE_WARMUP_TICKS, data.getInteger("turbineRunTicks")));
+            target = policy == 2 ? LEGACY_TURBINE_WARMUP_TICKS
+                : Math.max(0, Math.min(LEGACY_TURBINE_WARMUP_TICKS, data.getInteger("turbineTargetWarmupTicks")));
+            ticks = ticks * CriticalEnergyMath.TURBINE_WARMUP_TICKS / LEGACY_TURBINE_WARMUP_TICKS;
+            target = target * CriticalEnergyMath.TURBINE_WARMUP_TICKS / LEGACY_TURBINE_WARMUP_TICKS;
+        } else if (policy == TURBINE_POLICY) {
+            ticks = Math.max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, data.getInteger("turbineRunTicks")));
+            target = Math
+                .max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, data.getInteger("turbineTargetWarmupTicks")));
+        }
+        data.setInteger("turbineRunTicks", ticks);
+        data.setInteger("turbineTargetWarmupTicks", target);
+        data.setInteger("turbineWarmthScale", TURBINE_POLICY);
+        data.setInteger("efficiency", CriticalEnergyMath.runningEfficiency(ticks));
+        state.markDirty();
     }
 
     public static FluidStack steam(int mode) {
@@ -78,8 +107,12 @@ public final class CriticalEnergyRuntime {
 
     /** Mirrors the GT205 Dyson instance resolver without requiring a Dyson controller. */
     public static double dimensionFactor(World world) {
-        if (!Mods.GalacticraftCore.isModLoaded()) return 1D;
         WorldProvider provider = world.provider;
+        if (provider.getClass()
+            .getName()
+            .equals("me.eigenraven.personalspace.world.PersonalWorldProvider"))
+            return CriticalSolarPolicy.PRIVATE_DIMENSION_FACTOR;
+        if (!Mods.GalacticraftCore.isModLoaded()) return 1D;
         try {
             Class<?> orbit = Class.forName("micdoodle8.mods.galacticraft.api.world.IOrbitDimension");
             if (orbit.isInstance(provider)) return IGConfig.dysonSwarm.getPowerFactor(
@@ -89,10 +122,6 @@ public final class CriticalEnergyRuntime {
         } catch (ReflectiveOperationException failure) {
             throw new IllegalStateException("Cannot resolve loaded Galacticraft orbit provider", failure);
         }
-        if (provider.getClass()
-            .getName()
-            .equals("me.eigenraven.personalspace.world.PersonalWorldProvider"))
-            return IGConfig.dysonSwarm.getPowerFactor("PS");
         return IGConfig.dysonSwarm.getPowerFactor(String.valueOf(provider.dimensionId));
     }
 
@@ -109,7 +138,7 @@ public final class CriticalEnergyRuntime {
         }
         NBTTagCompound data = state.energyRuntimeData();
         if (state.getMachineKind() == CriticalMachineKind.BATTERY
-            && (data.getInteger("chemicalSchema") > CriticalChemicalMath.RULE_VERSION
+            && (data.getInteger("chemicalSchema") > CHEMICAL_COMPOUND_SCHEMA
                 || data.getInteger("chemicalSchema") < 0)) {
             state.fail("化学燃料账本版本未知，已冻结等待核验");
             return;
@@ -118,6 +147,7 @@ public final class CriticalEnergyRuntime {
             state.fail("批次提交结果不确定，已锁定以保护原料和无线电量");
             return;
         }
+        if (adaptive(state)) migrateTurbineWarmth(state, data);
         if (!data.getBoolean("funded")) {
             if (GTSRHatchFluidAccess.hasUnsupportedDuals(host.getCriticalDualInputHatches())) {
                 state.fail("不支持的工作流体输入实现；当前仅支持GT205原生样板仓与Slave");
@@ -132,6 +162,19 @@ public final class CriticalEnergyRuntime {
         if (progress < CYCLE_TICKS) {
             data.setInteger("progress", ++progress);
             data.setLong("lastWorkTick", state.worldObj.getTotalWorldTime());
+            if (adaptive(state) && (data.getInteger("turbinePolicy") == 2 || data.getInteger("turbinePolicy") == 3
+                || data.getInteger("turbinePolicy") == TURBINE_POLICY)) {
+                int ticks = Math
+                    .max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, data.getInteger("turbineRunTicks")));
+                int target = data.getInteger("turbinePolicy") != 2
+                    ? Math.max(
+                        0,
+                        Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, data.getInteger("turbineTargetWarmupTicks")))
+                    : CriticalEnergyMath.TURBINE_WARMUP_TICKS;
+                ticks += Integer.compare(target, ticks);
+                data.setInteger("turbineRunTicks", ticks);
+                data.setInteger("efficiency", CriticalEnergyMath.runningEfficiency(ticks));
+            }
             state.setRuntimeBatch(progress, CYCLE_TICKS, 0, "工作 " + progress + "/" + CYCLE_TICKS);
             state.markDirty();
             if (progress < CYCLE_TICKS) return;
@@ -229,56 +272,60 @@ public final class CriticalEnergyRuntime {
     private static boolean startChemicalConfirmed(CriticalMachineState state, MTECriticalMachine host,
         NBTTagCompound data) {
         int schema = data.getInteger("chemicalSchema");
-        if (schema > CriticalChemicalMath.RULE_VERSION || schema < 0) return state.fail("化学燃料账本版本未知，已冻结等待核验");
-        // A funded legacy batch never reaches here: tick() completes its locked old bill first.
-        data.setInteger("chemicalSchema", CriticalChemicalMath.RULE_VERSION);
-        int window = getChemicalWindow(data);
-        List<CriticalGTRecipes.ChemicalFuel> fuels = CriticalGTRecipes.chemicalFuels();
-        List<CriticalEnergyPorts.Input> snapshot = CriticalEnergyPorts.snapshot(host);
-        BigInteger[] available = chemicalPaidHeat(data);
-        for (CriticalGTRecipes.ChemicalFuel fuel : fuels) available[fuel.spectrum] = available[fuel.spectrum].add(
-            CriticalEnergyPorts.total(snapshot, fuel.fluid)
-                .multiply(fuel.euPerL));
-        BigInteger[] target = CriticalChemicalMath.match(window, available, CriticalChemicalMath.cap(window));
-        data.setString("chemicalBottleneck", chemicalBottleneck(window, available));
-        if (CriticalChemicalMath.sum(target)
-            .signum() == 0) {
-            state.setRuntimeBatch(0, 0, 0, "所选化学工作窗缺少匹配燃料，余料保留");
-            return false;
+        if (schema > CHEMICAL_COMPOUND_SCHEMA || schema < 0) return state.fail("化学燃料账本版本未知，已冻结等待核验");
+        if (GTSRHatchFluidAccess
+            .hasUnsupportedWorkingFluidSources(host.getCriticalInputHatches(), host.getCriticalDualInputHatches()))
+            return state.fail("不支持的化学流体输入实现，原料保留");
+        // Funded v1 batches finish their frozen EU before migration. Residual v1 heat is
+        // paid at its recorded base value to the recorded owner, never repriced.
+        if (data.getTagList("chemicalCredits", 10)
+            .tagCount() != 0 && !settleChemicalEscrow(state, host)) return false;
+        // Existing payments retain their catalogue policy before the envelope upgrades.
+        // Only a fresh manifest reads today's bus circuit and uses the new catalogue.
+        if (data.hasKey("chemicalCompoundPayment")) compoundPaymentPolicy(data, schema);
+        if (schema != CHEMICAL_COMPOUND_SCHEMA || data.hasKey("chemicalWindow")) {
+            data.setInteger("chemicalSchema", CHEMICAL_COMPOUND_SCHEMA);
+            data.removeTag("chemicalWindow");
+            state.markDirty();
         }
+        List<CriticalEnergyPorts.Input> snapshot = CriticalEnergyPorts.snapshot(host);
         UUID owner = WirelessNetworkManager.processInitialSettings(host.getBaseMetaTileEntity());
         if (owner == null) return state.fail("无线网络缺少控制器owner身份");
-        if (hasChemicalEscrow(data) && (!data.hasKey("chemicalEscrowOwner") || !owner.toString()
-            .equals(data.getString("chemicalEscrowOwner")))) return state.fail("化学已付燃料收款人变化，需先核验托管");
-        data.setString("owner", owner.toString());
-        data.setString("chemicalEscrowOwner", owner.toString());
-        BigInteger[] paidBefore = chemicalPaidHeat(data);
-        BigInteger[] missing = new BigInteger[3];
-        for (int i = 0; i < 3; i++) missing[i] = target[i].subtract(paidBefore[i])
-            .max(BigInteger.ZERO);
+        if (!data.hasKey("chemicalCompoundPayment")) {
+            int circuit = CriticalChemicalCircuit.read(host.getCriticalInputBusses());
+            if (circuit == CriticalChemicalCircuit.MISSING) return state.fail("输入总线缺少编程电路，需设置编号2至9");
+            if (circuit == CriticalChemicalCircuit.INVALID) return state.fail("编程电路编号必须为2至9，原料保留");
+            if (circuit == CriticalChemicalCircuit.CONFLICT) return state.fail("输入总线存在不同编号的编程电路，原料保留");
+            if (!captureCompoundPayment(state, data, snapshot, owner, circuit)) return false;
+        } else if (!owner.toString()
+            .equals(data.getString("chemicalEscrowOwner"))) {
+                return state.fail("化学已付燃料收款人变化，需先核验托管");
+            }
+        NBTTagList payment = data.getTagList("chemicalCompoundPayment", 10);
+        validateCompoundPayment(payment);
+        // Validate frozen selector/identity before touching any remaining physical source.
+        if (compoundPaymentMatch(data, false) == null)
+            throw new IllegalStateException("Invalid frozen compound selection");
         CriticalEnergyPorts.Allocation allocation = new CriticalEnergyPorts.Allocation(snapshot);
         List<CriticalEnergyPorts.Debit> debits = new ArrayList<>();
-        java.util.Map<CriticalEnergyPorts.Debit, CriticalGTRecipes.ChemicalFuel> definitions = new java.util.IdentityHashMap<>();
-        for (CriticalGTRecipes.ChemicalFuel fuel : fuels) {
-            BigInteger amount = CriticalChemicalMath.litresForHeat(missing[fuel.spectrum], fuel.euPerL)
-                .min(CriticalEnergyPorts.total(snapshot, fuel.fluid));
-            if (amount.signum() == 0) continue;
-            for (CriticalEnergyPorts.Debit debit : allocation.take(fuel.fluid, amount)) {
+        Map<CriticalEnergyPorts.Debit, NBTTagCompound> paidEntries = new java.util.IdentityHashMap<>();
+        for (int i = 0; i < payment.tagCount(); i++) {
+            NBTTagCompound entry = payment.getCompoundTagAt(i);
+            FluidStack fluid = FluidStack.loadFluidStackFromNBT(entry);
+            BigInteger missing = number(entry, "targetLitres").subtract(number(entry, "confirmedLitres"));
+            if (CriticalEnergyPorts.total(snapshot, fluid)
+                .compareTo(missing) < 0) return state.fail("全仓批次实收未齐；已付流体托管，等待剩余原料");
+            for (CriticalEnergyPorts.Debit debit : allocation.take(fluid, missing)) {
                 debits.add(debit);
-                definitions.put(debit, fuel);
+                paidEntries.put(debit, entry);
             }
-            missing[fuel.spectrum] = missing[fuel.spectrum].subtract(amount.multiply(fuel.euPerL))
-                .max(BigInteger.ZERO);
         }
-        if (!CriticalEnergyPorts.canDebit(debits)) return state.fail("燃料库存已变化，等待重新规划");
+        if (!CriticalEnergyPorts.canDebit(debits)) return state.fail("燃料库存已变化，等待重新收款");
         NBTTagList intent = new NBTTagList();
-        java.util.Map<CriticalEnergyPorts.Debit, NBTTagCompound> receipts = new java.util.IdentityHashMap<>();
+        Map<CriticalEnergyPorts.Debit, NBTTagCompound> receipts = new java.util.IdentityHashMap<>();
         for (CriticalEnergyPorts.Debit debit : debits) {
-            CriticalGTRecipes.ChemicalFuel fuel = definitions.get(debit);
             NBTTagCompound entry = debit.source.fluid.writeToNBT(new NBTTagCompound());
             entry.setString("requestedLitres", Long.toString(debit.amount));
-            entry.setString("euPerL", fuel.euPerL.toString());
-            entry.setInteger("spectrum", fuel.spectrum);
             entry.setString("confirmedLitres", "0");
             intent.appendTag(entry);
             receipts.put(debit, entry);
@@ -290,41 +337,137 @@ public final class CriticalEnergyRuntime {
                 .toString());
         data.setBoolean("uncertain", true);
         state.markDirty();
-        BigInteger[] actualLitres = { BigInteger.ZERO, BigInteger.ZERO, BigInteger.ZERO };
         CriticalEnergyPorts.DebitResult result = CriticalEnergyPorts.debitConfirmed(debits, (debit, litres) -> {
-            CriticalGTRecipes.ChemicalFuel fuel = definitions.get(debit);
-            addChemicalCredit(data, fuel, litres);
-            NBTTagCompound receipt = receipts.get(debit);
+            NBTTagCompound paid = paidEntries.get(debit), receipt = receipts.get(debit);
+            BigInteger actual = BigInteger.valueOf(litres);
+            paid.setString(
+                "confirmedLitres",
+                number(paid, "confirmedLitres").add(actual)
+                    .toString());
             receipt.setString(
                 "confirmedLitres",
-                number(receipt, "confirmedLitres").add(BigInteger.valueOf(litres))
+                number(receipt, "confirmedLitres").add(actual)
                     .toString());
-            actualLitres[fuel.spectrum] = actualLitres[fuel.spectrum].add(BigInteger.valueOf(litres));
             state.markDirty();
         });
-        for (int i = 0; i < 3; i++) data.setString("chemicalLitres" + i, actualLitres[i].toString());
         if (result.uncertain) return state.fail("化学燃料实扣结果不确定，已付明细与扣款意图保留待核验");
         data.removeTag("chemicalDebitIntent");
         data.setBoolean("uncertain", false);
-        BigInteger[] matched = CriticalChemicalMath
-            .match(window, chemicalPaidHeat(data), CriticalChemicalMath.sum(target));
-        BigInteger heat = CriticalChemicalMath.sum(matched);
-        if (heat.signum() == 0) {
-            state.markDirty();
-            return state.fail("实际已付燃料不足完整比例，已托管并等待补料");
+        state.markDirty();
+        if (!result.complete) return state.fail("全仓批次实收未齐；已付流体托管，等待剩余原料");
+        return fundCompoundPayment(state, data, owner);
+    }
+
+    /** Fix the complete visible snapshot before extracting any source, including zero-heat diluents. */
+    private static boolean captureCompoundPayment(CriticalMachineState state, NBTTagCompound data,
+        List<CriticalEnergyPorts.Input> snapshot, UUID owner, int circuit) {
+        Map<GTUtility.FluidId, BigInteger> volumes = new LinkedHashMap<>();
+        Map<GTUtility.FluidId, FluidStack> fluids = new LinkedHashMap<>();
+        for (CriticalEnergyPorts.Input input : snapshot) {
+            GTUtility.FluidId id = GTUtility.FluidId.create(input.fluid);
+            volumes.merge(id, BigInteger.valueOf(input.amount), BigInteger::add);
+            fluids.putIfAbsent(id, input.fluid);
         }
-        consumeChemicalCredit(data, matched);
-        data.setInteger("chemicalBatchWindow", window);
-        data.setString("chemicalBatchHeat", heat.toString());
-        data.setString("lastRawHeat", heat.toString());
-        for (int i = 0; i < 3; i++) data.setString("chemicalHeat" + i, matched[i].toString());
-        for (int i = 0; i < 3; i++) data.setString("chemicalLitres" + i, actualLitres[i].toString());
+        List<CriticalGTRecipes.ChemicalFuel> fuels = CriticalGTRecipes.chemicalFuels();
+        CriticalChemicalRecipes.Match match = CriticalChemicalRecipes.best(fuels, volumes, circuit);
+        if (match == null || !match.evaluation.eligible) {
+            state.setRuntimeBatch(0, 0, 0, "至少需要一种完整复合方案的全部流体，原料保留");
+            return false;
+        }
+        Map<GTUtility.FluidId, CriticalGTRecipes.ChemicalFuel> definitions = new LinkedHashMap<>();
+        for (CriticalGTRecipes.ChemicalFuel fuel : fuels)
+            definitions.putIfAbsent(GTUtility.FluidId.create(fuel.fluid), fuel);
+        NBTTagList payment = new NBTTagList();
+        for (Map.Entry<GTUtility.FluidId, BigInteger> volume : volumes.entrySet()) {
+            if (volume.getValue()
+                .signum() <= 0) continue;
+            NBTTagCompound entry = fluids.get(volume.getKey())
+                .writeToNBT(new NBTTagCompound());
+            CriticalGTRecipes.ChemicalFuel fuel = definitions.get(volume.getKey());
+            entry.setString(
+                "targetLitres",
+                volume.getValue()
+                    .toString());
+            entry.setString("confirmedLitres", "0");
+            entry.setString("euPerL", fuel == null ? "0" : fuel.euPerL.toString());
+            entry.setInteger("spectrum", fuel == null ? -1 : fuel.spectrum);
+            payment.appendTag(entry);
+        }
+        data.setTag("chemicalCompoundPayment", payment);
+        data.setInteger("chemicalPaymentPolicy", CHEMICAL_POLICY_REACTION_V5);
+        data.setInteger("chemicalPaymentCircuit", circuit);
+        data.setString("chemicalPaymentRecipe", match.recipe.id);
+        data.setString("chemicalEscrowOwner", owner.toString());
+        data.setString(
+            "chemicalPaymentId",
+            UUID.randomUUID()
+                .toString());
+        state.markDirty();
+        return true;
+    }
+
+    private static void validateCompoundPayment(NBTTagList payment) {
+        if (payment.tagCount() == 0) throw new IllegalStateException("Empty compound payment");
+        java.util.Set<GTUtility.FluidId> seen = new java.util.HashSet<>();
+        for (int i = 0; i < payment.tagCount(); i++) {
+            NBTTagCompound entry = payment.getCompoundTagAt(i);
+            FluidStack fluid = FluidStack.loadFluidStackFromNBT(entry);
+            BigInteger target = number(entry, "targetLitres"), paid = number(entry, "confirmedLitres");
+            BigInteger price = number(entry, "euPerL");
+            int spectrum = entry.getInteger("spectrum");
+            if (fluid == null || !seen.add(GTUtility.FluidId.create(fluid))
+                || target.signum() <= 0
+                || paid.signum() < 0
+                || paid.compareTo(target) > 0
+                || price.signum() < 0
+                || (price.signum() == 0 ? spectrum != -1 : spectrum < 0 || spectrum > 2))
+                throw new IllegalStateException("Invalid compound payment");
+        }
+    }
+
+    /** Persisted catalogue policy belongs to this manifest, never to the machine's idle epoch. */
+    private static int compoundPaymentPolicy(NBTTagCompound data, int schema) {
+        if (!data.hasKey("chemicalPaymentPolicy")) {
+            if (schema != CHEMICAL_POLICY_LEGACY_V2) throw new IllegalStateException("Missing compound payment policy");
+            data.setInteger("chemicalPaymentPolicy", CHEMICAL_POLICY_LEGACY_V2);
+        }
+        int policy = data.getInteger("chemicalPaymentPolicy");
+        if (policy != CHEMICAL_POLICY_LEGACY_V2 && policy != CHEMICAL_POLICY_COMPOUND_V3
+            && policy != CHEMICAL_POLICY_CIRCUIT_V4
+            && policy != CHEMICAL_POLICY_REACTION_V5)
+            throw new IllegalStateException("Unknown compound payment policy");
+        if (schema < CHEMICAL_POLICY_LEGACY_V2 || policy > schema)
+            throw new IllegalStateException("Compound payment policy does not match schema");
+        return policy;
+    }
+
+    private static boolean fundCompoundPayment(CriticalMachineState state, NBTTagCompound data, UUID owner) {
+        NBTTagList payment = data.getTagList("chemicalCompoundPayment", 10);
+        validateCompoundPayment(payment);
+        int policy = compoundPaymentPolicy(data, data.getInteger("chemicalSchema"));
+        CriticalChemicalRecipes.Match match = compoundPaymentMatch(data, true);
+        if (match == null || !match.evaluation.eligible) return state.fail("实付组成缺少完整复合方案，已付原料托管");
+        CriticalChemicalMath.Evaluation evaluation = match.evaluation;
+        data.setString("owner", owner.toString());
+        data.setString("chemicalRecipe", match.recipe.id);
+        data.setInteger(
+            "chemicalBatchCircuit",
+            policy >= CHEMICAL_POLICY_CIRCUIT_V4 ? data.getInteger("chemicalPaymentCircuit") : 0);
+        data.setInteger("chemicalBatchRule", policy);
+        data.setInteger("chemicalEfficiencyHundredths", evaluation.efficiencyHundredths());
+        data.setString("chemicalBatchHeat", match.rawHeat.toString());
+        data.setString("chemicalBatchLitres", match.totalLitres.toString());
+        data.setString("lastRawHeat", match.rawHeat.toString());
+        data.setTag("chemicalBatchCredits", payment.copy());
+        data.removeTag("chemicalCompoundPayment");
+        data.removeTag("chemicalPaymentPolicy");
+        data.removeTag("chemicalPaymentCircuit");
+        data.removeTag("chemicalPaymentRecipe");
+        data.removeTag("chemicalEscrowOwner");
         data.setTag("outputs", new NBTTagList());
         data.setTag("items", new NBTTagList());
-        data.setString(
-            "eu",
-            heat.multiply(BigInteger.valueOf(CriticalChemicalMath.multiplier(window)))
-                .toString());
+        // Keep the exact rational efficiency through settlement, flooring only this final EU.
+        data.setString("eu", evaluation.generatedEU.toString());
         data.setInteger("nextWaterRemainder", data.getInteger("waterRemainder"));
         data.setInteger("nextGenerationRemainder", data.getInteger("generationRemainder"));
         data.setInteger("progress", 0);
@@ -337,44 +480,39 @@ public final class CriticalEnergyRuntime {
         return true;
     }
 
-    private static String chemicalBottleneck(int window, BigInteger[] available) {
-        BigInteger cap = CriticalChemicalMath.cap(window);
-        if (window == 3) return CriticalChemicalMath.sum(available)
-            .compareTo(cap) >= 0 ? "cap" : "stock";
-        int[] weights = window == 0 ? new int[] { 1, 1, 0 }
-            : window == 1 ? new int[] { 1, 1, 1 } : new int[] { 1, 1, 4 };
-        BigInteger common = cap.divide(BigInteger.valueOf(window == 0 ? 2 : window == 1 ? 3 : 6));
-        String limit = "cap";
-        for (int i = 0; i < 3; i++) if (weights[i] > 0) {
-            BigInteger branch = available[i].divide(BigInteger.valueOf(weights[i]));
-            if (branch.compareTo(common) < 0) {
-                common = branch;
-                limit = new String[] { "D", "G", "R" }[i];
-            }
+    private static CriticalChemicalRecipes.Match compoundPaymentMatch(NBTTagCompound data, boolean requireFullyPaid) {
+        NBTTagList payment = data.getTagList("chemicalCompoundPayment", 10);
+        int policy = compoundPaymentPolicy(data, data.getInteger("chemicalSchema"));
+        List<CriticalGTRecipes.ChemicalFuel> fuels = new ArrayList<>();
+        Map<GTUtility.FluidId, BigInteger> paid = new LinkedHashMap<>();
+        for (int i = 0; i < payment.tagCount(); i++) {
+            NBTTagCompound entry = payment.getCompoundTagAt(i);
+            BigInteger litres = number(entry, "targetLitres");
+            if (requireFullyPaid && !litres.equals(number(entry, "confirmedLitres")))
+                throw new IllegalStateException("Compound batch not fully paid");
+            FluidStack fluid = FluidStack.loadFluidStackFromNBT(entry);
+            paid.put(GTUtility.FluidId.create(fluid), litres);
+            BigInteger price = number(entry, "euPerL");
+            if (price.signum() > 0)
+                fuels.add(new CriticalGTRecipes.ChemicalFuel(fluid, price, entry.getInteger("spectrum")));
         }
-        return limit;
-    }
-
-    public static int getChemicalWindow(NBTTagCompound data) {
-        return CriticalChemicalMath.window(data.getInteger("chemicalWindow"));
-    }
-
-    /** Caller owns player permission checks. Selection only changes future batches. */
-    public static boolean cycleChemicalWindow(CriticalMachineState state) {
-        NBTTagCompound data = state.energyRuntimeData();
-        if (state.getMachineKind() != CriticalMachineKind.BATTERY || data.getBoolean("funded")
-            || data.getBoolean("uncertain")) return false;
-        data.setInteger("chemicalWindow", (getChemicalWindow(data) + 1) % CriticalChemicalMath.WINDOW_COUNT);
-        state.markDirty();
-        return true;
+        if (policy == CHEMICAL_POLICY_LEGACY_V2) return CriticalChemicalRecipes.bestLegacyV2(fuels, paid);
+        if (policy == CHEMICAL_POLICY_COMPOUND_V3) return CriticalChemicalRecipes.bestLegacyV3(fuels, paid);
+        int circuit = data.getInteger("chemicalPaymentCircuit");
+        String recipe = data.getString("chemicalPaymentRecipe");
+        if (circuit < 2 || circuit > 9 || recipe.isEmpty())
+            throw new IllegalStateException("Missing frozen compound selection");
+        return policy == CHEMICAL_POLICY_CIRCUIT_V4
+            ? CriticalChemicalRecipes.matchExactLegacyV4(fuels, paid, circuit, recipe)
+            : CriticalChemicalRecipes.matchExact(fuels, paid, circuit, recipe);
     }
 
     public static boolean hasChemicalEscrow(NBTTagCompound data) {
         return data.getTagList("chemicalCredits", 10)
-            .tagCount() != 0;
+            .tagCount() != 0 || data.hasKey("chemicalCompoundPayment");
     }
 
-    /** Paid heat is valued at extraction time; fuel changes and window selection never reprice it. */
+    /** Legacy paid heat is valued at extraction time; migration never reprices it. */
     public static BigInteger[] chemicalPaidHeat(NBTTagCompound data) {
         BigInteger[] heat = { BigInteger.ZERO, BigInteger.ZERO, BigInteger.ZERO };
         NBTTagList credits = data.getTagList("chemicalCredits", 10);
@@ -396,76 +534,24 @@ public final class CriticalEnergyRuntime {
         return heat;
     }
 
-    private static void addChemicalCredit(NBTTagCompound data, CriticalGTRecipes.ChemicalFuel fuel, long litres) {
-        NBTTagList credits = data.getTagList("chemicalCredits", 10);
-        NBTTagCompound credit = null;
-        for (int i = 0; i < credits.tagCount(); i++) {
-            NBTTagCompound entry = credits.getCompoundTagAt(i);
-            FluidStack fluid = FluidStack.loadFluidStackFromNBT(entry);
-            if (fluid != null && fluid.isFluidEqual(fuel.fluid)
-                && entry.getInteger("spectrum") == fuel.spectrum
-                && number(entry, "euPerL").equals(fuel.euPerL)) {
-                credit = entry;
-                break;
-            }
-        }
-        if (credit == null) {
-            credit = fuel.fluid.writeToNBT(new NBTTagCompound());
-            credit.setInteger("spectrum", fuel.spectrum);
-            credit.setInteger("ruleVersion", CriticalChemicalMath.RULE_VERSION);
-            credit.setString("euPerL", fuel.euPerL.toString());
-            credits.appendTag(credit);
-        }
-        BigInteger amount = BigInteger.valueOf(litres);
-        credit.setString(
-            "paidLitres",
-            number(credit, "paidLitres").add(amount)
-                .toString());
-        credit.setString(
-            "remainingHeat",
-            number(credit, "remainingHeat").add(amount.multiply(fuel.euPerL))
-                .toString());
-        data.setTag("chemicalCredits", credits);
-    }
-
-    private static void consumeChemicalCredit(NBTTagCompound data, BigInteger[] matched) {
-        BigInteger[] left = matched.clone();
-        NBTTagList credits = data.getTagList("chemicalCredits", 10);
-        NBTTagList remainder = new NBTTagList(), consumed = new NBTTagList();
-        for (int i = 0; i < credits.tagCount(); i++) {
-            NBTTagCompound credit = credits.getCompoundTagAt(i);
-            int spectrum = credit.getInteger("spectrum");
-            BigInteger heat = number(credit, "remainingHeat");
-            BigInteger used = left[spectrum].min(heat);
-            left[spectrum] = left[spectrum].subtract(used);
-            if (used.signum() > 0) {
-                NBTTagCompound receipt = (NBTTagCompound) credit.copy();
-                receipt.setString("consumedHeat", used.toString());
-                consumed.appendTag(receipt);
-            }
-            if (heat.compareTo(used) > 0) {
-                credit.setString(
-                    "remainingHeat",
-                    heat.subtract(used)
-                        .toString());
-                remainder.appendTag(credit);
-            }
-        }
-        if (CriticalChemicalMath.sum(left)
-            .signum() != 0) throw new IllegalStateException("Chemical escrow shortage");
-        data.setTag("chemicalCredits", remainder);
-        data.setTag("chemicalBatchCredits", consumed);
-    }
-
-    /** Dismantle-only closeout: residual paid base heat gets 1x, never a window bonus or another fluid refund. */
+    /** Legacy migration or dismantling: paid base heat gets exactly 1x, without another fluid refund. */
     public static boolean settleChemicalEscrow(CriticalMachineState state, MTECriticalMachine host) {
         NBTTagCompound data = state.energyRuntimeData();
         if (data.getBoolean("funded") || data.getBoolean("uncertain")) return false;
         if (!hasChemicalEscrow(data)) return true;
-        if (data.getInteger("chemicalSchema") != CriticalChemicalMath.RULE_VERSION)
-            return state.fail("化学燃料账本版本未知，不能结清托管");
+        int schema = data.getInteger("chemicalSchema");
+        if (schema < 0 || schema > CHEMICAL_COMPOUND_SCHEMA) return state.fail("化学燃料账本版本未知，不能结清托管");
         try {
             BigInteger eu = CriticalChemicalMath.sum(chemicalPaidHeat(data));
+            if (data.hasKey("chemicalCompoundPayment")) {
+                compoundPaymentPolicy(data, schema);
+                NBTTagList payment = data.getTagList("chemicalCompoundPayment", 10);
+                validateCompoundPayment(payment);
+                for (int i = 0; i < payment.tagCount(); i++) {
+                    NBTTagCompound entry = payment.getCompoundTagAt(i);
+                    eu = eu.add(number(entry, "confirmedLitres").multiply(number(entry, "euPerL")));
+                }
+            }
             // Preserve the GT owner captured when these actual litres were bought, even if the host owner changed.
             UUID owner = UUID.fromString(data.getString("chemicalEscrowOwner"));
             data.setString(
@@ -479,6 +565,10 @@ public final class CriticalEnergyRuntime {
             if (eu.signum() > 0 && !WirelessNetworkManager.addEUToGlobalEnergyMap(owner, eu))
                 throw new IllegalStateException("Wireless chemical closeout rejected");
             data.removeTag("chemicalCredits");
+            data.removeTag("chemicalCompoundPayment");
+            data.removeTag("chemicalPaymentPolicy");
+            data.removeTag("chemicalPaymentCircuit");
+            data.removeTag("chemicalPaymentRecipe");
             data.removeTag("chemicalEscrowOwner");
             data.setBoolean("uncertain", false);
             state.markDirty();
@@ -496,13 +586,19 @@ public final class CriticalEnergyRuntime {
 
     private static boolean fundAdaptive(CriticalMachineState state, NBTTagCompound data,
         List<CriticalEnergyPorts.Debit> debits, List<FluidAmount> outputs, BigInteger heat, int waterRemainder) {
-        int efficiency = CriticalEnergyMath
-            .trendEfficiency(data.getInteger("efficiency"), number(data, "lastRawHeat"), heat);
+        migrateTurbineWarmth(state, data);
+        // Warmth migrates by fraction; only this fresh payment reads the current power policy.
+        int policy = data.getInteger("turbinePolicy");
+        int runTicks = policy >= 2 && policy <= TURBINE_POLICY ? data.getInteger("turbineRunTicks") : 0;
+        int efficiency = CriticalEnergyMath.runningEfficiency(runTicks);
         // Common unit is half-EU; keep even fractional efficiency EU across batches (denominator 200).
         BigInteger[] energy = heat.multiply(BigInteger.valueOf(efficiency))
             .add(BigInteger.valueOf(data.getInteger("generationRemainder")))
             .divideAndRemainder(BigInteger.valueOf(200));
         if (!fund(state, data, debits, outputs, NO_ITEMS, energy[0], waterRemainder)) return false;
+        data.setInteger("turbinePolicy", TURBINE_POLICY);
+        data.setInteger("turbineTargetWarmupTicks", CriticalEnergyMath.targetWarmupTicks(heat));
+        data.setInteger("turbineRunTicks", Math.max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, runTicks)));
         data.setInteger("nextGenerationRemainder", energy[1].intValue());
         data.setInteger("efficiency", efficiency);
         data.setInteger("idleTicks", 0);
@@ -519,49 +615,33 @@ public final class CriticalEnergyRuntime {
         BigInteger paidWater = BigInteger.ZERO, paidSalt = BigInteger.ZERO;
         String waterStatus = "no_input", saltStatus = "no_input";
         int mode = Math.floorMod(data.getInteger("steamMode"), 6);
-        FluidStack water = GTModHandler.getDistilledWater(1);
-        BigInteger q = CriticalEnergyMath.logarithmic(
-            CriticalEnergyPorts.total(snapshot, water),
-            factor,
-            CriticalEnergyMath.WATER_A,
-            CriticalEnergyMath.WATER_B);
-        if (mode >= 3) q = q.divide(BigInteger.valueOf(25))
-            .multiply(BigInteger.valueOf(25));
-        if (q.signum() > 0 && steam(mode) != null) {
-            waterStatus = "output_full";
-            BigInteger steamAmount = mode < 3 ? q.multiply(BigInteger.valueOf(160))
-                : q.divide(BigInteger.valueOf(25))
-                    .multiply(BigInteger.valueOf(4));
-            List<FluidAmount> candidate = new ArrayList<>(outputs);
-            candidate.add(new FluidAmount(steam(mode), steamAmount));
-            if (CriticalEnergyPorts.outputs(host, candidate, NO_ITEMS) != null) {
-                outputs = candidate;
-                debits.addAll(CriticalEnergyPorts.take(snapshot, water, q));
-                paidWater = q;
-                waterStatus = "paid";
-            }
-        }
-        FluidStack cold = MaterialMisc.SOLAR_SALT_COLD.getFluidStack(1);
-        BigInteger salt = CriticalEnergyMath.logarithmic(
-            CriticalEnergyPorts.total(snapshot, cold),
-            factor,
-            CriticalEnergyMath.SALT_A,
-            CriticalEnergyMath.SALT_B);
-        if (salt.signum() > 0) {
-            saltStatus = "output_full";
-            List<FluidAmount> candidate = new ArrayList<>(outputs);
-            candidate.add(new FluidAmount(MaterialMisc.SOLAR_SALT_HOT.getFluidStack(1), salt));
-            if (CriticalEnergyPorts.outputs(host, candidate, NO_ITEMS) != null) {
-                outputs = candidate;
-                debits.addAll(CriticalEnergyPorts.take(snapshot, cold, salt));
-                paidSalt = salt;
-                saltStatus = "paid";
-            }
-        }
-        List<ItemStack> materialInputs = new ArrayList<>(), materialOutputs = new ArrayList<>();
+        boolean saltMode = data.getBoolean("solarSaltMode");
         List<ItemStack> stock = new ArrayList<>();
         java.util.Collections.addAll(stock, host.criticalPhysicalItemsSnapshot());
         java.util.Collections.addAll(stock, host.criticalMEItemsSnapshot());
+        boolean irradiation = stock.stream()
+            .anyMatch(
+                item -> item != null && item.stackSize > 0
+                    && (same(item, IrradiatedDust.source(true)) || same(item, IrradiatedDust.source(false))));
+        SolarSelection selection = selectSolar(snapshot, factor, mode, saltMode, irradiation);
+        if (selection == null) return state.fail(saltMode ? "本批冷盐、冷却剂或激活剂不足；未扣料" : "本批蒸馏水不足，或缺少足额冷却剂、激活剂；未扣料");
+        if (selection.outputLitres.signum() > 0) outputs.add(new FluidAmount(selection.output, selection.outputLitres));
+        if (CriticalEnergyPorts.outputs(host, outputs, NO_ITEMS) == null) return state.fail("批次输出空间不足，工作流体和增效料已保留");
+        CriticalEnergyPorts.Allocation allocation = new CriticalEnergyPorts.Allocation(snapshot);
+        if (selection.inputLitres.signum() > 0) debits.addAll(allocation.take(selection.input, selection.inputLitres));
+        debits.addAll(allocation.take(solarCoolant(selection.coolant), selection.coolantLitres));
+        if (selection.exciterLitres.signum() > 0)
+            debits.addAll(allocation.take(solarExciter(selection.exciter), selection.exciterLitres));
+        if (saltMode) {
+            paidSalt = selection.inputLitres;
+            saltStatus = "paid";
+            waterStatus = "inactive_mode";
+        } else {
+            paidWater = selection.inputLitres;
+            waterStatus = "paid";
+            saltStatus = "inactive_mode";
+        }
+        List<ItemStack> materialInputs = new ArrayList<>(), materialOutputs = new ArrayList<>();
         int remaining = CriticalEnergyMath.IRRADIATION_PARALLEL;
         for (int i = 0; i < 2; i++) {
             ItemStack input = IrradiatedDust.source(i == 0);
@@ -581,7 +661,7 @@ public final class CriticalEnergyRuntime {
             materialOutputs = candidate;
             remaining -= count;
         }
-        if (debits.isEmpty() && materialInputs.isEmpty()) {
+        if (outputs.isEmpty() && materialInputs.isEmpty()) {
             state.setRuntimeBatch(0, 0, 0, "没有完整可执行批次或输出空间不足");
             return false;
         }
@@ -599,6 +679,18 @@ public final class CriticalEnergyRuntime {
             data.getInteger("waterRemainder"));
         if (!funded) return false;
         data.setDouble("solarFactor", factor);
+        data.setInteger("solarPolicy", CriticalSolarPolicy.VERSION);
+        data.setBoolean("solarBatchSaltMode", saltMode);
+        data.setString("solarCoolant", selection.coolant.id);
+        data.setString("solarExciter", selection.exciter.id);
+        data.setString("solarCoolantLitres", selection.coolantLitres.toString());
+        data.setString("solarExciterLitres", selection.exciterLitres.toString());
+        data.setString("solarEquivalentEU", selection.equivalentEU.toString());
+        data.setString(
+            "solarRatedEUt",
+            selection.ratedEU.divide(BigInteger.valueOf(CYCLE_TICKS))
+                .toString());
+        data.setDouble("solarLoad", selection.load);
         data.setString("solarWater", paidWater.toString());
         data.setString("solarSalt", paidSalt.toString());
         data.setString("solarWaterStatus", waterStatus);
@@ -613,6 +705,95 @@ public final class CriticalEnergyRuntime {
         }
         state.markDirty();
         return true;
+    }
+
+    /** Native GT205 identities, shared by recipes/NEI and actual hatch payment. */
+    public static FluidStack solarCoolant(CriticalSolarPolicy.Entry entry) {
+        return switch (entry.id) {
+            case "supercoolant" -> Materials.SuperCoolant.getFluid(1);
+            case "cryotheum" -> FluidRegistry.getFluidStack("cryotheum", 1);
+            case "tachyon" -> Materials.Time.getMolten(1);
+            default -> null;
+        };
+    }
+
+    public static FluidStack solarExciter(CriticalSolarPolicy.Entry entry) {
+        return switch (entry.id) {
+            case "helium_gas" -> Materials.Helium.getGas(1);
+            case "helium" -> Materials.Helium.getPlasma(1);
+            case "iron" -> Materials.Iron.getPlasma(1);
+            case "americium" -> Materials.Americium.getPlasma(1);
+            case "atomic" -> GGMaterial.atomicSeparationCatalyst.getMolten(1);
+            case "spatial" -> Materials.Space.getMolten(1);
+            default -> null;
+        };
+    }
+
+    private static final class SolarSelection {
+
+        CriticalSolarPolicy.Entry coolant, exciter;
+        FluidStack input, output;
+        BigInteger inputLitres, outputLitres, coolantLitres, exciterLitres, equivalentEU, ratedEU;
+        double load;
+    }
+
+    private static SolarSelection selectSolar(List<CriticalEnergyPorts.Input> snapshot, double factor, int mode,
+        boolean saltMode, boolean irradiation) {
+        SolarSelection best = null;
+        for (CriticalSolarPolicy.Entry coolant : CriticalSolarPolicy.COOLANTS) {
+            BigInteger coolantStock = CriticalEnergyPorts.total(snapshot, solarCoolant(coolant));
+            if (coolantStock.signum() <= 0) continue;
+            for (CriticalSolarPolicy.Entry exciter : CriticalSolarPolicy.EXCITERS) {
+                BigInteger waterBudget = CriticalSolarPolicy.batchBudgetEU(factor, coolant, exciter, false);
+                BigInteger budget = waterBudget.multiply(BigInteger.valueOf(saltMode ? 2 : 1));
+                if (budget.signum() <= 0) continue;
+                SolarSelection candidate = new SolarSelection();
+                candidate.coolant = coolant;
+                candidate.exciter = exciter;
+                candidate.input = saltMode ? MaterialMisc.SOLAR_SALT_COLD.getFluidStack(1)
+                    : GTModHandler.getDistilledWater(1);
+                candidate.output = saltMode ? MaterialMisc.SOLAR_SALT_HOT.getFluidStack(1) : steam(mode);
+                if (candidate.output == null) continue;
+                BigInteger available = CriticalEnergyPorts.total(snapshot, candidate.input);
+                if (saltMode) {
+                    candidate.inputLitres = CriticalSolarPolicy.batchHotSaltLitres(available, factor, coolant, exciter);
+                    candidate.outputLitres = candidate.inputLitres;
+                    candidate.equivalentEU = candidate.outputLitres.multiply(BigInteger.valueOf(30_000));
+                } else {
+                    BigInteger heat = CriticalSolarPolicy
+                        .batchDenseSupercriticalLitres(available, factor, coolant, exciter)
+                        .multiply(BigInteger.valueOf(5000));
+                    candidate.outputLitres = CriticalSolarPolicy.steamLitres(heat, mode);
+                    candidate.inputLitres = CriticalSolarPolicy.waterLitres(candidate.outputLitres, mode);
+                    candidate.equivalentEU = heat.multiply(BigInteger.TEN);
+                }
+                // The curve determines a complete batch; insufficient stock waits, without clipping or debit.
+                if (candidate.inputLitres.compareTo(available) > 0) {
+                    if (!irradiation) continue;
+                    // Independent irradiation can still run, paying its existing dust-only media workload.
+                    candidate.inputLitres = BigInteger.ZERO;
+                    candidate.outputLitres = BigInteger.ZERO;
+                    candidate.equivalentEU = BigInteger.ZERO;
+                }
+                BigInteger workload = candidate.equivalentEU;
+                if (workload.signum() == 0) {
+                    // Dust-only operation pays both mandatory media at a bounded 1/256 water-route load.
+                    if (!irradiation) continue;
+                    workload = CriticalSolarPolicy.irradiationBudgetEU(waterBudget);
+                }
+                candidate.coolantLitres = CriticalSolarPolicy.costLitres(coolant, workload);
+                candidate.exciterLitres = CriticalSolarPolicy.costLitres(exciter, workload);
+                // Modifier scarcity selects a lower, fully funded catalogue entry; it never grants a free boost.
+                if (coolantStock.compareTo(candidate.coolantLitres) < 0
+                    || CriticalEnergyPorts.total(snapshot, solarExciter(exciter))
+                        .compareTo(candidate.exciterLitres) < 0)
+                    continue;
+                candidate.ratedEU = CriticalSolarPolicy.ratedBatchEquivalentEU(factor, coolant, exciter, saltMode);
+                candidate.load = workload.doubleValue() / candidate.ratedEU.doubleValue();
+                if (best == null || candidate.equivalentEU.compareTo(best.equivalentEU) > 0) best = candidate;
+            }
+        }
+        return best;
     }
 
     private static boolean fund(CriticalMachineState state, NBTTagCompound data, List<CriticalEnergyPorts.Debit> debits,

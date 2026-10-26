@@ -26,18 +26,31 @@ public final class CriticalWorldData extends WorldSavedData {
         return foundations.get(((long) chunkX << 32) ^ (chunkZ & 0xffffffffL));
     }
 
-    /** Only a successfully dismantled job may discard its unfinished shared work. */
-    public void discardIncompleteFoundations(Iterable<ChunkCoordIntPair> chunks) {
+    /** A dismantled job may discard unfinished work only after every other reservation has released it. */
+    public void discardIncompleteFoundations(String retiringId, Iterable<ChunkCoordIntPair> chunks) {
         boolean removed = false;
         for (ChunkCoordIntPair chunk : chunks) {
             long key = ((long) chunk.chunkXPos << 32) ^ (chunk.chunkZPos & 0xffffffffL);
             CriticalFoundationChunk foundation = foundations.get(key);
-            if (foundation != null && !foundation.complete()) {
+            if (foundation != null && !foundation.complete()
+                && !referencedByOtherRegion(retiringId, chunk.chunkXPos, chunk.chunkZPos)) {
                 foundations.remove(key);
                 removed = true;
             }
         }
         if (removed) markDirty();
+    }
+
+    private boolean referencedByOtherRegion(String retiringId, int chunkX, int chunkZ) {
+        long x = (long) chunkX << 4, z = (long) chunkZ << 4;
+        for (Region region : regions.values()) {
+            if (region.id.equals(retiringId)) continue;
+            // Use persistent reservations, including controllers whose chunks are currently unloaded.
+            if (x < (long) region.x + region.size && x + 16 > region.x
+                && z < (long) region.z + region.size
+                && z + 16 > region.z) return true;
+        }
+        return false;
     }
 
     private String nightOwner = "";
@@ -262,6 +275,7 @@ public final class CriticalWorldData extends WorldSavedData {
             NBTTagCompound entry = foundationList.getCompoundTagAt(i);
             CriticalFoundationChunk foundation = foundation(entry.getInteger("x"), entry.getInteger("z"));
             foundation.read(entry);
+            if (entry.getInteger("foundationVersion") != foundation.scheduleVersion()) markDirty();
         }
         nightOwner = n.getString("nightOwner");
         localClock = n.getBoolean("localClock");

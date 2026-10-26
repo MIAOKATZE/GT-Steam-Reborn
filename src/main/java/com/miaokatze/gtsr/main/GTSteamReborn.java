@@ -89,11 +89,12 @@ public class GTSteamReborn {
         proxy.serverStarted(event);
     }
 
-    /** Release only MUI2 session references after the final server tick, including integrated-server restarts. */
+    /** Release terminal state after the final server tick, including integrated-server restarts. */
     @Mod.EventHandler
     public void serverStopped(FMLServerStoppedEvent event) {
         com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions.clear();
         com.miaokatze.gtsr.common.terminal.ClusterTerminalData.clearSessions();
+        com.miaokatze.gtsr.common.terminal.TerminalNet.clearServerState();
     }
 
     /**

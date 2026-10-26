@@ -6,24 +6,20 @@ import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
-import com.miaokatze.gtsr.client.critical.CriticalMiniatureRenderer;
-import com.miaokatze.gtsr.common.critical.CriticalPreviewDescriptor;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.miaokatzecore.client.render.GlScope;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Read-only server sample drawing. The active-cell pulse is decorative; progress never extrapolates. */
+/** Read-only 2D construction schematic. The active-cell pulse is decorative; progress never extrapolates. */
 final class CriticalConstructionPreview implements IDrawable {
 
     private final Supplier<CriticalConstructionSnapshot> sample;
-    private final Supplier<CriticalBusinessSnapshot> business;
     private CriticalConstructionSnapshot boundsSample;
     private int minX, maxX, minZ, maxZ;
 
     CriticalConstructionPreview(Supplier<CriticalBusinessSnapshot> business) {
-        this.business = business;
         this.sample = () -> business.get().construction;
     }
 
@@ -42,35 +38,8 @@ final class CriticalConstructionPreview implements IDrawable {
             CriticalConstructionSnapshot current = sample.get();
             if (current.showsFoundation() && current.chunkCount() > 0)
                 drawFoundation(current, context, x, y, width, height);
-            else if (!drawMiniature(current, context, x, y, width, height)) drawStructure(current, x, y, width, height);
+            else drawStructure(current, x, y, width, height);
         }
-    }
-
-    @SideOnly(Side.CLIENT)
-    private boolean drawMiniature(CriticalConstructionSnapshot current, GuiContext context, int x, int y, int width,
-        int height) {
-        // Dismantling/repair retain their truthful cursor schematic, rather than implying a full built model.
-        if (current.showsFoundation() || current.status() == 3 || current.status() == 4) return false;
-        CriticalBusinessSnapshot data = business.get();
-        if (!data.hasSample()) return false;
-        int stage = current.status() == 2 ? 4 : Math.max(0, Math.min(4, current.stage()));
-        int complete = current.status() == 2 ? 4 : Math.max(0, stage - 1);
-        double progress = current.status() == 2 ? 1
-            : CriticalConstructionSnapshot.ratio(current.placed(), current.total());
-        return CriticalMiniatureRenderer.draw(
-            CriticalPreviewDescriptor.construction(
-                data.layout(),
-                data.configuration(),
-                complete,
-                stage,
-                progress,
-                !current.enabled() || current.reason() != 0),
-            x,
-            y,
-            width,
-            height,
-            (context.getTick() + context.getPartialTicks()) / 20D,
-            Config.criticalPreviewReducedMotion);
     }
 
     @SideOnly(Side.CLIENT)
@@ -91,13 +60,14 @@ final class CriticalConstructionPreview implements IDrawable {
         double scale = Math.min((width - 16) / columns, (height - 12) / rows);
         double originX = x + (width - columns * scale) / 2;
         double originY = y + (height - rows * scale) / 2;
-        double cured = current.phase() >= 3 ? 1
+        double cured = current.phase() == 3 ? 1
             : current.phase() == 2
                 ? 1 - CriticalConstructionSnapshot.ratio(current.curingRemaining(), current.curingDuration())
                 : 0;
         int concrete = mix(0xFF647E92, 0xFF82B49B, cured);
+        if (current.phase() == 4) concrete = mix(0xFF647E92, 0xFFD6A36F, current.progress());
         int activeColor = 0xFFFFCE83;
-        if (current.enabled() && current.reason() == 0 && !Config.criticalPreviewReducedMotion) {
+        if (current.enabled() && current.reason() == 0 && !Config.criticalUiReducedMotion) {
             double pulse = 0.5 + 0.5 * Math.sin((context.getTick() % 40 + context.getPartialTicks()) * Math.PI / 20);
             activeColor = ((int) (184 + 55 * pulse) << 24) | 0xFFCE83;
         }
@@ -126,7 +96,7 @@ final class CriticalConstructionPreview implements IDrawable {
                     GuiDraw.drawRect(cellX, cellY, cellSize, cellSize, concrete);
                 } else if (current.phase() == 1 && chunk == current.activeChunk() && cell == current.activeCell()) {
                     float fill = (float) CriticalConstructionSnapshot
-                        .ratio(current.cellTicks(), current.cellDuration());
+                        .ratio(current.displayCellTicks(), current.cellDuration());
                     GuiDraw.drawRect(cellX, cellY + cellSize * (1 - fill), cellSize, cellSize * fill, 0xFFDFAD62);
                 }
             }
@@ -154,7 +124,7 @@ final class CriticalConstructionPreview implements IDrawable {
         double stageProgress = CriticalConstructionSnapshot.ratio(current.placed(), current.total());
         double baseProgress = complete || current.stage() > 3 ? 1
             : current.stage() > 0 ? (current.stage() - 1 + stageProgress) / 3 : 0;
-        double bodyProgress = complete ? 1 : current.stage() >= 4 ? stageProgress : 0;
+        double bodyProgress = current.bodyProgress();
         if (current.status() == 3) {
             baseProgress = 1 - stageProgress;
             bodyProgress = 1 - stageProgress;
@@ -165,6 +135,11 @@ final class CriticalConstructionPreview implements IDrawable {
         // Keep the complete blueprint visible while its base and body fill from the authoritative cursor.
         ghostBlocks(center - unit * 6, floor - unit * 3, unit, 12, 3, baseProgress, 0xFF72A8B2);
         ghostBlocks(center - unit * 4, floor - unit * 10, unit, 8, 7, bodyProgress, 0xFFC39D62);
+        if (current.equipmentStage() && !complete) {
+            double equipmentProgress = current.threePartConstruction() ? (current.stage() - 7 + stageProgress) / 3
+                : stageProgress;
+            ghostBlocks(center - unit * 2, floor - unit * 8, unit, 4, 4, equipmentProgress, 0xFF91B8DC);
+        }
         for (int support = -5; support <= 5; support += 10)
             GuiDraw.drawRect(center + unit * support, floor - unit * 10, 1, unit * 10, 0x558999A3);
         GuiDraw.drawRect(center - unit * 7, floor + 1, unit * 14, 1, 0xFF72828E);

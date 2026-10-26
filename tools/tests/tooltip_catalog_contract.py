@@ -65,11 +65,6 @@ inventory_file = OUT / 'declaration-inventory.tsv'
 inventory_file.write_text('\n'.join(inventory_rows), encoding='utf-8')
 
 stubs = {
-    # Machine page replacement has its own focused production-class contract.
-    'net.minecraft.client.gui.GuiScreen': 'public class GuiScreen {public static boolean isShiftKeyDown(){return false;}}',
-    'com.miaokatze.gtsr.client.tooltip.GTSRMachineTooltips': '''public class GTSRMachineTooltips {
- public static boolean rewrite(net.minecraft.item.ItemStack stack,java.util.List<String> lines,boolean shift){return false;}
-}''',
     'net.minecraft.item.Item': 'public class Item { public net.minecraft.block.Block block; }',
     'net.minecraft.item.ItemStack': '''public class ItemStack {
  public final Item item; public final int damage; public Object nbt;
@@ -143,9 +138,9 @@ stubs = {
  public boolean interactive; public boolean isInteractive(){return interactive;}
 }''',
     'com.miaokatze.gtsr.common.dimension.prosperity.remaster.FictionPedestalBlock': 'public class FictionPedestalBlock extends RemasterBlock {}',
-    'net.minecraft.util.EnumChatFormatting': '''public enum EnumChatFormatting {GRAY,YELLOW,AQUA,GREEN;
+    'net.minecraft.util.EnumChatFormatting': '''public enum EnumChatFormatting {GRAY,YELLOW,AQUA,GREEN,WHITE,GOLD,LIGHT_PURPLE,RED;
  public static String getTextWithoutFormattingCodes(String value){return value.replaceAll("§[0-9a-fk-or]", "");}
- public String toString(){return "§7";}
+ public String toString(){return "";}
 }''',
     'net.minecraft.util.StatCollector': 'public class StatCollector {public static String translateToLocal(String key){return key;}}',
     'com.miaokatze.gtsr.common.util.GTSRUtils': '''public class GTSRUtils {
@@ -285,19 +280,19 @@ public final class TooltipContract {
   GTSRTooltipHandler handler=new GTSRTooltipHandler();handler.onTooltip(event);int count=event.toolTip.size();handler.onTooltip(event);
   check(event.toolTip.size()==count,"event additive lines idempotent");
   check(event.toolTip.get(0).equals("dynamic: 123 NBT")&&dust.nbt==nbt&&dust.damage==0,"original lines/NBT/meta retained");
-  check(event.toolTip.contains("§7gtsr.tooltip.catalog.irradiated_unused"),"irradiated use limit");
+  check(event.toolTip.contains("gtsr.tooltip.catalog.irradiated_unused"),"irradiated use limit");
   ItemTooltipEvent external=new ItemTooltipEvent(foreignStack);external.toolTip.add(plain);handler.onTooltip(external);
   check(external.toolTip.equals(List.of(plain)),"foreign tooltip fully untouched");
   for(var kind:com.miaokatze.gtsr.common.critical.CriticalMachineKind.values()){
    var info=com.miaokatze.gtsr.common.critical.CriticalTooltips.create(kind).infos;
-   check(info.contains("gtsr.critical.tooltip.manufacturing.controllers")==kind.isReleased(),"manufacturing follows release scope");
+   check(info.contains("gtsr.critical.tooltip.native.foundation.title")==kind.isReleased(),"manufacturing follows release scope");
    check(info.contains("gtsr.critical.tooltip.unobtainable")==!kind.isReleased(),"only frozen kinds state no recipe");
-   check(info.contains("gtsr.critical.operation.trend")==(kind==com.miaokatze.gtsr.common.critical.CriticalMachineKind.TURBINE),"trend restricted to turbine");
-   check(info.contains("gtsr.critical.operation.sun.ignition")==(kind==com.miaokatze.gtsr.common.critical.CriticalMachineKind.SUN),"stellar ignition scope");
-   check(info.contains("gtsr.critical.operation.battery.windows")==(kind==com.miaokatze.gtsr.common.critical.CriticalMachineKind.BATTERY),"chemical window scope");
+   check(info.contains("gtsr.critical.tooltip.native.turbine.rise")==(kind==com.miaokatze.gtsr.common.critical.CriticalMachineKind.TURBINE),"trend restricted to turbine");
+   check(info.contains("gtsr.critical.tooltip.native.sun.ignition")==(kind==com.miaokatze.gtsr.common.critical.CriticalMachineKind.SUN),"stellar ignition scope");
+   check(info.contains("gtsr.critical.tooltip.native.battery.windows")==(kind==com.miaokatze.gtsr.common.critical.CriticalMachineKind.BATTERY),"chemical window scope");
   }
   var loom=com.miaokatze.gtsr.common.critical.CriticalTooltips.create(null).infos;
-  check(loom.contains("gtsr.critical.tooltip.manufacturing.controllers")&&!loom.contains("gtsr.critical.tooltip.unobtainable"),"loom has real crafting instructions");
+  check(loom.contains("gtsr.critical.tooltip.native.foundation.title")&&!loom.contains("gtsr.critical.tooltip.unobtainable"),"loom has real crafting instructions");
   System.out.println("PASS "+assertions+" assertions; production catalog/handler with registry seams (no game/UI)");
  }
 }

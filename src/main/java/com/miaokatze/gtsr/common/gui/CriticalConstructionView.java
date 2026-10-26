@@ -119,6 +119,8 @@ final class CriticalConstructionView {
                 return tr("view.cell_time") + " " + seconds(s.cellTicks()) + " / " + seconds(s.cellDuration());
             if (s.showsFoundation() && s.phase() == 2)
                 return tr("view.curing_remaining") + " " + clock(s.curingRemaining());
+            if (s.showsFoundation() && s.phase() == 4)
+                return tr("view.heating_remaining") + " " + clock(s.heatingRemaining());
             return tr("construction.elapsed") + " "
                 + clock(s.constructionTicks())
                 + " / "
@@ -204,6 +206,8 @@ final class CriticalConstructionView {
 
     private String stageCounts() {
         CriticalConstructionSnapshot s = sample();
+        if (s.showsFoundation() && s.foundationScheduleVersion() == 6)
+            return tr("view.chunks") + " " + s.completedChunks() + " / " + s.chunkCount();
         return s.showsFoundation() ? tr("view.cells") + " " + s.completedCells() + " / " + s.totalCells()
             : tr("view.blocks") + " " + s.placed() + " / " + s.total();
     }
@@ -291,7 +295,15 @@ final class CriticalConstructionView {
         if (s.status() == 2) return tr("view.phase.complete");
         if (s.showsFoundation() && s.phase() == 1) return tr("view.phase.pouring");
         if (s.showsFoundation() && s.phase() == 2) return tr("view.phase.curing");
-        return tr(s.stage() == 0 ? "view.phase.loom" : s.stage() <= 3 ? "view.phase.base" : "view.phase.body");
+        if (s.showsFoundation() && s.phase() == 4) return tr("view.phase.heating");
+        if (s.threePartConstruction()) {
+            String phase = s.equipmentStage() ? "view.phase.equipment" : "view.phase.body";
+            int part = s.equipmentStage() ? s.stage() - 6 : s.stage() - 3;
+            return tr(phase) + " " + Math.max(1, Math.min(3, part)) + "/3";
+        }
+        return tr(
+            s.stage() == 0 ? "view.phase.loom"
+                : s.stage() <= 3 ? "view.phase.base" : s.stage() == 5 ? "view.phase.equipment" : "view.phase.body");
     }
 
     private String activeLocation() {
@@ -312,7 +324,7 @@ final class CriticalConstructionView {
 
     private long constructionVoltage() {
         CriticalConstructionSnapshot s = sample();
-        return s.loomOwner() || s.phase() == 1 || s.phase() == 2 ? GTValues.V[9]
+        return s.loomOwner() || s.phase() == 1 || s.phase() == 2 || s.phase() == 4 ? GTValues.V[9]
             : CriticalTier.byId(s.tier())
                 .constructionVoltage();
     }

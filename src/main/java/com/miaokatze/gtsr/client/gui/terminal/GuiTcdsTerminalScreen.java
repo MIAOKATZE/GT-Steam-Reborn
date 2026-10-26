@@ -109,6 +109,10 @@ public class GuiTcdsTerminalScreen extends GuiTerminalBase {
 
     private static volatile CachedSnapshot cache;
 
+    public static void clearCache() {
+        cache = null;
+    }
+
     /**
      * 收到 valid=true 回包（TerminalClientPacketSink 主线程调用）：解码失败整包丢弃
      * （保留旧快照防撕裂）；同锚点按 snapshotVersion 单调门控拒绝迟到旧包；整体替换。

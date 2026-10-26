@@ -9,6 +9,8 @@ public final class CriticalEnergyMath {
     public static final int IRRADIATION_PARALLEL = 256;
     public static final int FUSION_PARALLEL = 8196;
     public static final int MIN_EFFICIENCY = 100, MAX_EFFICIENCY = 2000, EFFICIENCY_STEP = 10;
+    public static final int TURBINE_WARMUP_TICKS = CYCLE_TICKS;
+    public static final int TURBINE_FULL_WARMUP_BASE_AMPS_MAX = 16;
     public static final double WATER_A = 1_000_000D, WATER_B = 1_000_000D;
     public static final double SALT_A = 1_000_000D, SALT_B = 1_000_000D;
     private static final BigInteger WATER_DENOMINATOR = BigInteger.valueOf(160);
@@ -19,14 +21,25 @@ public final class CriticalEnergyMath {
         return Math.max(MIN_EFFICIENCY, Math.min(MAX_EFFICIENCY, value));
     }
 
-    /** Compare by cross multiplication: exactly +/-10% is inside the unchanged interval. */
+    /** Retained source compatibility; changing input heat can never award permanent efficiency. */
     public static int trendEfficiency(int current, BigInteger previous, BigInteger raw) {
-        int next = efficiency(current);
-        if (previous.signum() <= 0 || raw.signum() <= 0) return next;
-        BigInteger scaled = raw.multiply(BigInteger.TEN);
-        if (scaled.compareTo(previous.multiply(BigInteger.valueOf(11))) > 0) next += EFFICIENCY_STEP;
-        else if (scaled.compareTo(previous.multiply(BigInteger.valueOf(9))) < 0) next -= EFFICIENCY_STEP;
-        return efficiency(next);
+        return efficiency(current);
+    }
+
+    public static int runningEfficiency(int paidRunningTicks) {
+        int ticks = Math.max(0, Math.min(TURBINE_WARMUP_TICKS, paidRunningTicks));
+        return MIN_EFFICIENCY + (MAX_EFFICIENCY - MIN_EFFICIENCY) * ticks / TURBINE_WARMUP_TICKS;
+    }
+
+    /** Absolute paid half-EU load, independent of steam identity, volume and earlier batches. */
+    public static int targetWarmupTicks(BigInteger halfHeat) {
+        if (halfHeat.signum() <= 0) return 0;
+        BigInteger fullLoad = BigInteger.valueOf(CriticalSolarPolicy.MAX_VOLTAGE)
+            .multiply(BigInteger.valueOf(2L * CYCLE_TICKS * TURBINE_FULL_WARMUP_BASE_AMPS_MAX));
+        return halfHeat.multiply(BigInteger.valueOf(TURBINE_WARMUP_TICKS))
+            .divide(fullLoad)
+            .min(BigInteger.valueOf(TURBINE_WARMUP_TICKS))
+            .intValue();
     }
 
     public static BigInteger generatedEU(BigInteger raw, int efficiency) {

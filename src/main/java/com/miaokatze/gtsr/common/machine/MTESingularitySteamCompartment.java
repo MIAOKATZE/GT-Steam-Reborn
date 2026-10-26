@@ -5,12 +5,15 @@ import java.util.List;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.register.TextureManager;
 
 import gregtech.api.interfaces.IIconContainer;
@@ -43,6 +46,19 @@ public class MTESingularitySteamCompartment extends MTEHatchPressureSteamInput
 
     public MTESingularitySteamCompartment(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, aDescription, aTextures);
+    }
+
+    @Override
+    public String[] getDescription() {
+        return new String[] {
+            EnumChatFormatting.DARK_AQUA
+                + StatCollector.translateToLocal("gtsr.tooltip.singularity_compartment.steam_input_port"),
+            EnumChatFormatting.AQUA
+                + StatCollector.translateToLocal("gtsr.tooltip.singularity_compartment.fluid_steam"),
+            EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
+                "gtsr.tooltip.singularity_compartment.port_steam_buffer",
+                String.format("%,d", getFluidCapacityLong())),
+            GTSRUtils.getAddedByLine() };
     }
 
     @Override
