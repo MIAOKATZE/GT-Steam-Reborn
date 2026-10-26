@@ -9,14 +9,15 @@ import java.util.List;
 /** Pure boiler catalogue: native steam heat and exact working-fluid inventory saturation. */
 public final class CriticalSolarPolicy {
 
-    public static final int VERSION = 5;
+    public static final int VERSION = 6;
     /** Native steam heat, before any downstream generator efficiency. */
     public static final long BASE_WATER_HEAT_EUT = 70_000_000_000L;
+    /** Legacy policy5 API value; unused by policy6 production or inventory arithmetic. */
     public static final long MAX_WATER_HEAT_EUT = 440_000_000_000L;
     public static final long REFERENCE_WATER_HEAT_EUT = 94_500_000_000L;
     public static final int WATER_HEAT_QUANTUM_EU = 7500;
     private static final BigInteger HALF_HEAT_QUANTUM = BigInteger.valueOf(2L * WATER_HEAT_QUANTUM_EU);
-    // Legacy display/API constants; policy5 native heat is controlled only by the constants above.
+    // Legacy display/API constants; these do not limit policy6 native heat.
     public static final int BASE_AMPS_MAX = 640;
     public static final int MAX_WATER_AMPS_MAX = 4096;
     public static final int MAX_SALT_AMPS_MAX = 8192;
@@ -63,14 +64,13 @@ public final class CriticalSolarPolicy {
         }
     }
 
-    /** Native heat power: dimension and medium multipliers apply once, before the absolute cap. */
+    /** Native heat power: apply dimension and medium multipliers once, with no production cap. */
     public static BigInteger ratedWaterHeatEUPerTick(double factor, Entry coolant, Entry exciter) {
         if (!Double.isFinite(factor) || factor <= 0D) return BigInteger.ZERO;
         return BigDecimal.valueOf(BASE_WATER_HEAT_EUT)
             .multiply(BigDecimal.valueOf(factor))
             .multiply(BigDecimal.valueOf(coolant.multiplier))
             .multiply(BigDecimal.valueOf(exciter.multiplier))
-            .min(BigDecimal.valueOf(MAX_WATER_HEAT_EUT))
             .toBigInteger();
     }
 
