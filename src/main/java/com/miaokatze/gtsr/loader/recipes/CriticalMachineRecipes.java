@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
+import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.SteamMode;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.critical.CompoundRecipe;
 import com.miaokatze.gtsr.common.critical.CriticalChemicalRecipes;
@@ -165,28 +166,22 @@ public final class CriticalMachineRecipes {
             // A small common energy sample fits native int fluid stacks in all six forms.
             steam.amount = CriticalSolarPolicy.steamLitres(CriticalSolarPolicy.waterHalfHeat(waterSampleEU), mode)
                 .intValueExact();
-            add(
-                CriticalMachineKind.SOLAR,
-                "solar_water",
-                new ItemStack[0],
-                new ItemStack[0],
-                new FluidStack[] { GTModHandler.getDistilledWater(
+            addSolar(
+                GTModHandler.getDistilledWater(
                     CriticalSolarPolicy.waterLitres(BigInteger.valueOf(steam.amount), mode)
-                        .intValueExact()) },
-                new FluidStack[] { steam },
-                waterSampleEU);
+                        .intValueExact()),
+                steam,
+                waterSampleEU,
+                SteamMode.values()[mode]);
         }
         BigInteger saltSampleEU = waterSampleEU.multiply(BigInteger.valueOf(CriticalSolarPolicy.SALT_POWER_MULTIPLIER));
         int saltLitres = CriticalSolarPolicy.saltLitres(saltSampleEU)
             .intValueExact();
-        add(
-            CriticalMachineKind.SOLAR,
-            "solar_salt",
-            new ItemStack[0],
-            new ItemStack[0],
-            new FluidStack[] { MaterialMisc.SOLAR_SALT_COLD.getFluidStack(saltLitres) },
-            new FluidStack[] { MaterialMisc.SOLAR_SALT_HOT.getFluidStack(saltLitres) },
-            saltSampleEU);
+        addSolar(
+            MaterialMisc.SOLAR_SALT_COLD.getFluidStack(saltLitres),
+            MaterialMisc.SOLAR_SALT_HOT.getFluidStack(saltLitres),
+            saltSampleEU,
+            SteamMode.SALT);
         for (int i = 0; i < 2; i++) {
             ItemStack source = IrradiatedDust.source(i == 0);
             if (source == null) continue;
@@ -200,6 +195,17 @@ public final class CriticalMachineRecipes {
                 new FluidStack[0],
                 BigInteger.ZERO);
         }
+    }
+
+    private static void addSolar(FluidStack input, FluidStack output, BigInteger sampleEquivalentEU, SteamMode mode) {
+        GTRecipe recipe = GTValues.RA.stdBuilder()
+            .fluidInputs(input)
+            .fluidOutputs(output)
+            .duration(CriticalEnergyMath.CYCLE_TICKS)
+            .eut(0)
+            .build()
+            .orElseThrow(() -> new IllegalStateException("Invalid solar conversion view: " + mode));
+        CriticalRecipeMaps.addSolarDisplayRecipe(recipe, sampleEquivalentEU, mode);
     }
 
     private static void registerTurbine() {

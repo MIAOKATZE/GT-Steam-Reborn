@@ -391,10 +391,20 @@ class CriticalNEICatalogRuntime {
             check(recipe.mFluidInputs.length==1&&recipe.mFluidOutputs.length==1,
                 "water/salt views show exactly one converted working fluid and its product");
             check(recipe.mDuration==CriticalEnergyMath.CYCLE_TICKS,"all solar views keep a fixed 400-tick batch");
+            var solar=info.solar;
+            check(solar!=null,"all boiler cards freeze typed batch metadata at registration");
+            check(solar.inputLitres.compareTo(solar.exampleStock)<=0,"shown working-fluid stock funds the full real batch");
+            check(Math.abs(solar.multiplier-1.35D)<0.000001D,"example uses dimension 0.6, coolant 1.5 and activator 1.5");
             if(info.operation.equals("solar_salt")) {
                 saltEU=info.baseEu;
                 check(recipe.mFluidInputs[0].amount==CriticalSolarPolicy.saltLitres(saltEU).intValueExact()
                     &&recipe.mFluidOutputs[0].amount==recipe.mFluidInputs[0].amount,"salt example pays equal-volume hot salt");
+                check(solar.mode==CriticalRecipeMaps.SteamMode.SALT
+                    &&solar.coefficient.equals(new BigInteger("40000000000"))
+                    &&solar.exampleStock.equals(new BigInteger("100000000000"))
+                    &&solar.inputLitres.equals(new BigInteger("27000000000"))
+                    &&solar.outputLitres.equals(solar.inputLitres)
+                    &&solar.heatEU.equals(new BigInteger("40500000000000")),"salt card displays real 100G stock / 27G output / 40.5T native heat");
             } else {
                 if(waterEU==null)waterEU=info.baseEu;
                 check(waterEU.equals(info.baseEu),"six water-route steam forms retain equal equivalent EU");
@@ -403,6 +413,15 @@ class CriticalNEICatalogRuntime {
                 BigInteger heat=BigInteger.valueOf(recipe.mFluidOutputs[0].amount)
                     .multiply(CriticalEnergyMath.steamHeatPerL(mode));
                 check(heat.equals(CriticalSolarPolicy.waterHalfHeat(info.baseEu)),"all steam volumes use the common exact heat quantum");
+                check(solar.mode.index==mode,"batch metadata freezes this card's selected steam form");
+                String[] coefficients={"60000000000000","20000000000000","12000000000000","60000000000","20000000000","12000000000"};
+                String[] production={"67500000000000","13500000000000","8100000000000","67500000000","13500000000","8100000000"};
+                String[] consumption={"421875000000","84375000000","50625000000","421875000000","84375000000","50625000000"};
+                check(solar.coefficient.equals(new BigInteger(coefficients[mode]))
+                    &&solar.outputLitres.equals(new BigInteger(production[mode]))
+                    &&solar.inputLitres.equals(new BigInteger(consumption[mode])),"selected steam coefficient, actual output and paid water match policy7");
+                check(solar.exampleStock.equals(new BigInteger(mode%3==0?"500000000000":"100000000000"))
+                    &&solar.heatEU.equals(new BigInteger(mode%3==0?"33750000000000":"20250000000000")),"ordinary forms use funded 500G example; native heat never includes turbine efficiency");
             }
         }
         check(conversions==7,"exactly six steam conversions and one salt conversion");

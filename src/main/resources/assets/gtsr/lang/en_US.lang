@@ -4739,7 +4739,15 @@ gtsr.critical.ui.runtime.solar.coolant_litres=Batch coolant consumed
 gtsr.critical.ui.runtime.solar.exciter_litres=Batch activator consumed
 gtsr.critical.ui.runtime.solar.equivalent_power=Batch product heat power
 gtsr.critical.ui.runtime.solar.load=Actual heat load
-gtsr.critical.nei.simple.solar.sample=Heat: %s EU/batch
+gtsr.critical.nei.simple.solar.intro=20s/batch; slots: ratios only
+gtsr.critical.nei.simple.solar.formula=y=%s*x/(x+%s)*m
+gtsr.critical.nei.simple.solar.variables=x=stock L; y=output L/batch
+gtsr.critical.nei.simple.solar.multiplier=m=dimension*cooling*activation
+gtsr.critical.nei.simple.solar.example=e.g. x=%s L; m=%s
+gtsr.critical.nei.simple.solar.input.water=Water used: %s L
+gtsr.critical.nei.simple.solar.input.salt=Cold salt used: %s L
+gtsr.critical.nei.simple.solar.output=Output: %s L
+gtsr.critical.nei.simple.solar.heat=Base heat: %s EU
 gtsr.critical.solar.exciter.helium_gas=Helium Gas
 gtsr.critical.solar.exciter.none=Legacy prepaid batch
 gtsr.critical.tooltip.native.structure.loom_ports=Loom ports: Y=4 casing ring, item/fluid input/output and energy hatches; controllers and internal rails cannot be replaced
