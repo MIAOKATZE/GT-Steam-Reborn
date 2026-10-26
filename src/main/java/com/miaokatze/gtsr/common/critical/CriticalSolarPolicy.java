@@ -12,6 +12,8 @@ public final class CriticalSolarPolicy {
 
     public static final int VERSION = 7;
     private static final BigInteger STOCK_HALF_SATURATION = BigInteger.valueOf(100_000_000_000L);
+    private static final long BASE_DENSE_SUPERCRITICAL_LITRES = 12_000_000_000L;
+    private static final long BASE_HOT_SALT_LITRES = 40_000_000_000L;
     /** Legacy heat-budget API and dust-only basis; normal production uses the direct volume helpers. */
     public static final long BASE_WATER_HEAT_EUT = 70_000_000_000L;
     /** Legacy policy5 API value; unused by policy6 production or inventory arithmetic. */
@@ -46,15 +48,27 @@ public final class CriticalSolarPolicy {
 
     private CriticalSolarPolicy() {}
 
+    public static BigInteger stockHalfSaturationLitres() {
+        return STOCK_HALF_SATURATION;
+    }
+
+    public static BigInteger baseDenseSupercriticalLitres() {
+        return BigInteger.valueOf(BASE_DENSE_SUPERCRITICAL_LITRES);
+    }
+
+    public static BigInteger baseHotSaltLitres() {
+        return BigInteger.valueOf(BASE_HOT_SALT_LITRES);
+    }
+
     /** Policy7: V = 12G * stock / (stock + 100G) * dimension * coolant * exciter, in groups of3L. */
     public static BigInteger batchDenseSupercriticalLitres(BigInteger stock, double factor, Entry coolant,
         Entry exciter) {
-        return stockYield(stock, factor, coolant, exciter, 12_000_000_000L, 3);
+        return stockYield(stock, factor, coolant, exciter, BASE_DENSE_SUPERCRITICAL_LITRES, 3);
     }
 
     /** Policy7: Q = 40G * stock / (stock + 100G) * dimension * coolant * exciter. */
     public static BigInteger batchHotSaltLitres(BigInteger stock, double factor, Entry coolant, Entry exciter) {
-        return stockYield(stock, factor, coolant, exciter, 40_000_000_000L, 1);
+        return stockYield(stock, factor, coolant, exciter, BASE_HOT_SALT_LITRES, 1);
     }
 
     /** Policy7 asymptotic batch budget, only for the displayed load; no global output cap. */

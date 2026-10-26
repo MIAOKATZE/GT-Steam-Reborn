@@ -11,7 +11,9 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.critical.CompoundRecipe;
+import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
+import com.miaokatze.gtsr.common.critical.CriticalSolarPolicy;
 
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMapBackend;
@@ -71,6 +73,24 @@ public final class CriticalRecipeMaps {
         info.compound = compound;
         info.inputHeat = inputHeat;
         register(map, recipe, info);
+    }
+
+    /** Native int slots are conversion ratios; the immutable profile carries a real funded batch. */
+    public static void addSolarDisplayRecipe(GTRecipe recipe, BigInteger sampleEquivalentEU, SteamMode mode) {
+        RecipeMap<RecipeMapBackend> map = forKind(CriticalMachineKind.SOLAR);
+        SolarDisplay solar = new SolarDisplay(mode);
+        register(
+            map,
+            recipe,
+            new DisplayInfo(
+                map,
+                CriticalMachineKind.SOLAR,
+                mode == SteamMode.SALT ? "solar_salt" : "solar_water",
+                sampleEquivalentEU,
+                -1,
+                0,
+                1,
+                solar));
     }
 
     public static void addFusionRecipe(GTRecipe recipe, long nativeEut, int nativeTicks) {
@@ -189,6 +209,67 @@ public final class CriticalRecipeMaps {
         return StatCollector.translateToLocalFormatted("gtsr.critical.nei." + key, values);
     }
 
+    public enum SteamMode {
+
+        NORMAL(0),
+        SUPERHEATED(1),
+        SUPERCRITICAL(2),
+        DENSE_NORMAL(3),
+        DENSE_SUPERHEATED(4),
+        DENSE_SUPERCRITICAL(5),
+        SALT(-1);
+
+        public final int index;
+
+        SteamMode(int index) {
+            this.index = index;
+        }
+    }
+
+    /** Frozen once during catalogue registration, using the same pure policy as production. */
+    public static final class SolarDisplay {
+
+        public final SteamMode mode;
+        public final BigInteger coefficient, halfSaturationStock, exampleStock, inputLitres, outputLitres, heatEU;
+        public final double multiplier;
+
+        private SolarDisplay(SteamMode mode) {
+            this.mode = mode;
+            halfSaturationStock = CriticalSolarPolicy.stockHalfSaturationLitres();
+            var coolant = CriticalSolarPolicy.COOLANTS.get(1);
+            var exciter = CriticalSolarPolicy.EXCITERS.get(1);
+            double dimension = CriticalSolarPolicy.PRIVATE_DIMENSION_FACTOR;
+            multiplier = dimension * coolant.multiplier * exciter.multiplier;
+            boolean salt = mode == SteamMode.SALT;
+            BigInteger base = salt ? CriticalSolarPolicy.baseHotSaltLitres()
+                : CriticalSolarPolicy.baseDenseSupercriticalLitres();
+            BigInteger halfHeatPerDenseL = CriticalEnergyMath.steamHeatPerL(SteamMode.DENSE_SUPERCRITICAL.index);
+            coefficient = salt ? base
+                : base.multiply(halfHeatPerDenseL)
+                    .divide(CriticalEnergyMath.steamHeatPerL(mode.index));
+            // Ordinary steam consumes more than 100G water at m=1.35; 500G funds its entire batch.
+            exampleStock = mode == SteamMode.NORMAL || mode == SteamMode.DENSE_NORMAL
+                ? halfSaturationStock.multiply(BigInteger.valueOf(5))
+                : halfSaturationStock;
+            if (salt) {
+                outputLitres = CriticalSolarPolicy.batchHotSaltLitres(exampleStock, dimension, coolant, exciter);
+                inputLitres = outputLitres;
+                heatEU = outputLitres.multiply(BigInteger.valueOf(CriticalSolarPolicy.HOT_SALT_SUPERHEATED_LITRES))
+                    .multiply(CriticalEnergyMath.steamHeatPerL(SteamMode.SUPERHEATED.index))
+                    .divide(BigInteger.valueOf(2));
+            } else {
+                BigInteger halfHeat = CriticalSolarPolicy
+                    .batchDenseSupercriticalLitres(exampleStock, dimension, coolant, exciter)
+                    .multiply(halfHeatPerDenseL);
+                outputLitres = CriticalSolarPolicy.steamLitres(halfHeat, mode.index);
+                inputLitres = CriticalSolarPolicy.waterLitres(outputLitres, mode.index);
+                heatEU = halfHeat.divide(BigInteger.valueOf(2));
+            }
+            if (inputLitres.compareTo(exampleStock) > 0)
+                throw new IllegalArgumentException("Unfunded solar catalogue example: " + mode);
+        }
+    }
+
     public static final class DisplayInfo {
 
         public final RecipeMap<?> recipeMap;
@@ -196,6 +277,7 @@ public final class CriticalRecipeMaps {
         public final String operation;
         public final BigInteger baseEu;
         public final int spectrum, page, pages;
+        public final SolarDisplay solar;
         private ItemStack[] constructionItems;
         private FluidStack[] constructionFluids;
         private final int[] constructionSteps = { 1, 1, 1 };
@@ -206,6 +288,11 @@ public final class CriticalRecipeMaps {
 
         private DisplayInfo(RecipeMap<?> recipeMap, CriticalMachineKind kind, String operation, BigInteger baseEu,
             int spectrum, int page, int pages) {
+            this(recipeMap, kind, operation, baseEu, spectrum, page, pages, null);
+        }
+
+        private DisplayInfo(RecipeMap<?> recipeMap, CriticalMachineKind kind, String operation, BigInteger baseEu,
+            int spectrum, int page, int pages, SolarDisplay solar) {
             this.recipeMap = recipeMap;
             this.kind = kind;
             this.operation = operation;
@@ -213,6 +300,7 @@ public final class CriticalRecipeMaps {
             this.spectrum = spectrum;
             this.page = page;
             this.pages = pages;
+            this.solar = solar;
         }
 
         public boolean construction() {

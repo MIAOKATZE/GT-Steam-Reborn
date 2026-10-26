@@ -14,7 +14,6 @@ import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.DisplayInfo;
 import com.miaokatze.gtsr.common.critical.CriticalConstructionProgress;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
 import com.miaokatze.gtsr.common.critical.CriticalFoundationChunk;
-import com.miaokatze.gtsr.common.critical.CriticalSolarPolicy;
 import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
 import com.miaokatze.gtsr.config.Config;
 
@@ -82,7 +81,7 @@ public final class CriticalNEIShowcase {
         }
         String operation = info.operation;
         label(text(operation + ".title"), 8, 6, GOLD);
-        label(text("intro." + operation), 8, 21, MUTED);
+        label(info.solar == null ? text("intro." + operation) : text("solar.intro"), 8, 21, MUTED);
         boolean chemical = operation.equals("chemical_compound");
         if (!chemical) label(text("output"), OUTPUT_X, 32, MUTED);
         label(text(chemical ? "chemical.inputs" : "input"), INPUT_X, chemical ? 30 : 32, MUTED);
@@ -145,15 +144,33 @@ public final class CriticalNEIShowcase {
                 text("irradiation.output"));
         } else {
             boiler(operation.equals("solar_salt"), new Plot(flow(info, true)));
-            rows(
-                text("solar.cycle"),
-                CriticalRecipeMaps.formatted(
-                    "simple.solar.sample",
-                    number(
-                        new java.math.BigDecimal(info.baseEu)
-                            .divide(java.math.BigDecimal.valueOf(CriticalSolarPolicy.FULL_TURBINE_MULTIPLIER)))),
-                text(operation.equals("solar_salt") ? "solar.salt" : "solar.water"));
+            if (info.solar != null) rows(solarRows(info.solar));
         }
+    }
+
+    /** Seven native-font lines: quantities describe the frozen funded batch, never the int slot ratio. */
+    public static String[] solarRows(CriticalRecipeMaps.SolarDisplay solar) {
+        boolean salt = solar.mode == CriticalRecipeMaps.SteamMode.SALT;
+        return new String[] { CriticalRecipeMaps
+            .formatted("simple.solar.formula", solarNumber(solar.coefficient), solarNumber(solar.halfSaturationStock)),
+            text("solar.variables"), text("solar.multiplier"),
+            CriticalRecipeMaps.formatted(
+                "simple.solar.example",
+                solarNumber(solar.exampleStock),
+                number(java.math.BigDecimal.valueOf(solar.multiplier))),
+            CriticalRecipeMaps
+                .formatted("simple.solar.input." + (salt ? "salt" : "water"), solarNumber(solar.inputLitres)),
+            CriticalRecipeMaps.formatted("simple.solar.output", solarNumber(solar.outputLitres)),
+            CriticalRecipeMaps.formatted("simple.solar.heat", solarNumber(solar.heatEU)) };
+    }
+
+    private static String solarNumber(java.math.BigInteger value) {
+        java.math.BigDecimal amount = new java.math.BigDecimal(value);
+        java.math.BigDecimal tera = java.math.BigDecimal.valueOf(1_000_000_000_000L);
+        java.math.BigDecimal giga = java.math.BigDecimal.valueOf(1_000_000_000L);
+        if (amount.compareTo(tera) >= 0) return number(amount.divide(tera)) + "T";
+        if (amount.compareTo(giga) >= 0) return number(amount.divide(giga)) + "G";
+        return number(amount);
     }
 
     private static void construction(DisplayInfo info) {

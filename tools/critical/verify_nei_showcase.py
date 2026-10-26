@@ -43,7 +43,7 @@ def main():
         'api/recipe/CriticalRecipeMaps.java', 'api/recipe/CriticalRecipeFrontend.java', 'api/recipe/CriticalNEILayout.java', 'config/Config.java',
         'client/nei/CriticalNEIShowcase.java', 'loader/recipes/CriticalMachineRecipes.java',
         'common/critical/CriticalConstructionEconomy.java', 'common/critical/CriticalFoundationMaterials.java',
-        'common/critical/CriticalGTRecipes.java', 'common/critical/CriticalStellarPolicy.java',
+        'common/critical/CriticalGTRecipes.java', 'common/critical/CriticalStellarPolicy.java', 'common/critical/CriticalSolarPolicy.java',
         'common/critical/CriticalChemicalMath.java', 'common/critical/CriticalChemicalRecipes.java',
         'common/critical/CompoundRecipe.java', 'common/critical/CriticalFoundationChunk.java',
         'common/critical/CriticalConstructionProgress.java')]
@@ -71,7 +71,7 @@ def main():
     assert hashlib.sha256(baseline.read_bytes()).hexdigest() == candidate_hash, 'Candidate changed during verification'
     if args.jar:
         assert not any((classes / 'com/miaokatze/gtsr').rglob('*.class')), 'Production overlay appeared during jar-only run'
-    font_result = run('java.exe', 'font', ['-cp', cp, 'CriticalNEIFontContract', ROOT / 'src/main/resources/assets/gtsr/lang'])
+    font_result = run('java.exe', 'font', [*binding, '-cp', cp, 'CriticalNEIFontContract', ROOT / 'src/main/resources/assets/gtsr/lang'])
     result += font_result
     print(result)
     (out / 'verification.json').write_text(json.dumps({'status': 'PASS', 'productOverlay': not bool(args.jar),

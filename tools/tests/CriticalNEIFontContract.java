@@ -6,11 +6,28 @@ import net.minecraft.client.gui.FontRenderer;
 
 /** Actual vanilla FontRenderer width/wrapping with vanilla atlas metrics; no GL or client launch. */
 public class CriticalNEIFontContract {
+    public static void main(String[] args)throws Exception {
+        System.setProperty("critical.nei.lang",args[0]);
+        Issue37RegistrationRegression.launch("CriticalNEIFontRuntime","5.09.54.205");
+    }
+}
+
+class CriticalNEIFontRuntime {
     static int checks;
     static void set(Object o,String name,Object value)throws Exception {
         Field f=FontRenderer.class.getDeclaredField(name);f.setAccessible(true);f.set(o,value);
     }
-    public static void main(String[] args)throws Exception {
+    public static void run(String version)throws Exception {
+        Issue37Runtime.bootstrap(version);
+        String expectedJar=System.getProperty("critical.nei.expectedJar");
+        if(expectedJar!=null){
+            String expected=new java.io.File(expectedJar).toURI().toURL().toExternalForm();
+            for(Class<?> type:List.of(com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.class,
+                com.miaokatze.gtsr.client.nei.CriticalNEIShowcase.class)){
+                String source=type.getProtectionDomain().getCodeSource().getLocation().toExternalForm();
+                if(!source.contains(expected))throw new AssertionError("Wrong font product CodeSource "+type+": "+source);
+            }
+        }
         Field field=sun.misc.Unsafe.class.getDeclaredField("theUnsafe");field.setAccessible(true);
         var font=(FontRenderer)((sun.misc.Unsafe)field.get(null)).allocateInstance(FontRenderer.class);
         byte[] glyphs=FontRenderer.class.getResourceAsStream("/assets/minecraft/font/glyph_sizes.bin").readAllBytes();
@@ -27,7 +44,13 @@ public class CriticalNEIFontContract {
         int maximum=0;
         for(String lang:List.of("en_US","zh_CN"))for(boolean unicode:List.of(false,true)) {
             set(font,"unicodeFlag",unicode);
-            var locale=Files.readAllLines(Path.of(args[0],lang+".lang"));
+            List<String> locale;
+            if(expectedJar==null)locale=Files.readAllLines(Path.of(System.getProperty("critical.nei.lang"),lang+".lang"));
+            else try(var jar=new java.util.jar.JarFile(expectedJar)){
+                var entry=jar.getJarEntry("assets/gtsr/lang/"+lang+".lang");
+                locale=new String(jar.getInputStream(entry).readAllBytes(),java.nio.charset.StandardCharsets.UTF_8).lines().toList();
+            }
+            solarBounds(font,locale,lang,unicode);
             for(String key:List.of("instant","construction_immediate","scope")) {
                 String prefix="gtsr.wand.debug."+key+"=";
                 String value=locale.stream().filter(s->s.startsWith(prefix)).findFirst().orElseThrow().substring(prefix.length());
@@ -119,7 +142,11 @@ public class CriticalNEIFontContract {
                     :key.endsWith("turbine.trend")||key.endsWith("turbine.warmup")?String.format(Locale.ROOT,format,
                         com.miaokatze.gtsr.common.critical.CriticalEnergyMath.TURBINE_WARMUP_TICKS/20)
                     :key.endsWith("solar.rated")||key.endsWith("solar.salt_rated")?String.format(Locale.ROOT,format,"8,192A MAX")
-                    :key.endsWith("solar.sample")?String.format(Locale.ROOT,format,"300,000")
+                    :key.endsWith("solar.formula")?String.format(Locale.ROOT,format,"60T","100G")
+                    :key.endsWith("solar.example")?String.format(Locale.ROOT,format,"500G","1.35")
+                    :key.contains("solar.input.")?String.format(Locale.ROOT,format,"421.875G")
+                    :key.endsWith("solar.output")?String.format(Locale.ROOT,format,"67.5T")
+                    :key.endsWith("solar.heat")?String.format(Locale.ROOT,format,"40.5T")
                     :key.endsWith("ignition.helium")?String.format(Locale.ROOT,format,"50,000,000")
                     :key.endsWith("sustain.helium")?String.format(Locale.ROOT,format,"40,000")
                     :key.endsWith("stellar.voltage")?String.format(Locale.ROOT,format,"MAX")
@@ -171,5 +198,39 @@ public class CriticalNEIFontContract {
             }
         }
         System.out.println("PASS "+checks+" native FontRenderer bilingual bounds; maximum authored line width="+maximum+"; no client/GL");
+    }
+
+    static void solarBounds(FontRenderer font,List<String> locale,String lang,boolean unicode)throws Exception {
+        // Inject the actual locale into vanilla's translation singleton, then measure the production row builder.
+        Class<?> translations=Class.forName("net.minecraft.util.StringTranslate");
+        Object singleton=null;
+        for(Field f:translations.getDeclaredFields())if(Modifier.isStatic(f.getModifiers())&&f.getType()==translations){
+            f.setAccessible(true);singleton=f.get(null);break;
+        }
+        if(singleton==null)throw new AssertionError("Missing native translation singleton");
+        for(Field f:translations.getDeclaredFields())if(Map.class.isAssignableFrom(f.getType())){
+            f.setAccessible(true);
+            @SuppressWarnings("unchecked") var values=(Map<String,String>)f.get(singleton);
+            values.clear();
+            for(String line:locale){int split=line.indexOf('=');if(split>0)values.put(line.substring(0,split),line.substring(split+1));}
+        }
+        String intro=net.minecraft.util.StatCollector.translateToLocal("gtsr.critical.nei.simple.solar.intro");
+        if(font.getStringWidth(intro)>154)throw new AssertionError("Solar ratio/cycle intro width: "+lang+" "+intro);
+        var ctor=com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.SolarDisplay.class
+            .getDeclaredConstructor(com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.SteamMode.class);
+        ctor.setAccessible(true);
+        for(var mode:com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.SteamMode.values()){
+            var profile=ctor.newInstance(mode);
+            String[] rows=com.miaokatze.gtsr.client.nei.CriticalNEIShowcase.solarRows(profile);
+            if(rows.length!=7)throw new AssertionError("Solar batch requires exactly seven authored rows");
+            for(int row=0;row<rows.length;row++){
+                int width=row>=5?139:154;
+                var lines=font.listFormattedStringToWidth(rows[row],width);
+                if(lines.size()!=1||font.getStringWidth(rows[row])>width||97+row*11+9>174)
+                    throw new AssertionError("Solar card crosses rows/card/native button: "+lang+" unicode="+unicode+" "+mode+" row="+row+" width="+font.getStringWidth(rows[row])+" "+rows[row]);
+                if(rows[row].contains("E+")||rows[row].contains("E-"))throw new AssertionError("Scientific solar quantity");
+                checks++;
+            }
+        }
     }
 }

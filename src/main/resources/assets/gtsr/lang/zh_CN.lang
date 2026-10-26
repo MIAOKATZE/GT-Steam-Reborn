@@ -4735,7 +4735,15 @@ gtsr.critical.ui.runtime.solar.coolant_litres=本批冷却剂消耗
 gtsr.critical.ui.runtime.solar.exciter_litres=本批激活剂消耗
 gtsr.critical.ui.runtime.solar.equivalent_power=本批产物热功率
 gtsr.critical.ui.runtime.solar.load=实际采热负载
-gtsr.critical.nei.simple.solar.sample=热值：%s EU/批
+gtsr.critical.nei.simple.solar.intro=20秒/批 · 槽位仅为换算比例
+gtsr.critical.nei.simple.solar.formula=产量 y=%s×x/(x+%s)×m
+gtsr.critical.nei.simple.solar.variables=x=工质库存L；y=产量L/批
+gtsr.critical.nei.simple.solar.multiplier=m=维度系数×冷却倍率×激活倍率
+gtsr.critical.nei.simple.solar.example=例：x=%s L，m=%s
+gtsr.critical.nei.simple.solar.input.water=实耗蒸馏水：%s L
+gtsr.critical.nei.simple.solar.input.salt=实耗冷盐：%s L
+gtsr.critical.nei.simple.solar.output=实际产出：%s L
+gtsr.critical.nei.simple.solar.heat=原生热量：%s EU
 gtsr.critical.solar.exciter.helium_gas=氦气
 gtsr.critical.solar.exciter.none=旧策略批次（不追收）
 gtsr.critical.tooltip.native.structure.loom_ports=织机仓口：Y=4机壳环，可放物品/流体输入输出仓及能源仓；控制器与内部轨道不可替换
