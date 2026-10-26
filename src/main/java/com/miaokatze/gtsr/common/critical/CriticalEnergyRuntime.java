@@ -624,7 +624,7 @@ public final class CriticalEnergyRuntime {
                 item -> item != null && item.stackSize > 0
                     && (same(item, IrradiatedDust.source(true)) || same(item, IrradiatedDust.source(false))));
         SolarSelection selection = selectSolar(snapshot, factor, mode, saltMode, irradiation);
-        if (selection == null) return state.fail("缺少足额批次冷却剂、激活剂或工作流体；未扣料");
+        if (selection == null) return state.fail(saltMode ? "本批冷盐、冷却剂或激活剂不足；未扣料" : "本批蒸馏水不足，或缺少足额冷却剂、激活剂；未扣料");
         if (selection.outputLitres.signum() > 0) outputs.add(new FluidAmount(selection.output, selection.outputLitres));
         if (CriticalEnergyPorts.outputs(host, outputs, NO_ITEMS) == null) return state.fail("批次输出空间不足，工作流体和增效料已保留");
         CriticalEnergyPorts.Allocation allocation = new CriticalEnergyPorts.Allocation(snapshot);
@@ -756,16 +756,24 @@ public final class CriticalEnergyRuntime {
                 if (candidate.output == null) continue;
                 BigInteger available = CriticalEnergyPorts.total(snapshot, candidate.input);
                 if (saltMode) {
-                    candidate.inputLitres = CriticalSolarPolicy
-                        .saturatedSaltLitres(available, CriticalSolarPolicy.saltLitres(budget));
+                    candidate.inputLitres = CriticalSolarPolicy.batchHotSaltLitres(available, factor, coolant, exciter);
                     candidate.outputLitres = candidate.inputLitres;
                     candidate.equivalentEU = candidate.outputLitres.multiply(BigInteger.valueOf(30_000));
                 } else {
                     BigInteger heat = CriticalSolarPolicy
-                        .saturatedWaterHalfHeat(available, CriticalSolarPolicy.rawWaterHalfHeat(budget));
+                        .batchDenseSupercriticalLitres(available, factor, coolant, exciter)
+                        .multiply(BigInteger.valueOf(5000));
                     candidate.outputLitres = CriticalSolarPolicy.steamLitres(heat, mode);
                     candidate.inputLitres = CriticalSolarPolicy.waterLitres(candidate.outputLitres, mode);
                     candidate.equivalentEU = heat.multiply(BigInteger.TEN);
+                }
+                // The curve determines a complete batch; insufficient stock waits, without clipping or debit.
+                if (candidate.inputLitres.compareTo(available) > 0) {
+                    if (!irradiation) continue;
+                    // Independent irradiation can still run, paying its existing dust-only media workload.
+                    candidate.inputLitres = BigInteger.ZERO;
+                    candidate.outputLitres = BigInteger.ZERO;
+                    candidate.equivalentEU = BigInteger.ZERO;
                 }
                 BigInteger workload = candidate.equivalentEU;
                 if (workload.signum() == 0) {
@@ -780,8 +788,8 @@ public final class CriticalEnergyRuntime {
                     || CriticalEnergyPorts.total(snapshot, solarExciter(exciter))
                         .compareTo(candidate.exciterLitres) < 0)
                     continue;
-                candidate.ratedEU = budget;
-                candidate.load = workload.doubleValue() / budget.doubleValue();
+                candidate.ratedEU = CriticalSolarPolicy.ratedBatchEquivalentEU(factor, coolant, exciter, saltMode);
+                candidate.load = workload.doubleValue() / candidate.ratedEU.doubleValue();
                 if (best == null || candidate.equivalentEU.compareTo(best.equivalentEU) > 0) best = candidate;
             }
         }

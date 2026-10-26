@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.common.critical;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -9,8 +10,9 @@ import java.util.List;
 /** Pure boiler catalogue: native steam heat and exact working-fluid inventory saturation. */
 public final class CriticalSolarPolicy {
 
-    public static final int VERSION = 6;
-    /** Native steam heat, before any downstream generator efficiency. */
+    public static final int VERSION = 7;
+    private static final BigInteger STOCK_HALF_SATURATION = BigInteger.valueOf(100_000_000_000L);
+    /** Legacy heat-budget API and dust-only basis; normal production uses the direct volume helpers. */
     public static final long BASE_WATER_HEAT_EUT = 70_000_000_000L;
     /** Legacy policy5 API value; unused by policy6 production or inventory arithmetic. */
     public static final long MAX_WATER_HEAT_EUT = 440_000_000_000L;
@@ -43,6 +45,46 @@ public final class CriticalSolarPolicy {
             new Entry("spatial", "扩大化空间流体", 8D, 664_894_464_000L, 20D, 200D)));
 
     private CriticalSolarPolicy() {}
+
+    /** Policy7: V = 12G * stock / (stock + 100G) * dimension * coolant * exciter, in groups of3L. */
+    public static BigInteger batchDenseSupercriticalLitres(BigInteger stock, double factor, Entry coolant,
+        Entry exciter) {
+        return stockYield(stock, factor, coolant, exciter, 12_000_000_000L, 3);
+    }
+
+    /** Policy7: Q = 40G * stock / (stock + 100G) * dimension * coolant * exciter. */
+    public static BigInteger batchHotSaltLitres(BigInteger stock, double factor, Entry coolant, Entry exciter) {
+        return stockYield(stock, factor, coolant, exciter, 40_000_000_000L, 1);
+    }
+
+    /** Policy7 asymptotic batch budget, only for the displayed load; no global output cap. */
+    public static BigInteger ratedBatchEquivalentEU(double factor, Entry coolant, Entry exciter, boolean saltMode) {
+        if (!Double.isFinite(factor) || factor <= 0D) return BigInteger.ZERO;
+        return BigDecimal.valueOf(saltMode ? 1_200_000_000_000_000L : 600_000_000_000_000L)
+            .multiply(BigDecimal.valueOf(factor))
+            .multiply(BigDecimal.valueOf(coolant.multiplier))
+            .multiply(BigDecimal.valueOf(exciter.multiplier))
+            .toBigInteger();
+    }
+
+    private static BigInteger stockYield(BigInteger stock, double factor, Entry coolant, Entry exciter, long baseLitres,
+        int quantum) {
+        if (stock.signum() <= 0 || !Double.isFinite(factor) || factor <= 0D) return BigInteger.ZERO;
+        // Keep the complete decimal dimension factor until the final, common volume quantisation.
+        return BigDecimal.valueOf(baseLitres)
+            .multiply(new BigDecimal(stock))
+            .multiply(BigDecimal.valueOf(factor))
+            .multiply(BigDecimal.valueOf(coolant.multiplier))
+            .multiply(BigDecimal.valueOf(exciter.multiplier))
+            .divide(
+                new BigDecimal(
+                    stock.add(STOCK_HALF_SATURATION)
+                        .multiply(BigInteger.valueOf(quantum))),
+                0,
+                RoundingMode.DOWN)
+            .toBigIntegerExact()
+            .multiply(BigInteger.valueOf(quantum));
+    }
 
     public static final class Entry {
 

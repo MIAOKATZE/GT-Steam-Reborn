@@ -63,16 +63,12 @@ public final class CriticalTooltips {
         info(tt, "solar.energy");
         tt.addSeparator();
         info(tt, "solar.steam_amount");
-        info(tt, "solar.water_parameter");
-        info(tt, "solar.parameter_meaning");
-        info(tt, "solar.private");
+        info(tt, "solar.salt_amount");
         info(tt, "solar.stock");
-        info(tt, "solar.units");
+        info(tt, "solar.private");
         info(tt, "solar.water_cost");
         info(tt, "solar.steam_heat");
         info(tt, "solar.other_steam");
-        info(tt, "solar.salt_amount");
-        info(tt, "solar.salt_parameter");
         info(tt, "solar.salt_heat");
         info(tt, "solar.dimension");
         tt.addSeparator();
@@ -88,7 +84,6 @@ public final class CriticalTooltips {
         tt.addSeparator();
         info(tt, "solar.example_water_combination");
         info(tt, "solar.example_water_output");
-        info(tt, "solar.example_salt_stock");
         info(tt, "solar.example_salt_output");
     }
 

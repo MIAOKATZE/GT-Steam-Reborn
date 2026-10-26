@@ -4606,28 +4606,23 @@ gtsr.critical.tooltip.native.solar.purpose=利用维度辐照热，生产§b蒸�
 gtsr.critical.tooltip.native.solar.water=水路：§b蒸馏水 → 所选蒸汽§7；与熔盐采热二选一
 gtsr.critical.tooltip.native.solar.salt=盐路：§6冷太阳能盐 → 等量热太阳能盐
 gtsr.critical.tooltip.native.solar.energy=不耗EU、不直接发电；所列§6基础热量§7未计入下游发电机效率
-gtsr.critical.tooltip.native.solar.units=§e1G=1,000,000,000，1T=1,000G§7；floor向下取整，ceil向上取整
-gtsr.critical.tooltip.native.solar.water_parameter=水库存参数§eK=5×floor(70G×维度系数×冷却倍率×激活倍率) L
-gtsr.critical.tooltip.native.solar.parameter_meaning=§eK§7为本组合达到约半产量所需的蒸馏水库存
-gtsr.critical.tooltip.native.solar.private=私人维度系数§e0.6§7；冷却倍率与激活倍率见下表
-gtsr.critical.tooltip.native.solar.stock=公式中的§b蒸馏水库存§7与§6冷盐库存§7均为输入仓中对应流体的L数
-gtsr.critical.tooltip.native.solar.steam_amount=致密超临界蒸汽§bV=3×floor(4×K×蒸馏水库存÷(375×(蒸馏水库存+K))) L/批
-gtsr.critical.tooltip.native.solar.water_cost=本批实际扣除蒸馏水§bceil(25×V÷4) L
-gtsr.critical.tooltip.native.solar.other_steam=其他蒸汽按各自基础EU/L换算；相同库存下六种蒸汽的每批基础热量相同
-gtsr.critical.tooltip.native.solar.salt_amount=热太阳能盐§6Q=floor(M×冷盐库存÷(冷盐库存+M)) L/批
+gtsr.critical.tooltip.native.solar.private=§e总倍率=维度系数×冷却倍率×激活倍率§7；私人维度系数§e0.6
+gtsr.critical.tooltip.native.solar.stock=§ex§7为开批时输入系统中§b蒸馏水§7或§6冷太阳能盐§7的实际库存L数
+gtsr.critical.tooltip.native.solar.steam_amount=致密超临界蒸汽§by=12G×x/(x+100G)×总倍率 L/批
+gtsr.critical.tooltip.native.solar.water_cost=致密超临界蒸汽每§b1 L§7消耗§b6.25 L蒸馏水§7；原料足够整批才开工
+gtsr.critical.tooltip.native.solar.other_steam=其他蒸汽按基础热值换算；原料足额时六种蒸汽的每批基础热量相同
+gtsr.critical.tooltip.native.solar.salt_amount=热太阳能盐§6y=40G×x/(x+100G)×总倍率 L/批
 gtsr.critical.tooltip.native.solar.dimension=运行时维持本维度§5永夜§7；同维度仅首台锅炉运行
-gtsr.critical.tooltip.native.solar.medium_reference=表列用量§eB L/s§7对应每批基础热量§eR=37.8T EU
+gtsr.critical.tooltip.native.solar.medium_reference=以下秒耗对应每批§e37.8T EU§7基础热量
 gtsr.critical.tooltip.native.solar.coolant=必须供应以下一种§b冷却剂§7：
 gtsr.critical.tooltip.native.solar.excitation=同时必须供应以下一种§d激活剂§7：
 gtsr.critical.tooltip.native.solar.medium=§f%3$s L/s§7 : §d×%2$s§7 : %1$s
-gtsr.critical.tooltip.native.solar.helium=每种介质每秒消耗§eceil(B×E/R) L§7；开批一次扣除§e20秒§7用量
-gtsr.critical.tooltip.native.solar.example_water_combination=例：私人维度§e0.6§7、极寒之凛冰§b×1.5§7、氦等离子体§d×1.5§7：§eK=472.5G L
-gtsr.critical.tooltip.native.solar.example_water_output=§b蒸馏水库存=K§7：致密超临界蒸汽§b7.56G L§7，扣水§b47.25G L§7，基础热量§618.9T EU
-gtsr.critical.tooltip.native.solar.example_salt_stock=相同组合：§eM=50.4G L§7，§6冷盐库存=M
-gtsr.critical.tooltip.native.solar.example_salt_output=本批冷盐→热盐§625.2G L§7，累计基础热量§637.8T EU
-gtsr.critical.tooltip.native.solar.steam_heat=水路本批基础热量§6E=2500×V EU
-gtsr.critical.tooltip.native.solar.salt_parameter=盐路库存参数§eM=floor(8×K÷75) L
-gtsr.critical.tooltip.native.solar.salt_heat=每批§6Q L冷盐 → Q L热盐§7，基础热量§6E=1500×Q EU
+gtsr.critical.tooltip.native.solar.helium=实际秒耗=§e表列秒耗×本批热量÷37.8T§7；按整升收取，开批扣除§e20秒§7用量
+gtsr.critical.tooltip.native.solar.example_water_combination=例：私人维度§e0.6§7、极寒之凛冰§b×1.5§7、氦等离子体§d×1.5§7，总倍率§e1.35
+gtsr.critical.tooltip.native.solar.example_water_output=§b100G L蒸馏水库存§7：产§b8.1G L致密超临界蒸汽§7，扣水§b50.625G L§7，基础热量§620.25T EU
+gtsr.critical.tooltip.native.solar.example_salt_output=同组合§6100G L冷太阳能盐库存§7：产§627G L热太阳能盐§7，基础热量§640.5T EU
+gtsr.critical.tooltip.native.solar.steam_heat=每§b1 L致密超临界蒸汽§7携带§62500 EU§7基础热量
+gtsr.critical.tooltip.native.solar.salt_heat=每§61 L冷太阳能盐 → 1 L热太阳能盐§7，携带§61500 EU§7基础热量
 gtsr.critical.tooltip.native.turbine.purpose=将蒸汽热量转化为§e无线电能
 gtsr.critical.tooltip.native.turbine.input=开批抽取输入仓内§b全部六种蒸汽§7，可混合普通、过热、超临界及其致密形式
 gtsr.critical.tooltip.native.turbine.output=产能进入控制器所属团队的§e无线电网

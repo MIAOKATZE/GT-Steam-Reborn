@@ -32,10 +32,10 @@ class CriticalEnergyPolicyRuntime {
     }
     static final BigInteger FLUID_STOCK=b(Integer.MAX_VALUE).multiply(b(100));
     static BigInteger routeEU(double factor,int coolant,int exciter,boolean salt) {
-        BigInteger budget=CriticalSolarPolicy.batchBudgetEU(factor,
-            CriticalSolarPolicy.COOLANTS.get(coolant),CriticalSolarPolicy.EXCITERS.get(exciter),salt);
-        return salt?CriticalSolarPolicy.saturatedSaltLitres(FLUID_STOCK,CriticalSolarPolicy.saltLitres(budget)).multiply(b(30000))
-            :CriticalSolarPolicy.saturatedWaterHalfHeat(FLUID_STOCK,budget.divide(b(10))).multiply(b(10));
+        var cooling=CriticalSolarPolicy.COOLANTS.get(coolant);
+        var activation=CriticalSolarPolicy.EXCITERS.get(exciter);
+        return salt?CriticalSolarPolicy.batchHotSaltLitres(FLUID_STOCK,factor,cooling,activation).multiply(b(30000))
+            :CriticalSolarPolicy.batchDenseSupercriticalLitres(FLUID_STOCK,factor,cooling,activation).multiply(b(50000));
     }
     static BigInteger expectedCost(CriticalSolarPolicy.Entry entry,BigInteger actualEU) {
         BigInteger numerator=actualEU.multiply(b((long)entry.litresPerSecond));
@@ -67,6 +67,7 @@ class CriticalEnergyPolicyRuntime {
             CriticalEnergyPorts.class)) System.out.println("SOURCE " + type.getSimpleName() + " "
                 + type.getProtectionDomain().getCodeSource().getLocation());
         pureMath();
+        bulkMath();
         seed("SuperCoolant", "gtsr_solar_supercoolant", "mFluid");
         seed("Time", "gtsr_solar_tachyon", "mStandardMoltenFluid");
         seed("Space", "gtsr_solar_space", "mStandardMoltenFluid");
@@ -119,9 +120,9 @@ class CriticalEnergyPolicyRuntime {
             && ((CriticalSolarPolicy.Entry)field(selection,"exciter")).id.equals("helium"), "highest fully paid He/cryo route");
         check(field(selection,"coolantLitres").equals(b(cryoFull)) && field(selection,"exciterLitres").equals(b(heliumFull)),
             "inventory-saturated private cryo/He prepays both actual-heat-scaled20second medium costs");
-        BigInteger chosenHeat=(BigInteger)field(selection,"equivalentEU");
+        BigInteger chosenHeat=routeEU(.3D,1,1,false);
         for(int steamMode=0;steamMode<6;steamMode++) {
-            Object sameStock=select.invoke(null,snapshot,.6D,steamMode,false,false);
+            Object sameStock=select.invoke(null,snapshot,.3D,steamMode,false,false);
             BigInteger volume=(BigInteger)field(sameStock,"outputLitres");
             check(field(sameStock,"equivalentEU").equals(chosenHeat)
                 &&volume.multiply(CriticalEnergyMath.steamHeatPerL(steamMode)).multiply(b(10)).equals(chosenHeat)
@@ -130,28 +131,34 @@ class CriticalEnergyPolicyRuntime {
         }
         for(int steamMode=0;steamMode<6;steamMode++) {
             Object irregular=select.invoke(null,snapshot,.123456789D,steamMode,false,false);
-            BigInteger power=CriticalSolarPolicy.ratedWaterHeatEUPerTick(.123456789D,
-                CriticalSolarPolicy.COOLANTS.get(1),CriticalSolarPolicy.EXCITERS.get(1));
-            BigInteger rawEU=power.multiply(b(400)).multiply(FLUID_STOCK)
-                .divide(FLUID_STOCK.add(power.multiply(b(5))).multiply(b(7500))).multiply(b(7500));
-            check(field(irregular,"equivalentEU").equals(rawEU.multiply(b(20))),
-                "runtime uses exact public formula for non-quantised dimension and steam"+steamMode);
+            check(field(irregular,"equivalentEU").equals(b(2274286242L).multiply(b(50000))),
+                "runtime retains exact decimal dimension factor until final3L quantisation for steam"+steamMode);
         }
         cryo.stock=Integer.MAX_VALUE;helium.stock=Integer.MAX_VALUE;
+        List<CriticalCompoundRuntime.FakeHatch> largeStock=new ArrayList<>(hatches);
+        for(int i=0;i<900;i++) largeStock.add(CriticalCompoundRuntime.hatch(unsafe,tile,
+            gregtech.api.util.GTModHandler.getDistilledWater(1),Integer.MAX_VALUE));
+        CriticalCompoundRuntime.set(host,"mInputHatches",largeStock);
         BigInteger previousUncapped=BigInteger.ZERO;
         for(double highDimension:new double[]{7D,8D}) {
-            BigInteger actualHeat=CriticalSolarPolicy.saturatedWaterHalfHeat(FLUID_STOCK,CriticalSolarPolicy.rawWaterHalfHeat(
-                CriticalSolarPolicy.batchBudgetEU(highDimension,CriticalSolarPolicy.COOLANTS.get(1),CriticalSolarPolicy.EXCITERS.get(1),false)));
-            check(actualHeat.compareTo(previousUncapped)>0,"actual fixed-stock output increases above former global cap:"+highDimension);
-            for(int steamMode=0;steamMode<6;steamMode++) {
-                Object uncapped=select.invoke(null,CriticalEnergyPorts.snapshot(host),highDimension,steamMode,false,false);
-                check(field(uncapped,"equivalentEU").equals(actualHeat.multiply(b(10)))
-                    &&field(uncapped,"coolantLitres").equals(expectedCost(CriticalSolarPolicy.COOLANTS.get(1),actualHeat.multiply(b(10))))
-                    &&field(uncapped,"exciterLitres").equals(expectedCost(CriticalSolarPolicy.EXCITERS.get(1),actualHeat.multiply(b(10)))),
-                    "real planner has no cap, preserves six-steam heat and pays actual medium fee:"+steamMode);
-            }
-            previousUncapped=actualHeat;
+            BigInteger actualEU=CriticalSolarPolicy.batchDenseSupercriticalLitres(FLUID_STOCK.multiply(b(10)),highDimension,
+                CriticalSolarPolicy.COOLANTS.get(1),CriticalSolarPolicy.EXCITERS.get(1)).multiply(b(50000));
+            check(actualEU.compareTo(previousUncapped)>0,"fixed-stock DSC output increases above former global cap:"+highDimension);
+            Object uncapped=select.invoke(null,CriticalEnergyPorts.snapshot(host),highDimension,5,false,false);
+            check(field(uncapped,"equivalentEU").equals(actualEU)
+                &&field(uncapped,"coolantLitres").equals(expectedCost(CriticalSolarPolicy.COOLANTS.get(1),actualEU))
+                &&field(uncapped,"exciterLitres").equals(expectedCost(CriticalSolarPolicy.EXCITERS.get(1),actualEU)),
+                "real planner preserves uncapped output when water and both media fund a complete batch");
+            check(select.invoke(null,CriticalEnergyPorts.snapshot(host),highDimension,0,false,false)==null,
+                "ordinary-steam full batch cannot overdraw water, reduce output or throw SnapshotShortage");
+            Object irradiation=select.invoke(null,CriticalEnergyPorts.snapshot(host),highDimension,0,false,true);
+            check(irradiation!=null&&field(irradiation,"inputLitres").equals(BigInteger.ZERO)
+                &&field(irradiation,"outputLitres").equals(BigInteger.ZERO)
+                &&field(irradiation,"equivalentEU").equals(BigInteger.ZERO),
+                "insufficient water preserves independent dust-only operation without consuming water");
+            previousUncapped=actualEU;
         }
+        CriticalCompoundRuntime.set(host,"mInputHatches",hatches);
         cryo.stock=cryoFull;helium.stock=heliumFull;
         List<CriticalEnergyPorts.Debit> debits = new ArrayList<>();
         var allocation = new CriticalEnergyPorts.Allocation(snapshot);
@@ -245,8 +252,15 @@ class CriticalEnergyPolicyRuntime {
         CriticalCompoundRuntime.set(state.worldObj,"provider",unsafe.allocateInstance(net.minecraft.world.WorldProviderSurface.class));
         Method start=CriticalEnergyRuntime.class.getDeclaredMethod("startSolar",CriticalMachineState.class,
             MTECriticalMachine.class,NBTTagCompound.class);start.setAccessible(true);
+        state.n.setBoolean("solarSaltMode",false);state.n.setInteger("steamMode",0);
+        int cryoBefore=cryo.stock,heliumBefore=helium.stock;
+        check(!(boolean)start.invoke(null,state,host,state.n)&&!state.n.getBoolean("funded")
+            &&cryo.stock==cryoBefore&&helium.stock==heliumBefore
+            &&waters.stream().allMatch(hatch->hatch.stock==Integer.MAX_VALUE),
+            "actual unaffordable water start returns without debit, clipping, or SnapshotShortage");
+        state.n.setBoolean("solarSaltMode",true);state.n.setInteger("steamMode",5);
         cryo.stock=routeCost(true,1D,1,1,true);helium.stock=routeCost(false,1D,1,1,true);
-        check((boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("solarPolicy")==6
+        check((boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("solarPolicy")==7
             &&state.n.getBoolean("solarBatchSaltMode")&&cryo.stock==0&&helium.stock==0,
             "actual startSolar freezes selected salt mode and pays full400ticks of modifiers");
         check(waters.stream().allMatch(hatch->hatch.stock==Integer.MAX_VALUE)
@@ -258,10 +272,18 @@ class CriticalEnergyPolicyRuntime {
         state.n.setInteger("progress",399);CriticalEnergyRuntime.tick(state,host);
         check(!state.n.getBoolean("funded")&&output.stored.equals(frozen)&&output.fluid.isFluidEqual(new FluidStack(hot,1)),
             "mode switch and saved-NBT recovery deliver original paid hot-salt output without repricing");
-        for(int oldPolicy:new int[]{0,2,3,4,5}){
+        for(int oldPolicy:new int[]{0,2,3,4,5,6}){
             state.n=(NBTTagCompound)frozenManifest.copy();
             if(oldPolicy==0)state.n.removeTag("solarPolicy");else state.n.setInteger("solarPolicy",oldPolicy);
-            state.n.setInteger("progress",399);state.n.setBoolean("solarSaltMode",false);state.n.setInteger("steamMode",0);
+            state.n.setInteger("progress",398);state.n.setBoolean("solarSaltMode",false);state.n.setInteger("steamMode",0);
+            String frozenInputs=state.n.getTagList("inputs",10).toString();
+            String frozenOutputs=state.n.getTagList("outputs",10).toString();
+            String frozenEU=state.n.getString("eu");
+            CriticalEnergyRuntime.tick(state,host);
+            check(state.n.getInteger("progress")==399&&state.n.getString("eu").equals(frozenEU)
+                &&state.n.getTagList("inputs",10).toString().equals(frozenInputs)
+                &&state.n.getTagList("outputs",10).toString().equals(frozenOutputs),
+                "legacy paid solar policy"+oldPolicy+" keeps exact inputs, outputs and EU frozen during work");
             BigInteger storedBefore=output.stored;
             CriticalEnergyRuntime.tick(state,host);
             check(!state.n.getBoolean("funded")&&state.n.getInteger("solarPolicy")==oldPolicy
@@ -274,6 +296,54 @@ class CriticalEnergyPolicyRuntime {
         check(nativeSalt.steamMultiplier==2.5D&&nativeSalt.superheatedThreshold==1D/25D,
             "GT205 real LHE registry retains2.5 steam multiplier and1/25SH threshold");
         CriticalCompoundRuntime.set(host,"mOutputHatches",new ArrayList<>());
+    }
+    static void bulkMath() {
+        var cryo=CriticalSolarPolicy.COOLANTS.get(1);var he=CriticalSolarPolicy.EXCITERS.get(1);
+        BigInteger stock=b(100000000000L);
+        BigInteger dsc=CriticalSolarPolicy.batchDenseSupercriticalLitres(stock,.6D,cryo,he);
+        BigInteger salt=CriticalSolarPolicy.batchHotSaltLitres(stock,.6D,cryo,he);
+        check(CriticalSolarPolicy.VERSION==7&&dsc.equals(b(8100000000L))&&salt.equals(b(27000000000L)),
+            "policy7 private1.35 multiplier at100G stock yields8.1G DSC or27G hot salt per20s batch");
+        check(CriticalSolarPolicy.waterLitres(dsc,5).equals(b(50625000000L))
+            &&dsc.multiply(b(2500)).equals(b(20250000000000L))
+            &&salt.multiply(b(1500)).equals(b(40500000000000L)),
+            "100G example pays50.625G water and carries20.25T/40.5T native EU");
+        check(CriticalSolarPolicy.costLitres(cryo,dsc.multiply(b(50000))).equals(b(214300))
+            &&CriticalSolarPolicy.costLitres(he,dsc.multiply(b(50000))).equals(b(8580)),
+            "unchanged integer-second fee charges Cryo214300 and helium plasma8580 per reference example");
+        BigInteger halfHeat=dsc.multiply(b(5000));
+        check(CriticalSolarPolicy.waterLitres(CriticalSolarPolicy.steamLitres(halfHeat,0),0).equals(b(253125000000L)),
+            "ordinary steam at the same heat needs253.125G water and cannot run on100G stock");
+        BigInteger fullStock=b(1000000000000L);
+        halfHeat=CriticalSolarPolicy.batchDenseSupercriticalLitres(fullStock,.6D,cryo,he).multiply(b(5000));
+        for(int mode=0;mode<6;mode++){
+            BigInteger volume=CriticalSolarPolicy.steamLitres(halfHeat,mode);
+            check(volume.multiply(CriticalEnergyMath.steamHeatPerL(mode)).equals(halfHeat)
+                &&CriticalSolarPolicy.waterLitres(volume,mode).compareTo(fullStock)<=0,
+                "six fully payable steam choices preserve identical native heat:"+mode);
+        }
+        for(double invalid:new double[]{0D,-1D,Double.NaN,Double.POSITIVE_INFINITY})
+            check(CriticalSolarPolicy.batchDenseSupercriticalLitres(stock,invalid,cryo,he).signum()==0
+                &&CriticalSolarPolicy.batchHotSaltLitres(stock,invalid,cryo,he).signum()==0,
+                "invalid dimension rejects new batch output:"+invalid);
+        BigInteger previous=BigInteger.ZERO;
+        for(BigInteger x:List.of(BigInteger.ZERO,BigInteger.ONE,b(100),stock,b(Long.MAX_VALUE).add(BigInteger.ONE),BigInteger.TEN.pow(1000))){
+            BigInteger volume=CriticalSolarPolicy.batchDenseSupercriticalLitres(x,.6D,cryo,he);
+            BigInteger hot=CriticalSolarPolicy.batchHotSaltLitres(x,.6D,cryo,he);
+            check(volume.compareTo(previous)>=0&&volume.mod(b(3)).signum()==0
+                &&volume.compareTo(b(16200000000L))<0&&hot.compareTo(b(54000000000L))<0,
+                "bulk curve remains monotone, quantised and exact for zero, tiny and beyond-long inventory");
+            previous=volume;
+        }
+        check(CriticalSolarPolicy.batchDenseSupercriticalLitres(stock,.123456789D,cryo,he).equals(b(1666666650L))
+            &&CriticalSolarPolicy.batchHotSaltLitres(stock,.123456789D,cryo,he).equals(b(5555555505L)),
+            "odd dimension uses exact decimal factors without rounding rated power first");
+        var tachyon=CriticalSolarPolicy.COOLANTS.get(2);var spatial=CriticalSolarPolicy.EXCITERS.get(5);
+        check(CriticalSolarPolicy.batchDenseSupercriticalLitres(stock,8D,tachyon,spatial)
+                .compareTo(CriticalSolarPolicy.batchDenseSupercriticalLitres(stock,7D,tachyon,spatial))>0
+            &&CriticalSolarPolicy.batchHotSaltLitres(BigInteger.TEN.pow(1000),Double.MAX_VALUE,tachyon,spatial)
+                .compareTo(b(Long.MAX_VALUE))>0,
+            "new production has no former global heat cap or long storage cap");
     }
     static void pureMath() {
         var cryo=CriticalSolarPolicy.COOLANTS.get(1); var he=CriticalSolarPolicy.EXCITERS.get(1);
@@ -360,7 +430,7 @@ class CriticalEnergyPolicyRuntime {
                 }
             }
         }
-        // Player-facing direct DSC and salt formulae use only this combination's K, never a global cap.
+        // Retain the public policy6 arithmetic API for callers holding legacy quotes.
         for(double dimension:new double[]{.123456789D,.6D,1D,2D,7D,100D,1e100D,Double.MAX_VALUE}) {
             BigInteger design=CriticalSolarPolicy.batchBudgetEU(dimension,tachyon,spatial,false);
             BigInteger nativePower=CriticalSolarPolicy.ratedWaterHeatEUPerTick(dimension,tachyon,spatial);
