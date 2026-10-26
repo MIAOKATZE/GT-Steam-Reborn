@@ -23,7 +23,7 @@ import gregtech.api.util.GTOreDictUnificator;
 /** Immutable full-job price basis. Equipment is installed at one deterministic carrier per macro unit. */
 public final class CriticalConstructionEconomy {
 
-    public static final int VERSION = 8;
+    public static final int VERSION = 9;
     public static final int MAX_WORK_STEPS = 256;
     private static final int LEGACY_MAX_WORK_STEPS = 4096;
     private final int version;
@@ -229,14 +229,17 @@ public final class CriticalConstructionEconomy {
     /** Three actual payment/work rows per macro stage. No display-only truncation or hidden continuation. */
     public ItemStack[] itemsForDisplayRow(int group, int row, List<CriticalGeometry.Voxel> paid) {
         checkDisplayRow(group, row);
-        if (group == 0) return row == 0 ? CriticalFoundationMaterials.items(true) : new ItemStack[0];
+        if (group == 0)
+            return row == 0 ? CriticalFoundationMaterials.items(CriticalFoundationChunk.VERSION) : new ItemStack[0];
         List<CriticalGeometry.Voxel> selected = displayRow(group, row, paid);
         return costs(selected, 0, selected.size());
     }
 
     public FluidStack[] fluidsForDisplayRow(int group, int row, List<CriticalGeometry.Voxel> paid) {
         checkDisplayRow(group, row);
-        if (group == 0) return row == 0 ? new FluidStack[] { CriticalFoundationMaterials.fluid(1_000_000) }
+        if (group == 0) return row == 0
+            ? new FluidStack[] { CriticalFoundationMaterials
+                .fluid(CriticalFoundationMaterials.concreteAmount(CriticalFoundationChunk.VERSION)) }
             : row == 1 ? new FluidStack[] { gregtech.api.util.GTModHandler.getSuperHeatedSteam(1_800_000_000) }
                 : new FluidStack[0];
         List<CriticalGeometry.Voxel> selected = displayRow(group, row, paid);
@@ -307,19 +310,30 @@ public final class CriticalConstructionEconomy {
         // Each new job freezes a local machine-specific commissioning recipe at every position.
         for (CriticalGeometry.Voxel voxel : paid)
             next.positionFluids.put(voxel.positionKey(), commissioningMedia(kind, next.stage(voxel)));
+        int[][] workSteps = new int[2][3];
         for (int group = 1; group <= 2; group++) for (int row = 0; row < 3; row++) {
             List<CriticalGeometry.Voxel> positions = next.displayRow(group, row, paid);
             ItemStack[] items = next.costs(positions, 0, positions.size());
             FluidStack[] fluids = next.fluidCosts(positions, 0, positions.size());
-            // Preserve every v7 rounded local allocation before combining its repeated work units.
+            // Freeze exactly the previous material/fluid totals before reallocating complete components.
             int legacySteps = boundedStepCount(items, group, row);
             next.padLocalBills(positions, items, fluids, legacySteps);
-            int steps = Math.min(legacySteps, MAX_WORK_STEPS);
-            // A full six-identity row keeps its original bill; the other rows consume small work-step doses.
-            if (items.length < 6)
-                next.installSingularities(positions, Math.multiplyExact(steps, singularitiesPerStep(kind, group, row)));
-            items = next.costs(positions, 0, positions.size());
-            fluids = next.fluidCosts(positions, 0, positions.size());
+            workSteps[group - 1][row] = Math.min(legacySteps, MAX_WORK_STEPS);
+        }
+        // Put pipework beside mechanical supports, shaft reinforcement beside the working assembly,
+        // and carbon electrodes beside the working stack. Move the complete rounded local bill.
+        switch (kind) {
+            case SOLAR -> next.transferEquipment(ore(OrePrefixes.pipeMedium, Materials.Neutronium, 1), 8, 7);
+            case TURBINE -> next.transferEquipment(ore(OrePrefixes.stickLong, Materials.Neutronium, 1), 7, 8);
+            case BATTERY -> next.transferEquipment(CriticalShellCatalog.carbon(1), 7, 8);
+            default -> {}
+        }
+        for (int group = 1; group <= 2; group++) for (int row = 0; row < 3; row++) {
+            List<CriticalGeometry.Voxel> positions = next.displayRow(group, row, paid);
+            int steps = workSteps[group - 1][row];
+            next.installSingularities(positions, Math.multiplyExact(steps, singularitiesPerStep(kind, group, row)));
+            ItemStack[] items = orderCommissioningItems(next.costs(positions, 0, positions.size()), kind, group, row);
+            FluidStack[] fluids = next.fluidCosts(positions, 0, positions.size());
             next.stepProfiles
                 .put((group == 1 ? 4 : 7) + row, new DisplayRow(steps, divide(items, steps), divide(fluids, steps)));
         }
@@ -331,14 +345,78 @@ public final class CriticalConstructionEconomy {
         return next;
     }
 
+    /** The doses follow each machine's load paths, heat transfer and active working assemblies. */
     private static int singularitiesPerStep(CriticalMachineKind kind, int group, int row) {
-        return switch (kind) {
-            case SOLAR -> group == 1 ? 3 : row == 2 ? 1 : 2;
-            case TURBINE -> group == 1 ? row == 1 ? 2 : 1 : row == 2 ? 1 : 2;
-            case BATTERY -> 1;
-            case SUN -> group == 1 ? 3 : row < 2 ? 1 : 0;
+        int[] doses = switch (kind) {
+            case SOLAR -> new int[] { 1, 0, 4, 0, 9, 3 };
+            case TURBINE -> new int[] { 0, 2, 1, 12, 0, 2 };
+            case BATTERY -> new int[] { 1, 0, 1, 0, 7, 5 };
+            case SUN -> new int[] { 0, 2, 3, 5, 8, 0 };
             default -> throw new IllegalArgumentException("Unsupported construction singularities " + kind);
         };
+        return doses[(group - 1) * 3 + row];
+    }
+
+    /** Preserve all equipment and its rounded additions; no finished parts disappear to free a slot. */
+    private void transferEquipment(ItemStack identity, int sourceStage, int targetStage) {
+        Long target = null;
+        for (Map.Entry<Long, ItemStack[]> entry : carriers.entrySet())
+            if (workStages.get(entry.getKey()) == targetStage) {
+                target = entry.getKey();
+                break;
+            }
+        if (target == null) throw new IllegalStateException("Missing equipment receiving stage");
+        List<ItemStack> received = new ArrayList<>();
+        for (ItemStack item : carriers.get(target)) merge(received, item);
+        List<ItemStack> receivedExtra = new ArrayList<>();
+        ItemStack[] targetExtra = positionExtraItems.get(target);
+        if (targetExtra != null) for (ItemStack item : targetExtra) merge(receivedExtra, item);
+        for (Long position : new ArrayList<>(carriers.keySet())) {
+            if (workStages.get(position) != sourceStage) continue;
+            List<ItemStack> remaining = new ArrayList<>();
+            boolean moved = false;
+            for (ItemStack item : carriers.get(position)) {
+                if (same(item, identity)) {
+                    merge(received, item);
+                    moved = true;
+                } else merge(remaining, item);
+            }
+            if (!moved) continue;
+            if (remaining.isEmpty()) carriers.remove(position);
+            else carriers.put(position, remaining.toArray(new ItemStack[0]));
+            List<ItemStack> extra = new ArrayList<>();
+            ItemStack[] prior = positionExtraItems.get(position);
+            if (prior != null) for (ItemStack item : prior) {
+                if (same(item, identity)) merge(receivedExtra, item);
+                else merge(extra, item);
+            }
+            if (extra.isEmpty()) positionExtraItems.remove(position);
+            else positionExtraItems.put(position, extra.toArray(new ItemStack[0]));
+        }
+        carriers.put(target, received.toArray(new ItemStack[0]));
+        if (!receivedExtra.isEmpty()) positionExtraItems.put(target, receivedExtra.toArray(new ItemStack[0]));
+    }
+
+    /** Keep the process anchor beside its related parts rather than appending one identical trailing slot. */
+    private static ItemStack[] orderCommissioningItems(ItemStack[] items, CriticalMachineKind kind, int group,
+        int row) {
+        List<ItemStack> ordered = new ArrayList<>();
+        ItemStack singularity = null;
+        for (ItemStack item : items) {
+            if (same(item, GTSRItemList.CriticalSteamEntangledSingularity.get(1))) singularity = item;
+            else ordered.add(item);
+        }
+        if (singularity != null) {
+            int anchor = switch (kind) {
+                case SOLAR -> group == 1 ? row == 0 ? 0 : 2 : row == 1 ? 3 : 1;
+                case TURBINE -> group == 1 ? 1 : row == 0 ? 2 : row == 1 ? 0 : 4;
+                case BATTERY -> group == 1 ? row == 0 ? 1 : 3 : row == 1 ? 2 : 0;
+                case SUN -> group == 1 ? row == 1 ? 0 : 3 : row == 0 ? 1 : 4;
+                default -> throw new IllegalArgumentException("Unsupported commissioning order");
+            };
+            ordered.add(Math.min(anchor, ordered.size()), singularity);
+        }
+        return ordered.toArray(new ItemStack[0]);
     }
 
     /** Spread each row's exact price across its real positions so a local repair replaces only its local share. */

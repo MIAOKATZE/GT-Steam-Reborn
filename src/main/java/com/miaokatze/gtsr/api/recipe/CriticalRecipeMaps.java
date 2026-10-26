@@ -12,7 +12,6 @@ import net.minecraftforge.fluids.FluidStack;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.critical.CompoundRecipe;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
-import com.miaokatze.gtsr.common.critical.CriticalSolarPolicy;
 
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMapBackend;
@@ -22,7 +21,6 @@ import gregtech.api.util.GTRecipe;
 /** Read-only NEI catalogues. Every entry is fake; custom runtimes never execute these maps. */
 public final class CriticalRecipeMaps {
 
-    public static final int SOLAR_MEDIUM_REFERENCE_AMPS = CriticalSolarPolicy.REFERENCE_AMPS_MAX;
     public static final int CONSTRUCTION_PAGE_SIZE = 18;
     private static final EnumMap<CriticalMachineKind, RecipeMap<RecipeMapBackend>> MAPS = new EnumMap<>(
         CriticalMachineKind.class);
@@ -34,7 +32,7 @@ public final class CriticalRecipeMaps {
         .frontend((ui, nei) -> new CriticalRecipeFrontend(ui, nei, true))
         .build();
     public static final RecipeMap<RecipeMapBackend> stellarIrradiation = displayBuilder(
-        "gtsr.recipe.stellar_irradiation").maxIO(3, 1, 3, 1)
+        "gtsr.recipe.stellar_irradiation").maxIO(1, 1, 0, 0)
             .frontend(CriticalRecipeFrontend::new)
             .build();
 
@@ -48,13 +46,6 @@ public final class CriticalRecipeMaps {
     }
 
     private CriticalRecipeMaps() {}
-
-    /** One explicitly labelled, common 20-second output reference for all medium examples. */
-    public static BigInteger solarMediumReferenceEU() {
-        return BigInteger.valueOf(SOLAR_MEDIUM_REFERENCE_AMPS)
-            .multiply(BigInteger.valueOf(CriticalSolarPolicy.MAX_VOLTAGE))
-            .multiply(BigInteger.valueOf(com.miaokatze.gtsr.common.critical.CriticalEnergyMath.CYCLE_TICKS));
-    }
 
     /** The loom indexes construction, while frozen controllers still have no processing catalogue. */
     public static RecipeMap<RecipeMapBackend> forKind(CriticalMachineKind kind) {
@@ -95,21 +86,6 @@ public final class CriticalRecipeMaps {
             1);
         info.nativeEut = nativeEut;
         info.nativeTicks = nativeTicks;
-        register(map, recipe, info);
-    }
-
-    /** The same immutable entry drives the paid runtime medium and its NEI example. */
-    public static void addSolarMedium(GTRecipe recipe, CriticalSolarPolicy.Entry entry, boolean coolant) {
-        RecipeMap<RecipeMapBackend> map = forKind(CriticalMachineKind.SOLAR);
-        DisplayInfo info = new DisplayInfo(
-            map,
-            CriticalMachineKind.SOLAR,
-            coolant ? "solar_coolant" : "solar_exciter",
-            BigInteger.ZERO,
-            -1,
-            0,
-            1);
-        info.solarMedium = entry;
         register(map, recipe, info);
     }
 
@@ -199,8 +175,7 @@ public final class CriticalRecipeMaps {
             .maxIO(
                 kind == CriticalMachineKind.BATTERY ? 1 : 0,
                 0,
-                kind == CriticalMachineKind.BATTERY ? 9
-                    : kind == CriticalMachineKind.SUN ? 3 : kind == CriticalMachineKind.SOLAR ? 3 : 1,
+                kind == CriticalMachineKind.BATTERY ? 9 : kind == CriticalMachineKind.SUN ? 3 : 1,
                 kind == CriticalMachineKind.BATTERY ? 0 : 1)
             .frontend((ui, nei) -> new CriticalRecipeFrontend(ui, nei, false, kind == CriticalMachineKind.BATTERY))
             .build();
@@ -228,7 +203,6 @@ public final class CriticalRecipeMaps {
         public BigInteger inputHeat = BigInteger.ZERO;
         public long nativeEut;
         public int nativeTicks;
-        public CriticalSolarPolicy.Entry solarMedium;
 
         private DisplayInfo(RecipeMap<?> recipeMap, CriticalMachineKind kind, String operation, BigInteger baseEu,
             int spectrum, int page, int pages) {

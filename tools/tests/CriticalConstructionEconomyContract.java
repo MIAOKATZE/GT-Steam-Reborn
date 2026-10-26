@@ -100,8 +100,8 @@ public final class CriticalConstructionEconomyContract {
         CriticalConstructionEconomy current = currentManifest(carrier);
         List<CriticalGeometry.Voxel> positions = Arrays.asList(
             voxel(21, 1, false), voxel(22, 2, false), voxel(23, 3, false), voxel(24, 4, false), carrier, main);
-        check(CriticalConstructionEconomy.VERSION == 8 && current.version() == 4,
-            "Only newly frozen jobs use economy version 8; saved version 4 keeps its price basis");
+        check(CriticalConstructionEconomy.VERSION == 9 && current.version() == 4,
+            "Only newly frozen jobs use economy version 9; saved version 4 keeps its price basis");
         check(fluidCount(current.fluidCosts(positions, 0, 1), SOLDER) == 7
             && fluidCount(current.fluidCosts(positions, 1, 2), SOLDER) == 13
             && fluidCount(current.fluidCosts(positions, 2, 3), COOLANT) == 17
@@ -233,9 +233,9 @@ public final class CriticalConstructionEconomyContract {
         int[] extraShells = { 1526, 2920, 2149, 1097 };
         int[][] expectedSteps = { { 1024, 128, 64, 32, 32, 1 }, { 2048, 128, 512, 32, 32, 1 },
             { 1024, 256, 256, 32, 32, 1 }, { 512, 128, 256, 32, 32, 1 } };
-        int[] expectedSingularities = { 1409, 833, 801, 1984 };
-        int[][] perStepSingularities = { { 3, 3, 3, 2, 0, 1 }, { 1, 2, 1, 0, 2, 1 },
-            { 1, 1, 1, 0, 1, 1 }, { 3, 3, 3, 1, 1, 0 } };
+        int[] expectedSingularities = { 803, 898, 741, 1440 };
+        int[][] perStepSingularities = { { 1, 0, 4, 0, 9, 3 }, { 0, 2, 1, 12, 0, 2 },
+            { 1, 0, 1, 0, 7, 5 }, { 0, 2, 3, 5, 8, 0 } };
         int[][] expectedStages = { { 6730, 8950, 9198, 43118 }, { 6730, 8950, 9198, 93654 },
             { 6730, 8950, 9198, 77749 }, { 6730, 8950, 9198, 34325 } };
         for (int k = 0; k < kinds.length; k++) {
@@ -263,13 +263,14 @@ public final class CriticalConstructionEconomyContract {
             for (int quantity : quantities.values()) surplus += (quantity + 15) / 16 * 16 - quantity;
             check(surplus == expectedSurplus[k], "Full-job per-identity manufacturing rounds once and leaves the original-table surplus");
             CriticalConstructionEconomy frozen = CriticalConstructionEconomy.freeze(config, paid, layout.cacheKey());
-            check(frozen.version() == 8 && count(frozen.demand(), CONTROLLER) == 1, "New full job freezes v8 and one complete controller " + kinds[k]);
+            check(frozen.version() == 9 && count(frozen.demand(), CONTROLLER) == 1, "New full job freezes v9 and one complete controller " + kinds[k]);
             check(count(frozen.demand(), SINGULARITY) == expectedSingularities[k], "New construction adds the complete machine-specific singularity price " + kinds[k]);
             long shellsPaid = 0;
             for (ItemStack item : frozen.demand()) if (item.getItem() != CONTROLLER && item.getItem() != EQUIPMENT && item.getItem() != SINGULARITY) shellsPaid += item.stackSize;
             check(shellsPaid == expectedShells[k] + extraShells[k], "Rounded family parts include every local real shell allocation " + kinds[k]);
             List<ItemStack> displayed = new ArrayList<>(); List<FluidStack> displayedFluids = new ArrayList<>();
             int[] rowPositions = new int[6];
+            java.util.Set<Integer> singularitySlots = new java.util.HashSet<>();
             for (CriticalGeometry.Voxel voxel : paid) rowPositions[frozen.stage(voxel) - 4]++;
             for (int group = 1; group <= 2; group++) for (int row = 0; row < 3; row++) {
                 CriticalConstructionEconomy.DisplayRow profile = frozen.displayRowProfile(group, row, paid);
@@ -278,7 +279,10 @@ public final class CriticalConstructionEconomyContract {
                     "Real repeated work count and one merged sensing/wiring step " + kinds[k] + "/" + group + "/" + row);
                 System.out.println("STEPS " + kinds[k] + "/" + group + "/" + row + "=" + profile.steps);
                 int itemCount = 0;
-                for (ItemStack item : profile.perStepItems()) {
+                ItemStack[] ordered = profile.perStepItems();
+                for (int slot = 0; slot < ordered.length; slot++)
+                    if (ordered[slot].getItem() == SINGULARITY) singularitySlots.add(slot);
+                for (ItemStack item : ordered) {
                     itemCount += item.stackSize;
                     check(item.stackSize > 0, "Every merged work-step identity retains its full positive quantity");
                     System.out.println("ITEM " + kinds[k] + "/" + group + "/" + row + " "
@@ -322,6 +326,7 @@ public final class CriticalConstructionEconomyContract {
                     if (!merged) displayedFluids.add(fluid.copy());
                 }
             }
+            check(singularitySlots.size() >= 3, "Machine-specific process anchors occupy at least three distinct slots " + kinds[k]);
             check(sameBill(displayed.toArray(new ItemStack[0]), frozen.demand()), "Six visible rows exactly equal full-job item debits " + kinds[k]);
             boolean fluidsEqual = true;
             for (FluidStack fluid : frozen.fluidCosts(paid, 0, paid.size()))
@@ -353,6 +358,7 @@ public final class CriticalConstructionEconomyContract {
             check(rowsEqual && sameBill(restored.demand(), frozen.demand()), "Frozen price and every position's stage survive NBT " + kinds[k]);
             singularityDistribution(frozen, paid, kinds[k]);
             mergedPayments(frozen, paid);
+            frozenEightPayments(frozen, paid);
             CriticalConstructionEconomy legacy = legacySevenPayments(frozen, paid, expectedSteps[k]);
             concentratedEightPayments(legacy, paid, kinds[k]);
             singularityRecovery(frozen, paid, expectedSingularities[k]);
@@ -438,6 +444,24 @@ public final class CriticalConstructionEconomyContract {
         return legacy;
     }
 
+    /** Previously frozen distributed prices and paid per-step snapshots are read without repricing. */
+    private static void frozenEightPayments(CriticalConstructionEconomy frozen, List<CriticalGeometry.Voxel> paid) {
+        NBTTagCompound n = new NBTTagCompound(); frozen.write(n); n.setInteger("version", 8);
+        CriticalConstructionEconomy prior = CriticalConstructionEconomy.read(n);
+        NBTTagCompound copy = new NBTTagCompound(); prior.write(copy);
+        check(copy.equals(n), "Frozen schema8 complete manifest remains unchanged under schema9 reader");
+        List<CriticalGeometry.Voxel> positions = new ArrayList<>();
+        for (CriticalGeometry.Voxel voxel : paid) if (prior.stage(voxel) == 4) positions.add(voxel);
+        CriticalConstructionLedger ledger = new CriticalConstructionLedger(); ledger.freezeJob(prior); ledger.snapshotPhysicalStage(positions);
+        CriticalConstructionLedger.Round round = ledger.planPhysicalRound(400, positions);
+        ledger.recordRoundPayment(round.items(), round.fluids()); ledger.advanceElapsed(round.next);
+        NBTTagCompound saved = save(ledger); ledger = reload(ledger);
+        check(!ledger.hasIntegrityError() && save(ledger).equals(saved)
+            && ledger.planPhysicalRound(400, positions).items().length == 0
+            && save(ledger).getCompoundTag("constructionPhysicalJob").equals(n),
+            "Schema8 paid item/fluid checkpoint and manifest remain unchanged with no second debit");
+    }
+
     /** Prior schema8 prototypes concentrated the complete price on one carrier; paid jobs keep that frozen basis. */
     private static void concentratedEightPayments(CriticalConstructionEconomy legacy, List<CriticalGeometry.Voxel> paid,
         CriticalMachineKind kind) {
@@ -502,7 +526,9 @@ public final class CriticalConstructionEconomyContract {
     private static void singularityRecovery(CriticalConstructionEconomy frozen, List<CriticalGeometry.Voxel> paid, int machineCount) {
         List<CriticalGeometry.Voxel> local = new ArrayList<>();
         CriticalGeometry.Voxel panel = null;
-        int count = 0, stage = 4;
+        int count = 0, stage = 9;
+        for (CriticalGeometry.Voxel voxel : paid)
+            if (count(frozen.bill(voxel), SINGULARITY) > 0) stage = Math.min(stage, frozen.stage(voxel));
         for (CriticalGeometry.Voxel voxel : paid) {
             int share = Math.toIntExact(count(frozen.bill(voxel), SINGULARITY));
             if (share == 0) panel = voxel;

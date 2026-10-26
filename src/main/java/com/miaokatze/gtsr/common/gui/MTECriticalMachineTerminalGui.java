@@ -179,17 +179,10 @@ public final class MTECriticalMachineTerminalGui {
             .size(463, 32)
             .background(CriticalGuiStyle.CARD);
         header.child(
-            textViewport("critical_terminal_title", this::terminalTitle, 389, 12, () -> CriticalGuiStyle.TEXT_TITLE)
+            textViewport("critical_terminal_title", this::terminalTitle, 447, 12, () -> CriticalGuiStyle.TEXT_TITLE)
                 .pos(8, 4)
                 .tooltipBuilder(t -> t.add(terminalTitle()))
                 .tooltipAutoUpdate(true));
-        header.child(
-            IKey.dynamic(() -> configuration().tier.name())
-                .color(CriticalGuiStyle.TEXT_ACCENT)
-                .asWidget()
-                .background(CriticalGuiStyle.CHIP)
-                .pos(405, 3)
-                .size(50, 14));
         header.child(
             IKey.dynamic(
                 () -> tr(

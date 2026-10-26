@@ -84,25 +84,9 @@ public final class CriticalNEIShowcase {
         label(text(operation + ".title"), 8, 6, GOLD);
         label(text("intro." + operation), 8, 21, MUTED);
         boolean chemical = operation.equals("chemical_compound");
-        boolean medium = info.solarMedium != null;
-        if (!chemical && !medium) label(text("output"), OUTPUT_X, 32, MUTED);
+        if (!chemical) label(text("output"), OUTPUT_X, 32, MUTED);
         label(text(chemical ? "chemical.inputs" : "input"), INPUT_X, chemical ? 30 : 32, MUTED);
-        if (medium) {
-            solarMedium(info, new Plot(flow(info, true)));
-            rows(
-                text(operation.equals("solar_coolant") ? "solar.medium.required" : "solar.medium.activation"),
-                CriticalRecipeMaps.formatted("simple.solar.medium.factor", info.solarMedium.multiplier),
-                CriticalRecipeMaps.formatted(
-                    "simple.solar.medium.reference",
-                    maxAmps(CriticalRecipeMaps.SOLAR_MEDIUM_REFERENCE_AMPS)),
-                CriticalRecipeMaps.formatted(
-                    "simple.solar.medium.flow",
-                    number(
-                        java.math.BigDecimal.valueOf(recipe.mFluidInputs[0].amount)
-                            .divide(java.math.BigDecimal.valueOf(CriticalEnergyMath.CYCLE_TICKS / 20)))),
-                text("solar.medium.load"),
-                text("solar.medium.salt"));
-        } else if (chemical) {
+        if (chemical) {
             chemical(info, new Plot(flow(info, true)));
             chemicalRows(
                 CriticalRecipeMaps.formatted("simple.chemical.efficiency", info.compound.peakMultiplier),
@@ -157,7 +141,6 @@ public final class CriticalNEIShowcase {
             rows(
                 text("irradiation.cycle"),
                 text("irradiation.parallel"),
-                text("irradiation.shared"),
                 text("irradiation.no_energy"),
                 text("irradiation.output"));
         } else {
@@ -170,8 +153,7 @@ public final class CriticalNEIShowcase {
                         operation.equals("solar_salt") ? CriticalSolarPolicy.MAX_SALT_AMPS_MAX
                             : CriticalSolarPolicy.MAX_WATER_AMPS_MAX)),
                 CriticalRecipeMaps.formatted("simple.solar.sample", number(new java.math.BigDecimal(info.baseEu))),
-                text(operation.equals("solar_salt") ? "solar.salt" : "solar.water"),
-                text("solar.stock"));
+                text(operation.equals("solar_salt") ? "solar.salt" : "solar.water"));
         }
     }
 
@@ -197,7 +179,8 @@ public final class CriticalNEIShowcase {
             int time = ticks / (info.constructionStage() == 0 && row == 1 ? 20 * 60
                 : info.constructionStage() == 0 && row == 2 ? 20 * 60 * 60 : 20);
             String unit = info.constructionStage() == 0 && row == 1 ? "minutes"
-                : info.constructionStage() == 0 && row == 2 ? "hours" : "step";
+                : info.constructionStage() == 0 && row == 2 ? "hours"
+                    : info.constructionStage() == 0 && row == 0 ? "cell" : "step";
             String duration = info.constructionStage() == 0
                 ? CriticalRecipeMaps.formatted("simple.build.time." + unit, time)
                 : CriticalRecipeMaps.formatted("simple.build.time.steps", time, info.constructionSteps(row));
@@ -238,20 +221,6 @@ public final class CriticalNEIShowcase {
         p.line(31, activeY, 31, 0, color);
         p.input(color);
         p.output(color);
-    }
-
-    private static void solarMedium(DisplayInfo info, Plot p) {
-        boolean coolant = info.operation.equals("solar_coolant");
-        int color = coolant ? WATER : PLASMA;
-        p.input(color);
-        p.line(-31, 0, -14, 0, color);
-        p.ring(0, 0, 13, color);
-        for (int i = 0; i < 3; i++) {
-            int y = -7 + i * 7;
-            p.line(-8, y, 8, y, color);
-            int x = -8 + (phase(16) + i * 4) % 16;
-            p.rect(x, y - 1, x + 2, y + 2, GOLD);
-        }
     }
 
     /** A ratchet rotor drives the power shaft; the lower pipe closes the condensate loop. */

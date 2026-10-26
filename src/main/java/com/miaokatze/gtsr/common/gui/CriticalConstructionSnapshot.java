@@ -122,7 +122,7 @@ final class CriticalConstructionSnapshot {
 
     /** v6 pays one whole chunk; its sixteen map cells only subdivide that same paid work. */
     int displayCellTicks() {
-        return foundationScheduleVersion() >= 6
+        return foundationScheduleVersion() == 6
             ? (int) ((long) Math.max(0, cellTicks()) * 16 % Math.max(1, cellDuration()))
             : cellTicks();
     }

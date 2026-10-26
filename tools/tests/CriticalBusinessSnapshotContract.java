@@ -42,6 +42,21 @@ public final class CriticalBusinessSnapshotContract {
         map[24] = 456;
         map[25] = 7;
         CriticalConstructionSnapshot construction = mapConstructor.newInstance((Object) map);
+        int[] newCell = map.clone();
+        newCell[0] = 1; newCell[1] = 1; newCell[2] = 16;
+        newCell[3] = 10; newCell[4] = 40; newCell[12] = 1; newCell[15] = 1;
+        newCell[22] = 7; newCell[25] = 1;
+        CriticalConstructionSnapshot newCellSample = mapConstructor.newInstance((Object) newCell);
+        check(newCellSample.displayCellTicks() == 10 && newCellSample.cellDuration() == 40,
+            "Version7 displays the current real cell work without old whole-chunk subdivision");
+        check(Math.abs(newCellSample.progress() - 1.25D / 16) < 1e-12,
+            "Version7 total progress includes one completed cell and ten of forty current work");
+        PacketBuffer newCellPacket = new PacketBuffer(Unpooled.buffer());
+        newCellSample.write(newCellPacket);
+        CriticalConstructionSnapshot newCellDecoded = CriticalConstructionSnapshot.read(newCellPacket);
+        check(newCellDecoded.same(newCellSample) && newCellDecoded.foundationScheduleVersion() == 7
+            && newCellDecoded.displayCellTicks() == 10 && newCellPacket.readableBytes() == 0,
+            "New cell clocks and completed-cell map survive one bounded S2C packet");
         String exact = "12345678901234567890123456789012345678901234567890";
         String[] text = { "blocked", "next item", "next fluid", "missing item", "missing fluid", "physical",
             "output", exact, exact, exact, "visible unpaid" };

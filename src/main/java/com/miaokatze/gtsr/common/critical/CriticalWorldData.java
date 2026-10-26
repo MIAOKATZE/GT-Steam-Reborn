@@ -275,8 +275,7 @@ public final class CriticalWorldData extends WorldSavedData {
             NBTTagCompound entry = foundationList.getCompoundTagAt(i);
             CriticalFoundationChunk foundation = foundation(entry.getInteger("x"), entry.getInteger("z"));
             foundation.read(entry);
-            if (entry.getInteger("foundationVersion") == 5
-                && foundation.scheduleVersion() == CriticalFoundationChunk.VERSION) markDirty();
+            if (entry.getInteger("foundationVersion") != foundation.scheduleVersion()) markDirty();
         }
         nightOwner = n.getString("nightOwner");
         localClock = n.getBoolean("localClock");

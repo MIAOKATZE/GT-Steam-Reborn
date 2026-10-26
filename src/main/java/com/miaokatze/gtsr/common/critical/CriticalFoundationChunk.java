@@ -5,8 +5,8 @@ import net.minecraft.nbt.NBTTagCompound;
 /** Shared, dimension-local foundation work. Cells fill in row-major X/Z order. */
 public final class CriticalFoundationChunk {
 
-    public static final int VERSION = 6;
-    public static final int CELLS = 16, CELL_DURATION = 400, CURING_DURATION = 86_400 * 20;
+    public static final int VERSION = 7;
+    public static final int CELLS = 16, CELL_DURATION = 40, LEGACY_CELL_DURATION = 400, CURING_DURATION = 86_400 * 20;
     public static final int LEGACY_CURING_DURATION = 72_000 * 20, HEATING_DURATION = 1_800 * 20;
     public static final int HEATING_STEAM_PER_TICK = 50_000;
     private int completedCells, cellProgress, curingRemaining = CURING_DURATION;
@@ -16,7 +16,7 @@ public final class CriticalFoundationChunk {
     private long lastWorkedTick = Long.MIN_VALUE;
 
     public int completedCells() {
-        return scheduleVersion >= VERSION && !poured() ? cellProgress * CELLS / CELL_DURATION : completedCells;
+        return scheduleVersion == 6 && !poured() ? cellProgress * CELLS / LEGACY_CELL_DURATION : completedCells;
     }
 
     public int scheduleVersion() {
@@ -25,6 +25,11 @@ public final class CriticalFoundationChunk {
 
     public int cellProgress() {
         return cellProgress;
+    }
+
+    /** Already-paid whole chunks and historical cells retain their original work clock. */
+    public int cellDuration() {
+        return scheduleVersion >= VERSION ? CELL_DURATION : LEGACY_CELL_DURATION;
     }
 
     public int curingRemaining() {
@@ -109,17 +114,17 @@ public final class CriticalFoundationChunk {
     public static int overclockWork(long baselineVoltage, long suppliedVoltage) {
         if (baselineVoltage <= 0 || suppliedVoltage < baselineVoltage) return 0;
         int work = 1;
-        for (long voltage = baselineVoltage; work < CELL_DURATION && voltage <= suppliedVoltage / 4; voltage *= 4)
-            work *= 4;
+        for (long voltage = baselineVoltage; work < LEGACY_CELL_DURATION
+            && voltage <= suppliedVoltage / 4; voltage *= 4) work *= 4;
         return work;
     }
 
     public void pour(int work, long tick) {
         if (!funded || poured() || workedAt(tick) || fundingUncertain) return;
         lastWorkedTick = tick;
-        cellProgress = Math.min(CELL_DURATION, cellProgress + Math.max(0, work));
-        if (cellProgress == CELL_DURATION) {
-            completedCells = scheduleVersion >= VERSION ? CELLS : completedCells + 1;
+        cellProgress = Math.min(cellDuration(), cellProgress + Math.max(0, work));
+        if (cellProgress == cellDuration()) {
+            completedCells = scheduleVersion == 6 ? CELLS : completedCells + 1;
             cellProgress = 0;
             funded = false;
         }
@@ -159,9 +164,9 @@ public final class CriticalFoundationChunk {
 
     public void read(NBTTagCompound n) {
         scheduleVersion = n.hasKey("foundationVersion") ? n.getInteger("foundationVersion") : 0;
-        modern = scheduleVersion == 5 || scheduleVersion == VERSION;
+        modern = scheduleVersion >= 5 && scheduleVersion <= VERSION;
         completedCells = Math.max(0, Math.min(CELLS, n.getInteger("cells")));
-        cellProgress = poured() ? 0 : Math.max(0, Math.min(CELL_DURATION - 1, n.getInteger("progress")));
+        cellProgress = poured() ? 0 : Math.max(0, Math.min(cellDuration() - 1, n.getInteger("progress")));
         funded = !poured() && n.getBoolean("funded");
         fundingUncertain = n.getBoolean("uncertain");
         curingRemaining = Math.max(0, Math.min(CURING_DURATION, n.getInteger("curing")));
@@ -174,7 +179,7 @@ public final class CriticalFoundationChunk {
             heatingPaidWork = 0;
         }
         if (n.hasKey("foundationVersion") && !modern) fundingUncertain = true;
-        if (scheduleVersion == VERSION && completedCells != 0 && completedCells != CELLS) fundingUncertain = true;
+        if (scheduleVersion == 6 && completedCells != 0 && completedCells != CELLS) fundingUncertain = true;
         if (modern
             && (!n.hasKey("heating") || n.getInteger("heating") < 0 || n.getInteger("heating") > HEATING_DURATION))
             fundingUncertain = true;
@@ -182,13 +187,17 @@ public final class CriticalFoundationChunk {
         // One historical paid cell already covers the new complete chunk bill and its 400 work.
         // Uncertain payments retain their original units and lock; no payer or refund is guessed.
         if (scheduleVersion == 5 && !fundingUncertain) {
-            scheduleVersion = VERSION;
+            scheduleVersion = 6;
             if (completedCells > 0) {
                 completedCells = CELLS;
                 cellProgress = 0;
                 funded = false;
             }
         }
+        // An untouched chunk has no old payment to preserve. Paid v6 work remains a whole-chunk
+        // receipt with its exact 400-work clock, including after another save/reload.
+        if (scheduleVersion == 6 && !fundingUncertain && !funded && completedCells == 0 && cellProgress == 0)
+            scheduleVersion = VERSION;
     }
 
     public void write(NBTTagCompound n) {

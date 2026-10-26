@@ -58,7 +58,7 @@ public class CriticalNEIFontContract {
                     throw new AssertionError("Missing localized selector tooltip: "+lang+" "+key);
                 checks++;
             }
-            for(int group:List.of(1,2))for(int row=0;row<3;row++)for(int steps:List.of(1,8,25,128,200,512,1024,2048,4096)) {
+            for(int group:List.of(1,2))for(int row=0;row<3;row++)for(int steps:List.of(1,8,25,64,128,200,256)) {
                 String titleKey="gtsr.critical.nei.simple.build.row."+group+"."+row+"=";
                 String title=locale.stream().filter(s->s.startsWith(titleKey)).findFirst().orElseThrow().substring(titleKey.length());
                 String format=locale.stream().filter(s->s.startsWith("gtsr.critical.nei.simple.build.time.steps="))
@@ -120,9 +120,6 @@ public class CriticalNEIFontContract {
                         com.miaokatze.gtsr.common.critical.CriticalEnergyMath.TURBINE_WARMUP_TICKS/20)
                     :key.endsWith("solar.rated")||key.endsWith("solar.salt_rated")?String.format(Locale.ROOT,format,"8,192A MAX")
                     :key.endsWith("solar.sample")?String.format(Locale.ROOT,format,"300,000")
-                    :key.endsWith("solar.medium.factor")?String.format(Locale.ROOT,format,"2.5")
-                    :key.endsWith("solar.medium.flow")?String.format(Locale.ROOT,format,"40,000")
-                    :key.endsWith("solar.medium.reference")?String.format(Locale.ROOT,format,"864A MAX")
                     :key.endsWith("ignition.helium")?String.format(Locale.ROOT,format,"50,000,000")
                     :key.endsWith("sustain.helium")?String.format(Locale.ROOT,format,"40,000")
                     :key.endsWith("stellar.voltage")?String.format(Locale.ROOT,format,"MAX")
@@ -135,7 +132,7 @@ public class CriticalNEIFontContract {
                     :key.endsWith("fusion.discount")?String.format(Locale.ROOT,format,"99.9")
                     :key.endsWith(".build.time.steps")?String.format(Locale.ROOT,format,20,4096)
                     :key.contains(".build.time.")?String.format(Locale.ROOT,format,
-                        key.endsWith(".minutes")?30:key.endsWith(".hours")?24:20)
+                        key.endsWith(".minutes")?30:key.endsWith(".hours")?24:key.endsWith(".cell")?2:20)
                     :key.endsWith("turbine.heat_per_l")?String.format(Locale.ROOT,format,"2,500")
                     :String.format(Locale.ROOT,format,"9999999999",3,999999);
 

@@ -84,35 +84,51 @@ public final class CriticalFoundationContract {
 
     private static void chunkSchedule() {
         CriticalFoundationChunk chunk = new CriticalFoundationChunk();
-        check(chunk.scheduleVersion() == 6 && CriticalFoundationChunk.CELLS == 16,
-            "New 16x16 chunk schedule retains sixteen 4x4 map cells");
-        chunk.setFunded(); chunk.pour(50, 1);
-        check(chunk.completedCells() == 2 && chunk.cellProgress() == 50 && chunk.funded(),
-            "One chunk payment covers continuous work across visual cell boundaries");
+        check(chunk.scheduleVersion() == 7 && CriticalFoundationChunk.CELLS == 16 && chunk.cellDuration() == 40,
+            "New chunks contain sixteen independently paid 4x4 cells at forty baseline ticks each");
+        chunk.setFunded(); chunk.pour(17, 1);
+        check(chunk.completedCells() == 0 && chunk.cellProgress() == 17 && chunk.funded(),
+            "A partial new cell retains its own paid material receipt");
         NBTTagCompound saved = new NBTTagCompound(); chunk.write(saved);
-        check(saved.getInteger("cells") == 0 && saved.getInteger("foundationVersion") == 6,
-            "Version6 stores an unfinished chunk, not historical paid-cell units");
+        check(saved.getInteger("cells") == 0 && saved.getInteger("foundationVersion") == 7,
+            "Version7 stores finished cells separately from current cell progress");
         CriticalFoundationChunk restored = new CriticalFoundationChunk(); restored.read(saved);
         NBTTagCompound copy = new NBTTagCompound(); restored.write(copy);
-        check(copy.equals(saved) && restored.funded() && restored.completedCells() == 2,
-            "New paid partial-chunk work survives NBT without another material debit");
-        restored.pour(350, 2);
-        check(restored.poured() && restored.completedCells() == 16 && !restored.funded()
-            && restored.heatingRemaining() == 36_000 && restored.curingRemaining() == 1_728_000,
-            "Exactly 400 baseline work finishes the complete chunk and retains both curing phases");
+        check(copy.equals(saved) && restored.funded() && restored.cellProgress() == 17,
+            "Paid partial-cell work survives NBT without another material debit");
+        restored.pour(23, 2);
+        check(restored.completedCells() == 1 && !restored.funded() && restored.cellProgress() == 0,
+            "Exactly forty baseline work finishes one cell and requests its next payment");
+        restored.pour(40, 3);
+        check(restored.completedCells() == 1, "Unpaid next cells cannot advance");
+        for (int cell = 1; cell < 16; cell++) { restored.setFunded(); restored.pour(40, cell + 3); }
+        check(restored.poured() && restored.heatingRemaining() == 36_000 && restored.curingRemaining() == 1_728_000,
+            "All sixteen new cells retain both original curing phases");
         for (int work : new int[] { 4, 16, 256 }) {
-            chunk = new CriticalFoundationChunk(); chunk.setFunded();
+            chunk = new CriticalFoundationChunk();
             int total = 0, ticks = 0;
             while (!chunk.poured()) {
-                int next = Math.min(work, 400 - chunk.cellProgress());
+                if (!chunk.funded()) chunk.setFunded();
+                int next = Math.min(work, chunk.cellDuration() - chunk.cellProgress());
                 chunk.pour(next, ++ticks); total += next;
             }
-            check(total == 400 && ticks == (400 + work - 1) / work,
-                "Perfect overclock preserves exactly 400 work including a clipped final tick");
+            check(total == 640 && ticks == 16 * ((40 + work - 1) / work),
+                "Perfect overclock preserves exactly 640 chunk work and clips each final cell tick");
         }
+        saved = oldModern(0, 213, true); saved.setInteger("foundationVersion", 6);
+        restored.read(saved); restored.write(copy);
+        NBTTagCompound canonical = new NBTTagCompound(); chunk.read(copy); chunk.write(canonical);
+        check(restored.scheduleVersion() == 6 && restored.cellDuration() == 400 && restored.completedCells() == 8
+            && restored.cellProgress() == 213 && restored.funded() && copy.equals(canonical),
+            "A paid v6 chunk preserves its exact full-chunk bill, 213 work and output entitlement");
+        chunk = new CriticalFoundationChunk(); chunk.read(copy); chunk.pour(187, 1);
+        check(chunk.poured() && !chunk.funded(), "Persisted v6 payment finishes its entire chunk without another bill");
+        saved = oldModern(0, 0, false); saved.setInteger("foundationVersion", 6); restored.read(saved);
+        check(restored.scheduleVersion() == 7 && restored.cellDuration() == 40 && !restored.funded(),
+            "Untouched unpaid v6 chunks adopt the new per-cell schedule");
         saved = oldModern(0, 0, false); restored = new CriticalFoundationChunk(); restored.read(saved);
-        check(restored.scheduleVersion() == 6 && restored.completedCells() == 0 && !restored.funded(),
-            "An unpaid old modern chunk adopts one new whole-chunk bill");
+        check(restored.scheduleVersion() == 7 && restored.completedCells() == 0 && !restored.funded(),
+            "An unpaid old modern chunk adopts the new per-cell bill");
         saved = oldModern(0, 127, true); restored.read(saved);
         check(restored.scheduleVersion() == 6 && restored.cellProgress() == 127 && restored.funded(),
             "The first paid partial old cell becomes prepaid whole-chunk progress without rebilling");

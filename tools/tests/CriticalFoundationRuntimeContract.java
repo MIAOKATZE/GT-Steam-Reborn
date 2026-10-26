@@ -161,31 +161,36 @@ public final class CriticalFoundationRuntimeContract {
         net.minecraftforge.fluids.FluidRegistry.registerFluid(concrete);
         Field concreteField = CriticalFoundationMaterials.class.getDeclaredField("concrete");
         concreteField.setAccessible(true); concreteField.set(null, concrete);
-        check(CriticalFoundationMaterials.items(true)[2].stackSize == 6400
-            && CriticalFoundationMaterials.items(5)[2].stackSize == 8000,
-            "New NEI sample uses 6400 wires while historical cell schedules retain 8000");
-        PourState state = pourState(world, -10); field(state, "energy", UHV * 400);
+        check(CriticalFoundationMaterials.items(true)[2].stackSize == 400
+            && CriticalFoundationMaterials.items(6)[2].stackSize == 6400
+            && CriticalFoundationMaterials.items(5)[2].stackSize == 8000
+            && CriticalFoundationMaterials.concreteAmount(7) == 50_000,
+            "New cells use 400 wires and fifty thousand litres while historical paid bills remain frozen");
+        PourState state = pourState(world, -10); field(state, "energy", UHV * 640);
         for (int i = 0; i < 50; i++) advance(state, world);
-        check(state.payments == 1 && state.rods == 512 && state.hulls == 32 && state.wires == 6400
-            && state.concrete == 1_000_000 && state.getFoundationCompletedCells() == 2,
-            "A complete new chunk is funded once with 1ML concrete, 512 rods, 32 MAX hulls and 6400 fine wires");
+        check(state.payments == 2 && state.rods == 64 && state.hulls == 4 && state.wires == 800
+            && state.concrete == 100_000 && state.getFoundationCompletedCells() == 1
+            && state.getFoundationCellProgressTicks() == 10 && state.getFoundationCellDurationTicks() == 40
+            && state.getConstructionDurationTicks() == 40,
+            "Fifty ticks fund exactly two cells with each bill 50kL concrete, 32 rods, 2 MAX hulls and 400 wires");
         NBTTagCompound stateNbt = new NBTTagCompound(), worldNbt = new NBTTagCompound();
         state.writeToNBT(stateNbt); CriticalWorldData.get(world).writeToNBT(worldNbt);
         CriticalWorldData.get(world).readFromNBT(worldNbt);
         PourState restored = pourState(world, -10); restored.readFromNBT(stateNbt);
         field(restored, "loomChunksCache", Collections.singletonList(new ChunkCoordIntPair(-10, 7)));
-        for (int i = 0; i < 350; i++) advance(restored, world);
-        check(restored.payments == 0 && restored.getEnergy() == 0 && restored.getFoundationCompletedCells() == 16
-            && restored.getFoundationPhase() == 4,
-            "Paid chunk plus controller/world NBT completes at 400 work without duplicate cost or changed heating");
+        for (int i = 0; i < 590; i++) advance(restored, world);
+        check(restored.payments == 14 && restored.getEnergy() == 0 && restored.getFoundationCompletedCells() == 16
+            && restored.getFoundationPhase() == 4 && restored.concrete + state.concrete == 800_000
+            && restored.rods + state.rods == 512 && restored.hulls + state.hulls == 32 && restored.wires + state.wires == 6400,
+            "Controller/world NBT preserves prepaid partial cells and completes sixteen bills at exactly 640 work");
         PourState sharing = pourState(world, -10);
         check(sharing.getFoundationCompletedCells() == 16, "Other machines reuse the same completed poured chunk");
         stateNbt.removeTag("foundationScheduleVersion");
         PourState oldJob = pourState(world, -11); oldJob.readFromNBT(stateNbt);
         field(oldJob, "loomChunksCache", Collections.singletonList(new ChunkCoordIntPair(-11, 7)));
         field(oldJob, "energy", UHV); advance(oldJob, world);
-        check(oldJob.wires == 6400 && CriticalWorldData.get(world).foundation(-11, 7).scheduleVersion() == 6,
-            "Old modern work orders reaching an untouched chunk use the corrected whole-chunk bill");
+        check(oldJob.wires == 400 && oldJob.concrete == 50_000 && CriticalWorldData.get(world).foundation(-11, 7).scheduleVersion() == 7,
+            "Old modern work orders reaching an untouched chunk use the new per-cell bill");
         NBTTagCompound oldCell = new NBTTagCompound(); oldCell.setInteger("foundationVersion", 5);
         oldCell.setInteger("cells", 3); oldCell.setInteger("progress", 127); oldCell.setBoolean("funded", true);
         oldCell.setInteger("heating", 36_000); oldCell.setInteger("curing", 1_728_000);
@@ -193,6 +198,15 @@ public final class CriticalFoundationRuntimeContract {
         PourState oldShared = pourState(world, -12);
         check(oldShared.payments == 0 && oldShared.getFoundationCompletedCells() == 16,
             "Previously finished paid cells satisfy the corrected whole-chunk bill without further construction debits");
+        oldCell.setInteger("foundationVersion", 6); oldCell.setInteger("cells", 0);
+        CriticalWorldData.get(world).foundation(-14, 7).read(oldCell);
+        PourState v6Shared = pourState(world, -14); field(v6Shared, "energy", UHV * 273);
+        check(v6Shared.getFoundationCellDurationTicks() == 400 && v6Shared.getConstructionDurationTicks() == 400,
+            "Already-funded v6 runtime retains its old 400-work clock");
+        for (int i = 0; i < 273; i++) advance(v6Shared, world);
+        check(v6Shared.payments == 0 && v6Shared.getFoundationCompletedCells() == 16 && v6Shared.getEnergy() == 0,
+            "Already-funded v6 runtime completes all old output without any second material debit");
+        oldCell.setInteger("foundationVersion", 5);
         oldCell.setInteger("cells", 0); CriticalWorldData.get(world).foundation(-13, 7).read(oldCell);
         oldShared = pourState(world, -13); field(oldShared, "energy", UHV * 273);
         for (int i = 0; i < 273; i++) advance(oldShared, world);

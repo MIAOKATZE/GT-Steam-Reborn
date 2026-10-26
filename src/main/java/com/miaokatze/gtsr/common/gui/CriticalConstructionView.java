@@ -206,7 +206,7 @@ final class CriticalConstructionView {
 
     private String stageCounts() {
         CriticalConstructionSnapshot s = sample();
-        if (s.showsFoundation() && s.foundationScheduleVersion() >= 6)
+        if (s.showsFoundation() && s.foundationScheduleVersion() == 6)
             return tr("view.chunks") + " " + s.completedChunks() + " / " + s.chunkCount();
         return s.showsFoundation() ? tr("view.cells") + " " + s.completedCells() + " / " + s.totalCells()
             : tr("view.blocks") + " " + s.placed() + " / " + s.total();

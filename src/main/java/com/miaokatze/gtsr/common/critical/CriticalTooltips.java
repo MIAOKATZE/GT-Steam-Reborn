@@ -3,7 +3,6 @@ package com.miaokatze.gtsr.common.critical;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
-import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.util.MultiblockTooltipBuilder;
@@ -34,10 +33,10 @@ public final class CriticalTooltips {
                 default -> throw new IllegalArgumentException("Unreleased critical machine: " + preset);
             }
         }
-        construction(tt);
-        tt.addSeparator()
-            .addInfo(EnumChatFormatting.LIGHT_PURPLE + tr("functional.decorative"))
-            .addInfo(EnumChatFormatting.AQUA + tr("management_hint"));
+        if (preset != null) {
+            tt.addSeparator()
+                .addInfo(EnumChatFormatting.BOLD + tr("tooltip.native.construction"));
+        }
         if (preset == null || CriticalMachineState.supportsV2Kind(preset)) {
             v2Structure(tt, preset);
         } else {
@@ -49,135 +48,98 @@ public final class CriticalTooltips {
     }
 
     private static void loom(MultiblockTooltipBuilder tt) {
-        info(tt, EnumChatFormatting.WHITE, "loom.purpose");
-        info(tt, EnumChatFormatting.AQUA, "loom.machines");
-        info(tt, EnumChatFormatting.YELLOW, "loom.manage");
-        info(tt, EnumChatFormatting.GREEN, "loom.ports");
+        info(tt, "loom.purpose");
+        info(tt, "loom.machines");
+        tt.addSeparator();
+        info(tt, "loom.manage");
+        info(tt, "loom.ports");
     }
 
     private static void solar(MultiblockTooltipBuilder tt) {
-        info(tt, EnumChatFormatting.WHITE, "solar.purpose");
-        info(tt, EnumChatFormatting.AQUA, "solar.water");
-        info(tt, EnumChatFormatting.GOLD, "solar.salt");
-        info(tt, EnumChatFormatting.LIGHT_PURPLE, "solar.dust");
-        info(tt, EnumChatFormatting.YELLOW, "cycle");
-        info(tt, EnumChatFormatting.AQUA, "solar.coolant");
-        info(tt, EnumChatFormatting.LIGHT_PURPLE, "solar.excitation");
+        info(tt, "solar.purpose");
+        info(tt, "solar.water");
+        info(tt, "solar.salt");
+        info(tt, "cycle");
+        info(tt, "solar.energy");
+        tt.addSeparator();
+        info(tt, "solar.rated");
+        info(tt, "solar.heat");
+        info(tt, "solar.flow");
+        info(tt, "solar.dense");
+        info(tt, "solar.salt_flow");
+        info(tt, "solar.private");
+        info(tt, "solar.dimension");
+        tt.addSeparator();
+        info(tt, "solar.medium_reference");
+        info(tt, "solar.coolant");
         for (CriticalSolarPolicy.Entry entry : CriticalSolarPolicy.COOLANTS)
             policyEntry(tt, "coolant", entry, EnumChatFormatting.AQUA);
+        tt.addSeparator();
+        info(tt, "solar.excitation");
         for (CriticalSolarPolicy.Entry entry : CriticalSolarPolicy.EXCITERS)
             policyEntry(tt, "exciter", entry, EnumChatFormatting.LIGHT_PURPLE);
-        tt.addInfo(
-            EnumChatFormatting.GOLD + formatted(
-                "solar.rated",
-                CriticalSolarPolicy.BASE_AMPS_MAX,
-                CriticalSolarPolicy.MAX_WATER_AMPS_MAX,
-                CriticalSolarPolicy.MAX_SALT_AMPS_MAX));
-        tt.addInfo(
-            EnumChatFormatting.YELLOW + formatted("solar.private", CriticalSolarPolicy.PRIVATE_DIMENSION_FACTOR));
-        info(tt, EnumChatFormatting.RED, "solar.dimension");
-        tt.addSeparator();
-        info(tt, EnumChatFormatting.AQUA, "solar.steam");
-        info(tt, EnumChatFormatting.GOLD, "solar.dense");
-        info(tt, EnumChatFormatting.GREEN, "solar.inventory");
-        info(tt, EnumChatFormatting.LIGHT_PURPLE, "solar.parallel");
-        info(tt, EnumChatFormatting.YELLOW, "solar.energy");
-        info(tt, EnumChatFormatting.GREEN, "solar.helium");
-        info(tt, EnumChatFormatting.GOLD, "solar.limits");
+        info(tt, "solar.helium");
     }
 
     private static void turbine(MultiblockTooltipBuilder tt) {
-        info(tt, EnumChatFormatting.WHITE, "turbine.purpose");
-        info(tt, EnumChatFormatting.AQUA, "turbine.input");
-        info(tt, EnumChatFormatting.GREEN, "turbine.output");
-        info(tt, EnumChatFormatting.YELLOW, "cycle");
-        info(tt, EnumChatFormatting.GOLD, "turbine.efficiency");
-        info(tt, EnumChatFormatting.LIGHT_PURPLE, "turbine.parallel");
+        info(tt, "turbine.purpose");
+        info(tt, "turbine.input");
+        info(tt, "turbine.output");
+        info(tt, "cycle");
         tt.addSeparator();
-        info(tt, EnumChatFormatting.GOLD, "turbine.heat");
-        info(tt, EnumChatFormatting.AQUA, "turbine.dense");
-        info(tt, EnumChatFormatting.GREEN, "turbine.warmup");
-        info(tt, EnumChatFormatting.RED, "turbine.stable");
-        info(tt, EnumChatFormatting.YELLOW, "turbine.load");
-        info(tt, EnumChatFormatting.RED, "turbine.idle");
-        info(tt, EnumChatFormatting.AQUA, "turbine.water");
-        info(tt, EnumChatFormatting.LIGHT_PURPLE, "turbine.remainders");
+        info(tt, "turbine.heat");
+        info(tt, "turbine.dense");
+        info(tt, "turbine.efficiency");
+        info(tt, "turbine.warmup");
+        info(tt, "turbine.idle");
+        info(tt, "turbine.water");
     }
 
     private static void sun(MultiblockTooltipBuilder tt) {
-        info(tt, EnumChatFormatting.WHITE, "sun.purpose");
-        info(tt, EnumChatFormatting.AQUA, "sun.recipe");
-        info(tt, EnumChatFormatting.YELLOW, "cycle");
-        info(tt, EnumChatFormatting.GOLD, "sun.parallel");
-        info(tt, EnumChatFormatting.RED, "sun.ignition");
-        tt.addInfo(
-            EnumChatFormatting.LIGHT_PURPLE + formatted(
-                "sun.ignition_time",
-                CriticalStellarPolicy.IGNITION_HELIUM3_L / CriticalStellarPolicy.DURATION_TICKS));
-        tt.addInfo(
-            EnumChatFormatting.RED + formatted(
-                "sun.sustain",
-                CriticalStellarPolicy.SUSTAIN_EUT,
-                CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK));
-        info(tt, EnumChatFormatting.GREEN, "sun.output");
+        info(tt, "sun.purpose");
+        info(tt, "sun.recipe");
+        info(tt, "cycle");
+        info(tt, "sun.parallel");
         tt.addSeparator();
-        info(tt, EnumChatFormatting.GOLD, "sun.discount");
-        info(tt, EnumChatFormatting.AQUA, "sun.limits");
-        info(tt, EnumChatFormatting.GREEN, "sun.switch");
-        info(tt, EnumChatFormatting.YELLOW, "sun.pause");
-        info(tt, EnumChatFormatting.RED, "sun.extinguish");
-        info(tt, EnumChatFormatting.LIGHT_PURPLE, "sun.plasma");
+        info(tt, "sun.ignition");
+        info(tt, "sun.ignition_time");
+        info(tt, "sun.sustain");
+        info(tt, "sun.pause");
+        info(tt, "sun.extinguish");
+        info(tt, "sun.plasma");
+        tt.addSeparator();
+        info(tt, "sun.discount");
+        info(tt, "sun.limits");
+        info(tt, "sun.switch");
     }
 
     private static void battery(MultiblockTooltipBuilder tt) {
-        info(tt, EnumChatFormatting.WHITE, "battery.purpose");
-        info(tt, EnumChatFormatting.AQUA, "battery.input");
-        info(tt, EnumChatFormatting.GREEN, "battery.output");
-        info(tt, EnumChatFormatting.YELLOW, "battery.cycle");
-        info(tt, EnumChatFormatting.GOLD, "battery.compounds");
-        info(tt, EnumChatFormatting.LIGHT_PURPLE, "battery.efficiency");
+        info(tt, "battery.purpose");
+        info(tt, "battery.input");
+        info(tt, "battery.output");
+        info(tt, "cycle");
         tt.addSeparator();
-        info(tt, EnumChatFormatting.AQUA, "battery.ratio");
-        info(tt, EnumChatFormatting.GREEN, "battery.scaling");
-        info(tt, EnumChatFormatting.YELLOW, "battery.heat");
-        info(tt, EnumChatFormatting.GREEN, "battery.unused");
+        info(tt, "battery.compounds");
+        info(tt, "battery.efficiency");
+        info(tt, "battery.ratio");
+        info(tt, "battery.scaling");
+        info(tt, "battery.heat");
     }
 
-    private static void construction(MultiblockTooltipBuilder tt) {
-        tt.addSeparator();
-        info(tt, EnumChatFormatting.YELLOW, "foundation.title");
-        info(tt, EnumChatFormatting.AQUA, "foundation.pour");
-        info(tt, EnumChatFormatting.RED, "foundation.heat");
-        info(tt, EnumChatFormatting.LIGHT_PURPLE, "foundation.rest");
-        tt.addSeparator();
-        info(tt, EnumChatFormatting.YELLOW, "body.title");
-        info(tt, EnumChatFormatting.AQUA, "body.build");
-        info(tt, EnumChatFormatting.GREEN, "body.materials");
-        info(tt, EnumChatFormatting.RED, "body.dismantle");
-        tt.addSeparator();
-        info(tt, EnumChatFormatting.YELLOW, "equipment.title");
-        info(tt, EnumChatFormatting.AQUA, "equipment.ports");
-        info(tt, EnumChatFormatting.LIGHT_PURPLE, "equipment.modules");
-        info(tt, EnumChatFormatting.GREEN, "equipment.terminal");
-    }
-
-    private static void info(MultiblockTooltipBuilder tt, EnumChatFormatting color, String key) {
-        tt.addInfo(color + tr("tooltip.native." + key));
+    private static void info(MultiblockTooltipBuilder tt, String key) {
+        tt.addInfo(EnumChatFormatting.GRAY + tr("tooltip.native." + key));
     }
 
     private static void policyEntry(MultiblockTooltipBuilder tt, String group, CriticalSolarPolicy.Entry entry,
         EnumChatFormatting color) {
         tt.addInfo(
-            color + formatted(
+            EnumChatFormatting.GRAY + formatted(
                 "solar.medium",
-                tr("solar." + group + "." + entry.id),
-                entry.multiplier,
-                CriticalRecipeMaps.SOLAR_MEDIUM_REFERENCE_AMPS,
-                new java.math.BigDecimal(
-                    CriticalSolarPolicy.costLitres(entry, CriticalRecipeMaps.solarMediumReferenceEU()))
-                        .divide(java.math.BigDecimal.valueOf(CriticalEnergyMath.CYCLE_TICKS / 20))
-                        .stripTrailingZeros()
-                        .toPlainString()));
+                color + tr("solar." + group + "." + entry.id) + EnumChatFormatting.GRAY,
+                java.math.BigDecimal.valueOf(entry.multiplier)
+                    .stripTrailingZeros()
+                    .toPlainString(),
+                String.format(java.util.Locale.ROOT, "%,d", (long) entry.litresPerSecond)));
     }
 
     private static String formatted(String key, Object... values) {
@@ -187,17 +149,20 @@ public final class CriticalTooltips {
     private static void v2Structure(MultiblockTooltipBuilder tt, CriticalMachineKind preset) {
         tt.beginStructureBlock(112, 180, 112, false)
             .addController(tr(preset == null ? "v2.loom_controller" : "v2.main_controller"))
-            .addStructureInfo(tr("v2.region"))
-            .addStructureInfo(tr("v2.controllers"))
+            .addStructureInfo(tr("tooltip.native.structure.region"))
+            .addStructureInfo(tr("tooltip.native.structure.base"))
             .addInputBus(tr("v2.ports"))
             .addInputHatch(tr("v2.ports"))
             .addOutputBus(tr("v2.ports"))
             .addOutputHatch(tr("v2.ports"))
-            .addEnergyHatch(tr("v2.ports"))
-            .addStructureInfo(tr("v2.loom_ports"))
-            .addStructureInfo(tr("v2.main_ports"))
-            .addStructureInfo(tr("tooltip.physical_inputs"))
-            .addStructureInfo(tr("tooltip.port_hint"));
+            .addEnergyHatch(tr("v2.ports"));
+        if (preset == null) {
+            tt.addStructureInfo(tr("tooltip.native.structure.loom_ports"));
+        } else {
+            tt.addStructureInfo(tr("tooltip.native.structure.main_ports"));
+        }
+        tt.addStructureInfo(tr("tooltip.physical_inputs"))
+            .addStructureInfo(tr("tooltip.native.structure.hatches"));
     }
 
     private static void legacyStructure(MultiblockTooltipBuilder tt) {

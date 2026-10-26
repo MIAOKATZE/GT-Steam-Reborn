@@ -53,19 +53,27 @@ public final class CriticalFoundationMaterials {
         return new FluidStack(concrete, amount);
     }
 
+    public static int concreteAmount(int scheduleVersion) {
+        return scheduleVersion >= CriticalFoundationChunk.VERSION ? 50_000 : 1_000_000;
+    }
+
     public static ItemStack[] items() {
         return new ItemStack[] {
             GTUtility.copyAmountUnsafe(512, GTOreDictUnificator.get(OrePrefixes.stickLong, Materials.Neutronium, 1)),
             ItemList.Hull_MAX.get(32) };
     }
 
-    /** New display recipes use one chunk bill; saved version-5 cells retain their original fine-wire quantity. */
+    /** New cells have their own bill; historical journals retain their original bill. */
     public static ItemStack[] items(boolean modern) {
         return items(modern ? CriticalFoundationChunk.VERSION : 0);
     }
 
     public static ItemStack[] items(int scheduleVersion) {
         if (scheduleVersion < 5) return items();
+        if (scheduleVersion >= CriticalFoundationChunk.VERSION) return new ItemStack[] {
+            GTUtility.copyAmountUnsafe(32, GTOreDictUnificator.get(OrePrefixes.stickLong, Materials.Neutronium, 1)),
+            ItemList.Hull_MAX.get(2), GTUtility
+                .copyAmountUnsafe(400, GTOreDictUnificator.get(OrePrefixes.wireFine, Materials.TungstenSteel, 1)) };
         return new ItemStack[] { items()[0], items()[1],
             GTUtility.copyAmountUnsafe(
                 scheduleVersion >= 6 ? 6_400 : 8_000,

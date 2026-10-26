@@ -596,7 +596,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public int getFoundationCellDurationTicks() {
-        return CriticalFoundationChunk.CELL_DURATION;
+        return getFoundationScheduleVersion() >= CriticalFoundationChunk.VERSION ? CriticalFoundationChunk.CELL_DURATION
+            : CriticalFoundationChunk.LEGACY_CELL_DURATION;
     }
 
     public int getFoundationScheduleVersion() {
@@ -682,9 +683,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 return;
             }
             int work = Math.max(1, CriticalFoundationChunk.overclockWork(voltage, suppliedVoltage));
-            work = debugSpeed == 3 ? CriticalFoundationChunk.CELL_DURATION
-                : work * (debugSpeed == 2 ? 10 : debugSpeed == 1 ? 2 : 1);
-            work = Math.min(work, CriticalFoundationChunk.CELL_DURATION - chunk.cellProgress());
+            work = debugSpeed == 3 ? chunk.cellDuration() : work * (debugSpeed == 2 ? 10 : debugSpeed == 1 ? 2 : 1);
+            work = Math.min(work, chunk.cellDuration() - chunk.cellProgress());
             long eu = voltage * work;
             if (!debugIgnoreEnergy && !canConsumeConstructionEnergy(eu)) {
                 fail("缺电暂停");
@@ -694,7 +694,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 ItemStack[] items = ignoresConstructionItems() ? new ItemStack[0]
                     : CriticalFoundationMaterials.items(chunk.scheduleVersion());
                 FluidStack[] fluids = ignoresConstructionFluids() ? new FluidStack[0]
-                    : new FluidStack[] { CriticalFoundationMaterials.fluid(1_000_000) };
+                    : new FluidStack[] { CriticalFoundationMaterials
+                        .fluid(CriticalFoundationMaterials.concreteAmount(chunk.scheduleVersion())) };
                 if (!fundCriticalInputs(items, fluids)) {
                     if (nativeFundingUncertain) {
                         chunk.lockFunding();
@@ -2252,8 +2253,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (state == 1 && foundationRequired && getFoundationPhase() == 4)
             return CriticalFoundationChunk.HEATING_DURATION;
         if (state == 1 && foundationRequired && getFoundationPhase() == 2) return getFoundationCuringDurationTicks();
-        if (state == 1 && foundationRequired && getFoundationPhase() == 1)
-            return CriticalConstructionProgress.STAGE_DURATION;
+        if (state == 1 && foundationRequired && getFoundationPhase() == 1) return getFoundationCellDurationTicks();
         return constructionLedger.economyVersion() >= 6
             ? CriticalConstructionProgress.STAGE_DURATION * getConstructionRoundTotal()
             : CriticalConstructionProgress.STAGE_DURATION;
@@ -2277,7 +2277,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public FluidStack[] getConstructionFluidCostsForGui() {
         if (state == 1 && foundationRequired && getFoundationPhase() != 3) return getFoundationPhase() == 1
-            ? new FluidStack[] { CriticalFoundationMaterials.fluid(1_000_000) }
+            ? new FluidStack[] { CriticalFoundationMaterials
+                .fluid(CriticalFoundationMaterials.concreteAmount(getFoundationScheduleVersion())) }
             : getFoundationPhase() == 4
                 ? new FluidStack[] { gregtech.api.util.GTModHandler.getSuperHeatedSteam(foundationHeatingSteamDue()) }
                 : new FluidStack[0];
@@ -2365,7 +2366,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (ignoresConstructionFluids()) return new FluidStack[0];
         if (state == 1 && foundationRequired && getFoundationPhase() != 3)
             return getFoundationPhase() == 1 && !isFoundationCellFunded()
-                ? new FluidStack[] { CriticalFoundationMaterials.fluid(1_000_000) }
+                ? new FluidStack[] { CriticalFoundationMaterials
+                    .fluid(CriticalFoundationMaterials.concreteAmount(getFoundationScheduleVersion())) }
                 : getFoundationPhase() == 4 && !isFoundationHeatingFunded()
                     ? new FluidStack[] {
                         gregtech.api.util.GTModHandler.getSuperHeatedSteam(foundationHeatingSteamDue()) }
