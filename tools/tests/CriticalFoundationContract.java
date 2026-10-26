@@ -20,6 +20,7 @@ public final class CriticalFoundationContract {
     public static void main(String[] args) throws Exception {
         source(CriticalFoundationChunk.class, args);
         source(CriticalWorldData.class, args);
+        chunkSchedule();
         CriticalWorldData world = new CriticalWorldData();
         CriticalFoundationChunk chunk = world.foundation(-2, 7);
         chunk.useLegacySchedule();
@@ -79,5 +80,77 @@ public final class CriticalFoundationContract {
         chunk.read(complete);
         check(chunk.complete(), "A completed chunk remains reusable without payment");
         System.out.println("PASS CriticalFoundationContract checks=" + checks);
+    }
+
+    private static void chunkSchedule() {
+        CriticalFoundationChunk chunk = new CriticalFoundationChunk();
+        check(chunk.scheduleVersion() == 6 && CriticalFoundationChunk.CELLS == 16,
+            "New 16x16 chunk schedule retains sixteen 4x4 map cells");
+        chunk.setFunded(); chunk.pour(50, 1);
+        check(chunk.completedCells() == 2 && chunk.cellProgress() == 50 && chunk.funded(),
+            "One chunk payment covers continuous work across visual cell boundaries");
+        NBTTagCompound saved = new NBTTagCompound(); chunk.write(saved);
+        check(saved.getInteger("cells") == 0 && saved.getInteger("foundationVersion") == 6,
+            "Version6 stores an unfinished chunk, not historical paid-cell units");
+        CriticalFoundationChunk restored = new CriticalFoundationChunk(); restored.read(saved);
+        NBTTagCompound copy = new NBTTagCompound(); restored.write(copy);
+        check(copy.equals(saved) && restored.funded() && restored.completedCells() == 2,
+            "New paid partial-chunk work survives NBT without another material debit");
+        restored.pour(350, 2);
+        check(restored.poured() && restored.completedCells() == 16 && !restored.funded()
+            && restored.heatingRemaining() == 36_000 && restored.curingRemaining() == 1_728_000,
+            "Exactly 400 baseline work finishes the complete chunk and retains both curing phases");
+        for (int work : new int[] { 4, 16, 256 }) {
+            chunk = new CriticalFoundationChunk(); chunk.setFunded();
+            int total = 0, ticks = 0;
+            while (!chunk.poured()) {
+                int next = Math.min(work, 400 - chunk.cellProgress());
+                chunk.pour(next, ++ticks); total += next;
+            }
+            check(total == 400 && ticks == (400 + work - 1) / work,
+                "Perfect overclock preserves exactly 400 work including a clipped final tick");
+        }
+        saved = oldModern(0, 0, false); restored = new CriticalFoundationChunk(); restored.read(saved);
+        check(restored.scheduleVersion() == 6 && restored.completedCells() == 0 && !restored.funded(),
+            "An unpaid old modern chunk adopts one new whole-chunk bill");
+        saved = oldModern(0, 127, true); restored.read(saved);
+        check(restored.scheduleVersion() == 6 && restored.cellProgress() == 127 && restored.funded(),
+            "The first paid partial old cell becomes prepaid whole-chunk progress without rebilling");
+        copy = new NBTTagCompound(); restored.write(copy); chunk = new CriticalFoundationChunk(); chunk.read(copy);
+        chunk.pour(273, 1);
+        check(copy.getInteger("foundationVersion") == 6 && chunk.poured(),
+            "Persisted migration finishes the remaining work once without acquiring a second bill");
+        restored.read(oldModern(3, 127, true));
+        check(restored.scheduleVersion() == 6 && restored.poured() && !restored.funded()
+            && restored.heatingRemaining() == 36_000 && restored.curingRemaining() == 1_728_000,
+            "One or more finished historical cells cover the full new chunk without charging remaining cells");
+        saved = oldModern(16, 0, false); saved.setInteger("heating", 1234); saved.setInteger("curing", 987654);
+        saved.setBoolean("heatingFunded", true); saved.setInteger("heatingPaidWork", 7); restored.read(saved);
+        check(restored.scheduleVersion() == 6 && restored.poured() && restored.heatingRemaining() == 1234
+            && restored.curingRemaining() == 987654 && restored.heatingPaidWork() == 7,
+            "Already-poured migration preserves both curing clocks and all prepaid heating work");
+        CriticalWorldData migratedWorld = new CriticalWorldData();
+        net.minecraft.nbt.NBTTagList entries = new net.minecraft.nbt.NBTTagList();
+        saved.setInteger("x", -2); saved.setInteger("z", 7); entries.appendTag(saved);
+        NBTTagCompound worldRecord = new NBTTagCompound(); worldRecord.setTag("foundations", entries);
+        migratedWorld.readFromNBT(worldRecord);
+        check(migratedWorld.isDirty(), "Even already-poured migration marks world data dirty for durable version6 persistence");
+        NBTTagCompound persistedWorld = new NBTTagCompound(); migratedWorld.writeToNBT(persistedWorld);
+        check(persistedWorld.getTagList("foundations", 10).getCompoundTagAt(0).getInteger("foundationVersion") == 6,
+            "The next world save persists the migrated economic unit exactly once");
+        saved = oldModern(3, 127, true); saved.setBoolean("uncertain", true); restored.read(saved);
+        restored.pour(400, 1); copy = new NBTTagCompound(); restored.write(copy);
+        check(restored.scheduleVersion() == 5 && restored.completedCells() == 3 && restored.cellProgress() == 127
+            && restored.funded() && restored.fundingUncertain() && copy.getInteger("foundationVersion") == 5,
+            "Uncertain historical funding keeps original cell units, paid status and lock without migration");
+        entries = new net.minecraft.nbt.NBTTagList(); entries.appendTag(saved);
+        worldRecord.setTag("foundations", entries); migratedWorld = new CriticalWorldData(); migratedWorld.readFromNBT(worldRecord);
+        check(!migratedWorld.isDirty(), "Uncertain legacy funding never receives migration credit or a clean version marker");
+    }
+
+    private static NBTTagCompound oldModern(int cells, int progress, boolean funded) {
+        NBTTagCompound n = new NBTTagCompound(); n.setInteger("foundationVersion", 5);
+        n.setInteger("cells", cells); n.setInteger("progress", progress); n.setBoolean("funded", funded);
+        n.setInteger("heating", 36_000); n.setInteger("curing", 1_728_000); return n;
     }
 }

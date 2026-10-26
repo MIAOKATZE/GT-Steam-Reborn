@@ -9,7 +9,7 @@ public final class CriticalEnergyMath {
     public static final int IRRADIATION_PARALLEL = 256;
     public static final int FUSION_PARALLEL = 8196;
     public static final int MIN_EFFICIENCY = 100, MAX_EFFICIENCY = 2000, EFFICIENCY_STEP = 10;
-    public static final int TURBINE_WARMUP_TICKS = 3600;
+    public static final int TURBINE_WARMUP_TICKS = CYCLE_TICKS;
     public static final int TURBINE_FULL_WARMUP_BASE_AMPS_MAX = 16;
     public static final double WATER_A = 1_000_000D, WATER_B = 1_000_000D;
     public static final double SALT_A = 1_000_000D, SALT_B = 1_000_000D;

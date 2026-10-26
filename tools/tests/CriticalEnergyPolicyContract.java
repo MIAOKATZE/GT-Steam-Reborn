@@ -30,6 +30,20 @@ class CriticalEnergyPolicyRuntime {
     static BigInteger fullTurbineHeat() {
         return b(CriticalSolarPolicy.MAX_VOLTAGE).multiply(b(2L*400*CriticalEnergyMath.TURBINE_FULL_WARMUP_BASE_AMPS_MAX));
     }
+    static BigInteger routeEU(double factor,int coolant,int exciter,boolean salt) {
+        BigInteger water=CriticalSolarPolicy.waterHalfHeat(CriticalSolarPolicy.batchBudgetEU(factor,
+            CriticalSolarPolicy.COOLANTS.get(coolant),CriticalSolarPolicy.EXCITERS.get(exciter),false)).multiply(b(10));
+        return salt?water.multiply(b(2)):water;
+    }
+    static BigInteger expectedCost(CriticalSolarPolicy.Entry entry,BigInteger actualEU) {
+        BigInteger numerator=actualEU.multiply(b((long)entry.litresPerSecond));
+        BigInteger denominator=b(CriticalSolarPolicy.MAX_VOLTAGE).multiply(b(864*400));
+        return numerator.add(denominator.subtract(BigInteger.ONE)).divide(denominator).multiply(b(20));
+    }
+    static int routeCost(boolean coolantCharge,double factor,int coolant,int exciter,boolean salt) {
+        return expectedCost(coolantCharge?CriticalSolarPolicy.COOLANTS.get(coolant):CriticalSolarPolicy.EXCITERS.get(exciter),
+            routeEU(factor,coolant,exciter,salt)).intValueExact();
+    }
     static Object field(Object target, String name) throws Exception {
         Field f = target.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(target);
     }
@@ -80,9 +94,12 @@ class CriticalEnergyPolicyRuntime {
         CriticalCompoundRuntime.set(host, "mDualInputHatches", new ArrayList<>());
         CriticalCompoundRuntime.set(host, "mOutputHatches", new ArrayList<>());
         CriticalCompoundRuntime.set(host, "mOutputBusses", new ArrayList<>());
-        var cryo = CriticalCompoundRuntime.hatch(unsafe, tile, new FluidStack(FluidRegistry.getFluid("cryotheum"),1), 20000);
-        var helium = CriticalCompoundRuntime.hatch(unsafe, tile, Materials.Helium.getPlasma(1), 180);
-        var heliumGas = CriticalCompoundRuntime.hatch(unsafe, tile, Materials.Helium.getGas(1), 20000);
+        int cryoFull=routeCost(true,.6D,1,1,false),heliumFull=routeCost(false,.6D,1,1,false);
+        int gasFull=routeCost(false,.6D,1,0,false),baseFull=routeCost(true,.6D,0,0,false);
+        int baseGas=routeCost(false,.6D,0,0,false);
+        var cryo = CriticalCompoundRuntime.hatch(unsafe, tile, new FluidStack(FluidRegistry.getFluid("cryotheum"),1), cryoFull);
+        var helium = CriticalCompoundRuntime.hatch(unsafe, tile, Materials.Helium.getPlasma(1), heliumFull);
+        var heliumGas = CriticalCompoundRuntime.hatch(unsafe, tile, Materials.Helium.getGas(1), gasFull);
         List<CriticalCompoundRuntime.FakeHatch> waters = new ArrayList<>();
         for (int i=0;i<100;i++) waters.add(CriticalCompoundRuntime.hatch(unsafe,tile,
             gregtech.api.util.GTModHandler.getDistilledWater(1),Integer.MAX_VALUE));
@@ -95,8 +112,8 @@ class CriticalEnergyPolicyRuntime {
         Object selection = select.invoke(null, snapshot, 0.6D, 5, false, false);
         check(selection != null && ((CriticalSolarPolicy.Entry)field(selection,"coolant")).id.equals("cryotheum")
             && ((CriticalSolarPolicy.Entry)field(selection,"exciter")).id.equals("helium"), "highest fully paid He/cryo route");
-        check(field(selection,"coolantLitres").equals(b(20000)) && field(selection,"exciterLitres").equals(b(180)),
-            "full private cryo/He batch prepays real 20 seconds: coolant20000L and helium180L");
+        check(field(selection,"coolantLitres").equals(b(cryoFull)) && field(selection,"exciterLitres").equals(b(heliumFull)),
+            "full private cryo/He batch prepays both actual-power-scaled20second medium costs");
         List<CriticalEnergyPorts.Debit> debits = new ArrayList<>();
         var allocation = new CriticalEnergyPorts.Allocation(snapshot);
         debits.addAll(allocation.take((FluidStack)field(selection,"input"),(BigInteger)field(selection,"inputLitres")));
@@ -104,23 +121,23 @@ class CriticalEnergyPolicyRuntime {
         debits.addAll(allocation.take(helium.fluid,(BigInteger)field(selection,"exciterLitres")));
         check(CriticalEnergyPorts.debit(debits) && cryo.stock == 0 && helium.stock == 0 && water.stock < Integer.MAX_VALUE,
             "native hatch drain receipts actually pay work fluid, coolant and exciter");
-        cryo.stock = 20000; helium.stock = 179; for(var hatch:waters) hatch.stock=Integer.MAX_VALUE;
+        cryo.stock = cryoFull; helium.stock = heliumFull-1; for(var hatch:waters) hatch.stock=Integer.MAX_VALUE;
         selection = select.invoke(null, CriticalEnergyPorts.snapshot(host), 0.6D, 5, false, false);
         check(selection != null && ((CriticalSolarPolicy.Entry)field(selection,"exciter")).id.equals("helium_gas")
-            && helium.stock == 179, "one litre short of helium plasma falls back to fully payable helium gas");
+            && helium.stock == heliumFull-1, "one litre short of helium plasma falls back to fully payable helium gas");
         heliumGas.stock=0;helium.stock=0;
         check(select.invoke(null,CriticalEnergyPorts.snapshot(host),.6D,5,false,false)==null,
             "water and full coolant cannot run without any mandatory activator");
-        var supercoolant=CriticalCompoundRuntime.hatch(unsafe,tile,Materials.SuperCoolant.getFluid(1),32000);
+        var supercoolant=CriticalCompoundRuntime.hatch(unsafe,tile,Materials.SuperCoolant.getFluid(1),baseFull);
         List<CriticalCompoundRuntime.FakeHatch> baseInputs=new ArrayList<>(List.of(supercoolant,heliumGas,helium));baseInputs.addAll(waters);
         CriticalCompoundRuntime.set(host,"mInputHatches",baseInputs);
         check(select.invoke(null,CriticalEnergyPorts.snapshot(host),.6D,5,false,false)==null,
             "supercoolant alone cannot bypass the separate activator condition");
-        heliumGas.stock=20000;
+        heliumGas.stock=baseGas;
         snapshot=CriticalEnergyPorts.snapshot(host);
         selection=select.invoke(null,snapshot,.6D,5,false,false);
         check(selection!=null&&((CriticalSolarPolicy.Entry)field(selection,"exciter")).id.equals("helium_gas")
-            &&field(selection,"exciterLitres").equals(b(20000))&&field(selection,"coolantLitres").equals(b(32000)),
+            &&field(selection,"exciterLitres").equals(b(baseGas))&&field(selection,"coolantLitres").equals(b(baseFull)),
             "baseline supercoolant plus helium gas has two separately paid full-batch requirements");
         debits=new ArrayList<>();allocation=new CriticalEnergyPorts.Allocation(snapshot);
         debits.addAll(allocation.take((FluidStack)field(selection,"input"),(BigInteger)field(selection,"inputLitres")));
@@ -128,23 +145,31 @@ class CriticalEnergyPolicyRuntime {
         debits.addAll(allocation.take(heliumGas.fluid,(BigInteger)field(selection,"exciterLitres")));
         check(CriticalEnergyPorts.debit(debits)&&supercoolant.stock==0&&heliumGas.stock==0&&helium.stock==0,
             "native hatch receipts debit helium gas once, never substitute or double-charge plasma");
-        CriticalCompoundRuntime.set(host,"mInputHatches",hatches);heliumGas.stock=20000;helium.stock=179;
+        CriticalCompoundRuntime.set(host,"mInputHatches",hatches);heliumGas.stock=gasFull;helium.stock=heliumFull-1;
         cryo.stock = 0;
         check(select.invoke(null,CriticalEnergyPorts.snapshot(host),0.6D,5,false,true) == null,
             "neither water nor dust-only work bypasses mandatory coolant");
-        cryo.stock = 79; for(var hatch:waters) hatch.stock=0;
+        BigInteger dustGasWork=CriticalSolarPolicy.irradiationBudgetEU(CriticalSolarPolicy.batchBudgetEU(.6D,
+            CriticalSolarPolicy.COOLANTS.get(1),CriticalSolarPolicy.EXCITERS.get(0),false));
+        int dustGasCost=expectedCost(CriticalSolarPolicy.COOLANTS.get(1),dustGasWork).intValueExact();
+        int dustGasActivationCost=expectedCost(CriticalSolarPolicy.EXCITERS.get(0),dustGasWork).intValueExact();
+        cryo.stock = dustGasCost; for(var hatch:waters) hatch.stock=0;
         selection = select.invoke(null,CriticalEnergyPorts.snapshot(host),0.6D,5,false,true);
-        check(selection != null && field(selection,"coolantLitres").equals(b(79))
-            && field(selection,"exciterLitres").equals(b(79))&&field(selection,"equivalentEU").equals(BigInteger.ZERO),
-            "dust-only pays both ceil(20000/256)L coolant and helium gas, no imaginary energy");
+        check(selection != null && field(selection,"coolantLitres").equals(b(dustGasCost))
+            && field(selection,"exciterLitres").equals(b(dustGasActivationCost))&&field(selection,"equivalentEU").equals(BigInteger.ZERO),
+            "dust-only pays both media against its explicit1/256 power-equivalent work, no imaginary energy");
         heliumGas.stock=0;helium.stock=0;
         check(select.invoke(null,CriticalEnergyPorts.snapshot(host),.6D,5,false,true)==null,
             "dust-only cannot bypass the mandatory activator when coolant is present");
-        helium.stock=1;
+        BigInteger dustPlasmaWork=CriticalSolarPolicy.irradiationBudgetEU(CriticalSolarPolicy.batchBudgetEU(.6D,
+            CriticalSolarPolicy.COOLANTS.get(1),CriticalSolarPolicy.EXCITERS.get(1),false));
+        int dustPlasmaCost=expectedCost(CriticalSolarPolicy.EXCITERS.get(1),dustPlasmaWork).intValueExact();
+        int dustCryoCost=expectedCost(CriticalSolarPolicy.COOLANTS.get(1),dustPlasmaWork).intValueExact();
+        helium.stock=dustPlasmaCost;cryo.stock=dustCryoCost;
         selection=select.invoke(null,CriticalEnergyPorts.snapshot(host),.6D,5,false,true);
         check(selection!=null&&((CriticalSolarPolicy.Entry)field(selection,"exciter")).id.equals("helium")
-            &&field(selection,"exciterLitres").equals(b(1)),"dust-only accepts and pays helium plasma without requiring extra helium gas");
-        cryo.stock = 78;
+            &&field(selection,"exciterLitres").equals(b(dustPlasmaCost)),"dust-only accepts and pays helium plasma without requiring extra helium gas");
+        cryo.stock = dustCryoCost-1;
         check(select.invoke(null,CriticalEnergyPorts.snapshot(host),0.6D,5,false,true) == null,
             "dust-only underfunded minimum load cannot run");
         solarBatch(host,tile,cryo,helium,waters,select);
@@ -161,14 +186,14 @@ class CriticalEnergyPolicyRuntime {
         List<CriticalCompoundRuntime.FakeHatch> salts=new ArrayList<>();
         for(int i=0;i<100;i++)salts.add(CriticalCompoundRuntime.hatch(unsafe,tile,new FluidStack(cold,1),Integer.MAX_VALUE));
         for(var hatch:waters)hatch.stock=Integer.MAX_VALUE;
-        cryo.stock=40000;helium.stock=360;
+        cryo.stock=routeCost(true,.6D,1,1,true);helium.stock=routeCost(false,.6D,1,1,true);
         List<CriticalCompoundRuntime.FakeHatch> all=new ArrayList<>(List.of(cryo,helium));all.addAll(waters);all.addAll(salts);
         CriticalCompoundRuntime.set(host,"mInputHatches",all);
         Object salt=select.invoke(null,CriticalEnergyPorts.snapshot(host),.6D,5,true,false);
         Object water=select.invoke(null,CriticalEnergyPorts.snapshot(host),.6D,5,false,false);
         check(((BigInteger)field(salt,"equivalentEU")).equals(((BigInteger)field(water,"equivalentEU")).multiply(b(2)))
-            &&field(salt,"coolantLitres").equals(b(40000))&&field(salt,"exciterLitres").equals(b(360)),
-            "real hot-salt planner gives exactly2x paid water route with2x coolant/He charge");
+            &&field(salt,"coolantLitres").equals(b(cryo.stock))&&field(salt,"exciterLitres").equals(b(helium.stock)),
+            "real hot-salt planner doubles actual power and charges both media against that power");
         Output output=(Output)unsafe.allocateInstance(Output.class);output.stored=BigInteger.ZERO;
         output.setBaseMetaTileEntity(tile);
         CriticalCompoundRuntime.set(host,"mOutputHatches",new ArrayList<>(List.of(output)));
@@ -180,7 +205,8 @@ class CriticalEnergyPolicyRuntime {
         CriticalCompoundRuntime.set(state.worldObj,"provider",unsafe.allocateInstance(net.minecraft.world.WorldProviderSurface.class));
         Method start=CriticalEnergyRuntime.class.getDeclaredMethod("startSolar",CriticalMachineState.class,
             MTECriticalMachine.class,NBTTagCompound.class);start.setAccessible(true);
-        check((boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("solarPolicy")==3
+        cryo.stock=routeCost(true,1D,1,1,true);helium.stock=routeCost(false,1D,1,1,true);
+        check((boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("solarPolicy")==4
             &&state.n.getBoolean("solarBatchSaltMode")&&cryo.stock==0&&helium.stock==0,
             "actual startSolar freezes selected salt mode and pays full400ticks of modifiers");
         check(waters.stream().allMatch(hatch->hatch.stock==Integer.MAX_VALUE)
@@ -192,7 +218,7 @@ class CriticalEnergyPolicyRuntime {
         state.n.setInteger("progress",399);CriticalEnergyRuntime.tick(state,host);
         check(!state.n.getBoolean("funded")&&output.stored.equals(frozen)&&output.fluid.isFluidEqual(new FluidStack(hot,1)),
             "mode switch and saved-NBT recovery deliver original paid hot-salt output without repricing");
-        for(int oldPolicy:new int[]{0,2}){
+        for(int oldPolicy:new int[]{0,2,3}){
             state.n=(NBTTagCompound)frozenManifest.copy();
             if(oldPolicy==0)state.n.removeTag("solarPolicy");else state.n.setInteger("solarPolicy",oldPolicy);
             state.n.setInteger("progress",399);state.n.setBoolean("solarSaltMode",false);state.n.setInteger("steamMode",0);
@@ -219,8 +245,50 @@ class CriticalEnergyPolicyRuntime {
             "absolute4096A cap is after dimension and modifier factors");
         BigInteger budget=CriticalSolarPolicy.batchBudgetEU(.6D,cryo,he,false);
         check(CriticalSolarPolicy.batchBudgetEU(.6D,cryo,he,true).equals(budget.multiply(b(2))), "salt route gets exactly2x shared mode budget");
-        check(CriticalSolarPolicy.paidLitres(he,budget,budget).equals(b(180))
-            && CriticalSolarPolicy.paidLitres(he,budget.multiply(b(2)),budget).equals(b(360)), "water9L/s and salt18L/s helium");
+        check(CriticalSolarPolicy.COOLANTS.get(0).referenceEUPerTick==199468339200L
+            &&CriticalSolarPolicy.COOLANTS.get(1).referenceEUPerTick==365691955200L
+            &&CriticalSolarPolicy.COOLANTS.get(2).referenceEUPerTick==664894464000L,
+            "each coolant uses its own exact best native MkVI LNR power reference");
+        List<CriticalSolarPolicy.Entry> catalogue=new ArrayList<>(CriticalSolarPolicy.COOLANTS);catalogue.addAll(CriticalSolarPolicy.EXCITERS);
+        BigInteger referencePower=b(CriticalSolarPolicy.MAX_VOLTAGE).multiply(b(864));
+        BigInteger referenceEU=referencePower.multiply(b(400));
+        long[] integerRates={40000,20000,200,30000,800,800,800,800,200};
+        check(CriticalSolarPolicy.REFERENCE_AMPS_MAX==864,"all medium fees share the864A MAX reference");
+        int rateIndex=0;
+        for(var entry:catalogue){
+            BigInteger rate=b(integerRates[rateIndex++]);
+            BigInteger expected=rate.multiply(b(20));
+            check(entry.litresPerSecond==rate.longValueExact()&&CriticalSolarPolicy.costLitres(entry,referenceEU).equals(expected)
+                &&CriticalSolarPolicy.costLitres(entry,referenceEU.multiply(b(2))).equals(expected.multiply(b(2))),
+                "shared864A reference and double output use the exact user integer-second fee:"+entry.id);
+            check(CriticalSolarPolicy.costLitres(entry,BigInteger.ONE).equals(b(20))
+                &&CriticalSolarPolicy.costLitres(entry,referenceEU.divide(b(3))).mod(b(20)).signum()==0,
+                "positive tiny work pays at least1L/s and all scaled bills are whole20second multiples:"+entry.id);
+            BigInteger nativeDenominator=b((long)entry.nativeLitresPerSecond).multiply(referencePower);
+            BigInteger ratioNumerator=rate.multiply(b(entry.referenceEUPerTick));
+            check(ratioNumerator.multiply(b(2)).compareTo(nativeDenominator.multiply(b(7)))>0
+                &&ratioNumerator.multiply(b(3)).compareTo(nativeDenominator.multiply(b(10)))>0,
+                "rounded fee stays above3.5x native per-output cost and above2x after external5/3 gain:"+entry.id);
+        }
+        BigInteger fee=CriticalSolarPolicy.costLitres(he,budget);
+        BigInteger doubleFee=CriticalSolarPolicy.costLitres(he,budget.multiply(b(2)));
+        check(fee.equals(expectedCost(he,budget))&&doubleFee.equals(expectedCost(he,budget.multiply(b(2))))
+            &&doubleFee.compareTo(fee.multiply(b(2)))<=0&&doubleFee.compareTo(fee.multiply(b(2)).subtract(b(20)))>=0,
+            "actual output doubles medium cost within one whole litre-per-second ceiling step");
+        check(CriticalSolarPolicy.paidLitres(he,budget,BigInteger.ONE).equals(fee)
+            &&CriticalSolarPolicy.paidLitres(he,budget,budget.multiply(b(100))).equals(fee),
+            "legacy ratedBudget argument cannot discount high dimensions or boosters");
+        check(CriticalSolarPolicy.costLitres(cryo,routeEU(.6D,1,1,false)).equals(b(400000))
+            &&CriticalSolarPolicy.costLitres(he,routeEU(.6D,1,1,false)).equals(b(16000))
+            &&CriticalSolarPolicy.costLitres(cryo,routeEU(.6D,1,1,true)).equals(b(800000))
+            &&CriticalSolarPolicy.costLitres(he,routeEU(.6D,1,1,true)).equals(b(32000)),
+            "actual quantised864A water route pays Cryo20000/He800Lps and salt pays exactly twice");
+        check(CriticalSolarPolicy.costLitres(he,referenceEU.divide(b(3))).equals(b(5340)),
+            "one-third output rounds266.66Lps up to267Lps before20second prepayment");
+        check(CriticalSolarPolicy.EXCITERS.get(0).nativeLitresPerSecond==2400D
+            &&CriticalSolarPolicy.EXCITERS.get(0).referenceEUPerTick==664894464000L
+            &&he.referenceEUPerTick==166223616000L&&he.nativeLitresPerSecond==20D,
+            "helium gas uses explicit air-maintenance proxy while plasma uses the atomic-excitation reference");
         BigInteger common=CriticalSolarPolicy.waterHalfHeat(budget);
         for(int mode=0;mode<6;mode++) {
             BigInteger volume=CriticalSolarPolicy.steamLitres(common,mode);
@@ -239,12 +307,13 @@ class CriticalEnergyPolicyRuntime {
             "full salt output is exactly twice actual water output after common quantum");
         check(salt.multiply(b(1000)).multiply(CriticalEnergyMath.steamHeatPerL(1)).multiply(b(10))
             .equals(salt.multiply(b(30000))), "real GT205 hot-salt->1000SH steam chain preserves accounting");
-        check(CriticalEnergyMath.runningEfficiency(0)==100 && CriticalEnergyMath.runningEfficiency(3600)==2000,
-            "visible1x to20x at3600 paid work ticks");
+        check(CriticalEnergyMath.TURBINE_WARMUP_TICKS==400&&CriticalEnergyMath.runningEfficiency(0)==100
+            && CriticalEnergyMath.runningEfficiency(400)==2000,
+            "visible1x to20x over one400paid-tick20second cycle");
         check(CriticalEnergyMath.targetWarmupTicks(BigInteger.ONE)==0
-            &&CriticalEnergyMath.targetWarmupTicks(fullTurbineHeat().divide(b(2)))==1800
-            &&CriticalEnergyMath.targetWarmupTicks(fullTurbineHeat())==3600,
-            "one litre normal steam cannot preheat; half/full absolute16A MAX base-EU targets are1800/3600");
+            &&CriticalEnergyMath.targetWarmupTicks(fullTurbineHeat().divide(b(2)))==200
+            &&CriticalEnergyMath.targetWarmupTicks(fullTurbineHeat())==400,
+            "one litre normal steam cannot preheat; half/full absolute16A MAX base-EU targets are200/400");
         int current=100;
         for(int i=0;i<1000;i++) current=CriticalEnergyMath.trendEfficiency(current,b(i%2==0?100:90),b(i%2==0?90:100));
         check(current==100,"100/90 oscillation cannot mint rotor efficiency");
@@ -259,7 +328,7 @@ class CriticalEnergyPolicyRuntime {
         BigInteger fullHeat=fullTurbineHeat();
         check((boolean)fund.invoke(null,state,state.n,new ArrayList<>(),new ArrayList<>(),fullHeat,0),"fresh paid turbine batch starts");
         check(new BigInteger(state.n.getString("eu")).equals(fullHeat.divide(b(2))) && state.n.getInteger("efficiency")==100
-            &&state.n.getInteger("turbinePolicy")==3&&state.n.getInteger("turbineTargetWarmupTicks")==3600,
+            &&state.n.getInteger("turbinePolicy")==4&&state.n.getInteger("turbineTargetWarmupTicks")==400,
             "new policy resets unearned legacy trend warmth only when funding new batch");
         String frozen=state.n.getString("eu");
         for(int i=0;i<399;i++){((EnergyClock)state.worldObj).clock++;CriticalEnergyRuntime.tick(state,host);}
@@ -271,6 +340,7 @@ class CriticalEnergyPolicyRuntime {
         gregtech.common.misc.WirelessNetworkManager.strongCheckOrAddUser(owner);
         ((EnergyClock)state.worldObj).clock++;CriticalEnergyRuntime.tick(state,host);
         check(!state.n.getBoolean("funded") && state.n.getInteger("turbineRunTicks")==400
+            &&state.n.getInteger("efficiency")==2000
             && gregtech.common.misc.WirelessNetworkManager.getUserEU(owner).equals(fullHeat.divide(b(2))),
             "400th tick settles saved frozen batch at original1x while rotor reached current warmth");
         ((EnergyClock)state.worldObj).clock+=2;CriticalEnergyRuntime.idleTick(state);
@@ -283,13 +353,39 @@ class CriticalEnergyPolicyRuntime {
         check(gregtech.common.misc.WirelessNetworkManager.getUserEU(owner).subtract(before)
             .equals(new BigInteger("12345678901234567890")) && !state.n.hasKey("turbinePolicy"),
             "legacy already funded batch settles original BigInteger EU without policy migration");
+        state.n=new NBTTagCompound();state.n.setInteger("turbinePolicy",3);
+        state.n.setInteger("turbineRunTicks",1800);state.n.setInteger("turbineTargetWarmupTicks",3600);
+        state.n.setInteger("efficiency",1050);state.n.setBoolean("funded",true);state.n.setInteger("progress",398);
+        state.n.setString("owner",owner.toString());state.n.setString("eu","9876543210123456789");
+        net.minecraft.nbt.NBTTagList oldInputs=new net.minecraft.nbt.NBTTagList();
+        NBTTagCompound oldReceipt=new NBTTagCompound();oldReceipt.setString("legacyReceipt","paid-at-v2.0.19");oldInputs.appendTag(oldReceipt);
+        state.n.setTag("inputs",oldInputs);
+        Method migrate=CriticalEnergyRuntime.class.getDeclaredMethod("migrateTurbineWarmth",CriticalMachineState.class,NBTTagCompound.class);
+        migrate.setAccessible(true);migrate.invoke(null,state,state.n);
+        check(state.n.getInteger("turbineRunTicks")==200&&state.n.getInteger("turbineTargetWarmupTicks")==400
+            &&state.n.getInteger("efficiency")==1050&&state.n.getInteger("turbinePolicy")==3,
+            "legacy half-warm1800/3600 migrates to200/400 at the same10.5x fraction without changing paid policy");
+        migrate.invoke(null,state,state.n);
+        check(state.n.getInteger("turbineRunTicks")==200&&state.n.getInteger("turbineWarmthScale")==4
+            &&state.n.getString("eu").equals("9876543210123456789")&&state.n.getTagList("inputs",10).equals(oldInputs),
+            "warmth scaling is idempotent and does not reprice old EU or debit receipts");
+        before=gregtech.common.misc.WirelessNetworkManager.getUserEU(owner);
+        for(int i=0;i<2;i++){((EnergyClock)state.worldObj).clock++;CriticalEnergyRuntime.tick(state,host);}
+        check(!state.n.getBoolean("funded")&&state.n.getInteger("turbineRunTicks")==202
+            &&gregtech.common.misc.WirelessNetworkManager.getUserEU(owner).subtract(before).equals(new BigInteger("9876543210123456789")),
+            "old paid policy3 finishes exactly its frozen bill while progressing on the new400tick warmth scale");
+        int migratedEfficiency=CriticalEnergyMath.runningEfficiency(202);
+        fund.invoke(null,state,state.n,new ArrayList<>(),new ArrayList<>(),fullHeat,0);
+        check(state.n.getInteger("turbinePolicy")==4&&state.n.getInteger("turbineRunTicks")==202
+            &&new BigInteger(state.n.getString("eu")).equals(fullHeat.multiply(b(migratedEfficiency)).divide(b(200))),
+            "next fresh policy4 payment preserves migrated warmth fraction and freezes only its newly quoted EU");
         EnergyState steady=(EnergyState)unsafe.allocateInstance(EnergyState.class);
         EnergyState changing=(EnergyState)unsafe.allocateInstance(EnergyState.class);
         for(EnergyState s:List.of(steady,changing)){
             s.n=new NBTTagCompound();s.n.setString("owner",owner.toString());
             s.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
         }
-        for(int batch=0;batch<9;batch++){
+        for(int batch=0;batch<2;batch++){
             fund.invoke(null,steady,steady.n,new ArrayList<>(),new ArrayList<>(),fullHeat.multiply(b(10)),0);
             fund.invoke(null,changing,changing.n,new ArrayList<>(),new ArrayList<>(),fullHeat.multiply(b(batch%2==0?10:9)),0);
             for(int tick=0;tick<400;tick++) for(EnergyState s:List.of(steady,changing)){
@@ -299,8 +395,8 @@ class CriticalEnergyPolicyRuntime {
                 &&steady.n.getInteger("efficiency")==changing.n.getInteger("efficiency"),
                 "actual steady and100/90 oscillating funded batches have identical rotor warmth after batch"+batch);
         }
-        check(steady.n.getInteger("turbineRunTicks")==3600&&steady.n.getInteger("efficiency")==2000,
-            "actual nine400tick funded batches reach20x in180seconds, no oscillation advantage");
+        check(steady.n.getInteger("turbineRunTicks")==400&&steady.n.getInteger("efficiency")==2000,
+            "actual400tick funded batch reaches20x in20seconds, no oscillation advantage");
         fund.invoke(null,steady,steady.n,new ArrayList<>(),new ArrayList<>(),BigInteger.ONE,0);
         String frozenLow=steady.n.getString("eu");
         check(steady.n.getInteger("turbineTargetWarmupTicks")==0&&steady.n.getInteger("efficiency")==2000,
@@ -311,21 +407,21 @@ class CriticalEnergyPolicyRuntime {
             ((EnergyClock)steady.worldObj).clock++;CriticalEnergyRuntime.tick(steady,host);
         }
         check(lowBillUnchanged,"all400 low-load decay ticks preserve the exact prepaid EU bill");
-        check(steady.n.getInteger("turbineRunTicks")==3200,
+        check(steady.n.getInteger("turbineRunTicks")==0,
             "1L steam cannot maintain full rotor warmth and loses400ticks in one paid batch");
         EnergyState cheap=(EnergyState)unsafe.allocateInstance(EnergyState.class);
         cheap.n=new NBTTagCompound();cheap.n.setString("owner",owner.toString());
         cheap.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
-        for(int batch=0;batch<10;batch++){
+        for(int batch=0;batch<2;batch++){
             fund.invoke(null,cheap,cheap.n,new ArrayList<>(),new ArrayList<>(),BigInteger.ONE,0);
             for(int tick=0;tick<400;tick++){((EnergyClock)cheap.worldObj).clock++;CriticalEnergyRuntime.tick(cheap,host);}
         }
         check(cheap.n.getInteger("turbineRunTicks")==0&&cheap.n.getInteger("efficiency")==100,
-            "ten paid1L ordinary-steam batches cannot preheat a cold rotor or carry20x into giant steam");
+            "paid1L ordinary-steam batches cannot preheat a cold rotor or carry20x into giant steam");
         for(EnergyState s:List.of(steady,changing)){
             s.n=new NBTTagCompound();s.n.setString("owner",owner.toString());
         }
-        for(int batch=0;batch<10;batch++){
+        for(int batch=0;batch<2;batch++){
             fund.invoke(null,steady,steady.n,new ArrayList<>(),new ArrayList<>(),fullHeat.divide(b(2)),0);
             fund.invoke(null,changing,changing.n,new ArrayList<>(),new ArrayList<>(),
                 fullHeat.multiply(b(batch%2==0?50:45)).divide(b(100)),0);
@@ -336,8 +432,8 @@ class CriticalEnergyPolicyRuntime {
             }
             check(neverBetter,"below-threshold100/90 heat oscillation never outwarms continuous higher heat, batch"+batch);
         }
-        check(steady.n.getInteger("turbineRunTicks")==1800&&changing.n.getInteger("turbineRunTicks")<=1800,
-            "sub-threshold stable load converges to its1800tick absolute target and cannot mint20x");
+        check(steady.n.getInteger("turbineRunTicks")==200&&changing.n.getInteger("turbineRunTicks")<=200,
+            "sub-threshold stable load converges to its200tick absolute target and cannot mint20x");
     }
     static class EnergyState extends CriticalCompoundRuntime.FakeState {
         @Override public CriticalMachineKind getMachineKind(){return CriticalMachineKind.TURBINE;}

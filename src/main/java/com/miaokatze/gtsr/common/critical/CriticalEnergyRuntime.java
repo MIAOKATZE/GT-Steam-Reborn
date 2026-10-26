@@ -39,6 +39,8 @@ public final class CriticalEnergyRuntime {
     private static final int CHEMICAL_POLICY_COMPOUND_V3 = 3;
     private static final int CHEMICAL_POLICY_CIRCUIT_V4 = 4;
     private static final int CHEMICAL_POLICY_REACTION_V5 = 5;
+    private static final int TURBINE_POLICY = 4;
+    private static final int LEGACY_TURBINE_WARMUP_TICKS = 3600;
     private static final ItemStack[] NO_ITEMS = new ItemStack[0];
     private static final FluidStack[] NO_FLUIDS = new FluidStack[0];
 
@@ -48,6 +50,7 @@ public final class CriticalEnergyRuntime {
     public static void idleTick(CriticalMachineState state) {
         if (!adaptive(state)) return;
         NBTTagCompound data = state.energyRuntimeData();
+        migrateTurbineWarmth(state, data);
         long now = state.worldObj.getTotalWorldTime();
         if (data.hasKey("lastIdleTick") && data.getLong("lastIdleTick") == now) return;
         data.setLong("lastIdleTick", now);
@@ -66,6 +69,29 @@ public final class CriticalEnergyRuntime {
 
     private static boolean adaptive(CriticalMachineState state) {
         return state.getMachineKind() == CriticalMachineKind.TURBINE;
+    }
+
+    /** Preserve the old warmth fraction independently of every already-paid batch receipt. */
+    private static void migrateTurbineWarmth(CriticalMachineState state, NBTTagCompound data) {
+        if (data.getInteger("turbineWarmthScale") == TURBINE_POLICY) return;
+        int policy = data.getInteger("turbinePolicy");
+        int ticks = 0, target = 0;
+        if (policy == 2 || policy == 3) {
+            ticks = Math.max(0, Math.min(LEGACY_TURBINE_WARMUP_TICKS, data.getInteger("turbineRunTicks")));
+            target = policy == 2 ? LEGACY_TURBINE_WARMUP_TICKS
+                : Math.max(0, Math.min(LEGACY_TURBINE_WARMUP_TICKS, data.getInteger("turbineTargetWarmupTicks")));
+            ticks = ticks * CriticalEnergyMath.TURBINE_WARMUP_TICKS / LEGACY_TURBINE_WARMUP_TICKS;
+            target = target * CriticalEnergyMath.TURBINE_WARMUP_TICKS / LEGACY_TURBINE_WARMUP_TICKS;
+        } else if (policy == TURBINE_POLICY) {
+            ticks = Math.max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, data.getInteger("turbineRunTicks")));
+            target = Math
+                .max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, data.getInteger("turbineTargetWarmupTicks")));
+        }
+        data.setInteger("turbineRunTicks", ticks);
+        data.setInteger("turbineTargetWarmupTicks", target);
+        data.setInteger("turbineWarmthScale", TURBINE_POLICY);
+        data.setInteger("efficiency", CriticalEnergyMath.runningEfficiency(ticks));
+        state.markDirty();
     }
 
     public static FluidStack steam(int mode) {
@@ -121,6 +147,7 @@ public final class CriticalEnergyRuntime {
             state.fail("批次提交结果不确定，已锁定以保护原料和无线电量");
             return;
         }
+        if (adaptive(state)) migrateTurbineWarmth(state, data);
         if (!data.getBoolean("funded")) {
             if (GTSRHatchFluidAccess.hasUnsupportedDuals(host.getCriticalDualInputHatches())) {
                 state.fail("不支持的工作流体输入实现；当前仅支持GT205原生样板仓与Slave");
@@ -135,10 +162,11 @@ public final class CriticalEnergyRuntime {
         if (progress < CYCLE_TICKS) {
             data.setInteger("progress", ++progress);
             data.setLong("lastWorkTick", state.worldObj.getTotalWorldTime());
-            if (adaptive(state) && (data.getInteger("turbinePolicy") == 2 || data.getInteger("turbinePolicy") == 3)) {
+            if (adaptive(state) && (data.getInteger("turbinePolicy") == 2 || data.getInteger("turbinePolicy") == 3
+                || data.getInteger("turbinePolicy") == TURBINE_POLICY)) {
                 int ticks = Math
                     .max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, data.getInteger("turbineRunTicks")));
-                int target = data.getInteger("turbinePolicy") == 3
+                int target = data.getInteger("turbinePolicy") != 2
                     ? Math.max(
                         0,
                         Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, data.getInteger("turbineTargetWarmupTicks")))
@@ -558,15 +586,17 @@ public final class CriticalEnergyRuntime {
 
     private static boolean fundAdaptive(CriticalMachineState state, NBTTagCompound data,
         List<CriticalEnergyPorts.Debit> debits, List<FluidAmount> outputs, BigInteger heat, int waterRemainder) {
-        // Migration only happens while funding a new batch; old paid EU/output manifests stay frozen.
-        int runTicks = data.getInteger("turbinePolicy") == 3 ? data.getInteger("turbineRunTicks") : 0;
+        migrateTurbineWarmth(state, data);
+        // Warmth migrates by fraction; only this fresh payment reads the current power policy.
+        int policy = data.getInteger("turbinePolicy");
+        int runTicks = policy >= 2 && policy <= TURBINE_POLICY ? data.getInteger("turbineRunTicks") : 0;
         int efficiency = CriticalEnergyMath.runningEfficiency(runTicks);
         // Common unit is half-EU; keep even fractional efficiency EU across batches (denominator 200).
         BigInteger[] energy = heat.multiply(BigInteger.valueOf(efficiency))
             .add(BigInteger.valueOf(data.getInteger("generationRemainder")))
             .divideAndRemainder(BigInteger.valueOf(200));
         if (!fund(state, data, debits, outputs, NO_ITEMS, energy[0], waterRemainder)) return false;
-        data.setInteger("turbinePolicy", 3);
+        data.setInteger("turbinePolicy", TURBINE_POLICY);
         data.setInteger("turbineTargetWarmupTicks", CriticalEnergyMath.targetWarmupTicks(heat));
         data.setInteger("turbineRunTicks", Math.max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, runTicks)));
         data.setInteger("nextGenerationRemainder", energy[1].intValue());
@@ -747,8 +777,8 @@ public final class CriticalEnergyRuntime {
                     if (!irradiation) continue;
                     workload = CriticalSolarPolicy.irradiationBudgetEU(waterBudget);
                 }
-                candidate.coolantLitres = CriticalSolarPolicy.paidLitres(coolant, workload, waterBudget);
-                candidate.exciterLitres = CriticalSolarPolicy.paidLitres(exciter, workload, waterBudget);
+                candidate.coolantLitres = CriticalSolarPolicy.costLitres(coolant, workload);
+                candidate.exciterLitres = CriticalSolarPolicy.costLitres(exciter, workload);
                 // Modifier scarcity selects a lower, fully funded catalogue entry; it never grants a free boost.
                 if (coolantStock.compareTo(candidate.coolantLitres) < 0
                     || CriticalEnergyPorts.total(snapshot, solarExciter(exciter))

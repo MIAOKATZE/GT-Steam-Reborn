@@ -31,15 +31,16 @@ public final class CriticalBusinessSnapshotContract {
         Constructor<CriticalConstructionSnapshot> mapConstructor = CriticalConstructionSnapshot.class
             .getDeclaredConstructor(int[].class);
         mapConstructor.setAccessible(true);
-        int[] map = new int[25];
+        int[] map = new int[26];
         map[9] = 3;
         map[10] = 17;
         map[11] = 23;
         map[12] = 3;
         map[17] = 1;
-        map[22] = -123;
-        map[23] = 456;
-        map[24] = 7;
+        map[22] = 6;
+        map[23] = -123;
+        map[24] = 456;
+        map[25] = 7;
         CriticalConstructionSnapshot construction = mapConstructor.newInstance((Object) map);
         String exact = "12345678901234567890123456789012345678901234567890";
         String[] text = { "blocked", "next item", "next fluid", "missing item", "missing fluid", "physical",
@@ -106,6 +107,9 @@ public final class CriticalBusinessSnapshotContract {
         CriticalBusinessSnapshot decoded = (CriticalBusinessSnapshot) read.invoke(null, packet);
         check(packet.readableBytes() == 0, "one complete packet must decode without trailing fields");
         check(decoded.construction.same(construction), "map and dismantle cursor must survive the same sample");
+        check(decoded.construction.foundationScheduleVersion() == 6 && decoded.construction.chunkX(0) == -123
+            && decoded.construction.chunkZ(0) == 456 && decoded.construction.chunkCells(0) == 7,
+            "whole-chunk schedule and visual subcell coordinates survive together");
         check(decoded.identity(0, 3).equals(exact), "large job quantities must remain exact decimal strings");
         check(decoded.energy().equals(exact), "large telemetry values must not pass through floating point");
         check(value(decoded, "chemical.heat").equals(exact + " EU"), "runtime amounts must remain exact after S2C decode");
@@ -175,10 +179,10 @@ public final class CriticalBusinessSnapshotContract {
         config.set(state, new com.miaokatze.gtsr.common.critical.CriticalConfiguration(
             com.miaokatze.gtsr.common.critical.CriticalTier.T3,
             com.miaokatze.gtsr.common.critical.CriticalMachineKind.TURBINE, 0, 0, 0));
-        data.setInteger("turbineRunTicks", 1234);
-        data.setInteger("turbineTargetWarmupTicks", 1600);
+        data.setInteger("turbineRunTicks", 123);
+        data.setInteger("turbineTargetWarmupTicks", 200);
         rows = (String[][]) projection.invoke(null, state);
-        check(value(rows, "steam.warmup").equals("1234 / 1600 t"), "equivalent-heat target replaces old trend thresholds");
+        check(value(rows, "steam.warmup").equals("123 / 200 t"), "equivalent-heat target replaces old trend thresholds");
         check(Arrays.stream(rows).noneMatch(row -> row[0].equals("ui.runtime.steam.rise")
             || row[0].equals("ui.runtime.steam.fall")), "removed rise/fall rewards cannot leak into the terminal");
         check(rows.length <= 40, "runtime sample remains within the native packet row bound");

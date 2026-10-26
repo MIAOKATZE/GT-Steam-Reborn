@@ -29,6 +29,7 @@ import com.miaokatze.gtsr.common.critical.CriticalChemicalRecipes;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
+import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
 import com.miaokatze.gtsr.common.critical.CriticalTier;
 import com.miaokatze.gtsr.common.gui.mui2.TerminalViewport;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
@@ -935,8 +936,16 @@ public final class MTECriticalMachineTerminalGui {
             tooltip.add(tr("operation.battery.paid"));
         }
         if (current == CriticalMachineKind.SUN) {
-            tooltip.add(tr("operation.sun.ignition"));
-            tooltip.add(tr("operation.sun.heat"));
+            tooltip.add(
+                StatCollector.translateToLocalFormatted(
+                    key("operation.sun.ignition"),
+                    CriticalStellarPolicy.IGNITION_EU / CriticalStellarPolicy.DURATION_TICKS,
+                    CriticalStellarPolicy.IGNITION_HELIUM3_L / CriticalStellarPolicy.DURATION_TICKS));
+            tooltip.add(
+                StatCollector.translateToLocalFormatted(
+                    key("operation.sun.heat"),
+                    CriticalStellarPolicy.SUSTAIN_EUT,
+                    CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK));
             tooltip.add(tr("operation.sun.pause"));
         }
         if (current == CriticalMachineKind.SOLAR) tooltip.add(tr("operation.solar.night"));

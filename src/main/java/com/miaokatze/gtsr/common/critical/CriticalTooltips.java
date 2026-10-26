@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.critical;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
+import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.util.MultiblockTooltipBuilder;
@@ -109,8 +110,15 @@ public final class CriticalTooltips {
         info(tt, EnumChatFormatting.YELLOW, "cycle");
         info(tt, EnumChatFormatting.GOLD, "sun.parallel");
         info(tt, EnumChatFormatting.RED, "sun.ignition");
-        info(tt, EnumChatFormatting.LIGHT_PURPLE, "sun.ignition_time");
-        info(tt, EnumChatFormatting.RED, "sun.sustain");
+        tt.addInfo(
+            EnumChatFormatting.LIGHT_PURPLE + formatted(
+                "sun.ignition_time",
+                CriticalStellarPolicy.IGNITION_HELIUM3_L / CriticalStellarPolicy.DURATION_TICKS));
+        tt.addInfo(
+            EnumChatFormatting.RED + formatted(
+                "sun.sustain",
+                CriticalStellarPolicy.SUSTAIN_EUT,
+                CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK));
         info(tt, EnumChatFormatting.GREEN, "sun.output");
         tt.addSeparator();
         info(tt, EnumChatFormatting.GOLD, "sun.discount");
@@ -164,7 +172,12 @@ public final class CriticalTooltips {
                 "solar.medium",
                 tr("solar." + group + "." + entry.id),
                 entry.multiplier,
-                entry.litresPerSecond));
+                CriticalRecipeMaps.SOLAR_MEDIUM_REFERENCE_AMPS,
+                new java.math.BigDecimal(
+                    CriticalSolarPolicy.costLitres(entry, CriticalRecipeMaps.solarMediumReferenceEU()))
+                        .divide(java.math.BigDecimal.valueOf(CriticalEnergyMath.CYCLE_TICKS / 20))
+                        .stripTrailingZeros()
+                        .toPlainString()));
     }
 
     private static String formatted(String key, Object... values) {

@@ -3,12 +3,13 @@ package com.miaokatze.gtsr.common.critical;
 /** Single ignition contract; provisional balance values live here for both runtime and recipe displays. */
 public final class CriticalStellarPolicy {
 
-    public static final int VERSION = 3, MAX_PARALLEL = 8196;
+    public static final int VERSION = 4, MAX_PARALLEL = 8196;
     public static final int DURATION_TICKS = 400;
     public static final long IGNITION_EU = 10_000_000_000_000L;
     public static final long LEGACY_IGNITION_EU = 1_000_000_000_000_000L;
-    public static final long IGNITION_HELIUM3_L = 1_000_000L;
-    public static final long SUSTAIN_EUT = 1_000_000L, SUSTAIN_HELIUM3_L_PER_TICK = 1L;
+    public static final long LEGACY_IGNITION_HELIUM3_L = 1_000_000L;
+    public static final long IGNITION_HELIUM3_L = 50_000_000L;
+    public static final long SUSTAIN_EUT = 1_000_000L, SUSTAIN_HELIUM3_L_PER_TICK = 100L;
     public static final long MKV_STARTUP = 20_480_000_000L;
 
     private CriticalStellarPolicy() {}

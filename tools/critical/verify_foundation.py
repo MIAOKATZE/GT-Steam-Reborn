@@ -76,8 +76,8 @@ def main():
             raise RuntimeError(f'{name} returned no receipt')
         results[name] = int(match.group(1))
         origins.update(dict(re.findall(r'^SOURCE ([^=]+)=(.+)$', text, re.MULTILINE)))
-    if not args.contract and len(origins) != 12:
-        raise RuntimeError(f'Expected twelve bound production classes, found {origins}')
+    if not args.contract and len(origins) != 13:
+        raise RuntimeError(f'Expected thirteen bound production classes, found {origins}')
     if sha(candidate) != candidate_hash or before != {str(path.relative_to(ROOT)): sha(path) for path in sources}:
         raise RuntimeError('Candidate or fixture changed during verification')
     receipt = {'status': 'PASS', 'jar': str(candidate), 'jarSHA256': candidate_hash,

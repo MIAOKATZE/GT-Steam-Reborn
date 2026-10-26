@@ -22,6 +22,7 @@ import gregtech.api.util.GTRecipe;
 /** Read-only NEI catalogues. Every entry is fake; custom runtimes never execute these maps. */
 public final class CriticalRecipeMaps {
 
+    public static final int SOLAR_MEDIUM_REFERENCE_AMPS = CriticalSolarPolicy.REFERENCE_AMPS_MAX;
     public static final int CONSTRUCTION_PAGE_SIZE = 18;
     private static final EnumMap<CriticalMachineKind, RecipeMap<RecipeMapBackend>> MAPS = new EnumMap<>(
         CriticalMachineKind.class);
@@ -47,6 +48,13 @@ public final class CriticalRecipeMaps {
     }
 
     private CriticalRecipeMaps() {}
+
+    /** One explicitly labelled, common 20-second output reference for all medium examples. */
+    public static BigInteger solarMediumReferenceEU() {
+        return BigInteger.valueOf(SOLAR_MEDIUM_REFERENCE_AMPS)
+            .multiply(BigInteger.valueOf(CriticalSolarPolicy.MAX_VOLTAGE))
+            .multiply(BigInteger.valueOf(com.miaokatze.gtsr.common.critical.CriticalEnergyMath.CYCLE_TICKS));
+    }
 
     /** The loom indexes construction, while frozen controllers still have no processing catalogue. */
     public static RecipeMap<RecipeMapBackend> forKind(CriticalMachineKind kind) {

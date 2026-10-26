@@ -92,7 +92,14 @@ public final class CriticalNEIShowcase {
             rows(
                 text(operation.equals("solar_coolant") ? "solar.medium.required" : "solar.medium.activation"),
                 CriticalRecipeMaps.formatted("simple.solar.medium.factor", info.solarMedium.multiplier),
-                CriticalRecipeMaps.formatted("simple.solar.medium.flow", info.solarMedium.litresPerSecond),
+                CriticalRecipeMaps.formatted(
+                    "simple.solar.medium.reference",
+                    maxAmps(CriticalRecipeMaps.SOLAR_MEDIUM_REFERENCE_AMPS)),
+                CriticalRecipeMaps.formatted(
+                    "simple.solar.medium.flow",
+                    number(
+                        java.math.BigDecimal.valueOf(recipe.mFluidInputs[0].amount)
+                            .divide(java.math.BigDecimal.valueOf(CriticalEnergyMath.CYCLE_TICKS / 20)))),
                 text("solar.medium.load"),
                 text("solar.medium.salt"));
         } else if (chemical) {
@@ -109,13 +116,20 @@ public final class CriticalNEIShowcase {
                 rows(
                     text("stellar.phase_time"),
                     power(CriticalStellarPolicy.IGNITION_EU / CriticalStellarPolicy.DURATION_TICKS),
-                    text("ignition.helium"),
+                    CriticalRecipeMaps.formatted(
+                        "simple.ignition.helium",
+                        number(java.math.BigDecimal.valueOf(CriticalStellarPolicy.IGNITION_HELIUM3_L))),
                     text("ignition.once"));
             } else if (operation.equals("stellar_sustain")) {
                 rows(
                     text("stellar.phase_time"),
                     power(CriticalStellarPolicy.SUSTAIN_EUT),
-                    text("sustain.helium"),
+                    CriticalRecipeMaps.formatted(
+                        "simple.sustain.helium",
+                        number(
+                            java.math.BigDecimal.valueOf(
+                                CriticalStellarPolicy.DURATION_TICKS
+                                    * CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK))),
                     text("sustain.always"));
             } else {
                 rows(

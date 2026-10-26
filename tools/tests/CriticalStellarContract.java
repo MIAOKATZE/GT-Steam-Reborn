@@ -75,6 +75,10 @@ public final class CriticalStellarContract {
         check(!CriticalStellarPolicy.nativeCapability(20_480_000_001L, 1, 8_388_608L), "Over MkV rejected");
         check(CriticalStellarPolicy.IGNITION_EU / 400 == 25_000_000_000L
             && CriticalStellarPolicy.IGNITION_EU / 400 <= 34_359_738_240L, "New 20 second ignition fits unchanged shared cap");
+        check(CriticalStellarPolicy.VERSION == 4 && CriticalStellarRuntime.SCHEMA == 3
+            && CriticalStellarPolicy.IGNITION_HELIUM3_L == 50_000_000L
+            && CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK * 20 == 2000,
+            "Fuel policy changes without rewriting the thermal schema or energy prices");
         NBTTagCompound n = new NBTTagCompound(); Port p = new Port();
         p.available = 100; tick(n,p,1);
         check(n.getLong("ignitionPaid") == 100 && p.burned == 0 && n.getInteger("ignitionProgress") == 0,
@@ -93,6 +97,8 @@ public final class CriticalStellarContract {
         check(n.getBoolean("hot") && !CriticalStellarRuntime.ready(n), "400th ignition tick grants no free production");
         check(p.spent == CriticalStellarPolicy.IGNITION_EU && p.burned == CriticalStellarPolicy.IGNITION_HELIUM3_L,
             "Reload neither duplicates nor drops ignition payment");
+        check(p.plasma + n.getLong("pendingPlasmaL") == 25_000_000L && !n.hasKey("ignitionHe3Required"),
+            "New ignition yields 25 million litres plasma and clears its completed fuel target");
         check(n.getLong("ignitionEuConsumed") == 0, "Ignition consumed marker cleared");
         CriticalStellarRuntime.tick(n,p,"machine",404,true,true,false,true,false);
         check(CriticalStellarRuntime.ready(n) && n.getInteger("sustainProgress") == 1,
@@ -103,7 +109,8 @@ public final class CriticalStellarContract {
         check(!CriticalStellarRuntime.payProcessing(n,p,"batch",16), "No duplicate tick progress");
         CriticalStellarRuntime.finishBatch(n,p);
         for (int i=405;i<804;i++) tick(n,p,i);
-        check(n.getInteger("sustainProgress") == 0 && p.burned == CriticalStellarPolicy.IGNITION_HELIUM3_L + 400,
+        check(n.getInteger("sustainProgress") == 0 && p.burned == CriticalStellarPolicy.IGNITION_HELIUM3_L
+            + 400 * CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK,
             "400 paid maintain ticks complete exactly one persistent phase");
         long before = p.spent;
         CriticalStellarRuntime.tick(n,p,"machine",804,false,true,true,true,false);
@@ -114,22 +121,30 @@ public final class CriticalStellarContract {
         check(!n.getBoolean("hot") && !CriticalStellarRuntime.ready(n), "Fuel interruption extinguishes immediately");
         p.outputCapacity = Long.MAX_VALUE; CriticalStellarRuntime.settleRefund(n,p);
         check(!CriticalStellarRuntime.hasAssets(n), "Extinct assets settle completely");
-        n = new NBTTagCompound(); p = new Port(); p.fuel = 1250; tick(n,p,1);
+        n = new NBTTagCompound(); p = new Port(); p.fuel = CriticalStellarPolicy.IGNITION_HELIUM3_L / 800; tick(n,p,1);
         n = (NBTTagCompound)n.copy(); CriticalStellarRuntime.shutdown(n,p);
-        check(p.plasma == 625 && p.refunded == CriticalStellarPolicy.IGNITION_EU / 800
+        check(p.plasma == CriticalStellarPolicy.IGNITION_HELIUM3_L / 1600
+            && p.refunded == CriticalStellarPolicy.IGNITION_EU / 800
             && p.spent-p.refunded == CriticalStellarPolicy.IGNITION_EU/800,
             "Half-stage cancellation pays only actually burned fraction and yields only actual plasma");
         n = new NBTTagCompound(); p = new Port();
         for(int i=1;i<=200;i++)tick(n,p,i);
         CriticalStellarRuntime.shutdown(n,p);
-        check(p.spent == CriticalStellarPolicy.IGNITION_EU/2 && p.refunded == 0 && p.plasma == 250000,
+        check(p.spent == CriticalStellarPolicy.IGNITION_EU/2 && p.refunded == 0
+            && p.plasma == CriticalStellarPolicy.IGNITION_HELIUM3_L/4,
             "Cancelling completed half ignition neither refunds spent EU nor removes produced plasma");
         n = new NBTTagCompound(); p = new Port(); n.setInteger("schema",2);n.setInteger("billingVersion",2);
         n.setString("host",p.identity);n.setString("structure","machine");n.setLong("ignitionPaid",CriticalStellarPolicy.LEGACY_IGNITION_EU);
         n.setLong("ignitionHelium3Paid",500000);n.setLong("ignitionEuConsumed",CriticalStellarPolicy.LEGACY_IGNITION_EU/2);
+        NBTTagCompound snapshot = CriticalStellarRuntime.snapshot(n);
+        check(snapshot.getLong("ignitionRequired") == CriticalStellarPolicy.LEGACY_IGNITION_EU
+            && snapshot.getLong("ignitionHelium3Required") == 1_000_000L,
+            "Unmigrated v2 snapshot reports its historical energy and fuel targets");
         tick(n,p,1);
         check(n.getInteger("schema")==3 && n.getInteger("ignitionProgress")==201 && p.spent==0 && p.burned==2500,
             "Old partial ignition resumes from prepaid receipts without recharging");
+        check(CriticalStellarRuntime.snapshot(n).getLong("ignitionHelium3Required") == 1_000_000L,
+            "Migrated v2 fuel target remains frozen at one million litres");
         CriticalStellarRuntime.shutdown(n,p);
         check(p.refunded==CriticalStellarPolicy.LEGACY_IGNITION_EU/2-CriticalStellarPolicy.LEGACY_IGNITION_EU/400,
             "Migrated prepaid unused EU refunds exactly");
@@ -152,6 +167,50 @@ public final class CriticalStellarContract {
         check(!n.getBoolean("uncertain")&&n.getInteger("ignitionProgress")==2
             && p.spent==CriticalStellarPolicy.LEGACY_IGNITION_EU/400,
             "Current schema partial session bills frozen snapshot independently of current default");
+        check(n.getLong("ignitionEuRequired") == CriticalStellarPolicy.LEGACY_IGNITION_EU
+            && n.getLong("ignitionHe3Required") == 1_000_000L,
+            "v3 migration keeps a previously migrated full energy snapshot with the old fuel target");
+        n = new NBTTagCompound();p = new Port();n.setInteger("schema",3);n.setInteger("billingVersion",3);
+        n.setString("host",p.identity);n.setString("structure","machine");
+        n.setLong("ignitionEuRequired",CriticalStellarPolicy.IGNITION_EU);
+        n.setLong("ignitionPaid",CriticalStellarPolicy.IGNITION_EU);
+        n.setLong("ignitionEuConsumed",CriticalStellarPolicy.IGNITION_EU/4);
+        n.setLong("ignitionHelium3Paid",250000);n.setInteger("ignitionProgress",100);
+        check(CriticalStellarRuntime.snapshot(n).getLong("ignitionHelium3Required") == 1_000_000L,
+            "v3 partial snapshot uses the old fuel target before its first migrated tick");
+        tick(n,p,1);
+        check(n.getInteger("billingVersion") == 4 && n.getInteger("ignitionProgress") == 101
+            && p.spent == 0 && p.burned == 2500,
+            "v3 partial ignition resumes from actual old fuel and energy receipts");
+        CriticalStellarRuntime.shutdown(n,p);
+        check(p.refunded == CriticalStellarPolicy.IGNITION_EU / 400 * 299,
+            "Old fuel denominator charges consumed ignition energy exactly without over-refund");
+        n = new NBTTagCompound();p = new Port();n.setInteger("schema",3);n.setInteger("billingVersion",3);
+        n.setString("host",p.identity);n.setString("structure","machine");n.setBoolean("hot",true);
+        n.setLong("ignitionEuRequired",CriticalStellarPolicy.IGNITION_EU);
+        n.setLong("sustainPaid",CriticalStellarPolicy.SUSTAIN_EUT);n.setLong("sustainHelium3Paid",1);
+        n.setLong("processingPaid",123);n.setLong("pendingPlasmaL",17);n.setInteger("plasmaHalfRemainder",1);
+        p.outputCapacity = 0;tick(n,p,1);
+        check(CriticalStellarRuntime.ready(n) && p.spent == 0 && p.burned == 99
+            && n.getLong("sustainHelium3Paid") == 0 && n.getLong("processingPaid") == 123
+            && n.getLong("pendingPlasmaL") == 67 && n.getInteger("plasmaHalfRemainder") == 0,
+            "v3 hot migration credits one real paid litre and retains processing and plasma ledgers");
+        tick(n,p,2);
+        check(p.burned == 199 && p.spent == CriticalStellarPolicy.SUSTAIN_EUT
+            && n.getLong("pendingPlasmaL") == 117,
+            "Following hot ticks burn 100 litres and yield 50 litres plasma per tick");
+        n = new NBTTagCompound();p = new Port();n.setInteger("schema",3);n.setInteger("billingVersion",3);
+        n.setString("host",p.identity);n.setString("structure","machine");
+        n.setLong("ignitionEuRequired",CriticalStellarPolicy.IGNITION_EU);
+        n.setLong("ignitionPaid",CriticalStellarPolicy.IGNITION_EU);
+        n.setLong("ignitionEuConsumed",CriticalStellarPolicy.IGNITION_EU/400*399);
+        n.setLong("ignitionHelium3Paid",997500);n.setInteger("ignitionProgress",399);tick(n,p,1);
+        check(n.getBoolean("hot") && p.spent == 0 && p.burned == 2500 && !n.hasKey("ignitionHe3Required"),
+            "Old v3 ignition completes its last real stage and clears the frozen fuel target");
+        CriticalStellarRuntime.shutdown(n,p);tick(n,p,2);
+        check(n.getLong("ignitionHe3Required") == 50_000_000L && p.burned == 127500
+            && p.spent == CriticalStellarPolicy.IGNITION_EU/400,
+            "Restart after old ignition completion adopts the new 50 million litre contract");
         n = new NBTTagCompound();p = new Port();n.setInteger("schema",2);n.setInteger("billingVersion",2);
         n.setString("host",p.identity);n.setString("structure","machine");tick(n,p,1);
         check(n.getLong("ignitionEuRequired")==CriticalStellarPolicy.IGNITION_EU
@@ -163,11 +222,13 @@ public final class CriticalStellarContract {
         CriticalStellarRuntime.tick(n,p,"machine",1,true,true,false,true,false);
         check(CriticalStellarRuntime.supported(n)&&!n.getBoolean("hot")&&p.refunded==235, "v1 heat cools and refunds unused funds");
         n = new NBTTagCompound();p = new Port();p.fuelUncertain=true;tick(n,p,1);
-        check(n.getBoolean("uncertain")&&!n.getBoolean("hot")&&n.getLong("pendingPlasmaL")==1250,
+        check(n.getBoolean("uncertain")&&!n.getBoolean("hot")
+            &&n.getLong("pendingPlasmaL")==CriticalStellarPolicy.IGNITION_HELIUM3_L/800,
             "Uncertain extraction retains receipts and stops");
         before=p.burned;tick(n,p,2);check(p.burned==before,"Uncertain extraction cannot replay");
         n = new NBTTagCompound();p = new Port();tick(n,p,1);p.outputThrows=true;tick(n,p,2);
-        check(n.getBoolean("uncertain")&&n.getLong("pendingPlasmaL")==1250,"Uncertain output retains evidence");
+        check(n.getBoolean("uncertain")
+            &&n.getLong("pendingPlasmaL")==CriticalStellarPolicy.IGNITION_HELIUM3_L/800,"Uncertain output retains evidence");
         n = new NBTTagCompound();p = new Port();ignite(n,p,1);
         CriticalStellarRuntime.tick(n,p,"machine",401,true,true,true,false,false);
         check(!n.getBoolean("hot"),"Structure loss extinguishes");

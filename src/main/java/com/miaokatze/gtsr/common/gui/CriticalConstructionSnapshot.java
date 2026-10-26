@@ -14,7 +14,7 @@ import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 /** One immutable S2C sample: the map, stage cursor and clocks always refer to the same server tick. */
 final class CriticalConstructionSnapshot {
 
-    private static final int HEADER_SIZE = 22;
+    private static final int HEADER_SIZE = 23;
     private final int[] values;
 
     private CriticalConstructionSnapshot(int[] values) {
@@ -69,6 +69,7 @@ final class CriticalConstructionSnapshot {
         values[19] = state.isFoundationCellFunded() ? 1 : 0;
         values[20] = state.isLoomJournalOwner() ? 1 : 0;
         values[21] = state.usesThreePartConstruction() ? 1 : 0;
+        values[22] = state.getFoundationScheduleVersion();
         for (int i = 0; i < chunks.size(); i++) {
             ChunkCoordIntPair chunk = chunks.get(i);
             values[HEADER_SIZE + i * 3] = chunk.chunkXPos;
@@ -113,6 +114,23 @@ final class CriticalConstructionSnapshot {
 
     int cellDuration() {
         return values[4];
+    }
+
+    int foundationScheduleVersion() {
+        return values[22];
+    }
+
+    /** v6 pays one whole chunk; its sixteen map cells only subdivide that same paid work. */
+    int displayCellTicks() {
+        return foundationScheduleVersion() >= 6
+            ? (int) ((long) Math.max(0, cellTicks()) * 16 % Math.max(1, cellDuration()))
+            : cellTicks();
+    }
+
+    int completedChunks() {
+        int completed = 0;
+        for (int i = 0; i < chunkCount(); i++) if (chunkCells(i) == 16) completed++;
+        return completed;
     }
 
     int curingRemaining() {
@@ -226,7 +244,7 @@ final class CriticalConstructionSnapshot {
     double progress() {
         if (status() == 2) return 1;
         if (showsFoundation()) {
-            if (phase() == 1) return ratio(completedCells() + ratio(cellTicks(), cellDuration()), totalCells());
+            if (phase() == 1) return ratio(completedCells() + ratio(displayCellTicks(), cellDuration()), totalCells());
             if (phase() == 2) return 1 - ratio(curingRemaining(), curingDuration());
             if (phase() == 4) return ratio(constructionTicks(), constructionDuration());
         }

@@ -525,6 +525,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private int constructionBlockBudget = 128, constructionLightBudget = 16;
     private boolean repairScanPending, completionValidationPending;
     private boolean foundationRequired, foundationModern;
+    private int foundationScheduleVersion = CriticalFoundationChunk.VERSION;
     private int foundationCuringCheckTicks;
     private int clientFoundationPhase, clientFoundationCellProgress, clientFoundationCuringRemaining,
         clientFoundationHeatingRemaining;
@@ -596,6 +597,13 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public int getFoundationCellDurationTicks() {
         return CriticalFoundationChunk.CELL_DURATION;
+    }
+
+    public int getFoundationScheduleVersion() {
+        if (worldObj == null || worldObj.isRemote) return foundationModern ? foundationScheduleVersion : 0;
+        int active = getFoundationActiveChunkIndex();
+        CriticalFoundationChunk chunk = active < 0 ? null : findFoundation(active);
+        return chunk == null ? foundationModern ? foundationScheduleVersion : 0 : chunk.scheduleVersion();
     }
 
     public boolean isFoundationCellFunded() {
@@ -684,7 +692,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             }
             if (!chunk.funded()) {
                 ItemStack[] items = ignoresConstructionItems() ? new ItemStack[0]
-                    : CriticalFoundationMaterials.items(chunk.modern());
+                    : CriticalFoundationMaterials.items(chunk.scheduleVersion());
                 FluidStack[] fluids = ignoresConstructionFluids() ? new FluidStack[0]
                     : new FluidStack[] { CriticalFoundationMaterials.fluid(1_000_000) };
                 if (!fundCriticalInputs(items, fluids)) {
@@ -1228,6 +1236,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         state = 1;
         foundationRequired = isLoomJournalOwner();
         foundationModern = newEconomy != null && newEconomy.version() >= 5;
+        foundationScheduleVersion = foundationModern ? CriticalFoundationChunk.VERSION : 0;
         foundationCuringCheckTicks = 0;
         constructionTimeVersion = 1;
         resetConstructionStage();
@@ -2376,7 +2385,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         int active = getFoundationActiveChunkIndex();
         CriticalFoundationChunk chunk = worldObj == null || worldObj.isRemote || active < 0 ? null
             : findFoundation(active);
-        return CriticalFoundationMaterials.items(chunk == null ? foundationModern : chunk.modern());
+        return CriticalFoundationMaterials
+            .items(chunk == null ? foundationModern ? foundationScheduleVersion : 0 : chunk.scheduleVersion());
     }
 
     public ItemStack[] getConstructionMissingItemsForGui() {
@@ -3525,6 +3535,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         n.setTag("criticalBatchRecipe", batchRecipe);
         n.setBoolean("foundationRequired", foundationRequired);
         n.setBoolean("foundationModern", foundationModern);
+        n.setInteger("foundationScheduleVersion", foundationScheduleVersion);
         n.setInteger("foundationCuringCheckTicks", foundationCuringCheckTicks);
         n.setBoolean("chunkLoadingEnabled", isChunkLoadingEnabled());
         n.setInteger("geometryVersion", getGeometryVersion());
@@ -3589,6 +3600,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         batchRecipe = n.getCompoundTag("criticalBatchRecipe");
         foundationRequired = n.getBoolean("foundationRequired");
         foundationModern = n.getBoolean("foundationModern");
+        foundationScheduleVersion = foundationModern ? CriticalFoundationChunk.VERSION : 0;
         foundationCuringCheckTicks = Math.max(0, Math.min(399, n.getInteger("foundationCuringCheckTicks")));
         chunkLoading.setEnabled(!n.hasKey("chunkLoadingEnabled") || n.getBoolean("chunkLoadingEnabled"));
         protectionDirty = true;
@@ -3682,6 +3694,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         NBTTagCompound n = new NBTTagCompound();
         n.setBoolean("foundationRequired", foundationRequired);
         n.setBoolean("foundationModern", foundationModern);
+        n.setInteger("foundationScheduleVersion", getFoundationScheduleVersion());
         n.setInteger("foundationPhase", getFoundationPhase());
         n.setInteger("foundationCellProgress", getFoundationCellProgressTicks());
         n.setBoolean("foundationCellFunded", isFoundationCellFunded());
@@ -3731,6 +3744,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public void readVisualData(NBTTagCompound n) {
         foundationRequired = n.getBoolean("foundationRequired");
         foundationModern = n.getBoolean("foundationModern");
+        foundationScheduleVersion = n.hasKey("foundationScheduleVersion") ? n.getInteger("foundationScheduleVersion")
+            : foundationModern ? 5 : 0;
         clientFoundationPhase = n.getInteger("foundationPhase");
         clientFoundationCellProgress = n.getInteger("foundationCellProgress");
         clientFoundationCellFunded = n.getBoolean("foundationCellFunded");

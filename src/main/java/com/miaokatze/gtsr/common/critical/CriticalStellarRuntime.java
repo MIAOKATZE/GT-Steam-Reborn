@@ -106,18 +106,23 @@ public final class CriticalStellarRuntime {
             n.setLong("ignitionEuRequired", CriticalStellarPolicy.IGNITION_EU);
             port.changed();
         }
+        if (!n.hasKey("ignitionHe3Required")) {
+            n.setLong("ignitionHe3Required", ignitionHelium3Required(n));
+            port.changed();
+        }
         long ignitionEu = ignitionRequired(n);
+        long ignitionHe3 = ignitionHelium3Required(n);
         long euTarget = BigInteger.valueOf(ignitionEu)
             .multiply(BigInteger.valueOf(progress + 1L))
             .divide(BigInteger.valueOf(CriticalStellarPolicy.DURATION_TICKS))
             .longValueExact();
-        long heliumTarget = CriticalStellarPolicy.IGNITION_HELIUM3_L / CriticalStellarPolicy.DURATION_TICKS
-            * (progress + 1L);
+        long heliumTarget = ignitionHe3 / CriticalStellarPolicy.DURATION_TICKS * (progress + 1L);
         // A migrated v2 ignition can already hold more credit than this stage's cumulative target.
-        if (ignitionEu <= 0 || n.getLong("ignitionPaid") < 0
+        if (ignitionEu <= 0 || ignitionHe3 <= 0
+            || n.getLong("ignitionPaid") < 0
             || n.getLong("ignitionPaid") > ignitionEu
             || n.getLong("ignitionHelium3Paid") < 0
-            || n.getLong("ignitionHelium3Paid") > CriticalStellarPolicy.IGNITION_HELIUM3_L) {
+            || n.getLong("ignitionHelium3Paid") > ignitionHe3) {
             n.setBoolean("uncertain", true);
             port.changed();
             return;
@@ -131,6 +136,7 @@ public final class CriticalStellarRuntime {
         n.setLong("ignitionPaid", 0);
         n.setLong("ignitionHelium3Paid", 0);
         n.setLong("ignitionEuConsumed", 0);
+        n.removeTag("ignitionHe3Required");
         n.setBoolean("hot", true);
         n.setInteger("ignitionProgress", 0);
         n.setInteger("sustainProgress", 0);
@@ -143,9 +149,22 @@ public final class CriticalStellarRuntime {
         port.changed();
     }
 
-    /** Old heat cannot unlock the newly fuelled contract; refund only the old unspent EU. */
+    /** Known paid sessions retain their frozen ignition targets; unknown or uncertain journals stay locked. */
     private static boolean migrate(NBTTagCompound n, PowerPort port, String structureId) {
         if (supported(n)) return true;
+        if (n.getInteger("schema") == SCHEMA && n.getInteger("billingVersion") == 3
+            && !n.getBoolean("uncertain")
+            && !n.getBoolean("itemCopy")
+            && sameHost(n, port)
+            && structureId != null
+            && structureId.equals(n.getString("structure"))) {
+            // Actual paid litres keep their original value; only the next sustain debit uses the new rate.
+            if (!n.getBoolean("hot") && ignitionInFlight(n))
+                n.setLong("ignitionHe3Required", CriticalStellarPolicy.LEGACY_IGNITION_HELIUM3_L);
+            n.setInteger("billingVersion", CriticalStellarPolicy.VERSION);
+            port.changed();
+            return true;
+        }
         if (n.getInteger("schema") == 2 && n.getInteger("billingVersion") == 2
             && !n.getBoolean("uncertain")
             && !n.getBoolean("itemCopy")
@@ -154,11 +173,11 @@ public final class CriticalStellarRuntime {
             && structureId.equals(n.getString("structure"))) {
             long fuel = n.getLong("ignitionHelium3Paid");
             long paid = n.getLong("ignitionPaid");
-            if (fuel < 0 || fuel > CriticalStellarPolicy.IGNITION_HELIUM3_L
+            if (fuel < 0 || fuel > CriticalStellarPolicy.LEGACY_IGNITION_HELIUM3_L
                 || paid < 0
                 || paid > CriticalStellarPolicy.LEGACY_IGNITION_EU) return false;
             int progress = (int) Math.min(
-                fuel / (CriticalStellarPolicy.IGNITION_HELIUM3_L / CriticalStellarPolicy.DURATION_TICKS),
+                fuel / (CriticalStellarPolicy.LEGACY_IGNITION_HELIUM3_L / CriticalStellarPolicy.DURATION_TICKS),
                 paid / (CriticalStellarPolicy.LEGACY_IGNITION_EU / CriticalStellarPolicy.DURATION_TICKS));
             // A fully prepaid journal still needs its final real loaded tick to become hot.
             n.setInteger("ignitionProgress", Math.min(CriticalStellarPolicy.DURATION_TICKS - 1, progress));
@@ -167,6 +186,8 @@ public final class CriticalStellarRuntime {
                 "ignitionEuRequired",
                 n.getBoolean("hot") || paid > 0 || fuel > 0 ? CriticalStellarPolicy.LEGACY_IGNITION_EU
                     : CriticalStellarPolicy.IGNITION_EU);
+            if (!n.getBoolean("hot") && (paid > 0 || fuel > 0))
+                n.setLong("ignitionHe3Required", CriticalStellarPolicy.LEGACY_IGNITION_HELIUM3_L);
             n.setInteger("schema", SCHEMA);
             n.setInteger("billingVersion", CriticalStellarPolicy.VERSION);
             port.changed();
@@ -279,7 +300,7 @@ public final class CriticalStellarRuntime {
                             "ignitionEuConsumed",
                             BigInteger.valueOf(ignitionRequired(n))
                                 .multiply(BigInteger.valueOf(previous + actual))
-                                .divide(BigInteger.valueOf(CriticalStellarPolicy.IGNITION_HELIUM3_L))
+                                .divide(BigInteger.valueOf(ignitionHelium3Required(n)))
                                 .longValueExact());
                     }
                     long half = actual + n.getInteger("plasmaHalfRemainder");
@@ -346,6 +367,7 @@ public final class CriticalStellarRuntime {
         n.setInteger("ignitionProgress", 0);
         n.setInteger("sustainProgress", 0);
         n.removeTag("ignitionEuRequired");
+        n.removeTag("ignitionHe3Required");
         n.setLong("ignitionEuConsumed", 0);
         n.setLong("sustainPaid", 0);
         n.setLong("ignitionHelium3Paid", 0);
@@ -417,7 +439,7 @@ public final class CriticalStellarRuntime {
                         .isEmpty() ? 3 : 4
                         : n.getLong("ignitionPaid") > 0 || n.getLong("ignitionHelium3Paid") > 0 ? 1 : 0);
         result.setLong("ignitionRequired", ignitionRequired(n));
-        result.setLong("ignitionHelium3Required", CriticalStellarPolicy.IGNITION_HELIUM3_L);
+        result.setLong("ignitionHelium3Required", ignitionHelium3Required(n));
         result.setLong("sustainEuPerTick", CriticalStellarPolicy.SUSTAIN_EUT);
         result.setLong("sustainHelium3PerTick", CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK);
         result.setInteger("phaseDuration", CriticalStellarPolicy.DURATION_TICKS);
@@ -426,6 +448,23 @@ public final class CriticalStellarRuntime {
     }
 
     private static long ignitionRequired(NBTTagCompound n) {
-        return n.hasKey("ignitionEuRequired") ? n.getLong("ignitionEuRequired") : CriticalStellarPolicy.IGNITION_EU;
+        if (n.hasKey("ignitionEuRequired")) return n.getLong("ignitionEuRequired");
+        if (n.getInteger("schema") == 2 && n.getInteger("billingVersion") == 2
+            && (n.getBoolean("hot") || ignitionInFlight(n))) return CriticalStellarPolicy.LEGACY_IGNITION_EU;
+        return CriticalStellarPolicy.IGNITION_EU;
+    }
+
+    private static boolean ignitionInFlight(NBTTagCompound n) {
+        return n.getLong("ignitionPaid") > 0 || n.getLong("ignitionHelium3Paid") > 0
+            || n.getInteger("ignitionProgress") > 0;
+    }
+
+    private static long ignitionHelium3Required(NBTTagCompound n) {
+        if (n.hasKey("ignitionHe3Required")) return n.getLong("ignitionHe3Required");
+        if (!n.getBoolean("hot") && ignitionInFlight(n)
+            && (n.getInteger("schema") == 2 && n.getInteger("billingVersion") == 2
+                || n.getInteger("schema") == SCHEMA && n.getInteger("billingVersion") == 3))
+            return CriticalStellarPolicy.LEGACY_IGNITION_HELIUM3_L;
+        return CriticalStellarPolicy.IGNITION_HELIUM3_L;
     }
 }

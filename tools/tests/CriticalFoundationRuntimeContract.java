@@ -57,6 +57,7 @@ public final class CriticalFoundationRuntimeContract {
         Field storage = World.class.getDeclaredField("perWorldStorage");
         storage.setAccessible(true);
         storage.set(world, new MapStorage(null));
+        chunkPayments(world, args);
         debugStages(world);
         CriticalMachineState state = state(world);
         field(state, "energy", UHV * 50);
@@ -124,6 +125,88 @@ public final class CriticalFoundationRuntimeContract {
         modernHeating(world);
         debugHeatingPayments(world);
         System.out.println("PASS CriticalFoundationRuntimeContract checks=" + checks);
+    }
+
+    private static PourState pourState(ClockWorld world, int chunkX) throws Exception {
+        PourState state = new PourState(); state.worldObj = world; state.setLoomController(true);
+        field(state, "foundationRequired", true); field(state, "foundationModern", true); field(state, "state", 1);
+        field(state, "loomChunksCache", Collections.singletonList(new ChunkCoordIntPair(chunkX, 7)));
+        return state;
+    }
+
+    private static void chunkPayments(ClockWorld world, String[] args) throws Exception {
+        CriticalFoundationContract.source(CriticalFoundationMaterials.class, args);
+        Field loader = cpw.mods.fml.common.Loader.class.getDeclaredField("instance");
+        loader.setAccessible(true); loader.set(null, unsafe.allocateInstance(cpw.mods.fml.common.Loader.class));
+        gregtech.api.GregTechAPI.sPreloadStarted = true;
+        net.minecraft.item.Item part = new net.minecraft.item.Item();
+        Class.forName("net.minecraft.init.Items");
+        Field feather = net.minecraft.init.Items.class.getDeclaredField("feather");
+        unsafe.putObject(unsafe.staticFieldBase(feather), unsafe.staticFieldOffset(feather), part);
+        gregtech.api.enums.ItemList.Hull_MAX.set(new net.minecraft.item.ItemStack(part, 1, 1));
+        gregtech.api.util.GTOreDictUnificator.getName2StackMap().put(
+            gregtech.api.enums.OrePrefixes.stickLong.get(gregtech.api.enums.Materials.Neutronium).toString(),
+            new net.minecraft.item.ItemStack(part, 1, 2));
+        gregtech.api.util.GTOreDictUnificator.getName2StackMap().put(
+            gregtech.api.enums.OrePrefixes.wireFine.get(gregtech.api.enums.Materials.TungstenSteel).toString(),
+            new net.minecraft.item.ItemStack(part, 1, 3));
+        Method registerBlock = net.minecraft.block.Block.blockRegistry.getClass()
+            .getDeclaredMethod("addObjectRaw", int.class, String.class, Object.class);
+        registerBlock.setAccessible(true);
+        registerBlock.invoke(net.minecraft.block.Block.blockRegistry, 9, "minecraft:water",
+            new net.minecraft.block.Block(net.minecraft.block.material.Material.water) {});
+        registerBlock.invoke(net.minecraft.block.Block.blockRegistry, 11, "minecraft:lava",
+            new net.minecraft.block.Block(net.minecraft.block.material.Material.lava) {});
+        net.minecraftforge.fluids.Fluid concrete = new net.minecraftforge.fluids.Fluid("foundation_contract_concrete");
+        net.minecraftforge.fluids.FluidRegistry.registerFluid(concrete);
+        Field concreteField = CriticalFoundationMaterials.class.getDeclaredField("concrete");
+        concreteField.setAccessible(true); concreteField.set(null, concrete);
+        check(CriticalFoundationMaterials.items(true)[2].stackSize == 6400
+            && CriticalFoundationMaterials.items(5)[2].stackSize == 8000,
+            "New NEI sample uses 6400 wires while historical cell schedules retain 8000");
+        PourState state = pourState(world, -10); field(state, "energy", UHV * 400);
+        for (int i = 0; i < 50; i++) advance(state, world);
+        check(state.payments == 1 && state.rods == 512 && state.hulls == 32 && state.wires == 6400
+            && state.concrete == 1_000_000 && state.getFoundationCompletedCells() == 2,
+            "A complete new chunk is funded once with 1ML concrete, 512 rods, 32 MAX hulls and 6400 fine wires");
+        NBTTagCompound stateNbt = new NBTTagCompound(), worldNbt = new NBTTagCompound();
+        state.writeToNBT(stateNbt); CriticalWorldData.get(world).writeToNBT(worldNbt);
+        CriticalWorldData.get(world).readFromNBT(worldNbt);
+        PourState restored = pourState(world, -10); restored.readFromNBT(stateNbt);
+        field(restored, "loomChunksCache", Collections.singletonList(new ChunkCoordIntPair(-10, 7)));
+        for (int i = 0; i < 350; i++) advance(restored, world);
+        check(restored.payments == 0 && restored.getEnergy() == 0 && restored.getFoundationCompletedCells() == 16
+            && restored.getFoundationPhase() == 4,
+            "Paid chunk plus controller/world NBT completes at 400 work without duplicate cost or changed heating");
+        PourState sharing = pourState(world, -10);
+        check(sharing.getFoundationCompletedCells() == 16, "Other machines reuse the same completed poured chunk");
+        stateNbt.removeTag("foundationScheduleVersion");
+        PourState oldJob = pourState(world, -11); oldJob.readFromNBT(stateNbt);
+        field(oldJob, "loomChunksCache", Collections.singletonList(new ChunkCoordIntPair(-11, 7)));
+        field(oldJob, "energy", UHV); advance(oldJob, world);
+        check(oldJob.wires == 6400 && CriticalWorldData.get(world).foundation(-11, 7).scheduleVersion() == 6,
+            "Old modern work orders reaching an untouched chunk use the corrected whole-chunk bill");
+        NBTTagCompound oldCell = new NBTTagCompound(); oldCell.setInteger("foundationVersion", 5);
+        oldCell.setInteger("cells", 3); oldCell.setInteger("progress", 127); oldCell.setBoolean("funded", true);
+        oldCell.setInteger("heating", 36_000); oldCell.setInteger("curing", 1_728_000);
+        CriticalWorldData.get(world).foundation(-12, 7).read(oldCell);
+        PourState oldShared = pourState(world, -12);
+        check(oldShared.payments == 0 && oldShared.getFoundationCompletedCells() == 16,
+            "Previously finished paid cells satisfy the corrected whole-chunk bill without further construction debits");
+        oldCell.setInteger("cells", 0); CriticalWorldData.get(world).foundation(-13, 7).read(oldCell);
+        oldShared = pourState(world, -13); field(oldShared, "energy", UHV * 273);
+        for (int i = 0; i < 273; i++) advance(oldShared, world);
+        check(oldShared.payments == 0 && oldShared.getFoundationCompletedCells() == 16 && oldShared.getEnergy() == 0,
+            "The old first-cell prepayment covers all remaining whole-chunk work without rebilling");
+    }
+
+    private static final class PourState extends CriticalMachineState {
+        int payments; long rods, hulls, wires, concrete;
+        @Override public boolean fundCriticalInputs(net.minecraft.item.ItemStack[] items, net.minecraftforge.fluids.FluidStack[] fluids) {
+            if (items.length != 3 || fluids.length != 1) throw new AssertionError("Unexpected pouring bill");
+            payments++; rods += items[0].stackSize; hulls += items[1].stackSize; wires += items[2].stackSize;
+            concrete += fluids[0].amount; return true;
+        }
     }
 
     private static void debugStages(ClockWorld world) throws Exception {

@@ -96,7 +96,7 @@ final class CriticalConstructionPreview implements IDrawable {
                     GuiDraw.drawRect(cellX, cellY, cellSize, cellSize, concrete);
                 } else if (current.phase() == 1 && chunk == current.activeChunk() && cell == current.activeCell()) {
                     float fill = (float) CriticalConstructionSnapshot
-                        .ratio(current.cellTicks(), current.cellDuration());
+                        .ratio(current.displayCellTicks(), current.cellDuration());
                     GuiDraw.drawRect(cellX, cellY + cellSize * (1 - fill), cellSize, cellSize * fill, 0xFFDFAD62);
                 }
             }

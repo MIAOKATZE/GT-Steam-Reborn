@@ -5,16 +5,22 @@ import net.minecraft.nbt.NBTTagCompound;
 /** Shared, dimension-local foundation work. Cells fill in row-major X/Z order. */
 public final class CriticalFoundationChunk {
 
+    public static final int VERSION = 6;
     public static final int CELLS = 16, CELL_DURATION = 400, CURING_DURATION = 86_400 * 20;
     public static final int LEGACY_CURING_DURATION = 72_000 * 20, HEATING_DURATION = 1_800 * 20;
     public static final int HEATING_STEAM_PER_TICK = 50_000;
     private int completedCells, cellProgress, curingRemaining = CURING_DURATION;
     private int heatingRemaining = HEATING_DURATION, heatingPaidWork;
     private boolean funded, fundingUncertain, modern = true;
+    private int scheduleVersion = VERSION;
     private long lastWorkedTick = Long.MIN_VALUE;
 
     public int completedCells() {
-        return completedCells;
+        return scheduleVersion >= VERSION && !poured() ? cellProgress * CELLS / CELL_DURATION : completedCells;
+    }
+
+    public int scheduleVersion() {
+        return scheduleVersion;
     }
 
     public int cellProgress() {
@@ -37,6 +43,7 @@ public final class CriticalFoundationChunk {
     public void useLegacySchedule() {
         if (completedCells != 0 || cellProgress != 0 || funded) return;
         modern = false;
+        scheduleVersion = 0;
         heatingRemaining = 0;
         curingRemaining = LEGACY_CURING_DURATION;
     }
@@ -112,7 +119,7 @@ public final class CriticalFoundationChunk {
         lastWorkedTick = tick;
         cellProgress = Math.min(CELL_DURATION, cellProgress + Math.max(0, work));
         if (cellProgress == CELL_DURATION) {
-            completedCells++;
+            completedCells = scheduleVersion >= VERSION ? CELLS : completedCells + 1;
             cellProgress = 0;
             funded = false;
         }
@@ -151,7 +158,8 @@ public final class CriticalFoundationChunk {
     }
 
     public void read(NBTTagCompound n) {
-        modern = n.hasKey("foundationVersion") && n.getInteger("foundationVersion") == 5;
+        scheduleVersion = n.hasKey("foundationVersion") ? n.getInteger("foundationVersion") : 0;
+        modern = scheduleVersion == 5 || scheduleVersion == VERSION;
         completedCells = Math.max(0, Math.min(CELLS, n.getInteger("cells")));
         cellProgress = poured() ? 0 : Math.max(0, Math.min(CELL_DURATION - 1, n.getInteger("progress")));
         funded = !poured() && n.getBoolean("funded");
@@ -165,15 +173,27 @@ public final class CriticalFoundationChunk {
             fundingUncertain = true;
             heatingPaidWork = 0;
         }
-        if (n.hasKey("foundationVersion") && n.getInteger("foundationVersion") != 5) fundingUncertain = true;
+        if (n.hasKey("foundationVersion") && !modern) fundingUncertain = true;
+        if (scheduleVersion == VERSION && completedCells != 0 && completedCells != CELLS) fundingUncertain = true;
         if (modern
             && (!n.hasKey("heating") || n.getInteger("heating") < 0 || n.getInteger("heating") > HEATING_DURATION))
             fundingUncertain = true;
         lastWorkedTick = n.hasKey("lastWorkedTick") ? n.getLong("lastWorkedTick") : Long.MIN_VALUE;
+        // One historical paid cell already covers the new complete chunk bill and its 400 work.
+        // Uncertain payments retain their original units and lock; no payer or refund is guessed.
+        if (scheduleVersion == 5 && !fundingUncertain) {
+            scheduleVersion = VERSION;
+            if (completedCells > 0) {
+                completedCells = CELLS;
+                cellProgress = 0;
+                funded = false;
+            }
+        }
     }
 
     public void write(NBTTagCompound n) {
-        if (modern) n.setInteger("foundationVersion", 5);
+        if (scheduleVersion != 0) n.setInteger("foundationVersion", scheduleVersion);
+        else n.removeTag("foundationVersion");
         n.setInteger("cells", completedCells);
         n.setInteger("progress", cellProgress);
         n.setBoolean("funded", funded);

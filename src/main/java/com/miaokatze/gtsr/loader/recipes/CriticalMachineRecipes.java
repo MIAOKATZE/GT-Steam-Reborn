@@ -170,7 +170,7 @@ public final class CriticalMachineRecipes {
             steam.amount = CriticalSolarPolicy.steamLitres(CriticalSolarPolicy.waterHalfHeat(waterSampleEU), mode)
                 .intValueExact();
             FluidStack cooling = CriticalEnergyRuntime.solarCoolant(coolant);
-            cooling.amount = CriticalSolarPolicy.paidLitres(coolant, waterSampleEU, ratedBatch)
+            cooling.amount = CriticalSolarPolicy.costLitres(coolant, waterSampleEU)
                 .intValueExact();
             add(
                 CriticalMachineKind.SOLAR,
@@ -187,7 +187,7 @@ public final class CriticalMachineRecipes {
         }
         BigInteger saltSampleEU = waterSampleEU.multiply(BigInteger.valueOf(CriticalSolarPolicy.SALT_POWER_MULTIPLIER));
         FluidStack saltCooling = CriticalEnergyRuntime.solarCoolant(coolant);
-        saltCooling.amount = CriticalSolarPolicy.paidLitres(coolant, saltSampleEU, ratedBatch)
+        saltCooling.amount = CriticalSolarPolicy.costLitres(coolant, saltSampleEU)
             .intValueExact();
         int saltLitres = CriticalSolarPolicy.saltLitres(saltSampleEU)
             .intValueExact();
@@ -227,7 +227,7 @@ public final class CriticalMachineRecipes {
         BigInteger ratedBatch) {
         FluidStack medium = coolant ? CriticalEnergyRuntime.solarCoolant(entry)
             : CriticalEnergyRuntime.solarExciter(entry);
-        medium.amount = CriticalSolarPolicy.paidLitres(entry, actualEU, ratedBatch)
+        medium.amount = CriticalSolarPolicy.costLitres(entry, actualEU)
             .intValueExact();
         return medium;
     }
@@ -236,7 +236,7 @@ public final class CriticalMachineRecipes {
         FluidStack medium = coolant ? CriticalEnergyRuntime.solarCoolant(entry)
             : CriticalEnergyRuntime.solarExciter(entry);
         if (medium == null) throw new IllegalStateException("Missing solar medium: " + entry.id);
-        medium.amount = CriticalSolarPolicy.paidLitres(entry, BigInteger.ONE, BigInteger.ONE)
+        medium.amount = CriticalSolarPolicy.costLitres(entry, CriticalRecipeMaps.solarMediumReferenceEU())
             .intValueExact();
         GTRecipe recipe = GTValues.RA.stdBuilder()
             .fluidInputs(medium)

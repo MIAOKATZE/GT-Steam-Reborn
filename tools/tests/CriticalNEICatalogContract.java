@@ -331,7 +331,7 @@ class CriticalNEICatalogRuntime {
             if(info.solarMedium!=null) {
                 check(media.add(info.solarMedium.id),"one concise entry per distinct solar medium");
                 check(recipe.mFluidInputs.length==1&&recipe.mFluidInputs[0].amount
-                    ==CriticalSolarPolicy.paidLitres(info.solarMedium,BigInteger.ONE,BigInteger.ONE).intValueExact(),
+                    ==CriticalSolarPolicy.costLitres(info.solarMedium,CriticalRecipeMaps.solarMediumReferenceEU()).intValueExact(),
                     "solar medium example bill uses the runtime policy");
                 check(CriticalSolarPolicy.COOLANTS.contains(info.solarMedium)
                     ||CriticalSolarPolicy.EXCITERS.contains(info.solarMedium),"NEI retains canonical policy entry identity");
@@ -341,10 +341,10 @@ class CriticalNEICatalogRuntime {
             check(recipe.mFluidInputs.length==3,"every operating route shows mandatory coolant AND activator beside its working fluid");
             check(recipe.mFluidInputs[1].isFluidEqual(CriticalEnergyRuntime.solarCoolant(coolant)),
                 "operating example shows the actual native Super Coolant fluid");
-            check(recipe.mFluidInputs[1].amount==CriticalSolarPolicy.paidLitres(coolant,info.baseEu,rated).intValueExact(),
+            check(recipe.mFluidInputs[1].amount==CriticalSolarPolicy.costLitres(coolant,info.baseEu).intValueExact(),
                 "low-load operating coolant amount uses whole-batch proportional ceiling");
             check(recipe.mFluidInputs[2].isFluidEqual(CriticalEnergyRuntime.solarExciter(activator))
-                &&recipe.mFluidInputs[2].amount==CriticalSolarPolicy.paidLitres(activator,info.baseEu,rated).intValueExact(),
+                &&recipe.mFluidInputs[2].amount==CriticalSolarPolicy.costLitres(activator,info.baseEu).intValueExact(),
                 "low-load example also prepays the actual helium-gas activator using the shared policy");
             check(recipe.mDuration==CriticalEnergyMath.CYCLE_TICKS,"all solar views keep a fixed 400-tick batch");
             if(info.operation.equals("solar_salt")) {
@@ -376,7 +376,7 @@ class CriticalNEICatalogRuntime {
                 var entry=i==0?coolant:activator;
                 check(recipe.mFluidInputs[i].isFluidEqual(i==0?CriticalEnergyRuntime.solarCoolant(entry)
                     :CriticalEnergyRuntime.solarExciter(entry))&&recipe.mFluidInputs[i].amount
-                    ==CriticalSolarPolicy.paidLitres(entry,CriticalSolarPolicy.irradiationBudgetEU(rated),rated).intValueExact(),
+                    ==CriticalSolarPolicy.costLitres(entry,CriticalSolarPolicy.irradiationBudgetEU(rated)).intValueExact(),
                     "dust-only coolant/activator payments use the runtime minimum-load policy");
             }
         }

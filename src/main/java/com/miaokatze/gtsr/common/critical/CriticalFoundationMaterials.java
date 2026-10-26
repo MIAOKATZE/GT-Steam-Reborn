@@ -59,10 +59,16 @@ public final class CriticalFoundationMaterials {
             ItemList.Hull_MAX.get(32) };
     }
 
-    /** 128 fine wires per 16,000 L in the former mixer bill, now paid at the 1,000,000 L pour. */
+    /** New display recipes use one chunk bill; saved version-5 cells retain their original fine-wire quantity. */
     public static ItemStack[] items(boolean modern) {
-        if (!modern) return items();
-        return new ItemStack[] { items()[0], items()[1], GTUtility
-            .copyAmountUnsafe(8_000, GTOreDictUnificator.get(OrePrefixes.wireFine, Materials.TungstenSteel, 1)) };
+        return items(modern ? CriticalFoundationChunk.VERSION : 0);
+    }
+
+    public static ItemStack[] items(int scheduleVersion) {
+        if (scheduleVersion < 5) return items();
+        return new ItemStack[] { items()[0], items()[1],
+            GTUtility.copyAmountUnsafe(
+                scheduleVersion >= 6 ? 6_400 : 8_000,
+                GTOreDictUnificator.get(OrePrefixes.wireFine, Materials.TungstenSteel, 1)) };
     }
 }
