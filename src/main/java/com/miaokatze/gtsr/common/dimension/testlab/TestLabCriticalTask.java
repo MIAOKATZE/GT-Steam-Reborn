@@ -16,7 +16,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
 
-import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyRuntime;
 import com.miaokatze.gtsr.common.critical.CriticalGTRecipes;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
@@ -24,6 +23,7 @@ import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.CriticalRenderAnchors;
 import com.miaokatze.gtsr.common.critical.CriticalRuntime;
+import com.miaokatze.gtsr.common.critical.CriticalSolarPolicy;
 import com.miaokatze.gtsr.common.critical.CriticalStructures;
 import com.miaokatze.gtsr.common.critical.CriticalTier;
 import com.miaokatze.gtsr.common.critical.CriticalWorldData;
@@ -229,6 +229,11 @@ public final class TestLabCriticalTask implements TestLabTask {
         }
         fluidInput = (MTEHatchInput) install(ItemList.Hatch_Input_IV).getMetaTileEntity();
         fluidOutput = (MTEHatchOutput) install(ItemList.Hatch_Output_IV).getMetaTileEntity();
+        MTEHatchInput solarCoolant = null, solarExciter = null;
+        if (kind == CriticalMachineKind.SOLAR) {
+            solarCoolant = (MTEHatchInput) install(ItemList.Hatch_Input_IV).getMetaTileEntity();
+            solarExciter = (MTEHatchInput) install(ItemList.Hatch_Input_IV).getMetaTileEntity();
+        }
         machine.forceLoomStructureCheck();
         sourceFluid = kind == CriticalMachineKind.SOLAR ? GTModHandler.getDistilledWater(100)
             : GTModHandler.getSteam(1600);
@@ -239,13 +244,33 @@ public final class TestLabCriticalTask implements TestLabTask {
         if (suppliedFluid != sourceFluid.amount) return result(TestLabReport.Status.FAIL, "真实输入仓拒绝最小流体");
         if (kind == CriticalMachineKind.SOLAR) {
             leaseSolarFactor(world);
-            consumedFluid = CriticalEnergyMath.logarithmic(
-                suppliedFluid,
-                CriticalEnergyRuntime.dimensionFactor(world),
-                CriticalEnergyMath.WATER_A,
-                CriticalEnergyMath.WATER_B);
-            expectedFluid = consumedFluid * 160;
-            if (consumedFluid <= 0) return result(TestLabReport.Status.BLOCKED, "测试维度太阳因子不能执行水汽批次");
+            CriticalSolarPolicy.Entry coolant = CriticalSolarPolicy.COOLANTS.get(0);
+            CriticalSolarPolicy.Entry exciter = CriticalSolarPolicy.EXCITERS.get(0);
+            BigInteger budget = CriticalSolarPolicy
+                .batchBudgetEU(CriticalEnergyRuntime.dimensionFactor(world), coolant, exciter, false);
+            BigInteger heat = CriticalSolarPolicy
+                .saturatedWaterHalfHeat(BigInteger.valueOf(suppliedFluid), budget.divide(BigInteger.TEN));
+            expectedFluid = CriticalSolarPolicy.steamLitres(heat, 0)
+                .longValueExact();
+            consumedFluid = CriticalSolarPolicy.waterLitres(BigInteger.valueOf(expectedFluid), 0)
+                .longValueExact();
+            if (consumedFluid <= 0) return result(TestLabReport.Status.BLOCKED, "????????????????");
+            BigInteger work = heat.multiply(BigInteger.TEN);
+            FluidStack coolantInput = CriticalEnergyRuntime.solarCoolant(coolant)
+                .copy();
+            coolantInput.amount = CriticalSolarPolicy.costLitres(coolant, work)
+                .intValueExact();
+            FluidStack exciterInput = CriticalEnergyRuntime.solarExciter(exciter)
+                .copy();
+            exciterInput.amount = CriticalSolarPolicy.costLitres(exciter, work)
+                .intValueExact();
+            if (solarCoolant.fill(ForgeDirection.UNKNOWN, coolantInput.copy(), true) != coolantInput.amount
+                || solarExciter.fill(ForgeDirection.UNKNOWN, exciterInput.copy(), true) != exciterInput.amount)
+                return result(TestLabReport.Status.FAIL, "????????????");
+            state.energyRuntimeData()
+                .setInteger("steamMode", 0);
+            state.energyRuntimeData()
+                .setBoolean("solarSaltMode", false);
         } else {
             // Refuse even a test UUID that somebody has explicitly joined to a different team.
             if (!TestLabFixtures.OWNER.equals(SpaceProjectManager.getLeader(TestLabFixtures.OWNER)))

@@ -368,13 +368,14 @@ final class CriticalBusinessSnapshot {
                 "solar.equivalent_power",
                 new BigDecimal(number(data, "solarEquivalentEU"))
                     .divide(
-                        BigDecimal.valueOf(com.miaokatze.gtsr.common.critical.CriticalSolarPolicy.MAX_VOLTAGE)
+                        BigDecimal
+                            .valueOf(com.miaokatze.gtsr.common.critical.CriticalSolarPolicy.FULL_TURBINE_MULTIPLIER)
                             .multiply(
                                 BigDecimal.valueOf(com.miaokatze.gtsr.common.critical.CriticalEnergyMath.CYCLE_TICKS)),
                         3,
                         java.math.RoundingMode.HALF_UP)
                     .stripTrailingZeros()
-                    .toPlainString() + "A MAX");
+                    .toPlainString() + " EU/t");
             row(rows, "solar.load", String.format(java.util.Locale.ROOT, "%.1f%%", data.getDouble("solarLoad") * 100D));
             row(rows, "solar.powder_cap", "256 / 400 t");
             row(rows, "solar.water", number(data, "solarWater") + " L");

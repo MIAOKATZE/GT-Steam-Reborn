@@ -2,15 +2,21 @@ package com.miaokatze.gtsr.common.critical;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-/** Pure, shared boiler catalogue. Power is equivalent EU after a fully warmed (20x) pulse turbine. */
+/** Pure boiler catalogue: native steam heat and exact working-fluid inventory saturation. */
 public final class CriticalSolarPolicy {
 
-    public static final int VERSION = 4;
+    public static final int VERSION = 5;
+    /** Native steam heat, before any downstream generator efficiency. */
+    public static final long BASE_WATER_HEAT_EUT = 70_000_000_000L;
+    public static final long MAX_WATER_HEAT_EUT = 440_000_000_000L;
+    public static final long REFERENCE_WATER_HEAT_EUT = 94_500_000_000L;
+    public static final int WATER_HEAT_QUANTUM_EU = 7500;
+    private static final BigInteger HALF_HEAT_QUANTUM = BigInteger.valueOf(2L * WATER_HEAT_QUANTUM_EU);
+    // Legacy display/API constants; policy5 native heat is controlled only by the constants above.
     public static final int BASE_AMPS_MAX = 640;
     public static final int MAX_WATER_AMPS_MAX = 4096;
     public static final int MAX_SALT_AMPS_MAX = 8192;
@@ -43,7 +49,7 @@ public final class CriticalSolarPolicy {
         public final double multiplier;
         public final long referenceEUPerTick;
         public final double nativeLitresPerSecond;
-        /** Integer-second consumption at the shared864A MAX LHE-equivalent reference power. */
+        /** Integer litres per second at the shared native-heat reference. */
         public final double litresPerSecond;
 
         private Entry(String id, String label, double multiplier, long referenceEUPerTick, double nativeLitresPerSecond,
@@ -57,13 +63,20 @@ public final class CriticalSolarPolicy {
         }
     }
 
-    /** Apply the dimension coefficient exactly once, then the absolute power cap. */
-    public static BigInteger ratedWaterEUPerTick(double factor, Entry coolant, Entry exciter) {
+    /** Native heat power: dimension and medium multipliers apply once, before the absolute cap. */
+    public static BigInteger ratedWaterHeatEUPerTick(double factor, Entry coolant, Entry exciter) {
         if (!Double.isFinite(factor) || factor <= 0D) return BigInteger.ZERO;
-        double amps = Math.min(MAX_WATER_AMPS_MAX, BASE_AMPS_MAX * factor * coolant.multiplier * exciter.multiplier);
-        return BigDecimal.valueOf(amps)
-            .multiply(BigDecimal.valueOf(MAX_VOLTAGE))
+        return BigDecimal.valueOf(BASE_WATER_HEAT_EUT)
+            .multiply(BigDecimal.valueOf(factor))
+            .multiply(BigDecimal.valueOf(coolant.multiplier))
+            .multiply(BigDecimal.valueOf(exciter.multiplier))
+            .min(BigDecimal.valueOf(MAX_WATER_HEAT_EUT))
             .toBigInteger();
+    }
+
+    /** Compatibility accounting unit; this design value never measures stored steam heat. */
+    public static BigInteger ratedWaterEUPerTick(double factor, Entry coolant, Entry exciter) {
+        return ratedWaterHeatEUPerTick(factor, coolant, exciter).multiply(BigInteger.valueOf(FULL_TURBINE_MULTIPLIER));
     }
 
     public static BigInteger batchBudgetEU(double factor, Entry coolant, Entry exciter, boolean saltMode) {
@@ -78,11 +91,43 @@ public final class CriticalSolarPolicy {
             .divide(parallel);
     }
 
+    /** Unrounded native half-EU ceiling. Inventory saturation must run before volume quantisation. */
+    public static BigInteger rawWaterHalfHeat(BigInteger equivalentEU) {
+        return equivalentEU.divide(BigInteger.TEN);
+    }
+
     /** Common multiple ensures all six steam selections carry exactly the same half-EU. */
     public static BigInteger waterHalfHeat(BigInteger equivalentEU) {
-        return equivalentEU.divide(BigInteger.TEN)
-            .divide(BigInteger.valueOf(15000))
-            .multiply(BigInteger.valueOf(15000));
+        return rawWaterHalfHeat(equivalentEU).divide(HALF_HEAT_QUANTUM)
+            .multiply(HALF_HEAT_QUANTUM);
+    }
+
+    /** One ordinary-water litre carries 160 half-EU; K = 5 times native heat EU/t for 400 ticks. */
+    public static BigInteger waterHalfSaturationStock(BigInteger maximumHalfHeat) {
+        return ceilDivide(maximumHalfHeat, BigInteger.valueOf(160));
+    }
+
+    /** Same inventory curve for every steam: E = 400 P S / (S + 5 P), rounded to 7500 native EU. */
+    public static BigInteger saturatedWaterHalfHeat(BigInteger stock, BigInteger maximumHalfHeat) {
+        if (stock.signum() <= 0 || maximumHalfHeat.signum() <= 0) return BigInteger.ZERO;
+        BigInteger halfSaturation = waterHalfSaturationStock(maximumHalfHeat);
+        return maximumHalfHeat.multiply(stock)
+            .divide(
+                stock.add(halfSaturation)
+                    .multiply(HALF_HEAT_QUANTUM))
+            .multiply(HALF_HEAT_QUANTUM);
+    }
+
+    /** Cold salt is converted one-for-one; its maximum batch volume is also its half-saturation stock. */
+    public static BigInteger saturatedSaltLitres(BigInteger stock, BigInteger maximumLitres) {
+        if (stock.signum() <= 0 || maximumLitres.signum() <= 0) return BigInteger.ZERO;
+        return maximumLitres.multiply(stock)
+            .divide(stock.add(maximumLitres));
+    }
+
+    private static BigInteger ceilDivide(BigInteger numerator, BigInteger denominator) {
+        return numerator.add(denominator.subtract(BigInteger.ONE))
+            .divide(denominator);
     }
 
     public static BigInteger steamLitres(BigInteger halfHeat, int mode) {
@@ -97,9 +142,7 @@ public final class CriticalSolarPolicy {
 
     /** GT205 LHE / thermal boiler: one hot salt -> 1000 SH steam -> 1500 base EU -> 30000 at 20x. */
     public static BigInteger saltLitres(BigInteger equivalentEU) {
-        // One shared quantum: water produces multiples of150000EU, salt exactly twice that (10L).
-        return equivalentEU.divide(BigInteger.valueOf(300_000))
-            .multiply(BigInteger.TEN);
+        return equivalentEU.divide(BigInteger.valueOf(30_000));
     }
 
     /** Compatibility signature; the old per-entry rated budget no longer discounts higher power. */
@@ -110,13 +153,9 @@ public final class CriticalSolarPolicy {
     /** Scale to actual LHE-equivalent power, ceil to whole litres/second, then prepay all20seconds. */
     public static BigInteger costLitres(Entry entry, BigInteger actualEU) {
         if (entry.litresPerSecond == 0D || actualEU.signum() <= 0) return BigInteger.ZERO;
-        BigDecimal benchmarkEU = BigDecimal.valueOf(MAX_VOLTAGE)
-            .multiply(BigDecimal.valueOf(REFERENCE_AMPS_MAX))
-            .multiply(BigDecimal.valueOf(CriticalEnergyMath.CYCLE_TICKS));
-        return BigDecimal.valueOf(entry.litresPerSecond)
-            .multiply(new BigDecimal(actualEU))
-            .divide(benchmarkEU, 0, RoundingMode.CEILING)
-            .toBigIntegerExact()
+        BigInteger benchmarkEU = BigInteger.valueOf(REFERENCE_WATER_HEAT_EUT)
+            .multiply(BigInteger.valueOf((long) CriticalEnergyMath.CYCLE_TICKS * FULL_TURBINE_MULTIPLIER));
+        return ceilDivide(actualEU.multiply(BigInteger.valueOf((long) entry.litresPerSecond)), benchmarkEU)
             .multiply(BigInteger.valueOf(CriticalEnergyMath.CYCLE_TICKS / 20));
     }
 }

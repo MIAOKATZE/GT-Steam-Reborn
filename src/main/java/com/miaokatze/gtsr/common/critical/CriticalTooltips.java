@@ -63,11 +63,14 @@ public final class CriticalTooltips {
         info(tt, "solar.energy");
         tt.addSeparator();
         info(tt, "solar.rated");
+        info(tt, "solar.private");
+        info(tt, "solar.stock");
         info(tt, "solar.heat");
         info(tt, "solar.flow");
         info(tt, "solar.dense");
+        info(tt, "solar.water_cost");
         info(tt, "solar.salt_flow");
-        info(tt, "solar.private");
+        info(tt, "solar.salt_heat");
         info(tt, "solar.dimension");
         tt.addSeparator();
         info(tt, "solar.medium_reference");
@@ -79,6 +82,10 @@ public final class CriticalTooltips {
         for (CriticalSolarPolicy.Entry entry : CriticalSolarPolicy.EXCITERS)
             policyEntry(tt, "exciter", entry, EnumChatFormatting.LIGHT_PURPLE);
         info(tt, "solar.helium");
+        tt.addSeparator();
+        info(tt, "solar.example_power");
+        info(tt, "solar.example_heat");
+        info(tt, "solar.example_cost");
     }
 
     private static void turbine(MultiblockTooltipBuilder tt) {
@@ -89,7 +96,11 @@ public final class CriticalTooltips {
         tt.addSeparator();
         info(tt, "turbine.heat");
         info(tt, "turbine.dense");
+        info(tt, "turbine.generation");
+        info(tt, "turbine.example");
+        tt.addSeparator();
         info(tt, "turbine.efficiency");
+        info(tt, "turbine.load");
         info(tt, "turbine.warmup");
         info(tt, "turbine.idle");
         info(tt, "turbine.water");
@@ -109,6 +120,8 @@ public final class CriticalTooltips {
         info(tt, "sun.plasma");
         tt.addSeparator();
         info(tt, "sun.discount");
+        info(tt, "sun.power");
+        info(tt, "sun.example");
         info(tt, "sun.limits");
         info(tt, "sun.switch");
     }
@@ -120,10 +133,13 @@ public final class CriticalTooltips {
         info(tt, "cycle");
         tt.addSeparator();
         info(tt, "battery.compounds");
-        info(tt, "battery.efficiency");
         info(tt, "battery.ratio");
         info(tt, "battery.scaling");
+        tt.addSeparator();
+        info(tt, "battery.quality");
+        info(tt, "battery.efficiency");
         info(tt, "battery.heat");
+        info(tt, "battery.example");
     }
 
     private static void info(MultiblockTooltipBuilder tt, String key) {

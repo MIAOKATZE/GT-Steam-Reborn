@@ -148,11 +148,10 @@ public final class CriticalNEIShowcase {
             rows(
                 text("solar.cycle"),
                 CriticalRecipeMaps.formatted(
-                    operation.equals("solar_salt") ? "simple.solar.salt_rated" : "simple.solar.rated",
-                    maxAmps(
-                        operation.equals("solar_salt") ? CriticalSolarPolicy.MAX_SALT_AMPS_MAX
-                            : CriticalSolarPolicy.MAX_WATER_AMPS_MAX)),
-                CriticalRecipeMaps.formatted("simple.solar.sample", number(new java.math.BigDecimal(info.baseEu))),
+                    "simple.solar.sample",
+                    number(
+                        new java.math.BigDecimal(info.baseEu)
+                            .divide(java.math.BigDecimal.valueOf(CriticalSolarPolicy.FULL_TURBINE_MULTIPLIER)))),
                 text(operation.equals("solar_salt") ? "solar.salt" : "solar.water"));
         }
     }

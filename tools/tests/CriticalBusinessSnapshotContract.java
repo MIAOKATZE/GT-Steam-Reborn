@@ -182,14 +182,14 @@ public final class CriticalBusinessSnapshotContract {
             "next route and prepaid route remain distinct in one sample");
         check(value(rows, "solar.coolant").equals("cryotheum") && value(rows, "solar.exciter").equals("helium"),
             "paid coolant and exciter identities are sampled together");
-        check(value(rows, "solar.equivalent_power").equals("864A MAX"),
-            "equivalent power uses actual batch EU rather than the rated maximum");
+        check(value(rows, "solar.equivalent_power").equals("92771293248 EU/t"),
+            "native heat power excludes downstream turbine efficiency and uses the actual batch");
         check(value(rows, "solar.load").equals("75.0%"), "partial load is explicit");
         data.setString("solarEquivalentEU", max.multiply(java.math.BigInteger.valueOf(400))
             .divide(java.math.BigInteger.valueOf(3)).toString());
         rows = (String[][]) projection.invoke(null, state);
-        check(value(rows, "solar.equivalent_power").equals("0.333A MAX"),
-            "a non-terminating MAX fraction rounds without crashing the UI sampler");
+        check(value(rows, "solar.equivalent_power").equals("35791394 EU/t"),
+            "partial native heat rounds without crashing the UI sampler");
         check(!data.getBoolean("funded") && state.getSolarSaltMode(), "projection cannot mutate payment or selection");
         config.set(state, new com.miaokatze.gtsr.common.critical.CriticalConfiguration(
             com.miaokatze.gtsr.common.critical.CriticalTier.T3,

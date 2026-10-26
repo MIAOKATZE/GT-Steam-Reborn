@@ -756,17 +756,13 @@ public final class CriticalEnergyRuntime {
                 if (candidate.output == null) continue;
                 BigInteger available = CriticalEnergyPorts.total(snapshot, candidate.input);
                 if (saltMode) {
-                    candidate.inputLitres = available.min(CriticalSolarPolicy.saltLitres(budget));
+                    candidate.inputLitres = CriticalSolarPolicy
+                        .saturatedSaltLitres(available, CriticalSolarPolicy.saltLitres(budget));
                     candidate.outputLitres = candidate.inputLitres;
                     candidate.equivalentEU = candidate.outputLitres.multiply(BigInteger.valueOf(30_000));
                 } else {
-                    BigInteger availableHeat = available.multiply(BigInteger.valueOf(160))
-                        .multiply(CriticalEnergyMath.steamHeatPerL(mode))
-                        .divide(BigInteger.valueOf(mode < 3 ? 1 : 1000));
-                    BigInteger heat = CriticalSolarPolicy.waterHalfHeat(budget)
-                        .min(availableHeat)
-                        .divide(BigInteger.valueOf(15000))
-                        .multiply(BigInteger.valueOf(15000));
+                    BigInteger heat = CriticalSolarPolicy
+                        .saturatedWaterHalfHeat(available, CriticalSolarPolicy.rawWaterHalfHeat(budget));
                     candidate.outputLitres = CriticalSolarPolicy.steamLitres(heat, mode);
                     candidate.inputLitres = CriticalSolarPolicy.waterLitres(candidate.outputLitres, mode);
                     candidate.equivalentEU = heat.multiply(BigInteger.TEN);
