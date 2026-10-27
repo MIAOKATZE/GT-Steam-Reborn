@@ -114,8 +114,8 @@ def prepare(args: argparse.Namespace) -> None:
             target.parent.mkdir(parents=True, exist_ok=True)
             jar.rename(target)
             old_gtsr.append(str(relative))
-    if len(gt5) != 1 or gt5[0]["file"] != "gregtech-5.09.54.183.jar":
-        raise RuntimeError(f"GT5 baseline differs from required 5.09.54.183: {gt5}")
+    if len(gt5) != 1 or gt5[0]["file"] != "gregtech-5.09.54.205.jar":
+        raise RuntimeError(f"GT5 baseline differs from required 5.09.54.205: {gt5}")
     receipt = {"phase": "prepared", "utc": dt.datetime.now(dt.timezone.utc).isoformat(),
                "source_instance": str(source), "sandbox": str(SANDBOX), "copy_mode": "independent copies",
                "eula_accepted": accepted(SANDBOX / "eula.txt"), "gt5": gt5,

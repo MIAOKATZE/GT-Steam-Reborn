@@ -4308,10 +4308,10 @@ gtsr.critical.foundation.curing=New projects heat-cure for 1800 s using 1,000,00
 gtsr.critical.foundation.singularity=Only resting can accelerate: every 400 ticks, consume n Critical Steam Entangled Singularities from input buses to remove floor(remaining time*n/[5*(16+n)]); heat-curing cannot be skipped
 gtsr.critical.foundation.hatches=Native ME, debug and laser energy hatches supported; completed foundations are reused per chunk
 gtsr.critical.tab.construction=Construction
-gtsr.critical.view.grid_hint=Thick frames are 16x16-block large cells: each new pour pays one recipe. Sixteen 4x4 subdivisions show progress only; legacy bills retain their original units.
-gtsr.critical.view.ghost_hint=Base and body use placeholder holograms filled by actual server construction progress.
-gtsr.critical.view.grid_legend=X > / Z v | Thick: 16x16 large cells / Thin: progress subdivisions
-gtsr.critical.view.ghost_legend=Animated miniature / server construction progress
+gtsr.critical.view.grid_hint=Thick frames mark chunks. Each of the sixteen cells represents 4x4 blocks; the highlight marks the active pour.
+gtsr.critical.view.ghost_hint=Base, body and equipment are separate. Solid cells follow construction progress; gold marks the active group.
+gtsr.critical.view.grid_legend=X > / Z v | Thick: chunks / Thin: pour cells
+gtsr.critical.view.ghost_legend=Gold: active / Solid: completed / Outline: pending
 gtsr.critical.view.progress=Current stage
 gtsr.critical.view.cells=Poured display subdivisions
 gtsr.critical.view.blocks=Placed blocks
@@ -4761,3 +4761,6 @@ gtsr.critical.tooltip.native.sun.example=Example: native §e20 s, 1,000,000 EU/t
 gtsr.critical.tooltip.native.battery.quality=Proportion quality §eq§7 = minimum of each component's (§bactual L / total L / NEI target fraction§7)
 gtsr.critical.tooltip.native.battery.example=Example: circuit §e2§7 with only §bdiesel : light fuel = 2 : 3§7 gives §ax2§7: §61,000 base EU§7 yields §e2,000 EU
 gtsr.critical.tooltip.native.turbine.load=Warm-up base heat load = §6batch steam base heat / 400 EU/t
+gtsr.critical.view.part.base=Base
+gtsr.critical.view.part.body=Body
+gtsr.critical.view.part.equipment=Equipment

@@ -4304,10 +4304,10 @@ gtsr.critical.foundation.curing=新工程浇筑后热养护1800秒，持续消�
 gtsr.critical.foundation.singularity=仅静养可加速：每400 tick消耗输入总线内n个临界蒸汽纠缠奇点，减时floor(剩余时间×n÷[5×(16+n)])；热养护不可跳过
 gtsr.critical.foundation.hatches=支持原生ME仓室、调试仓室和激光能源仓；已完工地基按区块复用
 gtsr.critical.tab.construction=施工监视
-gtsr.critical.view.grid_hint=粗框是16×16方块大格：新工程每大格支付一份配方。框内16个4×4显示细格只表示进度；旧账单保留原计量。
-gtsr.critical.view.ghost_hint=基座与主体使用简易虚影占位，填充量来自服务端实际搭建进度。
-gtsr.critical.view.grid_legend=X → · Z ↓ | 粗框：16×16大格 · 细格：进度细分
-gtsr.critical.view.ghost_legend=动态微缩示意 · 服务端施工进度
+gtsr.critical.view.grid_hint=粗框表示区块边界，框内16个小格各代表4×4方块；高亮小格为当前浇筑位置。
+gtsr.critical.view.ghost_hint=基座、主体、设备分区显示；实色随施工进度填充，金框标出当前区域。
+gtsr.critical.view.grid_legend=X → · Z ↓ | 粗框：区块边界 · 细格：浇筑小格
+gtsr.critical.view.ghost_legend=金框：当前阶段 · 实色：已完成 · 线框：待施工
 gtsr.critical.view.progress=当前阶段
 gtsr.critical.view.cells=已灌注显示细格
 gtsr.critical.view.blocks=已搭建
@@ -4757,3 +4757,6 @@ gtsr.critical.tooltip.native.sun.example=例：原§e20秒、1,000,000 EU/t§7�
 gtsr.critical.tooltip.native.battery.quality=配比符合度§eq§7=各组分(§b实际L÷总L÷NEI目标占比§7)中的最小值
 gtsr.critical.tooltip.native.battery.example=例：电路§e2§7，仅投入§b柴油:轻燃油=2:3§7时倍率§a×2§7，每§61,000 EU基础热量§7发出§e2,000 EU
 gtsr.critical.tooltip.native.turbine.load=暖机基础热负载=§6本批蒸汽基础热量÷400 EU/t
+gtsr.critical.view.part.base=基座
+gtsr.critical.view.part.body=主体
+gtsr.critical.view.part.equipment=设备

@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.dimension.testlab;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -16,6 +17,8 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
 
+import com.miaokatze.gtsr.common.critical.CompoundRecipe;
+import com.miaokatze.gtsr.common.critical.CriticalChemicalRecipes;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyRuntime;
 import com.miaokatze.gtsr.common.critical.CriticalGTRecipes;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
@@ -24,6 +27,7 @@ import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.CriticalRenderAnchors;
 import com.miaokatze.gtsr.common.critical.CriticalRuntime;
 import com.miaokatze.gtsr.common.critical.CriticalSolarPolicy;
+import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
 import com.miaokatze.gtsr.common.critical.CriticalStructures;
 import com.miaokatze.gtsr.common.critical.CriticalTier;
 import com.miaokatze.gtsr.common.critical.CriticalWorldData;
@@ -33,6 +37,7 @@ import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 import com.mojang.authlib.GameProfile;
 
 import gregtech.api.enums.ItemList;
+import gregtech.api.enums.Materials;
 import gregtech.api.enums.Mods;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
@@ -43,6 +48,7 @@ import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
+import gregtech.api.util.GTUtility;
 import gregtech.common.misc.WirelessNetworkManager;
 import gregtech.common.misc.spaceprojects.SpaceProjectManager;
 import gtnhintergalactic.config.IGConfig;
@@ -87,6 +93,14 @@ public final class TestLabCriticalTask implements TestLabTask {
     private boolean originalSolarFactorPresent;
     private Double originalSolarFactorEntry;
     private String solarEnvironment = "";
+    private final List<MTEHatchInput> reactionInputs = new ArrayList<>();
+    private final List<FluidStack> reactionStock = new ArrayList<>();
+    private MTEHatchInput stellarFuel;
+    private MTEHatchOutput stellarPlasma;
+    private GTRecipe fusionRecipe;
+    private ItemStack circuitBefore;
+    private int foundationPhases, constructionStages, sustainTicks;
+    private long suppliedEnergy, lastStoredEnergy;
 
     public TestLabCriticalTask(String kind) {
         this.key = kind.toLowerCase(Locale.ROOT);
@@ -164,6 +178,8 @@ public final class TestLabCriticalTask implements TestLabTask {
                 phaseStarted = elapsedTicks;
                 return null;
             case CONSTRUCT:
+                foundationPhases |= 1 << state.getFoundationPhase();
+                constructionStages |= 1 << state.getStage();
                 // FakePlayer is intentionally offline. Retry the public request while its normal chunk/clearance
                 // windows settle, because the machine's automatic retry only searches online playerEntities.
                 if (state.getState() == 0 && !state.startConstruction(player)) {
@@ -180,6 +196,9 @@ public final class TestLabCriticalTask implements TestLabTask {
                 }
                 state.setEnabled(player, false);
                 if (!pairedMain(world)) return result(TestLabReport.Status.FAIL, "自然施工未生成同账本的目标控制器");
+                // A cured foundation survives fixture regeneration and is legitimately reusable.
+                // Keep its observed phase mask as evidence; require all six new body/equipment stages.
+                if ((constructionStages & 1008) != 1008) return result(TestLabReport.Status.FAIL, "未观察到六个主体设备阶段");
                 if (loomOnly)
                     return result(TestLabReport.Status.PASS, "织机施工功能：真实手搭织机→正常净空/施工journal→目标SUN结构校验完成；未声明SUN生产通过");
                 phase = Phase.PREPARE;
@@ -193,13 +212,33 @@ public final class TestLabCriticalTask implements TestLabTask {
                 return null;
             case RUN:
                 if (!state.isStructureValidated()) return result(TestLabReport.Status.FAIL, "生产期真实结构失效");
-                sawBatch |= state.getBatchDuration() == 400 && state.getBatchProgress() > 0;
+                if (kind == CriticalMachineKind.SUN) {
+                    if (state.getStellarRuntimeData()
+                        .getBoolean("sustainPaidThisTick")) sustainTicks++;
+                    long stored = tile.getStoredEU();
+                    suppliedEnergy += lastStoredEnergy - stored;
+                    machine.setEUVar(state.energyCapacity());
+                    lastStoredEnergy = tile.getStoredEU();
+                }
+                sawBatch |= state.getBatchDuration() == 400 && state.getBatchProgress() > 0
+                    && (kind != CriticalMachineKind.SUN || !state.getBatchId()
+                        .isEmpty());
+                if (kind == CriticalMachineKind.SUN && sawBatch
+                    && state.getBatchId()
+                        .isEmpty())
+                    return verifyStellar();
+                if (kind == CriticalMachineKind.BATTERY && sawBatch
+                    && !state.energyRuntimeData()
+                        .getBoolean("funded"))
+                    return verifyChemical();
                 if (expectedRecipe != null) {
                     if (sawBatch && state.getBatchId()
                         .isEmpty()) return verifyRecipe();
-                } else if (sawBatch && !state.energyRuntimeData()
-                    .getBoolean("funded")) return verifyFluids();
-                if (elapsedTicks - phaseStarted > 1000) return result(TestLabReport.Status.FAIL, "400tick最小生产批次未交付");
+                } else if ((kind == CriticalMachineKind.SOLAR || kind == CriticalMachineKind.TURBINE) && sawBatch
+                    && !state.energyRuntimeData()
+                        .getBoolean("funded"))
+                    return verifyFluids();
+                if (elapsedTicks - phaseStarted > 1100) return result(TestLabReport.Status.FAIL, "最小生产批次未交付");
                 return null;
             default:
                 throw new IllegalStateException("Unknown test phase");
@@ -216,10 +255,14 @@ public final class TestLabCriticalTask implements TestLabTask {
     }
 
     private boolean implemented() {
-        return kind == CriticalMachineKind.SOLAR || kind == CriticalMachineKind.TURBINE;
+        return kind == CriticalMachineKind.SOLAR || kind == CriticalMachineKind.TURBINE
+            || kind == CriticalMachineKind.BATTERY
+            || kind == CriticalMachineKind.SUN;
     }
 
     private TestLabReport.Result prepare(WorldServer world) throws Exception {
+        if (kind == CriticalMachineKind.BATTERY) return prepareChemical();
+        if (kind == CriticalMachineKind.SUN) return prepareStellar();
         if (kind == CriticalMachineKind.PROCESSING || kind == CriticalMachineKind.ASSEMBLY) {
             itemInput = (MTEHatchInputBus) install(ItemList.Hatch_Input_Bus_IV).getMetaTileEntity();
             itemOutput = (MTEHatchOutputBus) install(ItemList.Hatch_Output_Bus_IV).getMetaTileEntity();
@@ -237,7 +280,7 @@ public final class TestLabCriticalTask implements TestLabTask {
         machine.forceLoomStructureCheck();
         sourceFluid = kind == CriticalMachineKind.SOLAR ? GTModHandler.getDistilledWater(100)
             : GTModHandler.getSteam(1600);
-        targetFluid = kind == CriticalMachineKind.SOLAR ? CriticalEnergyRuntime.steam(0)
+        targetFluid = kind == CriticalMachineKind.SOLAR ? CriticalEnergyRuntime.steam(5)
             : GTModHandler.getDistilledWater(1);
         if (sourceFluid == null || targetFluid == null) return result(TestLabReport.Status.BLOCKED, "所需GT流体未注册");
         suppliedFluid = fluidInput.fill(ForgeDirection.UNKNOWN, sourceFluid.copy(), true);
@@ -246,15 +289,18 @@ public final class TestLabCriticalTask implements TestLabTask {
             leaseSolarFactor(world);
             CriticalSolarPolicy.Entry coolant = CriticalSolarPolicy.COOLANTS.get(0);
             CriticalSolarPolicy.Entry exciter = CriticalSolarPolicy.EXCITERS.get(0);
-            BigInteger budget = CriticalSolarPolicy
-                .batchBudgetEU(CriticalEnergyRuntime.dimensionFactor(world), coolant, exciter, false);
-            BigInteger heat = CriticalSolarPolicy
-                .saturatedWaterHalfHeat(BigInteger.valueOf(suppliedFluid), budget.divide(BigInteger.TEN));
-            expectedFluid = CriticalSolarPolicy.steamLitres(heat, 0)
+            BigInteger dense = CriticalSolarPolicy.batchDenseSupercriticalLitres(
+                BigInteger.valueOf(suppliedFluid),
+                CriticalEnergyRuntime.dimensionFactor(world),
+                coolant,
+                exciter);
+            BigInteger heat = dense.multiply(com.miaokatze.gtsr.common.critical.CriticalEnergyMath.steamHeatPerL(5));
+            expectedFluid = CriticalSolarPolicy.steamLitres(heat, 5)
                 .longValueExact();
-            consumedFluid = CriticalSolarPolicy.waterLitres(BigInteger.valueOf(expectedFluid), 0)
+            consumedFluid = CriticalSolarPolicy.waterLitres(BigInteger.valueOf(expectedFluid), 5)
                 .longValueExact();
-            if (consumedFluid <= 0) return result(TestLabReport.Status.BLOCKED, "????????????????");
+            if (consumedFluid <= 0 || consumedFluid > suppliedFluid)
+                return result(TestLabReport.Status.BLOCKED, "最小锅炉样例不能完整支付工作流体");
             BigInteger work = heat.multiply(BigInteger.TEN);
             FluidStack coolantInput = CriticalEnergyRuntime.solarCoolant(coolant)
                 .copy();
@@ -266,9 +312,9 @@ public final class TestLabCriticalTask implements TestLabTask {
                 .intValueExact();
             if (solarCoolant.fill(ForgeDirection.UNKNOWN, coolantInput.copy(), true) != coolantInput.amount
                 || solarExciter.fill(ForgeDirection.UNKNOWN, exciterInput.copy(), true) != exciterInput.amount)
-                return result(TestLabReport.Status.FAIL, "????????????");
+                return result(TestLabReport.Status.FAIL, "真实输入仓拒绝冷却剂或激活剂");
             state.energyRuntimeData()
-                .setInteger("steamMode", 0);
+                .setInteger("steamMode", 5);
             state.energyRuntimeData()
                 .setBoolean("solarSaltMode", false);
         } else {
@@ -294,6 +340,138 @@ public final class TestLabCriticalTask implements TestLabTask {
             + " expectedOutput="
             + expectedFluid;
         return null;
+    }
+
+    private void prepareWireless() {
+        if (!TestLabFixtures.OWNER.equals(SpaceProjectManager.getLeader(TestLabFixtures.OWNER)))
+            throw new IllegalStateException("测试UUID已加入其他无线团队");
+        WirelessNetworkManager.strongCheckOrAddUser(TestLabFixtures.OWNER);
+        wirelessBefore = WirelessNetworkManager.getUserEU(TestLabFixtures.OWNER);
+    }
+
+    private TestLabReport.Result prepareChemical() throws Exception {
+        CompoundRecipe recipe = CriticalChemicalRecipes.catalog(CriticalGTRecipes.chemicalFuels())
+            .get(0);
+        Map<GTUtility.FluidId, BigInteger> volumes = new LinkedHashMap<>();
+        for (CompoundRecipe.Component component : recipe.components) {
+            FluidStack stock = component.fuel.fluid.copy();
+            stock.amount = component.ratio * 100;
+            MTEHatchInput hatch = (MTEHatchInput) install(ItemList.Hatch_Input_IV).getMetaTileEntity();
+            if (hatch.fill(ForgeDirection.UNKNOWN, stock.copy(), true) != stock.amount)
+                return result(TestLabReport.Status.FAIL, "化学测试仓拒绝复合燃料");
+            reactionInputs.add(hatch);
+            reactionStock.add(stock);
+            volumes.put(GTUtility.FluidId.create(stock), BigInteger.valueOf(stock.amount));
+        }
+        itemInput = (MTEHatchInputBus) install(ItemList.Hatch_Input_Bus_IV).getMetaTileEntity();
+        circuitBefore = GTUtility.getIntegratedCircuit(recipe.selectorCircuit);
+        itemInput.setInventorySlotContents(itemInput.getCircuitSlot(), circuitBefore.copy());
+        machine.forceLoomStructureCheck();
+        CriticalChemicalRecipes.Match match = CriticalChemicalRecipes
+            .best(CriticalGTRecipes.chemicalFuels(), volumes, recipe.selectorCircuit);
+        if (match == null || !match.recipe.id.equals(recipe.id))
+            return result(TestLabReport.Status.FAIL, "化学电路未唯一选择预期复合配方");
+        prepareWireless();
+        expectedWireless = match.evaluation.generatedEU;
+        production = "compound=" + recipe.id + " circuit=" + recipe.selectorCircuit + " expectedEU=" + expectedWireless;
+        return null;
+    }
+
+    private TestLabReport.Result verifyChemical() {
+        state.setEnabled(player, false);
+        for (int i = 0; i < reactionInputs.size(); i++) if (amount(
+            reactionInputs.get(i)
+                .getTankInfo(ForgeDirection.UNKNOWN),
+            reactionStock.get(i)) != 0) return result(TestLabReport.Status.FAIL, "化学复合燃料未整仓扣除");
+        if (!ItemStack.areItemStacksEqual(itemInput.getStackInSlot(itemInput.getCircuitSlot()), circuitBefore))
+            return result(TestLabReport.Status.FAIL, "化学编程电路被消耗");
+        BigInteger delta = WirelessNetworkManager.getUserEU(TestLabFixtures.OWNER)
+            .subtract(wirelessBefore);
+        if (!delta.equals(expectedWireless)) return result(TestLabReport.Status.FAIL, "化学无线增量不符 actual=" + delta);
+        return result(TestLabReport.Status.PASS, "复合配方真实扣料、保留电路与400tick无线发电通过；" + production);
+    }
+
+    private TestLabReport.Result prepareStellar() throws Exception {
+        FluidStack helium3 = Materials.Helium3.getGas(1);
+        FluidStack plasma = Materials.Helium.getPlasma(1);
+        for (GTRecipe candidate : RecipeMaps.fusionRecipes.getAllRecipes()) {
+            long threshold = candidate.getMetadataOrDefault(gregtech.api.util.GTRecipeConstants.FUSION_THRESHOLD, -1L);
+            if (!candidate.mEnabled || candidate.mFakeRecipe
+                || candidate.mDuration <= 0
+                || !CriticalStellarPolicy.nativeCapability(threshold, candidate.mEUt, gregtech.api.enums.GTValues.V[10])
+                || candidate.mInputs.length != 0
+                || candidate.mOutputs.length != 0
+                || candidate.mFluidInputs.length != 2
+                || candidate.mFluidOutputs.length != 1
+                || !deterministic(candidate)) continue;
+            boolean separate = true;
+            for (FluidStack fluid : candidate.mFluidInputs) separate &= fluid != null && !fluid.isFluidEqual(helium3);
+            if (!separate || candidate.mFluidOutputs[0] == null || candidate.mFluidOutputs[0].isFluidEqual(plasma))
+                continue;
+            fusionRecipe = candidate;
+            break;
+        }
+        if (fusionRecipe == null) return result(TestLabReport.Status.BLOCKED, "未找到独立于氦三与氦等离子体的原生聚变样例");
+        for (FluidStack source : fusionRecipe.mFluidInputs) {
+            MTEHatchInput hatch = (MTEHatchInput) install(ItemList.Hatch_Input_MAX).getMetaTileEntity();
+            if (hatch.fill(ForgeDirection.UNKNOWN, source.copy(), true) != source.amount)
+                return result(TestLabReport.Status.FAIL, "聚变测试仓拒绝原料");
+            reactionInputs.add(hatch);
+            reactionStock.add(source.copy());
+        }
+        stellarFuel = (MTEHatchInput) install(ItemList.Hatch_Input_MAX).getMetaTileEntity();
+        helium3.amount = (int) CriticalStellarPolicy.IGNITION_HELIUM3_L + 100_000;
+        if (stellarFuel.fill(ForgeDirection.UNKNOWN, helium3, true) != helium3.amount)
+            return result(TestLabReport.Status.FAIL, "点火氦三不能完整装入真实输入仓");
+        fluidOutput = (MTEHatchOutput) install(ItemList.Hatch_Output_MAX).getMetaTileEntity();
+        stellarPlasma = (MTEHatchOutput) install(ItemList.Hatch_Output_MAX).getMetaTileEntity();
+        // Bind each native output tank to one real output; no output is inserted by the fixture.
+        fluidOutput.setLockedFluid(fusionRecipe.mFluidOutputs[0].getFluid());
+        fluidOutput.lockFluid(true);
+        stellarPlasma.setLockedFluid(plasma.getFluid());
+        stellarPlasma.lockFluid(true);
+        machine.forceLoomStructureCheck();
+        machine.setEUVar(state.energyCapacity());
+        lastStoredEnergy = tile.getStoredEU();
+        production = "nativeFusion=" + fusionRecipe.mFluidInputs[0].getFluid()
+            .getName()
+            + "+"
+            + fusionRecipe.mFluidInputs[1].getFluid()
+                .getName()
+            + " nativeTicks="
+            + fusionRecipe.mDuration;
+        return null;
+    }
+
+    private TestLabReport.Result verifyStellar() {
+        if (!state.shutdownStellar(player)) return result(TestLabReport.Status.FAIL, "人工恒星正常停机被拒绝");
+        long perTick = CriticalStellarPolicy.runEuPerTick(fusionRecipe.mEUt, fusionRecipe.mDuration, 1);
+        long expectedEu = CriticalStellarPolicy.IGNITION_EU + sustainTicks * CriticalStellarPolicy.SUSTAIN_EUT
+            + 400 * perTick;
+        if (suppliedEnergy != expectedEu) return result(
+            TestLabReport.Status.FAIL,
+            "点火/维持/聚变真实EU差额不符 actual=" + suppliedEnergy + " expected=" + expectedEu);
+        for (int i = 0; i < reactionInputs.size(); i++) if (amount(
+            reactionInputs.get(i)
+                .getTankInfo(ForgeDirection.UNKNOWN),
+            reactionStock.get(i)) != 0) return result(TestLabReport.Status.FAIL, "原生聚变输入扣料不符");
+        FluidStack product = fusionRecipe.mFluidOutputs[0];
+        if (amount(fluidOutput.getTankInfo(ForgeDirection.UNKNOWN), product) != product.amount)
+            return result(TestLabReport.Status.FAIL, "原生聚变输出不符");
+        long fuel = CriticalStellarPolicy.IGNITION_HELIUM3_L
+            + sustainTicks * CriticalStellarPolicy.SUSTAIN_HELIUM3_L_PER_TICK;
+        if (amount(stellarFuel.getTankInfo(ForgeDirection.UNKNOWN), Materials.Helium3.getGas(1))
+            != CriticalStellarPolicy.IGNITION_HELIUM3_L + 100_000 - fuel)
+            return result(TestLabReport.Status.FAIL, "点火/维持氦三扣料不符");
+        if (amount(stellarPlasma.getTankInfo(ForgeDirection.UNKNOWN), Materials.Helium.getPlasma(1)) != fuel / 2)
+            return result(TestLabReport.Status.FAIL, "额外氦等离子体交付不符");
+        return result(
+            TestLabReport.Status.PASS,
+            "真实400tick点火→维持→400tick聚变、EU/氦三扣除与双产物通过；EU=" + suppliedEnergy
+                + " sustainTicks="
+                + sustainTicks
+                + "; "
+                + production);
     }
 
     /**
@@ -532,6 +710,10 @@ public final class TestLabCriticalTask implements TestLabTask {
             + machine.isLoomGeometryValid()
             + " stage="
             + state.getStage()
+            + " observedFoundationPhases="
+            + foundationPhases
+            + " observedConstructionStages="
+            + constructionStages
             + " cursor="
             + state.getCursor()
             + " placed="
@@ -552,13 +734,21 @@ public final class TestLabCriticalTask implements TestLabTask {
 
     @Override
     public String debug(WorldServer world) {
-        return diagnostics() + "; " + production + "; " + TestLabFixtures.snapshot(tile);
+        // Physical jobs freeze tens of thousands of receipts. Expanding the entire host NBT here
+        // makes a periodic progress report quadratic in ledger size and stalls the server tick.
+        return diagnostics() + "; "
+            + production
+            + "; energy="
+            + (tile == null ? 0 : tile.getStoredEU())
+            + "; batch="
+            + (state == null ? "" : state.getBatchId());
     }
 
     @Override
     public void stop(WorldServer world) {
         try {
             if (state == null) return;
+            if (kind == CriticalMachineKind.SUN) state.shutdownStellar(player);
             state.setEnabled(player, false);
             state.setChunkLoadingEnabled(false);
             state.getChunkLoading()

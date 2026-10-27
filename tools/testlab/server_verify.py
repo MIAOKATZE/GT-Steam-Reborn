@@ -197,7 +197,8 @@ def run(args) -> None:
             command.insert(1, f"-Xlog:class+load=info:file={trace_relative}")
             receipt["class_loading"]["file"] = str(result_dir / "class-loading.log")
         process = subprocess.Popen(command, cwd=sandbox, stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         receipt.update(pid=process.pid, command=command)
         smoke.write_json(active, receipt)
 

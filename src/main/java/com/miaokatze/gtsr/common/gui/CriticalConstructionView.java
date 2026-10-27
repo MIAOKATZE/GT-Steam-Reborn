@@ -68,10 +68,9 @@ final class CriticalConstructionView {
                 .pos(6, 46)
                 .size(274, 119)
                 .background(new CriticalConstructionPreview(business::getValue))
-                .tooltipBuilder(t -> {
-                    t.add(IKey.lang(key("view.grid_hint")));
-                    t.add(IKey.lang(key("view.ghost_hint")));
-                }));
+                .tooltipBuilder(
+                    t -> t.add(IKey.lang(key(sample().showsFoundation() ? "view.grid_hint" : "view.ghost_hint"))))
+                .tooltipAutoUpdate(true));
         drawing.child(
             IKey.dynamic(() -> tr(sample().showsFoundation() ? "view.grid_legend" : "view.ghost_legend"))
                 .color(CriticalGuiStyle.TEXT_MUTED)
@@ -297,8 +296,9 @@ final class CriticalConstructionView {
         if (s.showsFoundation() && s.phase() == 2) return tr("view.phase.curing");
         if (s.showsFoundation() && s.phase() == 4) return tr("view.phase.heating");
         if (s.threePartConstruction()) {
-            String phase = s.equipmentStage() ? "view.phase.equipment" : "view.phase.body";
-            int part = s.equipmentStage() ? s.stage() - 6 : s.stage() - 3;
+            String phase = s.stage() <= 3 ? "view.phase.base"
+                : s.equipmentStage() ? "view.phase.equipment" : "view.phase.body";
+            int part = (s.stage() - 1) % 3 + 1;
             return tr(phase) + " " + Math.max(1, Math.min(3, part)) + "/3";
         }
         return tr(

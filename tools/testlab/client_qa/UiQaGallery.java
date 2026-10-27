@@ -140,7 +140,7 @@ final class UiQaGallery {
 
     /** Explicit visual fixture on the owned server journal; no client sync cache is written. */
     void loomSeed(JsonObject step)throws Exception {
-        if(!Boolean.TRUE.equals(s.variables.get("loomRecipeVerified"))){s.variables.put("loomRecipeVerified",true);loomRecipeCheck();}
+        if(!step.has("schematicOnly")&&!Boolean.TRUE.equals(s.variables.get("loomRecipeVerified"))){s.variables.put("loomRecipeVerified",true);loomRecipeCheck();}
         Object machine=s.target("galleryMachine"),host=s.target("galleryHost"),state=Mui2ClientQa.call(machine,"getCriticalState");
         String variant=step.get("state").getAsString();
         if(!machine.getClass().getName().endsWith("MTECriticalMachine")||!Boolean.TRUE.equals(Mui2ClientQa.call(machine,"isKindSelector")))throw new AssertionError("Owned loom fixture required");
@@ -150,11 +150,11 @@ final class UiQaGallery {
         ((List<?>)Mui2ClientQa.field(world,"addedTileEntityList|field_147484_a")).remove(host);
         Mui2ClientQa.set(state,"loomJournalOwner",true);
         Mui2ClientQa.set(state,"foundationRequired",true);
-        Mui2ClientQa.set(state,"state",1);
+        Mui2ClientQa.set(state,"state",variant.equals("complete")?2:1);
         Mui2ClientQa.set(state,"constructionTimeVersion",1);
-        Mui2ClientQa.set(state,"stage",variant.equals("base")?2:variant.equals("body")?4:0);
+        Mui2ClientQa.set(state,"stage",variant.equals("base")?2:variant.equals("body")?4:variant.equals("equipment")||variant.equals("complete")?5:0);
         Mui2ClientQa.set(state,"cursor",0);
-        Mui2ClientQa.call(Mui2ClientQa.field(state,"constructionProgress"),"advance",200);
+        Mui2ClientQa.call(Mui2ClientQa.field(Mui2ClientQa.field(state,"constructionLedger"),"progress"),"advance",200);
         Mui2ClientQa.call(host,variant.equals("paused")?"disableWorking":"enableWorking");
         List<?> chunks=(List<?>)Mui2ClientQa.call(state,"getFoundationChunks");
         if(chunks.isEmpty()||chunks.size()>4096)throw new AssertionError("Invalid actual chunk footprint");
@@ -171,7 +171,7 @@ final class UiQaGallery {
             Mui2ClientQa.call(foundation,"read",tag);
             JsonObject entry=new JsonObject();entry.addProperty("x",q.number(Mui2ClientQa.field(chunk,"chunkXPos|field_77276_a")));entry.addProperty("z",q.number(Mui2ClientQa.field(chunk,"chunkZPos|field_77275_b")));footprint.add(entry);
         }
-        if(variant.equals("base")||variant.equals("body"))Mui2ClientQa.set(state,"cursor",q.number(Mui2ClientQa.call(state,"getJobTotal"))/2);
+        if(variant.equals("base")||variant.equals("body")||variant.equals("equipment"))Mui2ClientQa.set(state,"cursor",q.number(Mui2ClientQa.call(state,"getJobTotal"))/2);
         Mui2ClientQa.set(state,"status","[受控视觉样本] "+variant+"；真实服务端账本同步，未执行施工或付费。");
         q.check("loom.fixture-normal-access."+s.group,Boolean.TRUE.equals(Mui2ClientQa.call(state,"canUse",q.serverPlayer))&&!Boolean.TRUE.equals(Mui2ClientQa.call(host,"isInvalid|func_145837_r")),"Owned tile removed only from server tick lists; real chunk tile identity and normal production permission retained");
         s.variables.put("loomHostTimer",Mui2ClientQa.call(host,"getTimer"));
