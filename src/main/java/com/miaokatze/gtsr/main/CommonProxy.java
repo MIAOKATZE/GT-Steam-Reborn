@@ -11,6 +11,7 @@ import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.common.commands.GTSRCommand;
 import com.miaokatze.gtsr.common.commands.SpacetimeAuditCommand;
+import com.miaokatze.gtsr.common.critical.CriticalFoundationMaterials;
 import com.miaokatze.gtsr.common.crossmod.ae2.GTSRAE2ExternalStorageHandler;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
 import com.miaokatze.gtsr.common.dimension.framework.DimensionInterferenceGuard;
@@ -48,6 +49,7 @@ import com.miaokatze.gtsr.loader.GTSRRecipeLoader;
 import com.miaokatze.gtsr.loader.ItemLoader;
 import com.miaokatze.gtsr.loader.MachineLoader;
 import com.miaokatze.gtsr.register.CreativeTabManager;
+import com.miaokatze.miaokatzecore.api.recipe.RecipeRegistration;
 
 import appeng.api.AEApi;
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -321,21 +323,22 @@ public class CommonProxy {
     @SuppressWarnings({ "unused" })
     public void postInit(FMLPostInitializationEvent event) {
         com.miaokatze.gtsr.common.weapons.PortableWeapons.init();
-        GTSteamReborn.LOG.info("[3/3] 开始注册 GTSR 配方...");
-        try {
+        CriticalFoundationMaterials.registerFluid();
+        RecipeRegistration.register("gtsr", () -> {
+            GTSteamReborn.LOG.info("[3/3] 开始注册 GTSR 配方...");
             new GTSRRecipeLoader().run();
             GTSteamReborn.LOG.info("[3/3] GTSR 配方注册完成。");
+        }, GTSRRecipeLoader::registerCriticalRuntimeViews);
+        try {
             // 注入蒸汽纠缠奇点到村庄/地牢/矿井/要塞箱子战利品（~2% 抽取概率，每次 1 个）
             LootInjectionRunawaySingularity.init();
         } catch (Throwable t) {
-            GTSteamReborn.LOG.error("[3/3] GTSR 配方注册过程中发生错误", t);
+            GTSteamReborn.LOG.error("[3/3] GTSR 战利品注册过程中发生错误", t);
         }
         AEApi.instance()
             .registries()
             .externalStorage()
             .addExternalStorageInterface(new GTSRAE2ExternalStorageHandler());
-        // GT 的材料/Cell/display 已生成，丢弃 init 阶段可能提前读取的展示目录快照。
-        com.miaokatze.miaokatzecore.api.items.ItemOrderCatalog.invalidate();
     }
 
     /**
@@ -371,7 +374,6 @@ public class CommonProxy {
      * 如果之前注册失败，可以在此处进行最后的补救尝试。
      */
     public void loadComplete(cpw.mods.fml.common.event.FMLLoadCompleteEvent event) {
-        GTSRRecipeLoader.registerCriticalRuntimeViews();
         // P12（L8）：装配进维一次性诊断行的内容段供给器 + 打一行 [GTSR][diag] boot 汇总
         // （降级三态/owner 快照/开关/roster/贴图）。纯观测：任何异常只 WARN，不影响加载链。
         try {

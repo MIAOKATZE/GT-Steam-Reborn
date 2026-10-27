@@ -152,7 +152,7 @@ public final class ProcessingMachineRecipes {
                 warn("Materials.NetherAir.getFluid(800) returned null, skipping Nether Air recipe!");
             }
         } catch (Exception e) {
-            warn("Failed to register Nether Air compressor recipe: " + e.getMessage());
+            throw new IllegalStateException("Failed to register Nether Air compressor recipe", e);
         }
     }
 
@@ -195,7 +195,7 @@ public final class ProcessingMachineRecipes {
                 .eut(-25)
                 .addTo(atmosphericCentrifugeRecipes);
         } catch (Exception e) {
-            warn("Failed to register Nether Air basic centrifuge recipe: " + e.getMessage());
+            throw new IllegalStateException("Failed to register Nether Air basic centrifuge recipe", e);
         }
 
         try {
@@ -223,7 +223,7 @@ public final class ProcessingMachineRecipes {
                 .eut(-250)
                 .addTo(atmosphericCentrifugeRecipes);
         } catch (Exception e) {
-            warn("Failed to register Nether Air rare gas centrifuge recipe: " + e.getMessage());
+            throw new IllegalStateException("Failed to register Nether Air rare gas centrifuge recipe", e);
         }
     }
 

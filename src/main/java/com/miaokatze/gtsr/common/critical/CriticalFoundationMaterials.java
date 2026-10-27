@@ -25,8 +25,9 @@ public final class CriticalFoundationMaterials {
 
     private CriticalFoundationMaterials() {}
 
-    public static void registerRecipes() {
-        if (registered) return;
+    /** Register the fluid and its icon task during postInit, before late recipe execution. */
+    public static void registerFluid() {
+        if (concrete != null) return;
         FluidStack wetConcrete = Materials.Concrete.getMolten(9000);
         if (wetConcrete == null) throw new IllegalStateException("Missing wet concrete");
         concrete = GTFluidFactory.builder(FLUID_NAME)
@@ -36,11 +37,15 @@ public final class CriticalFoundationMaterials {
             .withIconsFrom(wetConcrete.getFluid())
             .buildAndRegister()
             .asFluid();
+    }
+
+    public static void registerRecipes() {
+        if (registered) return;
         GTValues.RA.stdBuilder()
             .itemInputsUnsafe(
                 GTModHandler.getIC2Item("carbonFiber", 32),
                 GTOreDictUnificator.get(OrePrefixes.dust, Materials.SiliconDioxide, 64))
-            .fluidInputs(wetConcrete)
+            .fluidInputs(Materials.Concrete.getMolten(9000))
             .fluidOutputs(fluid(16000))
             .duration(300 * 20)
             .eut(TierEU.RECIPE_IV)
