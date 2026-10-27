@@ -20,6 +20,12 @@ public final class CriticalConstructionViewContract {
         return getter.invoke(sample);
     }
 
+    private static double part(Object sample, int part) throws Exception {
+        Method getter = sample.getClass().getDeclaredMethod("partProgress", int.class);
+        getter.setAccessible(true);
+        return (Double) getter.invoke(sample, part);
+    }
+
     public static void main(String[] args) throws Exception {
         Class<?> type = Class.forName("com.miaokatze.gtsr.common.gui.CriticalConstructionSnapshot");
         check(Paths.get(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath()
@@ -88,6 +94,35 @@ public final class CriticalConstructionViewContract {
         Object oldCell = constructor.newInstance((Object) values.clone());
         check((Integer) call(oldCell, "displayCellTicks") == 213,
             "uncertain version-five work retains the original per-small-cell clock");
+        values[0] = 3;
+        values[21] = 1;
+        values[10] = 50;
+        values[11] = 100;
+        for (int stage = 1; stage <= 9; stage++) {
+            values[9] = stage;
+            Object sample = constructor.newInstance((Object) values.clone());
+            check((Integer) call(sample, "activePart") == (stage - 1) / 3,
+                "Every new stage highlights its own base/body/equipment group: " + stage);
+            for (int group = 0; group < 3; group++) {
+                double expected = Math.max(0, Math.min(1, (stage - 1 - group * 3 + .5) / 3));
+                check(Math.abs(part(sample, group) - expected) < .000001,
+                    "Each segment follows its own authoritative stage cursor: " + stage + "/" + group);
+            }
+        }
+        values[9] = 9;
+        values[12] = 2;
+        Object finished = constructor.newInstance((Object) values.clone());
+        for (int group = 0; group < 3; group++) check(part(finished, group) == 1,
+            "All three groups remain visible at completion, including equipment");
+        check((Integer) call(finished, "activePart") == -1, "Completion has no active segment");
+        values[12] = 0;
+        Object planned = constructor.newInstance((Object) values.clone());
+        for (int group = 0; group < 3; group++) check(part(planned, group) == 0,
+            "A planned job never inherits filled segments from a stale stage");
+        values[12] = 1;
+        values[0] = 4;
+        Object foundation = constructor.newInstance((Object) values.clone());
+        check((Integer) call(foundation, "activePart") == -1, "Curing does not highlight a structural segment");
         System.out.println("PASS CriticalConstructionViewContract checks=" + checks);
     }
 }

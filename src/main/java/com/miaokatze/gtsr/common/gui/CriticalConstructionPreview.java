@@ -2,6 +2,8 @@ package com.miaokatze.gtsr.common.gui;
 
 import java.util.function.Supplier;
 
+import net.minecraft.util.StatCollector;
+
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
@@ -120,29 +122,53 @@ final class CriticalConstructionPreview implements IDrawable {
 
     @SideOnly(Side.CLIENT)
     private static void drawStructure(CriticalConstructionSnapshot current, int x, int y, int width, int height) {
-        boolean complete = current.status() == 2;
-        double stageProgress = CriticalConstructionSnapshot.ratio(current.placed(), current.total());
-        double baseProgress = complete || current.stage() > 3 ? 1
-            : current.stage() > 0 ? (current.stage() - 1 + stageProgress) / 3 : 0;
-        double bodyProgress = current.bodyProgress();
-        if (current.status() == 3) {
-            baseProgress = 1 - stageProgress;
-            bodyProgress = 1 - stageProgress;
+        // Integer pixel sizes and fixed gaps keep the three silhouettes stable across stage transitions.
+        int unit = Math.max(3, Math.min((width - 100) / 12, (height - 22) / 8));
+        int center = x + (width - 92) / 2, floor = y + height - 9;
+        drawPart(current, 0, center - unit * 6, floor - unit * 2, unit, 12, 2, x + width - 82, 0xFF72A8B2);
+        drawPart(current, 1, center - unit * 9 / 2, floor - unit * 6 - 5, unit, 9, 4, x + width - 82, 0xFFC39D62);
+        drawPart(current, 2, center - unit * 3, floor - unit * 8 - 10, unit, 6, 2, x + width - 82, 0xFF91B8DC);
+        GuiDraw.drawRect(center - unit * 6 - 3, floor + 2, unit * 12 + 6, 1, 0xFF72828E);
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static void drawPart(CriticalConstructionSnapshot current, int part, int x, int y, int unit, int columns,
+        int rows, int labelX, int color) {
+        double progress = current.partProgress(part);
+        boolean active = current.activePart() == part;
+        for (int third = 0; third < 3; third++) ghostBlocks(
+            x + columns * unit * third / 3,
+            y,
+            unit,
+            columns / 3,
+            rows,
+            CriticalConstructionSnapshot.ratio(progress * 3 - third, 1),
+            color);
+        outline(x - 2, y - 2, columns * unit + 3, rows * unit + 3, active ? 2 : 1, active ? 0xFFFFCE83 : 0x805D7180);
+        // Each third has its own fixed boundary; never paint equipment over the body.
+        for (int third = 1; third < 3; third++)
+            GuiDraw.drawRect(x + columns * unit * third / 3 - 1, y, 1, rows * unit - 1, 0xFF151C25);
+        String key = part == 0 ? "base" : part == 1 ? "body" : "equipment";
+        int labelY = y + rows * unit / 2 - 9;
+        GuiDraw.drawRect(
+            x + columns * unit + 4,
+            labelY + 5,
+            Math.max(0, labelX - x - columns * unit - 8),
+            1,
+            active ? 0xFFFFCE83 : 0x805D7180);
+        GuiDraw.drawText(
+            StatCollector.translateToLocal("gtsr.critical.view.part." + key),
+            labelX,
+            labelY,
+            0.8f,
+            active ? 0xFFFFCE83 : color,
+            false);
+        for (int third = 0; third < 3; third++) {
+            double filled = CriticalConstructionSnapshot.ratio(progress * 3 - third, 1);
+            int bx = labelX + third * 19;
+            GuiDraw.drawRect(bx, labelY + 12, 16, 4, 0xFF303D49);
+            GuiDraw.drawRect(bx, labelY + 12, (float) (16 * filled), 4, color);
         }
-        float unit = Math.min((width - 44) / 14f, (height - 18) / 11f);
-        float center = x + width / 2f;
-        float floor = y + height - 7;
-        // Keep the complete blueprint visible while its base and body fill from the authoritative cursor.
-        ghostBlocks(center - unit * 6, floor - unit * 3, unit, 12, 3, baseProgress, 0xFF72A8B2);
-        ghostBlocks(center - unit * 4, floor - unit * 10, unit, 8, 7, bodyProgress, 0xFFC39D62);
-        if (current.equipmentStage() && !complete) {
-            double equipmentProgress = current.threePartConstruction() ? (current.stage() - 7 + stageProgress) / 3
-                : stageProgress;
-            ghostBlocks(center - unit * 2, floor - unit * 8, unit, 4, 4, equipmentProgress, 0xFF91B8DC);
-        }
-        for (int support = -5; support <= 5; support += 10)
-            GuiDraw.drawRect(center + unit * support, floor - unit * 10, 1, unit * 10, 0x558999A3);
-        GuiDraw.drawRect(center - unit * 7, floor + 1, unit * 14, 1, 0xFF72828E);
     }
 
     @SideOnly(Side.CLIENT)

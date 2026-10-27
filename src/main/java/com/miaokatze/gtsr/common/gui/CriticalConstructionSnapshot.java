@@ -211,10 +211,23 @@ final class CriticalConstructionSnapshot {
     }
 
     double bodyProgress() {
+        return partProgress(1);
+    }
+
+    /** Base, body and equipment share the server's stage numbering, including frozen legacy jobs. */
+    double partProgress(int part) {
+        if (status() == 0) return 0;
         if (status() == 2) return 1;
         double cursor = ratio(placed(), total());
-        if (threePartConstruction()) return stage() > 6 ? 1 : stage() >= 4 ? (stage() - 4 + cursor) / 3 : 0;
-        return stage() > 4 ? 1 : stage() == 4 ? cursor : 0;
+        if (status() == 3) return 1 - cursor;
+        int first = threePartConstruction() ? 1 + part * 3 : part == 0 ? 1 : part + 3;
+        int count = threePartConstruction() || part == 0 ? 3 : 1;
+        return ratio(stage() - first + cursor, count);
+    }
+
+    int activePart() {
+        if (status() != 1 && status() != 4 || showsFoundation() || stage() == 0) return -1;
+        return threePartConstruction() ? (stage() - 1) / 3 : stage() <= 3 ? 0 : stage() - 3;
     }
 
     int heatingRemaining() {
