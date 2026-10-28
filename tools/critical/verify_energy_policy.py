@@ -34,10 +34,11 @@ def main():
         ROOT / 'build/classes/java/patchedMc', ROOT / 'build/rfg/recompiled_minecraft-1.7.10.jar',
         ROOT / 'build/rfg/mclauncher-1.7.10.jar', *dependencies]))
     sources = [ROOT / 'tools/tests' / name for name in (
-        'Issue37RegistrationRegression.java', 'CriticalCompoundRuntimeContract.java', 'CriticalEnergyPolicyContract.java')]
+        'Issue37RegistrationRegression.java', 'CriticalCompoundRuntimeContract.java', 'CriticalEnergyPolicyContract.java',
+        'CriticalPlasmaFixture.java')]
     if not args.jar:
         sources += [ROOT / 'src/main/java/com/miaokatze/gtsr/common/critical' / (name + '.java') for name in
-            ('CriticalEnergyMath', 'CriticalSolarPolicy', 'CriticalEnergyRuntime', 'CriticalEnergyPorts')]
+            ('CriticalEnergyMath', 'CriticalSolarPolicy', 'CriticalPlasmaCatalog', 'CriticalEnergyRuntime', 'CriticalEnergyPorts')]
     hashes = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}
     java = Path.home() / '.gradle/jdks/azul_systems__inc_-17-amd64-windows.2/bin'
 

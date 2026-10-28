@@ -355,6 +355,7 @@ class CriticalNEICatalogRuntime {
     }
     static void solarCatalogue() throws Exception {
         // Fluid identities only; invoke the production loader and compare all paid sample quantities.
+        CriticalPlasmaFixture.seed();
         solarFluid("ic2distilledwater");
         Materials.Steam.mGas=solarFluid("steam");
         Materials.DenseSteam.mGas=solarFluid("densesteam");
@@ -380,17 +381,26 @@ class CriticalNEICatalogRuntime {
         Method register=CriticalMachineRecipes.class.getDeclaredMethod("registerSolar");
         register.setAccessible(true);register.invoke(null);
         Set<Integer> steamModes=new HashSet<>();
-        int conversions=0;
+        int conversions=0,plasmas=0;
         BigInteger waterEU=null,saltEU=null;
         for(GTRecipe recipe:CriticalRecipeMaps.forKind(CriticalMachineKind.SOLAR).getAllRecipes()) {
             if(previous.contains(recipe))continue;
             var info=CriticalRecipeMaps.displayInfo(recipe);
-            check(Set.of("solar_water","solar_salt").contains(info.operation),
-                "boiler catalogue contains only water and salt conversions, with no medium examples");
+            check(Set.of("solar_water","solar_salt","solar_plasma").contains(info.operation),
+                "boiler catalogue contains only working-fluid conversions, with no medium examples");
             conversions++;
             check(recipe.mFluidInputs.length==1&&recipe.mFluidOutputs.length==1,
                 "water/salt views show exactly one converted working fluid and its product");
             check(recipe.mDuration==CriticalEnergyMath.CYCLE_TICKS,"all solar views keep a fixed 400-tick batch");
+            if(info.operation.equals("solar_plasma")) {
+                plasmas++;
+                var plasma=info.plasma;
+                check(plasma!=null&&recipe.mFluidInputs[0].isFluidEqual(plasma.input)
+                    &&recipe.mFluidOutputs[0].isFluidEqual(plasma.output)
+                    &&recipe.mFluidInputs[0].amount==1&&recipe.mFluidOutputs[0].amount==1,
+                    "each plasma card indexes its native1:1 working-fluid conversion");
+                continue;
+            }
             var solar=info.solar;
             check(solar!=null,"all boiler cards freeze typed batch metadata at registration");
             check(solar.inputLitres.compareTo(solar.exampleStock)<=0,"shown working-fluid stock funds the full real batch");
@@ -424,7 +434,7 @@ class CriticalNEICatalogRuntime {
                     &&solar.heatEU.equals(new BigInteger(mode%3==0?"33750000000000":"20250000000000")),"ordinary forms use funded 500G example; native heat never includes turbine efficiency");
             }
         }
-        check(conversions==7,"exactly six steam conversions and one salt conversion");
+        check(conversions==16&&plasmas==9,"missing native Sulfur route preserves six steam, one salt and nine plasma conversions");
         check(CriticalRecipeMaps.forKind(CriticalMachineKind.SOLAR).getFrontend().getUIProperties().maxFluidInputs==1,
             "boiler native template has no coolant or activator slots");
         check(steamModes.size()==6,"all six water-route steam forms indexed: "+steamModes);
@@ -530,6 +540,14 @@ class CriticalNEICatalogRuntime {
         for(int components=2;components<=9;components++)check(identitySets.get(components).size()==128,
             "all 128 native entries in each component family have different material identities");
     }
+    static void turbineAfterSolar() throws Exception {
+        var map=CriticalRecipeMaps.forKind(CriticalMachineKind.TURBINE);
+        int before=map.getAllRecipes().size();
+        Method register=CriticalMachineRecipes.class.getDeclaredMethod("registerTurbine");
+        register.setAccessible(true);register.invoke(null);
+        check(map.getAllRecipes().size()==before+6,
+            "missing Sulfur does not prevent subsequent turbine recipe registration");
+    }
     public static void run(String version) throws Exception {
         Issue37Runtime.bootstrap(version);
         String expectedJar=System.getProperty("critical.nei.expectedJar");
@@ -611,9 +629,10 @@ class CriticalNEICatalogRuntime {
         showcaseTemplate();
         fullConstruction();
         manufacturingControllers();
-        stellarLifecycle();
         solarCatalogue();
+        turbineAfterSolar();
         chemicalCompounds();
+        stellarLifecycle();
         runtimeTemplatesAndUniqueness();
         System.out.println("PASS NEI catalog " + checks + " checks; "
             + (expectedJar == null ? "source overlay" : "candidate jar-only") + " GT205; no live client");

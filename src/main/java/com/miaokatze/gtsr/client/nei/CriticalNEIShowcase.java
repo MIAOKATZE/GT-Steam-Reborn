@@ -2,6 +2,8 @@ package com.miaokatze.gtsr.client.nei;
 
 import static com.miaokatze.gtsr.api.recipe.CriticalNEILayout.*;
 
+import java.util.List;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 
@@ -14,6 +16,7 @@ import com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.DisplayInfo;
 import com.miaokatze.gtsr.common.critical.CriticalConstructionProgress;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
 import com.miaokatze.gtsr.common.critical.CriticalFoundationChunk;
+import com.miaokatze.gtsr.common.critical.CriticalSolarPolicy;
 import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
 import com.miaokatze.gtsr.config.Config;
 
@@ -32,6 +35,7 @@ public final class CriticalNEIShowcase {
     private static final int INK = 0xFFE1E8EB, MUTED = 0xFFADBDC6, GOLD = 0xFFEAC879;
     private static final int EDGE = 0xFF53646F, DARK = 0xFF17212A;
     private static final int WATER = 0xFF75CAD8, HEAT = 0xFFF1AB70, PLASMA = 0xFFD2A4EB;
+    private static final int BOILER_WATER = 0xFF63A8EF, BOILER_SALT = 0xFFEB6F65, BOILER_PLASMA = 0xFFFFC94D;
     private static final int[] SPECTRA = { HEAT, WATER, PLASMA };
 
     private CriticalNEIShowcase() {}
@@ -81,7 +85,12 @@ public final class CriticalNEIShowcase {
         }
         String operation = info.operation;
         label(text(operation + ".title"), 8, 6, GOLD);
-        label(info.solar == null ? text("intro." + operation) : text("solar.intro"), 8, 21, MUTED);
+        label(
+            info.plasma != null ? text("plasma.intro")
+                : info.solar == null ? text("intro." + operation) : text("solar.intro"),
+            8,
+            21,
+            MUTED);
         boolean chemical = operation.equals("chemical_compound");
         if (!chemical) label(text("output"), OUTPUT_X, 32, MUTED);
         label(text(chemical ? "chemical.inputs" : "input"), INPUT_X, chemical ? 30 : 32, MUTED);
@@ -143,9 +152,64 @@ public final class CriticalNEIShowcase {
                 text("irradiation.no_energy"),
                 text("irradiation.output"));
         } else {
-            boiler(operation.equals("solar_salt"), new Plot(flow(info, true)));
-            if (info.solar != null) rows(solarRows(info.solar));
+            boiler(
+                info.plasma != null ? BOILER_PLASMA : operation.equals("solar_salt") ? BOILER_SALT : BOILER_WATER,
+                new Plot(flow(info, true)));
+            if (info.plasma != null) {
+                rows(plasmaRows(info.plasma));
+            } else if (info.solar != null) rows(solarRows(info.solar));
         }
+    }
+
+    public static String[] plasmaRows(com.miaokatze.gtsr.common.critical.CriticalPlasmaCatalog.Entry plasma) {
+        java.math.BigInteger output = plasma.batchLitres(
+            plasma.halfSaturation,
+            CriticalSolarPolicy.PRIVATE_DIMENSION_FACTOR,
+            CriticalSolarPolicy.COOLANTS.get(1),
+            CriticalSolarPolicy.EXCITERS.get(1));
+        java.math.BigDecimal coefficient = java.math.BigDecimal.valueOf(30_000_000_000L)
+            .multiply(new java.math.BigDecimal(plasma.hotLitres))
+            .divide(new java.math.BigDecimal(plasma.denseSteamLitres), 3, java.math.RoundingMode.HALF_UP);
+        return new String[] { text("plasma.formula"),
+            CriticalRecipeMaps.formatted("simple.plasma.maximum", plasmaNumber(coefficient)),
+            CriticalRecipeMaps
+                .formatted("simple.plasma.half", plasmaNumber(new java.math.BigDecimal(plasma.halfSaturation))),
+            text("plasma.multiplier"), text("plasma.example"),
+            CriticalRecipeMaps.formatted("simple.plasma.output", plasmaNumber(new java.math.BigDecimal(output))),
+            CriticalRecipeMaps.formatted(
+                "simple.plasma.heat",
+                plasmaNumber(
+                    new java.math.BigDecimal(plasma.equivalentEU(output)).divide(java.math.BigDecimal.valueOf(20)))) };
+    }
+
+    private static String plasmaNumber(java.math.BigDecimal value) {
+        for (int power : new int[] { 12, 9, 6 }) {
+            java.math.BigDecimal unit = java.math.BigDecimal.TEN.pow(power);
+            if (value.compareTo(unit) >= 0) return number(
+                value.divide(unit)
+                    .setScale(3, java.math.RoundingMode.HALF_UP))
+                + (power == 12 ? "T" : power == 9 ? "G" : "M");
+        }
+        return number(value.setScale(3, java.math.RoundingMode.HALF_UP));
+    }
+
+    public static List<String> plasmaTooltip(com.miaokatze.gtsr.common.critical.CriticalPlasmaCatalog.Entry plasma) {
+        return java.util.Arrays.asList(
+            CriticalRecipeMaps.text("showcase.plasma.variables"),
+            CriticalRecipeMaps.text("showcase.plasma.rounding"),
+            CriticalRecipeMaps
+                .formatted("showcase.plasma.exact_half", number(new java.math.BigDecimal(plasma.halfSaturation))),
+            CriticalRecipeMaps.text("showcase.plasma.exchanger"),
+            CriticalRecipeMaps.formatted(
+                "showcase.plasma.conversion",
+                number(
+                    new java.math.BigDecimal(plasma.denseSteamLitres)
+                        .divide(new java.math.BigDecimal(plasma.hotLitres)))),
+            CriticalRecipeMaps.formatted(
+                "showcase.plasma.exact_maximum",
+                number(new java.math.BigDecimal(plasma.hotLitres)),
+                number(new java.math.BigDecimal(plasma.denseSteamLitres))),
+            CriticalRecipeMaps.text("showcase.plasma.media"));
     }
 
     /** Seven native-font lines: quantities describe the frozen funded batch, never the int slot ratio. */
@@ -168,8 +232,10 @@ public final class CriticalNEIShowcase {
         java.math.BigDecimal amount = new java.math.BigDecimal(value);
         java.math.BigDecimal tera = java.math.BigDecimal.valueOf(1_000_000_000_000L);
         java.math.BigDecimal giga = java.math.BigDecimal.valueOf(1_000_000_000L);
+        java.math.BigDecimal mega = java.math.BigDecimal.valueOf(1_000_000L);
         if (amount.compareTo(tera) >= 0) return number(amount.divide(tera)) + "T";
         if (amount.compareTo(giga) >= 0) return number(amount.divide(giga)) + "G";
+        if (amount.compareTo(mega) >= 0) return number(amount.divide(mega)) + "M";
         return number(amount);
     }
 
@@ -217,24 +283,18 @@ public final class CriticalNEIShowcase {
         }
     }
 
-    /** Both collection circuits remain visible; only this recipe's branch carries heat. */
-    private static void boiler(boolean salt, Plot p) {
-        for (int branch = 0; branch < 2; branch++) {
-            int y = -20 + branch * 22;
-            boolean active = salt == (branch == 1);
-            int color = active ? (salt ? HEAT : WATER) : EDGE;
-            p.line(-31, y + 7, -13, y + 7, color);
-            p.frame(-13, y, 26, 16, color);
-            for (int i = 0; i < 4; i++) {
-                int level = active ? 4 + (phase(20) + i * 3) % 8 : 4;
-                p.rect(-9 + i * 5, y + 14 - level, -6 + i * 5, y + 14, color);
-            }
-            p.line(13, y + 7, 31, y + 7, color);
-            if (active) p.rect(15 + phase(14), y + 6, 18 + phase(14), y + 9, color);
+    /** One heated path, coloured for this recipe's working fluid. */
+    private static void boiler(int color, Plot p) {
+        p.line(-31, 0, -13, 0, color);
+        p.frame(-13, -8, 26, 16, color);
+        int phase = phase(20);
+        for (int i = 0; i < 4; i++) {
+            int level = 4 + (phase + i * 3) % 8;
+            p.rect(-9 + i * 5, 6 - level, -6 + i * 5, 6, color);
         }
-        int activeY = salt ? 9 : -13, color = salt ? HEAT : WATER;
-        p.line(-31, 0, -31, activeY, color);
-        p.line(31, activeY, 31, 0, color);
+        p.line(13, 0, 31, 0, color);
+        int pulse = phase(14);
+        p.rect(15 + pulse, -1, 18 + pulse, 2, color);
         p.input(color);
         p.output(color);
     }

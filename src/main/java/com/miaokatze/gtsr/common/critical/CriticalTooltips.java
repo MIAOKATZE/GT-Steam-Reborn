@@ -59,6 +59,8 @@ public final class CriticalTooltips {
         info(tt, "solar.purpose");
         info(tt, "solar.water");
         info(tt, "solar.salt");
+        info(tt, "solar.plasma");
+        info(tt, "solar.plasma_stock");
         info(tt, "cycle");
         info(tt, "solar.energy");
         tt.addSeparator();
@@ -174,7 +176,8 @@ public final class CriticalTooltips {
         if (preset == null) {
             tt.addStructureInfo(tr("tooltip.native.structure.loom_ports"));
         } else {
-            tt.addStructureInfo(tr("tooltip.native.structure.main_ports"));
+            tt.addStructureInfo(tr("tooltip.native.structure.main_ports"))
+                .addStructureInfo(tr("tooltip.native.structure.main_ports_span"));
         }
         tt.addStructureInfo(tr("tooltip.physical_inputs"))
             .addStructureInfo(tr("tooltip.native.structure.hatches"));

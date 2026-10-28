@@ -19,6 +19,7 @@ class CriticalNEIFontRuntime {
     }
     public static void run(String version)throws Exception {
         Issue37Runtime.bootstrap(version);
+        CriticalPlasmaFixture.seed();
         String expectedJar=System.getProperty("critical.nei.expectedJar");
         if(expectedJar!=null){
             String expected=new java.io.File(expectedJar).toURI().toURL().toExternalForm();
@@ -134,7 +135,7 @@ class CriticalNEIFontRuntime {
                     throw new AssertionError("Corrupt localization encoding: " + lang + " " + line);
                 if(!line.startsWith("gtsr.critical.nei.simple."))continue;
                 String key=line.substring(0,line.indexOf('='));
-                if (lang.equals("zh_CN") && line.substring(line.indexOf('=')+1).codePoints()
+                if (lang.equals("zh_CN") && !key.endsWith("plasma.maximum") && line.substring(line.indexOf('=')+1).codePoints()
                     .noneMatch(c -> c >= 0x4E00 && c <= 0x9FFF))
                     throw new AssertionError("Chinese NEI label lost its Han characters: " + key);
                 String format=line.substring(line.indexOf('=')+1);
@@ -147,6 +148,10 @@ class CriticalNEIFontRuntime {
                     :key.contains("solar.input.")?String.format(Locale.ROOT,format,"421.875G")
                     :key.endsWith("solar.output")?String.format(Locale.ROOT,format,"67.5T")
                     :key.endsWith("solar.heat")?String.format(Locale.ROOT,format,"40.5T")
+                    :key.endsWith("plasma.maximum")?String.format(Locale.ROOT,format,"258.344M")
+                    :key.endsWith("plasma.half")?String.format(Locale.ROOT,format,"344.459M")
+                    :key.endsWith("plasma.output")?String.format(Locale.ROOT,format,"174.382M")
+                    :key.endsWith("plasma.heat")?String.format(Locale.ROOT,format,"50.625T")
                     :key.endsWith("ignition.helium")?String.format(Locale.ROOT,format,"50,000,000")
                     :key.endsWith("sustain.helium")?String.format(Locale.ROOT,format,"40,000")
                     :key.endsWith("stellar.voltage")?String.format(Locale.ROOT,format,"MAX")
@@ -231,6 +236,25 @@ class CriticalNEIFontRuntime {
                 if(rows[row].contains("E+")||rows[row].contains("E-"))throw new AssertionError("Scientific solar quantity");
                 checks++;
             }
+        }
+        String plasmaIntro=net.minecraft.util.StatCollector.translateToLocal("gtsr.critical.nei.simple.plasma.intro");
+        if(font.getStringWidth(plasmaIntro)>154)throw new AssertionError("Plasma intro width: "+lang+" "+plasmaIntro);
+        for(var plasma:com.miaokatze.gtsr.common.critical.CriticalPlasmaCatalog.entries()) {
+            String[] rows=com.miaokatze.gtsr.client.nei.CriticalNEIShowcase.plasmaRows(plasma);
+            if(rows.length!=7)throw new AssertionError("Plasma batch requires exactly seven authored rows");
+            for(int row=0;row<rows.length;row++) {
+                int width=row>=5?139:154;
+                if(font.getStringWidth(rows[row])>width||font.listFormattedStringToWidth(rows[row],width).size()!=1
+                    ||97+row*11+9>174)throw new AssertionError("Plasma card overflow: "+lang+" unicode="+unicode
+                    +" "+plasma.id+" row="+row+" px="+font.getStringWidth(rows[row])+" "+rows[row]);
+                System.out.println("PLASMA_FONT "+lang+" unicode="+unicode+" "+plasma.id+" row="+row
+                    +" px="+font.getStringWidth(rows[row])+" "+rows[row]);
+                checks++;
+            }
+            var tip=com.miaokatze.gtsr.client.nei.CriticalNEIShowcase.plasmaTooltip(plasma);
+            if(tip.stream().anyMatch(s->s.contains("GG")||s.contains("DSC")||s.contains("floor")||s.contains("ceil")))
+                throw new AssertionError("Plasma tooltip exposes unexplained implementation terms");
+            checks++;
         }
     }
 }

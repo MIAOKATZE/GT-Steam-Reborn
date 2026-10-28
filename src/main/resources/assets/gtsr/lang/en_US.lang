@@ -4606,8 +4606,8 @@ gtsr.critical.tooltip.native.loom.purpose=§bBuilds, repairs and dismantles§7 c
 gtsr.critical.tooltip.native.loom.machines=Builds irradiation boilers, pulse cores, chemical cores and artificial stars
 gtsr.critical.tooltip.native.loom.manage=Right-click the controller with a §eMachine Terminal§7 to select or manage a machine
 gtsr.critical.tooltip.native.loom.ports=Supply building materials through loom §binput buses/hatches§7 and building power through loom §cenergy hatches
-gtsr.critical.tooltip.native.solar.purpose=Uses dimensional irradiation to produce §bsteam§7 or §6hot solar salt
-gtsr.critical.tooltip.native.solar.water=Water route: §bdistilled water -> selected steam§7; choose water or salt
+gtsr.critical.tooltip.native.solar.purpose=Uses dimensional irradiation to produce §bsteam§7, §6hot solar salt§7 or §dplasma
+gtsr.critical.tooltip.native.solar.water=Water: §bdistilled water -> selected steam§7; choose one of water, salt and plasma
 gtsr.critical.tooltip.native.solar.salt=Salt route: §6cold solar salt -> an equal volume of hot solar salt
 gtsr.critical.tooltip.native.solar.energy=Uses no EU and generates no direct electricity; §6base heat§7 excludes downstream generator efficiency
 gtsr.critical.tooltip.native.solar.private=§eTotal multiplier=dimension factor × coolant multiplier × exciter multiplier§7; personal dimension factor: §e0.6
@@ -4721,7 +4721,7 @@ gtsr.critical.ui.runtime.solar.batch_route=Current heat route
 gtsr.critical.ui.solar.route.0=Water / steam
 gtsr.critical.ui.solar.route.1=Molten salt
 gtsr.critical.ui.solar.change_route=Switch water / salt route
-gtsr.critical.ui.solar.route_hint=Water and salt are mutually exclusive. Steam form is selected independently; changes apply next batch.
+gtsr.critical.ui.solar.route_hint=Choose water, salt or plasma. Steam form affects water only; changes apply next batch.
 gtsr.critical.nei.simple.turbine.warmup=Full-load warm-up: %s s
 gtsr.critical.nei.simple.turbine.load=Heat sets warm-up target
 gtsr.critical.nei.simple.build.cost=Cost per small step
@@ -4751,8 +4751,8 @@ gtsr.critical.nei.simple.solar.heat=Base heat: %s EU
 gtsr.critical.solar.exciter.helium_gas=Helium Gas
 gtsr.critical.solar.exciter.none=Legacy prepaid batch
 gtsr.critical.tooltip.native.structure.loom_ports=Loom ports: Y=4 casing ring, item/fluid input/output and energy hatches; controllers and internal rails cannot be replaced
-gtsr.critical.tooltip.native.structure.main_ports=Main-machine ports: 13 positions at X=50..62, Y=5, Z=34; the next row is fixed casing
-gtsr.critical.tooltip.native.structure.hatches=All hatches are optional and replace valid ports only; no maintenance hatch. Supply construction through the loom and production through the main machine
+gtsr.critical.tooltip.native.structure.main_ports=Main hatches: place on top of the §eCritical Structure Supply Hatches§r one block behind the main controller
+gtsr.critical.tooltip.native.structure.hatches=Hatches are optional and fit only the positions above; no maintenance hatch is needed. Construction uses the loom; production uses the main machine
 gtsr.critical.nei.simple.build.time.cell=%ss/cell
 gtsr.critical.tooltip.native.turbine.generation=Batch EU = §6sum(steam litres x base EU/L) x starting efficiency / 100
 gtsr.critical.tooltip.native.turbine.example=Example: §a2000%§7 starting efficiency turns §b1,000 L normal steam§7 into §e10,000 EU
@@ -4764,3 +4764,25 @@ gtsr.critical.tooltip.native.turbine.load=Warm-up base heat load = §6batch stea
 gtsr.critical.view.part.base=Base
 gtsr.critical.view.part.body=Body
 gtsr.critical.view.part.equipment=Equipment
+gtsr.critical.tooltip.native.solar.plasma=Plasma: §dcold fluid -> equal-volume plasma§7; see NEI for eligible fluids and their corresponding plasmas
+gtsr.critical.tooltip.native.solar.plasma_stock=Higher fluid heat means §dlower half-saturation stock§7; the §6Extreme Heat Exchanger§7 yields §e2.5x§7 water-route steam heat at equal multipliers and saturation; see NEI for each fluid
+gtsr.critical.ui.solar.route.2=Plasma heating
+gtsr.critical.ui.runtime.solar.plasma=Plasma working fluid
+gtsr.critical.ui.runtime.solar.plasma_litres=Batch working fluid
+gtsr.critical.nei.simple.solar_plasma.title=IRRADIANCE BOILER
+gtsr.critical.nei.simple.plasma.intro=20s/batch; 1:1 plasma heating
+gtsr.critical.nei.simple.plasma.formula=Output P=V*S/(S+H)
+gtsr.critical.nei.simple.plasma.maximum=V~%s*m L
+gtsr.critical.nei.simple.plasma.half=Half-stock H~%s L
+gtsr.critical.nei.simple.plasma.multiplier=m=dimension*coolant*exciter
+gtsr.critical.nei.simple.plasma.example=Example: stock S=H; m=1.35
+gtsr.critical.nei.simple.plasma.output=Output: ~%s L/batch
+gtsr.critical.nei.simple.plasma.heat=Steam heat: ~%s EU
+gtsr.critical.nei.showcase.plasma.variables=S is cold-fluid stock in L at batch start; P is plasma output in L per batch.
+gtsr.critical.nei.showcase.plasma.rounding=20-second batch, 1:1 heating; output rounds down to litres and half-stock rounds up to litres.
+gtsr.critical.nei.showcase.plasma.exact_half=Half-saturation stock H = %s L; higher fluid heat means lower H.
+gtsr.critical.nei.showcase.plasma.exchanger=Extreme Heat Exchanger at full load: each 1 L plasma
+gtsr.critical.nei.showcase.plasma.conversion=yields %s L dense supercritical steam and returns 1 L cold working fluid.
+gtsr.critical.nei.showcase.plasma.exact_maximum=V = (30,000,000,000 * %s / %s) * total multiplier L.
+gtsr.critical.nei.showcase.plasma.media=Coolant and exciter are both required; the full batch prepays actual exchanger heat.
+gtsr.critical.tooltip.native.structure.main_ports_span=One block above the controller, six spaces left and right: 13 total; §cdo not replace the supply casings below§r

@@ -219,6 +219,7 @@ class CriticalEnergyPolicyRuntime {
         check(select.invoke(null,CriticalEnergyPorts.snapshot(host),0.6D,5,false,true) == null,
             "dust-only underfunded minimum load cannot run");
         solarBatch(host,tile,cryo,helium,waters,select);
+        plasmaBatch(host,tile,cryo,helium);
         frozenPulse(host, owner);
         OUT.println("PASS CriticalEnergyPolicyContract checks=" + checks);
     }
@@ -260,7 +261,7 @@ class CriticalEnergyPolicyRuntime {
             "actual unaffordable water start returns without debit, clipping, or SnapshotShortage");
         state.n.setBoolean("solarSaltMode",true);state.n.setInteger("steamMode",5);
         cryo.stock=routeCost(true,1D,1,1,true);helium.stock=routeCost(false,1D,1,1,true);
-        check((boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("solarPolicy")==7
+        check((boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("solarPolicy")==8
             &&state.n.getBoolean("solarBatchSaltMode")&&cryo.stock==0&&helium.stock==0,
             "actual startSolar freezes selected salt mode and pays full400ticks of modifiers");
         check(waters.stream().allMatch(hatch->hatch.stock==Integer.MAX_VALUE)
@@ -272,7 +273,7 @@ class CriticalEnergyPolicyRuntime {
         state.n.setInteger("progress",399);CriticalEnergyRuntime.tick(state,host);
         check(!state.n.getBoolean("funded")&&output.stored.equals(frozen)&&output.fluid.isFluidEqual(new FluidStack(hot,1)),
             "mode switch and saved-NBT recovery deliver original paid hot-salt output without repricing");
-        for(int oldPolicy:new int[]{0,2,3,4,5,6}){
+        for(int oldPolicy:new int[]{0,2,3,4,5,6,7}){
             state.n=(NBTTagCompound)frozenManifest.copy();
             if(oldPolicy==0)state.n.removeTag("solarPolicy");else state.n.setInteger("solarPolicy",oldPolicy);
             state.n.setInteger("progress",398);state.n.setBoolean("solarSaltMode",false);state.n.setInteger("steamMode",0);
@@ -297,12 +298,124 @@ class CriticalEnergyPolicyRuntime {
             "GT205 real LHE registry retains2.5 steam multiplier and1/25SH threshold");
         CriticalCompoundRuntime.set(host,"mOutputHatches",new ArrayList<>());
     }
+    static void plasmaBatch(MTECriticalMachine host,IGregTechTileEntity tile,
+        CriticalCompoundRuntime.FakeHatch cryo,CriticalCompoundRuntime.FakeHatch helium) throws Exception {
+        boolean missing=false;
+        try { CriticalPlasmaCatalog.entries(); } catch(IllegalStateException expected) {
+            missing=expected.getMessage().contains("No eligible native GG plasma exchangers");
+        }
+        check(missing,"empty native exchanger catalogue fails visibly rather than hiding incomplete registration");
+        CriticalPlasmaFixture.seed();
+        var nitrogenRecipe=(goodgenerator.api.recipe.ExtremeHeatExchangerRecipe)
+            goodgenerator.api.recipe.GoodGeneratorRecipeMaps.extremeHeatExchangerFuels.getBackend()
+                .findFuel(Materials.Nitrogen.getPlasma(1));
+        nitrogenRecipe.mSpecialValue=2;
+        boolean unsupported=false;
+        try { CriticalPlasmaCatalog.entries(); } catch(IllegalStateException expected) {
+            unsupported=expected.getMessage().contains("Unsupported GG plasma exchanger");
+        }
+        nitrogenRecipe.mSpecialValue=1;
+        check(unsupported,"existing native exchanger with unsupported metadata still fails visibly");
+        var tinFuel=gregtech.api.recipe.RecipeMaps.plasmaFuels.getAllRecipes().stream()
+            .filter(f->Materials.Tin.getPlasma(1).isFluidEqual(gregtech.api.util.GTUtility.getFluidForFilledItem(f.mInputs[0],true)))
+            .findFirst().orElseThrow();
+        tinFuel.mEnabled=false;
+        check(CriticalPlasmaCatalog.entries().stream().noneMatch(e->e.id.equals("Tin")),
+            "an exchanger alone cannot admit a plasma lacking an enabled native rotor fuel");
+        tinFuel.mEnabled=true;
+        Field cache=CriticalPlasmaCatalog.class.getDeclaredField("entries");cache.setAccessible(true);cache.set(null,null);
+        var catalog=CriticalPlasmaCatalog.entries();
+        check(catalog.size()==9&&catalog.stream().map(e->e.id).collect(java.util.stream.Collectors.toSet())
+            .equals(Set.of("Nitrogen","Calcium","Nickel","Zinc","Niobium","Silver","Tin","Bismuth","Radon")),
+            "candidate without native cold fluid/EHE is ineligible while the other nine remain usable");
+        check(FluidRegistry.getFluid("sulfur")==null&&FluidRegistry.getFluid("molten.sulfur")==null
+            &&goodgenerator.api.recipe.GoodGeneratorRecipeMaps.extremeHeatExchangerFuels.getBackend()
+                .findFuel(Materials.Sulfur.getPlasma(1))==null,
+            "native FinishLoadRecipe skips Sulfur instead of the fixture inventing a cold-fluid route");
+        Method select=CriticalEnergyRuntime.class.getDeclaredMethod("selectPlasma",List.class,double.class,boolean.class);
+        select.setAccessible(true);
+        var cooling=CriticalSolarPolicy.COOLANTS.get(1);var activation=CriticalSolarPolicy.EXCITERS.get(1);
+        for(var plasma:catalog) {
+            var nativeRecipe=(goodgenerator.api.recipe.ExtremeHeatExchangerRecipe)
+                goodgenerator.api.recipe.GoodGeneratorRecipeMaps.extremeHeatExchangerFuels.getBackend().findFuel(plasma.output);
+            check(plasma.input.getFluid()==nativeRecipe.getCooledFluid()
+                &&plasma.output.isFluidEqual(nativeRecipe.mFluidInputs[0]),"native exchanger resolves actual cold/hot identity: "+plasma.id);
+            check((plasma.id.equals("Nitrogen")||plasma.id.equals("Radon"))
+                ? !plasma.input.getFluid().getName().startsWith("molten.")
+                : plasma.input.getFluid().getName().startsWith("molten."),"gas versus molten input follows native recovery: "+plasma.id);
+            BigInteger paid=plasma.batchLitres(plasma.halfSaturation,.6D,cooling,activation);
+            BigInteger eu=plasma.equivalentEU(paid);
+            BigInteger expected= b(30_000_000_000L).multiply(plasma.hotLitres).multiply(b(135))
+                .divide(plasma.denseSteamLitres.multiply(b(200)));
+            check(paid.equals(expected),"half saturation yields half of the exact uncapped coefficient: "+plasma.id);
+            BigInteger ideal=b(20_250_000_000L).multiply(b(50_000));
+            check(eu.compareTo(ideal)<=0&&ideal.subtract(eu).compareTo(plasma.equivalentEU(BigInteger.ONE))<0,
+                "exchange heat at equal saturation is2.5x water within one plasma litre: "+plasma.id);
+            check(plasma.halfSaturation.multiply(plasma.denseSteamLitres).compareTo(b(40_000_000_000L).multiply(plasma.hotLitres))>=0
+                &&plasma.halfSaturation.subtract(BigInteger.ONE).multiply(plasma.denseSteamLitres)
+                    .compareTo(b(40_000_000_000L).multiply(plasma.hotLitres))<0,
+                "material-specific stock is the smallest whole litre at100G-water-equivalent heat: "+plasma.id);
+            var input=CriticalCompoundRuntime.hatch(unsafe,tile,plasma.input,plasma.halfSaturation.intValueExact());
+            cryo.stock=expectedCost(cooling,eu).intValueExact();helium.stock=expectedCost(activation,eu).intValueExact();
+            CriticalCompoundRuntime.set(host,"mInputHatches",new ArrayList<>(List.of(cryo,helium,input)));
+            Object chosen=select.invoke(null,CriticalEnergyPorts.snapshot(host),.6D,false);
+            check(chosen!=null&&field(chosen,"inputLitres").equals(paid)&&field(chosen,"outputLitres").equals(paid)
+                &&field(chosen,"equivalentEU").equals(eu)&&field(chosen,"coolantLitres").equals(b(cryo.stock))
+                &&field(chosen,"exciterLitres").equals(b(helium.stock)),
+                "real planner funds1:1 output and both actual-exchange-heat medium charges: "+plasma.id);
+            helium.stock=0;
+            check(select.invoke(null,CriticalEnergyPorts.snapshot(host),.6D,false)==null,"no free activator: "+plasma.id);
+            helium.stock=expectedCost(activation,eu).intValueExact();cryo.stock=0;
+            check(select.invoke(null,CriticalEnergyPorts.snapshot(host),.6D,false)==null,"no free coolant: "+plasma.id);
+        }
+        var tin=catalog.stream().filter(e->e.id.equals("Tin")).findFirst().orElseThrow();
+        check(tin.hotLitres.equals(b(2500))&&tin.denseSteamLitres.equals(b(337480)),
+            "tin uses actual337480 DSC per2500L, rather than nominal337500");
+        BigInteger giant=b(100000000000000L);
+        check(tin.batchLitres(giant,8D,cooling,activation).compareTo(tin.batchLitres(giant,7D,cooling,activation))>0,
+            "plasma production continues scaling beyond previous fixed power caps");
+        var shortInput=CriticalCompoundRuntime.hatch(unsafe,tile,tin.input,100);
+        cryo.stock=Integer.MAX_VALUE;helium.stock=Integer.MAX_VALUE;
+        CriticalCompoundRuntime.set(host,"mInputHatches",new ArrayList<>(List.of(cryo,helium,shortInput)));
+        check(select.invoke(null,CriticalEnergyPorts.snapshot(host),.6D,false)==null&&shortInput.stock==100,
+            "unfunded full plasma curve waits without clipping or debit");
+        Object dustOnly=select.invoke(null,CriticalEnergyPorts.snapshot(host),.6D,true);
+        check(dustOnly!=null&&field(dustOnly,"inputLitres").equals(BigInteger.ZERO)
+            &&field(dustOnly,"coolantLitres").equals(expectedCost(cooling,CriticalSolarPolicy.irradiationBudgetEU(
+                CriticalSolarPolicy.batchBudgetEU(.6D,cooling,activation,false)))),
+            "plasma route retains independently funded dust-only irradiation without consuming working fluid");
+        var nitrogen=catalog.get(0);
+        var nitrogenInput=CriticalCompoundRuntime.hatch(unsafe,tile,nitrogen.input,nitrogen.halfSaturation.intValueExact());
+        var richTin=CriticalCompoundRuntime.hatch(unsafe,tile,tin.input,Integer.MAX_VALUE);
+        CriticalCompoundRuntime.set(host,"mInputHatches",new ArrayList<>(List.of(cryo,helium,nitrogenInput,richTin)));
+        Object mixed=select.invoke(null,CriticalEnergyPorts.snapshot(host),.6D,false);
+        check(field(mixed,"plasma")==tin,"multiple working fluids select the greatest actual exchange heat");
+        var input=CriticalCompoundRuntime.hatch(unsafe,tile,tin.input,tin.halfSaturation.intValueExact());
+        BigInteger paid=tin.batchLitres(tin.halfSaturation,1D,cooling,activation),eu=tin.equivalentEU(paid);
+        cryo.stock=expectedCost(cooling,eu).intValueExact();helium.stock=expectedCost(activation,eu).intValueExact();
+        CriticalCompoundRuntime.set(host,"mInputHatches",new ArrayList<>(List.of(cryo,helium,input)));
+        Output output=(Output)unsafe.allocateInstance(Output.class);output.stored=BigInteger.ZERO;output.setBaseMetaTileEntity(tile);
+        CriticalCompoundRuntime.set(host,"mOutputHatches",new ArrayList<>(List.of(output)));
+        EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.n=new NBTTagCompound();
+        state.n.setBoolean("solarPlasmaMode",true);state.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
+        CriticalCompoundRuntime.set(state.worldObj,"provider",unsafe.allocateInstance(net.minecraft.world.WorldProviderSurface.class));
+        Method start=CriticalEnergyRuntime.class.getDeclaredMethod("startSolar",CriticalMachineState.class,MTECriticalMachine.class,NBTTagCompound.class);
+        start.setAccessible(true);
+        check((boolean)start.invoke(null,state,host,state.n)&&state.n.getBoolean("solarBatchPlasmaMode")
+            &&state.n.getString("solarPlasma").equals("Tin")&&cryo.stock==0&&helium.stock==0
+            &&b(input.stock).equals(tin.halfSaturation.subtract(paid)),"real start prepays the whole plasma batch and freezes its material");
+        state.n=(NBTTagCompound)state.n.copy();state.n.setBoolean("solarPlasmaMode",false);state.n.setBoolean("solarSaltMode",true);
+        state.n.setInteger("progress",399);CriticalEnergyRuntime.tick(state,host);
+        check(!state.n.getBoolean("funded")&&output.stored.equals(paid)&&output.fluid.isFluidEqual(tin.output),
+            "saved plasma batch finishes its frozen output after next-route change without repricing");
+        CriticalCompoundRuntime.set(host,"mOutputHatches",new ArrayList<>());
+    }
     static void bulkMath() {
         var cryo=CriticalSolarPolicy.COOLANTS.get(1);var he=CriticalSolarPolicy.EXCITERS.get(1);
         BigInteger stock=b(100000000000L);
         BigInteger dsc=CriticalSolarPolicy.batchDenseSupercriticalLitres(stock,.6D,cryo,he);
         BigInteger salt=CriticalSolarPolicy.batchHotSaltLitres(stock,.6D,cryo,he);
-        check(CriticalSolarPolicy.VERSION==7&&dsc.equals(b(8100000000L))&&salt.equals(b(27000000000L)),
+        check(CriticalSolarPolicy.VERSION==8&&dsc.equals(b(8100000000L))&&salt.equals(b(27000000000L)),
             "policy7 private1.35 multiplier at100G stock yields8.1G DSC or27G hot salt per20s batch");
         check(CriticalSolarPolicy.waterLitres(dsc,5).equals(b(50625000000L))
             &&dsc.multiply(b(2500)).equals(b(20250000000000L))

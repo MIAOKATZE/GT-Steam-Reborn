@@ -10,7 +10,7 @@ import java.util.List;
 /** Pure boiler catalogue: native steam heat and exact working-fluid inventory saturation. */
 public final class CriticalSolarPolicy {
 
-    public static final int VERSION = 7;
+    public static final int VERSION = 8;
     private static final BigInteger STOCK_HALF_SATURATION = BigInteger.valueOf(100_000_000_000L);
     private static final long BASE_DENSE_SUPERCRITICAL_LITRES = 12_000_000_000L;
     private static final long BASE_HOT_SALT_LITRES = 40_000_000_000L;
@@ -69,6 +69,31 @@ public final class CriticalSolarPolicy {
     /** Policy7: Q = 40G * stock / (stock + 100G) * dimension * coolant * exciter. */
     public static BigInteger batchHotSaltLitres(BigInteger stock, double factor, Entry coolant, Entry exciter) {
         return stockYield(stock, factor, coolant, exciter, BASE_HOT_SALT_LITRES, 1);
+    }
+
+    /** The 100G water reference carries the same heat as H litres of this cold working fluid. */
+    public static BigInteger plasmaHalfSaturation(BigInteger hotLitres, BigInteger denseSteamLitres) {
+        return ceilDivide(
+            BigInteger.valueOf(40_000_000_000L)
+                .multiply(hotLitres),
+            denseSteamLitres);
+    }
+
+    /** P = (30G/c) * M * S/(S+H), rounded once to whole plasma litres; no separate output cap. */
+    public static BigInteger batchPlasmaLitres(BigInteger stock, double factor, Entry coolant, Entry exciter,
+        BigInteger hotLitres, BigInteger denseSteamLitres) {
+        if (stock.signum() <= 0 || !Double.isFinite(factor) || factor <= 0D) return BigInteger.ZERO;
+        return BigDecimal.valueOf(30_000_000_000L)
+            .multiply(new BigDecimal(hotLitres))
+            .multiply(new BigDecimal(stock))
+            .multiply(BigDecimal.valueOf(factor))
+            .multiply(BigDecimal.valueOf(coolant.multiplier))
+            .multiply(BigDecimal.valueOf(exciter.multiplier))
+            .divide(
+                new BigDecimal(denseSteamLitres.multiply(stock.add(plasmaHalfSaturation(hotLitres, denseSteamLitres)))),
+                0,
+                RoundingMode.DOWN)
+            .toBigIntegerExact();
     }
 
     /** Policy7 asymptotic batch budget, only for the displayed load; no global output cap. */

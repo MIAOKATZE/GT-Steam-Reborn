@@ -86,10 +86,35 @@ public final class CriticalRuntime {
             if (!CriticalBlockProtection.protects(event.world, event.x, event.y, event.z)) return;
             // Rotating a generated GT controller would invalidate its exact paid-voxel identity.
             // Ordinary right-click still reaches its GUI, including the internal dismantle/repair controls.
-            if (event.world.getBlock(event.x, event.y, event.z) instanceof CriticalMaterials.MaterialBlock
-                || event.action == net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.LEFT_CLICK_BLOCK
-                || event.entityPlayer != null && gregtech.api.util.GTUtility
-                    .isStackInList(event.entityPlayer.getHeldItem(), gregtech.api.GregTechAPI.sWrenchList))
+            if (event.action == net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.LEFT_CLICK_BLOCK) {
+                event.setCanceled(true);
+                return;
+            }
+            if (event.world.getBlock(event.x, event.y, event.z) instanceof CriticalMaterials.MaterialBlock) {
+                ItemStack held = event.entityPlayer == null ? null : event.entityPlayer.getHeldItem();
+                net.minecraftforge.common.util.ForgeDirection side = net.minecraftforge.common.util.ForgeDirection
+                    .getOrientation(event.face);
+                if (!event.isCanceled() && event.useItem != cpw.mods.fml.common.eventhandler.Event.Result.DENY
+                    && held != null
+                    && held.getItem() instanceof net.minecraft.item.ItemBlock
+                    && side != net.minecraftforge.common.util.ForgeDirection.UNKNOWN
+                    && event.world.isAirBlock(event.x + side.offsetX, event.y + side.offsetY, event.z + side.offsetZ)
+                    && !CriticalBlockProtection.protects(
+                        event.world,
+                        event.x + side.offsetX,
+                        event.y + side.offsetY,
+                        event.z + side.offsetZ)) {
+                    // Keep the paid shell inert, while allowing normal ItemBlock placement beside it.
+                    // Forge 1.7 requires ALLOW here: DENY block + DEFAULT item skips placement when not sneaking.
+                    event.useBlock = cpw.mods.fml.common.eventhandler.Event.Result.DENY;
+                    event.useItem = cpw.mods.fml.common.eventhandler.Event.Result.ALLOW;
+                    return;
+                }
+                event.setCanceled(true);
+                return;
+            }
+            if (event.entityPlayer != null && gregtech.api.util.GTUtility
+                .isStackInList(event.entityPlayer.getHeldItem(), gregtech.api.GregTechAPI.sWrenchList))
                 event.setCanceled(true);
         }
 

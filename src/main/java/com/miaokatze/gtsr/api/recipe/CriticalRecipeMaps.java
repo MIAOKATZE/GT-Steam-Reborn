@@ -13,6 +13,7 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.critical.CompoundRecipe;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
+import com.miaokatze.gtsr.common.critical.CriticalPlasmaCatalog;
 import com.miaokatze.gtsr.common.critical.CriticalSolarPolicy;
 
 import gregtech.api.recipe.RecipeMap;
@@ -91,6 +92,13 @@ public final class CriticalRecipeMaps {
                 0,
                 1,
                 solar));
+    }
+
+    public static void addPlasmaDisplayRecipe(GTRecipe recipe, CriticalPlasmaCatalog.Entry plasma) {
+        RecipeMap<RecipeMapBackend> map = forKind(CriticalMachineKind.SOLAR);
+        DisplayInfo info = new DisplayInfo(map, CriticalMachineKind.SOLAR, "solar_plasma", BigInteger.ZERO, -1, 0, 1);
+        info.plasma = plasma;
+        register(map, recipe, info);
     }
 
     public static void addFusionRecipe(GTRecipe recipe, long nativeEut, int nativeTicks) {
@@ -278,6 +286,7 @@ public final class CriticalRecipeMaps {
         public final BigInteger baseEu;
         public final int spectrum, page, pages;
         public final SolarDisplay solar;
+        public CriticalPlasmaCatalog.Entry plasma;
         private ItemStack[] constructionItems;
         private FluidStack[] constructionFluids;
         private final int[] constructionSteps = { 1, 1, 1 };

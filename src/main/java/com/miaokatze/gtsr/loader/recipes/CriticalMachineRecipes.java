@@ -21,6 +21,7 @@ import com.miaokatze.gtsr.common.critical.CriticalGTRecipes;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
 import com.miaokatze.gtsr.common.critical.CriticalLayoutDefinition;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
+import com.miaokatze.gtsr.common.critical.CriticalPlasmaCatalog;
 import com.miaokatze.gtsr.common.critical.CriticalSolarPolicy;
 import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
 import com.miaokatze.gtsr.common.critical.CriticalTier;
@@ -182,6 +183,16 @@ public final class CriticalMachineRecipes {
             MaterialMisc.SOLAR_SALT_HOT.getFluidStack(saltLitres),
             saltSampleEU,
             SteamMode.SALT);
+        for (CriticalPlasmaCatalog.Entry plasma : CriticalPlasmaCatalog.entries()) {
+            GTRecipe recipe = GTValues.RA.stdBuilder()
+                .fluidInputs(plasma.input.copy())
+                .fluidOutputs(plasma.output.copy())
+                .duration(CriticalEnergyMath.CYCLE_TICKS)
+                .eut(0)
+                .build()
+                .orElseThrow(() -> new IllegalStateException("Invalid plasma view: " + plasma.id));
+            CriticalRecipeMaps.addPlasmaDisplayRecipe(recipe, plasma);
+        }
         for (int i = 0; i < 2; i++) {
             ItemStack source = IrradiatedDust.source(i == 0);
             if (source == null) continue;

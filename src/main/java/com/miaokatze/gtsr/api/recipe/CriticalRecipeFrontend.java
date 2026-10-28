@@ -123,4 +123,13 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
         return tip;
     }
 
+    @Override
+    public List<String> handleNEIItemTooltip(net.minecraft.item.ItemStack stack, List<String> tip,
+        GTNEIDefaultHandler.CachedDefaultRecipe recipe) {
+        tip = super.handleNEIItemTooltip(stack, tip, recipe);
+        var info = CriticalRecipeMaps.displayInfo(recipe.mRecipe);
+        if (info != null && info.plasma != null) tip.addAll(CriticalNEIShowcase.plasmaTooltip(info.plasma));
+        return tip;
+    }
+
 }

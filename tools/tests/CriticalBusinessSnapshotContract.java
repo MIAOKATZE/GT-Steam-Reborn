@@ -191,6 +191,15 @@ public final class CriticalBusinessSnapshotContract {
         check(value(rows, "solar.equivalent_power").equals("35791394 EU/t"),
             "partial native heat rounds without crashing the UI sampler");
         check(!data.getBoolean("funded") && state.getSolarSaltMode(), "projection cannot mutate payment or selection");
+        data.setBoolean("solarPlasmaMode", true);
+        data.setBoolean("solarBatchPlasmaMode", true);
+        data.setString("solarPlasma", "Tin");
+        data.setString("solarPlasmaLitres", "150008889");
+        rows = (String[][]) projection.invoke(null, state);
+        check(state.getSolarRoute() == 2 && value(rows, "solar.route").equals("2")
+            && value(rows, "solar.batch_route").equals("2") && value(rows, "solar.plasma").equals("Tin")
+            && value(rows, "solar.plasma_litres").equals("150008889 L"),
+            "third route samples paid plasma identity and whole batch litres without changing legacy salt bits");
         config.set(state, new com.miaokatze.gtsr.common.critical.CriticalConfiguration(
             com.miaokatze.gtsr.common.critical.CriticalTier.T3,
             com.miaokatze.gtsr.common.critical.CriticalMachineKind.TURBINE, 0, 0, 0));
