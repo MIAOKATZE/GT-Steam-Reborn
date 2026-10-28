@@ -16,6 +16,10 @@ public abstract class MixinWorldCriticalTime {
     @Inject(method = "getWorldTime", at = @At("HEAD"), cancellable = true, require = 1)
     private void gtsr$localTime(CallbackInfoReturnable<Long> cir) {
         World world = (World) (Object) this;
+        if (world.isRemote && com.miaokatze.gtsr.client.critical.CriticalNightClient.isSampling(world)) {
+            cir.setReturnValue(com.miaokatze.gtsr.client.critical.CriticalNightClient.sampledTime(world));
+            return;
+        }
         Long time = CriticalNightClock.time(world);
         if (time != null) cir.setReturnValue(time);
     }
@@ -23,6 +27,14 @@ public abstract class MixinWorldCriticalTime {
     @Inject(method = "getCelestialAngle", at = @At("HEAD"), cancellable = true, require = 1)
     private void gtsr$localAngle(float partialTicks, CallbackInfoReturnable<Float> cir) {
         World world = (World) (Object) this;
+        if (world.isRemote && com.miaokatze.gtsr.client.critical.CriticalNightClient.isSampling(world)) {
+            cir.setReturnValue(
+                com.miaokatze.gtsr.client.critical.CriticalNightClient.isSamplingMidnight(world) ? .5F
+                    : world.provider.calculateCelestialAngle(
+                        com.miaokatze.gtsr.client.critical.CriticalNightClient.sampledTime(world),
+                        partialTicks));
+            return;
+        }
         Long time = CriticalNightClock.time(world);
         if (time != null) cir.setReturnValue(
             CriticalNightClock.isNight(world) ? .5F : world.provider.calculateCelestialAngle(time, partialTicks));
@@ -35,7 +47,7 @@ public abstract class MixinWorldCriticalTime {
 
     @Inject(method = "calculateSkylightSubtracted", at = @At("HEAD"), cancellable = true, require = 1)
     private void gtsr$darkSky(float partialTicks, CallbackInfoReturnable<Integer> cir) {
-        if (CriticalNightClock.isNight((World) (Object) this)) cir.setReturnValue(15);
+        if (CriticalNightClock.isNight((World) (Object) this)) cir.setReturnValue(12);
     }
 
     @Inject(method = "getSunBrightnessFactor", at = @At("HEAD"), cancellable = true, require = 1, remap = false)

@@ -29,43 +29,50 @@
       "id": "magnetic_coil",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "superconducting_contact": {
       "id": "superconducting_contact",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "blue_field_glass": {
       "id": "blue_field_glass",
       "alphaMode": "blend",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "violet_phase_glass": {
       "id": "violet_phase_glass",
       "alphaMode": "blend",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "luminous_rail": {
       "id": "luminous_rail",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "phase_lattice": {
       "id": "phase_lattice",
       "alphaMode": "cutout",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "fluid_manifold": {
       "id": "fluid_manifold",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "service_hatch": {
       "id": "service_hatch",
@@ -77,31 +84,36 @@
       "id": "heat_grille",
       "alphaMode": "cutout",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "coolant_channel": {
       "id": "coolant_channel",
       "alphaMode": "blend",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "energy_core": {
       "id": "energy_core",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "loom_controller": {
       "id": "loom_controller",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "plugin_socket": {
       "id": "plugin_socket",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "open_viewport": {
       "id": "open_viewport",
@@ -113,55 +125,64 @@
       "id": "loom_spool",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "loom_guide": {
       "id": "loom_guide",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "turbine_stator": {
       "id": "turbine_stator",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "stellar_lens": {
       "id": "stellar_lens",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "entanglement_anchor": {
       "id": "entanglement_anchor",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "assembly_head": {
       "id": "assembly_head",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "fuel_rod_socket": {
       "id": "fuel_rod_socket",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "foundation_status_tile": {
       "id": "foundation_status_tile",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "solar_flux_collector": {
       "id": "solar_flux_collector",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "turbine_rotor_blade": {
       "id": "turbine_rotor_blade",
@@ -179,37 +200,43 @@
       "id": "entangler_resonance_cell",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "stellar_plasma_skin": {
       "id": "stellar_plasma_skin",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "dimension_metric_cell": {
       "id": "dimension_metric_cell",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "battery_charge_cell": {
       "id": "battery_charge_cell",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "assembly_logic_module": {
       "id": "assembly_logic_module",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "accelerator_pole_core": {
       "id": "accelerator_pole_core",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "animated": true
+      "animated": true,
+      "lightValue": 15
     },
     "v2_alloy_frame": {
       "canonical": "alloy_frame",
@@ -1655,13 +1682,13 @@
       "canonical": "superconducting_contact",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "lightValue": 8,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 8,
-        "working": 8,
-        "paused": 8,
-        "invalid": 8,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true
@@ -1910,13 +1937,13 @@
       "canonical": "magnetic_coil",
       "alphaMode": "opaque",
       "emissionStrength": 0.85,
-      "lightValue": 9,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 9,
-        "working": 9,
-        "paused": 9,
-        "invalid": 9,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true
@@ -2841,13 +2868,13 @@
       "canonical": "luminous_rail",
       "alphaMode": "opaque",
       "emissionStrength": 0.85,
-      "lightValue": 8,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 8,
-        "working": 8,
-        "paused": 8,
-        "invalid": 8,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true
@@ -3095,13 +3122,13 @@
       "canonical": "fuel_socket",
       "alphaMode": "opaque",
       "emissionStrength": 1.25,
-      "lightValue": 10,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 10,
-        "working": 10,
-        "paused": 10,
-        "invalid": 10,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true
@@ -3820,13 +3847,13 @@
       "canonical": "loom_guide",
       "alphaMode": "opaque",
       "emissionStrength": 0.85,
-      "lightValue": 8,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 8,
-        "working": 8,
-        "paused": 8,
-        "invalid": 8,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true
@@ -4074,13 +4101,13 @@
       "canonical": "loom_controller",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "lightValue": 3,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 3,
-        "working": 3,
-        "paused": 3,
-        "invalid": 3,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true
@@ -4147,18 +4174,18 @@
       "canonical": "plugin_socket",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "lightValue": 0,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 0,
-        "working": 0,
-        "paused": 0,
-        "invalid": 0,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true
       },
-      "lightSourceRole": "non-source (local glow may remain visible)",
+      "lightSourceRole": "stable-functional-block-source",
       "id": "v2_plugin_socket",
       "animated": true,
       "frameCount": 12,
@@ -4220,13 +4247,13 @@
       "canonical": "foundation_status_tile",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "lightValue": 2,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 2,
-        "working": 2,
-        "paused": 2,
-        "invalid": 2,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true
@@ -4293,13 +4320,13 @@
       "canonical": "stellar_lens",
       "alphaMode": "opaque",
       "emissionStrength": 1.25,
-      "lightValue": 14,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 14,
-        "working": 14,
-        "paused": 14,
-        "invalid": 14,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true
@@ -4971,18 +4998,18 @@
       "canonical": "coolant_channel",
       "alphaMode": "opaque",
       "emissionStrength": 0.85,
-      "lightValue": 0,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 0,
-        "working": 0,
-        "paused": 0,
-        "invalid": 0,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true
       },
-      "lightSourceRole": "non-source (local glow may remain visible)",
+      "lightSourceRole": "stable-functional-block-source",
       "id": "v2_coolant_channel",
       "animated": true,
       "frameCount": 12,
@@ -5225,13 +5252,13 @@
       "canonical": "gt_controller",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "lightValue": 4,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 4,
-        "working": 4,
-        "paused": 4,
-        "invalid": 4,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true
@@ -5512,13 +5539,13 @@
       "canonical": "gravity_modulator",
       "alphaMode": "opaque",
       "emissionStrength": 1.15,
-      "lightValue": 12,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 12,
-        "working": 12,
-        "paused": 12,
-        "invalid": 12,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true
@@ -5904,13 +5931,13 @@
       "canonical": "thermal_confinement_coil",
       "alphaMode": "opaque",
       "emissionStrength": 1.25,
-      "lightValue": 12,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 12,
-        "working": 12,
-        "paused": 12,
-        "invalid": 12,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true
@@ -6159,13 +6186,13 @@
       "canonical": "loom_machine_controller",
       "alphaMode": "opaque",
       "emissionStrength": 1.0,
-      "lightValue": 4,
+      "lightValue": 15,
       "lightOpacity": 255,
       "lightStatePolicy": {
-        "idle": 4,
-        "working": 4,
-        "paused": 4,
-        "invalid": 4,
+        "idle": 15,
+        "working": 15,
+        "paused": 15,
+        "invalid": 15,
         "basis": "physical block membership",
         "changesOnlyOnPhysicalMembership": true,
         "textureFramesNeverUpdateBlocklight": true

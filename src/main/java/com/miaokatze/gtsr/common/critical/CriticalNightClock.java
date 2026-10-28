@@ -47,6 +47,7 @@ public final class CriticalNightClock {
 
     private static State state(World world) {
         if (world == null || world.provider == null) return null;
+        if (world.isRemote && com.miaokatze.gtsr.client.critical.CriticalNightClient.isSampling(world)) return null;
         State state = (world.isRemote ? CLIENT : SERVER).get(world.provider.dimensionId);
         return state != null && state.world == world ? state : null;
     }
@@ -75,6 +76,13 @@ public final class CriticalNightClock {
     public static boolean isNight(World world) {
         State state = state(world);
         return state != null && state.active && state.night;
+    }
+
+    public static boolean hasPendingNight(World world, Object connection) {
+        for (TimeMessage message : INCOMING)
+            if (message.dimension == world.provider.dimensionId && message.clientConnection == connection)
+                return message.active && message.night;
+        return false;
     }
 
     public static void anchor(World world, CriticalWorldData data) {
@@ -147,6 +155,7 @@ public final class CriticalNightClock {
         @SubscribeEvent
         public void unload(WorldEvent.Unload event) {
             if (event.world.isRemote) {
+                com.miaokatze.gtsr.client.critical.CriticalNightClient.clear(event.world);
                 State state = CLIENT.get(event.world.provider.dimensionId);
                 if (state != null && state.world == event.world) CLIENT.remove(event.world.provider.dimensionId);
                 INCOMING.removeIf(message -> message.dimension == event.world.provider.dimensionId);
@@ -194,6 +203,7 @@ public final class CriticalNightClock {
         @SubscribeEvent
         public void disconnected(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
             clearClient();
+            com.miaokatze.gtsr.client.critical.CriticalNightClient.clear(null);
         }
 
         @SubscribeEvent

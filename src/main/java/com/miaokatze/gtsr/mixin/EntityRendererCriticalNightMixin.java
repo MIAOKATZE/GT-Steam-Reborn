@@ -11,7 +11,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.miaokatze.gtsr.client.critical.CriticalNightClient;
-import com.miaokatze.gtsr.common.critical.CriticalNightClock;
 
 /** Wraps the final lightmap method body, including cancellation returns inserted by other mixins. */
 @Mixin(value = EntityRenderer.class, priority = 900)
@@ -28,10 +27,25 @@ public abstract class EntityRendererCriticalNightMixin {
 
     @WrapMethod(method = "updateLightmap")
     private void gtsr$zeroSkyLight(float partialTicks, Operation<Void> original) {
-        original.call(partialTicks);
-        if (CriticalNightClock.isNight(mc.theWorld)) {
-            CriticalNightClient.darkenSkyLight(lightmapColors);
-            lightmapTexture.updateDynamicTexture();
+        float strength = CriticalNightClient.strength(mc.theWorld);
+        int[] natural = null;
+        if (strength < 1F) {
+            CriticalNightClient.beginSample(mc.theWorld, false);
+            try {
+                original.call(partialTicks);
+            } finally {
+                CriticalNightClient.endSample();
+            }
+            if (strength == 0F) return;
+            natural = lightmapColors.clone();
         }
+        CriticalNightClient.beginSample(mc.theWorld, true);
+        try {
+            original.call(partialTicks);
+        } finally {
+            CriticalNightClient.endSample();
+        }
+        CriticalNightClient.blendNightLight(lightmapColors, natural, strength);
+        lightmapTexture.updateDynamicTexture();
     }
 }
