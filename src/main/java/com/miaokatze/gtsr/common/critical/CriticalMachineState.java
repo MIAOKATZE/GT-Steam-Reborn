@@ -147,6 +147,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         0);
     private String owner = "", structureId = "", jobId = "", batchId = "";
     private String status = "待配置";
+    private String runtimeBlockerKey = "";
     // IDLE, BUILD, READY, DISMANTLE. PAUSED is a reason, never a destructive state transition.
     private int state, stage, cursor, cycleTicks, cycleDuration;
     private long energy, batchEu, batchGenerated, pendingGenerated;
@@ -210,7 +211,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             || !ownsTask() && CriticalStellarRuntime.hasAssets(stellarRuntime)) return false;
         if (gtMachine() != null)
             CriticalStellarRuntime.shutdown(stellarRuntime, gtMachine().criticalStellarPowerPort());
-        return setEnabled(player, false);
+        return setProductionEnabled(player, false);
     }
 
     public void setRuntimeBatch(int progress, int duration, long eut, String message) {
@@ -218,6 +219,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         cycleDuration = Math.max(0, duration);
         batchEu = Math.max(0, eut);
         status = message;
+        runtimeBlockerKey = "";
         markDirty();
     }
 
@@ -1032,7 +1034,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public int getReasonCode() {
         if (worldObj != null && worldObj.isRemote) return clientReason;
         if (status.contains("缺电")) return 1;
-        if (status.contains("缺少材料")) return 2;
+        if (status.contains("缺少材料") || status.startsWith("本批") && (status.contains("不足") || status.contains("缺少")))
+            return 2;
         if (status.contains("加载")) return 3;
         if (status.contains("缺损")) return 4;
         if (status.contains("禁止降低等级")) return 9;
@@ -1045,8 +1048,61 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public boolean isEnabled() {
+        return state == 2 ? isProductionEnabled() : isConstructionEnabled();
+    }
+
+    /** The fabrication loom's native switch controls construction, repair and dismantling only. */
+    public boolean isConstructionEnabled() {
         return host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt ? gt.isAllowedToWork()
             : enabled;
+    }
+
+    /** The linked machine's real GT switch is authoritative for completed-machine operation. */
+    public boolean isProductionEnabled() {
+        if (host == null || worldObj != null && worldObj.isRemote) return enabled;
+        gregtech.api.interfaces.tileentity.IGregTechTileEntity controller = productionController();
+        return controller != null && controller.isAllowedToWork();
+    }
+
+    private gregtech.api.interfaces.tileentity.IGregTechTileEntity productionController() {
+        if (!(host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt)) return null;
+        if (getGeometryVersion() != 2 || !loomController) return gt;
+        int x = blockWorldX(56, 35), z = blockWorldZ(56, 35);
+        if (!worldObj.getChunkProvider()
+            .chunkExists(x >> 4, z >> 4)) return null;
+        if (worldObj.getTileEntity(x, yCoord, z) instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity main
+            && main.getFrontFacing() == getControllerFacing(false)
+            && main.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine machine
+            && !machine.isKindSelector()
+            && machine.getPresetKind() == config.kind
+            && machine.getCriticalState() == this) return main;
+        return null;
+    }
+
+    /** Presentation only; production records its blocker without repeating recipe selection for every GUI read. */
+    public String getRuntimeBlockerKey() {
+        if (state != 2) return "";
+        if (host != null && productionController() == null) return "runtime.main_unavailable";
+        if (!isProductionEnabled()) return "runtime.power_off";
+        if (!runtimeBlockerKey.isEmpty()) return runtimeBlockerKey;
+        int reason = getReasonCode();
+        if (reason != 0) return "reason." + reason;
+        if (config.kind == CriticalMachineKind.SUN) {
+            if (!CriticalStellarRuntime.supported(stellarRuntime) || stellarRuntime.getBoolean("uncertain")
+                || stellarRuntime.getBoolean("identityMismatch")
+                || stellarRuntime.getBoolean("itemCopy")) return "runtime.uncertain";
+            if (status.equals("恒星尚未就绪，等待点火或持续燃料与电力")) return "runtime.sun.igniting";
+            if (status.equals("加工已暂停，恒星持续消耗氦三与电力")) return "runtime.sun.production_paused";
+            if (status.equals("没有完整可执行批次")) return "runtime.sun.waiting_recipe";
+        }
+        if (isWorking() || status.equals("建造完成") || status.equals("批次交付完成")) return "";
+        return "runtime.blocked";
+    }
+
+    public String getRuntimeStatusKey() {
+        if (state != 2) return state == 0 ? "runtime.not_built" : "status." + state;
+        String blocker = getRuntimeBlockerKey();
+        return !blocker.isEmpty() ? blocker : isWorking() ? "runtime.working" : "runtime.ready";
     }
 
     public boolean isWorking() {
@@ -1383,7 +1439,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (stellarRuntime.getBoolean("uncertain")) return fail("恒星支付结果不确定，请先核验");
         if (canCancelLegacyStellarBatch()) cancelLegacyStellarBatch(p);
         if (hasActiveBatch() || pendingGenerated > 0) {
-            if (!setEnabled(p, true)) return false;
+            if (!(state == 2 ? setProductionEnabled(p, true) : setEnabled(p, true))) return false;
             dismantleRequested = true;
             status = "已预约拆除，等待当前批次交付";
             changed();
@@ -1496,21 +1552,37 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public boolean setEnabled(EntityPlayer p, boolean value) {
         if (worldObj.isRemote || !canUse(p)) return false;
-        if (value && state == 2
-            && structureValid
-            && config.kind == CriticalMachineKind.SOLAR
-            && !data().claimNight(worldObj, structureId)) return fail("本维度已有先启动的辐照锅炉");
         enabled = value;
         if (host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt) {
             if (value) gt.enableWorking();
             else gt.disableWorking();
         }
-        if (!value) data().releaseNight(structureId);
+        if (!value && state != 2) data().releaseNight(structureId);
         changed();
         return true;
     }
 
+    public boolean setProductionEnabled(EntityPlayer p, boolean value) {
+        if (worldObj.isRemote || !canUse(p)) return false;
+        gregtech.api.interfaces.tileentity.IGregTechTileEntity controller = productionController();
+        if (controller == null) return fail("主机器控制器缺失、朝向不符或区块未加载");
+        if (value) controller.enableWorking();
+        else {
+            controller.disableWorking();
+            data().releaseNight(structureId);
+        }
+        changed();
+        return true;
+    }
+
+    public boolean failRuntime(String key, String reason) {
+        fail(reason);
+        runtimeBlockerKey = key;
+        return false;
+    }
+
     public boolean fail(String reason) {
+        runtimeBlockerKey = "";
         if (!status.equals(reason)) {
             status = reason;
             changed();
@@ -2070,6 +2142,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             return;
         }
         if (!isEnabled()) {
+            if (state == 2) data().releaseNight(structureId);
             fail("已暂停");
             return;
         }
@@ -3604,6 +3677,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public void readFromNBT(NBTTagCompound n) {
+        runtimeBlockerKey = "";
         stellarRuntime = n.getCompoundTag("criticalStellarRuntime");
         batchRecipe = n.getCompoundTag("criticalBatchRecipe");
         foundationRequired = n.getBoolean("foundationRequired");

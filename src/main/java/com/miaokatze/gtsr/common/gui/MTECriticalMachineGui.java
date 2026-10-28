@@ -11,6 +11,7 @@ import com.cleanroommc.modularui.utils.Alignment.MainAxis;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
@@ -25,11 +26,13 @@ import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECriticalMachine> {
 
     private final CriticalMachineState state;
+    private final boolean loomController;
     private IPanelHandler constructionPanel;
 
     public MTECriticalMachineGui(MTECriticalMachine machine) {
         super(machine);
         state = machine.getCriticalState();
+        loomController = machine.isKindSelector();
     }
 
     @Override
@@ -44,6 +47,7 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
             .child(createStructureUpdateButton(manager))
             .child(
                 new ButtonWidget<>().name("critical_native_construction")
+                    .setEnabledIf(w -> loomController)
                     .size(18)
                     .overlay(IKey.str("C"))
                     .tooltipBuilder(t -> t.add(IKey.lang("gtsr.critical.tab.construction")))
@@ -59,6 +63,10 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
         super.registerSyncValues(manager);
         manager.syncValue("critical.native.loom", new BooleanSyncValue(state::isLoomStructureValid));
         manager.syncValue("critical.native.status", new IntSyncValue(state::getStatusCode));
+        manager.syncValue("critical.native.runtime", new StringSyncValue(state::getRuntimeStatusKey));
+        manager.syncValue(
+            "critical.native.blocker",
+            new StringSyncValue(() -> "runtime.blocked".equals(state.getRuntimeBlockerKey()) ? state.getStatus() : ""));
         constructionPanel = manager.syncedPanel("critical.native.construction", true, (childManager, handler) -> {
             CriticalConstructionView view = new CriticalConstructionView(state, childManager);
             ParentWidget<?> content = new ParentWidget<>().size(475, 230)
@@ -85,12 +93,23 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
         BooleanSyncValue loom = manager.findSyncHandler("critical.native.loom", BooleanSyncValue.class);
         IntSyncValue status = manager.findSyncHandler("critical.native.status", IntSyncValue.class);
         ListWidget<IWidget, ?> list = super.createTerminalTextWidget(manager, panel);
-        line(
-            list,
-            () -> (loom.getValue() ? EnumChatFormatting.GREEN : EnumChatFormatting.RED)
-                + tr(loom.getValue() ? "loom.formed" : "loom.unformed"));
-        line(list, () -> EnumChatFormatting.YELLOW + tr("status." + status.getValue()));
-        line(list, () -> EnumChatFormatting.GRAY + tr("management_hint"));
+        if (loomController) {
+            line(
+                list,
+                () -> (loom.getValue() ? EnumChatFormatting.GREEN : EnumChatFormatting.RED)
+                    + tr(loom.getValue() ? "loom.formed" : "loom.unformed"));
+            line(list, () -> EnumChatFormatting.YELLOW + tr("status." + status.getValue()));
+            line(list, () -> EnumChatFormatting.GRAY + tr("ui.native.loom_hint"));
+        } else {
+            StringSyncValue runtime = manager.findSyncHandler("critical.native.runtime", StringSyncValue.class);
+            StringSyncValue blocker = manager.findSyncHandler("critical.native.blocker", StringSyncValue.class);
+            line(list, () -> EnumChatFormatting.YELLOW + tr("ui.running_status") + ": " + tr(runtime.getValue()));
+            line(
+                list,
+                () -> blocker.getValue()
+                    .isEmpty() ? "" : EnumChatFormatting.YELLOW + blocker.getValue());
+            line(list, () -> EnumChatFormatting.GRAY + tr("ui.native.main_hint"));
+        }
         return list;
     }
 
