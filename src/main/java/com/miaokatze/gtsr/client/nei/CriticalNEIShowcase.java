@@ -196,9 +196,7 @@ public final class CriticalNEIShowcase {
     public static List<String> plasmaTooltip(com.miaokatze.gtsr.common.critical.CriticalPlasmaCatalog.Entry plasma) {
         return java.util.Arrays.asList(
             CriticalRecipeMaps.text("showcase.plasma.variables"),
-            CriticalRecipeMaps.text("showcase.solar.comparison"),
             CriticalRecipeMaps.text("showcase.solar.heat"),
-            CriticalRecipeMaps.text("showcase.plasma.rounding"),
             CriticalRecipeMaps
                 .formatted("showcase.plasma.exact_half", number(new java.math.BigDecimal(plasma.halfSaturation))),
             CriticalRecipeMaps.text("showcase.plasma.exchanger"),
@@ -215,7 +213,6 @@ public final class CriticalNEIShowcase {
 
     public static List<String> solarTooltip(CriticalRecipeMaps.SolarDisplay solar) {
         List<String> tip = new java.util.ArrayList<>();
-        tip.add(CriticalRecipeMaps.text("showcase.solar.comparison"));
         tip.add(CriticalRecipeMaps.text("showcase.solar.heat"));
         if (solar.mode == CriticalRecipeMaps.SteamMode.SALT) {
             tip.add(CriticalRecipeMaps.text("showcase.solar.salt_supercritical"));

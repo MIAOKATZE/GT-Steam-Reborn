@@ -45,7 +45,7 @@ def main():
         'client/nei/CriticalNEIShowcase.java', 'loader/recipes/CriticalMachineRecipes.java',
         'common/critical/CriticalConstructionEconomy.java', 'common/critical/CriticalFoundationMaterials.java',
         'common/critical/CriticalGTRecipes.java', 'common/critical/CriticalStellarPolicy.java', 'common/critical/CriticalSolarPolicy.java',
-        'common/critical/CriticalPlasmaCatalog.java',
+        'common/critical/CriticalPlasmaCatalog.java', 'common/critical/CriticalTooltips.java',
         'common/critical/CriticalChemicalMath.java', 'common/critical/CriticalChemicalRecipes.java',
         'common/critical/CompoundRecipe.java', 'common/critical/CriticalFoundationChunk.java',
         'common/critical/CriticalConstructionProgress.java')]

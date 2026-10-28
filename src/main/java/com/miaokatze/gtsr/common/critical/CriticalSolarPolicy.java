@@ -10,7 +10,7 @@ import java.util.List;
 /** Pure boiler catalogue: native steam heat and exact working-fluid inventory saturation. */
 public final class CriticalSolarPolicy {
 
-    public static final int VERSION = 8;
+    public static final int VERSION = 9;
     private static final BigInteger STOCK_HALF_SATURATION = BigInteger.valueOf(100_000_000_000L);
     private static final long BASE_DENSE_SUPERCRITICAL_LITRES = 12_000_000_000L;
     private static final long BASE_HOT_SALT_LITRES = 40_000_000_000L;

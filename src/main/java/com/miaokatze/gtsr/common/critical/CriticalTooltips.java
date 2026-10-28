@@ -90,13 +90,11 @@ public final class CriticalTooltips {
     }
 
     private static void turbine(MultiblockTooltipBuilder tt) {
-        info(tt, "turbine.purpose");
         info(tt, "turbine.input");
         info(tt, "turbine.output");
         info(tt, "cycle");
         tt.addSeparator();
         info(tt, "turbine.heat");
-        info(tt, "turbine.dense");
         info(tt, "turbine.generation");
         info(tt, "turbine.example");
         tt.addSeparator();
@@ -109,7 +107,6 @@ public final class CriticalTooltips {
 
     private static void sun(MultiblockTooltipBuilder tt) {
         info(tt, "sun.purpose");
-        info(tt, "sun.recipe");
         info(tt, "cycle");
         info(tt, "sun.parallel");
         tt.addSeparator();

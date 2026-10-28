@@ -4133,7 +4133,7 @@ gtsr.critical.operation.details=运行说明
 gtsr.critical.operation.sun.input=原料：GT 原生聚变配方；仅接受已知元数据，保持原配方物料需求。
 gtsr.critical.operation.sun.cycle=周期：点火、维持与聚变均以400 tick为一段；聚变每批20秒，不超频。
 gtsr.critical.operation.sun.parallel=并行：最多 8196，同时受实际供电、输入和最坏输出空间约束，能力不足时不先扣原料。
-gtsr.critical.operation.sun.energy=聚变耗电比例为原时长(tick)÷8000，限制在0.1%~10%；乘原EU/t和实际并行后向上取整，另付维持消耗。
+gtsr.critical.operation.sun.energy=聚变耗电比例为原时长(tick)÷8000，限制在0.1%~10%；乘原EU/t和实际并行，另付维持消耗。
 gtsr.critical.operation.sun.efficiency=原生能力门槛：聚变阈值≤20,480,000,000 EU，原生电压≤UEV；该门槛不是重复收取的启动费。
 gtsr.critical.operation.sun.output=聚变交付原配方产物；点火与维持所耗氦三按半量产生氦等离子体。
 gtsr.critical.operation.solar.input=原料：蒸馏水或冷太阳能盐（二选一），必须同时供给一种冷却剂与一种激活剂；粉末辐照也需要两类介质。
@@ -4617,23 +4617,21 @@ gtsr.critical.tooltip.native.solar.medium_reference=下表秒耗以每批§e37.8
 gtsr.critical.tooltip.native.solar.coolant=必须供应以下一种§b冷却剂§7：
 gtsr.critical.tooltip.native.solar.excitation=同时必须供应以下一种§d激活剂§7：
 gtsr.critical.tooltip.native.solar.medium=§f%3$s L/s§7 : §d×%2$s§7 : %1$s
-gtsr.critical.tooltip.native.solar.helium=每秒消耗=§e表列秒耗×本批热量÷37.8T§7，向上取整至L/s；开批扣除§e20秒§7用量
+gtsr.critical.tooltip.native.solar.helium=每秒消耗=§e表列秒耗×本批热量÷37.8T§7；开批扣除§e20秒§7用量
 gtsr.critical.tooltip.native.solar.example_water_combination=例：私人维度§e0.6§7、极寒之凛冰§b×1.5§7、氦等离子体§d×1.5§7，总倍率§e1.35
 gtsr.critical.tooltip.native.solar.example_water_output=§b500G L蒸馏水库存§7：产§b13.5G L致密超临界蒸汽§7，扣水§b84.375G L§7，蒸汽热量§633.75T EU
 gtsr.critical.tooltip.native.solar.example_salt_output=同组合§6500G L冷太阳能盐库存§7：产§645G L热太阳能盐§7；超级热交换机超临界线§6112.5T EU§7，普通过热线§667.5T EU
 gtsr.critical.tooltip.native.solar.steam_heat=每§b1 L致密超临界蒸汽§7按完整级联累计§62500 EU§7蒸汽热量
 gtsr.critical.tooltip.native.solar.salt_heat=每§61 L热盐§7：普通过热线§61500 EU§7，超级热交换机超临界线§62500 EU§7；介质消耗按§61500 EU/L§7计算
-gtsr.critical.tooltip.native.turbine.purpose=将蒸汽热量转化为§e无线电能
 gtsr.critical.tooltip.native.turbine.input=开批抽取输入仓内§b全部六种蒸汽§7，可混合普通、过热、超临界及其致密形式
 gtsr.critical.tooltip.native.turbine.output=产能进入控制器所属团队的§e无线电网
-gtsr.critical.tooltip.native.turbine.heat=普通/过热/超临界基础热值：§60.5/1.5/2.5 EU/L
-gtsr.critical.tooltip.native.turbine.dense=对应致密蒸汽基础热值§b×1000
+gtsr.critical.tooltip.native.turbine.heat=普通/过热/超临界基础热值：§60.5/1.5/2.5 EU/L§7；对应致密蒸汽§b×1000
+gtsr.critical.tooltip.native.turbine.example=例：开批效率§a2000%§7，§b1,000 L普通蒸汽§7产生§e10,000 EU
 gtsr.critical.tooltip.native.turbine.efficiency=效率由§e100%§7暖至最高§a2000%§7；本批使用§e开批时效率
 gtsr.critical.tooltip.native.turbine.warmup=基础热负载达§e34,359,738,240 EU/t§7时，连续§e20秒§7暖满；低负载降低目标效率
 gtsr.critical.tooltip.native.turbine.idle=停工或暂停会逐渐冷却，效率最低§e100%
 gtsr.critical.tooltip.native.turbine.water=每§b160 L§7非致密蒸汽回收§b1 L蒸馏水§7；致密蒸汽按1000倍换算
 gtsr.critical.tooltip.native.sun.purpose=以固定周期执行§dGT原生聚变配方
-gtsr.critical.tooltip.native.sun.recipe=保留原配方物料需求与产物
 gtsr.critical.tooltip.native.sun.parallel=最多§e8196并行§7，受供电、原料与输出空间限制
 gtsr.critical.tooltip.native.sun.ignition=点火功率：§c25,000,000,000 EU/t§7 (§c12A §f§l§nMAX§r§7)
 gtsr.critical.tooltip.native.sun.ignition_time=点火需§e20秒§7与§b50,000,000 L氦三§7（§b125,000 L/t§7）
@@ -4642,6 +4640,7 @@ gtsr.critical.tooltip.native.sun.pause=暂停聚变仍需供应§c维持能量§
 gtsr.critical.tooltip.native.sun.extinguish=维持供给不足或结构失效会§c熄火§7，需重新点火
 gtsr.critical.tooltip.native.sun.plasma=点火与维持消耗的氦三，按§d半量§7产出氦等离子体
 gtsr.critical.tooltip.native.sun.discount=聚变剩余耗电比例=§a原配方秒数÷400§7，限§a0.1%~10%§7，即减免§a90%~99.9%
+gtsr.critical.tooltip.native.sun.example=例：原§e20秒、1,000,000 EU/t§7，单并行聚变§c50,000 EU/t§7；含维持共§c1,050,000 EU/t
 gtsr.critical.tooltip.native.sun.limits=支持原配方电压≤§5§nUEV§r§7，聚变阈值≤§e20,480,000,000 EU
 gtsr.critical.tooltip.native.sun.switch=热态切换配方无需重新点火
 gtsr.critical.tooltip.native.battery.purpose=按复合燃料的§b种类与体积配比§7提高发电量
@@ -4651,7 +4650,7 @@ gtsr.critical.tooltip.native.battery.compounds=输入总线放入§e电路2~9§7
 gtsr.critical.tooltip.native.battery.efficiency=实际热值倍率=§a1+(NEI峰值倍率−1)×q²§7，最高§a×100
 gtsr.critical.tooltip.native.battery.ratio=同电路有多个可执行配方时，选择§a发电量最高§7的一项
 gtsr.critical.tooltip.native.battery.scaling=投入量不限；§c额外流体也计入总L§7，会稀释所需组分的体积占比
-gtsr.critical.tooltip.native.battery.heat=基础热量=§6Σ(燃料L×基础EU/L)§7；发电EU=§6基础热量×实际倍率§7，向下取整
+gtsr.critical.tooltip.native.battery.heat=基础热量=§6Σ(燃料L×基础EU/L)§7；发电EU=§6基础热量×实际倍率§7
 gtsr.critical.tooltip.native.structure.region=预留区域§e112×112，高180格§r；可沿四个水平方向放置，无需区块对齐
 gtsr.critical.tooltip.native.structure.base=主体、外围承载结构与织机共同组成完整机器；材质按全息投影放置
 gtsr.critical.nei.simple.stellar.phase_time=阶段时长：20秒 (400 t)
@@ -4669,7 +4668,7 @@ gtsr.critical.nei.simple.build.row.0.2=静态养护（可奇点加速）
 gtsr.critical.nei.showcase.curing.title=静态养护（可奇点加速）
 gtsr.critical.nei.showcase.curing.optional=可选投料示例；不是固定施工费用，无奇点也能完成。
 gtsr.critical.nei.showcase.curing.interval=仅静态养护期间，每400个有效tick消耗输入中的全部n个奇点。
-gtsr.critical.nei.showcase.curing.reduction=各静态养护区块减少tick = floor(剩余tick × n / [5 × (16 + n)])。
+gtsr.critical.nei.showcase.curing.reduction=各静态养护区块减少tick = 剩余tick × n / [5 × (16 + n)]。
 gtsr.critical.nei.showcase.curing.scope=仅静态养护、投入后消耗，不加速浇筑或热养护。
 gtsr.critical.nei.simple.build.row.1.0=承载结构
 gtsr.critical.nei.simple.build.row.1.1=输配管网
@@ -4751,9 +4750,7 @@ gtsr.critical.tooltip.native.structure.main_ports=主机仓室：在主控后方
 gtsr.critical.tooltip.native.structure.hatches=仓室均可选，仅可安装在上述位置；无需维护仓。建设供料接织机，生产原料与产物接主机
 gtsr.critical.nei.simple.build.time.cell=每块%s秒
 gtsr.critical.tooltip.native.turbine.generation=本批发电量=§6Σ(蒸汽量L×基础EU/L)×开批效率÷100
-gtsr.critical.tooltip.native.turbine.example=例：开批效率§a2000%§7，§b1,000 L普通蒸汽§7产生§e10,000 EU
-gtsr.critical.tooltip.native.sun.power=实际聚变EU/t=§c原配方EU/t×并行数×剩余比例§7，向上取整；另加维持耗电
-gtsr.critical.tooltip.native.sun.example=例：原§e20秒、1,000,000 EU/t§7，单并行聚变§c50,000 EU/t§7；含维持共§c1,050,000 EU/t
+gtsr.critical.tooltip.native.sun.power=实际聚变EU/t=§c原配方EU/t×并行数×剩余比例§7；另加维持耗电
 gtsr.critical.tooltip.native.battery.quality=配比符合度§eq§7=各组分(§b实际L÷总L÷NEI目标占比§7)中的最小值
 gtsr.critical.tooltip.native.battery.example=例：电路§e2§7，仅投入§b柴油:轻燃油=2:3§7时倍率§a×2§7，每§61,000 EU基础热量§7发出§e2,000 EU
 gtsr.critical.tooltip.native.turbine.load=暖机基础热负载=§6本批蒸汽基础热量÷400 EU/t
@@ -4775,13 +4772,11 @@ gtsr.critical.nei.simple.plasma.example=例：库存S=5H，总倍率m=1.35
 gtsr.critical.nei.simple.plasma.output=产出：约%s L/批
 gtsr.critical.nei.simple.plasma.heat=蒸汽热量：约%s EU
 gtsr.critical.nei.showcase.plasma.variables=S为开批时冷态流体库存L；P为本批等离子体产量L。
-gtsr.critical.nei.showcase.plasma.rounding=每批20秒，冷态流体1:1加热；产量向下取整至L，半饱和库存向上取整至L。
 gtsr.critical.nei.showcase.plasma.exact_half=半饱和库存H = %s L；工质热值越高，H越低。
 gtsr.critical.nei.showcase.plasma.exchanger=超级热交换机满负载：每1 L等离子体
 gtsr.critical.nei.showcase.plasma.conversion=换出 %s L致密超临界蒸汽，并回收1 L冷态流体。
 gtsr.critical.nei.showcase.plasma.exact_maximum=V = (30,000,000,000 × %s ÷ %s) × 总倍率 L。
 gtsr.critical.nei.showcase.plasma.media=冷却剂与激活剂均为必需；按实际换热量预付整批用量。
-gtsr.critical.nei.showcase.solar.comparison=所有示例统一为半饱和库存的5倍，总倍率0.6×1.5×1.5=1.35。
 gtsr.critical.nei.showcase.solar.heat=蒸汽热量按完整蒸汽级联累计，不含脉冲倍率或转子效率。
 gtsr.critical.nei.showcase.solar.salt_supercritical=主行采用超级热交换机超临界线：每1 L热盐换出1000 L超临界蒸汽，累计2500 EU。
 gtsr.critical.nei.showcase.solar.salt_superheated=普通过热线：每1 L热盐换出1000 L过热蒸汽，累计1500 EU；本例合计67.5T EU。

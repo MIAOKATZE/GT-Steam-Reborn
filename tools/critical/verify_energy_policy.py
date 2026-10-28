@@ -35,7 +35,7 @@ def main():
         ROOT / 'build/rfg/mclauncher-1.7.10.jar', *dependencies]))
     sources = [ROOT / 'tools/tests' / name for name in (
         'Issue37RegistrationRegression.java', 'CriticalCompoundRuntimeContract.java', 'CriticalEnergyPolicyContract.java',
-        'CriticalPlasmaFixture.java')]
+        'CriticalPlasmaFixture.java', 'solar-world-provider/PersonalWorldProvider.java')]
     if not args.jar:
         sources += [ROOT / 'src/main/java/com/miaokatze/gtsr/common/critical' / (name + '.java') for name in
             ('CriticalEnergyMath', 'CriticalSolarPolicy', 'CriticalPlasmaCatalog', 'CriticalEnergyRuntime', 'CriticalEnergyPorts')]
