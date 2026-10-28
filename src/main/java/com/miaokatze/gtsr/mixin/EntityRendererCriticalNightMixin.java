@@ -7,14 +7,13 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.miaokatze.gtsr.client.critical.CriticalNightClient;
 import com.miaokatze.gtsr.common.critical.CriticalNightClock;
 
-/** Runs after Angelica's custom lightmap hook as well as the normal lightmap body. */
+/** Wraps the final lightmap method body, including cancellation returns inserted by other mixins. */
 @Mixin(value = EntityRenderer.class, priority = 900)
 public abstract class EntityRendererCriticalNightMixin {
 
@@ -27,8 +26,9 @@ public abstract class EntityRendererCriticalNightMixin {
     @Final
     private DynamicTexture lightmapTexture;
 
-    @Inject(method = "updateLightmap", at = @At("RETURN"), require = 1)
-    private void gtsr$zeroSkyLight(float partialTicks, CallbackInfo ci) {
+    @WrapMethod(method = "updateLightmap")
+    private void gtsr$zeroSkyLight(float partialTicks, Operation<Void> original) {
+        original.call(partialTicks);
         if (CriticalNightClock.isNight(mc.theWorld)) {
             CriticalNightClient.darkenSkyLight(lightmapColors);
             lightmapTexture.updateDynamicTexture();
