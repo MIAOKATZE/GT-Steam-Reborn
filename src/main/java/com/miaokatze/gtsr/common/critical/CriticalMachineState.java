@@ -1154,6 +1154,14 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             : Math.min(cycleDuration, Math.max(0D, cycleTicks + elapsed));
     }
 
+    public boolean hasVisualBatch() {
+        return state == 2 && cycleDuration > 0 && (!batchId.isEmpty() || energyRuntime.getBoolean("funded"));
+    }
+
+    public double getVisualBatchPhase(float partialTicks) {
+        return hasVisualBatch() ? Math.min(1D, getVisualCycleTicks(partialTicks) / Math.max(1D, cycleDuration)) : 0D;
+    }
+
     public int getCycleTicks() {
         return cycleTicks;
     }
