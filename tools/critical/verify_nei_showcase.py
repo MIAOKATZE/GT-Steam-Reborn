@@ -17,6 +17,7 @@ def main():
     parser.add_argument('--jar', type=Path, help='Compile fixture/test only; production classes come exclusively from this candidate')
     parser.add_argument('--baseline', type=Path, help='Dependency baseline for a source-overlay run')
     parser.add_argument('--out', type=Path, default=OUT)
+    parser.add_argument('--native-plasma-summary', type=Path, help='Also measure every available plasma profile captured after actual FML load')
     parser.add_argument('--template-only', action='store_true', help='Only validate the native construction template and indexing')
     args = parser.parse_args()
     out = args.out.resolve()
@@ -72,11 +73,16 @@ def main():
     assert hashlib.sha256(baseline.read_bytes()).hexdigest() == candidate_hash, 'Candidate changed during verification'
     if args.jar:
         assert not any((classes / 'com/miaokatze/gtsr').rglob('*.class')), 'Production overlay appeared during jar-only run'
-    font_result = run('java.exe', 'font', [*binding, '-cp', cp, 'CriticalNEIFontContract', ROOT / 'src/main/resources/assets/gtsr/lang'])
+    native_profiles = ['-Dcritical.nei.nativePlasmaSummary=' + str(args.native_plasma_summary.resolve())] if args.native_plasma_summary else []
+    font_result = run('java.exe', 'font', [*binding, *native_profiles, '-cp', cp, 'CriticalNEIFontContract', ROOT / 'src/main/resources/assets/gtsr/lang'])
     result += font_result
     print(result)
     (out / 'verification.json').write_text(json.dumps({'status': 'PASS', 'productOverlay': not bool(args.jar),
         'jar': str(baseline), 'jarSHA256': candidate_hash, 'jarUnchanged': True,
+        'nativePlasmaSummary': str(args.native_plasma_summary.resolve()) if args.native_plasma_summary else None,
+        'nativePlasmaSummarySHA256': hashlib.sha256(args.native_plasma_summary.read_bytes()).hexdigest() if args.native_plasma_summary else None,
+        'localeSHA256': {lang: hashlib.sha256((ROOT / 'src/main/resources/assets/gtsr/lang' / (lang + '.lang')).read_bytes()).hexdigest()
+            for lang in ('en_US', 'zh_CN')},
         'gtJar': str(gt), 'sourceSHA256': {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in files}, 'productionSourceSHA256': {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in production_sources}, 'result': result.splitlines(),

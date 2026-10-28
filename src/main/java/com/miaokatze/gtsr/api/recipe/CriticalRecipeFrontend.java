@@ -129,6 +129,7 @@ public final class CriticalRecipeFrontend extends RecipeMapFrontend {
         tip = super.handleNEIItemTooltip(stack, tip, recipe);
         var info = CriticalRecipeMaps.displayInfo(recipe.mRecipe);
         if (info != null && info.plasma != null) tip.addAll(CriticalNEIShowcase.plasmaTooltip(info.plasma));
+        if (info != null && info.solar != null) tip.addAll(CriticalNEIShowcase.solarTooltip(info.solar));
         return tip;
     }
 

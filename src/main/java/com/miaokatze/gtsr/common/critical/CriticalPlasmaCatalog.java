@@ -2,8 +2,13 @@ package com.miaokatze.gtsr.common.critical;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import goodgenerator.api.recipe.ExtremeHeatExchangerRecipe;
@@ -22,40 +27,51 @@ public final class CriticalPlasmaCatalog {
 
     public static List<Entry> entries() {
         if (entries == null) {
+            Set<Fluid> fusionOutputs = new HashSet<>();
+            for (GTRecipe recipe : RecipeMaps.fusionRecipes.getAllRecipes()) {
+                if (!recipe.mEnabled || recipe.mFakeRecipe) continue;
+                for (FluidStack output : recipe.mFluidOutputs)
+                    if (output != null && output.amount > 0) fusionOutputs.add(output.getFluid());
+            }
+            Set<Fluid> rotorFuels = new HashSet<>();
+            for (GTRecipe fuel : RecipeMaps.plasmaFuels.getAllRecipes()) {
+                if (!fuel.mEnabled || fuel.mFakeRecipe || fuel.mSpecialValue <= 0 || fuel.mInputs.length == 0) continue;
+                FluidStack fluid = GTUtility.getFluidForFilledItem(fuel.mInputs[0], true);
+                if (fluid != null) rotorFuels.add(fluid.getFluid());
+            }
             List<Entry> resolved = new ArrayList<>();
-            for (Materials material : new Materials[] { Materials.Nitrogen, Materials.Sulfur, Materials.Calcium,
-                Materials.Nickel, Materials.Zinc, Materials.Niobium, Materials.Silver, Materials.Tin, Materials.Bismuth,
-                Materials.Radon }) {
-                FluidStack plasma = material.getPlasma(1);
-                Entry found = null;
-                for (GTRecipe recipe : GoodGeneratorRecipeMaps.extremeHeatExchangerFuels.getAllRecipes()) {
-                    if (recipe.mEnabled && !recipe.mFakeRecipe
-                        && recipe instanceof ExtremeHeatExchangerRecipe heat
-                        && plasma != null
-                        && plasma.isFluidEqual(recipe.mFluidInputs[0])) {
-                        if (found != null)
-                            throw new IllegalStateException("Duplicate GG plasma exchanger: " + material);
-                        found = new Entry(material.mName, heat);
-                    }
-                }
-                // Fusion plasma alone is insufficient: GG omits candidates without a recoverable cold fluid.
-                if (found != null && isRotorFuel(plasma)) resolved.add(found);
+            Set<Fluid> seen = new HashSet<>();
+            for (GTRecipe recipe : GoodGeneratorRecipeMaps.extremeHeatExchangerFuels.getAllRecipes()) {
+                if (!recipe.mEnabled || recipe.mFakeRecipe || recipe.mFluidInputs.length == 0) continue;
+                FluidStack plasma = recipe.mFluidInputs[0];
+                if (!fusionOutputs.contains(plasma.getFluid()) || !rotorFuels.contains(plasma.getFluid())
+                    || plasma.isFluidEqual(Materials.Helium.getPlasma(1))
+                    || plasma.isFluidEqual(Materials.Iron.getPlasma(1))
+                    || plasma.isFluidEqual(Materials.Americium.getPlasma(1))) continue;
+                if (!seen.add(plasma.getFluid())) throw new IllegalStateException(
+                    "Duplicate GG plasma exchanger: " + plasma.getFluid()
+                        .getName());
+                if (!(recipe instanceof ExtremeHeatExchangerRecipe)) throw new IllegalStateException(
+                    "Unsupported GG plasma exchanger: " + plasma.getFluid()
+                        .getName());
+                resolved.add(new Entry((ExtremeHeatExchangerRecipe) recipe));
             }
             if (resolved.isEmpty()) throw new IllegalStateException(
                 "No eligible native GG plasma exchangers; recipe registration must be complete");
+            resolved.sort(Comparator.comparing(entry -> entry.id));
             entries = java.util.Collections.unmodifiableList(resolved);
         }
         return entries;
     }
 
-    private static boolean isRotorFuel(FluidStack plasma) {
-        for (GTRecipe fuel : RecipeMaps.plasmaFuels.getAllRecipes()) {
-            if (fuel.mEnabled && !fuel.mFakeRecipe
-                && fuel.mSpecialValue > 0
-                && fuel.mInputs.length > 0
-                && plasma.isFluidEqual(GTUtility.getFluidForFilledItem(fuel.mInputs[0], true))) return true;
-        }
-        return false;
+    /** Fluid registry ids cover GT++ materials; old paid telemetry used GT Materials names. */
+    public static String displayName(String id) {
+        Fluid fluid = FluidRegistry.getFluid(id);
+        if (fluid != null) return new FluidStack(fluid, 1).getLocalizedName();
+        Materials legacy = Materials.get(id);
+        if (legacy != Materials._NULL) return legacy.getLocalizedName();
+        // Display-only history may outlive a removed fluid; never let it interrupt the machine terminal.
+        return id;
     }
 
     public static final class Entry {
@@ -65,8 +81,13 @@ public final class CriticalPlasmaCatalog {
         /** One native second consumes hotLitres and really emits denseSteamLitres, including tick rounding. */
         public final BigInteger hotLitres, denseSteamLitres, halfSaturation;
 
-        private Entry(String id, ExtremeHeatExchangerRecipe recipe) {
-            this.id = id;
+        private Entry(ExtremeHeatExchangerRecipe recipe) {
+            id = recipe.mFluidInputs[0].getFluid()
+                .getName();
+            if (recipe.mFluidInputs.length != 2 || recipe.mFluidOutputs.length != 3
+                || recipe.getCooledFluid() == null
+                || recipe.getNormalSteam() == null)
+                throw new IllegalStateException("Unsupported GG plasma exchanger: " + id);
             input = new FluidStack(recipe.getCooledFluid(), 1);
             output = recipe.mFluidInputs[0].copy();
             output.amount = 1;

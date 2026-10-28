@@ -4609,24 +4609,24 @@ gtsr.critical.tooltip.native.loom.ports=Supply building materials through loom �
 gtsr.critical.tooltip.native.solar.purpose=Uses dimensional irradiation to produce §bsteam§7, §6hot solar salt§7 or §dplasma
 gtsr.critical.tooltip.native.solar.water=Water: §bdistilled water -> selected steam§7; choose one of water, salt and plasma
 gtsr.critical.tooltip.native.solar.salt=Salt route: §6cold solar salt -> an equal volume of hot solar salt
-gtsr.critical.tooltip.native.solar.energy=Uses no EU and generates no direct electricity; §6base heat§7 excludes downstream generator efficiency
+gtsr.critical.tooltip.native.solar.energy=Uses no EU and generates no direct electricity; §6steam heat§7 sums the full steam cascade, excluding pulse multipliers and rotor efficiency
 gtsr.critical.tooltip.native.solar.private=§eTotal multiplier=dimension factor × coolant multiplier × exciter multiplier§7; personal dimension factor: §e0.6
 gtsr.critical.tooltip.native.solar.stock=§ex§7 is the actual input-system §bdistilled-water§7 or §6cold-solar-salt§7 stock in L at batch start
 gtsr.critical.tooltip.native.solar.steam_amount=Dense supercritical steam: §by=12G×x/(x+100G)×total multiplier L/batch
 gtsr.critical.tooltip.native.solar.water_cost=Each §b1 L§7 dense supercritical steam consumes §b6.25 L distilled water§7; a full batch must be funded
-gtsr.critical.tooltip.native.solar.other_steam=Other steam types use their base heat; all six carry equal batch base heat when fully funded
+gtsr.critical.tooltip.native.solar.other_steam=All six steam types carry equal batch heat through the full cascade at equal stock and multipliers, when fully funded
 gtsr.critical.tooltip.native.solar.salt_amount=Hot solar salt: §6y=40G×x/(x+100G)×total multiplier L/batch
 gtsr.critical.tooltip.native.solar.dimension=Maintains §5eternal night§7 while running; only the first boiler in a dimension operates
-gtsr.critical.tooltip.native.solar.medium_reference=The following per-second rates correspond to §e37.8T EU§7 batch base heat
+gtsr.critical.tooltip.native.solar.medium_reference=Listed rates use §e37.8T EU per batch§7 as the heat reference
 gtsr.critical.tooltip.native.solar.coolant=Requires one of these §bcoolants§7:
 gtsr.critical.tooltip.native.solar.excitation=Also requires one of these §dexciters§7:
 gtsr.critical.tooltip.native.solar.medium=§f%3$s L/s§7 : §d×%2$s§7 : %1$s
-gtsr.critical.tooltip.native.solar.helium=Actual rate=§elisted rate × batch heat / 37.8T§7; charged in whole litres, prepays §e20 s§7 at batch start
+gtsr.critical.tooltip.native.solar.helium=Rate=§elisted rate × batch heat / 37.8T§7, rounded up to L/s; consume §e20 s§7 at batch start
 gtsr.critical.tooltip.native.solar.example_water_combination=Example: personal dimension §e0.6§7, cryotheum §b×1.5§7, helium plasma §d×1.5§7; total multiplier §e1.35
-gtsr.critical.tooltip.native.solar.example_water_output=§b100G L distilled-water stock§7: §b8.1G L dense supercritical steam§7, §b50.625G L§7 water consumed, §620.25T EU§7 base heat
-gtsr.critical.tooltip.native.solar.example_salt_output=Same combination, §6100G L cold solar salt stock§7: §627G L hot solar salt§7, §640.5T EU§7 base heat
-gtsr.critical.tooltip.native.solar.steam_heat=Each §b1 L dense supercritical steam§7 carries §62500 EU§7 of base heat
-gtsr.critical.tooltip.native.solar.salt_heat=Each §61 L cold solar salt → 1 L hot solar salt§7 carries §61500 EU§7 of base heat
+gtsr.critical.tooltip.native.solar.example_water_output=§b500G L distilled-water stock§7: §b13.5G L dense supercritical steam§7, §b84.375G L§7 water consumed, §633.75T EU§7 steam heat
+gtsr.critical.tooltip.native.solar.example_salt_output=Same combination, §6500G L cold solar salt stock§7: §645G L hot solar salt§7; §6112.5T EU§7 on the Extreme Heat Exchanger supercritical line, §667.5T EU§7 on the superheated line
+gtsr.critical.tooltip.native.solar.steam_heat=Each §b1 L dense supercritical steam§7 yields §62500 EU§7 cumulative heat through the full steam cascade
+gtsr.critical.tooltip.native.solar.salt_heat=Hot salt: §61500 EU/L§7 superheated, §62500 EU/L§7 supercritical; medium use follows §61500 EU/L§7
 gtsr.critical.tooltip.native.turbine.purpose=Converts steam heat into §ewireless EU
 gtsr.critical.tooltip.native.turbine.input=Each batch takes §ball six steam types in full§7; mix normal, superheated, supercritical and dense forms
 gtsr.critical.tooltip.native.turbine.output=Generated EU enters the controller owner's team §ewireless network
@@ -4747,7 +4747,7 @@ gtsr.critical.nei.simple.solar.example=e.g. x=%s L; m=%s
 gtsr.critical.nei.simple.solar.input.water=Water used: %s L
 gtsr.critical.nei.simple.solar.input.salt=Cold salt used: %s L
 gtsr.critical.nei.simple.solar.output=Output: %s L
-gtsr.critical.nei.simple.solar.heat=Base heat: %s EU
+gtsr.critical.nei.simple.solar.heat=Steam heat: %s EU
 gtsr.critical.solar.exciter.helium_gas=Helium Gas
 gtsr.critical.solar.exciter.none=Legacy prepaid batch
 gtsr.critical.tooltip.native.structure.loom_ports=Loom ports: Y=4 casing ring, item/fluid input/output and energy hatches; controllers and internal rails cannot be replaced
@@ -4775,7 +4775,7 @@ gtsr.critical.nei.simple.plasma.formula=Output P=V*S/(S+H)
 gtsr.critical.nei.simple.plasma.maximum=V~%s*m L
 gtsr.critical.nei.simple.plasma.half=Half-stock H~%s L
 gtsr.critical.nei.simple.plasma.multiplier=m=dimension*coolant*exciter
-gtsr.critical.nei.simple.plasma.example=Example: stock S=H; m=1.35
+gtsr.critical.nei.simple.plasma.example=Example: stock S=5H; m=1.35
 gtsr.critical.nei.simple.plasma.output=Output: ~%s L/batch
 gtsr.critical.nei.simple.plasma.heat=Steam heat: ~%s EU
 gtsr.critical.nei.showcase.plasma.variables=S is cold-fluid stock in L at batch start; P is plasma output in L per batch.
@@ -4785,4 +4785,9 @@ gtsr.critical.nei.showcase.plasma.exchanger=Extreme Heat Exchanger at full load:
 gtsr.critical.nei.showcase.plasma.conversion=yields %s L dense supercritical steam and returns 1 L cold working fluid.
 gtsr.critical.nei.showcase.plasma.exact_maximum=V = (30,000,000,000 * %s / %s) * total multiplier L.
 gtsr.critical.nei.showcase.plasma.media=Coolant and exciter are both required; the full batch prepays actual exchanger heat.
+gtsr.critical.nei.showcase.solar.comparison=All examples use five times the half-saturation stock and a total multiplier of 0.6*1.5*1.5=1.35.
+gtsr.critical.nei.showcase.solar.heat=Steam heat sums the full steam cascade, excluding pulse multipliers and rotor efficiency.
+gtsr.critical.nei.showcase.solar.salt_supercritical=The main row uses the Extreme Heat Exchanger supercritical line: 1 L hot salt yields 1000 L supercritical steam, totaling 2500 EU.
+gtsr.critical.nei.showcase.solar.salt_superheated=The superheated line yields 1000 L superheated steam per 1 L hot salt, totaling 1500 EU; this example totals 67.5T EU.
+gtsr.critical.nei.showcase.solar.salt_media=Salt coolant and exciter costs use 1500 EU/L from the superheated line; the Extreme Heat Exchanger supercritical line's 2500 EU/L yield does not increase these costs.
 gtsr.critical.tooltip.native.structure.main_ports_span=One block above the controller, six spaces left and right: 13 total; §cdo not replace the supply casings below§r
