@@ -40,6 +40,12 @@ public abstract class MixinWorldProviderCriticalNight {
 
     @Inject(method = "getWorldTime", at = @At("HEAD"), cancellable = true, require = 1, remap = false)
     private void gtsr$time(CallbackInfoReturnable<Long> cir) {
+        net.minecraft.world.World world = ((WorldProvider) (Object) this).worldObj;
+        if (world != null && world.isRemote
+            && com.miaokatze.gtsr.client.critical.CriticalNightClient.isSampling(world)) {
+            cir.setReturnValue(com.miaokatze.gtsr.client.critical.CriticalNightClient.sampledTime(world));
+            return;
+        }
         Long time = CriticalNightClock.time(((WorldProvider) (Object) this).worldObj);
         if (time != null) cir.setReturnValue(time);
     }
