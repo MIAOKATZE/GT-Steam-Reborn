@@ -14,12 +14,14 @@ public class CriticalNEIFontContract {
 
 class CriticalNEIFontRuntime {
     static int checks;
+    static java.util.List<com.miaokatze.gtsr.common.critical.CriticalPlasmaCatalog.Entry> nativeProfiles = new ArrayList<>();
     static void set(Object o,String name,Object value)throws Exception {
         Field f=FontRenderer.class.getDeclaredField(name);f.setAccessible(true);f.set(o,value);
     }
     public static void run(String version)throws Exception {
         Issue37Runtime.bootstrap(version);
         CriticalPlasmaFixture.seed();
+        loadNativeProfiles();
         String expectedJar=System.getProperty("critical.nei.expectedJar");
         if(expectedJar!=null){
             String expected=new java.io.File(expectedJar).toURI().toURL().toExternalForm();
@@ -147,11 +149,11 @@ class CriticalNEIFontRuntime {
                     :key.endsWith("solar.example")?String.format(Locale.ROOT,format,"500G","1.35")
                     :key.contains("solar.input.")?String.format(Locale.ROOT,format,"421.875G")
                     :key.endsWith("solar.output")?String.format(Locale.ROOT,format,"67.5T")
-                    :key.endsWith("solar.heat")?String.format(Locale.ROOT,format,"40.5T")
+                    :key.endsWith("solar.heat")?String.format(Locale.ROOT,format,"112.5T")
                     :key.endsWith("plasma.maximum")?String.format(Locale.ROOT,format,"258.344M")
                     :key.endsWith("plasma.half")?String.format(Locale.ROOT,format,"344.459M")
                     :key.endsWith("plasma.output")?String.format(Locale.ROOT,format,"174.382M")
-                    :key.endsWith("plasma.heat")?String.format(Locale.ROOT,format,"50.625T")
+                    :key.endsWith("plasma.heat")?String.format(Locale.ROOT,format,"84.375T")
                     :key.endsWith("ignition.helium")?String.format(Locale.ROOT,format,"50,000,000")
                     :key.endsWith("sustain.helium")?String.format(Locale.ROOT,format,"40,000")
                     :key.endsWith("stellar.voltage")?String.format(Locale.ROOT,format,"MAX")
@@ -205,6 +207,56 @@ class CriticalNEIFontRuntime {
         System.out.println("PASS "+checks+" native FontRenderer bilingual bounds; maximum authored line width="+maximum+"; no client/GL");
     }
 
+    static void loadNativeProfiles()throws Exception {
+        String source=System.getProperty("critical.nei.nativePlasmaSummary");
+        if(source==null)return;
+        var ctor=com.miaokatze.gtsr.common.critical.CriticalPlasmaCatalog.Entry.class
+            .getDeclaredConstructor(goodgenerator.api.recipe.ExtremeHeatExchangerRecipe.class);
+        ctor.setAccessible(true);
+        com.google.gson.JsonArray captured;
+        try(java.io.Reader reader=Files.newBufferedReader(Paths.get(source),java.nio.charset.StandardCharsets.UTF_8)) {
+            captured=new com.google.gson.JsonParser().parse(reader).getAsJsonArray();
+        }
+        for(var value:captured) {
+            var profile=value.getAsJsonObject();
+            if(!profile.get("availableForNativeEHEHeating").getAsBoolean())continue;
+            var nativeRecipe=profile.getAsJsonArray("nativeEHE").get(0).getAsJsonObject();
+            int hot=nativeRecipe.get("A_hotLitresPerNativeSecond").getAsInt();
+            int eut=nativeRecipe.get("nativeEUt").getAsInt();
+            var plasma=CriticalPlasmaFixture.fluid(profile.get("registryName").getAsString());
+            var cold=CriticalPlasmaFixture.fluid(nativeRecipe.get("cooledFluidRegistryName").getAsString());
+            var recipe=new goodgenerator.api.recipe.ExtremeHeatExchangerRecipe(
+                new net.minecraftforge.fluids.FluidStack[]{new net.minecraftforge.fluids.FluidStack(plasma,hot),
+                    new net.minecraftforge.fluids.FluidStack(CriticalPlasmaFixture.fluid("ic2distilledwater"),eut/8)},
+                new net.minecraftforge.fluids.FluidStack[]{new net.minecraftforge.fluids.FluidStack(
+                    CriticalPlasmaFixture.fluid("ic2superheatedsteam"),1),
+                    gregtech.api.enums.Materials.DenseSupercriticalSteam.getGas(1),
+                    new net.minecraftforge.fluids.FluidStack(cold,1)},1);
+            var entry=ctor.newInstance(recipe);
+            if(!entry.denseSteamLitres.equals(new java.math.BigInteger(nativeRecipe
+                .get("B_realDenseSteamLitresPerNativeSecond").getAsString()))
+                ||!entry.halfSaturation.equals(new java.math.BigInteger(nativeRecipe.get("H_litres").getAsString())))
+                throw new AssertionError("Captured native EHE reconstruction differs: "+entry.id);
+            var output=entry.batchLitres(entry.halfSaturation.multiply(java.math.BigInteger.valueOf(5)),
+                com.miaokatze.gtsr.common.critical.CriticalSolarPolicy.PRIVATE_DIMENSION_FACTOR,
+                com.miaokatze.gtsr.common.critical.CriticalSolarPolicy.COOLANTS.get(1),
+                com.miaokatze.gtsr.common.critical.CriticalSolarPolicy.EXCITERS.get(1));
+            var heat=output.multiply(entry.denseSteamLitres).multiply(java.math.BigInteger.valueOf(2500))
+                .divide(entry.hotLitres);
+            var target=new java.math.BigInteger("84375000000000");
+            var oneLitreLoss=entry.denseSteamLitres.multiply(java.math.BigInteger.valueOf(2500))
+                .add(entry.hotLitres.subtract(java.math.BigInteger.ONE)).divide(entry.hotLitres);
+            if(heat.compareTo(target)>0||target.subtract(heat).compareTo(oneLitreLoss)>0)
+                throw new AssertionError("Captured native plasma normalized heat differs: "+entry.id);
+            nativeProfiles.add(entry);
+            System.out.println("NATIVE_PROFILE "+entry.id+" hot="+entry.hotLitres+" dense="+entry.denseSteamLitres
+                +" H="+entry.halfSaturation);
+            checks++;
+        }
+        if(nativeProfiles.isEmpty())throw new AssertionError("Native plasma summary contains no usable profiles");
+        System.out.println("PASS native plasma font profiles="+nativeProfiles.size()+" source="+source);
+    }
+
     static void solarBounds(FontRenderer font,List<String> locale,String lang,boolean unicode)throws Exception {
         // Inject the actual locale into vanilla's translation singleton, then measure the production row builder.
         Class<?> translations=Class.forName("net.minecraft.util.StringTranslate");
@@ -227,27 +279,36 @@ class CriticalNEIFontRuntime {
         for(var mode:com.miaokatze.gtsr.api.recipe.CriticalRecipeMaps.SteamMode.values()){
             var profile=ctor.newInstance(mode);
             String[] rows=com.miaokatze.gtsr.client.nei.CriticalNEIShowcase.solarRows(profile);
+            if(com.miaokatze.gtsr.client.nei.CriticalNEIShowcase.solarTooltip(profile).stream()
+                .anyMatch(line -> line.startsWith("gtsr.")))
+                throw new AssertionError("Untranslated solar tooltip: "+lang+" "+mode);
+            checks++;
             if(rows.length!=7)throw new AssertionError("Solar batch requires exactly seven authored rows");
             for(int row=0;row<rows.length;row++){
                 int width=row>=5?139:154;
                 var lines=font.listFormattedStringToWidth(rows[row],width);
                 if(lines.size()!=1||font.getStringWidth(rows[row])>width||97+row*11+9>174)
                     throw new AssertionError("Solar card crosses rows/card/native button: "+lang+" unicode="+unicode+" "+mode+" row="+row+" width="+font.getStringWidth(rows[row])+" "+rows[row]);
+                System.out.println("SOLAR_FONT "+lang+" unicode="+unicode+" "+mode+" row="+row
+                    +" px="+font.getStringWidth(rows[row])+" "+rows[row]);
                 if(rows[row].contains("E+")||rows[row].contains("E-"))throw new AssertionError("Scientific solar quantity");
                 checks++;
             }
         }
         String plasmaIntro=net.minecraft.util.StatCollector.translateToLocal("gtsr.critical.nei.simple.plasma.intro");
         if(font.getStringWidth(plasmaIntro)>154)throw new AssertionError("Plasma intro width: "+lang+" "+plasmaIntro);
-        for(var plasma:com.miaokatze.gtsr.common.critical.CriticalPlasmaCatalog.entries()) {
+        var profiles=new ArrayList<>(com.miaokatze.gtsr.common.critical.CriticalPlasmaCatalog.entries());
+        profiles.addAll(nativeProfiles);
+        for(var plasma:profiles) {
             String[] rows=com.miaokatze.gtsr.client.nei.CriticalNEIShowcase.plasmaRows(plasma);
             if(rows.length!=7)throw new AssertionError("Plasma batch requires exactly seven authored rows");
+            if(!rows[6].contains("84.375T"))throw new AssertionError("Plasma heat is not normalized: "+plasma.id+" "+rows[6]);
             for(int row=0;row<rows.length;row++) {
                 int width=row>=5?139:154;
                 if(font.getStringWidth(rows[row])>width||font.listFormattedStringToWidth(rows[row],width).size()!=1
                     ||97+row*11+9>174)throw new AssertionError("Plasma card overflow: "+lang+" unicode="+unicode
                     +" "+plasma.id+" row="+row+" px="+font.getStringWidth(rows[row])+" "+rows[row]);
-                System.out.println("PLASMA_FONT "+lang+" unicode="+unicode+" "+plasma.id+" row="+row
+                System.out.println((nativeProfiles.contains(plasma)?"NATIVE_PLASMA_FONT ":"PLASMA_FONT ")+lang+" unicode="+unicode+" "+plasma.id+" row="+row
                     +" px="+font.getStringWidth(rows[row])+" "+rows[row]);
                 checks++;
             }

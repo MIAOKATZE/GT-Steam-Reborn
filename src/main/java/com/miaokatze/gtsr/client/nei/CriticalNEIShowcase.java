@@ -163,7 +163,7 @@ public final class CriticalNEIShowcase {
 
     public static String[] plasmaRows(com.miaokatze.gtsr.common.critical.CriticalPlasmaCatalog.Entry plasma) {
         java.math.BigInteger output = plasma.batchLitres(
-            plasma.halfSaturation,
+            plasma.halfSaturation.multiply(java.math.BigInteger.valueOf(5)),
             CriticalSolarPolicy.PRIVATE_DIMENSION_FACTOR,
             CriticalSolarPolicy.COOLANTS.get(1),
             CriticalSolarPolicy.EXCITERS.get(1));
@@ -196,6 +196,8 @@ public final class CriticalNEIShowcase {
     public static List<String> plasmaTooltip(com.miaokatze.gtsr.common.critical.CriticalPlasmaCatalog.Entry plasma) {
         return java.util.Arrays.asList(
             CriticalRecipeMaps.text("showcase.plasma.variables"),
+            CriticalRecipeMaps.text("showcase.solar.comparison"),
+            CriticalRecipeMaps.text("showcase.solar.heat"),
             CriticalRecipeMaps.text("showcase.plasma.rounding"),
             CriticalRecipeMaps
                 .formatted("showcase.plasma.exact_half", number(new java.math.BigDecimal(plasma.halfSaturation))),
@@ -208,8 +210,18 @@ public final class CriticalNEIShowcase {
             CriticalRecipeMaps.formatted(
                 "showcase.plasma.exact_maximum",
                 number(new java.math.BigDecimal(plasma.hotLitres)),
-                number(new java.math.BigDecimal(plasma.denseSteamLitres))),
-            CriticalRecipeMaps.text("showcase.plasma.media"));
+                number(new java.math.BigDecimal(plasma.denseSteamLitres))));
+    }
+
+    public static List<String> solarTooltip(CriticalRecipeMaps.SolarDisplay solar) {
+        List<String> tip = new java.util.ArrayList<>();
+        tip.add(CriticalRecipeMaps.text("showcase.solar.comparison"));
+        tip.add(CriticalRecipeMaps.text("showcase.solar.heat"));
+        if (solar.mode == CriticalRecipeMaps.SteamMode.SALT) {
+            tip.add(CriticalRecipeMaps.text("showcase.solar.salt_supercritical"));
+            tip.add(CriticalRecipeMaps.text("showcase.solar.salt_superheated"));
+        }
+        return tip;
     }
 
     /** Seven native-font lines: quantities describe the frozen funded batch, never the int slot ratio. */

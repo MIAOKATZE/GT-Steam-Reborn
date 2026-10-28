@@ -320,14 +320,28 @@ class CriticalEnergyPolicyRuntime {
             .filter(f->Materials.Tin.getPlasma(1).isFluidEqual(gregtech.api.util.GTUtility.getFluidForFilledItem(f.mInputs[0],true)))
             .findFirst().orElseThrow();
         tinFuel.mEnabled=false;
-        check(CriticalPlasmaCatalog.entries().stream().noneMatch(e->e.id.equals("Tin")),
+        check(CriticalPlasmaCatalog.entries().stream().noneMatch(e->e.id.equals("plasma.tin")),
             "an exchanger alone cannot admit a plasma lacking an enabled native rotor fuel");
         tinFuel.mEnabled=true;
         Field cache=CriticalPlasmaCatalog.class.getDeclaredField("entries");cache.setAccessible(true);cache.set(null,null);
         var catalog=CriticalPlasmaCatalog.entries();
-        check(catalog.size()==9&&catalog.stream().map(e->e.id).collect(java.util.stream.Collectors.toSet())
-            .equals(Set.of("Nitrogen","Calcium","Nickel","Zinc","Niobium","Silver","Tin","Bismuth","Radon")),
-            "candidate without native cold fluid/EHE is ineligible while the other nine remain usable");
+        check(catalog.stream().map(e->e.id).collect(java.util.stream.Collectors.toSet()).equals(CriticalPlasmaFixture.eligibleIds())
+            &&catalog.size()==CriticalPlasmaFixture.eligibleIds().size(),
+            "catalogue intersects actual enabled fusion outputs, rotor fuels and exchangers without a material or tier whitelist");
+        check(catalog.stream().anyMatch(e->e.id.equals("plasma.celestialtungsten"))
+            &&catalog.stream().anyMatch(e->e.id.equals("plasma.plutonium241"))
+            &&catalog.stream().anyMatch(e->e.id.equals("plasma.fixturesecondoutput")),
+            "GT++ generic fluids, high-tier fusion and every output slot qualify through their registered paths");
+        check(catalog.stream().noneMatch(e->e.output.isFluidEqual(Materials.Helium.getPlasma(1))
+            ||e.output.isFluidEqual(Materials.Iron.getPlasma(1))||e.output.isFluidEqual(Materials.Americium.getPlasma(1))
+            ||e.id.equals("plasma.fixturegodforgeonly")||e.id.equals("plasma.fixturedisabledfusion")
+            ||e.id.equals("plasma.fixturefakefusion")),
+            "three activator plasmas and non-fusion, disabled or fake fusion products stay excluded");
+        check(CriticalPlasmaCatalog.displayName("plasma.celestialtungsten").equals("Celestial Tungsten Plasma")
+            &&CriticalPlasmaCatalog.displayName("Tin").equals(Materials.Tin.getLocalizedName()),
+            "generic fluid names use their native localization while historical Materials telemetry still renders");
+        check(CriticalPlasmaCatalog.displayName("removed.plasma.history").equals("removed.plasma.history"),
+            "unknown historical fluid id remains visible without throwing during terminal rendering");
         check(FluidRegistry.getFluid("sulfur")==null&&FluidRegistry.getFluid("molten.sulfur")==null
             &&goodgenerator.api.recipe.GoodGeneratorRecipeMaps.extremeHeatExchangerFuels.getBackend()
                 .findFuel(Materials.Sulfur.getPlasma(1))==null,
@@ -340,7 +354,7 @@ class CriticalEnergyPolicyRuntime {
                 goodgenerator.api.recipe.GoodGeneratorRecipeMaps.extremeHeatExchangerFuels.getBackend().findFuel(plasma.output);
             check(plasma.input.getFluid()==nativeRecipe.getCooledFluid()
                 &&plasma.output.isFluidEqual(nativeRecipe.mFluidInputs[0]),"native exchanger resolves actual cold/hot identity: "+plasma.id);
-            check((plasma.id.equals("Nitrogen")||plasma.id.equals("Radon"))
+            check((plasma.id.equals("plasma.nitrogen")||plasma.id.equals("plasma.radon"))
                 ? !plasma.input.getFluid().getName().startsWith("molten.")
                 : plasma.input.getFluid().getName().startsWith("molten."),"gas versus molten input follows native recovery: "+plasma.id);
             BigInteger paid=plasma.batchLitres(plasma.halfSaturation,.6D,cooling,activation);
@@ -368,7 +382,7 @@ class CriticalEnergyPolicyRuntime {
             helium.stock=expectedCost(activation,eu).intValueExact();cryo.stock=0;
             check(select.invoke(null,CriticalEnergyPorts.snapshot(host),.6D,false)==null,"no free coolant: "+plasma.id);
         }
-        var tin=catalog.stream().filter(e->e.id.equals("Tin")).findFirst().orElseThrow();
+        var tin=catalog.stream().filter(e->e.id.equals("plasma.tin")).findFirst().orElseThrow();
         check(tin.hotLitres.equals(b(2500))&&tin.denseSteamLitres.equals(b(337480)),
             "tin uses actual337480 DSC per2500L, rather than nominal337500");
         BigInteger giant=b(100000000000000L);
@@ -384,7 +398,7 @@ class CriticalEnergyPolicyRuntime {
             &&field(dustOnly,"coolantLitres").equals(expectedCost(cooling,CriticalSolarPolicy.irradiationBudgetEU(
                 CriticalSolarPolicy.batchBudgetEU(.6D,cooling,activation,false)))),
             "plasma route retains independently funded dust-only irradiation without consuming working fluid");
-        var nitrogen=catalog.get(0);
+        var nitrogen=catalog.stream().filter(e->e.id.equals("plasma.nitrogen")).findFirst().orElseThrow();
         var nitrogenInput=CriticalCompoundRuntime.hatch(unsafe,tile,nitrogen.input,nitrogen.halfSaturation.intValueExact());
         var richTin=CriticalCompoundRuntime.hatch(unsafe,tile,tin.input,Integer.MAX_VALUE);
         CriticalCompoundRuntime.set(host,"mInputHatches",new ArrayList<>(List.of(cryo,helium,nitrogenInput,richTin)));
@@ -402,7 +416,7 @@ class CriticalEnergyPolicyRuntime {
         Method start=CriticalEnergyRuntime.class.getDeclaredMethod("startSolar",CriticalMachineState.class,MTECriticalMachine.class,NBTTagCompound.class);
         start.setAccessible(true);
         check((boolean)start.invoke(null,state,host,state.n)&&state.n.getBoolean("solarBatchPlasmaMode")
-            &&state.n.getString("solarPlasma").equals("Tin")&&cryo.stock==0&&helium.stock==0
+            &&state.n.getString("solarPlasma").equals("plasma.tin")&&cryo.stock==0&&helium.stock==0
             &&b(input.stock).equals(tin.halfSaturation.subtract(paid)),"real start prepays the whole plasma batch and freezes its material");
         state.n=(NBTTagCompound)state.n.copy();state.n.setBoolean("solarPlasmaMode",false);state.n.setBoolean("solarSaltMode",true);
         state.n.setInteger("progress",399);CriticalEnergyRuntime.tick(state,host);

@@ -255,15 +255,13 @@ public final class CriticalRecipeMaps {
             coefficient = salt ? base
                 : base.multiply(halfHeatPerDenseL)
                     .divide(CriticalEnergyMath.steamHeatPerL(mode.index));
-            // Ordinary steam consumes more than 100G water at m=1.35; 500G funds its entire batch.
-            exampleStock = mode == SteamMode.NORMAL || mode == SteamMode.DENSE_NORMAL
-                ? halfSaturationStock.multiply(BigInteger.valueOf(5))
-                : halfSaturationStock;
+            // Compare all working fluids at five times half-saturation; this funds all six steam forms.
+            exampleStock = halfSaturationStock.multiply(BigInteger.valueOf(5));
             if (salt) {
                 outputLitres = CriticalSolarPolicy.batchHotSaltLitres(exampleStock, dimension, coolant, exciter);
                 inputLitres = outputLitres;
                 heatEU = outputLitres.multiply(BigInteger.valueOf(CriticalSolarPolicy.HOT_SALT_SUPERHEATED_LITRES))
-                    .multiply(CriticalEnergyMath.steamHeatPerL(SteamMode.SUPERHEATED.index))
+                    .multiply(CriticalEnergyMath.steamHeatPerL(SteamMode.SUPERCRITICAL.index))
                     .divide(BigInteger.valueOf(2));
             } else {
                 BigInteger halfHeat = CriticalSolarPolicy

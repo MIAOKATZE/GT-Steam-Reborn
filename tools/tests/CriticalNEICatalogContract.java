@@ -365,10 +365,7 @@ class CriticalNEICatalogRuntime {
         solarFluid("cryotheum");
         Materials.Time.mStandardMoltenFluid=solarFluid("nei_solar_tachyon");
         Materials.Space.mStandardMoltenFluid=solarFluid("nei_solar_spatial");
-        Materials.Helium.mPlasma=solarFluid("nei_solar_helium");
         Materials.Helium.mGas=solarFluid("nei_solar_helium_gas");
-        Materials.Iron.mPlasma=solarFluid("nei_solar_iron");
-        Materials.Americium.mPlasma=solarFluid("nei_solar_americium");
         bartworks.system.material.WerkstoffLoader.molten.put(goodgenerator.items.GGMaterial.atomicSeparationCatalyst,
             solarFluid("nei_solar_atomic"));
         gtPlusPlus.core.material.MaterialMisc.SOLAR_SALT_COLD.setFluid(solarFluid("nei_solar_cold_salt"));
@@ -399,11 +396,24 @@ class CriticalNEICatalogRuntime {
                     &&recipe.mFluidOutputs[0].isFluidEqual(plasma.output)
                     &&recipe.mFluidInputs[0].amount==1&&recipe.mFluidOutputs[0].amount==1,
                     "each plasma card indexes its native1:1 working-fluid conversion");
+                BigInteger stock=plasma.halfSaturation.multiply(BigInteger.valueOf(5));
+                BigInteger output=plasma.batchLitres(stock,CriticalSolarPolicy.PRIVATE_DIMENSION_FACTOR,
+                    CriticalSolarPolicy.COOLANTS.get(1),CriticalSolarPolicy.EXCITERS.get(1));
+                check(output.compareTo(stock)<=0,"normalized plasma stock funds its real batch");
+                BigInteger heat=output.multiply(plasma.denseSteamLitres).multiply(BigInteger.valueOf(2500))
+                    .divide(plasma.hotLitres);
+                BigInteger target=new BigInteger("84375000000000");
+                BigInteger oneLitreLoss=plasma.denseSteamLitres.multiply(BigInteger.valueOf(2500))
+                    .add(plasma.hotLitres.subtract(BigInteger.ONE)).divide(plasma.hotLitres);
+                check(heat.compareTo(target)<=0&&target.subtract(heat).compareTo(oneLitreLoss)<=0,
+                    "same five-half-stock saturation yields 2.5x water heat within one native plasma litre: "+plasma.id);
                 continue;
             }
             var solar=info.solar;
             check(solar!=null,"all boiler cards freeze typed batch metadata at registration");
             check(solar.inputLitres.compareTo(solar.exampleStock)<=0,"shown working-fluid stock funds the full real batch");
+            check(solar.exampleStock.equals(solar.halfSaturationStock.multiply(BigInteger.valueOf(5))),
+                "all water and salt examples share five-half-stock saturation");
             check(Math.abs(solar.multiplier-1.35D)<0.000001D,"example uses dimension 0.6, coolant 1.5 and activator 1.5");
             if(info.operation.equals("solar_salt")) {
                 saltEU=info.baseEu;
@@ -411,10 +421,12 @@ class CriticalNEICatalogRuntime {
                     &&recipe.mFluidOutputs[0].amount==recipe.mFluidInputs[0].amount,"salt example pays equal-volume hot salt");
                 check(solar.mode==CriticalRecipeMaps.SteamMode.SALT
                     &&solar.coefficient.equals(new BigInteger("40000000000"))
-                    &&solar.exampleStock.equals(new BigInteger("100000000000"))
-                    &&solar.inputLitres.equals(new BigInteger("27000000000"))
+                    &&solar.exampleStock.equals(new BigInteger("500000000000"))
+                    &&solar.inputLitres.equals(new BigInteger("45000000000"))
                     &&solar.outputLitres.equals(solar.inputLitres)
-                    &&solar.heatEU.equals(new BigInteger("40500000000000")),"salt card displays real 100G stock / 27G output / 40.5T native heat");
+                    &&solar.heatEU.equals(new BigInteger("112500000000000")),"salt card displays funded 500G stock / 45G output / 112.5T supercritical steam heat");
+                check(solar.heatEU.multiply(BigInteger.valueOf(3)).equals(new BigInteger("33750000000000")
+                    .multiply(BigInteger.TEN)),"native supercritical salt line carries 10/3 of normalized water heat");
             } else {
                 if(waterEU==null)waterEU=info.baseEu;
                 check(waterEU.equals(info.baseEu),"six water-route steam forms retain equal equivalent EU");
@@ -425,16 +437,19 @@ class CriticalNEICatalogRuntime {
                 check(heat.equals(CriticalSolarPolicy.waterHalfHeat(info.baseEu)),"all steam volumes use the common exact heat quantum");
                 check(solar.mode.index==mode,"batch metadata freezes this card's selected steam form");
                 String[] coefficients={"60000000000000","20000000000000","12000000000000","60000000000","20000000000","12000000000"};
-                String[] production={"67500000000000","13500000000000","8100000000000","67500000000","13500000000","8100000000"};
-                String[] consumption={"421875000000","84375000000","50625000000","421875000000","84375000000","50625000000"};
+                String[] production={"67500000000000","22500000000000","13500000000000","67500000000","22500000000","13500000000"};
+                String[] consumption={"421875000000","140625000000","84375000000","421875000000","140625000000","84375000000"};
                 check(solar.coefficient.equals(new BigInteger(coefficients[mode]))
                     &&solar.outputLitres.equals(new BigInteger(production[mode]))
                     &&solar.inputLitres.equals(new BigInteger(consumption[mode])),"selected steam coefficient, actual output and paid water match policy7");
-                check(solar.exampleStock.equals(new BigInteger(mode%3==0?"500000000000":"100000000000"))
-                    &&solar.heatEU.equals(new BigInteger(mode%3==0?"33750000000000":"20250000000000")),"ordinary forms use funded 500G example; native heat never includes turbine efficiency");
+                check(solar.exampleStock.equals(new BigInteger("500000000000"))
+                    &&solar.heatEU.equals(new BigInteger("33750000000000")),"all six funded examples carry equal native steam heat");
+                check(solar.outputLitres.multiply(CriticalEnergyMath.steamHeatPerL(mode))
+                    .equals(solar.heatEU.multiply(BigInteger.valueOf(2))),"displayed heat matches selected steam's full native cascade");
             }
         }
-        check(conversions==16&&plasmas==9,"missing native Sulfur route preserves six steam, one salt and nine plasma conversions");
+        check(conversions==7+CriticalPlasmaFixture.eligibleIds().size()
+            &&plasmas==CriticalPlasmaFixture.eligibleIds().size(),"boiler cards cover six steam, one salt and the eligible native plasma fluids");
         check(CriticalRecipeMaps.forKind(CriticalMachineKind.SOLAR).getFrontend().getUIProperties().maxFluidInputs==1,
             "boiler native template has no coolant or activator slots");
         check(steamModes.size()==6,"all six water-route steam forms indexed: "+steamModes);
