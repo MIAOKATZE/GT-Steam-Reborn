@@ -8,6 +8,8 @@
   "plugin": "com.miaokatze.gtsr.mixin.GTSRMixinPlugin",
   "mixins": [
     "MixinWorldCriticalTime",
+    "MixinWorldProviderCriticalNight",
+    "PersonalWorldProviderCriticalNightMixin",
     "MixinWorldCriticalClearance",
     "MixinBlockCriticalProtection",
     "BlockMachinesCriticalProtectionMixin",
@@ -33,6 +35,10 @@
     "gtnl/SteamMultiMachineBaseGTNLMixin"
   ],
   "client": [
+    "WorldCriticalNightClientMixin",
+    "WorldProviderCriticalNightClientMixin",
+    "RenderGlobalCriticalNightMixin",
+    "EntityRendererCriticalNightMixin",
     "EncounterMouseOverMixin",
     "ModelBipedWeaponPoseMixin",
     "RendererLivingWeaponYawMixin",

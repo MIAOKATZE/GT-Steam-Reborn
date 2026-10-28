@@ -199,7 +199,10 @@ public final class MTECriticalMachineTerminalGui {
             .tooltipBuilder(t -> {
                 if (loomController.getValue()) t.add(tr("ui.power.construction_hint"));
                 else {
-                    t.add(tr("ui.power.production_hint"));
+                    t.add(
+                        tr(
+                            configuration().kind == CriticalMachineKind.SOLAR ? "ui.power.solar_hint"
+                                : "ui.power.production_hint"));
                     if (configuration().kind == CriticalMachineKind.SUN) t.add(tr("ui.sun.power_hint"));
                 }
             }));

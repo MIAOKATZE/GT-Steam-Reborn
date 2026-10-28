@@ -13,6 +13,7 @@ import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
+import cpw.mods.fml.common.network.FMLNetworkEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -50,6 +51,20 @@ public final class CriticalNightClock {
         return state != null && state.world == world ? state : null;
     }
 
+    private static State serverState(World world) {
+        State state = SERVER.get(world.provider.dimensionId);
+        if (state == null || state.world != world) {
+            state = new State(world, CriticalWorldData.get(world));
+            SERVER.put(world.provider.dimensionId, state);
+        }
+        return state;
+    }
+
+    public static void clearClient() {
+        CLIENT.clear();
+        INCOMING.clear();
+    }
+
     public static Long time(World world) {
         State state = state(world);
         if (state == null || !state.active) return null;
@@ -77,6 +92,7 @@ public final class CriticalNightClock {
         state.night = true;
         state.advancing = false;
         state.time = midnight;
+        world.skylightSubtracted = world.calculateSkylightSubtracted(1.0F);
         if (changed) broadcast(state);
     }
 
@@ -87,8 +103,7 @@ public final class CriticalNightClock {
 
     private static void send(EntityPlayerMP player) {
         World world = player.worldObj;
-        State state = SERVER
-            .computeIfAbsent(world.provider.dimensionId, ignored -> new State(world, CriticalWorldData.get(world)));
+        State state = serverState(world);
         NETWORK.sendTo(new TimeMessage(state), player);
     }
 
@@ -114,7 +129,7 @@ public final class CriticalNightClock {
             this.world = world;
             this.data = data;
             if (data != null) {
-                // Revalidate the live controller before enabling an override after load.
+                // Reconcile persisted ownership against the loaded controller on the next world tick.
                 active = false;
                 time = data.getLocalTime();
             }
@@ -132,8 +147,9 @@ public final class CriticalNightClock {
         @SubscribeEvent
         public void unload(WorldEvent.Unload event) {
             if (event.world.isRemote) {
-                CLIENT.clear();
-                INCOMING.clear();
+                State state = CLIENT.get(event.world.provider.dimensionId);
+                if (state != null && state.world == event.world) CLIENT.remove(event.world.provider.dimensionId);
+                INCOMING.removeIf(message -> message.dimension == event.world.provider.dimensionId);
             } else {
                 State state = SERVER.get(event.world.provider.dimensionId);
                 if (state != null && state.world == event.world) SERVER.remove(event.world.provider.dimensionId);
@@ -143,15 +159,14 @@ public final class CriticalNightClock {
         @SubscribeEvent
         public void tick(TickEvent.WorldTickEvent event) {
             if (event.phase != TickEvent.Phase.END || event.world.isRemote) return;
-            State state = SERVER.computeIfAbsent(
-                event.world.provider.dimensionId,
-                ignored -> new State(event.world, CriticalWorldData.get(event.world)));
+            State state = serverState(event.world);
             if (!state.data.hasLocalClock()) return;
             boolean previousNight = state.night;
             state.night = state.data.validateNightOwner(event.world);
             // The underlying world's natural clock kept advancing throughout the override.
             // Releasing ownership removes our override instead of leaving a permanent local clock.
             state.active = state.night;
+            event.world.skylightSubtracted = event.world.calculateSkylightSubtracted(1.0F);
             state.advancing = false;
             long next = state.data.getLocalTime();
             if (state.night) next = Math.floorDiv(next, 24000L) * 24000L + 18000L;
@@ -174,6 +189,11 @@ public final class CriticalNightClock {
         @SubscribeEvent
         public void respawn(PlayerEvent.PlayerRespawnEvent event) {
             if (event.player instanceof EntityPlayerMP player) send(player);
+        }
+
+        @SubscribeEvent
+        public void disconnected(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
+            clearClient();
         }
 
         @SubscribeEvent

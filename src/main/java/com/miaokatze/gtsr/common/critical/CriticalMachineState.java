@@ -1064,6 +1064,52 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return controller != null && controller.isAllowedToWork();
     }
 
+    /** Null means the authoritative main switch is unavailable, never an observed power-off action. */
+    public Boolean getProductionSwitchState() {
+        if (worldObj == null || worldObj.isRemote) return null;
+        gregtech.api.interfaces.tileentity.IGregTechTileEntity controller = productionController();
+        if (controller == null) return null;
+        if (controller == host && (!worldObj.getChunkProvider()
+            .chunkExists(xCoord >> 4, zCoord >> 4) || worldObj.getTileEntity(xCoord, yCoord, zCoord) != host))
+            return null;
+        if (controller.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine machine
+            && machine.isStructureStopInProgress()) return null;
+        return controller.isAllowedToWork();
+    }
+
+    /** Only an observed native main switch may discard a paid boiler batch or release its night demand. */
+    public void updateSolarPowerDemand() {
+        if (worldObj == null || worldObj.isRemote || config.kind != CriticalMachineKind.SOLAR || state != 2) return;
+        Boolean power = getProductionSwitchState();
+        if (power == null) return;
+        if (power) {
+            data().claimNight(worldObj, structureId);
+            return;
+        }
+        data().releaseNight(structureId);
+        if (nativeFundingUncertain || energyRuntime.getBoolean("uncertain")) {
+            failRuntime("runtime.uncertain", "批次提交结果待核验，保留关机时的支付与产出账本");
+            return;
+        }
+        if (!hasActiveBatch()) return;
+        energyRuntime.setBoolean("funded", false);
+        energyRuntime.setInteger("progress", 0);
+        energyRuntime.setString("eu", "0");
+        for (String key : new String[] { "inputs", "outputs", "items", "batchId" }) energyRuntime.removeTag(key);
+        batchId = "";
+        batchRecipe = new NBTTagCompound();
+        escrow = pendingItems = new ItemStack[0];
+        fluidEscrow = pendingFluids = new FluidStack[0];
+        batchGenerated = 0;
+        setRuntimeBatch(0, 0, 0, "主机电源关闭，本批已作废");
+        changed();
+    }
+
+    public void releaseSolarNightDemand() {
+        if (worldObj != null && !worldObj.isRemote && config.kind == CriticalMachineKind.SOLAR)
+            data().releaseNight(structureId);
+    }
+
     private gregtech.api.interfaces.tileentity.IGregTechTileEntity productionController() {
         if (!(host instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt)) return null;
         if (getGeometryVersion() != 2 || !loomController) return gt;
@@ -1579,6 +1625,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             controller.disableWorking();
             data().releaseNight(structureId);
         }
+        updateSolarPowerDemand();
         changed();
         return true;
     }
@@ -1715,7 +1762,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         // Releasing here runs after Forge's HIGHEST world-unload handler has removed its ticket map.
         if (worldObj != null && !worldObj.isRemote) {
             clearPendingClearance();
-            data().releaseNight(structureId);
+            if (config.kind != CriticalMachineKind.SOLAR || state != 2) data().releaseNight(structureId);
         }
 
     }
@@ -2106,6 +2153,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         constructionLightBudget = 16;
         blockBudgetStarted = 0;
         if (worldObj == null || worldObj.isRemote) return;
+        updateSolarPowerDemand();
         CriticalEnergyRuntime.idleTick(this);
         // v2.0.5 could finish teardown with generated EU still in the legacy output journal.
         // Moving already-generated EU into the real GT buffer is safe even with power disabled.
@@ -2150,13 +2198,13 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             return;
         }
         if (!isEnabled()) {
-            if (state == 2) data().releaseNight(structureId);
+            if (state == 2 && config.kind != CriticalMachineKind.SOLAR) data().releaseNight(structureId);
             fail("已暂停");
             return;
         }
         // Keep saved journals and dismantling available without advancing frozen machines.
         if ((state == 1 || state == 2 || state == 4) && !config.kind.isReleased()) {
-            data().releaseNight(structureId);
+            if (config.kind != CriticalMachineKind.SOLAR) data().releaseNight(structureId);
             fail("该临界机型维护冻结，可保留或拆除已有结构");
             return;
         }
@@ -2165,13 +2213,13 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             return;
         }
         if (!loomLoaded) {
-            data().releaseNight(structureId);
+            if (config.kind != CriticalMachineKind.SOLAR) data().releaseNight(structureId);
             fail(structureLoadTicks >= STRUCTURE_LOAD_GRACE_TICKS ? "结构加载等待超时，保留工单等待区块恢复" : "结构加载等待，保留工单");
             return;
         }
         if (!isLoomStructureValid()) {
             if (!isLoomGeometryValid()) revokeGeometryValidation();
-            data().releaseNight(structureId);
+            if (config.kind != CriticalMachineKind.SOLAR) data().releaseNight(structureId);
             fail("必要织机结构缺损，请手动修复织机");
             return;
         }
@@ -2190,7 +2238,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         }
         if (!ownsTask()) {
             revokeGeometryValidation();
-            data().releaseNight(structureId);
+            if (config.kind != CriticalMachineKind.SOLAR) data().releaseNight(structureId);
             fail("区域锁或任务身份不一致，请用修复按钮重核账本");
             return;
         }
@@ -2252,7 +2300,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         } else if (state == 3) dismantle();
         else if (state == 2) {
             if (!structureValid) {
-                data().releaseNight(structureId);
+                if (config.kind != CriticalMachineKind.SOLAR) data().releaseNight(structureId);
                 fail(structureMonitor.hasKnownDamage() ? "必要织机或机器结构缺损，暂停" : "结构加载复核中，保留工单并暂停运行");
                 return;
             }

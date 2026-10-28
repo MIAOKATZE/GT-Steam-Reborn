@@ -85,16 +85,18 @@ public final class CriticalWorldData extends WorldSavedData {
     public boolean validateNightOwner(World world) {
         if (nightOwner.isEmpty()) return false;
         Region region = regions.get(nightOwner);
-        boolean live = region != null && world.getChunkProvider()
-            .chunkExists(region.cx >> 4, region.cz >> 4);
+        // An unloaded controller is not evidence that its main switch was turned off.
+        if (region != null && !world.getChunkProvider()
+            .chunkExists(region.cx >> 4, region.cz >> 4)) return true;
+        boolean live = region != null;
         if (live) {
             net.minecraft.tileentity.TileEntity tile = world.getTileEntity(region.cx, region.cy, region.cz);
             CriticalMachineState controller = CriticalMachineState.resolve(tile);
-            live = controller != null && controller.isEnabled()
-                && controller.isStructureComplete()
-                && controller.isStructureValidated()
+            live = controller != null && controller.isStructureComplete()
+                && region.id.equals(controller.getStructureId())
                 && controller.getMachineKind() == CriticalMachineKind.SOLAR
                 && ownsTask(region.id, region.owner, controller.getJobId(), region.x, region.y, region.z);
+            if (live) live = !Boolean.FALSE.equals(controller.getProductionSwitchState());
         }
         if (!live) {
             nightOwner = "";
@@ -175,22 +177,7 @@ public final class CriticalWorldData extends WorldSavedData {
     }
 
     public boolean claimNight(World world, String id) {
-        if (!nightOwner.isEmpty() && !nightOwner.equals(id)) {
-            Region previous = regions.get(nightOwner);
-            boolean live = previous != null && world.getChunkProvider()
-                .chunkExists(previous.cx >> 4, previous.cz >> 4);
-            if (live) {
-                net.minecraft.tileentity.TileEntity tile = world.getTileEntity(previous.cx, previous.cy, previous.cz);
-                CriticalMachineState controller = CriticalMachineState.resolve(tile);
-                live = controller != null && controller.isEnabled()
-                    && controller.isStructureComplete()
-                    && controller.isStructureValidated();
-            }
-            if (!live) {
-                nightOwner = "";
-                markDirty();
-            }
-        }
+        if (!nightOwner.isEmpty() && !nightOwner.equals(id)) validateNightOwner(world);
         boolean claimed = claimNight(id);
         if (claimed) CriticalNightClock.anchor(world, this);
         return claimed;

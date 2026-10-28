@@ -4146,7 +4146,7 @@ gtsr.critical.operation.solar.parallel=Routes: water and salt are mutually exclu
 gtsr.critical.operation.solar.energy=Energy: no EU input; steam heat excludes generator efficiency.
 gtsr.critical.operation.solar.efficiency=Output: inventory and the saturation formula on the controller determine batch heat; all six steam forms carry the same raw heat.
 gtsr.critical.operation.solar.output=Output: selected steam or equal-volume hot salt. Salt is calibrated at twice the water-route yield through the LHE superheated line; native GG supercritical bonuses remain.
-gtsr.critical.operation.solar.night=Dimension: maintains permanent night while working; only the first solar boiler may hold the dimension's claim.
+gtsr.critical.operation.solar.night=Dimension: main power on maintains moonless eternal night; a second boiler cannot operate in the same dimension.
 gtsr.critical.operation.battery.input=Inputs: mix the 2-9 fluids in an NEI recipe using its example litre ratios.
 gtsr.critical.operation.battery.cycle=Reaction time: 20 seconds (400 ticks), without overclocking.
 gtsr.critical.operation.battery.parallel=Blend: circuit 2-9 in the input bus selects the component count; follow NEI proportions with any total volume.
@@ -4436,7 +4436,7 @@ gtsr.critical.ui.runtime.solar.water_status=Water branch status
 gtsr.critical.ui.runtime.solar.salt_status=Salt branch status
 gtsr.critical.ui.runtime.solar.moon_dust=Moon dust debited
 gtsr.critical.ui.runtime.solar.stone_dust=Stone dust debited
-gtsr.critical.ui.runtime.solar.night=Dimension night claim
+gtsr.critical.ui.runtime.solar.night=Moonless night claim
 gtsr.critical.ui.solar.night.true=Claimed
 gtsr.critical.ui.solar.night.false=Not claimed or released
 gtsr.critical.ui.branch.paid=Paid and frozen
@@ -4572,7 +4572,7 @@ gtsr.critical.nei.simple.intro.stellar_sustain=Star / continuous upkeep
 gtsr.critical.nei.simple.solar.cycle=20 s; 0 EU input
 gtsr.critical.nei.simple.solar.water=Distilled water -> steam
 gtsr.critical.nei.simple.solar.salt=Cold salt -> hot salt
-gtsr.critical.nei.simple.solar.night=Night anchor: first active
+gtsr.critical.nei.simple.solar.night=Moonless night: first owner
 gtsr.critical.nei.simple.turbine.cycle=400 t / all matched steam
 gtsr.critical.nei.simple.turbine.condensation=Carry water below 1 L
 gtsr.critical.nei.simple.turbine.wireless=EU to owner's team network
@@ -4607,26 +4607,24 @@ gtsr.critical.tooltip.native.loom.machines=Builds irradiation boilers, pulse cor
 gtsr.critical.tooltip.native.loom.manage=Right-click the controller with a §eMachine Terminal§7 to select or manage a machine
 gtsr.critical.tooltip.native.loom.ports=Supply building materials through loom §binput buses/hatches§7 and building power through loom §cenergy hatches
 gtsr.critical.tooltip.native.solar.purpose=Uses dimensional irradiation to produce §bsteam§7, §6hot solar salt§7 or §dplasma
+gtsr.critical.tooltip.native.solar.power_off=Turning off main power §cdiscards the current batch§7: spent working fluid, coolant and exciter are not refunded, and no output is produced
+gtsr.critical.tooltip.native.solar.plasma_amount=Plasma: §dP=V*x/(x+H) L/batch§7; see NEI for V and H
+gtsr.critical.tooltip.native.solar.heat_steam=Steam equivalent heat: EU fully released through a §e100%-efficient steam turbine
+gtsr.critical.tooltip.native.solar.heat_converted=Plasma and molten salt equivalent heat: EU fully released through a §e100%-efficient steam turbine§7 from steam produced by the §6Extreme Heat Exchanger
+gtsr.critical.tooltip.native.solar.media_fixed=Fixed rates (each batch deducts §e20 seconds§7 of use)
 gtsr.critical.tooltip.native.solar.water=Water: §bdistilled water -> selected steam§7; choose one of water, salt and plasma
 gtsr.critical.tooltip.native.solar.salt=Salt route: §6cold solar salt -> an equal volume of hot solar salt
-gtsr.critical.tooltip.native.solar.energy=Uses no EU and generates no direct electricity; §6steam heat§7 sums the full steam cascade, excluding pulse multipliers and rotor efficiency
 gtsr.critical.tooltip.native.solar.private=§eTotal multiplier=dimension factor × coolant multiplier × exciter multiplier§7; personal dimension factor: §e0.6
-gtsr.critical.tooltip.native.solar.stock=§ex§7 is the actual input-system §bdistilled-water§7 or §6cold-solar-salt§7 stock in L at batch start
+gtsr.critical.tooltip.native.solar.stock=§ex§7 is the selected working-fluid stock in L at batch start
 gtsr.critical.tooltip.native.solar.steam_amount=Dense supercritical steam: §by=12G×x/(x+100G)×total multiplier L/batch
-gtsr.critical.tooltip.native.solar.water_cost=Each §b1 L§7 dense supercritical steam consumes §b6.25 L distilled water§7; a full batch must be funded
-gtsr.critical.tooltip.native.solar.other_steam=All six steam types carry equal batch heat through the full cascade at equal stock and multipliers, when fully funded
 gtsr.critical.tooltip.native.solar.salt_amount=Hot solar salt: §6y=40G×x/(x+100G)×total multiplier L/batch
-gtsr.critical.tooltip.native.solar.dimension=Maintains §5eternal night§7 while running; only the first boiler in a dimension operates
-gtsr.critical.tooltip.native.solar.medium_reference=Listed rates use §e37.8T EU per batch§7 as the heat reference
+gtsr.critical.tooltip.native.solar.dimension=Main power on maintains §5moonless eternal night§7; a second boiler cannot operate in the same dimension
 gtsr.critical.tooltip.native.solar.coolant=Requires one of these §bcoolants§7:
 gtsr.critical.tooltip.native.solar.excitation=Also requires one of these §dexciters§7:
 gtsr.critical.tooltip.native.solar.medium=§f%3$s L/s§7 : §d×%2$s§7 : %1$s
-gtsr.critical.tooltip.native.solar.helium=Rate=§elisted rate × batch heat / 37.8T§7; consume §e20 s§7 at batch start
 gtsr.critical.tooltip.native.solar.example_water_combination=Example: personal dimension §e0.6§7, cryotheum §b×1.5§7, helium plasma §d×1.5§7; total multiplier §e1.35
-gtsr.critical.tooltip.native.solar.example_water_output=§b500G L distilled-water stock§7: §b13.5G L dense supercritical steam§7, §b84.375G L§7 water consumed, §633.75T EU§7 steam heat
+gtsr.critical.tooltip.native.solar.example_water_output=§b500G L distilled-water stock§7: §b13.5G L dense supercritical steam§7, §b84.375G L§7 water consumed, §633.75T EU§7 equivalent heat
 gtsr.critical.tooltip.native.solar.example_salt_output=Same combination, §6500G L cold solar salt stock§7: §645G L hot solar salt§7; §6112.5T EU§7 on the Extreme Heat Exchanger supercritical line, §667.5T EU§7 on the superheated line
-gtsr.critical.tooltip.native.solar.steam_heat=Each §b1 L dense supercritical steam§7 yields §62500 EU§7 cumulative heat through the full steam cascade
-gtsr.critical.tooltip.native.solar.salt_heat=Hot salt: §61500 EU/L§7 superheated, §62500 EU/L§7 supercritical; medium use follows §61500 EU/L§7
 gtsr.critical.tooltip.native.turbine.input=Each batch takes §ball six steam types in full§7; mix normal, superheated, supercritical and dense forms
 gtsr.critical.tooltip.native.turbine.output=Generated EU enters the controller owner's team §ewireless network
 gtsr.critical.tooltip.native.turbine.heat=Normal/superheated/supercritical base heat: §60.5/1.5/2.5 EU/L§7; dense counterparts §bx1000
@@ -4746,7 +4744,7 @@ gtsr.critical.nei.simple.solar.example=e.g. x=%s L; m=%s
 gtsr.critical.nei.simple.solar.input.water=Water used: %s L
 gtsr.critical.nei.simple.solar.input.salt=Cold salt used: %s L
 gtsr.critical.nei.simple.solar.output=Output: %s L
-gtsr.critical.nei.simple.solar.heat=Steam heat: %s EU
+gtsr.critical.nei.simple.solar.heat=Equiv. heat: %s EU
 gtsr.critical.solar.exciter.helium_gas=Helium Gas
 gtsr.critical.solar.exciter.none=Legacy prepaid batch
 gtsr.critical.tooltip.native.structure.loom_ports=Loom ports: Y=4 casing ring, item/fluid input/output and energy hatches; controllers and internal rails cannot be replaced
@@ -4762,7 +4760,6 @@ gtsr.critical.view.part.base=Base
 gtsr.critical.view.part.body=Body
 gtsr.critical.view.part.equipment=Equipment
 gtsr.critical.tooltip.native.solar.plasma=Plasma: §dcold fluid -> equal-volume plasma§7; see NEI for eligible fluids and their corresponding plasmas
-gtsr.critical.tooltip.native.solar.plasma_stock=Higher fluid heat means §dlower half-saturation stock§7; the §6Extreme Heat Exchanger§7 yields §e2.5x§7 water-route steam heat at equal multipliers and saturation; see NEI for each fluid
 gtsr.critical.ui.solar.route.2=Plasma heating
 gtsr.critical.ui.runtime.solar.plasma=Plasma working fluid
 gtsr.critical.ui.runtime.solar.plasma_litres=Batch working fluid
@@ -4774,17 +4771,17 @@ gtsr.critical.nei.simple.plasma.half=Half-stock H~%s L
 gtsr.critical.nei.simple.plasma.multiplier=m=dimension*coolant*exciter
 gtsr.critical.nei.simple.plasma.example=Example: stock S=5H; m=1.35
 gtsr.critical.nei.simple.plasma.output=Output: ~%s L/batch
-gtsr.critical.nei.simple.plasma.heat=Steam heat: ~%s EU
+gtsr.critical.nei.simple.plasma.heat=Equiv. heat: ~%s EU
 gtsr.critical.nei.showcase.plasma.variables=S is cold-fluid stock in L at batch start; P is plasma output in L per batch.
 gtsr.critical.nei.showcase.plasma.exact_half=Half-saturation stock H = %s L; higher fluid heat means lower H.
 gtsr.critical.nei.showcase.plasma.exchanger=Extreme Heat Exchanger at full load: each 1 L plasma
 gtsr.critical.nei.showcase.plasma.conversion=yields %s L dense supercritical steam and returns 1 L cold working fluid.
 gtsr.critical.nei.showcase.plasma.exact_maximum=V = (30,000,000,000 * %s / %s) * total multiplier L.
-gtsr.critical.nei.showcase.plasma.media=Coolant and exciter are both required; the full batch prepays actual exchanger heat.
-gtsr.critical.nei.showcase.solar.heat=Steam heat sums the full steam cascade, excluding pulse multipliers and rotor efficiency.
-gtsr.critical.nei.showcase.solar.salt_supercritical=The main row uses the Extreme Heat Exchanger supercritical line: 1 L hot salt yields 1000 L supercritical steam, totaling 2500 EU.
-gtsr.critical.nei.showcase.solar.salt_superheated=The superheated line yields 1000 L superheated steam per 1 L hot salt, totaling 1500 EU; this example totals 67.5T EU.
-gtsr.critical.nei.showcase.solar.salt_media=Salt coolant and exciter costs use 1500 EU/L from the superheated line; the Extreme Heat Exchanger supercritical line's 2500 EU/L yield does not increase these costs.
+gtsr.critical.nei.showcase.plasma.media=Coolant and exciter use fixed rates; 20 seconds are deducted at batch start.
+gtsr.critical.nei.showcase.solar.heat=Equivalent heat is EU fully released through a 100%-efficient steam turbine; plasma and molten salt first produce steam through the Extreme Heat Exchanger.
+gtsr.critical.nei.showcase.solar.salt_supercritical=The main row uses the Extreme Heat Exchanger supercritical line: this example yields 112.5T EU of equivalent heat.
+gtsr.critical.nei.showcase.solar.salt_superheated=The superheated line yields 67.5T EU of equivalent heat in this example.
+gtsr.critical.nei.showcase.solar.salt_media=Coolant and exciter use fixed rates; 20 seconds are deducted at batch start.
 gtsr.critical.tooltip.native.structure.main_ports_span=One block above the controller, six spaces left and right: 13 total; §cdo not replace the supply casings below§r
 
 # Terminal construction and production controls
@@ -4795,6 +4792,7 @@ gtsr.critical.ui.power.production.false=Power: OFF
 gtsr.critical.ui.power.construction.true=Build: ENABLED
 gtsr.critical.ui.power.construction.false=Build: PAUSED
 gtsr.critical.ui.power.production_hint=Linked to the main controller power switch. When enabled, work starts automatically with sufficient inputs and output space.
+gtsr.critical.ui.power.solar_hint=Main power on maintains moonless eternal night. Turning it off discards the batch: spent working fluid, coolant and exciter are not refunded, and no output is produced.
 gtsr.critical.ui.power.construction_hint=Controls loom construction, repairs and dismantling only. Completed-machine production has its own switch.
 gtsr.critical.ui.power.unbuilt=Complete the main structure using the Mimetic Loom first.
 gtsr.critical.ui.running_status=Operation
@@ -4834,10 +4832,10 @@ gtsr.critical.ui.runtime.next.reason.9=Free energy storage capacity to continue.
 gtsr.critical.ui.runtime.next.ui.state.loading=Wait for the server status update.
 
 gtsr.critical.runtime.output_blocked=Waiting for output space
-gtsr.critical.runtime.night_conflict=Another irradiation boiler is running in this dimension
+gtsr.critical.runtime.night_conflict=Another powered-on irradiation boiler claims this dimension
 gtsr.critical.runtime.uncertain=Material delivery needs verification; operation paused
 gtsr.critical.ui.runtime.next.runtime.output_blocked=Free the main output hatch or ME network space; work resumes automatically.
-gtsr.critical.ui.runtime.next.runtime.night_conflict=Stop the other irradiation boiler in this dimension before starting.
+gtsr.critical.ui.runtime.next.runtime.night_conflict=Turn off the other irradiation boiler's main power before starting.
 gtsr.critical.ui.runtime.next.runtime.uncertain=Verify the last material delivery; preserve current inputs and outputs.
 gtsr.critical.ui.native.loom_hint=This controller manages construction. Use the Mechanical Terminal for engineering; production is controlled at the main machine.
 gtsr.critical.ui.native.main_hint=Use the power button to control production; use the Mechanical Terminal for operating details.

@@ -69,9 +69,15 @@ public final class CriticalRuntimeAnimationContract {
         clientWorld.totalWorldTime=140;
         check(visual.getVisualBatchPhase(.75F)==paused/400D,"paused descriptor prevents client extrapolation: "+kind);
         CriticalRuntimeAnimationProbe.sample(visual,paused/400D,"idle",false);
+        if(solar) {
+            check(!source.energyRuntimeData().getBoolean("funded")&&source.getCycleDuration()==0,
+                "solar power-off discards its batch instead of preserving a resumable animation phase");
+            // A new paid receipt is required; this contract covers its descriptor, not a second physical payment.
+            set(source,"energyRuntime",solarReceipt.copy());source.energyRuntimeData().setInteger("progress",0);
+        }
         main.enableWorking();world.totalWorldTime=141;advance(source,loom,solar);
         clientWorld.totalWorldTime=141;visual=send(source,server,client);clientWorld.totalWorldTime=146;
-        check(visual.getVisualBatchPhase(.25F)==(paused+6.25D)/400D,"resumed descriptor continues without resetting batch phase: "+kind
+        check(visual.getVisualBatchPhase(.25F)==(paused+6.25D)/400D,(solar?"new paid solar descriptor advances from its new batch start: ":"resumed descriptor continues without resetting batch phase: ")+kind
             +" phase="+visual.getVisualBatchPhase(.25F)+" paused="+paused+" working="+visual.isWorking()+" status="+visual.getStatus());
         if(solar) {
             source.energyRuntimeData().setBoolean("funded",false);source.setRuntimeBatch(0,0,0,"批次交付完成");

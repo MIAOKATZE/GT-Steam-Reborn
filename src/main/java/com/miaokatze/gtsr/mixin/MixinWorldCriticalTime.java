@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.miaokatze.gtsr.common.critical.CriticalNightClock;
 
-/** Overrides only dimensions which have actually initialized a critical local clock. */
+/** Applies night gameplay only to the World instance holding the critical dimension claim. */
 @Mixin(World.class)
 public abstract class MixinWorldCriticalTime {
 
@@ -31,5 +31,20 @@ public abstract class MixinWorldCriticalTime {
     @Inject(method = "isDaytime", at = @At("HEAD"), cancellable = true, require = 1)
     private void gtsr$night(CallbackInfoReturnable<Boolean> cir) {
         if (CriticalNightClock.isNight((World) (Object) this)) cir.setReturnValue(false);
+    }
+
+    @Inject(method = "calculateSkylightSubtracted", at = @At("HEAD"), cancellable = true, require = 1)
+    private void gtsr$darkSky(float partialTicks, CallbackInfoReturnable<Integer> cir) {
+        if (CriticalNightClock.isNight((World) (Object) this)) cir.setReturnValue(15);
+    }
+
+    @Inject(method = "getSunBrightnessFactor", at = @At("HEAD"), cancellable = true, require = 1, remap = false)
+    private void gtsr$noSun(float partialTicks, CallbackInfoReturnable<Float> cir) {
+        if (CriticalNightClock.isNight((World) (Object) this)) cir.setReturnValue(0F);
+    }
+
+    @Inject(method = "getCurrentMoonPhaseFactor", at = @At("HEAD"), cancellable = true, require = 1)
+    private void gtsr$moonlight(CallbackInfoReturnable<Float> cir) {
+        if (CriticalNightClock.isNight((World) (Object) this)) cir.setReturnValue(0F);
     }
 }
