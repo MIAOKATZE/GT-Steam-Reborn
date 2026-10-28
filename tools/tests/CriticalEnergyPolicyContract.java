@@ -254,6 +254,10 @@ class CriticalEnergyPolicyRuntime {
                 Class.forName("me.eigenraven.personalspace.world.PersonalWorldProvider")));
             check((boolean)start.invoke(null,state,host,state.n)&&state.n.getBoolean("funded"),
                 "16M real water with sufficient cryotheum/helium and exact-volume output starts steam mode"+mode+" at dimension0.6 and media1.5x1.5");
+            String visualReceipt=System.getProperty("gtsr.animationReceipt");
+            if(mode==0&&visualReceipt!=null)try(var file=new java.io.FileOutputStream(visualReceipt)) {
+                net.minecraft.nbt.CompressedStreamTools.writeCompressed((NBTTagCompound)state.n.copy(),file);
+            }
             BigInteger actualWater=b(16_000_000-waters.get(0).stock);
             BigInteger steam=new BigInteger(state.n.getTagList("outputs",10).getCompoundTagAt(0).getString("exactAmount"));
             BigInteger actualEU=commonHeat.multiply(b(10));

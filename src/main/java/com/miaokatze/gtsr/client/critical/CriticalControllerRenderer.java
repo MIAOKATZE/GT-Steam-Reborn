@@ -128,8 +128,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         boolean loomReady = anchor.isLoomVisible();
         activeGroups = checked.readyGroups(activeGroups, geometryReady, loomReady);
         com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility.publishVisibleGroups(anchor, activeGroups);
-        boolean hasBatch = !controller.getBatchId()
-            .isEmpty();
+        boolean hasBatch = controller.hasVisualBatch();
         double wallSeconds = System.nanoTime() / 1_000_000_000D;
         boolean gamePaused = Minecraft.getMinecraft()
             .isGamePaused();
@@ -138,9 +137,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             .update(CriticalRenderMetrics.frameStarts, wallSeconds, gamePaused || !geometryReady);
         constructionSeconds = loomClocks.computeIfAbsent(anchor, ignored -> new CriticalContinuousMotion.FrameClock())
             .update(CriticalRenderMetrics.frameStarts, wallSeconds, gamePaused || !loomReady);
-        double phase = hasBatch
-            ? Math.min(1, controller.getVisualCycleTicks(partialTicks) / Math.max(1D, controller.getCycleDuration()))
-            : 0;
+        double phase = controller.getVisualBatchPhase(partialTicks);
         cameraX = controller
             .localPointX(Minecraft.getMinecraft().thePlayer.posX, Minecraft.getMinecraft().thePlayer.posZ);
         cameraY = Minecraft.getMinecraft().thePlayer.posY - controller.getOriginY();
@@ -180,8 +177,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                 baseSlug = CriticalGeometry.visualBaseSlug(controller);
             CriticalGeometry.Model machineModel = CriticalGeometry.getModel(slug);
             boolean design = machineModel.meta != null && machineModel.meta.has("designFX");
-            String machineMode = design ? (geometryReady && controller.isWorking() ? "working" : "idle")
-                : hasBatch ? (slug.endsWith("solar") ? "working" : "build") : "idle";
+            String machineMode = machineMode(controller, geometryReady, design, slug);
             CriticalContinuousMotion.Context motion = motionClocks
                 .computeIfAbsent(anchor, ignored -> new CriticalContinuousMotion.Context());
             if (visualClock.motionFrame != CriticalRenderMetrics.frameStarts) {
@@ -233,6 +229,13 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         }
     }
 
+    static String machineMode(CriticalMachineState controller, boolean geometryReady, boolean design, String slug) {
+        if (design) return geometryReady && controller.isWorking() ? "working" : "idle";
+        if (!controller.hasVisualBatch()) return "idle";
+        if (slug.endsWith("solar")) return geometryReady && controller.isWorking() ? "working" : "idle";
+        return "build";
+    }
+
     private void renderPlugins(CriticalMachineState controller, double phase, double seconds) {
         // V2 generic contacts are actual fixed blocks; chunk rendering owns them, never a duplicate TESR mesh.
         if (controller.hasPhysicalPlugins()) {
@@ -260,12 +263,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                 height,
                 location.get(1)
                     .getAsDouble());
-            renderModel(
-                model,
-                phase,
-                seconds,
-                controller.getBatchId()
-                    .isEmpty() ? "idle" : "build");
+            renderModel(model, phase, seconds, controller.hasVisualBatch() ? "build" : "idle");
             GL11.glPopMatrix();
         }
     }

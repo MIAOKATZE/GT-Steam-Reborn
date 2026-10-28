@@ -14,6 +14,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jar', type=Path, help='Use solely the built dev jar production classes, without source overlays')
     parser.add_argument('--out', type=Path, default=ROOT / 'build/critical-energy-policy')
+    parser.add_argument('--animation-receipt', type=Path, help='Export the real paid ordinary-solar batch for the visual-boundary contract')
     args = parser.parse_args()
     out = args.out.resolve()
     out.relative_to(ROOT / 'build')
@@ -56,7 +57,13 @@ def main():
 
     run('javac.exe', 'compile', ['-J-Xmx1G', '-encoding', 'UTF-8', '-proc:none', '-sourcepath', empty,
         '-cp', cp, '-d', classes, *sources])
-    output = run('java.exe', 'contract', ['-Xmx1G', '-Dfile.encoding=UTF-8', '-cp', cp, 'CriticalEnergyPolicyContract'])
+    receipt_option = []
+    if args.animation_receipt:
+        args.animation_receipt = args.animation_receipt.resolve()
+        args.animation_receipt.relative_to(ROOT / 'build')
+        args.animation_receipt.parent.mkdir(parents=True, exist_ok=True)
+        receipt_option = ['-Dgtsr.animationReceipt=' + str(args.animation_receipt)]
+    output = run('java.exe', 'contract', ['-Xmx1G', '-Dfile.encoding=UTF-8', *receipt_option, '-cp', cp, 'CriticalEnergyPolicyContract'])
     lines = [line for line in output.splitlines() if line.startswith(('PASS ', 'SOURCE '))]
     if not any(line.startswith('PASS CriticalEnergyPolicyContract checks=') for line in lines):
         raise RuntimeError('Contract process exited without its explicit PASS receipt; inspect contract.log and FML logs')
