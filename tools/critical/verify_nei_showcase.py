@@ -44,17 +44,18 @@ def main():
         'client/nei/CriticalNEIShowcase.java', 'loader/recipes/CriticalMachineRecipes.java',
         'common/critical/CriticalConstructionEconomy.java', 'common/critical/CriticalFoundationMaterials.java',
         'common/critical/CriticalGTRecipes.java', 'common/critical/CriticalStellarPolicy.java', 'common/critical/CriticalSolarPolicy.java',
+        'common/critical/CriticalPlasmaCatalog.java',
         'common/critical/CriticalChemicalMath.java', 'common/critical/CriticalChemicalRecipes.java',
         'common/critical/CompoundRecipe.java', 'common/critical/CriticalFoundationChunk.java',
         'common/critical/CriticalConstructionProgress.java')]
     production_sources = files
-    fixtures = [ROOT / 'tools/tests/Issue37RegistrationRegression.java', ROOT / 'tools/tests/CriticalNEICatalogContract.java', ROOT / 'tools/tests/CriticalNEIFontContract.java']
+    fixtures = [ROOT / 'tools/tests/Issue37RegistrationRegression.java', ROOT / 'tools/tests/CriticalNEICatalogContract.java', ROOT / 'tools/tests/CriticalNEIFontContract.java', ROOT / 'tools/tests/CriticalPlasmaFixture.java']
     files = fixtures if args.jar else production_sources + fixtures
 
     def run(exe, name, args):
         argfile = out / (name + '.args')
         argfile.write_text('\n'.join('"' + str(a).replace('\\', '/') + '"' for a in args), encoding='utf-8')
-        result = subprocess.run([str(JAVA / exe), '@' + str(argfile)], cwd=out,
+        result = subprocess.run([str(JAVA / exe), *(['-Dfile.encoding=UTF-8'] if exe == 'java.exe' else []), '@' + str(argfile)], cwd=out,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180,
             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         output = result.stdout.decode('utf-8', errors='replace')

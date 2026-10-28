@@ -616,6 +616,7 @@ public final class CriticalEnergyRuntime {
         String waterStatus = "no_input", saltStatus = "no_input";
         int mode = Math.floorMod(data.getInteger("steamMode"), 6);
         boolean saltMode = data.getBoolean("solarSaltMode");
+        boolean plasmaMode = data.getBoolean("solarPlasmaMode");
         List<ItemStack> stock = new ArrayList<>();
         java.util.Collections.addAll(stock, host.criticalPhysicalItemsSnapshot());
         java.util.Collections.addAll(stock, host.criticalMEItemsSnapshot());
@@ -623,8 +624,10 @@ public final class CriticalEnergyRuntime {
             .anyMatch(
                 item -> item != null && item.stackSize > 0
                     && (same(item, IrradiatedDust.source(true)) || same(item, IrradiatedDust.source(false))));
-        SolarSelection selection = selectSolar(snapshot, factor, mode, saltMode, irradiation);
-        if (selection == null) return state.fail(saltMode ? "本批冷盐、冷却剂或激活剂不足；未扣料" : "本批蒸馏水不足，或缺少足额冷却剂、激活剂；未扣料");
+        SolarSelection selection = plasmaMode ? selectPlasma(snapshot, factor, irradiation)
+            : selectSolar(snapshot, factor, mode, saltMode, irradiation);
+        if (selection == null) return state
+            .fail(plasmaMode ? "本批等离子体工质、冷却剂或激活剂不足；未扣料" : saltMode ? "本批冷盐、冷却剂或激活剂不足；未扣料" : "本批蒸馏水不足，或缺少足额冷却剂、激活剂；未扣料");
         if (selection.outputLitres.signum() > 0) outputs.add(new FluidAmount(selection.output, selection.outputLitres));
         if (CriticalEnergyPorts.outputs(host, outputs, NO_ITEMS) == null) return state.fail("批次输出空间不足，工作流体和增效料已保留");
         CriticalEnergyPorts.Allocation allocation = new CriticalEnergyPorts.Allocation(snapshot);
@@ -632,7 +635,10 @@ public final class CriticalEnergyRuntime {
         debits.addAll(allocation.take(solarCoolant(selection.coolant), selection.coolantLitres));
         if (selection.exciterLitres.signum() > 0)
             debits.addAll(allocation.take(solarExciter(selection.exciter), selection.exciterLitres));
-        if (saltMode) {
+        if (plasmaMode) {
+            waterStatus = "inactive_mode";
+            saltStatus = "inactive_mode";
+        } else if (saltMode) {
             paidSalt = selection.inputLitres;
             saltStatus = "paid";
             waterStatus = "inactive_mode";
@@ -681,6 +687,9 @@ public final class CriticalEnergyRuntime {
         data.setDouble("solarFactor", factor);
         data.setInteger("solarPolicy", CriticalSolarPolicy.VERSION);
         data.setBoolean("solarBatchSaltMode", saltMode);
+        data.setBoolean("solarBatchPlasmaMode", plasmaMode);
+        data.setString("solarPlasma", plasmaMode ? selection.plasma.id : "");
+        data.setString("solarPlasmaLitres", plasmaMode ? selection.inputLitres.toString() : "0");
         data.setString("solarCoolant", selection.coolant.id);
         data.setString("solarExciter", selection.exciter.id);
         data.setString("solarCoolantLitres", selection.coolantLitres.toString());
@@ -732,9 +741,54 @@ public final class CriticalEnergyRuntime {
     private static final class SolarSelection {
 
         CriticalSolarPolicy.Entry coolant, exciter;
+        CriticalPlasmaCatalog.Entry plasma;
         FluidStack input, output;
         BigInteger inputLitres, outputLitres, coolantLitres, exciterLitres, equivalentEU, ratedEU;
         double load;
+    }
+
+    private static SolarSelection selectPlasma(List<CriticalEnergyPorts.Input> snapshot, double factor,
+        boolean irradiation) {
+        SolarSelection best = null;
+        for (CriticalSolarPolicy.Entry coolant : CriticalSolarPolicy.COOLANTS) {
+            BigInteger coolantStock = CriticalEnergyPorts.total(snapshot, solarCoolant(coolant));
+            if (coolantStock.signum() <= 0) continue;
+            for (CriticalSolarPolicy.Entry exciter : CriticalSolarPolicy.EXCITERS) {
+                BigInteger exciterStock = CriticalEnergyPorts.total(snapshot, solarExciter(exciter));
+                if (exciterStock.signum() <= 0) continue;
+                BigInteger waterBudget = CriticalSolarPolicy.batchBudgetEU(factor, coolant, exciter, false);
+                if (waterBudget.signum() <= 0) continue;
+                for (CriticalPlasmaCatalog.Entry plasma : CriticalPlasmaCatalog.entries()) {
+                    SolarSelection candidate = new SolarSelection();
+                    candidate.coolant = coolant;
+                    candidate.exciter = exciter;
+                    candidate.plasma = plasma;
+                    candidate.input = plasma.input;
+                    candidate.output = plasma.output;
+                    BigInteger available = CriticalEnergyPorts.total(snapshot, candidate.input);
+                    candidate.inputLitres = plasma.batchLitres(available, factor, coolant, exciter);
+                    if (candidate.inputLitres.compareTo(available) > 0) {
+                        if (!irradiation) continue;
+                        candidate.inputLitres = BigInteger.ZERO;
+                    }
+                    candidate.outputLitres = candidate.inputLitres;
+                    candidate.equivalentEU = plasma.equivalentEU(candidate.outputLitres);
+                    BigInteger workload = candidate.equivalentEU;
+                    if (workload.signum() == 0) {
+                        if (!irradiation) continue;
+                        workload = CriticalSolarPolicy.irradiationBudgetEU(waterBudget);
+                    }
+                    candidate.coolantLitres = CriticalSolarPolicy.costLitres(coolant, workload);
+                    candidate.exciterLitres = CriticalSolarPolicy.costLitres(exciter, workload);
+                    if (coolantStock.compareTo(candidate.coolantLitres) < 0
+                        || exciterStock.compareTo(candidate.exciterLitres) < 0) continue;
+                    candidate.ratedEU = plasma.ratedEquivalentEU(factor, coolant, exciter);
+                    candidate.load = workload.doubleValue() / candidate.ratedEU.doubleValue();
+                    if (best == null || candidate.equivalentEU.compareTo(best.equivalentEU) > 0) best = candidate;
+                }
+            }
+        }
+        return best;
     }
 
     private static SolarSelection selectSolar(List<CriticalEnergyPorts.Input> snapshot, double factor, int mode,

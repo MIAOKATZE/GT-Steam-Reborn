@@ -351,8 +351,11 @@ final class CriticalBusinessSnapshot {
             row(rows, "mean_power", decimal(number(data, "eu"), 400) + " EU/t");
             row(rows, "last_wireless", number(data, "lastGeneratedEU") + " EU");
         } else if (state.getKind() == CriticalMachineKind.SOLAR) {
-            row(rows, "solar.route", state.getSolarSaltMode() ? "1" : "0");
-            row(rows, "solar.batch_route", data.getBoolean("solarBatchSaltMode") ? "1" : "0");
+            row(rows, "solar.route", Integer.toString(state.getSolarRoute()));
+            row(
+                rows,
+                "solar.batch_route",
+                data.getBoolean("solarBatchPlasmaMode") ? "2" : data.getBoolean("solarBatchSaltMode") ? "1" : "0");
             row(rows, "solar.mode", Integer.toString(state.getSteamMode()));
             row(rows, "solar.batch_mode", Integer.toString(data.getInteger("solarBatchSteamMode")));
             row(
@@ -380,6 +383,8 @@ final class CriticalBusinessSnapshot {
             row(rows, "solar.powder_cap", "256 / 400 t");
             row(rows, "solar.water", number(data, "solarWater") + " L");
             row(rows, "solar.salt", number(data, "solarSalt") + " L");
+            row(rows, "solar.plasma", data.getString("solarPlasma"));
+            row(rows, "solar.plasma_litres", number(data, "solarPlasmaLitres") + " L");
             row(rows, "solar.water_status", data.getString("solarWaterStatus"));
             row(rows, "solar.salt_status", data.getString("solarSaltStatus"));
             row(rows, "solar.moon_dust", Integer.toString(data.getInteger("solarMoonDust")));

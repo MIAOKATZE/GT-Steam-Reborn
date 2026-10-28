@@ -600,6 +600,9 @@ public final class MTECriticalMachineTerminalGui {
             value = tr("ui.solar.route." + value);
         else if (label.equals("ui.runtime.solar.coolant")) value = value.isEmpty() ? "—" : tr("solar.coolant." + value);
         else if (label.equals("ui.runtime.solar.exciter")) value = value.isEmpty() ? "—" : tr("solar.exciter." + value);
+        else if (label.equals("ui.runtime.solar.plasma")) value = value.isEmpty() ? "—"
+            : gregtech.api.enums.Materials.get(value)
+                .getLocalizedName();
         else if (label.equals("ui.runtime.settlement")) value = tr("ui.settlement." + value);
         if (sample.configuration().kind == CriticalMachineKind.BATTERY) {
             if (label.equals("ui.runtime.batch_wireless")) label = "ui.chemical.receivable";
