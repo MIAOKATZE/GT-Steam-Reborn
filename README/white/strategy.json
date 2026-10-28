@@ -1,0 +1,15 @@
+{
+  "id": "gtsr-white-v1",
+  "mod": "GTSR",
+  "background": "#FFFFFF",
+  "camera": {"yawDegrees": 35, "pitchDegrees": 25},
+  "canvas": {"landscape": [1600, 1200], "portrait": [1200, 2000]},
+  "footer": {"position": "bottom-right", "fields": ["MOD", "TEXTURES"]},
+  "repeat": {"MTESteamHubArray": 14, "MTEWaterHubArray": 13, "MTEMegaSteamTurbineArray": 4},
+  "notes": {
+    "MTESteamHubArray": "16 blocks total; source permits 3..32",
+    "MTEWaterHubArray": "14 blocks total; source permits 2..31",
+    "MTEMegaSteamTurbineArray": "4 extra groups; native maximum, no mesh stretching",
+    "MTESteamMineralLogisticsCluster": "Main body only. F/G/H are attachment points, not placed controllers."
+  }
+}
