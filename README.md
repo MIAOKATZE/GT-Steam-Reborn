@@ -51,6 +51,28 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 
 ***
 
+## 临界机器 / Critical Machines
+
+**临界机器需要通过 [拟态织机] 分阶段完成建设。** 下图为开发版的离线结构渲染；使用实际构型与材质，不是游戏实景截图。
+
+**Critical machines are built in stages through a [Mimetic Loom].** These development previews are offline renders of the actual geometry and materials, not in-game photographs.
+
+<table>
+<tr><td align="center"><img width="360" src=".github/release-images/v2.0.29/machine-solar.png" alt="维度辐照耦合锅炉 / Dimensional Irradiation Coupled Boiler"><br>维度辐照耦合锅炉 / Dimensional Boiler</td><td align="center"><img width="360" src=".github/release-images/v2.0.29/machine-turbine.png" alt="超临界蒸汽脉冲动力核心 / Supercritical Steam Pulse Power Core"><br>脉冲动力核心 / Pulse Power Core</td></tr>
+<tr><td align="center"><img width="360" src=".github/release-images/v2.0.29/machine-battery.png" alt="多相热化学反应核心 / Multiphase Thermochemical Reaction Core"><br>多相热化学反应核心 / Thermochemical Core</td><td align="center"><img width="360" src=".github/release-images/v2.0.29/machine-sun.png" alt="人工恒星约束核心 / Artificial Stellar Confinement Core"><br>人工恒星约束核心 / Artificial Stellar Core</td></tr>
+<tr><td colspan="2" align="center"><img width="360" src=".github/release-images/v2.0.29/machine-loom.png" alt="拟态织机 / Mimetic Loom"><br>拟态织机 / Mimetic Loom</td></tr>
+</table>
+
+<details>
+<summary>浇筑与施工终端 / Pouring and Construction Terminal</summary>
+
+原生游戏界面，采用受控施工状态展示布局；不作为实际工程验收。 / Native UI with controlled construction states for layout illustration.
+
+<p align="center"><img width="700" src=".github/release-images/v2.0.29/ui-construction-pouring.png" alt="地基浇筑进度与单格计时 / Foundation pouring and cell timer"></p>
+<p align="center"><img width="700" src=".github/release-images/v2.0.29/ui-construction-body.png" alt="主体分段施工 / Staged body construction"></p>
+
+</details>
+
 ## Multiblock Machines / 多方块机器
 
 ### Storage Hub Machines / 存储枢纽机器

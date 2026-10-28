@@ -66,17 +66,22 @@ final class CriticalConstructionView {
         drawing.child(
             new ParentWidget<>().name("critical_construction_preview")
                 .pos(6, 46)
-                .size(274, 119)
+                .size(274, 108)
                 .background(new CriticalConstructionPreview(business::getValue))
                 .tooltipBuilder(
                     t -> t.add(IKey.lang(key(sample().showsFoundation() ? "view.grid_hint" : "view.ghost_hint"))))
                 .tooltipAutoUpdate(true));
         drawing.child(
+            IKey.dynamic(this::stepTime)
+                .color(CriticalGuiStyle.TEXT_BODY)
+                .asWidget()
+                .pos(8, 157)
+                .size(270, 12));
+        drawing.child(
             IKey.dynamic(() -> tr(sample().showsFoundation() ? "view.grid_legend" : "view.ghost_legend"))
                 .color(CriticalGuiStyle.TEXT_MUTED)
-                .scale(0.75f)
                 .asWidget()
-                .pos(8, 172)
+                .pos(8, 171)
                 .size(270, 10));
         drawing.child(
             new ParentWidget<>().pos(8, 181)
@@ -111,20 +116,6 @@ final class CriticalConstructionView {
         line(
             timing,
             () -> tr("ui.journal_owner") + ": " + tr(sample().loomOwner() ? "ui.journal.loom" : "ui.journal.main"));
-        line(timing, () -> {
-            CriticalConstructionSnapshot s = sample();
-            if (s.status() == 3) return "";
-            if (s.showsFoundation() && s.phase() == 1)
-                return tr("view.cell_time") + " " + seconds(s.cellTicks()) + " / " + seconds(s.cellDuration());
-            if (s.showsFoundation() && s.phase() == 2)
-                return tr("view.curing_remaining") + " " + clock(s.curingRemaining());
-            if (s.showsFoundation() && s.phase() == 4)
-                return tr("view.heating_remaining") + " " + clock(s.heatingRemaining());
-            return tr("construction.elapsed") + " "
-                + clock(s.constructionTicks())
-                + " / "
-                + clock(s.constructionDuration());
-        });
         line(timing, () -> tr("view.chunks") + " " + sample().chunkCount());
         line(timing, this::activeLocation);
         line(timing, () -> tr("view.base_power") + " " + constructionVoltage() + " EU/t");
@@ -221,7 +212,6 @@ final class CriticalConstructionView {
                 .hoverBackground(CriticalGuiStyle.HOVER)
                 .overlay(
                     IKey.dynamic(() -> (expanded[index] ? "− " : "+ ") + tr(label))
-                        .scale(0.8f)
                         .color(CriticalGuiStyle.TEXT_ACCENT))
                 .tooltipBuilder(t -> t.add(IKey.lang(key(label))))
                 .onMousePressed(button -> {
@@ -242,6 +232,21 @@ final class CriticalConstructionView {
 
     private CriticalConstructionSnapshot sample() {
         return business.getValue().construction;
+    }
+
+    private String stepTime() {
+        CriticalConstructionSnapshot s = sample();
+        if (s.status() != 1) return "";
+        if (s.showsFoundation() && s.phase() == 1)
+            return tr("view.cell_time") + " " + seconds(s.cellTicks()) + " / " + seconds(s.cellDuration());
+        if (s.showsFoundation() && s.phase() == 2)
+            return tr("view.curing_remaining") + " " + clock(s.curingRemaining());
+        if (s.showsFoundation() && s.phase() == 4)
+            return tr("view.heating_remaining") + " " + clock(s.heatingRemaining());
+        return tr("construction.elapsed") + " "
+            + seconds(s.constructionTicks())
+            + " / "
+            + seconds(s.constructionDuration());
     }
 
     private String nextAction() {

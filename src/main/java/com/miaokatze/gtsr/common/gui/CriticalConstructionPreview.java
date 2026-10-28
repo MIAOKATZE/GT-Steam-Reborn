@@ -166,7 +166,7 @@ final class CriticalConstructionPreview implements IDrawable {
         for (int third = 0; third < 3; third++) {
             double filled = CriticalConstructionSnapshot.ratio(progress * 3 - third, 1);
             int bx = labelX + third * 19;
-            GuiDraw.drawRect(bx, labelY + 12, 16, 4, 0xFF303D49);
+            GuiDraw.drawRect(bx, labelY + 12, 16, 4, 0xFF435360);
             GuiDraw.drawRect(bx, labelY + 12, (float) (16 * filled), 4, color);
         }
     }
@@ -178,10 +178,10 @@ final class CriticalConstructionPreview implements IDrawable {
             for (int column = 0; column < columns; column++) {
                 float bx = x + column * unit, by = y + (rows - row - 1) * unit;
                 float size = unit - 1;
-                GuiDraw.drawRect(bx, by, size, size, 0x153F6576);
-                outline(bx, by, size, size, 0.65f, 0x554F7C8F);
+                GuiDraw.drawRect(bx, by, size, size, 0xFF25303C);
+                outline(bx, by, size, size, 0.65f, 0xFF526977);
                 double amount = Math.max(0, Math.min(1, filled - row * columns - column));
-                if (amount > 0) GuiDraw.drawRect(bx, by, size, size, ((int) (amount * 166) << 24) | (color & 0xFFFFFF));
+                if (amount > 0) GuiDraw.drawRect(bx, by, size, size, ((int) (amount * 224) << 24) | (color & 0xFFFFFF));
             }
         }
     }
