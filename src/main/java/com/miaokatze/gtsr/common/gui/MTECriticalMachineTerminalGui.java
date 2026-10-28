@@ -306,7 +306,7 @@ public final class MTECriticalMachineTerminalGui {
                     w -> business.getValue()
                         .canCancelLegacyStellarBatch())
                 .tooltipBuilder(t -> t.add(IKey.lang(key("ui.sun.cancel_legacy_hint")))));
-        page.child(metric("ui.energy", this::primaryMetricValue, () -> 0, 0, 26));
+        page.child(metric("ui.energy", this::primaryMetricValue, () -> 0, 0, 26).setEnabledIf(w -> !runtimeExpanded));
         page.child(
             metric(
                 "ui.secondary",
@@ -317,35 +317,28 @@ public final class MTECriticalMachineTerminalGui {
                     business.getValue()
                         .batchDuration()),
                 235,
-                26));
+                26).setEnabledIf(w -> !runtimeExpanded));
         ParentWidget<?> summary = new ParentWidget<>().pos(0, 74)
             .size(463, 70)
-            .background(CriticalGuiStyle.CARD);
-        summary.child(
-            new ButtonWidget<>().name("critical_runtime_disclosure")
-                .pos(8, 5)
-                .size(419, 17)
-                .background(CriticalGuiStyle.BUTTON)
-                .hoverBackground(CriticalGuiStyle.HOVER)
-                .overlay(
-                    IKey.dynamic(() -> (runtimeExpanded ? "− " : "+ ") + tr("ui.details.runtime"))
-                        .color(CriticalGuiStyle.TEXT_ACCENT)
-                        .scale(0.85f))
-                .onMousePressed(button -> {
-                    if (button != 0) return false;
-                    runtimeExpanded = !runtimeExpanded;
-                    return true;
-                }));
+            .background(CriticalGuiStyle.CARD)
+            .setEnabledIf(w -> !runtimeExpanded);
+        summary.child(runtimeDisclosure("critical_runtime_disclosure"));
+        ParentWidget<?> details = new ParentWidget<>().name("critical_runtime_details")
+            .pos(0, 26)
+            .size(463, 118)
+            .background(CriticalGuiStyle.CARD)
+            .setEnabledIf(w -> runtimeExpanded);
+        details.child(runtimeDisclosure("critical_runtime_collapse"));
         ListWidget<IWidget, ?> summaryText = new ListWidget<>().name("critical_status_summary")
             .pos(8, 26)
-            .size(419, 37)
-            .scrollDirection(CriticalGuiStyle.scroll())
-            .setEnabledIf(w -> runtimeExpanded);
+            .size(447, 85)
+            .scrollDirection(CriticalGuiStyle.scroll());
         for (int i = 0; i < 40; i++) {
             final int row = i;
             constructionLine(summaryText, () -> runtimeLine(row));
         }
-        summary.child(summaryText);
+        details.child(summaryText);
+        page.child(details);
         summary.child(
             new ParentWidget<>().name("critical_runtime_process")
                 .pos(8, 26)
@@ -468,6 +461,22 @@ public final class MTECriticalMachineTerminalGui {
         return page;
     }
 
+    private ButtonWidget<?> runtimeDisclosure(String name) {
+        return new ButtonWidget<>().name(name)
+            .pos(8, 5)
+            .size(447, 17)
+            .background(CriticalGuiStyle.BUTTON)
+            .hoverBackground(CriticalGuiStyle.HOVER)
+            .overlay(
+                IKey.dynamic(() -> (runtimeExpanded ? "− " : "+ ") + tr("ui.details.runtime"))
+                    .color(CriticalGuiStyle.TEXT_ACCENT))
+            .onMousePressed(button -> {
+                if (button != 0) return false;
+                runtimeExpanded = !runtimeExpanded;
+                return true;
+            });
+    }
+
     private String primaryMetricLabel() {
         return tr(switch (configuration().kind) {
             case BATTERY -> "ui.runtime.chemical.heat";
@@ -483,7 +492,7 @@ public final class MTECriticalMachineTerminalGui {
             case BATTERY -> runtimeValue("chemical.heat");
             case TURBINE -> runtimeValue("steam.heat");
             case SOLAR -> runtimeValue("solar.dimension");
-            case SUN -> runtimeValue("sun.sustain_power") + " · " + runtimeValue("sun.sustain_fuel") + " He-3";
+            case SUN -> runtimeValue("sun.sustain_power") + "\n" + runtimeValue("sun.sustain_fuel") + " He-3";
             default -> business.getValue()
                 .energy() + " / "
                 + business.getValue()
@@ -514,7 +523,7 @@ public final class MTECriticalMachineTerminalGui {
             case BATTERY -> runtimeValue("chemical.efficiency");
             case TURBINE -> runtimeValue("steam.multiplier");
             case SOLAR -> tr("ui.solar.route." + runtimeValue("solar.route"));
-            case SUN -> runtimeValue("sun.ignition_paid");
+            case SUN -> runtimeValue("sun.ignition_paid").replace(" / ", " EU\n/ ");
             default -> time(
                 business.getValue()
                     .batchTicks(),
@@ -607,7 +616,7 @@ public final class MTECriticalMachineTerminalGui {
         return String.format(java.util.Locale.ROOT, "%.1f / %.1f s", elapsed / 20D, duration / 20D);
     }
 
-    private IWidget metric(String label, java.util.function.Supplier<String> value,
+    private ParentWidget<?> metric(String label, java.util.function.Supplier<String> value,
         java.util.function.DoubleSupplier progress, int x, int y) {
         return new ParentWidget<>().pos(x, y)
             .size(228, 44)
@@ -622,14 +631,13 @@ public final class MTECriticalMachineTerminalGui {
                     .size(212, 10))
             .child(
                 new ListWidget<>().name("critical_metric_" + label)
-                    .size(212, 16)
+                    .size(212, 19)
                     .scrollDirection(CriticalGuiStyle.scroll())
                     .child(
                         CriticalGuiStyle.text(IKey.dynamic(value))
-                            .scale(1.2f)
                             .color(CriticalGuiStyle.TEXT_TITLE)
                             .fullWidth())
-                    .pos(8, 16)
+                    .pos(8, 15)
                     .tooltipBuilder(t -> t.add(value.get()))
                     .tooltipAutoUpdate(true))
             .child(

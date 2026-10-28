@@ -150,9 +150,19 @@ final class UiQaGallery {
         ((List<?>)Mui2ClientQa.field(world,"addedTileEntityList|field_147484_a")).remove(host);
         Mui2ClientQa.set(state,"loomJournalOwner",true);
         Mui2ClientQa.set(state,"foundationRequired",true);
+        boolean modern=step.has("modern")&&step.get("modern").getAsBoolean();
+        if(modern){
+            Mui2ClientQa.set(state,"state",0);
+            Mui2ClientQa.call(state,"getConstructionEconomySnapshot");
+            Object preview=Mui2ClientQa.field(state,"constructionPreview");
+            if(preview==null)throw new AssertionError("Current construction bill preview missing");
+            Mui2ClientQa.set(state,"constructionLedger",preview);
+            Mui2ClientQa.call(state,"rebuildConstructionStages",Mui2ClientQa.field(state,"geometryCache"));
+        }
         Mui2ClientQa.set(state,"state",variant.equals("complete")?2:1);
         Mui2ClientQa.set(state,"constructionTimeVersion",1);
         Mui2ClientQa.set(state,"stage",variant.equals("base")?2:variant.equals("body")?4:variant.equals("equipment")||variant.equals("complete")?5:0);
+        if(modern)Mui2ClientQa.set(state,"stage",variant.equals("base")?2:variant.equals("body")?5:variant.equals("equipment")?8:variant.equals("complete")?9:0);
         Mui2ClientQa.set(state,"cursor",0);
         Mui2ClientQa.call(Mui2ClientQa.field(Mui2ClientQa.field(state,"constructionLedger"),"progress"),"advance",200);
         Mui2ClientQa.call(host,variant.equals("paused")?"disableWorking":"enableWorking");
@@ -164,8 +174,13 @@ final class UiQaGallery {
         for(int i=0;i<chunks.size();i++){
             Object chunk=chunks.get(i),foundation=Mui2ClientQa.call(state,"foundation",i);
             Object tag=Mui2ClientQa.type("net.minecraft.nbt.NBTTagCompound").newInstance();
+            if(modern){
+                Mui2ClientQa.call(tag,"setInteger|func_74768_a","foundationVersion",7);
+                Mui2ClientQa.call(tag,"setInteger|func_74768_a","heating",variant.equals("heating")?18000:0);
+            }
             Mui2ClientQa.call(tag,"setInteger|func_74768_a","cells",pouring?(i==0?7:0):16);
             Mui2ClientQa.call(tag,"setInteger|func_74768_a","progress",pouring&&i==0?160:0);
+            if(modern&&pouring&&i==0)Mui2ClientQa.call(tag,"setInteger|func_74768_a","progress",20);
             Mui2ClientQa.call(tag,"setInteger|func_74768_a","curing",pouring?1440000:remaining);
             Mui2ClientQa.call(tag,"setBoolean|func_74757_a","funded",pouring&&i==0);
             Mui2ClientQa.call(foundation,"read",tag);
