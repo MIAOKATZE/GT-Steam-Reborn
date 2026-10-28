@@ -10,7 +10,7 @@ import java.util.List;
 /** Pure boiler catalogue: native steam heat and exact working-fluid inventory saturation. */
 public final class CriticalSolarPolicy {
 
-    public static final int VERSION = 9;
+    public static final int VERSION = 10;
     private static final BigInteger STOCK_HALF_SATURATION = BigInteger.valueOf(100_000_000_000L);
     private static final long BASE_DENSE_SUPERCRITICAL_LITRES = 12_000_000_000L;
     private static final long BASE_HOT_SALT_LITRES = 40_000_000_000L;
@@ -231,12 +231,9 @@ public final class CriticalSolarPolicy {
         return costLitres(entry, actualEU);
     }
 
-    /** Scale to actual LHE-equivalent power, ceil to whole litres/second, then prepay all20seconds. */
+    /** Every new batch prepays the selected medium's fixed twenty-second bill. */
     public static BigInteger costLitres(Entry entry, BigInteger actualEU) {
-        if (entry.litresPerSecond == 0D || actualEU.signum() <= 0) return BigInteger.ZERO;
-        BigInteger benchmarkEU = BigInteger.valueOf(REFERENCE_WATER_HEAT_EUT)
-            .multiply(BigInteger.valueOf((long) CriticalEnergyMath.CYCLE_TICKS * FULL_TURBINE_MULTIPLIER));
-        return ceilDivide(actualEU.multiply(BigInteger.valueOf((long) entry.litresPerSecond)), benchmarkEU)
+        return BigInteger.valueOf((long) entry.litresPerSecond)
             .multiply(BigInteger.valueOf(CriticalEnergyMath.CYCLE_TICKS / 20));
     }
 }

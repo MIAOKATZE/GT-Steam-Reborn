@@ -41,6 +41,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     private final CriticalMachineState state = new CriticalMachineState();
     private long energySpentThisTick;
     private long energyEmittedThisTick;
+    private boolean preserveBatchDuringStructureStop;
     private int dynamoPacketsSpentThisTick;
     private final java.util.Map<MTEHatch, Long> hatchEnergySpent = new java.util.IdentityHashMap<>();
     private final java.util.Map<MTEHatchDynamo, Integer> dynamoPacketsSpent = new java.util.IdentityHashMap<>();
@@ -540,10 +541,26 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     @Override
     public void stopMachine(gregtech.api.util.shutdown.ShutDownReason reason) {
         boolean allowed = getBaseMetaTileEntity() != null && getBaseMetaTileEntity().isAllowedToWork();
-        super.stopMachine(reason);
-        // Keep monitoring and player repair recovery alive after either loom or target damage.
-        if (allowed && reason == gregtech.api.util.shutdown.ShutDownReasonRegistry.STRUCTURE_INCOMPLETE)
-            getBaseMetaTileEntity().enableWorking();
+        preserveBatchDuringStructureStop = allowed
+            && reason == gregtech.api.util.shutdown.ShutDownReasonRegistry.STRUCTURE_INCOMPLETE;
+        try {
+            super.stopMachine(reason);
+            // Keep monitoring and player repair recovery alive after either loom or target damage.
+            if (preserveBatchDuringStructureStop) getBaseMetaTileEntity().enableWorking();
+        } finally {
+            preserveBatchDuringStructureStop = false;
+        }
+    }
+
+    public boolean isStructureStopInProgress() {
+        return preserveBatchDuringStructureStop;
+    }
+
+    @Override
+    public void onDisableWorking() {
+        super.onDisableWorking();
+        if (presetKind == CriticalMachineKind.SOLAR && !preserveBatchDuringStructureStop)
+            getCriticalState().updateSolarPowerDemand();
     }
 
     public boolean isLoomStructureValid() {
@@ -1145,8 +1162,10 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     @Override
     public void onRemoval() {
-        if (!state.isLoomOwnedMain() && getCriticalState() == state
-            && (!isKindSelector() || !state.usesLegacyV2Geometry())) state.invalidate();
+        CriticalMachineState current = getCriticalState();
+        if (presetKind == CriticalMachineKind.SOLAR) current.releaseSolarNightDemand();
+        if (!state.isLoomOwnedMain() && current == state && (!isKindSelector() || !state.usesLegacyV2Geometry()))
+            state.invalidate();
         super.onRemoval();
     }
 

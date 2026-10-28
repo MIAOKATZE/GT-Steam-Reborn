@@ -23,6 +23,14 @@ public final class CriticalNightClient {
         while ((message = queue.poll()) != null)
             if (message.dimension == world.provider.dimensionId && message.clientConnection == Minecraft.getMinecraft()
                 .getNetHandler()) latest = message;
-        if (latest != null) CriticalNightClock.receiveClient(world, latest);
+        if (latest != null) {
+            CriticalNightClock.receiveClient(world, latest);
+            world.skylightSubtracted = world.calculateSkylightSubtracted(1.0F);
+        }
+    }
+
+    /** Sky light is removed at the shared lightmap, including Angelica's cached raw sky coordinates. */
+    public static void darkenSkyLight(int[] colors) {
+        for (int sky = 1; sky < 16; sky++) System.arraycopy(colors, 0, colors, sky * 16, 16);
     }
 }

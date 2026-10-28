@@ -20,6 +20,9 @@ import com.miaokatze.gtsr.common.critical.CriticalMaterials;
 /** Immutable V2 terrain-atlas lists: one compilation, same-rigid-group CTM, native sprite ticking. */
 final class CriticalMeshCache {
 
+    // Moving bodies remain readable without sky/block light; their original colored texture and relief stay dim.
+    // Static structure blocks never enter this cache and keep their normal world-light response.
+    private static final float BODY_EMISSION = .18F;
     private final Map<String, List<Mesh>> models = new HashMap<>();
     private static final double[][][] CORNERS = { { { 0, 0, 1 }, { 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 1 } },
         { { 0, 1, 0 }, { 0, 1, 1 }, { 1, 1, 1 }, { 1, 1, 0 } }, { { 1, 1, 0 }, { 1, 0, 0 }, { 0, 0, 0 }, { 0, 1, 0 } },
@@ -112,19 +115,19 @@ final class CriticalMeshCache {
     }
 
     private static int compileList(List<Face> faces, boolean emission) {
-        if (emission && faces.stream()
-            .noneMatch(face -> face.emission != null)) return 0;
         int list = GL11.glGenLists(1);
         GL11.glNewList(list, GL11.GL_COMPILE);
         Tessellator tessellator = Tessellator.instance;
         tessellator.startDrawingQuads();
-        for (Face face : faces) {
-            IIcon icon = emission ? face.emission : face.color;
+        // Reuse the existing fullbright pass: low colored body first, then the approved luminous mask.
+        for (int layer = 0; layer < (emission ? 2 : 1); layer++) for (Face face : faces) {
+            IIcon icon = layer == 1 ? face.emission : face.color;
             if (icon == null) continue;
             int[] n = CriticalMaterialTextures.NORMALS[face.side], u = CriticalMaterialTextures.U[face.side],
                 v = CriticalMaterialTextures.V[face.side];
             tessellator.setNormal(n[0], n[1], n[2]);
-            float shade = emission ? 1 : face.side == 0 ? .58F : face.side == 1 ? 1 : face.side < 4 ? .78F : .88F;
+            float shade = face.side == 0 ? .58F : face.side == 1 ? 1 : face.side < 4 ? .78F : .88F;
+            if (emission) shade = layer == 1 ? 1 : shade * BODY_EMISSION;
             tessellator.setColorOpaque_F(shade, shade, shade);
             for (double[] corner : CORNERS[face.side]) {
                 double du = .5, dv = .5;

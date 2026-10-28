@@ -60,21 +60,19 @@ public final class CriticalTooltips {
         info(tt, "solar.water");
         info(tt, "solar.salt");
         info(tt, "solar.plasma");
-        info(tt, "solar.plasma_stock");
         info(tt, "cycle");
-        info(tt, "solar.energy");
+        info(tt, "solar.power_off");
         tt.addSeparator();
         info(tt, "solar.steam_amount");
         info(tt, "solar.salt_amount");
+        info(tt, "solar.plasma_amount");
         info(tt, "solar.stock");
         info(tt, "solar.private");
-        info(tt, "solar.water_cost");
-        info(tt, "solar.steam_heat");
-        info(tt, "solar.other_steam");
-        info(tt, "solar.salt_heat");
+        info(tt, "solar.heat_steam");
+        info(tt, "solar.heat_converted");
         info(tt, "solar.dimension");
         tt.addSeparator();
-        info(tt, "solar.medium_reference");
+        info(tt, "solar.media_fixed");
         info(tt, "solar.coolant");
         for (CriticalSolarPolicy.Entry entry : CriticalSolarPolicy.COOLANTS)
             policyEntry(tt, "coolant", entry, EnumChatFormatting.AQUA);
@@ -82,7 +80,6 @@ public final class CriticalTooltips {
         info(tt, "solar.excitation");
         for (CriticalSolarPolicy.Entry entry : CriticalSolarPolicy.EXCITERS)
             policyEntry(tt, "exciter", entry, EnumChatFormatting.LIGHT_PURPLE);
-        info(tt, "solar.helium");
         tt.addSeparator();
         info(tt, "solar.example_water_combination");
         info(tt, "solar.example_water_output");

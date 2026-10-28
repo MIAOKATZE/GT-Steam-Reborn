@@ -13,10 +13,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jar', type=Path)
     parser.add_argument('--snapshots-only', action='store_true', help='Candidate-only production capture/wire contract for four missing native gallery states')
+    parser.add_argument('--shutdown-only', action='store_true', help='Solar main-power cancellation contract')
+    parser.add_argument('--solar-receipt', type=Path)
     parser.add_argument('--out', type=Path, default=ROOT / 'build/critical-runtime-control')
     args = parser.parse_args()
     if args.snapshots_only and not args.jar:
         parser.error('--snapshots-only requires --jar')
+    if args.shutdown_only and not args.solar_receipt:
+        parser.error('--shutdown-only requires --solar-receipt')
     out = args.out.resolve()
     out.relative_to(ROOT / 'build')
     classes = out / 'classes'
@@ -28,7 +32,7 @@ def main():
     jars = list(fixture.CACHE.glob('*/*/*/*/*.jar'))
     gt = [p for p in jars if 'GT5-Unofficial/5.09.54.205/' in p.as_posix()]
     sources = [ROOT / 'tools/critical' / p for p in (
-        'CriticalRuntimeSnapshotContract.java' if args.snapshots_only else 'CriticalRuntimeControlContract.java',
+        'CriticalSolarShutdownContract.java' if args.shutdown_only else 'CriticalRuntimeSnapshotContract.java' if args.snapshots_only else 'CriticalRuntimeControlContract.java',
         'CriticalV32Contract.java', 'CriticalV32Fixture.java')]
     if not args.jar:
         sources += fixture.PRODUCTION + [ROOT / 'src/main/java/com/miaokatze/gtsr/common/critical/CriticalEnergyRuntime.java']
@@ -50,9 +54,9 @@ def main():
 
     run('javac', 'compile', ['-encoding','UTF-8','-proc:none','-cp',cp,'-d',classes,*sources])
     run('javac', 'gates', ['-encoding','UTF-8','-proc:none','-cp',cp,'-d',gates,*fixture.GATES])
-    contract = 'CriticalRuntimeSnapshotContract' if args.snapshots_only else 'CriticalRuntimeControlContract'
+    contract = 'CriticalSolarShutdownContract' if args.shutdown_only else 'CriticalRuntimeSnapshotContract' if args.snapshots_only else 'CriticalRuntimeControlContract'
     output = run('java', 'run', ['-Djava.awt.headless=true','-Dfile.encoding=UTF-8','-Dlog4j.configurationFile='+str(log_config),'-cp',str(gates)+os.pathsep+cp,
-        'com.miaokatze.gtsr.common.critical.'+contract,*([args.jar.resolve()] if args.snapshots_only else [])])
+        'com.miaokatze.gtsr.common.critical.'+contract,*([args.solar_receipt.resolve()] if args.shutdown_only else [args.jar.resolve()] if args.snapshots_only else [])])
     if 'PASS '+contract+' checks=' not in output:
         raise RuntimeError('Process exited without explicit contract PASS; inspect run.log')
     print(output.strip())

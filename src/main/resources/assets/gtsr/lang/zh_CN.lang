@@ -4142,7 +4142,7 @@ gtsr.critical.operation.solar.parallel=路径：水路与盐路互斥；两种�
 gtsr.critical.operation.solar.energy=能量：不消耗EU；蒸汽热量不包含发电机效率。
 gtsr.critical.operation.solar.efficiency=产量：按输入库存和控制器所列饱和公式计算；六种蒸汽的基础热量相同。
 gtsr.critical.operation.solar.output=输出：水路产所选蒸汽；盐路产等量热盐，LHE过热线标定为同档水路两倍；GG超临界支路保留原生额外收益。
-gtsr.critical.operation.solar.night=维度：运行时维持本维度永夜；同维度只允许首台辐照锅炉占用。
+gtsr.critical.operation.solar.night=维度：主电源开启即维持本维度无月永夜；同维度第二台锅炉不能运行。
 gtsr.critical.operation.battery.input=原料：使用NEI目录中的2~9种流体，按示例升数比例混合。
 gtsr.critical.operation.battery.cycle=反应时间：20秒（400 tick），不超频。
 gtsr.critical.operation.battery.parallel=配料：输入总线电路2~9选择组分数；按NEI比例投料，总量不限。
@@ -4432,7 +4432,7 @@ gtsr.critical.ui.runtime.solar.water_status=水支路状态
 gtsr.critical.ui.runtime.solar.salt_status=盐支路状态
 gtsr.critical.ui.runtime.solar.moon_dust=月石粉实扣
 gtsr.critical.ui.runtime.solar.stone_dust=石粉实扣
-gtsr.critical.ui.runtime.solar.night=维度永夜占用
+gtsr.critical.ui.runtime.solar.night=无月永夜占用
 gtsr.critical.ui.solar.night.true=已占用
 gtsr.critical.ui.solar.night.false=尚未占用或已释放
 gtsr.critical.ui.branch.paid=已付并锁定
@@ -4568,7 +4568,7 @@ gtsr.critical.nei.simple.intro.stellar_sustain=人造恒星 · 点火后持续�
 gtsr.critical.nei.simple.solar.cycle=20秒 · 耗电0 EU
 gtsr.critical.nei.simple.solar.water=蒸馏水 → 所选蒸汽
 gtsr.critical.nei.simple.solar.salt=冷太阳能盐 → 热太阳能盐
-gtsr.critical.nei.simple.solar.night=永夜锚点：同维首启独占
+gtsr.critical.nei.simple.solar.night=无月永夜：同维首台独占
 gtsr.critical.nei.simple.turbine.cycle=400 t/批 · 全部匹配蒸汽
 gtsr.critical.nei.simple.turbine.condensation=凝水不足 1 L 跨批累计
 gtsr.critical.nei.simple.turbine.wireless=产能 → 所属团队无线电网
@@ -4603,26 +4603,24 @@ gtsr.critical.tooltip.native.loom.machines=可建造辐照锅炉、脉冲动力�
 gtsr.critical.tooltip.native.loom.manage=手持§e机械终端§7右击控制器，选择机型或管理机器
 gtsr.critical.tooltip.native.loom.ports=建设物料放入织机§b输入总线/输入仓§7，建设用电由织机§c能源仓§7供应
 gtsr.critical.tooltip.native.solar.purpose=利用维度辐照热，生产§b蒸汽§7、§6热太阳能盐§7或§d等离子体
+gtsr.critical.tooltip.native.solar.power_off=关闭主电源会§c作废当前批次§7：已扣工质、冷却剂与激活剂不退，不产出
+gtsr.critical.tooltip.native.solar.plasma_amount=等离子体§dP=V×x/(x+H) L/批§7；V、H参数见NEI
+gtsr.critical.tooltip.native.solar.heat_steam=蒸汽等效热值：通过§e100%效率蒸汽轮机§7完全释放的EU
+gtsr.critical.tooltip.native.solar.heat_converted=等离子体与熔盐等效热值：经§6超级热交换机§7产出的蒸汽，通过§e100%效率蒸汽轮机§7完全释放的EU
+gtsr.critical.tooltip.native.solar.media_fixed=固定消耗（每批扣除§e20秒§7用量）
 gtsr.critical.tooltip.native.solar.water=水路：§b蒸馏水 → 所选蒸汽§7；水、盐、等离子体三路互斥
 gtsr.critical.tooltip.native.solar.salt=盐路：§6冷太阳能盐 → 等量热太阳能盐
-gtsr.critical.tooltip.native.solar.energy=不耗EU、不直接发电；§6蒸汽热量§7按完整蒸汽级联累计，未计入脉冲倍率或转子效率
 gtsr.critical.tooltip.native.solar.private=§e总倍率=维度系数×冷却倍率×激活倍率§7；私人维度系数§e0.6
-gtsr.critical.tooltip.native.solar.stock=§ex§7为开批时输入系统中§b蒸馏水§7或§6冷太阳能盐§7的实际库存L数
+gtsr.critical.tooltip.native.solar.stock=§ex§7为所选工质开批库存L
 gtsr.critical.tooltip.native.solar.steam_amount=致密超临界蒸汽§by=12G×x/(x+100G)×总倍率 L/批
-gtsr.critical.tooltip.native.solar.water_cost=致密超临界蒸汽每§b1 L§7消耗§b6.25 L蒸馏水§7；原料足够整批才开工
-gtsr.critical.tooltip.native.solar.other_steam=其他蒸汽按完整级联热值换算；相同库存、倍率且原料足额时，六种蒸汽的每批热量相同
 gtsr.critical.tooltip.native.solar.salt_amount=热太阳能盐§6y=40G×x/(x+100G)×总倍率 L/批
-gtsr.critical.tooltip.native.solar.dimension=运行时维持本维度§5永夜§7；同维度仅首台锅炉运行
-gtsr.critical.tooltip.native.solar.medium_reference=下表秒耗以每批§e37.8T EU§7为计算基准
+gtsr.critical.tooltip.native.solar.dimension=主电源开启即维持本维度§5无月永夜§7；同维度第二台锅炉不能运行
 gtsr.critical.tooltip.native.solar.coolant=必须供应以下一种§b冷却剂§7：
 gtsr.critical.tooltip.native.solar.excitation=同时必须供应以下一种§d激活剂§7：
 gtsr.critical.tooltip.native.solar.medium=§f%3$s L/s§7 : §d×%2$s§7 : %1$s
-gtsr.critical.tooltip.native.solar.helium=每秒消耗=§e表列秒耗×本批热量÷37.8T§7；开批扣除§e20秒§7用量
 gtsr.critical.tooltip.native.solar.example_water_combination=例：私人维度§e0.6§7、极寒之凛冰§b×1.5§7、氦等离子体§d×1.5§7，总倍率§e1.35
-gtsr.critical.tooltip.native.solar.example_water_output=§b500G L蒸馏水库存§7：产§b13.5G L致密超临界蒸汽§7，扣水§b84.375G L§7，蒸汽热量§633.75T EU
+gtsr.critical.tooltip.native.solar.example_water_output=§b500G L蒸馏水库存§7：产§b13.5G L致密超临界蒸汽§7，扣水§b84.375G L§7，等效热值§633.75T EU
 gtsr.critical.tooltip.native.solar.example_salt_output=同组合§6500G L冷太阳能盐库存§7：产§645G L热太阳能盐§7；超级热交换机超临界线§6112.5T EU§7，普通过热线§667.5T EU
-gtsr.critical.tooltip.native.solar.steam_heat=每§b1 L致密超临界蒸汽§7按完整级联累计§62500 EU§7蒸汽热量
-gtsr.critical.tooltip.native.solar.salt_heat=每§61 L热盐§7：普通过热线§61500 EU§7，超级热交换机超临界线§62500 EU§7；介质消耗按§61500 EU/L§7计算
 gtsr.critical.tooltip.native.turbine.input=开批抽取输入仓内§b全部六种蒸汽§7，可混合普通、过热、超临界及其致密形式
 gtsr.critical.tooltip.native.turbine.output=产能进入控制器所属团队的§e无线电网
 gtsr.critical.tooltip.native.turbine.heat=普通/过热/超临界基础热值：§60.5/1.5/2.5 EU/L§7；对应致密蒸汽§b×1000
@@ -4742,7 +4740,7 @@ gtsr.critical.nei.simple.solar.example=例：x=%s L，m=%s
 gtsr.critical.nei.simple.solar.input.water=实耗蒸馏水：%s L
 gtsr.critical.nei.simple.solar.input.salt=实耗冷盐：%s L
 gtsr.critical.nei.simple.solar.output=实际产出：%s L
-gtsr.critical.nei.simple.solar.heat=蒸汽热量：%s EU
+gtsr.critical.nei.simple.solar.heat=等效热值：%s EU
 gtsr.critical.solar.exciter.helium_gas=氦气
 gtsr.critical.solar.exciter.none=旧策略批次（不追收）
 gtsr.critical.tooltip.native.structure.loom_ports=织机仓口：Y=4机壳环，可放物品/流体输入输出仓及能源仓；控制器与内部轨道不可替换
@@ -4758,7 +4756,6 @@ gtsr.critical.view.part.base=基座
 gtsr.critical.view.part.body=主体
 gtsr.critical.view.part.equipment=设备
 gtsr.critical.tooltip.native.solar.plasma=等离子体路：§d冷态流体 → 等量等离子体§7；可加热的流体及对应等离子体见NEI
-gtsr.critical.tooltip.native.solar.plasma_stock=工质热值越高，§d半饱和库存越低§7；经§6超级热交换机§7换出的蒸汽热量为同倍率、同饱和水路的§e2.5倍§7，公式与各材质库存详见NEI
 gtsr.critical.ui.solar.route.2=等离子体加热
 gtsr.critical.ui.runtime.solar.plasma=等离子体工质
 gtsr.critical.ui.runtime.solar.plasma_litres=本批工质用量
@@ -4770,17 +4767,17 @@ gtsr.critical.nei.simple.plasma.half=H≈%s L（半饱和库存）
 gtsr.critical.nei.simple.plasma.multiplier=总倍率m=维度×冷却×激活
 gtsr.critical.nei.simple.plasma.example=例：库存S=5H，总倍率m=1.35
 gtsr.critical.nei.simple.plasma.output=产出：约%s L/批
-gtsr.critical.nei.simple.plasma.heat=蒸汽热量：约%s EU
+gtsr.critical.nei.simple.plasma.heat=等效热值：约%s EU
 gtsr.critical.nei.showcase.plasma.variables=S为开批时冷态流体库存L；P为本批等离子体产量L。
 gtsr.critical.nei.showcase.plasma.exact_half=半饱和库存H = %s L；工质热值越高，H越低。
 gtsr.critical.nei.showcase.plasma.exchanger=超级热交换机满负载：每1 L等离子体
 gtsr.critical.nei.showcase.plasma.conversion=换出 %s L致密超临界蒸汽，并回收1 L冷态流体。
 gtsr.critical.nei.showcase.plasma.exact_maximum=V = (30,000,000,000 × %s ÷ %s) × 总倍率 L。
-gtsr.critical.nei.showcase.plasma.media=冷却剂与激活剂均为必需；按实际换热量预付整批用量。
-gtsr.critical.nei.showcase.solar.heat=蒸汽热量按完整蒸汽级联累计，不含脉冲倍率或转子效率。
-gtsr.critical.nei.showcase.solar.salt_supercritical=主行采用超级热交换机超临界线：每1 L热盐换出1000 L超临界蒸汽，累计2500 EU。
-gtsr.critical.nei.showcase.solar.salt_superheated=普通过热线：每1 L热盐换出1000 L过热蒸汽，累计1500 EU；本例合计67.5T EU。
-gtsr.critical.nei.showcase.solar.salt_media=盐路介质用量按普通过热线1500 EU/L计算；超级热交换机超临界线2500 EU/L的收益不增加本机介质消耗。
+gtsr.critical.nei.showcase.plasma.media=冷却剂与激活剂按固定消耗，开批扣除20秒用量。
+gtsr.critical.nei.showcase.solar.heat=等效热值按100%效率蒸汽轮机完全释放的EU计算；等离子体与熔盐先经超级热交换机产出蒸汽。
+gtsr.critical.nei.showcase.solar.salt_supercritical=主行采用超级热交换机超临界路线：本例等效热值112.5T EU。
+gtsr.critical.nei.showcase.solar.salt_superheated=普通过热路线：本例等效热值67.5T EU。
+gtsr.critical.nei.showcase.solar.salt_media=冷却剂与激活剂按固定消耗，开批扣除20秒用量。
 gtsr.critical.tooltip.native.structure.main_ports_span=仓室高于主控1格，左右各6格，共13格；§c不要替换下方供给舱§r
 
 # Terminal construction and production controls
@@ -4791,6 +4788,7 @@ gtsr.critical.ui.power.production.false=电源：已关闭
 gtsr.critical.ui.power.construction.true=施工：已启用
 gtsr.critical.ui.power.construction.false=施工：已暂停
 gtsr.critical.ui.power.production_hint=与主控制器电源联动；开启后，原料与输出条件满足时自动运行。
+gtsr.critical.ui.power.solar_hint=主电源开启即维持无月永夜；关闭会作废当前批次，已扣工质、冷却剂与激活剂不退，不产出。
 gtsr.critical.ui.power.construction_hint=仅控制织机的建设、修复与拆除，不控制已建成主机的生产。
 gtsr.critical.ui.power.unbuilt=主结构尚未建成，请先在拟态织机完成建设。
 gtsr.critical.ui.running_status=运行状态
@@ -4830,10 +4828,10 @@ gtsr.critical.ui.runtime.next.reason.9=释放储能空间后继续。
 gtsr.critical.ui.runtime.next.ui.state.loading=等待服务端状态更新。
 
 gtsr.critical.runtime.output_blocked=等待产物输出空间
-gtsr.critical.runtime.night_conflict=本维度另一台辐照锅炉正在运行
+gtsr.critical.runtime.night_conflict=本维度另一台辐照锅炉已开机占用
 gtsr.critical.runtime.uncertain=物料交付待核验，已暂停运行
 gtsr.critical.ui.runtime.next.runtime.output_blocked=腾出主机输出仓或ME网络空间，机器将自动继续。
-gtsr.critical.ui.runtime.next.runtime.night_conflict=停用本维度另一台辐照锅炉后再启动。
+gtsr.critical.ui.runtime.next.runtime.night_conflict=关闭本维度另一台辐照锅炉的主电源后再启动。
 gtsr.critical.ui.runtime.next.runtime.uncertain=检查上次物料交付结果，保留现有输入和输出。
 gtsr.critical.ui.native.loom_hint=本机负责建设。手持机械终端右击管理工程；生产在主控制器启停。
 gtsr.critical.ui.native.main_hint=使用电源按钮启停生产；手持机械终端右击查看运行详情。
