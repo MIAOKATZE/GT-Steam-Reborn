@@ -259,6 +259,24 @@ class CriticalEnergyPolicyRuntime {
             &&cryo.stock==cryoBefore&&helium.stock==heliumBefore
             &&waters.stream().allMatch(hatch->hatch.stock==Integer.MAX_VALUE),
             "actual unaffordable water start returns without debit, clipping, or SnapshotShortage");
+        check(field(CriticalMachineState.class,state,"runtimeBlockerKey").equals("runtime.solar.insufficient_batch"),
+            "unpayable complete water batch reports its true blocker");
+        cryo.stock=0;helium.stock=0;
+        check(!(boolean)start.invoke(null,state,host,state.n)
+            &&field(CriticalMachineState.class,state,"runtimeBlockerKey").equals("runtime.solar.missing_coolant")
+            &&waters.stream().allMatch(hatch->hatch.stock==Integer.MAX_VALUE),
+            "water alone reports missing coolant without taking working fluid");
+        cryo.stock=cryoBefore;
+        check(!(boolean)start.invoke(null,state,host,state.n)
+            &&field(CriticalMachineState.class,state,"runtimeBlockerKey").equals("runtime.solar.missing_exciter")
+            &&cryo.stock==cryoBefore,
+            "water and coolant report missing activator without debit");
+        for(var hatch:waters)hatch.stock=0;
+        check(!(boolean)start.invoke(null,state,host,state.n)
+            &&field(CriticalMachineState.class,state,"runtimeBlockerKey").equals("runtime.solar.missing_working_fluid"),
+            "empty selected water route reports missing working fluid");
+        for(var hatch:waters)hatch.stock=Integer.MAX_VALUE;
+        helium.stock=heliumBefore;
         state.n.setBoolean("solarSaltMode",true);state.n.setInteger("steamMode",5);
         cryo.stock=routeCost(true,1D,1,1,true);helium.stock=routeCost(false,1D,1,1,true);
         check((boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("solarPolicy")==8
@@ -759,6 +777,10 @@ class CriticalEnergyPolicyRuntime {
     }
     static class EnergyState extends CriticalCompoundRuntime.FakeState {
         @Override public CriticalMachineKind getMachineKind(){return CriticalMachineKind.TURBINE;}
+    }
+
+    static Object field(Class<?> owner,Object target,String name)throws Exception {
+        Field f=owner.getDeclaredField(name);f.setAccessible(true);return f.get(target);
     }
     static class EnergyClock extends CriticalCompoundRuntime.ClockWorld {
         long clock;

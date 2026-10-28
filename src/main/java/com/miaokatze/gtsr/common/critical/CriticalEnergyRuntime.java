@@ -133,7 +133,7 @@ public final class CriticalEnergyRuntime {
         boolean solar = state.getMachineKind() == CriticalMachineKind.SOLAR;
         if (solar && !CriticalWorldData.get(state.worldObj)
             .claimNight(state.worldObj, state.getStructureId())) {
-            state.fail("本维度已有先启动的辐照锅炉");
+            state.failRuntime("runtime.night_conflict", "本维度已有先启动的辐照锅炉");
             return;
         }
         NBTTagCompound data = state.energyRuntimeData();
@@ -144,7 +144,7 @@ public final class CriticalEnergyRuntime {
             return;
         }
         if (data.getBoolean("uncertain")) {
-            state.fail("批次提交结果不确定，已锁定以保护原料和无线电量");
+            state.failRuntime("runtime.uncertain", "批次提交结果不确定，已锁定以保护原料和无线电量");
             return;
         }
         if (adaptive(state)) migrateTurbineWarmth(state, data);
@@ -183,7 +183,7 @@ public final class CriticalEnergyRuntime {
         ItemStack[] items = readItems(data.getTagList("items", 10));
         CriticalEnergyPorts.OutputPlan output = CriticalEnergyPorts.outputs(host, fluids, items);
         if (output == null) {
-            state.fail("等待批次输出空间");
+            state.failRuntime("runtime.output_blocked", "等待批次输出空间");
             return;
         }
         try {
@@ -215,7 +215,7 @@ public final class CriticalEnergyRuntime {
                 "commitFailure",
                 failure.getClass()
                     .getSimpleName());
-            state.fail("批次提交结果不确定，已锁定以保护原料和无线电量");
+            state.failRuntime("runtime.uncertain", "批次提交结果不确定，已锁定以保护原料和无线电量");
             state.markDirty();
         }
     }
@@ -626,10 +626,10 @@ public final class CriticalEnergyRuntime {
                     && (same(item, IrradiatedDust.source(true)) || same(item, IrradiatedDust.source(false))));
         SolarSelection selection = plasmaMode ? selectPlasma(snapshot, factor, irradiation)
             : selectSolar(snapshot, factor, mode, saltMode, irradiation);
-        if (selection == null) return state
-            .fail(plasmaMode ? "本批等离子体工质、冷却剂或激活剂不足；未扣料" : saltMode ? "本批冷盐、冷却剂或激活剂不足；未扣料" : "本批蒸馏水不足，或缺少足额冷却剂、激活剂；未扣料");
+        if (selection == null) return failSolarInputs(state, snapshot, plasmaMode, saltMode, irradiation);
         if (selection.outputLitres.signum() > 0) outputs.add(new FluidAmount(selection.output, selection.outputLitres));
-        if (CriticalEnergyPorts.outputs(host, outputs, NO_ITEMS) == null) return state.fail("批次输出空间不足，工作流体和增效料已保留");
+        if (CriticalEnergyPorts.outputs(host, outputs, NO_ITEMS) == null)
+            return state.failRuntime("runtime.output_blocked", "批次输出空间不足，工作流体和增效料已保留");
         CriticalEnergyPorts.Allocation allocation = new CriticalEnergyPorts.Allocation(snapshot);
         if (selection.inputLitres.signum() > 0) debits.addAll(allocation.take(selection.input, selection.inputLitres));
         debits.addAll(allocation.take(solarCoolant(selection.coolant), selection.coolantLitres));
@@ -736,6 +736,35 @@ public final class CriticalEnergyRuntime {
             case "spatial" -> Materials.Space.getMolten(1);
             default -> null;
         };
+    }
+
+    /** Diagnose the already-failed selection using the same read-only input snapshot, without any debit. */
+    private static boolean failSolarInputs(CriticalMachineState state, List<CriticalEnergyPorts.Input> snapshot,
+        boolean plasmaMode, boolean saltMode, boolean irradiation) {
+        boolean workingFluid = irradiation;
+        if (plasmaMode) {
+            for (CriticalPlasmaCatalog.Entry entry : CriticalPlasmaCatalog.entries())
+                workingFluid |= CriticalEnergyPorts.total(snapshot, entry.input)
+                    .signum() > 0;
+        } else {
+            workingFluid |= CriticalEnergyPorts
+                .total(
+                    snapshot,
+                    saltMode ? MaterialMisc.SOLAR_SALT_COLD.getFluidStack(1) : GTModHandler.getDistilledWater(1))
+                .signum() > 0;
+        }
+        if (!workingFluid) return state.failRuntime("runtime.solar.missing_working_fluid", "本批工作流体不足；未扣料");
+        boolean coolant = false;
+        for (CriticalSolarPolicy.Entry entry : CriticalSolarPolicy.COOLANTS)
+            coolant |= CriticalEnergyPorts.total(snapshot, solarCoolant(entry))
+                .signum() > 0;
+        if (!coolant) return state.failRuntime("runtime.solar.missing_coolant", "本批缺少冷却剂；未扣料");
+        boolean exciter = false;
+        for (CriticalSolarPolicy.Entry entry : CriticalSolarPolicy.EXCITERS)
+            exciter |= CriticalEnergyPorts.total(snapshot, solarExciter(entry))
+                .signum() > 0;
+        if (!exciter) return state.failRuntime("runtime.solar.missing_exciter", "本批缺少激活剂；未扣料");
+        return state.failRuntime("runtime.solar.insufficient_batch", "本批工质、冷却剂或激活剂不足整批用量；未扣料");
     }
 
     private static final class SolarSelection {

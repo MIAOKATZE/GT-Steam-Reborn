@@ -101,7 +101,12 @@ final class CriticalBusinessSnapshot {
         // All getters run in one server-thread call, before any subsequent machine tick can mutate the ledger.
         String[] text = new String[TEXT_FIELDS];
         Arrays.fill(text, "");
-        text[0] = state.getDisplayStatusKey();
+        text[0] = state.getStatusCode() == 2 ? "status.2" : state.getDisplayStatusKey();
+        // Reuse reserved text fields; the version-2 packet shape is unchanged.
+        text[1] = Boolean.toString(state.isProductionEnabled());
+        text[2] = state.getRuntimeStatusKey();
+        text[3] = state.getRuntimeBlockerKey();
+        text[4] = state.getStatus();
         text[7] = Long.toString(state.getEnergyStored());
         text[8] = Long.toString(state.getEnergyCapacity());
         text[9] = Long.toString(state.getBatchEuPerTick());
@@ -192,6 +197,22 @@ final class CriticalBusinessSnapshot {
 
     String detail() {
         return StatCollector.translateToLocal("gtsr.critical." + text[0]);
+    }
+
+    boolean productionEnabled() {
+        return Boolean.parseBoolean(text[1]);
+    }
+
+    String runtimeStatusKey() {
+        return text[2].isEmpty() ? "ui.state.loading" : text[2];
+    }
+
+    String runtimeBlockerKey() {
+        return text[3];
+    }
+
+    String runtimeBlockerDetail() {
+        return "runtime.blocked".equals(text[3]) ? text[4] : StatCollector.translateToLocal("gtsr.critical." + text[3]);
     }
 
     String nextItems() {

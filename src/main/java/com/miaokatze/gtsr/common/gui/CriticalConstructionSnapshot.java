@@ -62,10 +62,10 @@ final class CriticalConstructionSnapshot {
         values[13] = state.getConstructionElapsedTicks();
         values[14] = state.getConstructionDurationTicks();
         values[15] = state.isFoundationRequired() ? 1 : 0;
-        values[16] = state.getReasonCode();
+        values[16] = state.getStatusCode() == 2 ? state.isGeometryValidated() ? 0 : 4 : state.getReasonCode();
         values[17] = state.getTier()
             .ordinal();
-        values[18] = state.isEnabled() ? 1 : 0;
+        values[18] = state.isConstructionEnabled() ? 1 : 0;
         values[19] = state.isFoundationCellFunded() ? 1 : 0;
         values[20] = state.isLoomJournalOwner() ? 1 : 0;
         values[21] = state.usesThreePartConstruction() ? 1 : 0;
@@ -190,6 +190,7 @@ final class CriticalConstructionSnapshot {
     }
 
     String recoveryKey() {
+        if (status() == 2) return "ui.engineering.complete";
         int cause = enabled() ? reason() : 7;
         return cause == 7 && status() != 2 ? "ui.recover.construction" : "ui.recover." + cause;
     }

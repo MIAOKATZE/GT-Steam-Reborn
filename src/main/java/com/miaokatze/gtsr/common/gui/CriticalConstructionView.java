@@ -98,7 +98,7 @@ final class CriticalConstructionView {
         line(status, () -> tr("status." + sample().status()), CriticalGuiStyle.TEXT_TITLE);
         line(
             status,
-            () -> !sample().enabled() ? tr("reason.7")
+            () -> sample().status() != 2 && !sample().enabled() ? tr("reason.7")
                 : sample().reason() == 0 ? business.getValue()
                     .detail() : tr("reason." + sample().reason()),
             CriticalGuiStyle.TEXT_ACCENT);
