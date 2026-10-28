@@ -795,11 +795,8 @@ public final class CriticalEnergyRuntime {
                     candidate.input = plasma.input;
                     candidate.output = plasma.output;
                     BigInteger available = CriticalEnergyPorts.total(snapshot, candidate.input);
-                    candidate.inputLitres = plasma.batchLitres(available, factor, coolant, exciter);
-                    if (candidate.inputLitres.compareTo(available) > 0) {
-                        if (!irradiation) continue;
-                        candidate.inputLitres = BigInteger.ZERO;
-                    }
+                    candidate.inputLitres = plasma.batchLitres(available, factor, coolant, exciter)
+                        .min(available);
                     candidate.outputLitres = candidate.inputLitres;
                     candidate.equivalentEU = plasma.equivalentEU(candidate.outputLitres);
                     BigInteger workload = candidate.equivalentEU;
@@ -839,24 +836,21 @@ public final class CriticalEnergyRuntime {
                 if (candidate.output == null) continue;
                 BigInteger available = CriticalEnergyPorts.total(snapshot, candidate.input);
                 if (saltMode) {
-                    candidate.inputLitres = CriticalSolarPolicy.batchHotSaltLitres(available, factor, coolant, exciter);
+                    candidate.inputLitres = CriticalSolarPolicy.batchHotSaltLitres(available, factor, coolant, exciter)
+                        .min(available);
                     candidate.outputLitres = candidate.inputLitres;
                     candidate.equivalentEU = candidate.outputLitres.multiply(BigInteger.valueOf(30_000));
                 } else {
                     BigInteger heat = CriticalSolarPolicy
                         .batchDenseSupercriticalLitres(available, factor, coolant, exciter)
                         .multiply(BigInteger.valueOf(5000));
+                    // Every steam mode shares one payable heat amount; ordinary steam needs the most water.
+                    heat = CriticalSolarPolicy.waterHalfHeat(
+                        heat.min(available.multiply(BigInteger.valueOf(160)))
+                            .multiply(BigInteger.TEN));
                     candidate.outputLitres = CriticalSolarPolicy.steamLitres(heat, mode);
                     candidate.inputLitres = CriticalSolarPolicy.waterLitres(candidate.outputLitres, mode);
                     candidate.equivalentEU = heat.multiply(BigInteger.TEN);
-                }
-                // The curve determines a complete batch; insufficient stock waits, without clipping or debit.
-                if (candidate.inputLitres.compareTo(available) > 0) {
-                    if (!irradiation) continue;
-                    // Independent irradiation can still run, paying its existing dust-only media workload.
-                    candidate.inputLitres = BigInteger.ZERO;
-                    candidate.outputLitres = BigInteger.ZERO;
-                    candidate.equivalentEU = BigInteger.ZERO;
                 }
                 BigInteger workload = candidate.equivalentEU;
                 if (workload.signum() == 0) {

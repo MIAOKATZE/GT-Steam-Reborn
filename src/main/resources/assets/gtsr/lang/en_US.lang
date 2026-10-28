@@ -4137,7 +4137,7 @@ gtsr.critical.operation.details=Operation
 gtsr.critical.operation.sun.input=Inputs: GT native fusion recipes with known metadata and their original material requirements.
 gtsr.critical.operation.sun.cycle=Cycle: ignition, upkeep and fusion each use 400-tick stages; fusion lasts 20 seconds per batch, without overclocking.
 gtsr.critical.operation.sun.parallel=Parallels: up to 8196, limited by actual power, inputs and worst-case output space; insufficient capability does not debit ingredients.
-gtsr.critical.operation.sun.energy=Fusion EU/t fraction is native ticks / 8000, clamped to 0.1%-10%; multiply by native EU/t and actual parallels, round up, then add upkeep.
+gtsr.critical.operation.sun.energy=Fusion EU/t fraction is native ticks / 8000, clamped to 0.1%-10%; multiply by native EU/t and actual parallels, then add upkeep.
 gtsr.critical.operation.sun.efficiency=Native capability gate: fusion threshold <= 20,480,000,000 EU and native voltage <= UEV. This gate is not a repeated startup charge.
 gtsr.critical.operation.sun.output=Fusion delivers native products; ignition and sustain helium-3 yields half its volume as helium plasma.
 gtsr.critical.operation.solar.input=Inputs: distilled water OR cold solar salt. One coolant AND one activator are required continuously, including dust irradiation.
@@ -4621,23 +4621,21 @@ gtsr.critical.tooltip.native.solar.medium_reference=Listed rates use §e37.8T EU
 gtsr.critical.tooltip.native.solar.coolant=Requires one of these §bcoolants§7:
 gtsr.critical.tooltip.native.solar.excitation=Also requires one of these §dexciters§7:
 gtsr.critical.tooltip.native.solar.medium=§f%3$s L/s§7 : §d×%2$s§7 : %1$s
-gtsr.critical.tooltip.native.solar.helium=Rate=§elisted rate × batch heat / 37.8T§7, rounded up to L/s; consume §e20 s§7 at batch start
+gtsr.critical.tooltip.native.solar.helium=Rate=§elisted rate × batch heat / 37.8T§7; consume §e20 s§7 at batch start
 gtsr.critical.tooltip.native.solar.example_water_combination=Example: personal dimension §e0.6§7, cryotheum §b×1.5§7, helium plasma §d×1.5§7; total multiplier §e1.35
 gtsr.critical.tooltip.native.solar.example_water_output=§b500G L distilled-water stock§7: §b13.5G L dense supercritical steam§7, §b84.375G L§7 water consumed, §633.75T EU§7 steam heat
 gtsr.critical.tooltip.native.solar.example_salt_output=Same combination, §6500G L cold solar salt stock§7: §645G L hot solar salt§7; §6112.5T EU§7 on the Extreme Heat Exchanger supercritical line, §667.5T EU§7 on the superheated line
 gtsr.critical.tooltip.native.solar.steam_heat=Each §b1 L dense supercritical steam§7 yields §62500 EU§7 cumulative heat through the full steam cascade
 gtsr.critical.tooltip.native.solar.salt_heat=Hot salt: §61500 EU/L§7 superheated, §62500 EU/L§7 supercritical; medium use follows §61500 EU/L§7
-gtsr.critical.tooltip.native.turbine.purpose=Converts steam heat into §ewireless EU
 gtsr.critical.tooltip.native.turbine.input=Each batch takes §ball six steam types in full§7; mix normal, superheated, supercritical and dense forms
 gtsr.critical.tooltip.native.turbine.output=Generated EU enters the controller owner's team §ewireless network
-gtsr.critical.tooltip.native.turbine.heat=Normal/superheated/supercritical base heat: §60.5/1.5/2.5 EU/L
-gtsr.critical.tooltip.native.turbine.dense=Dense counterparts have §b1000x§7 the base EU/L
+gtsr.critical.tooltip.native.turbine.heat=Normal/superheated/supercritical base heat: §60.5/1.5/2.5 EU/L§7; dense counterparts §bx1000
+gtsr.critical.tooltip.native.turbine.example=Example: §a2000%§7 starting efficiency turns §b1,000 L normal steam§7 into §e10,000 EU
 gtsr.critical.tooltip.native.turbine.efficiency=Efficiency warms from §e100%§7 to at most §a2000%§7; each batch uses its §estarting efficiency
 gtsr.critical.tooltip.native.turbine.warmup=At §e34,359,738,240 EU/t§7 of base heat, §e20 s§7 fully warms the core; lower loads lower the target efficiency
 gtsr.critical.tooltip.native.turbine.idle=Idling or pausing gradually cools the core; minimum efficiency §e100%
 gtsr.critical.tooltip.native.turbine.water=Recovers §b1 L distilled water§7 per §b160 L§7 non-dense steam; dense steam counts x1000
 gtsr.critical.tooltip.native.sun.purpose=Runs §dnative GT fusion recipes§7 in fixed-duration batches
-gtsr.critical.tooltip.native.sun.recipe=Preserves the original recipe inputs and outputs
 gtsr.critical.tooltip.native.sun.parallel=Up to §e8196 parallels§7, limited by power, inputs and output room
 gtsr.critical.tooltip.native.sun.ignition=Ignition power: §c25,000,000,000 EU/t§7 (§c12A §f§l§nMAX§r§7)
 gtsr.critical.tooltip.native.sun.ignition_time=Ignition takes §e20 s§7 and §b50,000,000 L Helium-3§7 (§b125,000 L/t§7)
@@ -4646,6 +4644,7 @@ gtsr.critical.tooltip.native.sun.pause=Pausing fusion still requires §cupkeep p
 gtsr.critical.tooltip.native.sun.extinguish=Insufficient upkeep or an invalid structure §cextinguishes§7 the star; ignition is then required again
 gtsr.critical.tooltip.native.sun.plasma=Ignition and upkeep yield helium plasma at §dhalf§7 the volume of Helium-3 consumed
 gtsr.critical.tooltip.native.sun.discount=Remaining fusion power fraction = §anative recipe seconds / 400§7, clamped to §a0.1%-10%§7: a §a90%-99.9%§7 reduction
+gtsr.critical.tooltip.native.sun.example=Example: native §e20 s, 1,000,000 EU/t§7 at one parallel uses §c50,000 EU/t§7 for fusion, §c1,050,000 EU/t§7 with upkeep
 gtsr.critical.tooltip.native.sun.limits=Supports native voltage ≤§5§nUEV§r§7 and fusion threshold ≤§e20,480,000,000 EU
 gtsr.critical.tooltip.native.sun.switch=Changing recipes while hot requires no new ignition
 gtsr.critical.tooltip.native.battery.purpose=Increases EU yield using fuel §bidentities and volume proportions
@@ -4655,7 +4654,7 @@ gtsr.critical.tooltip.native.battery.compounds=Place non-consumed §ecircuit 2-9
 gtsr.critical.tooltip.native.battery.efficiency=Actual heat multiplier = §a1 + (NEI peak multiplier - 1) x q²§7, up to §ax100
 gtsr.critical.tooltip.native.battery.ratio=Among eligible recipes in the selected circuit group, uses the one with §ahighest EU output
 gtsr.critical.tooltip.native.battery.scaling=No volume cap; §cextra fluids count toward total litres§7 and dilute the required components
-gtsr.critical.tooltip.native.battery.heat=Base heat = §6sum(fuel L x base EU/L)§7; EU output = §6base heat x actual multiplier§7, rounded down
+gtsr.critical.tooltip.native.battery.heat=Base heat = §6sum(fuel L x base EU/L)§7; EU output = §6base heat x actual multiplier§7
 gtsr.critical.tooltip.native.structure.region=Reserve §e112x112 blocks, 180 high§r; supports all four horizontal facings, no chunk alignment needed
 gtsr.critical.tooltip.native.structure.base=The main body, surrounding foundation and loom form the complete machine; follow the hologram for materials
 gtsr.critical.nei.simple.stellar.phase_time=Phase: 20 seconds (400 t)
@@ -4673,7 +4672,7 @@ gtsr.critical.nei.simple.build.row.0.2=Rest cure (singularity boost)
 gtsr.critical.nei.showcase.curing.title=Rest cure (optional singularity boost)
 gtsr.critical.nei.showcase.curing.optional=Optional input example, not a fixed construction cost; curing needs no singularity.
 gtsr.critical.nei.showcase.curing.interval=During rest cure only, consume all n available singularities every 400 active ticks.
-gtsr.critical.nei.showcase.curing.reduction=Ticks removed per curing chunk = floor(remaining ticks x n / [5 x (16 + n)]).
+gtsr.critical.nei.showcase.curing.reduction=Ticks removed per curing chunk = remaining ticks x n / [5 x (16 + n)].
 gtsr.critical.nei.showcase.curing.scope=Consumed when supplied during rest cure only; does not accelerate pouring or heat curing.
 gtsr.critical.nei.simple.build.row.1.0=Structure
 gtsr.critical.nei.simple.build.row.1.1=Pipework
@@ -4755,9 +4754,7 @@ gtsr.critical.tooltip.native.structure.main_ports=Main hatches: place on top of 
 gtsr.critical.tooltip.native.structure.hatches=Hatches are optional and fit only the positions above; no maintenance hatch is needed. Construction uses the loom; production uses the main machine
 gtsr.critical.nei.simple.build.time.cell=%ss/cell
 gtsr.critical.tooltip.native.turbine.generation=Batch EU = §6sum(steam litres x base EU/L) x starting efficiency / 100
-gtsr.critical.tooltip.native.turbine.example=Example: §a2000%§7 starting efficiency turns §b1,000 L normal steam§7 into §e10,000 EU
-gtsr.critical.tooltip.native.sun.power=Fusion EU/t = §cnative EU/t x parallels x remaining fraction§7, rounded up; upkeep is additional
-gtsr.critical.tooltip.native.sun.example=Example: native §e20 s, 1,000,000 EU/t§7 at one parallel uses §c50,000 EU/t§7 for fusion, §c1,050,000 EU/t§7 with upkeep
+gtsr.critical.tooltip.native.sun.power=Fusion EU/t = §cnative EU/t x parallels x remaining fraction§7; upkeep is additional
 gtsr.critical.tooltip.native.battery.quality=Proportion quality §eq§7 = minimum of each component's (§bactual L / total L / NEI target fraction§7)
 gtsr.critical.tooltip.native.battery.example=Example: circuit §e2§7 with only §bdiesel : light fuel = 2 : 3§7 gives §ax2§7: §61,000 base EU§7 yields §e2,000 EU
 gtsr.critical.tooltip.native.turbine.load=Warm-up base heat load = §6batch steam base heat / 400 EU/t
@@ -4779,13 +4776,11 @@ gtsr.critical.nei.simple.plasma.example=Example: stock S=5H; m=1.35
 gtsr.critical.nei.simple.plasma.output=Output: ~%s L/batch
 gtsr.critical.nei.simple.plasma.heat=Steam heat: ~%s EU
 gtsr.critical.nei.showcase.plasma.variables=S is cold-fluid stock in L at batch start; P is plasma output in L per batch.
-gtsr.critical.nei.showcase.plasma.rounding=20-second batch, 1:1 heating; output rounds down to litres and half-stock rounds up to litres.
 gtsr.critical.nei.showcase.plasma.exact_half=Half-saturation stock H = %s L; higher fluid heat means lower H.
 gtsr.critical.nei.showcase.plasma.exchanger=Extreme Heat Exchanger at full load: each 1 L plasma
 gtsr.critical.nei.showcase.plasma.conversion=yields %s L dense supercritical steam and returns 1 L cold working fluid.
 gtsr.critical.nei.showcase.plasma.exact_maximum=V = (30,000,000,000 * %s / %s) * total multiplier L.
 gtsr.critical.nei.showcase.plasma.media=Coolant and exciter are both required; the full batch prepays actual exchanger heat.
-gtsr.critical.nei.showcase.solar.comparison=All examples use five times the half-saturation stock and a total multiplier of 0.6*1.5*1.5=1.35.
 gtsr.critical.nei.showcase.solar.heat=Steam heat sums the full steam cascade, excluding pulse multipliers and rotor efficiency.
 gtsr.critical.nei.showcase.solar.salt_supercritical=The main row uses the Extreme Heat Exchanger supercritical line: 1 L hot salt yields 1000 L supercritical steam, totaling 2500 EU.
 gtsr.critical.nei.showcase.solar.salt_superheated=The superheated line yields 1000 L superheated steam per 1 L hot salt, totaling 1500 EU; this example totals 67.5T EU.
