@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "version": "2.0.43",
+  "reviewedSourceRevision": "4c0fcc1275ed489f73c76fb8ad67f7fff4a4776e",
+  "kind": "offline-source-structure",
+  "notGameScreenshots": true,
+  "strategy": "gtsr-white-v1",
+  "images": {
+    "solar": {
+      "file": "critical-solar.png",
+      "sha256": "67dfc0c616b76f72ad1bee5871c80963a8477a069264dc9d094e3cf331b3719a",
+      "width": 1146,
+      "height": 1837,
+      "captureSourceRevision": "4c0fcc1275ed489f73c76fb8ad67f7fff4a4776e",
+      "geometryDependencies": {
+        "v2_base_t3": {
+          "path": "src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json",
+          "sha256": "28508d978cabf53d4eb8cc12c02b8f75ba90f3df7fe7a3bd7b4c5f81418d16ea"
+        },
+        "v2_solar": {
+          "path": "src/main/resources/assets/gtsr/critical/models/v2_solar.geometry.json",
+          "sha256": "9ff704f8e49c4aabb0e59fbd1faebebef384fdeb21345a323e3161ffb834d684"
+        },
+        "v2_loom": {
+          "path": "src/main/resources/assets/gtsr/critical/models/v2_loom.geometry.json",
+          "sha256": "d562b11f71de7ec26239ca54a2ccdc14fc320d4228c40642228ef91ecf5460d2"
+        }
+      },
+      "attribution": "MOD: GTSR | TEXTURES: Original assets",
+      "reusedCapture": false
+    },
+    "turbine": {
+      "file": "critical-turbine.png",
+      "sha256": "ab52921ef69ce11469cece16afaf38471185d7554f496b8c178f9e1288ec3eb5",
+      "width": 1146,
+      "height": 1839,
+      "captureSourceRevision": "4c0fcc1275ed489f73c76fb8ad67f7fff4a4776e",
+      "geometryDependencies": {
+        "v2_base_t3": {
+          "path": "src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json",
+          "sha256": "28508d978cabf53d4eb8cc12c02b8f75ba90f3df7fe7a3bd7b4c5f81418d16ea"
+        },
+        "v2_turbine": {
+          "path": "src/main/resources/assets/gtsr/critical/models/v2_turbine.geometry.json",
+          "sha256": "401b247e34b404c5cfe351482e1653523c0e3b153c6c6848fcc9b02fb6abbb14"
+        },
+        "v2_loom": {
+          "path": "src/main/resources/assets/gtsr/critical/models/v2_loom.geometry.json",
+          "sha256": "d562b11f71de7ec26239ca54a2ccdc14fc320d4228c40642228ef91ecf5460d2"
+        }
+      },
+      "attribution": "MOD: GTSR | TEXTURES: Original assets",
+      "reusedCapture": false
+    },
+    "sun": {
+      "file": "critical-sun.png",
+      "sha256": "530b6d0f2729b0e62c76bece5d20c06eff7d9d403abcc546e58e5b942690b838",
+      "width": 1146,
+      "height": 1846,
+      "captureSourceRevision": "4c0fcc1275ed489f73c76fb8ad67f7fff4a4776e",
+      "geometryDependencies": {
+        "v2_base_t3": {
+          "path": "src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json",
+          "sha256": "28508d978cabf53d4eb8cc12c02b8f75ba90f3df7fe7a3bd7b4c5f81418d16ea"
+        },
+        "v2_sun": {
+          "path": "src/main/resources/assets/gtsr/critical/models/v2_sun.geometry.json",
+          "sha256": "c56437d62fbe62f2263bb1853a43d2815698ea5c448cd792cbda26464d483a27"
+        },
+        "v2_loom": {
+          "path": "src/main/resources/assets/gtsr/critical/models/v2_loom.geometry.json",
+          "sha256": "d562b11f71de7ec26239ca54a2ccdc14fc320d4228c40642228ef91ecf5460d2"
+        }
+      },
+      "attribution": "MOD: GTSR | TEXTURES: Original assets",
+      "reusedCapture": false
+    },
+    "battery": {
+      "file": "critical-battery.png",
+      "sha256": "141301b082815773ddbc6cfa6518fd1d257ee2a41a899664aab0f36cbb683da8",
+      "width": 1146,
+      "height": 1834,
+      "captureSourceRevision": "4c0fcc1275ed489f73c76fb8ad67f7fff4a4776e",
+      "geometryDependencies": {
+        "v2_base_t3": {
+          "path": "src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json",
+          "sha256": "28508d978cabf53d4eb8cc12c02b8f75ba90f3df7fe7a3bd7b4c5f81418d16ea"
+        },
+        "v2_battery": {
+          "path": "src/main/resources/assets/gtsr/critical/models/v2_battery.geometry.json",
+          "sha256": "31ac30850c4bc94494f041f433d8423122e791abd8e5dd82b0de3e214b7aed5b"
+        },
+        "v2_loom": {
+          "path": "src/main/resources/assets/gtsr/critical/models/v2_loom.geometry.json",
+          "sha256": "d562b11f71de7ec26239ca54a2ccdc14fc320d4228c40642228ef91ecf5460d2"
+        }
+      },
+      "attribution": "MOD: GTSR | TEXTURES: Original assets",
+      "reusedCapture": false
+    },
+    "loom": {
+      "file": "critical-loom.png",
+      "sha256": "685834c14ea28c2fe52b2e4fd4ab62456c10baea677ac5bc6158a7a2410e8f4c",
+      "width": 1454,
+      "height": 1210,
+      "captureSourceRevision": "734e73aa584cf682529fd533f95d1f9ee4a77ea8",
+      "geometryDependencies": {
+        "v2_loom": {
+          "path": "src/main/resources/assets/gtsr/critical/models/v2_loom.geometry.json",
+          "sha256": "d562b11f71de7ec26239ca54a2ccdc14fc320d4228c40642228ef91ecf5460d2"
+        }
+      },
+      "attribution": "MOD: GTSR | TEXTURES: Original assets",
+      "reusedCapture": true,
+      "compatibility": "Standalone loom assembly does not use the changed base. Its geometry, complete material definitions and all texture bytes remain identical."
+    }
+  },
+  "materialDefinitionsSha256": "1e06a0bb2863d300a114b0cb4c58ffcf642e9c0d6434fd886d2f6fcce12311d5",
+  "textureTree": "158fc5bf900067caf10f1f3d534b4499bf4b638d",
+  "rendererPolicyFiles": {
+    "strategies/gtsr_critical.py": "c6920960635f13a5108f9dc049357c0bf9abd955931b4909d99b6c16bb8df156",
+    "strategies/gtsr_white.py": "ed337171f2497654647b440c4a195650e6831ab1a9884181ff4a21aa8e85a200",
+    "strategies/gtsr-white-v1.json": "27b1e7be513558b423f521d9d2dc97e8b68ef4490804adfb121ae87513078d18"
+  }
+}
