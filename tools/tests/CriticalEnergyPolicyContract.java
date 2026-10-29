@@ -153,6 +153,7 @@ class CriticalEnergyPolicyRuntime {
         List<CriticalCompoundRuntime.FakeHatch> hatches=new ArrayList<>(List.of(cryo,helium,heliumGas)); hatches.addAll(waters);
         CriticalCompoundRuntime.set(host, "mInputHatches", hatches);
         lowInventoryWaterStart(host,tile,cryo,helium,waters);
+        crossHatchWaterStart(host,tile,hatches);
         List<CriticalEnergyPorts.Input> snapshot = CriticalEnergyPorts.snapshot(host);
         Method select = CriticalEnergyRuntime.class.getDeclaredMethod("selectSolar", List.class, double.class,
             int.class, boolean.class, boolean.class); select.setAccessible(true);
@@ -337,6 +338,58 @@ class CriticalEnergyPolicyRuntime {
             &&state.n.getString("solarExciterLitres").equals(historical.getString("solarExciterLitres")),
             "actual legacy batch delivers at400ticks at its historical quote without any new fixed-fee recharge");
         CriticalCompoundRuntime.set(host,"mOutputHatches",new ArrayList<>());
+    }
+    static void crossHatchWaterStart(MTECriticalMachine host,IGregTechTileEntity tile,
+        List<CriticalCompoundRuntime.FakeHatch> original)throws Exception {
+        Method start=CriticalEnergyRuntime.class.getDeclaredMethod("startSolar",CriticalMachineState.class,
+            MTECriticalMachine.class,NBTTagCompound.class);start.setAccessible(true);
+        BigInteger expectedSteam=null,expectedWater=null;
+        for(int split:new int[]{1,2,4}) {
+            List<CriticalCompoundRuntime.FakeHatch> inputs=new ArrayList<>();
+            for(int i=0;i<split;i++) {
+                inputs.add(CriticalCompoundRuntime.hatch(unsafe,tile,gregtech.api.util.GTModHandler.getDistilledWater(1),16_000_000/split));
+                inputs.add(CriticalCompoundRuntime.hatch(unsafe,tile,FluidRegistry.getFluidStack("cryotheum",1),400_000/split));
+                inputs.add(CriticalCompoundRuntime.hatch(unsafe,tile,Materials.Helium.getPlasma(1),16_000/split));
+            }
+            // Repeated references in the discovery list must not create extra inventory.
+            List<CriticalCompoundRuntime.FakeHatch> discovered=new ArrayList<>(inputs);discovered.add(inputs.get(0));
+            CriticalCompoundRuntime.set(host,"mInputHatches",discovered);
+            check(CriticalEnergyPorts.total(CriticalEnergyPorts.snapshot(host),gregtech.api.util.GTModHandler.getDistilledWater(1))
+                .equals(b(16_000_000)),"cross-hatch snapshot sums actual stock once, split="+split);
+            BoundedOutput first=(BoundedOutput)unsafe.allocateInstance(BoundedOutput.class),second=(BoundedOutput)unsafe.allocateInstance(BoundedOutput.class);
+            first.capacity=600_000;second.capacity=600_000;first.setBaseMetaTileEntity(tile);second.setBaseMetaTileEntity(tile);
+            CriticalCompoundRuntime.set(host,"mOutputHatches",new ArrayList<>(List.of(first,first)));
+            EnergyState state=waterState();
+            check(!(boolean)start.invoke(null,state,host,state.n)&&!state.n.getBoolean("funded")
+                &&inputs.stream().mapToLong(h->h.stock).sum()==16_416_000&&first.getFillableStack()==null,
+                "one duplicated output tank cannot cover batch; insufficient output leaves every input untouched:"+split);
+            CriticalCompoundRuntime.set(host,"mOutputHatches",new ArrayList<>(List.of(first,second,first)));
+            state=waterState();
+            check((boolean)start.invoke(null,state,host,state.n)&&state.n.getBoolean("funded"),
+                "individually insufficient tanks jointly fund native output reservation:"+split);
+            BigInteger steam=new BigInteger(state.n.getTagList("outputs",10).getCompoundTagAt(0).getString("exactAmount"));
+            BigInteger water=new BigInteger(state.n.getString("solarWater"));
+            if(expectedSteam==null){expectedSteam=steam;expectedWater=water;}
+            check(steam.equals(expectedSteam)&&water.equals(expectedWater)&&steam.compareTo(b(first.capacity))>0,
+                "equal total stock across1/2/4 hatches produces one identical saturation result and water bill:"+split);
+            long remainingWater=0;boolean mediaPaid=true;
+            for(int i=0;i<inputs.size();i++)if(i%3==0)remainingWater+=inputs.get(i).stock;else mediaPaid&=inputs.get(i).stock==0;
+            check(b(16_000_000-remainingWater).equals(water)&&mediaPaid,
+                "real startSolar cumulatively drains split water, coolant and activator exactly once:"+split);
+            state.n.setInteger("progress",399);CriticalEnergyRuntime.tick(state,host);
+            check(!state.n.getBoolean("funded")&&first.getFillableStack().amount==600_000
+                &&b(first.getFillableStack().amount).add(b(second.getFillableStack().amount)).equals(steam),
+                "real GT205 transactions deliver exact batch across two physical output tanks:"+split);
+        }
+        CriticalCompoundRuntime.set(host,"mInputHatches",original);
+        CriticalCompoundRuntime.set(host,"mOutputHatches",new ArrayList<>());
+    }
+    static EnergyState waterState()throws Exception {
+        EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.n=new NBTTagCompound();
+        state.n.setInteger("steamMode",5);state.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
+        CriticalCompoundRuntime.set(state.worldObj,"provider",unsafe.allocateInstance(
+            Class.forName("me.eigenraven.personalspace.world.PersonalWorldProvider")));
+        return state;
     }
     static void paidDoubleWaterExample(MTECriticalMachine host,IGregTechTileEntity tile,
         CriticalCompoundRuntime.FakeHatch cryo,CriticalCompoundRuntime.FakeHatch helium,
@@ -1061,6 +1114,14 @@ class CriticalEnergyPolicyRuntime {
     static class EnergyClock extends CriticalCompoundRuntime.ClockWorld {
         long clock;
         @Override public long getTotalWorldTime(){return clock;}
+    }
+    static class BoundedOutput extends gregtech.api.metatileentity.implementations.MTEHatchOutput {
+        int capacity;
+        BoundedOutput(){super("unused",1,new String[0],null);}
+        @Override public boolean isValid(){return true;}
+        @Override public int getCapacity(){return capacity;}
+        @Override public void markDirty(){}
+        @Override public void onEmptyingContainerWhenEmpty(){}
     }
     static class Output extends gregtech.api.metatileentity.implementations.MTEHatchOutput {
         BigInteger stored;FluidStack fluid;
