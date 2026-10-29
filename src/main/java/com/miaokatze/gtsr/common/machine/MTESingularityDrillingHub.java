@@ -83,6 +83,7 @@ import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingularityDrillingHub>
     implements ISurvivalConstructable, IHubArray {
 

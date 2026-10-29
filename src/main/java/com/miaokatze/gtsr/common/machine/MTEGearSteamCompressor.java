@@ -77,6 +77,7 @@ import gregtech.common.blocks.ItemMachines;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCompressor>
     implements IConstructable, ISurvivalConstructable {
 

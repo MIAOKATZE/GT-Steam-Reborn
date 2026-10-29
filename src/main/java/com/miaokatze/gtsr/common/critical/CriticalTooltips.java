@@ -1,10 +1,19 @@
 package com.miaokatze.gtsr.common.critical;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
+
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.options.FormatOptions;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
+import gregtech.api.enums.GTValues;
+import gregtech.api.enums.VoltageIndex;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 
 /** Standard GT tooltips with operating rules specific to each released machine. */
@@ -84,6 +93,39 @@ public final class CriticalTooltips {
         info(tt, "solar.example_water_combination");
         info(tt, "solar.example_water_output");
         info(tt, "solar.example_salt_output");
+        tt.addSeparator();
+        info(tt, "solar.pulse_maximum");
+        BigInteger stock = CriticalSolarPolicy.stockHalfSaturationLitres()
+            .multiply(BigInteger.valueOf(5));
+        BigInteger heat = CriticalSolarPolicy
+            .batchDenseSupercriticalLitres(
+                stock,
+                CriticalSolarPolicy.PRIVATE_DIMENSION_FACTOR,
+                CriticalSolarPolicy.COOLANTS.get(1),
+                CriticalSolarPolicy.EXCITERS.get(1))
+            .multiply(BigInteger.valueOf(5000));
+        heat = CriticalSolarPolicy.waterHalfHeat(
+            heat.min(stock.multiply(BigInteger.valueOf(160)))
+                .multiply(BigInteger.TEN));
+        BigInteger energy = heat.multiply(BigInteger.valueOf(CriticalEnergyMath.MAX_EFFICIENCY))
+            .divide(BigInteger.valueOf(200));
+        BigDecimal power = new BigDecimal(energy).divide(BigDecimal.valueOf(CriticalEnergyMath.CYCLE_TICKS));
+        BigDecimal amps = power.divide(BigDecimal.valueOf(GTValues.V[VoltageIndex.MAX]), 2, RoundingMode.HALF_UP);
+        FormatOptions format = new FormatOptions().setDecimalPlaces(2)
+            .disableExponentialFormatting();
+        tt.addInfo(
+            EnumChatFormatting.GRAY + formatted(
+                "solar.pulse_example",
+                NumberFormatUtil.formatNumber(
+                    new BigDecimal(energy).divide(BigDecimal.valueOf(1_000_000_000_000L))
+                        .doubleValue(),
+                    format),
+                NumberFormatUtil.formatNumber(
+                    power.divide(BigDecimal.valueOf(1_000_000_000_000L))
+                        .doubleValue(),
+                    format),
+                NumberFormatUtil.formatNumber(amps.doubleValue(), format),
+                GTUtility.getColoredTierNameFromTier((byte) VoltageIndex.MAX)));
     }
 
     private static void turbine(MultiblockTooltipBuilder tt) {

@@ -51,6 +51,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 
 /** Tier 1 steam entanglement machine. */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTESteamSingularityEntangler extends MTESingularityMachineBase implements ISurvivalConstructable {
 
     // Only the 1340 replaceable mechanical-casing positions count toward this minimum.

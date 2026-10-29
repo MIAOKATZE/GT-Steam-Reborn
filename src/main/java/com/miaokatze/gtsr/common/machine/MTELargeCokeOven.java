@@ -70,6 +70,7 @@ import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
     implements IConstructable, ISurvivalConstructable {
 

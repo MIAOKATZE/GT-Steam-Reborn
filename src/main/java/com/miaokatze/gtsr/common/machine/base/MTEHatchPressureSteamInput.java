@@ -13,11 +13,13 @@ import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.util.GTUtility;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEHatchPressureSteamInput extends MTEHatchCustomFluidBase {
 
     public MTEHatchPressureSteamInput(int aID, String aName, String aNameRegional, int aTier) {

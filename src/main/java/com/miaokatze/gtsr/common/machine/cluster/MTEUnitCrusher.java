@@ -28,6 +28,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
  * 候选空气位（x∈{1,3}, y0, z∈{1,3}）；A=外壳族（基类绑定）、B=齿轮箱族、C=管道族、D=框架族、E=玻璃、
  * '-'/'e'=严格空气。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEUnitCrusher extends MTEBasicProcessingUnit {
 
     /** GUI 类型词条 key。 */

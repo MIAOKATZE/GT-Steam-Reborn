@@ -20,6 +20,7 @@ import com.miaokatze.gtsr.register.TextureManager;
 import gregtech.GTMod;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
@@ -32,6 +33,7 @@ import io.netty.buffer.ByteBuf;
  * S1 起改继承近亲 MTEPressureSteamOutputHatch（原 extends MTEFilteredCacheNode 量子缸链），
  * 绑定数据与终端链路经 MTESingularityCompartmentBase（接口+组合）保留。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTESingularitySteamOutputCompartment extends MTEPressureSteamOutputHatch
     implements MTESingularityCompartmentBase {
 

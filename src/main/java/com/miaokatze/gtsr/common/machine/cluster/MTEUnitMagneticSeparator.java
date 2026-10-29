@@ -28,6 +28,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
  * （基类绑定）+T15 放宽：任意 A 机壳位可替换为能源 hatch（入 mEnergyHatches，共享 EU 池，
  * 上限=A 位数量+P 位）；B=齿轮箱族、C=管道族、D=框架族、E=玻璃、'-'=严格空气。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEUnitMagneticSeparator extends MTEUnitSelfPoweredProcessingUnit {
 
     /** GUI 类型词条 key。 */

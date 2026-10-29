@@ -167,9 +167,11 @@ public final class CriticalNEIShowcase {
             CriticalSolarPolicy.PRIVATE_DIMENSION_FACTOR,
             CriticalSolarPolicy.COOLANTS.get(1),
             CriticalSolarPolicy.EXCITERS.get(1));
-        java.math.BigDecimal coefficient = java.math.BigDecimal.valueOf(30_000_000_000L)
-            .multiply(new java.math.BigDecimal(plasma.hotLitres))
-            .divide(new java.math.BigDecimal(plasma.denseSteamLitres), 3, java.math.RoundingMode.HALF_UP);
+        java.math.BigDecimal coefficient = new java.math.BigDecimal(
+            CriticalSolarPolicy.baseDenseSupercriticalLitres()
+                .multiply(java.math.BigInteger.valueOf(5))
+                .divide(java.math.BigInteger.valueOf(2))).multiply(new java.math.BigDecimal(plasma.hotLitres))
+                    .divide(new java.math.BigDecimal(plasma.denseSteamLitres), 3, java.math.RoundingMode.HALF_UP);
         return new String[] { text("plasma.formula"),
             CriticalRecipeMaps.formatted("simple.plasma.maximum", plasmaNumber(coefficient)),
             CriticalRecipeMaps

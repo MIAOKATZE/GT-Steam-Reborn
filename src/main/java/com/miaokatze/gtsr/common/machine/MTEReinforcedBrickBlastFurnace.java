@@ -69,6 +69,7 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteam
  * 内置炉温机制：运行时炉温缓慢上升，闲置时炉温下降；炉温越高，并行数与配方速度越高。
  * 不需要维护仓、消声仓、空气输入或耐压蒸汽输入。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTEReinforcedBrickBlastFurnace>
     implements ISurvivalConstructable {
 

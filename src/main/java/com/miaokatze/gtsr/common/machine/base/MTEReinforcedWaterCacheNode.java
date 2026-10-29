@@ -12,6 +12,7 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
@@ -21,6 +22,7 @@ import gregtech.api.render.TextureFactory;
  * 机制/结构镜像 MTEReinforcedSteamCacheNode；接受任意流体（S5 通用流体口径）。
  * 绑定奇点消耗 = 0（对齐蓄水枢纽阵列通用流体节点家族现状）。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEReinforcedWaterCacheNode extends MTEFilteredCacheNode {
 
     private static final int CAPACITY = 8_000_000;

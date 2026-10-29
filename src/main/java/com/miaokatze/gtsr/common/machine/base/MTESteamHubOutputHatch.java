@@ -12,12 +12,14 @@ import net.minecraftforge.fluids.FluidStack;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTESteamHubOutputHatch extends MTEHatchOutput {
 
     public IHubController mController;

@@ -67,6 +67,7 @@ import gregtech.common.blocks.ItemMachines;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphericCentrifuge>
     implements ISurvivalConstructable {
 

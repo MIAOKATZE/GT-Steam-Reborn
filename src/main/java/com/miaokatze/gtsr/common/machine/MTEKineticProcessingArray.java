@@ -101,6 +101,7 @@ import gregtech.common.tileentities.machines.basic.MTEBoxinator;
 import gregtech.common.tileentities.machines.basic.MTEPotionBrewer;
 import gregtech.common.tileentities.machines.basic.MTERockBreaker;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticProcessingArray>
     implements IConstructable, ISurvivalConstructable {
 

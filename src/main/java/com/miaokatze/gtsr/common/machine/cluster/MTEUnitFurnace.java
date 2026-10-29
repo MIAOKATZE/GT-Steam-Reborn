@@ -6,6 +6,7 @@ import net.minecraft.util.StatCollector;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.util.MultiblockTooltipBuilder;
@@ -24,6 +25,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
  * {@code tieredFireboxElement}）、E=框架族、F=玻璃、'e'=严格空气。D/E/F 三族经基类
  * resolveUnitStructureTier 与其他参与族同级强校验。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEUnitFurnace extends MTEBasicProcessingUnit {
 
     /** GUI 类型词条 key。 */

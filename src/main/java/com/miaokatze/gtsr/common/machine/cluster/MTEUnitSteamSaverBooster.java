@@ -8,6 +8,7 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.util.MultiblockTooltipBuilder;
@@ -25,6 +26,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
  * 正面 overlay 引用离心机（centrifuge）原机资源（gregtech 域，无 BlockIcons 常量，走 customOptional；
  * 该目录无 GLOW 变体，仅 inactive/active 两组）；类加载期（贴图缝合前）以 static final 字段绑定，禁止移入方法体。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEUnitSteamSaverBooster extends MTEBasicAmplifierUnit {
 
     /** 正面 overlay（inactive）：{@code basicmachines/centrifuge/OVERLAY_FRONT}。 */

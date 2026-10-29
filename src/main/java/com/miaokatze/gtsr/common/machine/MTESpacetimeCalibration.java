@@ -63,6 +63,7 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteam
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
 /** LuV utility machine. No recipe or synthetic progress timer is used to sustain its portal. */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacetimeCalibration>
     implements ISurvivalConstructable {
 

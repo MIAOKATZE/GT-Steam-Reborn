@@ -8,10 +8,12 @@ import net.minecraftforge.fluids.FluidStack;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTESteamHubInputHatch extends MTEHatchInput {
 
     public IHubController mController;

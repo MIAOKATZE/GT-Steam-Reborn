@@ -267,6 +267,9 @@ public final class CriticalRecipeMaps {
                 BigInteger halfHeat = CriticalSolarPolicy
                     .batchDenseSupercriticalLitres(exampleStock, dimension, coolant, exciter)
                     .multiply(halfHeatPerDenseL);
+                halfHeat = CriticalSolarPolicy.waterHalfHeat(
+                    halfHeat.min(exampleStock.multiply(BigInteger.valueOf(160)))
+                        .multiply(BigInteger.TEN));
                 outputLitres = CriticalSolarPolicy.steamLitres(halfHeat, mode.index);
                 inputLitres = CriticalSolarPolicy.waterLitres(outputLitres, mode.index);
                 heatEU = halfHeat.divide(BigInteger.valueOf(2));

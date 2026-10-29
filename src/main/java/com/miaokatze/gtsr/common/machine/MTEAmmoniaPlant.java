@@ -65,6 +65,7 @@ import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 import gregtech.common.tileentities.machines.outputme.MTEHatchOutputME;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> implements ISurvivalConstructable {
 
     private static final int HEAT_MAX = 10000;

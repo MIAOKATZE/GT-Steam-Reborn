@@ -37,6 +37,7 @@ import gregtech.api.render.TextureFactory;
  * 按 updateInterval 周期向六向输出强红石信号；支持反向（inverted）逻辑。
  * 材质与输出机制同 GT5U pH 传感仓（MTEHatchPHSensor）。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEGTSRRedstoneHatch extends MTEHatch {
 
     /** GT5U 标准词条键（机器词条不存在同名键时补充进下拉列表） */

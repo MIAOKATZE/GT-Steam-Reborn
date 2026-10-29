@@ -65,6 +65,7 @@ import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFurnace>
     implements ISurvivalConstructable {
 

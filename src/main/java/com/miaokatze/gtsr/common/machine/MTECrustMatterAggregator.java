@@ -114,6 +114,7 @@ import gregtech.common.ores.OreManager;
  * H 位（草方块位，36 个）机器工作即每 tick 2 个（恒满浓度，热量机制已删除）。工作标志经
  * getUpdateData/onValueUpdate 字节通道同步（bit0=工作，bit1-6 恒 63）。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTECrustMatterAggregator extends MTESingularityMachineBase implements ISurvivalConstructable {
 
     // Only the 569 replaceable mechanical-casing positions count toward this minimum.

@@ -243,7 +243,7 @@ class CriticalNEIFontRuntime {
                 com.miaokatze.gtsr.common.critical.CriticalSolarPolicy.EXCITERS.get(1));
             var heat=output.multiply(entry.denseSteamLitres).multiply(java.math.BigInteger.valueOf(2500))
                 .divide(entry.hotLitres);
-            var target=new java.math.BigInteger("84375000000000");
+            var target=new java.math.BigInteger("168750000000000");
             var oneLitreLoss=entry.denseSteamLitres.multiply(java.math.BigInteger.valueOf(2500))
                 .add(entry.hotLitres.subtract(java.math.BigInteger.ONE)).divide(entry.hotLitres);
             if(heat.compareTo(target)>0||target.subtract(heat).compareTo(oneLitreLoss)>0)
@@ -302,7 +302,7 @@ class CriticalNEIFontRuntime {
         for(var plasma:profiles) {
             String[] rows=com.miaokatze.gtsr.client.nei.CriticalNEIShowcase.plasmaRows(plasma);
             if(rows.length!=7)throw new AssertionError("Plasma batch requires exactly seven authored rows");
-            if(!rows[6].contains("84.375T"))throw new AssertionError("Plasma heat is not normalized: "+plasma.id+" "+rows[6]);
+            if(!rows[6].contains("168.75T"))throw new AssertionError("Plasma heat is not normalized: "+plasma.id+" "+rows[6]);
             for(int row=0;row<rows.length;row++) {
                 int width=row>=5?139:154;
                 if(font.getStringWidth(rows[row])>width||font.listFormattedStringToWidth(rows[row],width).size()!=1
