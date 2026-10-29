@@ -23,6 +23,7 @@ public final class CriticalLayoutDefinition {
         V27,
         V30,
         V31,
+        V32,
         CURRENT
     }
 
@@ -50,14 +51,15 @@ public final class CriticalLayoutDefinition {
             case V25 -> "v2_v25_";
             case V27 -> "v2_v27_";
             case V30 -> "v2_v30_";
-            case V31, CURRENT -> "v2_";
+            case V31, V32, CURRENT -> "v2_";
         };
         loomSlug = prefix + "loom";
         baseSlug = family == Family.V31 ? "v2_v31_base_t3"
-            : v2 ? prefix + "base_t3"
-                : "base_" + tier.name()
-                    .toLowerCase(Locale.ROOT);
-        frozenPlugins = v2 && family != Family.CURRENT && family != Family.V31;
+            : family == Family.V32 ? "v2_v32_base_t3"
+                : v2 ? prefix + "base_t3"
+                    : "base_" + tier.name()
+                        .toLowerCase(Locale.ROOT);
+        frozenPlugins = v2 && family != Family.CURRENT && family != Family.V31 && family != Family.V32;
         machineSlug = v2
             ? frozenPlugins ? kind == CriticalMachineKind.SOLAR ? "v2_v30_solar" : "v2_v30_sun" : "v2_" + kind.key
             : kind.name()
@@ -84,7 +86,8 @@ public final class CriticalLayoutDefinition {
             : legacy ? Family.LEGACY_V2
                 : revision == 25 ? Family.V25
                     : revision <= 27 ? Family.V27
-                        : revision <= 30 ? Family.V30 : revision == 31 ? Family.V31 : Family.CURRENT;
+                        : revision <= 30 ? Family.V30
+                            : revision == 31 ? Family.V31 : revision == 32 ? Family.V32 : Family.CURRENT;
         boolean optionalPorts = geometryVersion == 2 && revision >= 30;
         String key = family + ":" + tier + ":" + kind + ":" + optionalPorts;
         return DEFINITIONS
@@ -134,7 +137,7 @@ public final class CriticalLayoutDefinition {
         if (isOptionalWorkPort(voxel)) return true;
         if (voxel.model.startsWith("v2_")) {
             // Terrace supplies are paid support casings. The player-owned GT chamber belongs above them.
-            if (isTerraceSupply(voxel)) return false;
+            if (isTerraceSupply(voxel) || isSupplyHullSupply(voxel)) return false;
             if (isController(voxel) || voxel.model.startsWith("v2_plugin_") || voxel.model.startsWith("v2_v30_plugin_"))
                 return false;
             if (isLoom(voxel) && !"v2_legacy_loom".equals(voxel.model)) return voxel.y == 4
@@ -157,14 +160,41 @@ public final class CriticalLayoutDefinition {
     }
 
     public static boolean isOptionalWorkPort(CriticalGeometry.Voxel voxel) {
-        return isTerraceWorkPort(voxel) || "v2_optional_work_port".equals(voxel.model) && voxel.y == 5
-            && voxel.z == 34
-            && voxel.x >= 50
-            && voxel.x <= 62;
+        return isSupplyHullWorkPort(voxel) || isTerraceWorkPort(voxel)
+            || "v2_optional_work_port".equals(voxel.model) && voxel.y == 5
+                && voxel.z == 34
+                && voxel.x >= 50
+                && voxel.x <= 62;
     }
 
     public static boolean isTerraceSupply(CriticalGeometry.Voxel voxel) {
         return "supply_terrace".equals(voxel.group) && "v2_service_hatch".equals(voxel.material);
+    }
+
+    public static boolean isSupplyHullSupply(CriticalGeometry.Voxel voxel) {
+        return "supply_hull_33".equals(voxel.group) && "v2_service_hatch".equals(voxel.material);
+    }
+
+    public static boolean isSupplySupport(CriticalGeometry.Voxel voxel) {
+        return isTerraceSupply(voxel) || isSupplyHullSupply(voxel) || "machine_service_ports".equals(voxel.group);
+    }
+
+    public static boolean isSupplyHullWorkPort(CriticalGeometry.Voxel voxel) {
+        if (!"v2_optional_supply_hull_port".equals(voxel.model)) return false;
+        int half = switch (voxel.y) {
+            case 4 -> 6;
+            case 5 -> 8;
+            case 6 -> 9;
+            default -> -1;
+        };
+        int lo = switch (voxel.y) {
+            case 4 -> 31;
+            case 5 -> 27;
+            case 6 -> 23;
+            default -> -1;
+        };
+        int row = voxel.z - lo, dx = Math.abs(voxel.x - 56);
+        return half > 0 && row >= 0 && row < 3 && dx >= 2 && dx <= half - 1 - (row == 1 ? 0 : 1);
     }
 
     public static boolean isTerraceWorkPort(CriticalGeometry.Voxel voxel) {

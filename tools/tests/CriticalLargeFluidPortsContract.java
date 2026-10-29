@@ -15,6 +15,9 @@ import appeng.util.item.AEFluidStack;
 import appeng.util.item.FluidList;
 import com.miaokatze.gtsr.common.critical.*;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
+import com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalInputME;
+import com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalOutputME;
+import com.miaokatze.gtsr.common.machine.hatch.critical.CriticalMEOutputProvider;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.metatileentity.BaseMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -77,10 +80,12 @@ class CriticalLargeFluidPortsRuntime {
         return proxy;
     }
     static Input input(NetworkProxy proxy) throws Exception {
-        Input hatch=allocate(Input.class); hatch.proxy=proxy; bind(hatch); return hatch;
+        Input hatch=allocate(Input.class); hatch.proxy=proxy;hatch.cap=Long.MAX_VALUE; bind(hatch); return hatch;
     }
     static Output output(NetworkProxy proxy) throws Exception {
-        Output hatch=allocate(Output.class); hatch.proxy=proxy; bind(hatch); return hatch;
+        Output hatch=allocate(Output.class); hatch.proxy=proxy; bind(hatch);
+        hatch.provider=new CriticalMEOutputProvider<>(hatch);
+        return hatch;
     }
     static CriticalEnergyPorts.OutputPlan outputs(MTECriticalMachine host,BigInteger amount) {
         return CriticalEnergyPorts.outputs(host,List.of(new CriticalEnergyPorts.FluidAmount(steam,amount)),new ItemStack[0]);
@@ -111,6 +116,7 @@ class CriticalLargeFluidPortsRuntime {
         check(boiler>10_000_000_000_000L,"full-load actual boiler catalogue exceeds 1e13 litres");
         for(long amount:new long[]{(long)Integer.MAX_VALUE+1,100_000_000_000L,500_000_000_000L,boiler}) roundTrip(amount);
         independentNetworkQuantities();
+        nativeIntBoundary();
         longOutputBoundary();
         inputBoundary();
         ordinaryOutputCapacity();
@@ -125,27 +131,43 @@ class CriticalLargeFluidPortsRuntime {
         MTECriticalMachine host=machine();
         FiniteMonitor source=new FiniteMonitor(amount,amount),sink=new FiniteMonitor(0,amount);
         NetworkProxy src=network(source),dst=network(sink);
-        // Duplicate native hatches and duplicate config slots still refer to one finite inventory.
-        Input a=input(src),a2=input(src); Output z=output(dst),z2=output(dst);
+        Input a=input(src),a2=input(src); Output z=output(dst);
         set(host,"mInputHatches",new ArrayList<>(List.of(a,a,a2)));
-        set(host,"mOutputHatches",new ArrayList<>(List.of(z,z,z2)));
+        set(host,"mOutputHatches",new ArrayList<>(List.of(z,z)));
         var snapshot=CriticalEnergyPorts.snapshot(host);
-        check(snapshot.size()==1&&CriticalEnergyPorts.total(snapshot,steam).equals(b(amount)),"finite ME snapshot long and identity dedup "+amount);
-        var quantities=CriticalEnergyPorts.quantities(snapshot,true);
-        check(quantities.size()==1&&quantities.get(0).amount.equals(b(amount)),
-            "terminal quantity shares the exact deduplicated payment snapshot "+amount);
+        check(snapshot.size()==1&&CriticalEnergyPorts.total(snapshot,steam).equals(b(amount)),"critical long snapshot and network identity dedup "+amount);
+        check(CriticalEnergyPorts.quantities(snapshot,true).get(0).amount.equals(b(amount)),"UI shares payment long stock "+amount);
         var debits=CriticalEnergyPorts.take(snapshot,steam,b(amount));
-        check(CriticalEnergyPorts.canDebit(debits)&&source.stock==amount,"large debit simulate preserves exact stock "+amount);
+        check(CriticalEnergyPorts.canDebit(debits)&&source.stock==amount,"long simulation preserves stock "+amount);
         var plan=outputs(host,b(amount));
-        check(plan!=null&&sink.stock==0&&sink.injectSimulations==1,"output simulate long and monitor dedup "+amount);
+        check(plan!=null&&z.provider.getCachedAmount()==0&&sink.injectSimulations==0,"output reserves hatch-owned cache without network probe "+amount);
         BigInteger[] journal={BigInteger.ZERO};
         var paid=CriticalEnergyPorts.debitConfirmed(debits,(d,n)->journal[0]=journal[0].add(b(n)));
-        check(paid.complete&&!paid.uncertain&&paid.confirmedLitres.equals(b(amount))&&journal[0].equals(b(amount))
-            &&source.stock==0&&source.extractCommits==1,"actual Platform powered extraction and confirmed long receipt "+amount);
+        check(paid.complete&&!paid.uncertain&&journal[0].equals(b(amount))&&source.stock==0&&source.extractCommits==1,
+            "critical hatch owns exact powered long extraction and confirmed receipt "+amount);
         plan.commit();
-        check(sink.stock==amount&&sink.injectCommits==1,"ME output long commit without truncation "+amount);
-        // Same monitor cannot promise its capacity twice through two ME output hatches.
-        check(outputs(host,b(1))==null&&sink.stock==amount&&sink.injectCommits==1,"full finite monitor refuses without commit "+amount);
+        check(z.provider.getCachedAmount()==amount&&sink.stock==0&&sink.injectCommits==0,"commit enters authoritative hatch cache, not AE monitor "+amount);
+    }
+    static void nativeIntBoundary() throws Exception {
+        MTECriticalMachine host=machine();
+        FiniteMonitor source=new FiniteMonitor(100_000_000_000L,100_000_000_000L);
+        NetworkProxy proxy=network(source);
+        NativeInput nativeView=allocate(NativeInput.class); nativeView.proxy=proxy;bind(nativeView);
+        set(host,"mInputHatches",new ArrayList<>(List.of(nativeView,nativeView)));
+        var snapshot=CriticalEnergyPorts.snapshot(host);
+        check(CriticalEnergyPorts.total(snapshot,steam).equals(b(Integer.MAX_VALUE)),"ordinary ME exposes native int view despite 100G network");
+        var paid=CriticalEnergyPorts.debitConfirmed(CriticalEnergyPorts.take(snapshot,steam,b(Integer.MAX_VALUE)),(d,n)->{});
+        check(paid.complete&&source.stock==100_000_000_000L-Integer.MAX_VALUE&&nativeView.drains==1,"ordinary ME debit goes through native int drain once");
+        Input critical=input(proxy);critical.cap=100_000_000_000L;
+        set(host,"mInputHatches",new ArrayList<>(List.of(nativeView,critical,critical)));
+        check(CriticalEnergyPorts.total(CriticalEnergyPorts.snapshot(host),steam).equals(b(source.stock)),"mixed ordinary and critical same network stock counts once");
+        critical.cap=17;
+        set(host,"mInputHatches",new ArrayList<>(List.of(critical,critical)));
+        check(CriticalEnergyPorts.total(CriticalEnergyPorts.snapshot(host),steam).equals(b(17)),"critical per-slot configured cap respected and duplicate slots not additive");
+        var debits=CriticalEnergyPorts.take(CriticalEnergyPorts.snapshot(host),steam,b(17));
+        source.stock=16;
+        var shortage=CriticalEnergyPorts.debitConfirmed(debits,(d,n)->{throw new AssertionError("shortage must pay zero");});
+        check(!shortage.complete&&!shortage.uncertain&&source.stock==16,"changed critical stock refuses complete request without loss");
     }
     static void independentNetworkQuantities() throws Exception {
         MTECriticalMachine host=machine();
@@ -176,40 +198,39 @@ class CriticalLargeFluidPortsRuntime {
         steam=new FluidStack(plasma,1);
         try {
             FiniteMonitor sink=new FiniteMonitor(0,500_000_000_000L);
-            set(host,"mOutputHatches",new ArrayList<>(List.of(output(network(sink)))));
+            Output hatch=output(network(sink));
+            set(host,"mOutputHatches",new ArrayList<>(List.of(hatch)));
             long emitted=host.criticalStellarPowerPort().emitHeliumPlasma(500_000_000_000L);
-            check(emitted==500_000_000_000L&&sink.stock==emitted,
+            check(emitted==500_000_000_000L&&hatch.provider.getCachedAmount()==emitted&&sink.stock==0,
                 "stellar long pending-plasma output no longer stops at Integer.MAX_VALUE");
         } finally { steam=previous; }
     }
     static void longOutputBoundary() throws Exception {
         MTECriticalMachine host=machine(); FiniteMonitor sink=new FiniteMonitor(0,Long.MAX_VALUE);
-        NetworkProxy dst=network(sink);
-        set(host,"mOutputHatches",new ArrayList<>(List.of(output(dst),output(dst))));
-        check(outputs(host,b(Long.MAX_VALUE).add(BigInteger.ONE))==null&&sink.stock==0&&sink.injectCommits==0,
-            "one duplicated monitor cannot cover Long.MAX_VALUE+1 or silently wrap");
+        Output hatch=output(network(sink));
+        set(host,"mOutputHatches",new ArrayList<>(List.of(hatch,hatch)));
+        check(outputs(host,b(Long.MAX_VALUE).add(BigInteger.ONE))==null&&hatch.provider.getCachedAmount()==0,"duplicate hatch cannot reserve Long.MAX_VALUE+1");
         var plan=outputs(host,b(Long.MAX_VALUE));
-        check(plan!=null&&sink.stock==0,"Long.MAX_VALUE output simulates exactly");
+        check(plan!=null&&hatch.provider.getCachedAmount()==0,"Long.MAX_VALUE cache reservation is exact and unchanged");
         plan.commit();
-        check(sink.stock==Long.MAX_VALUE,"Long.MAX_VALUE output commits exactly");
-        sink.stock=0;sink.refuse=true;
-        check(outputs(host,b((long)Integer.MAX_VALUE+1))==null&&sink.injectCommits==1,"explicit monitor refusal never commits");
-        sink.refuse=false; plan=outputs(host,b((long)Integer.MAX_VALUE+1)); sink.refuse=true;
-        boolean rejected=false;
-        try { plan.commit(); } catch(IllegalStateException changed) { rejected=true; }
-        check(rejected&&sink.stock==0,"changed monitor rejection is explicit, never a successful silent truncation");
+        check(hatch.provider.getCachedAmount()==Long.MAX_VALUE&&sink.stock==0,"Long.MAX_VALUE enters cache without network injection");
+        check(outputs(host,b(1))==null&&hatch.provider.getCachedAmount()==Long.MAX_VALUE,"full cache blocks new batch without loss");
+        Output second=output(network(sink));set(host,"mOutputHatches",new ArrayList<>(List.of(hatch,second,second)));
+        var split=outputs(host,b(23));check(split!=null,"another entity cache provides independent capacity on same network");split.commit();
+        check(second.provider.getCachedAmount()==23&&sink.stock==0,"same network separate output hatch caches are independent physical storage");
+        Output multi=output(network(sink));set(host,"mOutputHatches",new ArrayList<>(List.of(multi)));
+        Fluid other=new Fluid("gtsr_long_other");FluidRegistry.registerFluid(other);
+        var impossible=CriticalEnergyPorts.outputs(host,List.of(new CriticalEnergyPorts.FluidAmount(steam,b(Long.MAX_VALUE)),
+            new CriticalEnergyPorts.FluidAmount(new FluidStack(other,1),b(1))),new ItemStack[0]);
+        check(impossible==null&&multi.provider.getCachedAmount()==0,"multi-fluid reservation shares one long capacity and rejection writes nothing");
     }
     static void inputBoundary() throws Exception {
         MTECriticalMachine host=machine(); FiniteMonitor source=new FiniteMonitor(Long.MAX_VALUE,Long.MAX_VALUE);
-        NetworkProxy src=network(source); set(host,"mInputHatches",new ArrayList<>(List.of(input(src))));
+        set(host,"mInputHatches",new ArrayList<>(List.of(input(network(source)))));
         var snapshot=CriticalEnergyPorts.snapshot(host);
-        check(CriticalEnergyPorts.total(snapshot,steam).equals(b(Long.MAX_VALUE)),"input snapshot retains Long.MAX_VALUE");
-        var debits=CriticalEnergyPorts.take(snapshot,steam,b(Long.MAX_VALUE));
-        check(CriticalEnergyPorts.canDebit(debits),"Long.MAX_VALUE raw monitor simulation retains long");
-        var paid=CriticalEnergyPorts.debitConfirmed(debits,(d,n)->{throw new AssertionError("no confirmed extraction expected");});
-        check(!paid.complete&&paid.uncertain&&paid.confirmedLitres.signum()==0&&source.stock==Long.MAX_VALUE
-            &&source.extractCommits==0,"AE1080 ceilDiv overflow is contained as uncertain, zero debit, no false long success");
-        check(appeng.util.Platform.ceilDiv(Long.MAX_VALUE-1000,1000)>0,"upstream energy ceilDiv safe arithmetic boundary");
+        check(CriticalEnergyPorts.total(snapshot,steam).equals(b(Long.MAX_VALUE)),"critical source retains Long.MAX_VALUE");
+        var paid=CriticalEnergyPorts.debitConfirmed(CriticalEnergyPorts.take(snapshot,steam,b(Long.MAX_VALUE)),(d,n)->{});
+        check(paid.complete&&!paid.uncertain&&source.stock==0&&source.extractCommits==1,"overflow-free hatch powered extraction supports Long.MAX_VALUE");
     }
     static void ordinaryOutputCapacity() throws Exception {
         MTECriticalMachine host=machine(); Standard a=allocate(Standard.class),z=allocate(Standard.class);
@@ -305,27 +326,51 @@ class CriticalLargeFluidPortsRuntime {
             }
         }
     }
-    static final class Tile extends BaseMetaTileEntity { @Override public void markDirty() {} }
+    static final class Tile extends BaseMetaTileEntity {
+        @Override public void markDirty() {}
+        @Override public boolean isAllowedToWork(){return true;}
+    }
     static final class NetworkProxy extends AENetworkProxy {
         IStorageGrid storage;IEnergyGrid energy;double energyRemaining;
         private NetworkProxy(){super(null,"detached",null,false);}
         @Override public IStorageGrid getStorage(){return storage;}
         @Override public IEnergyGrid getEnergy(){return energy;}
+        @Override public boolean isActive(){return true;}
     }
-    static final class Input extends MTEHatchInputME {
-        NetworkProxy proxy;
-        private Input(){super("detached",false,9,new String[0],new ITexture[0][][]);}
+    static final class Input extends MTEHatchCriticalInputME {
+        NetworkProxy proxy;long cap=Long.MAX_VALUE;
+        private Input(){super("detached",9,new String[0],new ITexture[0][][]);}
+        @Override public long getLongSlotLimit(int slot){return cap;}
         @Override public boolean isValid(){return true;}
         @Override public boolean isAllowedToWork(){return true;}
         @Override public AENetworkProxy getProxy(){return proxy;}
         @Override public FluidStack getSlotConfig(int slot){return slot<2?steam.copy():null;}
     }
-    static final class Output extends MTEHatchOutputME {
-        NetworkProxy proxy;
+    static final class NativeInput extends MTEHatchInputME {
+        NetworkProxy proxy;int drains;
+        private NativeInput(){super("detached",false,9,new String[0],new ITexture[0][][]);}
+        @Override public boolean isValid(){return true;}
+        @Override public boolean isAllowedToWork(){return true;}
+        @Override public AENetworkProxy getProxy(){return proxy;}
+        @Override public FluidTankInfo[] getTankInfo(net.minecraftforge.common.util.ForgeDirection side){
+            IAEFluidStack request=AEFluidStack.create(steam);request.setStackSize(Integer.MAX_VALUE);
+            IAEFluidStack actual=proxy.storage.getFluidInventory().extractItems(request,Actionable.SIMULATE,null);
+            return actual==null?new FluidTankInfo[0]:new FluidTankInfo[]{new FluidTankInfo(actual.getFluidStack(),Integer.MAX_VALUE)};
+        }
+        @Override public FluidStack drain(net.minecraftforge.common.util.ForgeDirection side,FluidStack request,boolean commit){
+            if(commit)drains++;
+            IAEFluidStack actual=proxy.storage.getFluidInventory().extractItems(AEFluidStack.create(request),commit?Actionable.MODULATE:Actionable.SIMULATE,null);
+            return actual==null?null:actual.getFluidStack();
+        }
+    }
+    static final class Output extends MTEHatchCriticalOutputME {
+        NetworkProxy proxy; CriticalMEOutputProvider<IAEFluidStack> provider;
         private Output(){super("detached",9,new String[0],new ITexture[0][][]);}
         @Override public boolean isValid(){return true;}
         @Override public AENetworkProxy getProxy(){return proxy;}
-        @Override public boolean canStoreFluid(FluidStack fluid){return fluid.isFluidEqual(steam);}
+        @Override public CriticalMEOutputProvider<IAEFluidStack> getProvider(){return provider;}
+        @Override public ItemStack getCellStack(){return null;}
+        @Override public void dispatchMarkDirty(){}
     }
     static final class PhysicalInputBus extends gregtech.api.metatileentity.implementations.MTEHatchInputBus {
         private PhysicalInputBus(){super("detached",1,new String[0],new ITexture[0][][]);}

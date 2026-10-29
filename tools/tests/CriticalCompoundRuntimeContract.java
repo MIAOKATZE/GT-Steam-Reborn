@@ -78,7 +78,7 @@ class CriticalCompoundRuntime {
         set(host,"mDualInputHatches",new ArrayList<>());
         set(host,"mOutputHatches",new ArrayList<>());
         set(host,"mOutputBusses",new ArrayList<>());
-        FakeHatch liquid=hatch(unsafe,tile,premium.fluid,40),gaseous=hatch(unsafe,tile,gas.fluid,60);
+        FakeHatch liquid=hatch(unsafe,tile,premium.fluid,40),gaseous=hatch(unsafe,tile,gas.fluid,40);
         FakeHatch diluent=hatch(unsafe,tile,new FluidStack(unknown,1),100),extraFuel=hatch(unsafe,tile,extra.fluid,10);
         Method start=CriticalEnergyRuntime.class.getDeclaredMethod("startChemical",CriticalMachineState.class,
             MTECriticalMachine.class,NBTTagCompound.class);start.setAccessible(true);
@@ -96,7 +96,7 @@ class CriticalCompoundRuntime {
         check(expected!=null&&expected.evaluation.eligible,"native-identity compound available");
         liquid.limit=7;
         check(!(boolean)start.invoke(null,state,host,state.n)&&!state.n.getBoolean("funded")
-            &&!state.n.getBoolean("uncertain")&&liquid.stock==33&&gaseous.stock==60,
+            &&!state.n.getBoolean("uncertain")&&liquid.stock==33&&gaseous.stock==40,
             "short charge retains receipts and cannot fund partial composition");
         NBTTagList journal=state.n.getTagList("chemicalCompoundPayment",10);
         check(journal.getCompoundTagAt(0).getString("confirmedLitres").equals("7")
@@ -106,8 +106,8 @@ class CriticalCompoundRuntime {
         check((boolean)start.invoke(null,state,host,state.n)&&state.n.getBoolean("funded")
             &&liquid.stock==0&&gaseous.stock==0&&diluent.stock==0&&extraFuel.stock==0,
             "NBT-restored receipt takes only missing litres and consumes all diluents/extra fuel");
-        check(state.n.getString("chemicalBatchHeat").equals("173000")
-            &&state.n.getString("chemicalBatchLitres").equals("210")
+        check(state.n.getString("chemicalBatchHeat").equals("149000")
+            &&state.n.getString("chemicalBatchLitres").equals("190")
             &&new BigInteger(state.n.getString("eu")).equals(expected.evaluation.generatedEU),
             "all recognized native heat uses exact whole-snapshot proportion");
         check(!state.n.hasKey("chemicalCompoundPayment")&&state.n.getInteger("chemicalBatchRule")==5
@@ -120,17 +120,17 @@ class CriticalCompoundRuntime {
             .subtract(before).equals(expected.evaluation.generatedEU),"real GT wireless account receives actual paid EU");
         check(!state.n.hasKey("chemicalEUNumerator")&&!state.n.hasKey("chemicalEUDenominator"),
             "final settlement floors once without an unbounded persistent rational denominator");
-        state.n=new NBTTagCompound();liquid.stock=4000000;gaseous.stock=6000000;
+        state.n=new NBTTagCompound();liquid.stock=4000000;gaseous.stock=4000000;
         set(host,"mInputHatches",new ArrayList<>(List.of(liquid,gaseous)));
         check((boolean)start.invoke(null,state,host,state.n)&&liquid.stock==0&&gaseous.stock==0
-            &&new BigInteger(state.n.getString("chemicalBatchHeat")).equals(b(17200000000L)),
+            &&new BigInteger(state.n.getString("chemicalBatchHeat")).equals(b(14800000000L)),
             "stock above former heat cap is fully paid without cap");
-        state.n=new NBTTagCompound();liquid.stock=40;gaseous.stock=60;gaseous.throwDrain=true;
+        state.n=new NBTTagCompound();liquid.stock=40;gaseous.stock=40;gaseous.throwDrain=true;
         check(!(boolean)start.invoke(null,state,host,state.n)&&state.n.getBoolean("uncertain")
-            &&liquid.stock==0&&gaseous.stock==60&&state.n.hasKey("chemicalDebitIntent"),
+            &&liquid.stock==0&&gaseous.stock==40&&state.n.hasKey("chemicalDebitIntent"),
             "later source exception locks confirmed prefix and debit intent");
         state.n=(NBTTagCompound)state.n.copy();gaseous.throwDrain=false;CriticalEnergyRuntime.tick(state,host);
-        check(gaseous.stock==60&&!state.n.getBoolean("funded"),"uncertain payment never retries after reload");
+        check(gaseous.stock==40&&!state.n.getBoolean("funded"),"uncertain payment never retries after reload");
         BigInteger huge=BigInteger.TEN.pow(60);before=gregtech.common.misc.WirelessNetworkManager.getUserEU(owner);
         state.n=new NBTTagCompound();state.n.setInteger("chemicalSchema",2);state.n.setInteger("chemicalBatchRule",2);
         state.n.setBoolean("funded",true);state.n.setInteger("progress",399);
@@ -138,6 +138,7 @@ class CriticalCompoundRuntime {
         check(gregtech.common.misc.WirelessNetworkManager.getUserEU(owner).subtract(before).equals(huge),
             "old schema2 funded EU stays frozen and GT wireless preserves 10^60 EU");
         migrationPolicies(unsafe,state,host,tile,start,owner);
+        strictProportions(unsafe,state,host,tile,start,circuitItem);
         state.n=new NBTTagCompound();state.n.setInteger("chemicalSchema",1);
         state.n.setString("chemicalEscrowOwner",owner.toString());
         NBTTagCompound legacy=premium.fluid.writeToNBT(new NBTTagCompound());
@@ -258,12 +259,16 @@ class CriticalCompoundRuntime {
             amounts=volumes(recipe,37);
             var first=gregtech.api.util.GTUtility.FluidId.create(recipe.components.get(0).fuel.fluid);
             amounts.put(first,amounts.get(first).add(BigInteger.ONE));
-            var expected=CriticalChemicalRecipes.best(fuels,amounts,size);bus.mInventory[0]=new ItemStack(circuitItem,1,size);
-            state.n=new NBTTagCompound();state.n.setInteger("chemicalSchema",2);
-            hatches=recipeHatches(unsafe,tile,recipe,amounts);hatches.get(0).limit=5;set(host,"mInputHatches",hatches);
+            var expected=CriticalChemicalRecipes.matchExact(fuels,amounts,size,recipe.id);bus.mInventory[0]=new ItemStack(circuitItem,1,size);
+            state.n=new NBTTagCompound();state.n.setInteger("chemicalSchema",5);
+            state.n.setInteger("chemicalPaymentPolicy",5);state.n.setInteger("chemicalPaymentCircuit",size);
+            state.n.setString("chemicalPaymentRecipe",recipe.id);state.n.setString("chemicalEscrowOwner",owner.toString());
+            NBTTagList oldPayment=payment(recipe,amounts);oldPayment.getCompoundTagAt(0).setString("confirmedLitres","1");
+            state.n.setTag("chemicalCompoundPayment",oldPayment);
+            hatches=recipeHatches(unsafe,tile,recipe,amounts);hatches.get(0).stock--;hatches.get(0).limit=5;set(host,"mInputHatches",hatches);
             check(!(boolean)start.invoke(null,state,host,state.n)&&state.n.getInteger("chemicalPaymentPolicy")==5
                 &&state.n.getInteger("chemicalPaymentCircuit")==size&&state.n.getString("chemicalPaymentRecipe").equals(expected.recipe.id)
-                &&state.n.getTagList("chemicalCompoundPayment",10).tagCount()==size,"selector and recipe freeze before debit "+size);
+                &&state.n.getTagList("chemicalCompoundPayment",10).tagCount()==size,"old off-ratio v5 payment keeps its frozen selection "+size);
             int remaining=hatches.get(0).stock;String recipeId=state.n.getString("chemicalPaymentRecipe");
             NBTTagCompound saved=reload(state.n);state.n.setString("chemicalEscrowOwner",UUID.randomUUID().toString());
             check(!(boolean)start.invoke(null,state,host,state.n)&&hatches.get(0).stock==remaining,"owner protects pending stock "+size);
@@ -282,6 +287,46 @@ class CriticalCompoundRuntime {
             state.n=reload(state.n);state.n.setInteger("progress",399);CriticalEnergyRuntime.tick(state,host);
             check(gregtech.common.misc.WirelessNetworkManager.getUserEU(owner).subtract(before).equals(expected.evaluation.generatedEU),
                 "funded group delivers exact once-floored EU "+size);
+        }
+        bus.mInventory[0]=new ItemStack(circuitItem,1,2);
+    }
+
+    static void strictProportions(sun.misc.Unsafe unsafe,FakeState state,MTECriticalMachine host,
+        IGregTechTileEntity tile,Method start,Item circuitItem)throws Exception {
+        var fuels=CriticalGTRecipes.chemicalFuels();
+        FakeBus bus=bus(unsafe,circuitItem,2);set(host,"mInputBusses",new ArrayList<>(List.of(bus)));
+        for(int size=2;size<=9;size++) {
+            final int group=size;
+            var recipe=CriticalChemicalRecipes.catalog(fuels).stream().filter(r->r.selectorCircuit==group).findFirst().orElseThrow();
+            bus.mInventory[0]=new ItemStack(circuitItem,1,size);
+            var amounts=volumes(recipe,37);
+            var first=gregtech.api.util.GTUtility.FluidId.create(recipe.components.get(0).fuel.fluid);
+            amounts.put(first,amounts.get(first).add(BigInteger.ONE));
+            var mismatched=amounts;
+            var hatches=recipeHatches(unsafe,tile,recipe,amounts);set(host,"mInputHatches",hatches);
+            state.n=new NBTTagCompound();state.message="";
+            check(!(boolean)start.invoke(null,state,host,state.n)&&!state.n.hasKey("chemicalCompoundPayment")
+                &&!state.n.hasKey("chemicalDebitIntent")&&!state.n.getBoolean("uncertain")
+                &&state.message.contains("配比不符")&&hatches.stream().allMatch(h->h.stock==mismatched.get(
+                    gregtech.api.util.GTUtility.FluidId.create(h.fluid)).intValueExact()),
+                "off-ratio input rejects before any journal or debit "+size);
+            amounts=volumes(recipe,1);
+            int gcd=0;for(var part:recipe.components)gcd=BigInteger.valueOf(gcd).gcd(b(part.ratio)).intValueExact();
+            for(var id:amounts.keySet())amounts.put(id,amounts.get(id).divide(b(gcd)));
+            hatches=recipeHatches(unsafe,tile,recipe,amounts);
+            // Spread a component across physical hatches: validation uses their aggregate, not per-hatch ratios.
+            if(hatches.get(0).stock>1) {
+                hatches.get(0).stock--;hatches.add(hatch(unsafe,tile,hatches.get(0).fluid,1));
+            }
+            set(host,"mInputHatches",hatches);state.n=new NBTTagCompound();
+            check((boolean)start.invoke(null,state,host,state.n)&&state.n.getBoolean("funded")
+                &&hatches.stream().allMatch(h->h.stock==0)&&bus.mInventory[0].stackSize==1,
+                "minimum integral ratio and split input hatches fund without a batch floor "+size);
+            var huge=volumes(recipe,1);BigInteger scale=BigInteger.TEN.pow(80);
+            for(var id:huge.keySet())huge.put(id,huge.get(id).multiply(scale));
+            check(CriticalChemicalRecipes.best(fuels,huge,size)!=null,"exact proportion accepts beyond-long totals "+size);
+            huge.put(first,huge.get(first).add(BigInteger.ONE));
+            check(CriticalChemicalRecipes.best(fuels,huge,size)==null,"one-litre deviation beyond double precision rejects "+size);
         }
         bus.mInventory[0]=new ItemStack(circuitItem,1,2);
     }
@@ -384,12 +429,12 @@ class CriticalCompoundRuntime {
         }
     }
     static class FakeState extends CriticalMachineState {
-        NBTTagCompound n;
+        NBTTagCompound n;String message;
         @Override public CriticalMachineKind getMachineKind(){return CriticalMachineKind.BATTERY;}
         @Override public NBTTagCompound energyRuntimeData(){return n;}
         @Override public void markDirty(){}
         @Override public boolean fail(String message){System.out.println("STATE "+message);return false;}
-        @Override public void setRuntimeBatch(int p,int d,long e,String message){}
+        @Override public void setRuntimeBatch(int p,int d,long e,String message){this.message=message;}
     }
     static class ClockWorld extends World {
         ClockWorld(){super(null,"unused",(WorldProvider)null,null,null);}

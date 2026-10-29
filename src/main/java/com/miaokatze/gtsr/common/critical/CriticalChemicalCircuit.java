@@ -27,7 +27,7 @@ public final class CriticalChemicalCircuit {
         Set<MTEHatchInputBus> seen = Collections.newSetFromMap(new IdentityHashMap<MTEHatchInputBus, Boolean>());
         for (MTEHatchInputBus bus : busses) {
             if (bus == null || !bus.isValid() || !seen.add(bus) || bus instanceof MTEHatchInputBusDebug) continue;
-            if (bus.getClass() == MTEHatchInputBusME.class) {
+            if (bus instanceof MTEHatchInputBusME) {
                 // GT205's dedicated circuit slot is a zero-size config; the manual slot holds real items.
                 // Read those two native slots directly, never slots[].config or virtual getStackInSlot.
                 MTEHatchInputBusME me = (MTEHatchInputBusME) bus;

@@ -3963,7 +3963,7 @@ gtsr.critical.v2.region=The 112 by 112, 180-high region can start at any coordin
 gtsr.critical.v2.controllers=The loom and commissioned main are real GT controllers at Y=4 with opposite fronts; hatches cannot replace them.
 gtsr.critical.v2.ports=Standard GT hatches fit only the declared construction and operating ports below.
 gtsr.critical.v2.loom_ports=Loom casing ring at Y=4 accepts optional item/fluid inputs and outputs, normal or multi-amp energy; no dynamo or maintenance hatch. Costs still apply; controllers and rails cannot be replaced.
-gtsr.critical.v2.main_ports=43 optional main operating ports: the original 13 plus 6 on each of five rear terraces. Install supported GT chambers, including dynamos, above the Critical Structure Supply Hatches, or leave air. No maintenance hatch required; do not replace the supply casings. Existing jobs retain their original ports.
+gtsr.critical.v2.main_ports=90 optional main operating ports: three rows on each of three levels, with 20/32/38 ports. Install supported GT chambers, including dynamos, above the Critical Structure Supply Hatches behind the machine, or leave air. No maintenance hatch required; do not replace the supplies. Legacy chambers and inventory retain their old interfaces until moved; legacy hull updates charge no new materials.
 
 # Critical functional energy backends
 item.IrradiatedMoonDust.name=Irradiated Moon Dust
@@ -4147,11 +4147,11 @@ gtsr.critical.operation.solar.energy=Energy: no EU input; steam heat excludes ge
 gtsr.critical.operation.solar.efficiency=Output: inventory and the saturation formula on the controller determine batch heat; all six steam forms carry the same raw heat.
 gtsr.critical.operation.solar.output=Output: selected steam or equal-volume hot salt. Salt is calibrated at twice the water-route yield through the LHE superheated line; native GG supercritical bonuses remain.
 gtsr.critical.operation.solar.night=Dimension: main power on maintains moonless eternal night; a second boiler cannot operate in the same dimension.
-gtsr.critical.operation.battery.input=Inputs: mix the 2-9 fluids in an NEI recipe using its example litre ratios.
+gtsr.critical.operation.battery.input=Inputs: the selected NEI recipe's 2-9 fluids must match its exact litre ratios; a mismatch prevents starting and consumes nothing.
 gtsr.critical.operation.battery.cycle=Reaction time: 20 seconds (400 ticks), without overclocking.
 gtsr.critical.operation.battery.parallel=Blend: circuit 2-9 in the input bus selects the component count; follow NEI proportions with any total volume.
 gtsr.critical.operation.battery.energy=Heat: total base heat of actually paid fuel; unrecognized non-fuels contribute zero heat.
-gtsr.critical.operation.battery.efficiency=Efficiency: x1 to x100, including proportion deviation and dilution by extra fuel.
+gtsr.critical.operation.battery.efficiency=Efficiency: x1 to x100; recipe components must be proportional, while extra fluids still dilute efficiency.
 gtsr.critical.operation.battery.output=Output: generated EU credits the real GT host owner's team network. No byproducts.
 gtsr.critical.operation.turbine.input=Inputs: normal, superheated and supercritical steam, plus their three dense counterparts, in real input hatches.
 gtsr.critical.operation.turbine.cycle=Cycle: 20 seconds (400 ticks), using the mega turbine's full overlimit steam-to-water cascade.
@@ -4648,7 +4648,7 @@ gtsr.critical.tooltip.native.sun.example=Example: native §e20 s, 1,000,000 EU/t
 gtsr.critical.tooltip.native.sun.limits=Supports native voltage ≤§5§nUEV§r§7 and fusion threshold ≤§e20,480,000,000 EU
 gtsr.critical.tooltip.native.sun.switch=Changing recipes while hot requires no new ignition
 gtsr.critical.tooltip.native.battery.purpose=Increases EU yield using fuel §bidentities and volume proportions
-gtsr.critical.tooltip.native.battery.input=Each batch consumes all input fluids; supply all §b2-9 components§7 of the selected recipe
+gtsr.critical.tooltip.native.battery.input=Each batch consumes all input fluids; its §b2-9 components must match exact ratios§7 or no batch starts or consumes fluids
 gtsr.critical.tooltip.native.battery.output=Generated EU enters the controller owner's team §ewireless network
 gtsr.critical.tooltip.native.battery.compounds=Place non-consumed §ecircuit 2-9§7 in an input bus to choose component count; §e1024 recipes§7 in NEI
 gtsr.critical.tooltip.native.battery.efficiency=Actual heat multiplier = §a1 + (NEI peak multiplier - 1) x q²§7, up to §ax100
@@ -4751,15 +4751,16 @@ gtsr.critical.solar.exciter.helium_gas=Helium Gas
 gtsr.critical.solar.exciter.none=Legacy prepaid batch
 gtsr.critical.tooltip.native.structure.loom_ports=Loom ports: Y=4 casing ring, item/fluid input/output and energy hatches; controllers and internal rails cannot be replaced
 gtsr.critical.tooltip.native.structure.main_ports=Main hatches: above the §eCritical Structure Supply Hatches§r behind the machine
-gtsr.critical.view.terrace.progress=Compatible casing extension:
-gtsr.critical.view.terrace.blocked=Casing extension needs empty space at:
-gtsr.critical.view.terrace.unloaded=Casing extension awaits chunk at:
-gtsr.critical.view.terrace.permission=Casing extension cannot place at:
+gtsr.critical.view.terrace.progress=Supply hull update:
+gtsr.critical.view.terrace.blocked=Supply update needs empty space at:
+gtsr.critical.view.terrace.unloaded=Supply update awaits chunk at:
+gtsr.critical.view.terrace.permission=Supply update cannot edit at:
+gtsr.critical.view.terrace.move_hatch=Move legacy chamber; inventory and interface retained:
 gtsr.critical.tooltip.native.structure.hatches=Hatches are optional and fit only the positions above; no maintenance hatch is needed. Construction uses the loom; production uses the main machine
 gtsr.critical.nei.simple.build.time.cell=%ss/cell
 gtsr.critical.tooltip.native.turbine.generation=Batch EU = §6sum(steam litres x base EU/L) x starting efficiency / 100
 gtsr.critical.tooltip.native.sun.power=Fusion EU/t = §cnative EU/t x parallels x remaining fraction§7; upkeep is additional
-gtsr.critical.tooltip.native.battery.quality=Proportion quality §eq§7 = minimum of each component's (§bactual L / total L / NEI target fraction§7)
+gtsr.critical.tooltip.native.battery.quality=Recipe components must be proportional; dilution factor §eq§7 = §brecipe component L / all input L
 gtsr.critical.tooltip.native.battery.example=Example: circuit §e2§7 with only §bdiesel : light fuel = 2 : 3§7 gives §ax2§7: §61,000 base EU§7 yields §e2,000 EU
 gtsr.critical.tooltip.native.turbine.load=Warm-up base heat load = §6batch steam base heat / 400 EU/t
 gtsr.critical.view.part.base=Base
@@ -4788,7 +4789,7 @@ gtsr.critical.nei.showcase.solar.heat=Equivalent heat is EU fully released throu
 gtsr.critical.nei.showcase.solar.salt_supercritical=The main row uses the Extreme Heat Exchanger supercritical line: this example yields 225T EU of equivalent heat.
 gtsr.critical.nei.showcase.solar.salt_superheated=The superheated line yields 135T EU of equivalent heat in this example.
 gtsr.critical.nei.showcase.solar.salt_media=Coolant and exciter use fixed rates; 20 seconds are deducted at batch start.
-gtsr.critical.tooltip.native.structure.main_ports_span=Original 13 ports retained; 6 extra per terrace across 5 levels: 43 total; §cdo not replace the supply casings below§r
+gtsr.critical.tooltip.native.structure.main_ports_span=Three rows per level across 3 levels: 20/32/38 ports, 90 total; §cdo not replace the supply casings below§r
 
 # Terminal construction and production controls
 gtsr.critical.ui.tab.engineering=Engineering
@@ -4856,3 +4857,14 @@ gtsr.critical.ui.runtime.next.runtime.sun.production_paused=Keep supplying susta
 gtsr.critical.ui.runtime.next.runtime.sun.waiting_recipe=Supply the required fusion inputs to the main machine.
 gtsr.critical.ui.runtime.next.runtime.not_built=Complete the main structure using the Mimetic Loom.
 gtsr.critical.power=Power switch
+
+gt.blockmachines.gtsr.critical.me.input_hatch.name=Critical Stocking Input Hatch (ME)
+gt.blockmachines.gtsr.critical.me.input_bus.name=Critical Stocking Input Bus (ME)
+gt.blockmachines.gtsr.critical.me.output_hatch.name=Critical Output Hatch (ME)
+gt.blockmachines.gtsr.critical.me.output_bus.name=Critical Output Bus (ME)
+gtsr.critical.me.input.desc=Critical machines consume ME materials up to each slot's limit\nPer-slot limit: 0–9,223,372,036,854,775,807\nSupports native ME input for ordinary machines
+gtsr.critical.me.output_hatch.desc=ME output hatch compatible with ordinary machines\nTrue long-integer output buffer\nTotal buffer capacity: 9,223,372,036,854,775,807\nBuffers output while ME is offline; exports automatically when connected
+gtsr.critical.me.output_bus.desc=ME output bus compatible with ordinary machines\nTrue long-integer output buffer\nTotal buffer capacity: 9,223,372,036,854,775,807\nBuffers output while ME is offline; exports automatically when connected
+gtsr.gui.critical_me.slot=Marked slot (1–16)
+gtsr.gui.critical_me.limit=Per-slot limit
+gtsr.gui.critical_me.available=Available: %s

@@ -188,13 +188,13 @@ public final class CriticalChemicalRecipes {
         return bestLegacyV3(fuels, litres);
     }
 
-    /** A selected group never falls back to a less complex reaction. Exact ties keep catalogue order. */
+    /** Fresh batches require exact component proportions. Exact ties keep catalogue order. */
     public static Match best(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres, int circuit) {
         if (circuit < 2 || circuit > 9) return null;
         return select(fuels, litres, catalog(fuels), circuit, null);
     }
 
-    /** Validate an already-frozen identity without selecting a replacement reaction. */
+    /** Validate an already-frozen payment, retaining its original allowance for off-ratio inputs. */
     public static Match matchExact(List<ChemicalFuel> fuels, Map<GTUtility.FluidId, BigInteger> litres, int circuit,
         String id) {
         if (circuit < 2 || circuit > 9 || id == null || id.isEmpty()) return null;
@@ -258,6 +258,9 @@ public final class CriticalChemicalRecipes {
                 amounts[i] = litres.getOrDefault(GTUtility.FluidId.create(part.fuel.fluid), BigInteger.ZERO);
                 ratios[i] = part.ratio;
             }
+            // Only fresh circuit selections enforce the new gate. Already-paid manifests keep
+            // their frozen reaction and valuation, including historical off-ratio payments.
+            if (circuit != 0 && exactId == null && !proportional(amounts, ratios)) continue;
             CriticalChemicalMath.Evaluation value = CriticalChemicalMath
                 .evaluate(amounts, ratios, total, heat, recipe.peakMultiplier);
             if (!value.eligible) continue;
@@ -266,6 +269,13 @@ public final class CriticalChemicalRecipes {
                 best = new Match(recipe, value, total, heat);
         }
         return best;
+    }
+
+    private static boolean proportional(BigInteger[] amounts, int[] ratios) {
+        if (amounts[0].signum() <= 0) return false;
+        for (int i = 1; i < amounts.length; i++) if (!amounts[i].multiply(BigInteger.valueOf(ratios[0]))
+            .equals(amounts[0].multiply(BigInteger.valueOf(ratios[i])))) return false;
+        return true;
     }
 
     private static List<CompoundRecipe> buildLegacyV4Catalog(ChemicalFuel[] selected, ChemicalFuel promoter) {

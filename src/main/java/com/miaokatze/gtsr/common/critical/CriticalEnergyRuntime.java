@@ -371,7 +371,7 @@ public final class CriticalEnergyRuntime {
         List<CriticalGTRecipes.ChemicalFuel> fuels = CriticalGTRecipes.chemicalFuels();
         CriticalChemicalRecipes.Match match = CriticalChemicalRecipes.best(fuels, volumes, circuit);
         if (match == null || !match.evaluation.eligible) {
-            state.setRuntimeBatch(0, 0, 0, "至少需要一种完整复合方案的全部流体，原料保留");
+            state.setRuntimeBatch(0, 0, 0, "未匹配复合配方：缺少所需流体或流体配比不符；请按NEI比例投料，原料保留");
             return false;
         }
         Map<GTUtility.FluidId, CriticalGTRecipes.ChemicalFuel> definitions = new LinkedHashMap<>();

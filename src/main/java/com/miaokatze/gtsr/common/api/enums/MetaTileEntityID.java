@@ -87,6 +87,10 @@ public enum MetaTileEntityID {
     OVERPRESSURE_HUB_STORAGE_UNIT(266),
     // 红石仓：任意多方块机器通用红石信号输出仓（全新 ID，无旧存档机器）
     REDSTONE_HATCH(267),
+    CRITICAL_INPUT_HATCH_ME(268),
+    CRITICAL_INPUT_BUS_ME(269),
+    CRITICAL_OUTPUT_HATCH_ME(270),
+    CRITICAL_OUTPUT_BUS_ME(271),
 
     // --- 集群段 (相对 351-364；蒸汽动力矿物处理物流工程集群：总控1+工作7+增幅5+物流1) ---
     // 全新 ID 段，无旧存档机器。
