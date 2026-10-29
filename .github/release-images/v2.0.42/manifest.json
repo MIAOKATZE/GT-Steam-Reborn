@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "purpose": "Release body structure illustrations; no runtime code or download JAR changes",
+  "codeTag": "v2.0.42",
+  "codeCommit": "7dfe265692739c4bdd3561988d12ab91a432b3da",
+  "captureSourceCommit": "734e73aa584cf682529fd533f95d1f9ee4a77ea8",
+  "reviewedSourceCommit": "7dfe265692739c4bdd3561988d12ab91a432b3da",
+  "images": {
+    "critical-loom.png": {
+      "sha256": "685834c14ea28c2fe52b2e4fd4ab62456c10baea677ac5bc6158a7a2410e8f4c",
+      "bytes": 703863,
+      "notGameScreenshot": true
+    },
+    "critical-solar.png": {
+      "sha256": "d31c9e30d13f2bc37152105766ec49cc14aa6e88d9a42a63af3f96104e9d19c3",
+      "bytes": 1494111,
+      "notGameScreenshot": true
+    },
+    "critical-turbine.png": {
+      "sha256": "7e73998264346b5a7e63465b9feddb21e95e443c3d5fbb6f349c773e8ce75a8d",
+      "bytes": 1623253,
+      "notGameScreenshot": true
+    },
+    "critical-battery.png": {
+      "sha256": "ec24bba379825c2df257fb27075144f50bd1c27fd4f1e49833d21073c8d3e6ea",
+      "bytes": 1649402,
+      "notGameScreenshot": true
+    },
+    "critical-sun.png": {
+      "sha256": "8643cc7a61acb1b5ab2a5d38856065a7c2b9d52b87c3ffaf309ccb6912aaf354",
+      "bytes": 1576394,
+      "notGameScreenshot": true
+    }
+  }
+}
