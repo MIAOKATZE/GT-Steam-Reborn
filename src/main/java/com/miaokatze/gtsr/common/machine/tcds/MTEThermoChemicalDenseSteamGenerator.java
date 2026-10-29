@@ -106,6 +106,7 @@ import gregtech.common.tileentities.machines.MTEHatchCraftingInputSlave;
  * 致密过热蒸汽均 ÷1000，余量保留在缓冲</li>
  * </ul>
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<MTEThermoChemicalDenseSteamGenerator>
     implements IConstructable, ISurvivalConstructable {
 

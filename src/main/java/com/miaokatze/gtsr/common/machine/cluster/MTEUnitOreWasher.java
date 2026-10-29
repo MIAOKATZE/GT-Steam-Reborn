@@ -12,6 +12,7 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
 
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.structure.error.StructureError;
@@ -37,6 +38,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
  * {@code fillStructureWithWater} 将全部 'f' 位实际置换为水（getUnitShape 已 canonical 直传，
  * 勿再 transpose）；成功后清标记，结构重检（checkMachine 成功）再置位——结构破坏后重建自动回填。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEUnitOreWasher extends MTEBasicProcessingUnit {
 
     /** GUI 类型词条 key。 */

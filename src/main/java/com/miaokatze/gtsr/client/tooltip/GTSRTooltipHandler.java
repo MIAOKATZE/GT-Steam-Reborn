@@ -7,10 +7,13 @@ import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 
+import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import gregtech.api.util.tooltip.TooltipHelper;
+import gregtech.common.blocks.ItemMachines;
 
 /** Retains original dynamic text and never writes to the hovered stack or its NBT. */
 public final class GTSRTooltipHandler {
@@ -25,6 +28,14 @@ public final class GTSRTooltipHandler {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onTooltip(ItemTooltipEvent event) {
+        if (ItemMachines.getMetaTileEntity(event.itemStack) instanceof MTECriticalMachine machine) {
+            String capacity = StatCollector.translateToLocalFormatted(
+                "gt.tileentity.eup_store",
+                TooltipHelper.euCapacityText(
+                    machine.getBaseMetaTileEntity()
+                        .getEUCapacity()));
+            event.toolTip.removeIf(line -> plain(line).equals(plain(capacity)));
+        }
         List<String> keys = GTSRTooltipCatalog.descriptionKeys(event.itemStack);
         if (keys == null) return;
         for (String key : keys) {

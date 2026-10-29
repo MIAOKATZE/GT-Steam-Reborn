@@ -45,6 +45,7 @@ import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.common.UndergroundOil;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
 
     private static final Block MINING_PIPE_TIP_BLOCK = GTUtility

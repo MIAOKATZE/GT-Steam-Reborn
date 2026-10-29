@@ -7,6 +7,7 @@ import net.minecraftforge.fluids.Fluid;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 
 import gregtech.api.interfaces.IIconContainer;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.util.MultiblockTooltipBuilder;
@@ -24,6 +25,7 @@ import gtPlusPlus.xmod.gregtech.common.blocks.textures.TexturesGtBlock;
  * 正面 overlay 忠实跨域引用 GT++ 亚马逊包装机资源（miscutils 域 amazonPackager*，不复制 PNG）；
  * 变体选择对齐 MTEAmazonPackagerLegacy：inactive=oMCAAmazonPackager、active=oMCAAmazonPackagerActive。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEUnitParallelBooster extends MTEBasicAmplifierUnit {
 
     /** 正面 overlay（inactive）：GT++ {@code TexturesGtBlock.oMCAAmazonPackager}。类加载期绑定，禁止移入方法体。 */

@@ -10,10 +10,10 @@ import java.util.List;
 /** Pure boiler catalogue: native steam heat and exact working-fluid inventory saturation. */
 public final class CriticalSolarPolicy {
 
-    public static final int VERSION = 10;
+    public static final int VERSION = 11;
     private static final BigInteger STOCK_HALF_SATURATION = BigInteger.valueOf(100_000_000_000L);
-    private static final long BASE_DENSE_SUPERCRITICAL_LITRES = 12_000_000_000L;
-    private static final long BASE_HOT_SALT_LITRES = 40_000_000_000L;
+    private static final long BASE_DENSE_SUPERCRITICAL_LITRES = 24_000_000_000L;
+    private static final long BASE_HOT_SALT_LITRES = 80_000_000_000L;
     /** Legacy heat-budget API and dust-only basis; normal production uses the direct volume helpers. */
     public static final long BASE_WATER_HEAT_EUT = 70_000_000_000L;
     /** Legacy policy5 API value; unused by policy6 production or inventory arithmetic. */
@@ -60,13 +60,13 @@ public final class CriticalSolarPolicy {
         return BigInteger.valueOf(BASE_HOT_SALT_LITRES);
     }
 
-    /** Policy7: V = 12G * stock / (stock + 100G) * dimension * coolant * exciter, in groups of3L. */
+    /** Policy7: V = 24G * stock / (stock + 100G) * dimension * coolant * exciter, in groups of3L. */
     public static BigInteger batchDenseSupercriticalLitres(BigInteger stock, double factor, Entry coolant,
         Entry exciter) {
         return stockYield(stock, factor, coolant, exciter, BASE_DENSE_SUPERCRITICAL_LITRES, 3);
     }
 
-    /** Policy7: Q = 40G * stock / (stock + 100G) * dimension * coolant * exciter. */
+    /** Policy7: Q = 80G * stock / (stock + 100G) * dimension * coolant * exciter. */
     public static BigInteger batchHotSaltLitres(BigInteger stock, double factor, Entry coolant, Entry exciter) {
         return stockYield(stock, factor, coolant, exciter, BASE_HOT_SALT_LITRES, 1);
     }
@@ -79,27 +79,29 @@ public final class CriticalSolarPolicy {
             denseSteamLitres);
     }
 
-    /** P = (30G/c) * M * S/(S+H), rounded once to whole plasma litres; no separate output cap. */
+    /** P = (60G/c) * M * S/(S+H), rounded once to whole plasma litres; no separate output cap. */
     public static BigInteger batchPlasmaLitres(BigInteger stock, double factor, Entry coolant, Entry exciter,
         BigInteger hotLitres, BigInteger denseSteamLitres) {
         if (stock.signum() <= 0 || !Double.isFinite(factor) || factor <= 0D) return BigInteger.ZERO;
-        return BigDecimal.valueOf(30_000_000_000L)
-            .multiply(new BigDecimal(hotLitres))
-            .multiply(new BigDecimal(stock))
-            .multiply(BigDecimal.valueOf(factor))
-            .multiply(BigDecimal.valueOf(coolant.multiplier))
-            .multiply(BigDecimal.valueOf(exciter.multiplier))
-            .divide(
-                new BigDecimal(denseSteamLitres.multiply(stock.add(plasmaHalfSaturation(hotLitres, denseSteamLitres)))),
-                0,
-                RoundingMode.DOWN)
-            .toBigIntegerExact();
+        return new BigDecimal(
+            baseDenseSupercriticalLitres().multiply(BigInteger.valueOf(5))
+                .divide(BigInteger.valueOf(2))).multiply(new BigDecimal(hotLitres))
+                    .multiply(new BigDecimal(stock))
+                    .multiply(BigDecimal.valueOf(factor))
+                    .multiply(BigDecimal.valueOf(coolant.multiplier))
+                    .multiply(BigDecimal.valueOf(exciter.multiplier))
+                    .divide(
+                        new BigDecimal(
+                            denseSteamLitres.multiply(stock.add(plasmaHalfSaturation(hotLitres, denseSteamLitres)))),
+                        0,
+                        RoundingMode.DOWN)
+                    .toBigIntegerExact();
     }
 
     /** Policy7 asymptotic batch budget, only for the displayed load; no global output cap. */
     public static BigInteger ratedBatchEquivalentEU(double factor, Entry coolant, Entry exciter, boolean saltMode) {
         if (!Double.isFinite(factor) || factor <= 0D) return BigInteger.ZERO;
-        return BigDecimal.valueOf(saltMode ? 1_200_000_000_000_000L : 600_000_000_000_000L)
+        return BigDecimal.valueOf(saltMode ? 2_400_000_000_000_000L : 1_200_000_000_000_000L)
             .multiply(BigDecimal.valueOf(factor))
             .multiply(BigDecimal.valueOf(coolant.multiplier))
             .multiply(BigDecimal.valueOf(exciter.multiplier))

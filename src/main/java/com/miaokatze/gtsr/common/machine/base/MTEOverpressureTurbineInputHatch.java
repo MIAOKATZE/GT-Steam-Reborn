@@ -10,6 +10,7 @@ import net.minecraftforge.fluids.FluidStack;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
@@ -19,6 +20,7 @@ import gregtech.api.util.GTUtility;
  * Overpressure Turbine Input Hatch - a specialized input hatch that only accepts steam fluids.
  * Uses the standard MTEBasicTank mFluid storage (no dual storage).
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEOverpressureTurbineInputHatch extends MTEHatchInput {
 
     private static final int CAPACITY = 2_000_000_000;

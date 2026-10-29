@@ -6,6 +6,7 @@ import net.minecraft.util.StatCollector;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.util.MultiblockTooltipBuilder;
@@ -22,6 +23,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
  * 结构（r9 权威规格，7×7×5 canonical [Z][Y][X]，控制器 (3,5,0)）：'e'×9 粒子候选空气位
  * （x2-4, y1, z1-3）；A=外壳族（基类绑定）、B=齿轮箱族、C=管道族、D=框架族、'-'/'e'=严格空气。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEUnitCentrifuge extends MTEBasicProcessingUnit {
 
     /** GUI 类型词条 key。 */

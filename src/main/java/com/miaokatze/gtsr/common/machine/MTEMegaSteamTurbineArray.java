@@ -81,6 +81,7 @@ import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
 import tectech.thing.metaTileEntity.hatch.MTEHatchDynamoMulti;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEMegaSteamTurbineArray>
     implements IConstructable, ISurvivalConstructable {
 

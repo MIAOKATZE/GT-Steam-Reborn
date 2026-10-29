@@ -97,6 +97,7 @@ import io.netty.buffer.Unpooled;
  * 零配方说明：总控不跑任何配方——getRecipeMap()/createProcessingLogic() 在父类中均默认返回
  * null，本类不覆写，实际矿物处理由集群内工作单元按批次执行。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESteamMineralLogisticsCluster>
     implements ISurvivalConstructable, ClusterBatchHost {
 

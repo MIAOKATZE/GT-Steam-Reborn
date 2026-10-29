@@ -50,6 +50,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.common.ores.OreInfo;
 import gregtech.common.ores.OreManager;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
     private static final Block MINING_PIPE_TIP_BLOCK = GTUtility

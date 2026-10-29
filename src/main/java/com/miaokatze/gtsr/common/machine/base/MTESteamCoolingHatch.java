@@ -15,6 +15,7 @@ import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
@@ -23,6 +24,7 @@ import gregtech.api.util.GTModHandler;
 import gregtech.common.blocks.BlockCasings1;
 
 // O2-B03②：接入 api 契约接口（isValid/updateTexture 继承 GT5U MTEHatch 链、pushCoolingWater 既有公有方法），零行为变化
+@IMetaTileEntity.SkipGenerateDescription
 public class MTESteamCoolingHatch extends MTEHatchOutput implements ICoolingHatch {
 
     private static final int CAPACITY = 64_000;

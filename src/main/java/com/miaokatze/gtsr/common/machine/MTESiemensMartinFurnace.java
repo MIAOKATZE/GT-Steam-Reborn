@@ -69,6 +69,7 @@ import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMartinFurnace>
     implements ISurvivalConstructable {
 

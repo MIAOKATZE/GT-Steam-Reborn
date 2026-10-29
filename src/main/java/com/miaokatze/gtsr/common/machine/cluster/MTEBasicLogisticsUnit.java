@@ -97,6 +97,7 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
  * "clusterChemTank" 键静默容忍忽略（不读不写，不迁移不崩溃）。
  * 类型名 key：gtsr.gui.cluster.unit_type.logistics。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsUnit> {
 
     /** 四 hatch 挂点与 hatch 贴图共用的青铜底材贴图 id（同总控 hatch 挂点）。 */

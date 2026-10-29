@@ -10,10 +10,12 @@ import net.minecraftforge.fluids.IFluidHandler;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTESteamOutputHatchGeneric extends MTEHatchOutput {
 
     private static final int CAPACITY = 16_000;

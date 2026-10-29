@@ -60,6 +60,7 @@ import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBorer> implements ISurvivalConstructable {
 
     // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.

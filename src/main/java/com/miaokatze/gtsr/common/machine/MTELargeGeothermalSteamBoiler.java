@@ -90,6 +90,7 @@ import gregtech.common.blocks.ItemMachines;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELargeGeothermalSteamBoiler>
     implements IConstructable, ISurvivalConstructable, IShiftRightClickDecalcifiable {
 

@@ -5,6 +5,7 @@ import net.minecraft.util.StatCollector;
 
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.util.MultiblockTooltipBuilder;
@@ -23,6 +24,7 @@ import gtPlusPlus.xmod.gregtech.common.blocks.textures.TexturesGtBlock;
  * （x1-3, y0, z1-3）；A=外壳族（基类绑定）、B=齿轮箱族、C=管道族、D=框架族、E=玻璃、
  * '-'/'e'=严格空气。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEUnitSifter extends MTEBasicProcessingUnit {
 
     /** GUI 类型词条 key。 */

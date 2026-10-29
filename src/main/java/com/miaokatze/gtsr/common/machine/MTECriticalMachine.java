@@ -34,6 +34,7 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.MultiblockTooltipBuilder;
 
 /** One GT host owns the construction journal and runs the critical engine. */
+@IMetaTileEntity.SkipGenerateDescription
 public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase<MTECriticalMachine> implements
     gregtech.api.interfaces.IChunkLoader, com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable {
 

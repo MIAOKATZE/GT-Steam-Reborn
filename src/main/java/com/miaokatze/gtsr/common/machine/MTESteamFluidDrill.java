@@ -66,6 +66,7 @@ import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.blocks.ItemMachines;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDrill> implements ISurvivalConstructable {
 
     // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.

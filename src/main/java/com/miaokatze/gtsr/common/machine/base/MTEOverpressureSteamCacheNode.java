@@ -11,11 +11,13 @@ import net.minecraftforge.fluids.FluidStack;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
 
     private static final int CAPACITY = 256_000_000;

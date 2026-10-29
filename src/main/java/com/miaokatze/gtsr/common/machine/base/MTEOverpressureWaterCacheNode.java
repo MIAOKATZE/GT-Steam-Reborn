@@ -10,6 +10,7 @@ import net.minecraftforge.fluids.FluidRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.util.GTUtility;
@@ -19,6 +20,7 @@ import gregtech.api.util.GTUtility;
  * 机制/结构镜像 MTEOverpressureSteamCacheNode；接受任意流体（S5 通用流体口径）。
  * 绑定奇点消耗 = 0（对齐蓄水枢纽阵列通用流体节点家族现状）；绑定需等级3蓄水枢纽阵列 + 强化奇点芯片（WHA 侧门控）。
  */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEOverpressureWaterCacheNode extends MTEFilteredCacheNode {
 
     private static final int CAPACITY = 32_000_000;

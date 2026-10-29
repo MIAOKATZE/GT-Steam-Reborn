@@ -58,6 +58,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 
 /** Tier 2 dense steam compressor/decompressor（致密态蒸汽操控装置，就地升级自致密态操控机）。 */
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEDenseStateManipulator extends MTESingularityMachineBase implements ISurvivalConstructable {
 
     // Only the 986 replaceable mechanical-casing positions count toward this minimum.

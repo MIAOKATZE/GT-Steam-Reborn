@@ -71,6 +71,7 @@ import gregtech.common.blocks.ItemMachines;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
 
+@IMetaTileEntity.SkipGenerateDescription
 public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     implements IConstructable, ISurvivalConstructable {
 

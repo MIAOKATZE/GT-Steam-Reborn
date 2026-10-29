@@ -73,8 +73,8 @@ final class CriticalMeshCache {
             JsonObject material = CriticalMaterials.properties(voxel.material);
             String mode = material.get("alphaMode")
                 .getAsString();
-            boolean emissive = material.get("emissionStrength")
-                .getAsDouble() > 0;
+            float emissionStrength = material.get("emissionStrength")
+                .getAsFloat();
             for (int side = 0; side < 6; side++) {
                 int[] n = CriticalMaterialTextures.NORMALS[side];
                 Voxel neighbor = occupied.get(Voxel.positionKey(voxel.x + n[0], voxel.y + n[1], voxel.z + n[2]));
@@ -89,10 +89,11 @@ final class CriticalMeshCache {
                 boolean frozen = animations.getAsJsonObject(voxel.group)
                     .has("materialFramePolicy");
                 IIcon color = CriticalMaterialTextures.icon(voxel.material, side, mask, false, frozen);
-                IIcon emission = emissive ? CriticalMaterialTextures.icon(voxel.material, side, mask, true, frozen)
+                IIcon emission = emissionStrength > 0
+                    ? CriticalMaterialTextures.icon(voxel.material, side, mask, true, frozen)
                     : null;
                 groups.computeIfAbsent(voxel.group + ':' + mode, ignored -> new ArrayList<>())
-                    .add(new Face(voxel, side, color, emission, emissive));
+                    .add(new Face(voxel, side, color, emission, emissionStrength));
             }
         }
         List<Mesh> result = new ArrayList<>();
@@ -121,8 +122,8 @@ final class CriticalMeshCache {
         GL11.glNewList(list, GL11.GL_COMPILE);
         Tessellator tessellator = Tessellator.instance;
         tessellator.startDrawingQuads();
-        // Luminous faces keep an opaque black depth base and receive their body color once at full light.
-        // Reuse V37's body/mask pass and batches; ordinary moving bodies retain their weak colored overlay.
+        // Block light emission does not make the albedo fullbright: only the designed mask bypasses world light.
+        // Keep the existing body/mask batch; ordinary moving bodies retain V37's weak colored relief.
         for (int layer = 0; layer < (emission ? 2 : 1); layer++) for (Face face : faces) {
             IIcon icon = layer == 1 ? face.emission : face.color;
             if (icon == null) continue;
@@ -130,8 +131,8 @@ final class CriticalMeshCache {
                 v = CriticalMaterialTextures.V[face.side];
             tessellator.setNormal(n[0], n[1], n[2]);
             float shade = face.side == 0 ? .58F : face.side == 1 ? 1 : face.side < 4 ? .78F : .88F;
-            if (!emission && face.emissive) shade = 0;
-            else if (emission) shade = layer == 1 ? 1 : shade * (face.emissive ? 1 : BODY_EMISSION);
+            if (emission)
+                shade = layer == 1 ? face.emissionStrength : shade * (face.emissionStrength > 0 ? 0 : BODY_EMISSION);
             tessellator.setColorOpaque_F(shade, shade, shade);
             for (double[] corner : CORNERS[face.side]) {
                 double du = .5, dv = .5;
@@ -205,14 +206,14 @@ final class CriticalMeshCache {
         final Voxel voxel;
         final int side;
         final IIcon color, emission;
-        final boolean emissive;
+        final float emissionStrength;
 
-        Face(Voxel voxel, int side, IIcon color, IIcon emission, boolean emissive) {
+        Face(Voxel voxel, int side, IIcon color, IIcon emission, float emissionStrength) {
             this.voxel = voxel;
             this.side = side;
             this.color = color;
             this.emission = emission;
-            this.emissive = emissive;
+            this.emissionStrength = emissionStrength;
         }
     }
 
