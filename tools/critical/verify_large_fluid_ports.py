@@ -75,7 +75,7 @@ def main():
         scope='Production CriticalEnergyPorts, material/business snapshot codecs, AEFluidStack, native GT205 '
               'hatch subclasses and standard hatch transactions; production sourceOverlay is recorded above. '
               'finite monitor/energy/storage seams. No live AE grid, cell driver, client, server, or crash atomicity claim. '
-              'AE1080 powered extraction near Long.MAX_VALUE is explicitly expected to lock uncertain before debit. '
+              'Critical hatch powered extraction near Long.MAX_VALUE uses overflow-free long arithmetic. '
               'AE API definition bootstrap reports missing no-arg constructors for two unrelated event subscriptions '
               'because the detached fixture has no full FML event transformer lifecycle; these are recorded separately.')
     (out / 'verification.json').write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding='utf-8')

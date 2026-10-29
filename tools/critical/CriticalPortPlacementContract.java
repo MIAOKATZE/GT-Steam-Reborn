@@ -46,7 +46,7 @@ public final class CriticalPortPlacementContract {
         return event;
     }
 
-    private static void run(boolean legacyAddonOnly) throws Exception {
+    private static void run(String selection) throws Exception {
         Player player = (Player) unsafe.allocateInstance(Player.class);
         ItemStack chamber = new ItemStack(new gregtech.common.blocks.ItemMachines(AIR), 1, 30002);
         check(chamber.getItem() instanceof ItemBlock, "GT205 ItemMachines uses normal ItemBlock placement");
@@ -54,17 +54,23 @@ public final class CriticalPortPlacementContract {
             net.minecraft.entity.player.EntityPlayer.class, net.minecraft.world.World.class,
             int.class, int.class, int.class, int.class, float.class, float.class, float.class)
             .getDeclaringClass() == Item.class, "GT205 ItemMachines inherits vanilla onItemUseFirst");
-        for (int mode : legacyAddonOnly ? new int[] {2} : new int[] {0, 1}) for (ForgeDirection facing : new ForgeDirection[] {
+        int[] modes = "hull".equals(selection) ? new int[] {3, 4, 5} : "legacy-addon".equals(selection) ? new int[] {2} : new int[] {0, 1};
+        for (int mode : modes) for (ForgeDirection facing : new ForgeDirection[] {
             ForgeDirection.NORTH, ForgeDirection.EAST, ForgeDirection.SOUTH, ForgeDirection.WEST }) {
             SparseWorld world = world();
-            int revision = mode == 1 ? 32 : 31;
+            int revision = mode == 5 ? 33 : mode == 1 || mode == 4 ? 32 : 31;
             CriticalMachineState state = state(world, revision, facing);
             List<CriticalGeometry.Voxel> cells = geometry(state);
-            List<CriticalGeometry.Voxel> ports = new ArrayList<>(CriticalGeometry.optionalWorkPorts(state));
+            List<CriticalGeometry.Voxel> ports = new ArrayList<>(mode >= 3 ? CriticalGeometry.hullWorkPorts() : CriticalGeometry.optionalWorkPorts(state));
             if (mode == 2) ports.addAll(CriticalGeometry.terraceWorkPorts());
-            check(ports.size() == (mode == 0 ? 13 : 43), "original/terrace optional work ports " + revision + " " + facing);
+            check(ports.size() == (mode >= 3 ? 90 : mode == 0 ? 13 : 43), "original/terrace optional work ports " + revision + " " + facing);
             for (CriticalGeometry.Voxel port : ports) {
-                if (mode == 2 && CriticalLayoutDefinition.isTerraceWorkPort(port)) {
+                if (mode == 3 || mode == 4) {
+                    int index = CriticalGeometry.supplyHullIndex(CriticalGeometry.Voxel.positionKey(port.x, port.y - 1, port.z));
+                    CriticalGeometry.Voxel support = CriticalGeometry.supplyHull().get(index);
+                    put(state, support, support.block);
+                    ((BitSet) field(state, "supplyHullPlaced")).set(index);
+                } else if (mode == 2 && CriticalLayoutDefinition.isTerraceWorkPort(port)) {
                     int index = CriticalGeometry.supplyTerraceIndex(CriticalGeometry.Voxel.positionKey(port.x, port.y - 1, port.z));
                     CriticalGeometry.Voxel support = CriticalGeometry.supplyTerrace().get(index);
                     put(state, support, support.block);
@@ -87,6 +93,7 @@ public final class CriticalPortPlacementContract {
             data.updateProtection(state);
             if (mode == 2) check(state.getResourceHatchPorts().size() == 43,
                 "completed compatibility support bitmap exposes thirty new and thirteen original ports");
+            if (mode >= 3) check(state.getResourceHatchPorts().containsAll(ports), "owned approved ninety slots are exposed by the real resource port getter");
             for (CriticalGeometry.Voxel port : ports) {
                 int x = state.blockWorldX(port), y = state.blockWorldY(port.y), z = state.blockWorldZ(port);
                 check(world.isAirBlock(x, y, z), "optional port starts as air " + facing + " x=" + port.x);
@@ -134,7 +141,7 @@ public final class CriticalPortPlacementContract {
             field.setAccessible(true);
             unsafe = (sun.misc.Unsafe) field.get(null);
             materials();
-            run(args.length > 1 && "legacy-addon".equals(args[1]));
+            run(args.length > 1 ? args[1] : "");
             report.addProperty("status", "PASS");
         } catch (Throwable failure) {
             report.addProperty("status", "FAIL");

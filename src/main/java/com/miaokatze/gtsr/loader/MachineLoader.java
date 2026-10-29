@@ -72,6 +72,10 @@ import com.miaokatze.gtsr.common.machine.cluster.MTEUnitSifter;
 import com.miaokatze.gtsr.common.machine.cluster.MTEUnitSpeedBooster;
 import com.miaokatze.gtsr.common.machine.cluster.MTEUnitSteamSaverBooster;
 import com.miaokatze.gtsr.common.machine.cluster.MTEUnitThermalCentrifuge;
+import com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalInputBusME;
+import com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalInputME;
+import com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalOutputBusME;
+import com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalOutputME;
 import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
@@ -408,6 +412,26 @@ public class MachineLoader {
         // 红石仓：任意多方块机器通用红石信号输出仓（267 为新 ID，无旧 ID 转换需求）
         GTSRItemList.RedstoneHatch
             .set(new MTEGTSRRedstoneHatch(MetaTileEntityID.REDSTONE_HATCH.ID, "gtsr.redstone_hatch", "Redstone Hatch"));
+        GTSRItemList.CriticalInputHatchME.set(
+            new MTEHatchCriticalInputME(
+                MetaTileEntityID.CRITICAL_INPUT_HATCH_ME.ID,
+                "gtsr.critical.me.input_hatch",
+                "Critical Stocking Input Hatch (ME)"));
+        GTSRItemList.CriticalInputBusME.set(
+            new MTEHatchCriticalInputBusME(
+                MetaTileEntityID.CRITICAL_INPUT_BUS_ME.ID,
+                "gtsr.critical.me.input_bus",
+                "Critical Stocking Input Bus (ME)"));
+        GTSRItemList.CriticalOutputHatchME.set(
+            new MTEHatchCriticalOutputME(
+                MetaTileEntityID.CRITICAL_OUTPUT_HATCH_ME.ID,
+                "gtsr.critical.me.output_hatch",
+                "Critical Output Hatch (ME)"));
+        GTSRItemList.CriticalOutputBusME.set(
+            new MTEHatchCriticalOutputBusME(
+                MetaTileEntityID.CRITICAL_OUTPUT_BUS_ME.ID,
+                "gtsr.critical.me.output_bus",
+                "Critical Output Bus (ME)"));
 
         // 蒸汽动力矿物处理物流工程集群（新 ID 段）
         GTSRItemList.ClusterController.set(
@@ -555,6 +579,10 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.MegaAirInputHatch.get(1));
         // 红石仓：任意多方块机器通用红石信号输出仓
         CreativeTabManager.addItemToTab(GTSRItemList.RedstoneHatch.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalInputHatchME.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalInputBusME.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalOutputHatchME.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalOutputBusME.get(1));
         // --- 新增奇点机器 (43-44) ---
         CreativeTabManager.addItemToTab(GTSRItemList.CriticalSingularityCompressor.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.CriticalLoom.get(1));

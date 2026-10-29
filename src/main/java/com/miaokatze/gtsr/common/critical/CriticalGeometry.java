@@ -24,6 +24,9 @@ public final class CriticalGeometry {
     private static final Map<String, List<Voxel>> STRUCTURES = new HashMap<>();
     private static List<Voxel> supplyTerrace;
     private static List<Voxel> terraceSupplies, terraceWorkPorts;
+    private static List<Voxel> supplyHull, hullSupplies, hullWorkPorts, legacySupplyFootprint;
+    private static final Map<Long, Integer> SUPPLY_HULL_INDICES = new HashMap<>();
+    private static final Map<Long, Voxel> LEGACY_SUPPLY_CELLS = new HashMap<>();
     private static final Map<Long, Integer> SUPPLY_TERRACE_INDICES = new HashMap<>();
 
     private CriticalGeometry() {}
@@ -78,7 +81,8 @@ public final class CriticalGeometry {
     static synchronized List<Voxel> supplyTerrace() {
         if (supplyTerrace == null) {
             List<Voxel> rows = new ArrayList<>();
-            for (Voxel v : getModel("v2_base_t3").voxels) if ("supply_terrace".equals(v.group)) rows.add(v);
+            // Released V42 NBT uses these exact 1314 indices. Never read them from the mutable current base.
+            for (Voxel v : getModel("v2_v32_base_t3").voxels) if ("supply_terrace".equals(v.group)) rows.add(v);
             rows.sort(
                 java.util.Comparator.comparingInt((Voxel v) -> v.y)
                     .thenComparingInt(v -> v.x)
@@ -124,6 +128,76 @@ public final class CriticalGeometry {
         return terraceWorkPorts;
     }
 
+    static synchronized List<Voxel> supplyHull() {
+        if (supplyHull == null) {
+            List<Voxel> rows = new ArrayList<>();
+            for (Voxel v : getModel("v2_base_t3").voxels) if ("supply_hull_33".equals(v.group)) rows.add(v);
+            rows.sort(
+                java.util.Comparator.comparingInt((Voxel v) -> v.y)
+                    .thenComparingInt(v -> v.x)
+                    .thenComparingInt(v -> v.z));
+            for (int i = 0; i < rows.size(); i++) SUPPLY_HULL_INDICES.put(
+                rows.get(i)
+                    .positionKey(),
+                i);
+            supplyHull = Collections.unmodifiableList(rows);
+        }
+        return supplyHull;
+    }
+
+    static Integer supplyHullIndex(long position) {
+        supplyHull();
+        return SUPPLY_HULL_INDICES.get(position);
+    }
+
+    static synchronized List<Voxel> hullSupplies() {
+        if (hullSupplies == null) {
+            List<Voxel> rows = new ArrayList<>();
+            for (Voxel v : supplyHull()) if (CriticalLayoutDefinition.isSupplyHullSupply(v)) rows.add(v);
+            hullSupplies = Collections.unmodifiableList(rows);
+        }
+        return hullSupplies;
+    }
+
+    static synchronized List<Voxel> hullWorkPorts() {
+        if (hullWorkPorts == null) {
+            List<Voxel> rows = new ArrayList<>();
+            for (Voxel v : hullSupplies()) rows.add(
+                new Voxel(
+                    v.x,
+                    v.y + 1,
+                    v.z,
+                    CriticalMaterials.block("v2_service_hatch", false),
+                    1,
+                    "v2_service_hatch",
+                    "optional_work_ports",
+                    "v2_optional_supply_hull_port"));
+            hullWorkPorts = Collections.unmodifiableList(rows);
+        }
+        return hullWorkPorts;
+    }
+
+    static synchronized List<Voxel> legacySupplyFootprint() {
+        if (legacySupplyFootprint == null) {
+            List<Voxel> rows = new ArrayList<>();
+            for (Voxel v : getModel("v2_v32_base_t3").voxels)
+                if ("supply_terrace".equals(v.group) || "machine_service_ports".equals(v.group)
+                    || "machine_service_support".equals(v.group)) rows.add(v);
+            rows.sort(
+                java.util.Comparator.comparingInt((Voxel v) -> v.y)
+                    .thenComparingInt(v -> v.x)
+                    .thenComparingInt(v -> v.z));
+            for (Voxel v : rows) LEGACY_SUPPLY_CELLS.put(v.positionKey(), v);
+            legacySupplyFootprint = Collections.unmodifiableList(rows);
+        }
+        return legacySupplyFootprint;
+    }
+
+    static boolean isLegacySupplyPosition(long position) {
+        legacySupplyFootprint();
+        return LEGACY_SUPPLY_CELLS.containsKey(position);
+    }
+
     public static boolean isDynamic(String slug, String group) {
         if (slug.startsWith("v2_plugin_") && group.startsWith("decor_shell_")) return true;
         JsonObject animations = getModel(slug).animations;
@@ -143,6 +217,7 @@ public final class CriticalGeometry {
 
     static List<Voxel> compileOptionalWorkPorts(CriticalLayoutDefinition layout) {
         if (!layout.optionalWorkPorts) return Collections.emptyList();
+        if (layout.family == CriticalLayoutDefinition.Family.CURRENT) return hullWorkPorts();
         List<Voxel> ports = new ArrayList<>();
         for (int x = 50; x <= 62; x++) ports.add(
             new Voxel(
@@ -154,7 +229,7 @@ public final class CriticalGeometry {
                 "v2_service_hatch",
                 "optional_work_ports",
                 "v2_optional_work_port"));
-        if (layout.family == CriticalLayoutDefinition.Family.CURRENT) ports.addAll(terraceWorkPorts());
+        if (layout.family == CriticalLayoutDefinition.Family.V32) ports.addAll(terraceWorkPorts());
         return Collections.unmodifiableList(ports);
     }
 
@@ -181,7 +256,7 @@ public final class CriticalGeometry {
     /** Exact inverse sampling used by the frozen design's integer-world addon exporter. */
     public static List<Voxel> physicalPlugins(CriticalConfiguration config) {
         return CriticalCompiledLayout
-            .get(CriticalLayoutDefinition.select(2, 32, false, config.tier, config.kind), config)
+            .get(CriticalLayoutDefinition.select(2, 33, false, config.tier, config.kind), config)
             .plugins();
     }
 

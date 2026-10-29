@@ -25,6 +25,7 @@
     "MTEHatchAirIntakeMixin",
     "MTEHatchFluidGeneratorMixin",
     "MTEHatchInputBusMixin",
+    "CriticalMEOutputProviderAccess",
     "CommonMetaTileEntityMixin",
     "SteamHatchElementOutputBusMixin",
     "StructureCheckerMixin",

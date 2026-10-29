@@ -234,6 +234,7 @@ class CriticalCompoundRuntime {
         CriticalChemicalRecipes.Match rationalBest=null;
         boolean equalFloorDistinctRational=false;
         for(var candidate:CriticalChemicalRecipes.catalog(fuels))if(candidate.selectorCircuit==2) {
+            if(candidate.components.get(0).ratio!=candidate.components.get(1).ratio)continue;
             var value=CriticalChemicalRecipes.matchExact(fuels,roundedTie,2,candidate.id);
             if(rationalBest!=null&&value.evaluation.generatedEU.equals(rationalBest.evaluation.generatedEU)
                 &&value.evaluation.generatedNumerator.multiply(rationalBest.evaluation.generatedDenominator).compareTo(

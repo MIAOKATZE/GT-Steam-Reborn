@@ -15,14 +15,11 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
 
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
+import com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalInputME;
+import com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalOutputBusME;
+import com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalOutputME;
 
-import appeng.api.config.Actionable;
-import appeng.api.networking.security.MachineSource;
-import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.data.IAEFluidStack;
 import appeng.me.GridAccessException;
-import appeng.util.Platform;
-import appeng.util.item.AEFluidStack;
 import gregtech.api.interfaces.IOutputBusTransaction;
 import gregtech.api.interfaces.IOutputHatchTransaction;
 import gregtech.api.interfaces.IOutputTransaction;
@@ -36,7 +33,6 @@ import gregtech.common.tileentities.machines.IRecipeProcessingAwareHatch;
 import gregtech.common.tileentities.machines.MTEHatchCraftingInputME;
 import gregtech.common.tileentities.machines.MTEHatchCraftingInputSlave;
 import gregtech.common.tileentities.machines.MTEHatchInputME;
-import gregtech.common.tileentities.machines.outputme.MTEHatchOutputME;
 
 /** Direct, identity-deduplicated real hatch IO; never uses controller fluid buffers. */
 public final class CriticalEnergyPorts {
@@ -46,48 +42,69 @@ public final class CriticalEnergyPorts {
 
     private CriticalEnergyPorts() {}
 
+    /** Long quantities belong to the critical hatch; the controller never queries AE stock. */
+    public interface LongFluidSource {
+
+        Object networkIdentity();
+
+        FluidStack prototype();
+
+        long available();
+
+        long extract(long wanted, boolean commit);
+    }
+
+    public interface LongItemSource {
+
+        Object networkIdentity();
+
+        ItemStack prototype();
+
+        long available();
+
+        long extract(long wanted, boolean commit);
+    }
+
     public static List<Input> snapshot(MTECriticalMachine host) {
         List<Input> inputs = new ArrayList<>();
         Set<MTEHatchInput> seen = Collections.newSetFromMap(new IdentityHashMap<>());
-        Map<IMEMonitor<IAEFluidStack>, Set<GTUtility.FluidId>> networks = new IdentityHashMap<>();
+        Map<Object, Map<GTUtility.FluidId, Input>> networks = new IdentityHashMap<>();
         for (MTEHatchInput hatch : host.getCriticalInputHatches()) {
             if (!hatch.isValid() || !seen.add(hatch)) continue;
-            if (hatch instanceof MTEHatchInputME me) {
+            if (hatch instanceof MTEHatchCriticalInputME critical) {
+                for (int slot = 0; slot < MTEHatchInputME.SLOT_COUNT; slot++) {
+                    LongFluidSource source = critical.getLongInputSource(slot);
+                    if (source == null) continue;
+                    FluidStack fluid = source.prototype();
+                    long amount = source.available();
+                    if (fluid != null && amount > 0)
+                        addNetworkInput(networks, new Input(hatch, fluid, amount, source.networkIdentity(), source));
+                }
+            } else if (hatch instanceof MTEHatchInputME me) {
                 if (!me.isAllowedToWork()) continue;
                 try {
-                    IMEMonitor<IAEFluidStack> monitor = me.getProxy()
+                    // The monitor is an identity token only. Quantities and debits use native int IO.
+                    Object network = me.getProxy()
                         .getStorage()
                         .getFluidInventory();
-                    Set<GTUtility.FluidId> types = networks.computeIfAbsent(monitor, key -> new java.util.HashSet<>());
-                    for (int i = 0; i < MTEHatchInputME.SLOT_COUNT; i++) {
-                        FluidStack config = me.getSlotConfig(i);
-                        if (config == null || !types.add(GTUtility.FluidId.create(config))) continue;
-                        IAEFluidStack request = AEFluidStack.create(config);
-                        // Query only configured, finite real network stock; never invent unlimited supply.
-                        IAEFluidStack stored = monitor.getStorageList()
-                            .findPrecise(request);
-                        if (stored == null || stored.getStackSize() <= 0) continue;
-                        request.setStackSize(stored.getStackSize());
-                        IAEFluidStack available = monitor.extractItems(
-                            request,
-                            Actionable.SIMULATE,
-                            new MachineSource((appeng.api.networking.security.IActionHost) me.getBaseMetaTileEntity()));
-                        if (available != null && available.getStackSize() > 0)
-                            inputs.add(new Input(hatch, config, available.getStackSize(), monitor));
+                    for (FluidTankInfo tank : me.getTankInfo(ForgeDirection.UNKNOWN)) {
+                        if (tank != null && tank.fluid != null && tank.fluid.amount > 0)
+                            addNetworkInput(networks, new Input(hatch, tank.fluid, tank.fluid.amount, network, null));
                     }
-                } catch (GridAccessException ignored) { /* An offline network promises nothing. */ }
+                } catch (GridAccessException ignored) { /* Offline stocking views offer no inputs. */ }
             } else if (!(hatch instanceof IRecipeProcessingAwareHatch)) {
                 Map<GTUtility.FluidId, Input> types = new LinkedHashMap<>();
                 for (FluidTankInfo tank : hatch.getTankInfo(ForgeDirection.UNKNOWN)) {
                     if (tank == null || tank.fluid == null || tank.fluid.amount <= 0) continue;
                     GTUtility.FluidId key = GTUtility.FluidId.create(tank.fluid);
                     Input source = types.get(key);
-                    if (source == null) types.put(key, new Input(hatch, tank.fluid, tank.fluid.amount, null));
+                    if (source == null) types.put(key, new Input(hatch, tank.fluid, tank.fluid.amount, null, null));
                     else source.amount = Math.addExact(source.amount, tank.fluid.amount);
                 }
                 inputs.addAll(types.values());
             }
         }
+        for (Map<GTUtility.FluidId, Input> network : networks.values()) inputs.addAll(network.values());
         // GT205 PatternSlot is already physically paid by pushPattern, not a virtual ME preview.
         Set<IDualInputInventory> inventories = Collections.newSetFromMap(new IdentityHashMap<>());
         Set<FluidStack> stacks = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -109,6 +126,15 @@ public final class CriticalEnergyPorts {
         return inputs;
     }
 
+    private static void addNetworkInput(Map<Object, Map<GTUtility.FluidId, Input>> networks, Input input) {
+        if (input.network == null) return;
+        Map<GTUtility.FluidId, Input> types = networks.computeIfAbsent(input.network, key -> new LinkedHashMap<>());
+        GTUtility.FluidId id = GTUtility.FluidId.create(input.fluid);
+        Input previous = types.get(id);
+        // Several stocking hatches are views of the same stock, including mixed int/long views.
+        if (previous == null || previous.amount < input.amount) types.put(id, input);
+    }
+
     public static BigInteger total(List<Input> inputs, FluidStack fluid) {
         BigInteger total = BigInteger.ZERO;
         if (fluid != null) for (Input input : inputs)
@@ -120,7 +146,7 @@ public final class CriticalEnergyPorts {
     public static List<FluidAmount> quantities(List<Input> inputs, boolean network) {
         Map<GTUtility.FluidId, FluidAmount> totals = new LinkedHashMap<>();
         for (Input input : inputs) {
-            if ((input.monitor != null) != network) continue;
+            if ((input.network != null) != network) continue;
             GTUtility.FluidId key = GTUtility.FluidId.create(input.fluid);
             FluidAmount previous = totals.get(key);
             BigInteger amount = BigInteger.valueOf(input.amount);
@@ -194,7 +220,7 @@ public final class CriticalEnergyPorts {
             try {
                 long left = debit.amount;
                 while (left > 0) {
-                    long request = debit.source.monitor != null ? left : Math.min(left, Integer.MAX_VALUE);
+                    long request = debit.source.longSource != null ? left : Math.min(left, Integer.MAX_VALUE);
                     long actual = debit.source.extractAmount(request, true);
                     if (actual < 0 || actual > request) return new DebitResult(false, true, paid);
                     if (actual > 0) {
@@ -232,16 +258,18 @@ public final class CriticalEnergyPorts {
         public final MTEHatchInput hatch;
         public final FluidStack fluid;
         public long amount;
-        private final IMEMonitor<IAEFluidStack> monitor;
+        private final Object network;
+        private final LongFluidSource longSource;
         private final MTEHatchCraftingInputME patternOwner;
         private final FluidStack patternStack;
 
-        private Input(MTEHatchInput hatch, FluidStack fluid, long amount, IMEMonitor<IAEFluidStack> monitor) {
+        private Input(MTEHatchInput hatch, FluidStack fluid, long amount, Object network, LongFluidSource longSource) {
             this.hatch = hatch;
             this.fluid = fluid.copy();
             this.fluid.amount = 1;
             this.amount = amount;
-            this.monitor = monitor;
+            this.network = network;
+            this.longSource = longSource;
             this.patternOwner = null;
             this.patternStack = null;
         }
@@ -251,7 +279,8 @@ public final class CriticalEnergyPorts {
             this.fluid = stack.copy();
             this.fluid.amount = 1;
             this.amount = stack.amount;
-            this.monitor = null;
+            this.network = null;
+            this.longSource = null;
             this.patternOwner = owner;
             this.patternStack = stack;
         }
@@ -267,7 +296,7 @@ public final class CriticalEnergyPorts {
             if (!commit) return extractAmount(wanted, false) == wanted;
             long left = wanted;
             while (left > 0) {
-                long actual = extractAmount(monitor != null ? left : Math.min(left, Integer.MAX_VALUE), true);
+                long actual = extractAmount(longSource != null ? left : Math.min(left, Integer.MAX_VALUE), true);
                 if (actual <= 0) return false;
                 left -= actual;
                 markDirty();
@@ -283,31 +312,12 @@ public final class CriticalEnergyPorts {
                 return actual;
             }
             if (!hatch.isValid()) return 0;
-            if (monitor != null) {
-                IAEFluidStack request = AEFluidStack.create(fluid);
-                request.setStackSize(wanted);
-                MachineSource source = new MachineSource(
-                    (appeng.api.networking.security.IActionHost) hatch.getBaseMetaTileEntity());
-                IAEFluidStack actual;
-                if (commit) {
-                    try {
-                        actual = Platform.poweredExtraction(
-                            ((MTEHatchInputME) hatch).getProxy()
-                                .getEnergy(),
-                            monitor,
-                            request,
-                            source);
-                    } catch (GridAccessException offline) {
-                        return 0;
-                    }
-                } else actual = monitor.extractItems(request, Actionable.SIMULATE, source);
-                if (actual == null) return 0;
-                if (!actual.getFluidStack()
-                    .isFluidEqual(fluid) || actual.getStackSize() < 0 || actual.getStackSize() > wanted)
-                    throw new IllegalStateException("Invalid ME debit receipt");
-                return actual.getStackSize();
+            if (longSource != null) {
+                long actual = longSource.extract(wanted, commit);
+                if (actual < 0 || actual > wanted) throw new IllegalStateException("Invalid long hatch debit receipt");
+                return actual;
             }
-            if (!commit) {
+            if (!commit && !(hatch instanceof MTEHatchInputME)) {
                 long present = 0;
                 for (FluidTankInfo tank : hatch.getTankInfo(ForgeDirection.UNKNOWN))
                     if (tank != null && tank.fluid != null && tank.fluid.isFluidEqual(fluid))
@@ -316,7 +326,7 @@ public final class CriticalEnergyPorts {
             }
             FluidStack request = fluid.copy();
             request.amount = (int) Math.min(wanted, Integer.MAX_VALUE);
-            FluidStack actual = hatch.drain(ForgeDirection.UNKNOWN, request, true);
+            FluidStack actual = hatch.drain(ForgeDirection.UNKNOWN, request, commit);
             if (actual == null || actual.amount == 0) return 0;
             if (!actual.isFluidEqual(request) || actual.amount < 0 || actual.amount > request.amount)
                 throw new IllegalStateException("Invalid hatch debit receipt");
@@ -361,11 +371,10 @@ public final class CriticalEnergyPorts {
         }
         Set<MTEHatchOutput> seenHatches = Collections.newSetFromMap(new IdentityHashMap<>());
         List<IOutputHatchTransaction> transactions = new ArrayList<>();
-        List<MTEHatchOutputME> meHatches = new ArrayList<>();
+        List<MTEHatchCriticalOutputME.Batch> meHatches = new ArrayList<>();
         for (MTEHatchOutput hatch : host.getCriticalOutputHatches()) {
             if (!hatch.isValid() || !seenHatches.add(hatch)) continue;
-            // Multi-fluid batches need the native transaction's shared cell-capacity reservation.
-            if (hatch instanceof MTEHatchOutputME me && merged.size() == 1) meHatches.add(me);
+            if (hatch instanceof MTEHatchCriticalOutputME me) meHatches.add(me.beginLongOutput());
             else {
                 IOutputHatchTransaction transaction = hatch.createTransaction();
                 if (transaction instanceof IOutputTransaction.IRecipeCheckAware aware) aware.setRecipeCheck(true);
@@ -388,38 +397,24 @@ public final class CriticalEnergyPorts {
                 }
                 if (left.signum() == 0) break;
             }
-            // Long AE stacks avoid an O(volume / INT_MAX) loop for genuinely huge network batches.
-            Set<IMEMonitor<IAEFluidStack>> networks = Collections.newSetFromMap(new IdentityHashMap<>());
-            for (MTEHatchOutputME me : meHatches) {
+            for (MTEHatchCriticalOutputME.Batch batch : meHatches) {
                 if (left.signum() == 0) break;
-                if (!me.canStoreFluid(output.fluid)) continue;
-                try {
-                    IMEMonitor<IAEFluidStack> monitor = me.getProxy()
-                        .getStorage()
-                        .getFluidInventory();
-                    if (!networks.add(monitor)) continue;
-                    IAEFluidStack request = AEFluidStack.create(output.fluid);
-                    request.setStackSize(
-                        left.min(LONG_MAX)
-                            .longValueExact());
-                    IAEFluidStack rejected = monitor.injectItems(
-                        request,
-                        Actionable.SIMULATE,
-                        new MachineSource((appeng.api.networking.security.IActionHost) me.getBaseMetaTileEntity()));
-                    long accepted = request.getStackSize() - (rejected == null ? 0 : rejected.getStackSize());
-                    if (accepted > 0) {
-                        IAEFluidStack stored = request.copy();
-                        stored.setStackSize(accepted);
-                        plan.networks.add(new NetworkOutput(monitor, stored, me));
-                        left = left.subtract(BigInteger.valueOf(accepted));
-                    }
-                } catch (GridAccessException ignored) { /* Offline is blocked. */ }
+                long accepted = batch.insert(
+                    output.fluid,
+                    left.min(LONG_MAX)
+                        .longValueExact());
+                left = left.subtract(BigInteger.valueOf(accepted));
             }
             if (left.signum() != 0) return null;
         }
         Set<MTEHatchOutputBus> seenBusses = Collections.newSetFromMap(new IdentityHashMap<>());
         List<IOutputBusTransaction> buses = new ArrayList<>();
+        List<MTEHatchCriticalOutputBusME.Batch> meBuses = new ArrayList<>();
         for (MTEHatchOutputBus bus : host.getCriticalOutputBusses()) if (bus.isValid() && seenBusses.add(bus)) {
+            if (bus instanceof MTEHatchCriticalOutputBusME me) {
+                meBuses.add(me.beginLongOutput());
+                continue;
+            }
             IOutputBusTransaction transaction = bus.createTransaction();
             if (transaction instanceof IOutputTransaction.IRecipeCheckAware aware) aware.setRecipeCheck(true);
             buses.add(transaction);
@@ -435,8 +430,14 @@ public final class CriticalEnergyPorts {
                 }
                 if (left.stackSize == 0) break;
             }
+            for (MTEHatchCriticalOutputBusME.Batch batch : meBuses) {
+                if (left.stackSize == 0) break;
+                left.stackSize -= (int) batch.insert(item, left.stackSize);
+            }
             if (left.stackSize != 0) return null;
         }
+        plan.longItems.addAll(meBuses);
+        plan.longFluids.addAll(meHatches);
         plan.fluids.addAll(transactions);
         plan.items.addAll(buses);
         return plan;
@@ -446,33 +447,15 @@ public final class CriticalEnergyPorts {
 
         private final List<IOutputHatchTransaction> fluids = new ArrayList<>();
         private final List<IOutputBusTransaction> items = new ArrayList<>();
-        private final List<NetworkOutput> networks = new ArrayList<>();
+        private final List<MTEHatchCriticalOutputME.Batch> longFluids = new ArrayList<>();
+        private final List<MTEHatchCriticalOutputBusME.Batch> longItems = new ArrayList<>();
 
         public void commit() {
-            for (NetworkOutput network : networks) {
-                IAEFluidStack rejected = network.monitor.injectItems(
-                    network.stack,
-                    Actionable.MODULATE,
-                    new MachineSource(
-                        (appeng.api.networking.security.IActionHost) network.hatch.getBaseMetaTileEntity()));
-                if (rejected != null && rejected.getStackSize() > 0)
-                    throw new IllegalStateException("Output network changed during batch commit");
-            }
+            for (MTEHatchCriticalOutputME.Batch batch : longFluids) batch.commit();
+            for (MTEHatchCriticalOutputBusME.Batch batch : longItems) batch.commit();
             for (IOutputHatchTransaction transaction : fluids) transaction.commit();
             for (IOutputBusTransaction transaction : items) transaction.commit();
         }
     }
 
-    private static final class NetworkOutput {
-
-        final IMEMonitor<IAEFluidStack> monitor;
-        final IAEFluidStack stack;
-        final MTEHatchOutputME hatch;
-
-        NetworkOutput(IMEMonitor<IAEFluidStack> monitor, IAEFluidStack stack, MTEHatchOutputME hatch) {
-            this.monitor = monitor;
-            this.stack = stack;
-            this.hatch = hatch;
-        }
-    }
 }

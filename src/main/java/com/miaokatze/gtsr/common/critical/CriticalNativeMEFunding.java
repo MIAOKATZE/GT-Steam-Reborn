@@ -9,12 +9,9 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
 
-import appeng.api.config.Actionable;
-import appeng.api.networking.security.IActionHost;
-import appeng.api.networking.security.MachineSource;
-import appeng.api.storage.data.IAEItemStack;
+import com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalInputBusME;
+
 import appeng.me.GridAccessException;
-import appeng.util.item.AEItemStack;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
@@ -53,14 +50,26 @@ public final class CriticalNativeMEFunding {
     public static ItemConsumption consumeAllItem(MTEMultiBlockBase host, List<MTEHatchInputBus> inputBusses,
         ItemStack wanted) {
         List<MTEHatchInputBusME> opened = new ArrayList<>();
-        Map<Object, ItemStack> selected = new java.util.IdentityHashMap<>();
+        Map<Object, ItemChoice> selected = new java.util.IdentityHashMap<>();
         long amount = 0;
         boolean settled = true;
+        boolean longExtractionAttempted = false;
         try {
             for (MTEHatchInputBus bus : inputBusses) {
                 if (!(bus instanceof MTEHatchInputBusME) || !bus.isValid()) continue;
                 MTEHatchInputBusME me = (MTEHatchInputBusME) bus;
                 if (!me.isAllowedToWork() || opened.contains(me)) continue;
+                if (me instanceof MTEHatchCriticalInputBusME critical) {
+                    for (int slot = 0; slot < MTEHatchInputBusME.SLOT_COUNT; slot++) {
+                        CriticalEnergyPorts.LongItemSource source = critical.getLongInputSource(slot);
+                        if (source == null || !sameItem(source.prototype(), wanted)) continue;
+                        long available = source.available();
+                        ItemChoice previous = selected.get(source.networkIdentity());
+                        if (available > 0 && (previous == null || previous.amount < available))
+                            selected.put(source.networkIdentity(), new ItemChoice(source, available));
+                    }
+                    continue;
+                }
                 Object inventory;
                 try {
                     inventory = me.getProxy()
@@ -75,13 +84,28 @@ public final class CriticalNativeMEFunding {
                 for (int slot = 0; slot < MTEHatchInputBusME.SLOT_COUNT; slot++) {
                     ItemStack ref = me.getStackInSlot(slot);
                     if (ref == null || ref.stackSize <= 0 || !sameItem(ref, wanted)) continue;
-                    ItemStack previous = selected.get(inventory);
-                    if (previous == null || previous.stackSize < ref.stackSize) selected.put(inventory, ref);
+                    ItemChoice previous = selected.get(inventory);
+                    if (previous == null || previous.amount < ref.stackSize)
+                        selected.put(inventory, new ItemChoice(ref));
                 }
             }
-            for (ItemStack ref : selected.values()) {
-                amount += ref.stackSize;
-                ref.stackSize = 0;
+            for (ItemChoice choice : selected.values()) {
+                if (choice.source == null) {
+                    amount = Math.addExact(amount, choice.ref.stackSize);
+                    choice.ref.stackSize = 0;
+                } else {
+                    longExtractionAttempted = true;
+                    long extracted = choice.source.extract(choice.amount, true);
+                    if (extracted < 0 || extracted > choice.amount) {
+                        settled = false;
+                        break;
+                    }
+                    amount = Math.addExact(amount, extracted);
+                    if (extracted != choice.amount) {
+                        settled = false;
+                        break;
+                    }
+                }
             }
         } catch (Exception failure) {
             settled = false;
@@ -96,31 +120,22 @@ public final class CriticalNativeMEFunding {
             }
         }
         // Opening/closing an unchanged view cannot create an uncertain item extraction.
-        return new ItemConsumption(settled || amount == 0 ? Result.SUCCESS : Result.COMMIT_FAILED, amount);
+        return new ItemConsumption(
+            settled || amount == 0 && !longExtractionAttempted ? Result.SUCCESS : Result.COMMIT_FAILED,
+            amount);
     }
 
     /** Read-only recipe selection view. These copies are never evidence of a committed debit. */
     public static ItemStack[] snapshotItems(List<MTEHatchInputBus> inputBusses) {
         List<ItemStack> result = new ArrayList<>();
+        java.util.Set<MTEHatchInputBus> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         for (MTEHatchInputBus bus : inputBusses) {
-            if (!(bus instanceof MTEHatchInputBusME) || !bus.isValid()) continue;
-            MTEHatchInputBusME me = (MTEHatchInputBusME) bus;
-            if (!me.isAllowedToWork()) continue;
+            if (!(bus instanceof MTEHatchInputBusME me) || !bus.isValid() || !seen.add(bus) || !me.isAllowedToWork())
+                continue;
+            // Native display snapshots are int-sized. Refreshing them does not open a debit window.
             try {
-                for (int slot = 0; slot < MTEHatchInputBusME.SLOT_COUNT; slot++) {
-                    ItemStack config = me.getSlotConfig(slot);
-                    if (config == null) continue;
-                    IAEItemStack request = AEItemStack.create(config);
-                    request.setStackSize(Integer.MAX_VALUE);
-                    IAEItemStack available = me.getProxy()
-                        .getStorage()
-                        .getItemInventory()
-                        .extractItems(
-                            request,
-                            Actionable.SIMULATE,
-                            new MachineSource((IActionHost) me.getBaseMetaTileEntity()));
-                    if (available == null) continue;
-                    ItemStack stack = available.getItemStack();
+                for (int slot = 0; slot < MTEHatchInputBusME.SLOT_COUNT; slot++) me.updateInformationSlot(slot);
+                for (ItemStack stack : me.getItemsForHoloGlasses()) {
                     if (stack == null || stack.stackSize <= 0) continue;
                     boolean found = false;
                     for (ItemStack existing : result) if (sameItem(existing, stack)) {
@@ -130,8 +145,8 @@ public final class CriticalNativeMEFunding {
                     }
                     if (!found) result.add(stack.copy());
                 }
-            } catch (GridAccessException ignored) {
-                // An unavailable network contributes no funding promise.
+            } catch (GridAccessException unavailable) {
+                // An offline stocking view offers no recipe-selection promise.
             }
         }
         return result.toArray(new ItemStack[result.size()]);
@@ -299,8 +314,29 @@ public final class CriticalNativeMEFunding {
     }
 
     private static boolean sameItem(ItemStack left, ItemStack right) {
-        return left.getItem() == right.getItem() && left.getItemDamage() == right.getItemDamage()
+        return left != null && right != null
+            && left.getItem() == right.getItem()
+            && left.getItemDamage() == right.getItemDamage()
             && ItemStack.areItemStackTagsEqual(left, right);
+    }
+
+    private static final class ItemChoice {
+
+        final ItemStack ref;
+        final CriticalEnergyPorts.LongItemSource source;
+        final long amount;
+
+        ItemChoice(ItemStack ref) {
+            this.ref = ref;
+            this.source = null;
+            this.amount = ref.stackSize;
+        }
+
+        ItemChoice(CriticalEnergyPorts.LongItemSource source, long amount) {
+            this.ref = null;
+            this.source = source;
+            this.amount = amount;
+        }
     }
 
     private static final class ItemDebit {

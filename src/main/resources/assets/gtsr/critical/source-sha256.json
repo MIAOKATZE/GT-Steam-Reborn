@@ -174,7 +174,7 @@
     "src/main/resources/assets/gtsr/textures/blocks/critical/violet_phase_glass__top.png": "64cda79b59478d41cb57930249333d6d25a504697abb2461a05b78167ded48a8",
     "src/main/resources/assets/gtsr/textures/blocks/critical/violet_phase_glass_emission.png": "d2bd24f31befae7fde3342396ebf7f75d1b0a705670ccc2884bfadbe2475eb87",
     "src/main/resources/assets/gtsr/textures/blocks/critical/violet_phase_glass_emission.png.mcmeta": "a4fd1db69a2c1e0416032ce4c9cd2757a70fe92738cee4f83e1f8a4bdfa2f716",
-    "src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json": "0ed4b6dc88da259ca0265c27f1d71e19e6e37ee6443fdb89189d57da656ed20a",
+    "src/main/resources/assets/gtsr/critical/models/v2_base_t3.geometry.json": "28508d978cabf53d4eb8cc12c02b8f75ba90f3df7fe7a3bd7b4c5f81418d16ea",
     "src/main/resources/assets/gtsr/critical/models/v2_loom.geometry.json": "d562b11f71de7ec26239ca54a2ccdc14fc320d4228c40642228ef91ecf5460d2",
     "src/main/resources/assets/gtsr/critical/models/v2_plugin_efficiency.geometry.json": "cfd0a38d1ff0a71c76a7526b437fa3c19251ea3aeb9b96c3f10c6eae58e64536",
     "src/main/resources/assets/gtsr/critical/models/v2_plugin_parallel.geometry.json": "8b328e55ef8d82c21944ea7f22dee7b2ec5fbf6b2a050921d633a14e31aa20bf",
@@ -1185,7 +1185,8 @@
     "src/main/resources/assets/gtsr/critical/models/v2_battery.geometry.json": "31ac30850c4bc94494f041f433d8423122e791abd8e5dd82b0de3e214b7aed5b",
     "src/main/resources/assets/gtsr/critical/models/v2_assembly.geometry.json": "fd7665a121edc36a9bf9586187d4ec2d405a66fc9df184654d83efdbd5bacdb6",
     "src/main/resources/assets/gtsr/critical/models/v2_accelerator.geometry.json": "a42b79d8db341bbbd3c7567a1960b4b3b4f9c95df6c6daceeeb4c18f8d72c581",
-    "src/main/resources/assets/gtsr/critical/models/v2_v31_base_t3.geometry.json": "04a5336b6d3ecf444c62ab8a8b187ab5a336571668ab3ce8174180a4cd0a9c32"
+    "src/main/resources/assets/gtsr/critical/models/v2_v31_base_t3.geometry.json": "04a5336b6d3ecf444c62ab8a8b187ab5a336571668ab3ce8174180a4cd0a9c32",
+    "src/main/resources/assets/gtsr/critical/models/v2_v32_base_t3.geometry.json": "0ed4b6dc88da259ca0265c27f1d71e19e6e37ee6443fdb89189d57da656ed20a"
   },
   "authorities": {
     "legacy": {
@@ -1726,11 +1727,11 @@
       },
       "designTagScope": "approved Solar R4 geometry, motion, FX and original material artwork; excludes amended loom/base membership",
       "sharedStructureRevision": {
-        "revision": "v2.0.42 / layout 32",
+        "revision": "v2.0.43 / layout 33",
         "models": [
           "base_t3"
         ],
-        "source": "tools/critical/amend_supply_terrace_v32.py against released v2.0.41 V31 bytes"
+        "source": "tools/critical/import_supply_hull_v33.py; approved HTML c811ed2bb12a901cdf32a5b2f70a683faecbf952f5eb312298cea3db96fbe4e9"
       },
       "runtimeAmendment": "v1.21.25 Solar: loom journal and same-row ports; main controller and supported service-shell row paid by base",
       "directionalFaceRegistration": "gravity py cold-white violet-blue ring and ny cyan-blue circular field; independent live twelve-frame terrain-atlas emission and frame-zero frozen emission; original side sprites, CTM rails, downward FX and native lightValue retained",
@@ -1919,6 +1920,11 @@
       "sourceRef": "v2.0.41",
       "sha256": "04a5336b6d3ecf444c62ab8a8b187ab5a336571668ab3ce8174180a4cd0a9c32",
       "usage": "persisted V31 journals retain paid geometry, order and fingerprint; free terrace uses a separate ownership bitmap"
+    },
+    "v2_v32_base_t3": {
+      "sourceRef": "v2.0.42",
+      "sha256": "0ed4b6dc88da259ca0265c27f1d71e19e6e37ee6443fdb89189d57da656ed20a",
+      "usage": "Exact released V32 paid membership/order and immutable 1314-position supplyTerracePlaced bitmap authority"
     }
   }
 }

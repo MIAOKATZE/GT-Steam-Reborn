@@ -28,7 +28,7 @@ def main():
     dependencies = sorted(p for p in CACHE.glob('*/*/*/*/*.jar')
         if '/GT5-Unofficial/' not in p.as_posix() and '/Applied-Energistics-2-Unofficial/' not in p.as_posix()
         and 'gtsr' not in p.name.lower())
-    baseline = args.jar.resolve() if args.jar else ROOT / 'build/libs/gtsr-v2.0.6-dev.jar'
+    baseline = args.jar.resolve() if args.jar else max((ROOT / 'build/libs').glob('*-dev.jar'), key=lambda p:p.stat().st_mtime)
     production = [baseline] if args.jar else [ROOT / 'build/classes/java/main',baseline]
     cp = os.pathsep.join(map(str, [classes, *production, gt, ae,
         ROOT / 'build/classes/java/patchedMc', ROOT / 'build/rfg/recompiled_minecraft-1.7.10.jar',
@@ -59,6 +59,8 @@ def main():
     run('javac.exe','compile',['-J-Xmx1G','-encoding','UTF-8','-proc:none','-sourcepath',empty,'-cp',cp,'-d',classes,*sources])
     result = run('java.exe','contract',['-Xmx1G','-Dfile.encoding=UTF-8','-cp',cp,'CriticalCompoundRuntimeContract'])
     lines = [line for line in result.splitlines() if line.startswith(('PASS ','SOURCE '))]
+    if not any(line.startswith('PASS CriticalCompoundRuntimeContract checks=') for line in lines):
+        raise RuntimeError('Contract exited without its explicit PASS receipt; inspect contract.log')
     receipt = {'status':'PASS','productOverlay':not bool(args.jar),'gtJar':str(gt),'aeJar':str(ae),
         'baselineJar':str(baseline),'baselineSHA256':hashlib.sha256(baseline.read_bytes()).hexdigest(),
         'sourceSHA256':hashes,'result':lines,

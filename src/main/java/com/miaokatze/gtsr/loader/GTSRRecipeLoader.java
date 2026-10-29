@@ -5,6 +5,7 @@ import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.log;
 import com.miaokatze.gtsr.common.dimension.prosperity.industrial.ProsperityIndustrialRecipes;
 import com.miaokatze.gtsr.loader.recipes.AbyssalObsessionRecipes;
 import com.miaokatze.gtsr.loader.recipes.ClusterRecipes;
+import com.miaokatze.gtsr.loader.recipes.CriticalMEHatchRecipes;
 import com.miaokatze.gtsr.loader.recipes.CriticalMachineRecipes;
 import com.miaokatze.gtsr.loader.recipes.DisplayRecipes;
 import com.miaokatze.gtsr.loader.recipes.HatchRecipes;
@@ -59,6 +60,7 @@ public class GTSRRecipeLoader implements Runnable {
         registerGroup("MultiblockWorkbench", MultiblockMachineRecipes::registerMultiblockWorkbenchRecipes);
         registerGroup("MultiblockAssembler", MultiblockMachineRecipes::registerMultiblockAssemblerRecipes);
         registerGroup("Hatch", HatchRecipes::registerHatchRecipes);
+        registerGroup("CriticalMEHatch", CriticalMEHatchRecipes::register);
         registerGroup("DistilledWaterHatch", HatchRecipes::registerDistilledWaterHatchRecipe); // 蒸馏水仓：继承蓄水仓配方 +
                                                                                                // 3组蒸汽纠缠奇点
         registerGroup("GeothermalBoilerDisplay", DisplayRecipes::registerGeothermalBoilerDisplayRecipes);
