@@ -97,16 +97,12 @@ public final class CriticalTooltips {
         info(tt, "solar.pulse_maximum");
         BigInteger stock = CriticalSolarPolicy.stockHalfSaturationLitres()
             .multiply(BigInteger.valueOf(5));
-        BigInteger heat = CriticalSolarPolicy
-            .batchDenseSupercriticalLitres(
-                stock,
-                CriticalSolarPolicy.PRIVATE_DIMENSION_FACTOR,
-                CriticalSolarPolicy.COOLANTS.get(1),
-                CriticalSolarPolicy.EXCITERS.get(1))
-            .multiply(BigInteger.valueOf(5000));
-        heat = CriticalSolarPolicy.waterHalfHeat(
-            heat.min(stock.multiply(BigInteger.valueOf(160)))
-                .multiply(BigInteger.TEN));
+        BigInteger heat = CriticalSolarPolicy.batchWaterHalfHeat(
+            stock,
+            CriticalSolarPolicy.PRIVATE_DIMENSION_FACTOR,
+            CriticalSolarPolicy.COOLANTS.get(1),
+            CriticalSolarPolicy.EXCITERS.get(1),
+            5);
         BigInteger energy = heat.multiply(BigInteger.valueOf(CriticalEnergyMath.MAX_EFFICIENCY))
             .divide(BigInteger.valueOf(200));
         BigDecimal power = new BigDecimal(energy).divide(BigDecimal.valueOf(CriticalEnergyMath.CYCLE_TICKS));

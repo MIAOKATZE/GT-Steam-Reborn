@@ -412,7 +412,7 @@ class CriticalNEICatalogRuntime {
             var solar=info.solar;
             check(solar!=null,"all boiler cards freeze typed batch metadata at registration");
             check(solar.inputLitres.compareTo(solar.exampleStock)<=0,"shown working-fluid stock funds the full real batch");
-            check(solar.exampleStock.equals(solar.halfSaturationStock.multiply(BigInteger.valueOf(5))),
+            check(solar.exampleStock.equals(solar.halfSaturationStock.multiply(BigInteger.valueOf(info.operation.equals("solar_salt")?5:10))),
                 "all water and salt examples share five-half-stock saturation");
             check(Math.abs(solar.multiplier-1.35D)<0.000001D,"example uses dimension 0.6, coolant 1.5 and activator 1.5");
             if(info.operation.equals("solar_salt")) {
@@ -437,13 +437,13 @@ class CriticalNEICatalogRuntime {
                 check(heat.equals(CriticalSolarPolicy.waterHalfHeat(info.baseEu)),"all steam volumes use the common exact heat quantum");
                 check(solar.mode.index==mode,"batch metadata freezes this card's selected steam form");
                 String[] coefficients={"120000000000000","40000000000000","24000000000000","120000000000","40000000000","24000000000"};
-                String[] production={"79999999995000","26666666665000","15999999999000","79999999995","26666666665","15999999999"};
-                String[] consumption={"499999999969","166666666657","99999999994","499999999969","166666666657","99999999994"};
+                String[] production={"147272727270000","49090909090000","29454545454000","147272727270","49090909090","29454545454"};
+                String[] consumption={"920454545438","306818181814","184090909088","920454545438","306818181814","184090909088"};
                 check(solar.coefficient.equals(new BigInteger(coefficients[mode]))
                     &&solar.outputLitres.equals(new BigInteger(production[mode]))
                     &&solar.inputLitres.equals(new BigInteger(consumption[mode])),"selected steam coefficient, actual output and paid water match policy7");
-                check(solar.exampleStock.equals(new BigInteger("500000000000"))
-                    &&solar.heatEU.equals(new BigInteger("39999999997500")),"all six inventory-protected examples carry equal native steam heat");
+                check(solar.exampleStock.equals(new BigInteger("1000000000000"))
+                    &&solar.heatEU.equals(new BigInteger("73636363635000")),"all six inventory-protected examples carry equal native steam heat");
                 check(solar.outputLitres.multiply(CriticalEnergyMath.steamHeatPerL(mode))
                     .equals(solar.heatEU.multiply(BigInteger.valueOf(2))),"displayed heat matches selected steam's full native cascade");
             }

@@ -255,8 +255,8 @@ public final class CriticalRecipeMaps {
             coefficient = salt ? base
                 : base.multiply(halfHeatPerDenseL)
                     .divide(CriticalEnergyMath.steamHeatPerL(mode.index));
-            // Compare all working fluids at five times half-saturation; this funds all six steam forms.
-            exampleStock = halfSaturationStock.multiply(BigInteger.valueOf(5));
+            // Water cards use a common stock that funds every doubled steam form.
+            exampleStock = halfSaturationStock.multiply(BigInteger.valueOf(salt ? 5 : 10));
             if (salt) {
                 outputLitres = CriticalSolarPolicy.batchHotSaltLitres(exampleStock, dimension, coolant, exciter);
                 inputLitres = outputLitres;
@@ -265,13 +265,9 @@ public final class CriticalRecipeMaps {
                     .divide(BigInteger.valueOf(2));
             } else {
                 BigInteger halfHeat = CriticalSolarPolicy
-                    .batchDenseSupercriticalLitres(exampleStock, dimension, coolant, exciter)
-                    .multiply(halfHeatPerDenseL);
-                halfHeat = CriticalSolarPolicy.waterHalfHeat(
-                    halfHeat.min(exampleStock.multiply(BigInteger.valueOf(160)))
-                        .multiply(BigInteger.TEN));
+                    .batchWaterHalfHeat(exampleStock, dimension, coolant, exciter, mode.index);
                 outputLitres = CriticalSolarPolicy.steamLitres(halfHeat, mode.index);
-                inputLitres = CriticalSolarPolicy.waterLitres(outputLitres, mode.index);
+                inputLitres = CriticalSolarPolicy.batchWaterLitres(halfHeat, mode.index);
                 heatEU = halfHeat.divide(BigInteger.valueOf(2));
             }
             if (inputLitres.compareTo(exampleStock) > 0)

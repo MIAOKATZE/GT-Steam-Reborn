@@ -4611,7 +4611,7 @@ gtsr.critical.tooltip.native.solar.media_fixed=固定消耗（每批扣除§e20�
 gtsr.critical.tooltip.native.solar.water=水路：§b蒸馏水 → 所选蒸汽§7；水、盐、等离子体三路互斥
 gtsr.critical.tooltip.native.solar.salt=盐路：§6冷太阳能盐 → 等量热太阳能盐
 gtsr.critical.tooltip.native.solar.private=§e总倍率=维度系数×冷却倍率×激活倍率§7；私人维度系数§e0.6
-gtsr.critical.tooltip.native.solar.stock=§ex§7为所选工质开批库存L；蒸馏水不足时产量降低
+gtsr.critical.tooltip.native.solar.stock=§ex§7为所选工质开工时库存L；蒸馏水不足整批用量时不开工
 gtsr.critical.tooltip.native.solar.steam_amount=致密超临界蒸汽§by≤24G×x/(x+100G)×总倍率 L/批
 gtsr.critical.tooltip.native.solar.salt_amount=热太阳能盐§6y=80G×x/(x+100G)×总倍率 L/批
 gtsr.critical.tooltip.native.solar.dimension=主电源开启即维持本维度§5无月永夜§7；同维度第二台锅炉不能运行
@@ -4619,7 +4619,7 @@ gtsr.critical.tooltip.native.solar.coolant=必须供应以下一种§b冷却剂�
 gtsr.critical.tooltip.native.solar.excitation=同时必须供应以下一种§d激活剂§7：
 gtsr.critical.tooltip.native.solar.medium=§f%3$s L/s§7 : §d×%2$s§7 : %1$s
 gtsr.critical.tooltip.native.solar.example_water_combination=例：私人维度§e0.6§7、极寒之凛冰§b×1.5§7、氦等离子体§d×1.5§7，总倍率§e1.35
-gtsr.critical.tooltip.native.solar.example_water_output=§b500G L蒸馏水库存§7：产§b16G L致密超临界蒸汽§7，扣水§b100G L§7，等效热值§640T EU
+gtsr.critical.tooltip.native.solar.example_water_output=§b500G L蒸馏水库存§7：产§b27G L致密超临界蒸汽§7，扣水§b168.75G L§7，等效热值§667.5T EU
 gtsr.critical.tooltip.native.solar.example_salt_output=同组合§6500G L冷太阳能盐库存§7：产§690G L热太阳能盐§7；超级热交换机超临界线§6225T EU§7，普通过热线§6135T EU
 gtsr.critical.tooltip.native.solar.pulse_maximum=接入[超临界蒸汽脉冲动力核心]，最高§a2000%§7效率：发电量=蒸汽等效热值§e×20
 gtsr.critical.tooltip.native.solar.pulse_example=本例§b500G L蒸馏水§7：最高§e%1$sT EU/批§7，§e%2$sT EU/t§7 (§b%3$sA %4$s§r§7)
