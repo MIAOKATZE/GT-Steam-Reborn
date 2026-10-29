@@ -116,6 +116,19 @@ public final class CriticalEnergyPorts {
         return total;
     }
 
+    /** Display quantities use the same deduplicated sources as payment, without narrowing AE long stacks. */
+    public static List<FluidAmount> quantities(List<Input> inputs, boolean network) {
+        Map<GTUtility.FluidId, FluidAmount> totals = new LinkedHashMap<>();
+        for (Input input : inputs) {
+            if ((input.monitor != null) != network) continue;
+            GTUtility.FluidId key = GTUtility.FluidId.create(input.fluid);
+            FluidAmount previous = totals.get(key);
+            BigInteger amount = BigInteger.valueOf(input.amount);
+            totals.put(key, new FluidAmount(input.fluid, previous == null ? amount : previous.amount.add(amount)));
+        }
+        return new ArrayList<>(totals.values());
+    }
+
     public static List<Debit> take(List<Input> inputs, FluidStack fluid, BigInteger amount) {
         List<Debit> result = new ArrayList<>();
         for (Input input : inputs) {

@@ -1,8 +1,11 @@
 package com.miaokatze.gtsr.common.gui;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -12,6 +15,10 @@ import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
+
+import com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.FluidAmount;
+
+import gregtech.api.util.GTUtility;
 
 /** Bounded registry identities and quantities. Names are resolved in the receiving client's language. */
 final class CriticalMaterialSnapshot {
@@ -26,6 +33,13 @@ final class CriticalMaterialSnapshot {
     }
 
     static CriticalMaterialSnapshot capture(ItemStack[] items, FluidStack[] fluids) {
+        List<FluidAmount> amounts = new ArrayList<>();
+        for (FluidStack fluid : fluids) if (fluid != null && fluid.amount > 0)
+            amounts.add(new FluidAmount(fluid, BigInteger.valueOf(fluid.amount)));
+        return capture(items, amounts);
+    }
+
+    static CriticalMaterialSnapshot capture(ItemStack[] items, List<FluidAmount> fluids) {
         List<Entry> entries = new ArrayList<>();
         int omitted = 0;
         int tagBudget = TAG_BUDGET;
@@ -47,12 +61,20 @@ final class CriticalMaterialSnapshot {
                     false,
                     id,
                     stack.getItemDamage(),
-                    stack.stackSize,
+                    BigInteger.valueOf(stack.stackSize),
                     tag,
                     stack.hasTagCompound() && tag.isEmpty()));
         }
-        for (FluidStack stack : fluids) {
-            if (stack == null || stack.amount <= 0) continue;
+        Map<GTUtility.FluidId, FluidAmount> fluidTotals = new LinkedHashMap<>();
+        for (FluidAmount fluid : fluids) {
+            GTUtility.FluidId key = GTUtility.FluidId.create(fluid.fluid);
+            FluidAmount previous = fluidTotals.get(key);
+            fluidTotals
+                .put(key, previous == null ? fluid : new FluidAmount(fluid.fluid, previous.amount.add(fluid.amount)));
+        }
+        for (FluidAmount fluid : fluidTotals.values()) {
+            if (fluid.amount.signum() <= 0) continue;
+            FluidStack stack = fluid.fluid;
             if (entries.size() == LIMIT) {
                 omitted++;
                 continue;
@@ -65,7 +87,7 @@ final class CriticalMaterialSnapshot {
             }
             String tag = boundedTag(stack.tag, tagBudget);
             tagBudget -= tag.length();
-            entries.add(new Entry(true, id, 0, stack.amount, tag, stack.tag != null && tag.isEmpty()));
+            entries.add(new Entry(true, id, 0, fluid.amount, tag, stack.tag != null && tag.isEmpty()));
         }
         return new CriticalMaterialSnapshot(entries, omitted);
     }
@@ -77,13 +99,17 @@ final class CriticalMaterialSnapshot {
             packet.writeBoolean(row.fluid);
             packet.writeStringToBuffer(row.id);
             packet.writeInt(row.damage);
-            packet.writeInt(row.amount);
+            packet.writeStringToBuffer(row.amount.toString());
             packet.writeStringToBuffer(row.tag);
             packet.writeBoolean(row.tagOmitted);
         }
     }
 
     static CriticalMaterialSnapshot read(PacketBuffer packet) throws IOException {
+        return read(packet, true);
+    }
+
+    static CriticalMaterialSnapshot read(PacketBuffer packet, boolean wideAmounts) throws IOException {
         int count = packet.readVarIntFromBuffer(), omitted = packet.readVarIntFromBuffer();
         if (count < 0 || count > LIMIT || omitted < 0) throw new IOException("Invalid material preview size");
         List<Entry> rows = new ArrayList<>(count);
@@ -93,15 +119,24 @@ final class CriticalMaterialSnapshot {
                 packet.readBoolean(),
                 packet.readStringFromBuffer(MAX_ID),
                 packet.readInt(),
-                packet.readInt(),
+                readAmount(packet, wideAmounts),
                 packet.readStringFromBuffer(MAX_TAG),
                 packet.readBoolean());
             tagBytes += row.tag.length();
             if (tagBytes > TAG_BUDGET) throw new IOException("Material preview NBT budget exceeded");
-            if (row.amount < 0) throw new IOException("Invalid material preview quantity");
+            if (row.amount.signum() < 0) throw new IOException("Invalid material preview quantity");
             rows.add(row);
         }
         return new CriticalMaterialSnapshot(rows, omitted);
+    }
+
+    private static BigInteger readAmount(PacketBuffer packet, boolean wideAmounts) throws IOException {
+        if (!wideAmounts) return BigInteger.valueOf(packet.readInt());
+        try {
+            return new BigInteger(packet.readStringFromBuffer(64));
+        } catch (NumberFormatException invalid) {
+            throw new IOException("Invalid material preview quantity", invalid);
+        }
     }
 
     String lines() {
@@ -141,12 +176,13 @@ final class CriticalMaterialSnapshot {
 
         private final boolean fluid, tagOmitted;
         private final String id, tag;
-        private final int damage, amount;
+        private final int damage;
+        private final BigInteger amount;
         private boolean resolved, unknown;
         private ItemStack displayItem;
         private FluidStack displayFluid;
 
-        private Entry(boolean fluid, String id, int damage, int amount, String tag, boolean tagOmitted) {
+        private Entry(boolean fluid, String id, int damage, BigInteger amount, String tag, boolean tagOmitted) {
             this.fluid = fluid;
             this.id = id;
             this.damage = damage;
@@ -190,7 +226,7 @@ final class CriticalMaterialSnapshot {
         public boolean equals(Object other) {
             return other instanceof Entry row && fluid == row.fluid
                 && damage == row.damage
-                && amount == row.amount
+                && amount.equals(row.amount)
                 && tagOmitted == row.tagOmitted
                 && id.equals(row.id)
                 && tag.equals(row.tag);

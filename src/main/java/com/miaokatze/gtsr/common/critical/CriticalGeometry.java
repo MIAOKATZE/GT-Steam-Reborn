@@ -22,6 +22,9 @@ public final class CriticalGeometry {
 
     private static final Map<String, Model> MODELS = new HashMap<>();
     private static final Map<String, List<Voxel>> STRUCTURES = new HashMap<>();
+    private static List<Voxel> supplyTerrace;
+    private static List<Voxel> terraceSupplies, terraceWorkPorts;
+    private static final Map<Long, Integer> SUPPLY_TERRACE_INDICES = new HashMap<>();
 
     private CriticalGeometry() {}
 
@@ -71,6 +74,56 @@ public final class CriticalGeometry {
         return getModel("loom").voxels;
     }
 
+    /** Free compatibility decoration has its own stable indices, never paid journal indices. */
+    static synchronized List<Voxel> supplyTerrace() {
+        if (supplyTerrace == null) {
+            List<Voxel> rows = new ArrayList<>();
+            for (Voxel v : getModel("v2_base_t3").voxels) if ("supply_terrace".equals(v.group)) rows.add(v);
+            rows.sort(
+                java.util.Comparator.comparingInt((Voxel v) -> v.y)
+                    .thenComparingInt(v -> v.x)
+                    .thenComparingInt(v -> v.z));
+            for (int i = 0; i < rows.size(); i++) SUPPLY_TERRACE_INDICES.put(
+                rows.get(i)
+                    .positionKey(),
+                i);
+            supplyTerrace = Collections.unmodifiableList(rows);
+        }
+        return supplyTerrace;
+    }
+
+    static Integer supplyTerraceIndex(long position) {
+        supplyTerrace();
+        return SUPPLY_TERRACE_INDICES.get(position);
+    }
+
+    static synchronized List<Voxel> terraceSupplies() {
+        if (terraceSupplies == null) {
+            List<Voxel> rows = new ArrayList<>();
+            for (Voxel v : supplyTerrace()) if (CriticalLayoutDefinition.isTerraceSupply(v)) rows.add(v);
+            terraceSupplies = Collections.unmodifiableList(rows);
+        }
+        return terraceSupplies;
+    }
+
+    static synchronized List<Voxel> terraceWorkPorts() {
+        if (terraceWorkPorts == null) {
+            List<Voxel> rows = new ArrayList<>();
+            for (Voxel v : terraceSupplies()) rows.add(
+                new Voxel(
+                    v.x,
+                    v.y + 1,
+                    v.z,
+                    CriticalMaterials.block("v2_service_hatch", false),
+                    1,
+                    "v2_service_hatch",
+                    "optional_work_ports",
+                    "v2_optional_terrace_work_port"));
+            terraceWorkPorts = Collections.unmodifiableList(rows);
+        }
+        return terraceWorkPorts;
+    }
+
     public static boolean isDynamic(String slug, String group) {
         if (slug.startsWith("v2_plugin_") && group.startsWith("decor_shell_")) return true;
         JsonObject animations = getModel(slug).animations;
@@ -101,6 +154,7 @@ public final class CriticalGeometry {
                 "v2_service_hatch",
                 "optional_work_ports",
                 "v2_optional_work_port"));
+        if (layout.family == CriticalLayoutDefinition.Family.CURRENT) ports.addAll(terraceWorkPorts());
         return Collections.unmodifiableList(ports);
     }
 
@@ -127,7 +181,7 @@ public final class CriticalGeometry {
     /** Exact inverse sampling used by the frozen design's integer-world addon exporter. */
     public static List<Voxel> physicalPlugins(CriticalConfiguration config) {
         return CriticalCompiledLayout
-            .get(CriticalLayoutDefinition.select(2, 31, false, config.tier, config.kind), config)
+            .get(CriticalLayoutDefinition.select(2, 32, false, config.tier, config.kind), config)
             .plugins();
     }
 
