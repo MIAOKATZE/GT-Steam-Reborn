@@ -749,9 +749,10 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             @Override
             public long emitHeliumPlasma(long requested) {
                 // Deliver the largest bounded prefix that current real hatches can accept.
-                long low = 0, high = Math.min(requested, Integer.MAX_VALUE);
+                long low = 0, high = requested;
                 while (low < high) {
-                    long middle = low + (high - low + 1) / 2;
+                    long distance = high - low;
+                    long middle = low + distance / 2 + distance % 2;
                     if (stellarPlasmaOutput(middle) != null) low = middle;
                     else high = middle - 1;
                 }
@@ -837,13 +838,16 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     public String getCriticalInputOverviewForGui() {
         StringBuilder text = new StringBuilder();
         for (ItemStack stack : criticalPhysicalItemsSnapshot())
-            appendInputOverview(text, stack.getDisplayName(), stack.stackSize);
-        for (FluidStack fluid : criticalPhysicalFluidsSnapshot())
-            appendInputOverview(text, fluid.getLocalizedName(), fluid.amount);
+            appendInputOverview(text, stack.getDisplayName(), java.math.BigInteger.valueOf(stack.stackSize));
+        java.util.List<com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.Input> fluidInputs = com.miaokatze.gtsr.common.critical.CriticalEnergyPorts
+            .snapshot(this);
+        for (com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.FluidAmount fluid : com.miaokatze.gtsr.common.critical.CriticalEnergyPorts
+            .quantities(fluidInputs, false)) appendInputOverview(text, fluid.fluid.getLocalizedName(), fluid.amount);
         for (ItemStack stack : criticalMEItemsSnapshot())
-            appendInputOverview(text, "ME: " + stack.getDisplayName(), stack.stackSize);
-        for (FluidStack fluid : criticalMEFluidsSnapshot())
-            appendInputOverview(text, "ME: " + fluid.getLocalizedName(), fluid.amount);
+            appendInputOverview(text, "ME: " + stack.getDisplayName(), java.math.BigInteger.valueOf(stack.stackSize));
+        for (com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.FluidAmount fluid : com.miaokatze.gtsr.common.critical.CriticalEnergyPorts
+            .quantities(fluidInputs, true))
+            appendInputOverview(text, "ME: " + fluid.fluid.getLocalizedName(), fluid.amount);
         return text.length() == 0 ? "\u2014" : text.toString();
     }
 
@@ -890,6 +894,10 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     }
 
     private static void appendInputOverview(StringBuilder text, String name, int amount) {
+        appendInputOverview(text, name, java.math.BigInteger.valueOf(amount));
+    }
+
+    private static void appendInputOverview(StringBuilder text, String name, java.math.BigInteger amount) {
         if (text.length() >= 2048) return;
         if (text.length() > 0) text.append('\n');
         text.append(name)

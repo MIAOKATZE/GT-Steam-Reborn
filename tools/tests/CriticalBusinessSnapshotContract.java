@@ -28,6 +28,7 @@ public final class CriticalBusinessSnapshotContract {
 
     public static void main(String[] args) throws Exception {
         energyProjection();
+        CriticalMaterialSnapshot wideMaterial = materialQuantities();
         Constructor<CriticalConstructionSnapshot> mapConstructor = CriticalConstructionSnapshot.class
             .getDeclaredConstructor(int[].class);
         mapConstructor.setAccessible(true);
@@ -100,6 +101,7 @@ public final class CriticalBusinessSnapshotContract {
         int[] configuration = { 6, 2, 3, 1, 40, 400, 5, 1, 1, 0, 0, 0 };
         CriticalMaterialSnapshot[] materials = new CriticalMaterialSnapshot[7];
         Arrays.fill(materials, CriticalMaterialSnapshot.capture(new ItemStack[0], new FluidStack[0]));
+        materials[6] = wideMaterial;
         Constructor<CriticalBusinessSnapshot> constructor = CriticalBusinessSnapshot.class.getDeclaredConstructor(
             CriticalConstructionSnapshot.class, String[].class, int.class, String[][].class, String[][].class, int[].class,
             CriticalMaterialSnapshot[].class);
@@ -131,14 +133,37 @@ public final class CriticalBusinessSnapshotContract {
         check(value(decoded, "chemical.recipe").equals("blend.7.3.3")
             && value(decoded, "chemical.efficiency").equals("12.34x"), "recipe and multiplier survive in the same sample");
         check(value(decoded, "chemical.flow").equals(value(runtime, "chemical.flow")), "flow and volume share the same packet");
-        check(decoded.inputs().isEmpty() && decoded.networkInputs().isEmpty(),
-            "material displays must use the bounded material descriptors");
+        check(decoded.inputs().isEmpty() && decoded.networkInputs().contains("18446744073709551614"),
+            "business v3 carries exact material quantities beyond a single long source");
         check(decoded.batchTicks() == 40 && decoded.batchDuration() == 400 && decoded.steamMode() == 5,
             "batch cursor and mode must be decoded from the same packet");
         check(decoded.configuration().parallel == 2 && decoded.configuration().speed == 3,
             "configuration must be from the same packet");
         check(decoded.configuration() == decoded.configuration(), "immutable display configuration is reused per sample");
         check(decoded.canCancelLegacyStellarBatch(), "legacy recovery action must belong to the same sample");
+        PacketBuffer legacy = new PacketBuffer(Unpooled.buffer());
+        legacy.writeVarIntToBuffer(2);
+        construction.write(legacy);
+        for (String value : text) legacy.writeStringToBuffer(value);
+        legacy.writeVarIntToBuffer(2);
+        legacy.writeVarIntToBuffer(0);
+        legacy.writeVarIntToBuffer(0);
+        for (int value : configuration) legacy.writeInt(value);
+        for (int i = 0; i < 7; i++) {
+            legacy.writeVarIntToBuffer(i == 6 ? 1 : 0);
+            legacy.writeVarIntToBuffer(0);
+            if (i == 6) {
+                legacy.writeBoolean(true);
+                legacy.writeStringToBuffer("steam");
+                legacy.writeInt(0);
+                legacy.writeInt(Integer.MAX_VALUE);
+                legacy.writeStringToBuffer("");
+                legacy.writeBoolean(false);
+            }
+        }
+        CriticalBusinessSnapshot legacyDecoded = (CriticalBusinessSnapshot) read.invoke(null, legacy);
+        check(legacy.readableBytes() == 0 && legacyDecoded.networkInputs().contains("2147483647"),
+            "business v2 explicitly decodes the legacy int material wire without field misalignment");
         PacketBuffer wrongVersion = new PacketBuffer(Unpooled.buffer());
         wrongVersion.writeVarIntToBuffer(99);
         rejects(read, wrongVersion, "unknown packet version must fail closed");
@@ -154,6 +179,37 @@ public final class CriticalBusinessSnapshotContract {
         tooManyIdentities.writeVarIntToBuffer(65);
         rejects(read, tooManyIdentities, "identity count must be bounded before allocation");
         System.out.println("PASS CriticalBusinessSnapshotContract checks=" + checks);
+    }
+
+    private static CriticalMaterialSnapshot materialQuantities() throws Exception {
+        FluidStack fluid = new FluidStack(net.minecraftforge.fluids.FluidRegistry.getFluid("steam"), 1);
+        java.math.BigInteger[] amounts = {
+            java.math.BigInteger.valueOf((long) Integer.MAX_VALUE + 1),
+            java.math.BigInteger.valueOf(100_000_000_000L), java.math.BigInteger.valueOf(500_000_000_000L),
+            java.math.BigInteger.valueOf(Long.MAX_VALUE).multiply(java.math.BigInteger.valueOf(2)) };
+        List<com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.FluidAmount> fluids = new ArrayList<>();
+        for (int i = 0; i < amounts.length; i++) {
+            FluidStack identity = fluid.copy();
+            identity.tag = new NBTTagCompound();
+            identity.tag.setInteger("variant", i);
+            fluids.add(new com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.FluidAmount(identity, amounts[i]));
+        }
+        CriticalMaterialSnapshot sample = CriticalMaterialSnapshot.capture(new ItemStack[0], fluids);
+        PacketBuffer packet = new PacketBuffer(Unpooled.buffer());
+        sample.write(packet);
+        CriticalMaterialSnapshot decoded = CriticalMaterialSnapshot.read(packet);
+        check(sample.same(decoded) && packet.readableBytes() == 0, "wide native material codec roundtrip is exact");
+        for (java.math.BigInteger amount : amounts)
+            check(decoded.lines().contains(amount.toString() + " mB"), "material display retains " + amount);
+        check(fluid.amount == 1, "quantity capture never expands an identity FluidStack into an overflowing amount");
+        FluidStack[] outputs = new FluidStack[233];
+        java.util.Arrays.setAll(outputs, i -> new FluidStack(fluid.getFluid(), Integer.MAX_VALUE));
+        CriticalMaterialSnapshot ordinary = CriticalMaterialSnapshot.capture(new ItemStack[0], outputs);
+        check(ordinary.lines().contains(java.math.BigInteger.valueOf(Integer.MAX_VALUE)
+            .multiply(java.math.BigInteger.valueOf(233)).toString() + " mB")
+            && ordinary.lines().indexOf('\n') < 0,
+            "ordinary output tanks aggregate before the 64-row display bound without int overflow");
+        return sample;
     }
 
     private static void energyProjection() throws Exception {

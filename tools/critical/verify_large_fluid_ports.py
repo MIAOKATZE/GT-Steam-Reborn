@@ -1,4 +1,4 @@
-"""Frozen-jar real Ports / AEFluidStack large-fluid contract with finite detached network seams."""
+"""Real large-fluid Ports and material snapshot contracts with finite detached network seams."""
 from pathlib import Path
 import argparse
 import hashlib
@@ -14,12 +14,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jar', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--source-overlay', action='store_true', help='Compile the changed quantity sources against the baseline jar')
     args = parser.parse_args()
     out = args.out.resolve()
     out.relative_to(ROOT / 'build')
     classes = out / 'fixture-classes'
     classes.mkdir(parents=True, exist_ok=True)
-    if any((classes / 'com/miaokatze/gtsr').rglob('*.class')):
+    if not args.source_overlay and any(p for p in (classes / 'com/miaokatze/gtsr').rglob('*.class')
+                                      if not p.name.startswith('CriticalBusinessSnapshotContract')):
         raise RuntimeError('Production overlay in fixture directory; use a fresh --out')
     empty = out / 'empty'
     empty.mkdir(exist_ok=True)
@@ -34,7 +36,11 @@ def main():
         ROOT / 'build/classes/java/patchedMc', ROOT / 'build/rfg/recompiled_minecraft-1.7.10.jar',
         ROOT / 'build/rfg/mclauncher-1.7.10.jar', *dependencies]))
     sources = [ROOT / 'tools/tests' / name for name in
-        ('Issue37RegistrationRegression.java', 'CriticalLargeFluidPortsContract.java')]
+        ('Issue37RegistrationRegression.java', 'CriticalLargeFluidPortsContract.java', 'CriticalBusinessSnapshotContract.java')]
+    if args.source_overlay:
+        sources += [ROOT / 'src/main/java/com/miaokatze/gtsr/common' / name for name in (
+            'critical/CriticalEnergyPorts.java', 'gui/CriticalBusinessSnapshot.java',
+            'gui/CriticalMaterialSnapshot.java', 'machine/MTECriticalMachine.java')]
     java = Path.home() / '.gradle/jdks/azul_systems__inc_-17-amd64-windows.2/bin'
 
     def run(exe, name, arguments):
@@ -53,15 +59,21 @@ def main():
         '-cp', cp, '-d', classes, *sources])
     output = run('java.exe', 'contract', ['-Xmx1G', '-Dfile.encoding=UTF-8', '-cp', cp, 'CriticalLargeFluidPortsContract'])
     lines = [line for line in output.splitlines() if line.startswith(('PASS ', 'SOURCE ', 'VALUE '))]
+    lines += [line[line.index('PASS CriticalBusinessSnapshotContract checks='):]
+              for line in output.splitlines() if 'PASS CriticalBusinessSnapshotContract checks=' in line
+              and not line.startswith('PASS ')]
     if not any(line.startswith('PASS CriticalLargeFluidPortsContract checks=') for line in lines):
         raise RuntimeError('No explicit PASS receipt; inspect contract.log')
-    receipt = dict(status='PASS', sourceOverlay=False,
+    if not any(line.startswith('PASS CriticalBusinessSnapshotContract checks=') for line in lines):
+        raise RuntimeError('No explicit business snapshot PASS receipt; inspect contract.log')
+    receipt = dict(status='PASS', sourceOverlay=args.source_overlay,
         sourceSHA256={str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
         baselineJar=str(baseline), baselineSHA256=hashlib.sha256(baseline.read_bytes()).hexdigest(),
         gtJar=str(gt), aeJar=str(ae), result=lines,
         detachedBootstrapWarnings=[line.strip() for line in output.splitlines()
             if 'NoSuchMethodException:' in line],
-        scope='Real jar CriticalEnergyPorts, AEFluidStack, native GT205 hatch subclasses and standard hatch transactions; '
+        scope='Production CriticalEnergyPorts, material/business snapshot codecs, AEFluidStack, native GT205 '
+              'hatch subclasses and standard hatch transactions; production sourceOverlay is recorded above. '
               'finite monitor/energy/storage seams. No live AE grid, cell driver, client, server, or crash atomicity claim. '
               'AE1080 powered extraction near Long.MAX_VALUE is explicitly expected to lock uncertain before debit. '
               'AE API definition bootstrap reports missing no-arg constructors for two unrelated event subscriptions '

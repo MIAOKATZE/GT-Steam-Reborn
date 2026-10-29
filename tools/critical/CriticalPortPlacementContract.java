@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.BitSet;
+import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -45,7 +46,7 @@ public final class CriticalPortPlacementContract {
         return event;
     }
 
-    private static void run() throws Exception {
+    private static void run(boolean legacyAddonOnly) throws Exception {
         Player player = (Player) unsafe.allocateInstance(Player.class);
         ItemStack chamber = new ItemStack(new gregtech.common.blocks.ItemMachines(AIR), 1, 30002);
         check(chamber.getItem() instanceof ItemBlock, "GT205 ItemMachines uses normal ItemBlock placement");
@@ -53,19 +54,29 @@ public final class CriticalPortPlacementContract {
             net.minecraft.entity.player.EntityPlayer.class, net.minecraft.world.World.class,
             int.class, int.class, int.class, int.class, float.class, float.class, float.class)
             .getDeclaringClass() == Item.class, "GT205 ItemMachines inherits vanilla onItemUseFirst");
-        for (ForgeDirection facing : new ForgeDirection[] {
+        for (int mode : legacyAddonOnly ? new int[] {2} : new int[] {0, 1}) for (ForgeDirection facing : new ForgeDirection[] {
             ForgeDirection.NORTH, ForgeDirection.EAST, ForgeDirection.SOUTH, ForgeDirection.WEST }) {
             SparseWorld world = world();
-            CriticalMachineState state = state(world, 31, facing);
+            int revision = mode == 1 ? 32 : 31;
+            CriticalMachineState state = state(world, revision, facing);
             List<CriticalGeometry.Voxel> cells = geometry(state);
-            List<CriticalGeometry.Voxel> ports = CriticalGeometry.optionalWorkPorts(state);
-            check(ports.size() == 13, "thirteen optional work ports " + facing);
+            List<CriticalGeometry.Voxel> ports = new ArrayList<>(CriticalGeometry.optionalWorkPorts(state));
+            if (mode == 2) ports.addAll(CriticalGeometry.terraceWorkPorts());
+            check(ports.size() == (mode == 0 ? 13 : 43), "original/terrace optional work ports " + revision + " " + facing);
             for (CriticalGeometry.Voxel port : ports) {
-                CriticalGeometry.Voxel paid = cells.stream()
-                    .filter(v -> v.x == port.x && v.y == port.y - 1 && v.z == port.z)
-                    .findFirst().orElseThrow();
-                put(state, paid, paid.block);
-                ((BitSet) field(state, "placed")).set(cells.indexOf(paid));
+                if (mode == 2 && CriticalLayoutDefinition.isTerraceWorkPort(port)) {
+                    int index = CriticalGeometry.supplyTerraceIndex(CriticalGeometry.Voxel.positionKey(port.x, port.y - 1, port.z));
+                    CriticalGeometry.Voxel support = CriticalGeometry.supplyTerrace().get(index);
+                    put(state, support, support.block);
+                    check(!state.isStandardHatch(port), "unowned matching support cannot recognize GT chamber");
+                    ((BitSet) field(state, "supplyTerracePlaced")).set(index);
+                } else {
+                    CriticalGeometry.Voxel paid = cells.stream()
+                        .filter(v -> v.x == port.x && v.y == port.y - 1 && v.z == port.z)
+                        .findFirst().orElseThrow();
+                    put(state, paid, paid.block);
+                    ((BitSet) field(state, "placed")).set(cells.indexOf(paid));
+                }
             }
             CriticalWorldData data = CriticalWorldData.get(world);
             check(data.acquire(state.getStructureId(), "owner", state.getOriginX(), state.getOriginY(),
@@ -74,6 +85,8 @@ public final class CriticalPortPlacementContract {
             check(data.bindTask(state.getStructureId(), "owner", state.getJobId(), state.getOriginX(),
                 state.getOriginY(), state.getOriginZ()), "paid task bound " + facing);
             data.updateProtection(state);
+            if (mode == 2) check(state.getResourceHatchPorts().size() == 43,
+                "completed compatibility support bitmap exposes thirty new and thirteen original ports");
             for (CriticalGeometry.Voxel port : ports) {
                 int x = state.blockWorldX(port), y = state.blockWorldY(port.y), z = state.blockWorldZ(port);
                 check(world.isAirBlock(x, y, z), "optional port starts as air " + facing + " x=" + port.x);
@@ -121,7 +134,7 @@ public final class CriticalPortPlacementContract {
             field.setAccessible(true);
             unsafe = (sun.misc.Unsafe) field.get(null);
             materials();
-            run();
+            run(args.length > 1 && "legacy-addon".equals(args[1]));
             report.addProperty("status", "PASS");
         } catch (Throwable failure) {
             report.addProperty("status", "FAIL");

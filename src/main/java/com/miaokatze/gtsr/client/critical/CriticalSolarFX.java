@@ -82,7 +82,8 @@ final class CriticalSolarFX {
                 if (!visible(visible, slugs[owner], member.group, group)) continue;
                 int index = familyIndex++;
                 if (index % lod != 0) continue;
-                boolean transferredLoom = "v2_base_t3".equals(slugs[owner]) && member.group != null
+                boolean transferredLoom = ("v2_base_t3".equals(slugs[owner]) || "v2_v31_base_t3".equals(slugs[owner]))
+                    && member.group != null
                     && member.group.startsWith("loom_");
                 transform(
                     member.position,

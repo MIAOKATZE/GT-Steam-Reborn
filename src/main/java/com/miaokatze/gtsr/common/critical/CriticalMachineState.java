@@ -298,7 +298,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private String visualHostId = UUID.randomUUID()
         .toString();
     private int geometryVersion;
-    private int v2LayoutRevision = 31;
+    private int v2LayoutRevision = 32;
+    // Compatibility decoration is free and never enters the frozen paid indices or recovery bill.
+    private final BitSet supplyTerracePlaced = new BitSet();
+    private int supplyTerraceCursor;
+    private int supplyTerraceBlocker;
     private ForgeDirection structureFacing = ForgeDirection.NORTH, boundStructureFacing = ForgeDirection.UNKNOWN;
     private boolean structureFacingLocked;
     private boolean loomController, loomJournalOwner, loomOwnedMain, initialClearanceAccepted;
@@ -872,6 +876,30 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public String getStatus() {
         return status;
+    }
+
+    public String getSupplyTerraceNoticeKey() {
+        if (state != 2 || !structureValid
+            || !usesSupplyTerraceCompatibility()
+            || supplyTerraceCursor >= CriticalGeometry.supplyTerrace()
+                .size())
+            return "";
+        return switch (supplyTerraceBlocker) {
+            case 1 -> "view.terrace.blocked";
+            case 2 -> "view.terrace.unloaded";
+            case 3 -> "view.terrace.permission";
+            default -> "view.terrace.progress";
+        };
+    }
+
+    public String getSupplyTerraceNoticeDetail() {
+        if (getSupplyTerraceNoticeKey().isEmpty()) return "";
+        if (supplyTerraceBlocker == 0) return supplyTerraceCursor + "/"
+            + CriticalGeometry.supplyTerrace()
+                .size();
+        CriticalGeometry.Voxel v = CriticalGeometry.supplyTerrace()
+            .get(supplyTerraceCursor);
+        return wx(v) + ", " + wy(v) + ", " + wz(v);
     }
 
     public int getCursor() {
@@ -1858,10 +1886,32 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public List<CriticalGeometry.Voxel> getHatchPorts() {
         if (hatchPortsCache == null) {
             allVoxels();
-            hatchPortsCache = CriticalCompiledLayout.forState(this)
-                .hatchPorts();
+            List<CriticalGeometry.Voxel> ports = new ArrayList<>(
+                CriticalCompiledLayout.forState(this)
+                    .hatchPorts());
+            if (usesSupplyTerraceCompatibility())
+                for (CriticalGeometry.Voxel port : CriticalGeometry.terraceWorkPorts())
+                    if (ownsTerraceSupport(port)) ports.add(port);
+            hatchPortsCache = Collections.unmodifiableList(ports);
         }
         return hatchPortsCache;
+    }
+
+    /** Extra chambers are legal only on this journal's real paid or compatibility supply casings. */
+    private boolean ownsTerraceSupport(CriticalGeometry.Voxel port) {
+        if (worldObj == null || !worldObj.getChunkProvider()
+            .chunkExists(wx(port) >> 4, wz(port) >> 4)) return false;
+        allVoxels();
+        if (jobFingerprint != modelFingerprint || !ownsTask()) return false;
+        Integer terrace = CriticalGeometry
+            .supplyTerraceIndex(CriticalGeometry.Voxel.positionKey(port.x, port.y - 1, port.z));
+        if (terrace == null) return false;
+        CriticalGeometry.Voxel support = CriticalGeometry.supplyTerrace()
+            .get(terrace);
+        if (!matches(support)) return false;
+        if (usesSupplyTerraceCompatibility()) return supplyTerracePlaced.get(terrace);
+        Integer paid = protectionIndices.get(support.positionKey());
+        return paid != null && placed.get(paid);
     }
 
     /** The manual loom funds fabrication; only the commissioned main's chamber row serves recipes. */
@@ -1887,6 +1937,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public boolean isStandardHatch(CriticalGeometry.Voxel v) {
         if (!CriticalStructures.isHatchPosition(this, v)) return false;
+        if (CriticalLayoutDefinition.isTerraceWorkPort(v) && !ownsTerraceSupport(v)) return false;
         if (worldObj == null || !worldObj.getChunkProvider()
             .chunkExists(wx(v) >> 4, wz(v) >> 4)) return false;
         TileEntity tile = worldObj.getTileEntity(wx(v), wy(v), wz(v));
@@ -1941,6 +1992,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         n.setInteger("cursor", cursor);
         n.setLong("fingerprint", jobFingerprint);
         n.setByteArray("placed", placed.toByteArray());
+        n.setByteArray("supplyTerracePlaced", supplyTerracePlaced.toByteArray());
         return n;
     }
 
@@ -1948,17 +2000,27 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         readVisualData(n);
         jobFingerprint = n.getLong("fingerprint");
         placed.or(BitSet.valueOf(n.getByteArray("placed")));
+        supplyTerracePlaced.clear();
+        supplyTerracePlaced.or(BitSet.valueOf(n.getByteArray("supplyTerracePlaced")));
     }
 
     /** Only a paid cell recorded by this journal is protected; real GT chambers remain maintainable. */
     boolean protectsPlayerBreak(int x, int y, int z) {
         List<CriticalGeometry.Voxel> geometry = allVoxels();
         if (jobFingerprint != modelFingerprint) return false;
+        if (usesSupplyTerraceCompatibility()) {
+            Integer terrace = CriticalGeometry.supplyTerraceIndex(
+                CriticalGeometry.Voxel.positionKey(localBlockX(x, z), y - getOriginY(), localBlockZ(x, z)));
+            if (terrace != null && supplyTerracePlaced.get(terrace)) return matches(
+                CriticalGeometry.supplyTerrace()
+                    .get(terrace));
+        }
         Integer index = protectionIndices
             .get(CriticalGeometry.Voxel.positionKey(localBlockX(x, z), y - getOriginY(), localBlockZ(x, z)));
         if (index == null || !placed.get(index)) return false;
-        if (state == 3 && index >= geometry.size() - cursor) return false;
         CriticalGeometry.Voxel voxel = geometry.get(index);
+        if (state == 3 && index >= geometry.size() - cursor && !CriticalLayoutDefinition.isTerraceSupply(voxel))
+            return false;
         if (CriticalStructures.isController(voxel)) return matches(voxel);
         return !isStandardHatchHost(worldObj.getTileEntity(x, y, z)) && worldObj.getBlock(x, y, z) == voxel.block
             && worldObj.getBlockMetadata(x, y, z) == voxel.metadata;
@@ -2181,6 +2243,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         }
         tickStructureMonitor();
         tickStellarSession();
+        supplementSupplyTerrace();
         if (state == 0) {
             if (!pendingConstructionPlayer.isEmpty() && isEnabled()
                 && worldObj.getTotalWorldTime() < pendingConstructionDeadline) {
@@ -2948,6 +3011,102 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return true;
     }
 
+    private boolean usesSupplyTerraceCompatibility() {
+        return getGeometryVersion() == 2 && v2LayoutRevision <= 31 && config.kind.isReleased() && !loomOwnedMain;
+    }
+
+    /** Called only after the existing journal, ownership and completed structure have passed validation. */
+    private void supplementSupplyTerrace() {
+        if (state != 2 || !structureValid
+            || !usesSupplyTerraceCompatibility()
+            || jobFingerprint != modelFingerprint
+            || !ownsTask()) return;
+        supplyTerraceBlocker = 0;
+        List<CriticalGeometry.Voxel> terrace = CriticalGeometry.supplyTerrace();
+        for (int checked = 0; checked < 128 && supplyTerraceCursor < terrace.size(); checked++) {
+            CriticalGeometry.Voxel v = terrace.get(supplyTerraceCursor);
+            if (!worldObj.blockExists(wx(v), wy(v), wz(v))) {
+                supplyTerraceBlocker = 2;
+                return;
+            }
+            if (supplyTerracePlaced.get(supplyTerraceCursor)) {
+                // Resume only the positions this journal actually placed. Foreign casing is never adopted.
+                if (!matches(v)) {
+                    supplyTerraceBlocker = 1;
+                    return;
+                }
+            } else {
+                if (!worldObj.isAirBlock(wx(v), wy(v), wz(v))) {
+                    supplyTerraceBlocker = 1;
+                    return;
+                }
+                if (!hasBlockBudget(v)) return;
+                EntityPlayer ownerPlayer = null;
+                for (Object object : worldObj.playerEntities) if (object instanceof EntityPlayer p && owner.equals(
+                    p.getUniqueID()
+                        .toString()))
+                    ownerPlayer = p;
+                if (ownerPlayer != null && !worldObj.canMineBlock(ownerPlayer, wx(v), wy(v), wz(v))) {
+                    supplyTerraceBlocker = 3;
+                    return;
+                }
+                if (blockBudgetStarted == 0) blockBudgetStarted = System.nanoTime();
+                if (!worldObj.setBlock(wx(v), wy(v), wz(v), v.block, v.metadata, 2)) {
+                    supplyTerraceBlocker = 3;
+                    return;
+                }
+                supplyTerracePlaced.set(supplyTerraceCursor);
+                if (CriticalLayoutDefinition.isTerraceSupply(v)) hatchPortsCache = null;
+                protectionDirty = true;
+                blocksChangedThisTick++;
+                if (v.block.getLightValue(worldObj, wx(v), wy(v), wz(v)) > 0) lightsChangedThisTick++;
+            }
+            supplyTerraceCursor++;
+            markDirty();
+        }
+    }
+
+    /** Free decoration has no drops or refund and is removed solely from its own placement journal. */
+    private boolean removeSupplyTerrace() {
+        List<CriticalGeometry.Voxel> terrace = CriticalGeometry.supplyTerrace();
+        int next = supplyTerracePlaced.previousSetBit(terrace.size() - 1);
+        for (int checked = 0; checked < 128 && next >= 0; checked++) {
+            CriticalGeometry.Voxel v = terrace.get(next);
+            if (!removeTerraceVoxel(v)) return false;
+            supplyTerracePlaced.clear(next);
+            if (CriticalLayoutDefinition.isTerraceSupply(v)) hatchPortsCache = null;
+            protectionDirty = true;
+            markDirty();
+            next = supplyTerracePlaced.previousSetBit(next - 1);
+        }
+        return next < 0;
+    }
+
+    private boolean removePaidTerraceSupplies() {
+        for (CriticalGeometry.Voxel v : CriticalGeometry.terraceSupplies()) {
+            Integer index = protectionIndices.get(v.positionKey());
+            if (index == null || !placed.get(index)) continue;
+            if (!removeTerraceVoxel(v)) return false;
+            placed.clear(index);
+            protectionDirty = true;
+            markDirty();
+        }
+        return true;
+    }
+
+    private boolean removeTerraceVoxel(CriticalGeometry.Voxel v) {
+        if (!worldObj.blockExists(wx(v), wy(v), wz(v))) return false;
+        if (worldObj.isAirBlock(wx(v), wy(v), wz(v))) return true;
+        if (!matches(v)) return fail("外延供给舱或外壳拆除冲突，禁止覆盖外来方块");
+        if (!hasBlockBudget(v)) return false;
+        boolean light = v.block.getLightValue(worldObj, wx(v), wy(v), wz(v)) > 0;
+        if (blockBudgetStarted == 0) blockBudgetStarted = System.nanoTime();
+        if (!worldObj.setBlockToAir(wx(v), wy(v), wz(v))) return fail("外延供给舱或外壳拆除失败");
+        blocksChangedThisTick++;
+        if (light) lightsChangedThisTick++;
+        return true;
+    }
+
     private void dismantle() {
         List<CriticalGeometry.Voxel> voxels = allVoxels();
         // The persisted placement journal is the ownership boundary. Never-placed cells need no
@@ -2968,8 +3127,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         for (int i = 0; i < 128 && next >= 0; i++) {
             cursor = voxels.size() - 1 - next;
             CriticalGeometry.Voxel v = voxels.get(next);
-            if (!isUserBuilt(v) && worldObj.isAirBlock(wx(v), wy(v), wz(v))) constructionLedger.markPhysicalDamaged(v);
-            if (!isUserBuilt(v) && !worldObj.isAirBlock(wx(v), wy(v), wz(v))) {
+            if (!CriticalLayoutDefinition.isTerraceSupply(v) && !isUserBuilt(v)
+                && worldObj.isAirBlock(wx(v), wy(v), wz(v))) constructionLedger.markPhysicalDamaged(v);
+            // Keep the real support under extra GT chambers until all pending outputs/refunds have settled.
+            if (!CriticalLayoutDefinition.isTerraceSupply(v) && !isUserBuilt(v)
+                && !worldObj.isAirBlock(wx(v), wy(v), wz(v))) {
                 if (!matches(v)) {
                     fail("拆除冲突，目标不是已登记结构方块");
                     return;
@@ -2999,7 +3161,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             int index = placed.nextSetBit(scanCursor);
             for (int checked = 0; checked < 128 && index >= 0 && index < voxels.size(); checked++) {
                 CriticalGeometry.Voxel v = voxels.get(index);
-                if (!isUserBuilt(v) && !worldObj.isAirBlock(wx(v), wy(v), wz(v))) {
+                if (!CriticalLayoutDefinition.isTerraceSupply(v) && !isUserBuilt(v)
+                    && !worldObj.isAirBlock(wx(v), wy(v), wz(v))) {
                     fail("区域残留核验失败");
                     return;
                 }
@@ -3046,6 +3209,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         }
         deliverFluids(pendingFluids);
         pendingFluids = new FluidStack[0];
+        if (!removePaidTerraceSupplies()) return;
+        if (!supplyTerracePlaced.isEmpty() && !removeSupplyTerrace()) return;
         CriticalRenderAnchors.remove(this);
         chunkLoading.release(host);
         if (foundationRequired) data().discardIncompleteFoundations(structureId, loomChunks());
@@ -3071,6 +3236,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         scanCursor = 0;
         removalVerified = false;
         jobFingerprint = 0;
+        supplyTerraceCursor = 0;
+        if (getGeometryVersion() == 2) {
+            v2LayoutRevision = Math.max(32, v2LayoutRevision);
+            geometryCache = null;
+            hatchPortsCache = null;
+        }
         visualHostId = UUID.randomUUID()
             .toString();
         status = canRemove() ? "拆除完成" : "拆除完成，请取出控制器内回收物品与流体";
@@ -3724,6 +3895,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         constructionLedger.writeSpent(n);
         n.setByteArray("placed", placed.toByteArray());
         n.setByteArray("repairTargets", repairTargets.toByteArray());
+        n.setByteArray("supplyTerracePlaced", supplyTerracePlaced.toByteArray());
+        n.setInteger("supplyTerraceCursor", supplyTerraceCursor);
         n.setBoolean("completionValidationPending", completionValidationPending);
         n.setBoolean("repairScanPending", repairScanPending);
         n.setInteger("repairScanCursor", repairScanCursor);
@@ -3745,7 +3918,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         geometryVersion = n.hasKey("geometryVersion") ? n.getInteger("geometryVersion") : 1;
         v2LayoutRevision = readV2LayoutRevision(n);
         if (getGeometryVersion() == 2 && n.getBoolean("loomJournalOwner") && !hasPersistentLayout(n))
-            v2LayoutRevision = Math.max(31, v2LayoutRevision);
+            v2LayoutRevision = Math.max(32, v2LayoutRevision);
         structureFacing = v2LayoutRevision <= 26 ? ForgeDirection.NORTH
             : CriticalStructureAlignment.horizontal(ForgeDirection.getOrientation(n.getInteger("structureFacing")));
         structureFacingLocked = v2LayoutRevision <= 26 || n.getBoolean("structureFacingLocked")
@@ -3801,6 +3974,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         constructionLedger.readSpent(n);
         placed.clear();
         placed.or(BitSet.valueOf(n.getByteArray("placed")));
+        supplyTerracePlaced.clear();
+        supplyTerracePlaced.or(BitSet.valueOf(n.getByteArray("supplyTerracePlaced")));
+        supplyTerraceCursor = n.getInteger("supplyTerraceCursor");
         repairTargets.clear();
         repairTargets.or(BitSet.valueOf(n.getByteArray("repairTargets")));
         completionValidationPending = n.getBoolean("completionValidationPending");

@@ -109,12 +109,15 @@ class CriticalLargeFluidPortsRuntime {
             CriticalSolarPolicy.batchBudgetEU(.6D,CriticalSolarPolicy.COOLANTS.get(2),
                 CriticalSolarPolicy.EXCITERS.get(5),false)),0).longValueExact();
         check(boiler>10_000_000_000_000L,"full-load actual boiler catalogue exceeds 1e13 litres");
-        for(long amount:new long[]{(long)Integer.MAX_VALUE+1,boiler}) roundTrip(amount);
+        for(long amount:new long[]{(long)Integer.MAX_VALUE+1,100_000_000_000L,500_000_000_000L,boiler}) roundTrip(amount);
+        independentNetworkQuantities();
         longOutputBoundary();
         inputBoundary();
         ordinaryOutputCapacity();
         mixedPhysicalOutputs();
         physicalItemInputsAndOutputs();
+        stellarPlasmaBoundary();
+        com.miaokatze.gtsr.common.gui.CriticalBusinessSnapshotContract.main(new String[0]);
         OUT.println("VALUE fullLoadBoilerLitres="+boiler);
         OUT.println("PASS CriticalLargeFluidPortsContract checks="+checks);
     }
@@ -128,6 +131,9 @@ class CriticalLargeFluidPortsRuntime {
         set(host,"mOutputHatches",new ArrayList<>(List.of(z,z,z2)));
         var snapshot=CriticalEnergyPorts.snapshot(host);
         check(snapshot.size()==1&&CriticalEnergyPorts.total(snapshot,steam).equals(b(amount)),"finite ME snapshot long and identity dedup "+amount);
+        var quantities=CriticalEnergyPorts.quantities(snapshot,true);
+        check(quantities.size()==1&&quantities.get(0).amount.equals(b(amount)),
+            "terminal quantity shares the exact deduplicated payment snapshot "+amount);
         var debits=CriticalEnergyPorts.take(snapshot,steam,b(amount));
         check(CriticalEnergyPorts.canDebit(debits)&&source.stock==amount,"large debit simulate preserves exact stock "+amount);
         var plan=outputs(host,b(amount));
@@ -140,6 +146,41 @@ class CriticalLargeFluidPortsRuntime {
         check(sink.stock==amount&&sink.injectCommits==1,"ME output long commit without truncation "+amount);
         // Same monitor cannot promise its capacity twice through two ME output hatches.
         check(outputs(host,b(1))==null&&sink.stock==amount&&sink.injectCommits==1,"full finite monitor refuses without commit "+amount);
+    }
+    static void independentNetworkQuantities() throws Exception {
+        MTECriticalMachine host=machine();
+        FiniteMonitor first=new FiniteMonitor(100_000_000_000L,100_000_000_000L);
+        FiniteMonitor second=new FiniteMonitor(500_000_000_000L,500_000_000_000L);
+        NetworkProxy a=network(first),z=network(second);
+        set(host,"mInputHatches",new ArrayList<>(List.of(input(a),input(a),input(z))));
+        var snapshot=CriticalEnergyPorts.snapshot(host);
+        var amounts=CriticalEnergyPorts.quantities(snapshot,true);
+        check(snapshot.size()==2&&amounts.size()==1&&amounts.get(0).amount.equals(b(600_000_000_000L))
+            &&CriticalEnergyPorts.total(snapshot,steam).equals(amounts.get(0).amount),
+            "separate networks add while duplicate views of one network count once in both UI and payment");
+        var debits=CriticalEnergyPorts.take(snapshot,steam,b(600_000_000_000L));
+        var receipt=CriticalEnergyPorts.debitConfirmed(debits,(d,n)->{});
+        check(receipt.complete&&receipt.confirmedLitres.equals(amounts.get(0).amount)&&first.stock==0&&second.stock==0,
+            "independent network total is actually paid across both long sources");
+        first.stock=Long.MAX_VALUE;second.stock=Long.MAX_VALUE;
+        snapshot=CriticalEnergyPorts.snapshot(host);
+        amounts=CriticalEnergyPorts.quantities(snapshot,true);
+        check(amounts.get(0).amount.equals(b(Long.MAX_VALUE).multiply(b(2))),
+            "aggregate terminal quantity does not overflow when separate long sources exceed Long.MAX_VALUE");
+    }
+    static void stellarPlasmaBoundary() throws Exception {
+        MTECriticalMachine host=machine();
+        FluidStack previous=steam;
+        Fluid plasma=new Fluid("gtsr_stellar_long_plasma");FluidRegistry.registerFluid(plasma);
+        gregtech.api.enums.Materials.Helium.mPlasma=plasma;
+        steam=new FluidStack(plasma,1);
+        try {
+            FiniteMonitor sink=new FiniteMonitor(0,500_000_000_000L);
+            set(host,"mOutputHatches",new ArrayList<>(List.of(output(network(sink)))));
+            long emitted=host.criticalStellarPowerPort().emitHeliumPlasma(500_000_000_000L);
+            check(emitted==500_000_000_000L&&sink.stock==emitted,
+                "stellar long pending-plasma output no longer stops at Integer.MAX_VALUE");
+        } finally { steam=previous; }
     }
     static void longOutputBoundary() throws Exception {
         MTECriticalMachine host=machine(); FiniteMonitor sink=new FiniteMonitor(0,Long.MAX_VALUE);

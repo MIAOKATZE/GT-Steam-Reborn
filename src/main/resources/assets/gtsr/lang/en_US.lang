@@ -3963,7 +3963,7 @@ gtsr.critical.v2.region=The 112 by 112, 180-high region can start at any coordin
 gtsr.critical.v2.controllers=The loom and commissioned main are real GT controllers at Y=4 with opposite fronts; hatches cannot replace them.
 gtsr.critical.v2.ports=Standard GT hatches fit only the declared construction and operating ports below.
 gtsr.critical.v2.loom_ports=Loom casing ring at Y=4 accepts optional item/fluid inputs and outputs, normal or multi-amp energy; no dynamo or maintenance hatch. Costs still apply; controllers and rails cannot be replaced.
-gtsr.critical.v2.main_ports=13 optional main operating ports: X=50..62, Y=5, Z=34. Leave air or install supported GT chambers, including dynamos; no maintenance hatch required. Keep the casing row below. Existing jobs retain Y=4 ports.
+gtsr.critical.v2.main_ports=43 optional main operating ports: the original 13 plus 6 on each of five rear terraces. Install supported GT chambers, including dynamos, above the Critical Structure Supply Hatches, or leave air. No maintenance hatch required; do not replace the supply casings. Existing jobs retain their original ports.
 
 # Critical functional energy backends
 item.IrradiatedMoonDust.name=Irradiated Moon Dust
@@ -4750,7 +4750,11 @@ gtsr.critical.nei.simple.solar.heat=Equiv. heat: %s EU
 gtsr.critical.solar.exciter.helium_gas=Helium Gas
 gtsr.critical.solar.exciter.none=Legacy prepaid batch
 gtsr.critical.tooltip.native.structure.loom_ports=Loom ports: Y=4 casing ring, item/fluid input/output and energy hatches; controllers and internal rails cannot be replaced
-gtsr.critical.tooltip.native.structure.main_ports=Main hatches: place on top of the §eCritical Structure Supply Hatches§r one block behind the main controller
+gtsr.critical.tooltip.native.structure.main_ports=Main hatches: above the §eCritical Structure Supply Hatches§r behind the machine
+gtsr.critical.view.terrace.progress=Compatible casing extension:
+gtsr.critical.view.terrace.blocked=Casing extension needs empty space at:
+gtsr.critical.view.terrace.unloaded=Casing extension awaits chunk at:
+gtsr.critical.view.terrace.permission=Casing extension cannot place at:
 gtsr.critical.tooltip.native.structure.hatches=Hatches are optional and fit only the positions above; no maintenance hatch is needed. Construction uses the loom; production uses the main machine
 gtsr.critical.nei.simple.build.time.cell=%ss/cell
 gtsr.critical.tooltip.native.turbine.generation=Batch EU = §6sum(steam litres x base EU/L) x starting efficiency / 100
@@ -4784,7 +4788,7 @@ gtsr.critical.nei.showcase.solar.heat=Equivalent heat is EU fully released throu
 gtsr.critical.nei.showcase.solar.salt_supercritical=The main row uses the Extreme Heat Exchanger supercritical line: this example yields 225T EU of equivalent heat.
 gtsr.critical.nei.showcase.solar.salt_superheated=The superheated line yields 135T EU of equivalent heat in this example.
 gtsr.critical.nei.showcase.solar.salt_media=Coolant and exciter use fixed rates; 20 seconds are deducted at batch start.
-gtsr.critical.tooltip.native.structure.main_ports_span=One block above the controller, six spaces left and right: 13 total; §cdo not replace the supply casings below§r
+gtsr.critical.tooltip.native.structure.main_ports_span=Original 13 ports retained; 6 extra per terrace across 5 levels: 43 total; §cdo not replace the supply casings below§r
 
 # Terminal construction and production controls
 gtsr.critical.ui.tab.engineering=Engineering

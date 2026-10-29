@@ -80,6 +80,11 @@ public final class CriticalLayoutCacheContract {
         require(layout(31,true).family==CriticalLayoutDefinition.Family.LEGACY_V2,"legacy override");
         require(layout(31,false).frameSize==112 && layout(31,false).frameHeight==180,"data frame");
         require(layout(31,false).controllerZ(true)==47 && layout(31,false).controllerZ(false)==35,"controllers");
+        require(layout(31,false).family==CriticalLayoutDefinition.Family.V31,"released v31 boundary");
+        require(layout(31,false).baseSlug.equals("v2_v31_base_t3"),"released paid base freeze");
+        require(layout(32,false).baseSlug.equals("v2_base_t3"),"new supply terrace base");
+        require(layout(31,false).loomSlug.equals(layout(32,false).loomSlug),"shared manual loom");
+        require(layout(31,false).pluginSlug("parallel").equals(layout(32,false).pluginSlug("parallel")),"shared v31 plugins");
         for(CriticalMachineKind kind:CriticalMachineKind.values()) {
             CriticalLayoutDefinition d=CriticalLayoutDefinition.select(2,31,false,CriticalTier.T3,kind);
             require(d.machineSlug.equals("v2_"+kind.key),"current body selection");
@@ -87,8 +92,9 @@ public final class CriticalLayoutCacheContract {
         CriticalConfiguration config=new CriticalConfiguration(CriticalTier.T3,CriticalMachineKind.SUN,8,0,0);
         CriticalCompiledLayout current=CriticalCompiledLayout.get(layout(31,false),config);
         int count=CriticalGeometry.compilations;
-        require(current==CriticalCompiledLayout.get(layout(32,false),config),"same family cache reuse");
+        require(current==CriticalCompiledLayout.get(layout(31,false),config),"same family cache reuse");
         require(count==CriticalGeometry.compilations,"cache hit must not compile");
+        require(current!=CriticalCompiledLayout.get(layout(32,false),config),"v31 and terrace split cache key");
         require(current.voxels().get(0).model.equals("v2_loom"),"manual loom coordinate ownership");
         require(current.top()==8 && current.loomTop()==4,"compiled height");
         require(current.hatchPorts().size()==2,"role port index");

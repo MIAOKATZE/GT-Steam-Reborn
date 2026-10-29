@@ -17,6 +17,7 @@ import net.minecraftforge.fluids.FluidStack;
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
+import com.miaokatze.gtsr.common.critical.CriticalEnergyPorts;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.recipe.CriticalShellCatalog;
@@ -25,7 +26,7 @@ import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 /** A bounded, read-only S2C sample. No field in this class authorizes payment or construction. */
 final class CriticalBusinessSnapshot {
 
-    private static final int VERSION = 2;
+    private static final int VERSION = 3;
     private static final int MAX_TEXT = 4096;
     private static final int TEXT_FIELDS = 11;
     private static final int MAX_IDENTITIES = 64;
@@ -102,28 +103,33 @@ final class CriticalBusinessSnapshot {
         String[] text = new String[TEXT_FIELDS];
         Arrays.fill(text, "");
         text[0] = state.getStatusCode() == 2 ? "status.2" : state.getDisplayStatusKey();
-        // Reuse reserved text fields; the version-2 packet shape is unchanged.
+        // Keep the reserved text fields; version 3 only widens the material quantities.
         text[1] = Boolean.toString(state.isProductionEnabled());
         text[2] = state.getRuntimeStatusKey();
         text[3] = state.getRuntimeBlockerKey();
         text[4] = state.getStatus();
+        text[5] = state.getSupplyTerraceNoticeKey();
+        text[6] = state.getSupplyTerraceNoticeDetail();
         text[7] = Long.toString(state.getEnergyStored());
         text[8] = Long.toString(state.getEnergyCapacity());
         text[9] = Long.toString(state.getBatchEuPerTick());
+        List<CriticalEnergyPorts.Input> fluidInputs = machine == null ? java.util.Collections.emptyList()
+            : CriticalEnergyPorts.snapshot(machine);
         CriticalMaterialSnapshot[] materials = {
             CriticalMaterialSnapshot.capture(state.getConstructionNextItemCostsForGui(), new FluidStack[0]),
             CriticalMaterialSnapshot.capture(new ItemStack[0], state.getConstructionNextFluidCostsForGui()),
             CriticalMaterialSnapshot.capture(state.getConstructionMissingItemsForGui(), new FluidStack[0]),
             CriticalMaterialSnapshot.capture(new ItemStack[0], state.getConstructionMissingFluidsForGui()),
             machine == null ? emptyMaterial()
-                : CriticalMaterialSnapshot
-                    .capture(machine.criticalPhysicalItemsSnapshot(), machine.criticalPhysicalFluidsSnapshot()),
+                : CriticalMaterialSnapshot.capture(
+                    machine.criticalPhysicalItemsSnapshot(),
+                    CriticalEnergyPorts.quantities(fluidInputs, false)),
             machine == null ? emptyMaterial()
                 : CriticalMaterialSnapshot
                     .capture(machine.criticalOutputItemsSnapshot(), machine.criticalOutputFluidsSnapshot()),
             machine == null ? emptyMaterial()
                 : CriticalMaterialSnapshot
-                    .capture(machine.criticalMEItemsSnapshot(), machine.criticalMEFluidsSnapshot()) };
+                    .capture(machine.criticalMEItemsSnapshot(), CriticalEnergyPorts.quantities(fluidInputs, true)) };
         NBTTagCompound economy = state.getConstructionEconomySnapshot();
         NBTTagList rows = economy.getTagList("rows", 10);
         if (rows.tagCount() > MAX_IDENTITIES) throw new IllegalStateException("Too many construction identities");
@@ -166,7 +172,8 @@ final class CriticalBusinessSnapshot {
 
     private static CriticalBusinessSnapshot read(PacketBuffer packet) throws IOException {
         int version = packet.readVarIntFromBuffer();
-        if (version != VERSION) throw new IOException("Unsupported critical business snapshot: " + version);
+        if (version != 2 && version != VERSION)
+            throw new IOException("Unsupported critical business snapshot: " + version);
         CriticalConstructionSnapshot construction = CriticalConstructionSnapshot.read(packet);
         String[] text = new String[TEXT_FIELDS];
         for (int i = 0; i < text.length; i++) text[i] = packet.readStringFromBuffer(MAX_TEXT);
@@ -184,7 +191,7 @@ final class CriticalBusinessSnapshot {
         int[] configuration = new int[12];
         for (int i = 0; i < configuration.length; i++) configuration[i] = packet.readInt();
         CriticalMaterialSnapshot[] materials = new CriticalMaterialSnapshot[7];
-        for (int i = 0; i < materials.length; i++) materials[i] = CriticalMaterialSnapshot.read(packet);
+        for (int i = 0; i < materials.length; i++) materials[i] = CriticalMaterialSnapshot.read(packet, version >= 3);
         return new CriticalBusinessSnapshot(
             construction,
             text,
@@ -197,6 +204,10 @@ final class CriticalBusinessSnapshot {
 
     String detail() {
         return StatCollector.translateToLocal("gtsr.critical." + text[0]);
+    }
+
+    String supplyTerraceNotice() {
+        return text[5].isEmpty() ? "" : StatCollector.translateToLocal("gtsr.critical." + text[5]) + " " + text[6];
     }
 
     boolean productionEnabled() {

@@ -23,6 +23,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jar', type=Path)
     parser.add_argument('--label', default='candidate')
+    parser.add_argument('--legacy-addon', action='store_true', help='Only the supplemented V31 forty-three-port branch')
     options = parser.parse_args()
     candidate = options.jar.resolve() if options.jar else None
     out = ROOT / 'build/critical-port-placement' / options.label
@@ -57,7 +58,8 @@ def main():
     assert execute('compile', 'javac', [*base, '-d', classes, *sources]) == 0, out / 'compile.log'
     report = out / 'runtime.json'
     code = execute('run', 'java', ['-Djava.awt.headless=true', '-cp', cp,
-        'com.miaokatze.gtsr.common.critical.CriticalPortPlacementContract', report])
+        'com.miaokatze.gtsr.common.critical.CriticalPortPlacementContract', report,
+        *(['legacy-addon'] if options.legacy_addon else [])])
     receipt = json.loads(report.read_text(encoding='utf-8'))
     receipt.update(sourceSHA256=binding, productOverlay=candidate is None,
                    authorityGT205JarSHA256=sha(gt[0]), authorityAE1080JarSHA256=sha(ae[0]))

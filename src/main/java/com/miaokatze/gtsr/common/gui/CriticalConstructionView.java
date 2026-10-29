@@ -103,6 +103,11 @@ final class CriticalConstructionView {
                     .detail() : tr("reason." + sample().reason()),
             CriticalGuiStyle.TEXT_ACCENT);
         line(status, this::nextAction, CriticalGuiStyle.TEXT_MUTED);
+        line(
+            status,
+            () -> business.getValue()
+                .supplyTerraceNotice(),
+            CriticalGuiStyle.TEXT_MUTED);
         page.child(status);
 
         ListWidget<IWidget, ?> information = new ListWidget<>().name("critical_construction_live_details")
