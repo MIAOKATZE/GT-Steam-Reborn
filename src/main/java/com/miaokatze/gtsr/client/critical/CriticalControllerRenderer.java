@@ -356,7 +356,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                         renderingController.getWorldObj(),
                         mesh.visibilityKey,
                         mesh.lightSamples,
-                        IDENTITY,
+                        transform,
                         renderingController.getMeshOriginX(),
                         renderingController.getOriginY(),
                         renderingController.getMeshOriginZ(),

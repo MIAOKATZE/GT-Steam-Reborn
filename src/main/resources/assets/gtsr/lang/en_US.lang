@@ -4615,7 +4615,7 @@ gtsr.critical.tooltip.native.solar.media_fixed=Fixed rates (each batch deducts �
 gtsr.critical.tooltip.native.solar.water=Water: §bdistilled water -> selected steam§7; choose one of water, salt and plasma
 gtsr.critical.tooltip.native.solar.salt=Salt route: §6cold solar salt -> an equal volume of hot solar salt
 gtsr.critical.tooltip.native.solar.private=§eTotal multiplier=dimension factor × coolant multiplier × exciter multiplier§7; personal dimension factor: §e0.6
-gtsr.critical.tooltip.native.solar.stock=§ex§7 is the selected working-fluid stock in L at startup; insufficient distilled water prevents a full batch from starting
+gtsr.critical.tooltip.native.solar.stock=§ex§7 is the total actual working-fluid stock across input hatches in L at startup; insufficient distilled water reduces output to the available amount
 gtsr.critical.tooltip.native.solar.steam_amount=Dense supercritical steam: §by≤24G×x/(x+100G)×total multiplier L/batch
 gtsr.critical.tooltip.native.solar.salt_amount=Hot solar salt: §6y=80G×x/(x+100G)×total multiplier L/batch
 gtsr.critical.tooltip.native.solar.dimension=Main power on maintains §5moonless eternal night§7; a second boiler cannot operate in the same dimension

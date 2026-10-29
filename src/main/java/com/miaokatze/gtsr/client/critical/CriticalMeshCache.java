@@ -20,9 +20,6 @@ import com.miaokatze.gtsr.common.critical.CriticalMaterials;
 /** Immutable V2 terrain-atlas lists: one compilation, same-rigid-group CTM, native sprite ticking. */
 final class CriticalMeshCache {
 
-    // Non-emissive moving bodies retain V37's dim colored relief without becoming fullbright materials.
-    // Static structure blocks never enter this cache and keep their normal world-light response.
-    private static final float BODY_EMISSION = .18F;
     private final Map<String, List<Mesh>> models = new HashMap<>();
     private static final double[][][] CORNERS = { { { 0, 0, 1 }, { 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 1 } },
         { { 0, 1, 0 }, { 0, 1, 1 }, { 1, 1, 1 }, { 1, 1, 0 } }, { { 1, 1, 0 }, { 1, 0, 0 }, { 0, 0, 0 }, { 0, 1, 0 } },
@@ -122,17 +119,15 @@ final class CriticalMeshCache {
         GL11.glNewList(list, GL11.GL_COMPILE);
         Tessellator tessellator = Tessellator.instance;
         tessellator.startDrawingQuads();
-        // Block light emission does not make the albedo fullbright: only the designed mask bypasses world light.
-        // Keep the existing body/mask batch; ordinary moving bodies retain V37's weak colored relief.
-        for (int layer = 0; layer < (emission ? 2 : 1); layer++) for (Face face : faces) {
-            IIcon icon = layer == 1 ? face.emission : face.color;
+        // Only the designed emission mask bypasses world light; moving albedo uses the same light as static blocks.
+        for (Face face : faces) {
+            IIcon icon = emission ? face.emission : face.color;
             if (icon == null) continue;
             int[] n = CriticalMaterialTextures.NORMALS[face.side], u = CriticalMaterialTextures.U[face.side],
                 v = CriticalMaterialTextures.V[face.side];
             tessellator.setNormal(n[0], n[1], n[2]);
             float shade = face.side == 0 ? .58F : face.side == 1 ? 1 : face.side < 4 ? .78F : .88F;
-            if (emission)
-                shade = layer == 1 ? face.emissionStrength : shade * (face.emissionStrength > 0 ? 0 : BODY_EMISSION);
+            if (emission) shade = face.emissionStrength;
             tessellator.setColorOpaque_F(shade, shade, shade);
             for (double[] corner : CORNERS[face.side]) {
                 double du = .5, dv = .5;

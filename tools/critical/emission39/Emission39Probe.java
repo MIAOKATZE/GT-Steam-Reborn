@@ -151,14 +151,14 @@ public final class Emission39Probe {
             for (int channel = 0; channel < 3; channel++) {
                 int original = source >> (16 - channel * 8) & 255;
                 int maskChannel = emission >> (16 - channel * 8) & 255;
-                double relief = strength > 0 ? 0 : .18;
+                double relief = 0;
                 double maskColor = Math.min(1, strength) * maskChannel * (emission >>> 24) / 255D;
                 int expected = Math.min(255, (int) Math.round(original * (worldLight / 255D + relief) + maskColor));
                 allPixelMaxError = Math.max(allPixelMaxError, Math.abs((pixels.get(index + channel) & 255) - expected));
             }
             if ((emission >>> 24) == 0) {
                 unmasked++;
-                double relief = strength > 0 ? 0 : .18;
+                double relief = 0;
                 for (int channel = 0; channel < 3; channel++) {
                     int actual = pixels.get(index + channel) & 255;
                     int original = source >> (16 - channel * 8) & 255;
