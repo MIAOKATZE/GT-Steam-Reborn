@@ -16,7 +16,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public final class CriticalNightClient {
 
-    public static final long FADE_NANOS = 2_000_000_000L;
+    public static final long FADE_NANOS = 10_000_000_000L;
     private static final Transition TRANSITION = new Transition();
     private static final NaturalClock NATURAL = new NaturalClock();
     private static final WorldProviderSurface VANILLA_SKY = new WorldProviderSurface();

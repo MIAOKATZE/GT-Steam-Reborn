@@ -7,14 +7,14 @@ import verify_v32 as fixture
 from verify_moonless_night import NIGHT
 
 ROOT = fixture.ROOT
-OUT = ROOT / 'build/critical-night-visual-v2038'
+OUT = ROOT / 'build/critical-night-visual-v2041'
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     classes = OUT / 'classes'
     classes.mkdir(exist_ok=True)
     jars = list(fixture.CACHE.glob('*/*/*/*/*.jar'))
-    baseline = ROOT / 'build/libs/gtsr-v2.0.37-dev.jar'
+    baseline = ROOT / 'build/libs/gtsr-v2.0.40-dev.jar'
     sources = NIGHT + [ROOT / 'tools/critical/CriticalNightVisualContract.java']
     cp = os.pathsep.join(map(str, [classes, baseline, ROOT / 'build/classes/java/main',
         ROOT / 'build/classes/java/patchedMc', ROOT / 'src/main/resources', *jars]))
@@ -33,7 +33,7 @@ def main():
         if result.returncode: raise RuntimeError(text[-8000:])
     assert 'PASS CriticalNightVisualContract checks=' in text
     (OUT / 'receipt.json').write_text(json.dumps(dict(status='PASS', result=text.strip(), sourceSHA256=fixture.binding(sources),
-        scope='Deterministic bidirectional 2-second fade/world-connection isolation and normal-midnight minus one sky row palette; all night classes compile. Actual Mixin/GL/provider scene remains Native validation.'), indent=2), encoding='utf-8')
+        scope='Deterministic bidirectional 10-second fade/world-connection isolation and normal-midnight minus one sky row palette; all night classes compile. Actual Mixin/GL/provider scene remains Native validation.'), indent=2), encoding='utf-8')
     print(text.strip())
 
 if __name__ == '__main__': main()

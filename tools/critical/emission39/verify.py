@@ -17,7 +17,7 @@ PROBE = Path(__file__).with_name('Emission39Probe.java')
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument('--baseline', action='store_true', help='Compile HEAD version and require reproduced symptom')
+    mode.add_argument('--baseline', action='store_true', help='Compile v2.0.38 and require reproduced symptom')
     mode.add_argument('--jar', type=Path, help='Read production classes from candidate dev JAR, without recompiling them')
     args = parser.parse_args()
     out = ROOT / 'build/critical-emission-v2039' / ('baseline' if args.baseline else 'jar' if args.jar else 'candidate')
@@ -28,7 +28,7 @@ def main():
     if args.baseline:
         source = out / 'source/CriticalMeshCache.java'
         source.parent.mkdir(exist_ok=True)
-        source.write_bytes(subprocess.run(['git', 'show', 'HEAD:' + SOURCE.relative_to(ROOT).as_posix()],
+        source.write_bytes(subprocess.run(['git', 'show', 'v2.0.38:' + SOURCE.relative_to(ROOT).as_posix()],
             cwd=ROOT, capture_output=True, check=True).stdout)
     candidate = args.jar.resolve() if args.jar else None
     archive = next(CACHE.glob('org.lwjgl.lwjgl/lwjgl-platform/*/*/*natives-windows.jar'))
@@ -59,7 +59,7 @@ def main():
     report['status'] = 'PASS' if passed else 'REPRODUCED'
     report['sourceSHA256'] = {p.relative_to(ROOT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in [SOURCE, PROBE, Path(__file__)]}
-    report['compiledMeshSource'] = {'origin': 'git HEAD' if args.baseline else 'dev JAR' if candidate else 'working tree',
+    report['compiledMeshSource'] = {'origin': 'git v2.0.38' if args.baseline else 'dev JAR' if candidate else 'working tree',
         'sha256': hashlib.sha256(candidate.read_bytes() if candidate else source.read_bytes()).hexdigest()}
     if candidate:
         report['candidateJar'] = str(candidate)
