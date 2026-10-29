@@ -113,6 +113,8 @@ class CriticalLargeFluidPortsRuntime {
         longOutputBoundary();
         inputBoundary();
         ordinaryOutputCapacity();
+        mixedPhysicalOutputs();
+        physicalItemInputsAndOutputs();
         OUT.println("VALUE fullLoadBoilerLitres="+boiler);
         OUT.println("PASS CriticalLargeFluidPortsContract checks="+checks);
     }
@@ -183,6 +185,56 @@ class CriticalLargeFluidPortsRuntime {
         check(outputs(host,b(amount))==null&&a.getFillableStack()==null&&source.stock==amount&&source.extractCommits==0,
             "insufficient physical output returns null without transaction commit or input debit");
     }
+    static void mixedPhysicalOutputs() throws Exception {
+        MTECriticalMachine host=machine();Standard a=allocate(Standard.class),z=allocate(Standard.class);
+        bind(a);bind(z);a.acceptAll=true;z.acceptAll=true;
+        Fluid other=new Fluid("gtsr_cross_hatch_other");FluidRegistry.registerFluid(other);
+        List<CriticalEnergyPorts.FluidAmount> fluids=List.of(new CriticalEnergyPorts.FluidAmount(steam,b(1)),
+            new CriticalEnergyPorts.FluidAmount(new FluidStack(other,1),b(1)));
+        set(host,"mOutputHatches",new ArrayList<>(List.of(a,a)));
+        check(CriticalEnergyPorts.outputs(host,fluids,new ItemStack[0])==null&&a.getFillableStack()==null,
+            "two fluid identities cannot reserve the same empty physical tank twice through duplicate discovery");
+        set(host,"mOutputHatches",new ArrayList<>(List.of(a,z,a)));
+        var plan=CriticalEnergyPorts.outputs(host,fluids,new ItemStack[0]);
+        check(plan!=null&&a.getFillableStack()==null&&z.getFillableStack()==null,
+            "multiple fluid identities reserve separate tanks without early mutation");
+        plan.commit();
+        check(a.getFillableStack().isFluidEqual(steam)&&a.getFillableStack().amount==1
+            &&z.getFillableStack().getFluid()==other&&z.getFillableStack().amount==1,
+            "native multi-fluid transactions commit each identity to its own physical tank");
+    }
+    static void physicalItemInputsAndOutputs()throws Exception {
+        MTECriticalMachine host=machine();
+        PhysicalInputBus a=allocate(PhysicalInputBus.class),z=allocate(PhysicalInputBus.class);bind(a);bind(z);
+        set(a,"mInventory",new ItemStack[]{new ItemStack(net.minecraft.init.Items.stick,3)});
+        set(z,"mInventory",new ItemStack[]{new ItemStack(net.minecraft.init.Items.stick,5)});
+        var inputs=new ArrayList<gregtech.api.metatileentity.implementations.MTEHatchInputBus>(List.of(a,z,a));
+        set(host,"mInputBusses",inputs);
+        ItemStack[] snapshot=host.criticalPhysicalItemsSnapshot();
+        check(Arrays.stream(snapshot).mapToInt(stack->stack.stackSize).sum()==8,
+            "physical item inputs combine all bus stacks with duplicate bus identity removed");
+        var result=CriticalHatchFunding.fund(host,inputs,List.of(),new ItemStack[]{new ItemStack(net.minecraft.init.Items.stick,8)},new FluidStack[0]);
+        check(result==CriticalNativeMEFunding.Result.SUCCESS&&a.getStackInSlot(0)==null&&z.getStackInSlot(0)==null,
+            "one item requirement actually drains3+5 items across two native input buses");
+        StandardBus first=allocate(StandardBus.class),second=allocate(StandardBus.class);bind(first);bind(second);
+        set(first,"mInventory",new ItemStack[1]);set(second,"mInventory",new ItemStack[1]);
+        set(host,"mOutputBusses",new ArrayList<>(List.of(first,first)));
+        ItemStack[] wanted={new ItemStack(net.minecraft.init.Items.stick,80)};
+        check(CriticalEnergyPorts.outputs(host,List.of(),wanted)==null&&first.getStackInSlot(0)==null,
+            "duplicate item output bus cannot promise a single64-item slot twice");
+        set(host,"mOutputBusses",new ArrayList<>(List.of(first,second,first)));
+        var plan=CriticalEnergyPorts.outputs(host,List.of(),wanted);
+        check(plan!=null&&first.getStackInSlot(0)==null&&second.getStackInSlot(0)==null,
+            "80 items reserve across two64-item native bus slots without mutation");
+        plan.commit();
+        check(first.getStackInSlot(0).stackSize==64&&second.getStackInSlot(0).stackSize==16,
+            "native output bus transactions actually split80 items into64+16");
+        set(first,"mInventory",new ItemStack[1]);set(second,"mInventory",new ItemStack[1]);
+        ItemStack[] mixed={new ItemStack(net.minecraft.init.Items.stick,64),new ItemStack(net.minecraft.init.Items.coal,64),
+            new ItemStack(net.minecraft.init.Items.diamond,1)};
+        check(CriticalEnergyPorts.outputs(host,List.of(),mixed)==null&&first.getStackInSlot(0)==null&&second.getStackInSlot(0)==null,
+            "different output item identities share one transaction ledger; third item cannot reuse two reserved slots");
+    }
     static final class FiniteMonitor implements InvocationHandler {
         long stock; final long capacity;
         int injectSimulations,injectCommits,extractCommits; boolean refuse;
@@ -234,11 +286,22 @@ class CriticalLargeFluidPortsRuntime {
         @Override public AENetworkProxy getProxy(){return proxy;}
         @Override public boolean canStoreFluid(FluidStack fluid){return fluid.isFluidEqual(steam);}
     }
+    static final class PhysicalInputBus extends gregtech.api.metatileentity.implementations.MTEHatchInputBus {
+        private PhysicalInputBus(){super("detached",1,new String[0],new ITexture[0][][]);}
+        @Override public boolean isValid(){return true;}
+        @Override public int getCircuitSlot(){return -1;}
+    }
+    static final class StandardBus extends gregtech.api.metatileentity.implementations.MTEHatchOutputBus {
+        private StandardBus(){super("detached",1,new String[0],new ITexture[0][][]);}
+        @Override public boolean isValid(){return true;}
+        @Override public void markDirty(){}
+    }
     static final class Standard extends MTEHatchOutput {
+        boolean acceptAll;
         private Standard(){super("detached",9,new String[0],new ITexture[0][][]);}
         @Override public boolean isValid(){return true;}
         @Override public int getCapacity(){return Integer.MAX_VALUE;}
-        @Override public boolean canStoreFluid(FluidStack fluid){return fluid.isFluidEqual(steam);}
+        @Override public boolean canStoreFluid(FluidStack fluid){return acceptAll||fluid.isFluidEqual(steam);}
         @Override public void markDirty(){}
         @Override public void onEmptyingContainerWhenEmpty(){}
     }

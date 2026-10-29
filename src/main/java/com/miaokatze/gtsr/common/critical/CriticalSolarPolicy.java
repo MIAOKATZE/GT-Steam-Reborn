@@ -10,7 +10,7 @@ import java.util.List;
 /** Pure boiler catalogue: native steam heat and exact working-fluid inventory saturation. */
 public final class CriticalSolarPolicy {
 
-    public static final int VERSION = 11;
+    public static final int VERSION = 12;
     private static final BigInteger STOCK_HALF_SATURATION = BigInteger.valueOf(100_000_000_000L);
     private static final long BASE_DENSE_SUPERCRITICAL_LITRES = 24_000_000_000L;
     private static final long BASE_HOT_SALT_LITRES = 80_000_000_000L;
@@ -64,6 +64,24 @@ public final class CriticalSolarPolicy {
     public static BigInteger batchDenseSupercriticalLitres(BigInteger stock, double factor, Entry coolant,
         Entry exciter) {
         return stockYield(stock, factor, coolant, exciter, BASE_DENSE_SUPERCRITICAL_LITRES, 3);
+    }
+
+    /** Twice the policy10 paid water batch; an underfunded whole batch cannot start. */
+    public static BigInteger batchWaterHalfHeat(BigInteger stock, double factor, Entry coolant, Entry exciter,
+        int mode) {
+        BigInteger previousDense = stockYield(stock, factor, coolant, exciter, BASE_DENSE_SUPERCRITICAL_LITRES / 2, 3);
+        BigInteger previousHeat = previousDense.multiply(BigInteger.valueOf(5000))
+            .min(stock.multiply(BigInteger.valueOf(160)))
+            .divide(HALF_HEAT_QUANTUM)
+            .multiply(HALF_HEAT_QUANTUM);
+        BigInteger heat = previousHeat.multiply(BigInteger.valueOf(2));
+        return batchWaterLitres(heat, mode).compareTo(stock) <= 0 ? heat : BigInteger.ZERO;
+    }
+
+    /** Preserve the policy10 whole-litre water bill before doubling, including its rounding. */
+    public static BigInteger batchWaterLitres(BigInteger halfHeat, int mode) {
+        return waterLitres(steamLitres(halfHeat.divide(BigInteger.valueOf(2)), mode), mode)
+            .multiply(BigInteger.valueOf(2));
     }
 
     /** Policy7: Q = 80G * stock / (stock + 100G) * dimension * coolant * exciter. */

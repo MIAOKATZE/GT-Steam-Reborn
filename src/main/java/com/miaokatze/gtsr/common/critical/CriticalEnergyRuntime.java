@@ -841,15 +841,9 @@ public final class CriticalEnergyRuntime {
                     candidate.outputLitres = candidate.inputLitres;
                     candidate.equivalentEU = candidate.outputLitres.multiply(BigInteger.valueOf(30_000));
                 } else {
-                    BigInteger heat = CriticalSolarPolicy
-                        .batchDenseSupercriticalLitres(available, factor, coolant, exciter)
-                        .multiply(BigInteger.valueOf(5000));
-                    // Every steam mode shares one payable heat amount; ordinary steam needs the most water.
-                    heat = CriticalSolarPolicy.waterHalfHeat(
-                        heat.min(available.multiply(BigInteger.valueOf(160)))
-                            .multiply(BigInteger.TEN));
+                    BigInteger heat = CriticalSolarPolicy.batchWaterHalfHeat(available, factor, coolant, exciter, mode);
                     candidate.outputLitres = CriticalSolarPolicy.steamLitres(heat, mode);
-                    candidate.inputLitres = CriticalSolarPolicy.waterLitres(candidate.outputLitres, mode);
+                    candidate.inputLitres = CriticalSolarPolicy.batchWaterLitres(heat, mode);
                     candidate.equivalentEU = heat.multiply(BigInteger.TEN);
                 }
                 BigInteger workload = candidate.equivalentEU;

@@ -4615,7 +4615,7 @@ gtsr.critical.tooltip.native.solar.media_fixed=Fixed rates (each batch deducts �
 gtsr.critical.tooltip.native.solar.water=Water: §bdistilled water -> selected steam§7; choose one of water, salt and plasma
 gtsr.critical.tooltip.native.solar.salt=Salt route: §6cold solar salt -> an equal volume of hot solar salt
 gtsr.critical.tooltip.native.solar.private=§eTotal multiplier=dimension factor × coolant multiplier × exciter multiplier§7; personal dimension factor: §e0.6
-gtsr.critical.tooltip.native.solar.stock=§ex§7 is the selected working-fluid stock in L at batch start; insufficient distilled water reduces steam output
+gtsr.critical.tooltip.native.solar.stock=§ex§7 is the selected working-fluid stock in L at startup; insufficient distilled water prevents a full batch from starting
 gtsr.critical.tooltip.native.solar.steam_amount=Dense supercritical steam: §by≤24G×x/(x+100G)×total multiplier L/batch
 gtsr.critical.tooltip.native.solar.salt_amount=Hot solar salt: §6y=80G×x/(x+100G)×total multiplier L/batch
 gtsr.critical.tooltip.native.solar.dimension=Main power on maintains §5moonless eternal night§7; a second boiler cannot operate in the same dimension
@@ -4623,7 +4623,7 @@ gtsr.critical.tooltip.native.solar.coolant=Requires one of these §bcoolants§7:
 gtsr.critical.tooltip.native.solar.excitation=Also requires one of these §dexciters§7:
 gtsr.critical.tooltip.native.solar.medium=§f%3$s L/s§7 : §d×%2$s§7 : %1$s
 gtsr.critical.tooltip.native.solar.example_water_combination=Example: personal dimension §e0.6§7, cryotheum §b×1.5§7, helium plasma §d×1.5§7; total multiplier §e1.35
-gtsr.critical.tooltip.native.solar.example_water_output=§b500G L distilled-water stock§7: §b16G L dense supercritical steam§7, §b100G L§7 water consumed, §640T EU§7 equivalent heat
+gtsr.critical.tooltip.native.solar.example_water_output=§b500G L distilled-water stock§7: §b27G L dense supercritical steam§7, §b168.75G L§7 water consumed, §667.5T EU§7 equivalent heat
 gtsr.critical.tooltip.native.solar.example_salt_output=Same combination, §6500G L cold solar salt stock§7: §690G L hot solar salt§7; §6225T EU§7 on the Extreme Heat Exchanger supercritical line, §6135T EU§7 on the superheated line
 gtsr.critical.tooltip.native.solar.pulse_maximum=With [Supercritical Steam Pulse Power Core] at maximum §a2000%§7 efficiency: generation = steam equivalent heat §e×20
 gtsr.critical.tooltip.native.solar.pulse_example=This §b500G L distilled-water§7 example: up to §e%1$sT EU/batch§7, §e%2$sT EU/t§7 (§b%3$sA %4$s§r§7)
