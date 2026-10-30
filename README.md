@@ -53,14 +53,14 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 
 ## 临界机器 / Critical Machines
 
-**临界机器需要通过 [拟态织机] 分阶段完成建设。** 下图为开发版的离线结构渲染；使用实际构型与材质，不是游戏实景截图。
+**临界机器需要通过 [拟态织机] 分阶段完成建设。** 下图由正式 v2.0.43 源码离线渲染；使用实际构型与材质，不是游戏实景截图。
 
-**Critical machines are built in stages through a [Mimetic Loom].** These development previews are offline renders of the actual geometry and materials, not in-game photographs.
+**Critical machines are built in stages through a [Mimetic Loom].** These offline renders use the published v2.0.43 geometry and materials; they are not in-game photographs.
 
 <table>
-<tr><td align="center"><img width="360" src="README/white/critical-solar.png" alt="维度辐照耦合锅炉 / Dimensional Irradiation Coupled Boiler"><br>维度辐照耦合锅炉 / Dimensional Boiler</td><td align="center"><img width="360" src="README/white/critical-turbine.png" alt="超临界蒸汽脉冲动力核心 / Supercritical Steam Pulse Power Core"><br>脉冲动力核心 / Pulse Power Core</td></tr>
-<tr><td align="center"><img width="360" src="README/white/critical-battery.png" alt="多相热化学反应核心 / Multiphase Thermochemical Reaction Core"><br>多相热化学反应核心 / Thermochemical Core</td><td align="center"><img width="360" src="README/white/critical-sun.png" alt="人工恒星约束核心 / Artificial Stellar Confinement Core"><br>人工恒星约束核心 / Artificial Stellar Core</td></tr>
-<tr><td colspan="2" align="center"><img width="360" src="README/white/critical-loom.png" alt="拟态织机 / Mimetic Loom"><br>拟态织机 / Mimetic Loom</td></tr>
+<tr><td align="center"><img width="360" src="README/renders/critical-solar.png" alt="维度辐照耦合锅炉 / Dimensional Irradiation Coupled Boiler"><br>维度辐照耦合锅炉 / Dimensional Boiler</td><td align="center"><img width="360" src="README/renders/critical-turbine.png" alt="超临界蒸汽脉冲动力核心 / Supercritical Steam Pulse Power Core"><br>脉冲动力核心 / Pulse Power Core</td></tr>
+<tr><td align="center"><img width="360" src="README/renders/critical-battery.png" alt="多相热化学反应核心 / Multiphase Thermochemical Reaction Core"><br>多相热化学反应核心 / Thermochemical Core</td><td align="center"><img width="360" src="README/renders/critical-sun.png" alt="人工恒星约束核心 / Artificial Stellar Confinement Core"><br>人工恒星约束核心 / Artificial Stellar Core</td></tr>
+<tr><td colspan="2" align="center"><img width="360" src="README/renders/critical-loom.png" alt="拟态织机 / Mimetic Loom"><br>拟态织机 / Mimetic Loom</td></tr>
 </table>
 
 <details>
@@ -73,9 +73,9 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 
 </details>
 
-白底结构图采用 [GTSR White v1 专属渲染策略](README/white/strategy.json)：固定相机，保持几何比例；高结构使用竖幅及合法展示高度，同类仓室在同一三维场景中叠放。右下角分别标明 Mod 与实际材质来源，未使用材质包时标为 Original assets。
+透明背景结构图采用 [GTSR Transparent v1 专属渲染策略](README/renders/strategy.json)：固定相机，保持几何比例；高结构使用竖幅及合法展示高度，同类仓室在同一三维场景中叠放。右下角分别标明 Mod 与实际材质来源，未使用材质包时标为 Original assets。
 
-Structure renders use the [GTSR White v1 strategy](README/white/strategy.json): white backgrounds, consistent cameras, proportional geometry, portrait framing for tall builds, and compact stacks of related hatches. The lower-right label names the mod and the textures actually used.
+Structure renders use the [GTSR Transparent v1 strategy](README/renders/strategy.json): transparent backgrounds, consistent cameras, proportional geometry, portrait framing for tall builds, and compact stacks of related hatches. The lower-right label names the mod and the textures actually used.
 
 ## Multiblock Machines / 多方块机器
 
@@ -85,13 +85,13 @@ Structure renders use the [GTSR White v1 strategy](README/white/strategy.json): 
 > 🎨 部分结构图使用了 [Modernity-GTNH](https://github.com/ModernityGTNH/Modernity-GTNH) 材质包，特别感谢其作者带来的出色视觉体验！下载地址见仓库 [Releases](https://github.com/ModernityGTNH/Modernity-GTNH/releases)。
 > 🎨 Some structure renders use the [Modernity-GTNH](https://github.com/ModernityGTNH/Modernity-GTNH) resource pack. Many thanks to its authors for the beautiful visuals! Download: see the repository's [Releases](https://github.com/ModernityGTNH/Modernity-GTNH/releases).
 
-<p align="center"><img src="README/white/MTESteamHubArray-T1.png" width="240" alt="蒸汽枢纽阵列 / Steam Hub Array"> <img src="README/white/MTESteamHubArray-T2.png" width="240" alt="蒸汽枢纽阵列 / Steam Hub Array"> <img src="README/white/MTESteamHubArray-T3.png" width="240" alt="蒸汽枢纽阵列 / Steam Hub Array"><br><em>蒸汽枢纽阵列 / Steam Hub Array（青铜/钢/钨钢）</em></p>
+<p align="center"><img src="README/renders/MTESteamHubArray-T1.png" width="240" alt="蒸汽枢纽阵列 / Steam Hub Array"> <img src="README/renders/MTESteamHubArray-T2.png" width="240" alt="蒸汽枢纽阵列 / Steam Hub Array"> <img src="README/renders/MTESteamHubArray-T3.png" width="240" alt="蒸汽枢纽阵列 / Steam Hub Array"><br><em>蒸汽枢纽阵列 / Steam Hub Array（青铜/钢/钨钢）</em></p>
 
 **蒸汽枢纽阵列 / Steam Hub Array (SHA)**
 
 3级（青铜/钢/钨钢）蒸汽存储枢纽。接受蒸汽缓存节点，实现双向、跨维度的流体存储与调度。
 
-<p align="center"><img src="README/white/MTEWaterHubArray-T1.png" width="240" alt="蓄水枢纽阵列 / Water Hub Array"> <img src="README/white/MTEWaterHubArray-T2.png" width="240" alt="蓄水枢纽阵列 / Water Hub Array"><img src="README/white/MTEWaterHubArray-T3.png" width="240" alt="蓄水枢纽阵列 / Water Hub Array"><br><em>蓄水枢纽阵列 / Water Hub Array（青铜/钢/钨钢）</em></p>
+<p align="center"><img src="README/renders/MTEWaterHubArray-T1.png" width="240" alt="蓄水枢纽阵列 / Water Hub Array"> <img src="README/renders/MTEWaterHubArray-T2.png" width="240" alt="蓄水枢纽阵列 / Water Hub Array"><img src="README/renders/MTEWaterHubArray-T3.png" width="240" alt="蓄水枢纽阵列 / Water Hub Array"><br><em>蓄水枢纽阵列 / Water Hub Array（青铜/钢/钨钢）</em></p>
 
 **蓄水枢纽阵列 / Water Hub Array (WHA)**
 
@@ -103,7 +103,7 @@ Structure renders use the [GTSR White v1 strategy](README/white/strategy.json): 
 
 ### Singularity Drilling Hub / 奇点钻井枢纽
 
-<p align="center"><img src="README/white/MTESingularityDrillingHub.png" width="400" alt="奇点钻井枢纽 / Singularity Drilling Hub"><br><em>奇点钻井枢纽 / Singularity Drilling Hub</em></p>
+<p align="center"><img src="README/renders/MTESingularityDrillingHub.png" width="400" alt="奇点钻井枢纽 / Singularity Drilling Hub"><br><em>奇点钻井枢纽 / Singularity Drilling Hub</em></p>
 
 **奇点钻井枢纽 / Singularity Drilling Hub (SDH)**
 
@@ -147,9 +147,9 @@ Structure renders use the [GTSR White v1 strategy](README/white/strategy.json): 
 
 ### Steam Processing Machines / 蒸汽加工机器
 
-<p align="center"><img src="README/white/MTELargeSteamFurnace-T1.png" width="260" alt="大型蒸汽熔炉 / Large Steam Furnace"> <img src="README/white/MTELargeSteamFurnace-T2.png" width="260" alt="大型蒸汽熔炉 / Large Steam Furnace"><br><em>大型蒸汽熔炉 / Large Steam Furnace（青铜/钢）</em></p>
+<p align="center"><img src="README/renders/MTELargeSteamFurnace-T1.png" width="260" alt="大型蒸汽熔炉 / Large Steam Furnace"> <img src="README/renders/MTELargeSteamFurnace-T2.png" width="260" alt="大型蒸汽熔炉 / Large Steam Furnace"><br><em>大型蒸汽熔炉 / Large Steam Furnace（青铜/钢）</em></p>
 
-<p align="center"><img src="README/white/MTEAirCompressor-T1.png" width="260" alt="空气压缩机 / Air Compressor"> <img src="README/white/MTEAirCompressor-T2.png" width="260" alt="空气压缩机 / Air Compressor"><br><em>空气压缩机 / Air Compressor（青铜/钢）</em></p>
+<p align="center"><img src="README/renders/MTEAirCompressor-T1.png" width="260" alt="空气压缩机 / Air Compressor"> <img src="README/renders/MTEAirCompressor-T2.png" width="260" alt="空气压缩机 / Air Compressor"><br><em>空气压缩机 / Air Compressor（青铜/钢）</em></p>
 
 **大型蒸汽熔炉 / Large Steam Furnace (LSF)**
 
@@ -159,15 +159,15 @@ Structure renders use the [GTSR White v1 strategy](README/white/strategy.json): 
 
 产出空气（下界维度产出下界空气），远优于普通压缩机的速度与便捷度。
 
-<p align="center"><img src="README/white/MTEAtmosphericCentrifuge-T1.png" width="260" alt="大气离心机 / Atmospheric Centrifuge"> <img src="README/white/MTEAtmosphericCentrifuge-T2.png" width="260" alt="大气离心机 / Atmospheric Centrifuge"><br><em>大气离心机 / Atmospheric Centrifuge（青铜/钢）</em></p>
+<p align="center"><img src="README/renders/MTEAtmosphericCentrifuge-T1.png" width="260" alt="大气离心机 / Atmospheric Centrifuge"> <img src="README/renders/MTEAtmosphericCentrifuge-T2.png" width="260" alt="大气离心机 / Atmospheric Centrifuge"><br><em>大气离心机 / Atmospheric Centrifuge（青铜/钢）</em></p>
 
 **大气离心机 / Atmospheric Centrifuge (ATC)**
 
 分离空气中的气体；稀有气体芯片解锁多输出配方，青铜级不能安装芯片。
 
-<p align="center"><img src="README/white/MTESteamFluidDrill-T1.png" width="260" alt="蒸汽流体钻井 / Steam Fluid Drill"> <img src="README/white/MTESteamFluidDrill-T2.png" width="260" alt="蒸汽流体钻井 / Steam Fluid Drill"><br><em>蒸汽流体钻井 / Steam Fluid Drill（青铜/钢）</em></p>
+<p align="center"><img src="README/renders/MTESteamFluidDrill-T1.png" width="260" alt="蒸汽流体钻井 / Steam Fluid Drill"> <img src="README/renders/MTESteamFluidDrill-T2.png" width="260" alt="蒸汽流体钻井 / Steam Fluid Drill"><br><em>蒸汽流体钻井 / Steam Fluid Drill（青铜/钢）</em></p>
 
-<p align="center"><img src="README/white/MTECrustSteamBorer.png" width="340" alt="地壳蒸汽掘进机 / Crust Steam Borer"><br><em>地壳蒸汽掘进机 / Crust Steam Borer</em></p>
+<p align="center"><img src="README/renders/MTECrustSteamBorer.png" width="340" alt="地壳蒸汽掘进机 / Crust Steam Borer"><br><em>地壳蒸汽掘进机 / Crust Steam Borer</em></p>
 
 **蒸汽流体钻井 / Steam Fluid Drill (SFD)**
 
@@ -177,14 +177,14 @@ Structure renders use the [GTSR White v1 strategy](README/white/strategy.json): 
 
 虚空采矿——按维度掉落表产出矿石。
 
-<p align="center"><img src="README/white/MTECrustMatterAggregator.png" width="500" alt="地壳物质聚合器 / Crust Matter Aggregator"><br><em>地壳物质聚合器 / Crust Matter Aggregator</em></p>
+<p align="center"><img src="README/renders/MTECrustMatterAggregator.png" width="500" alt="地壳物质聚合器 / Crust Matter Aggregator"><br><em>地壳物质聚合器 / Crust Matter Aggregator</em></p>
 <p align="center"><img src="README/MTECrustMatterAggregatorUI.png" width="500" alt="地壳物质聚合器终端配置界面 / Crust Matter Aggregator Terminal UI"><br><em>地壳物质聚合器终端配置界面 / Crust Matter Aggregator Terminal UI</em></p>
 
 **地壳物质聚合器 / Crust Matter Aggregator (CMA)**
 
 仅钢级，跨维度虚空采矿（经终端配置界面操作）。
 
-<p align="center"><img src="README/white/MTEVeinSteamPyrolyzer-T1.png" width="260" alt="地脉蒸汽热解机 / Vein Steam Pyrolyzer"> <img src="README/white/MTEVeinSteamPyrolyzer-T2.png" width="260" alt="地脉蒸汽热解机 / Vein Steam Pyrolyzer"><br><em>地脉蒸汽热解机 / Vein Steam Pyrolyzer（青铜/钢）</em></p>
+<p align="center"><img src="README/renders/MTEVeinSteamPyrolyzer-T1.png" width="260" alt="地脉蒸汽热解机 / Vein Steam Pyrolyzer"> <img src="README/renders/MTEVeinSteamPyrolyzer-T2.png" width="260" alt="地脉蒸汽热解机 / Vein Steam Pyrolyzer"><br><em>地脉蒸汽热解机 / Vein Steam Pyrolyzer（青铜/钢）</em></p>
 
 **地脉蒸汽热解机 / Vein Steam Pyrolyzer (VSP)**
 
@@ -192,11 +192,11 @@ Structure renders use the [GTSR White v1 strategy](README/white/strategy.json): 
 
 ***
 
-地壳物质聚合器支持原矿、粗矿与粉碎矿模式，以及矿物筛选和定向采集；地脉热解机的芯片扩展地下流体扫描。结构与参数见 [蒸汽基础机器](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki/Steam-Base-Machines_CN)。
+地壳物质聚合器支持原矿、粗矿与粉碎矿模式，以及矿物筛选和定向采集；地脉热解机的芯片扩展地下流体扫描。结构与参数见 [蒸汽基础机器](https://miaokatze.com/entry/gtsr-doc-77d555dc9dfb)。
 
 ### Mineral Logistics Cluster / 蒸汽动力矿物处理物流工程集群
 
-<p align="center"><img src="README/white/CRUSH-T1.png" width="500" alt="矿物处理集群主结构全景 / MLC Main Structure Overview"> <img src="README/CRUSH-UI1.png" width="800" alt="集群终端拓扑页 / Cluster Terminal Topology Page"><br><em>矿物处理集群主结构与终端拓扑页 / Mineral Logistics Cluster structure and terminal topology</em></p>
+<p align="center"><img src="README/renders/CRUSH-T1.png" width="500" alt="矿物处理集群主结构全景 / MLC Main Structure Overview"> <img src="README/CRUSH-UI1.png" width="800" alt="集群终端拓扑页 / Cluster Terminal Topology Page"><br><em>矿物处理集群主结构与终端拓扑页 / Mineral Logistics Cluster structure and terminal topology</em></p>
 
 **蒸汽动力矿物处理物流工程集群/ Mineral Logistics Cluster (MLC) — in development, rolling out incrementally**
 
@@ -206,13 +206,13 @@ Structure renders use the [GTSR White v1 strategy](README/white/strategy.json): 
 
 **结构 / Structure**：主段后方可串接延伸段，结构底材从青铜、钢推进到钛与钨钢。加工、增幅和物流模块挂载在主框架上，物流模块有朝向要求。总控承担蒸汽与润滑供给，原料、配方流体与产出走物流单元接口。
 
-集群终端集中查看拓扑、链路、增幅、统计与性能。队列模式等待原料满足一批再处理；增幅液不足时该批对应增幅失效，加工仍继续。详见 [集群指南](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki/Mineral-Processing-Cluster_CN)。
+集群终端集中查看拓扑、链路、增幅、统计与性能。队列模式等待原料满足一批再处理；增幅液不足时该批对应增幅失效，加工仍继续。详见 [集群指南](https://miaokatze.com/entry/gtsr-e0cc2607645a)。
 
 ### Enhanced Processing Machines / 强化加工机器
 
-<p align="center"><img src="README/white/MTELargeCokeOven-T1.png" width="240" alt="大型焦炉 / Large Coke Oven"> <img src="README/white/MTELargeCokeOven-T2.png" width="240" alt="大型焦炉 / Large Coke Oven"><br><em>大型焦炉 / Large Coke Oven（青铜/钢）</em></p>
+<p align="center"><img src="README/renders/MTELargeCokeOven-T1.png" width="240" alt="大型焦炉 / Large Coke Oven"> <img src="README/renders/MTELargeCokeOven-T2.png" width="240" alt="大型焦炉 / Large Coke Oven"><br><em>大型焦炉 / Large Coke Oven（青铜/钢）</em></p>
 
-<p align="center"><img src="README/white/MTESiemensMartinFurnace.png" width="400" alt="平炉 / Siemens-Martin Furnace"><br><em>平炉 / Siemens-Martin Furnace</em></p>
+<p align="center"><img src="README/renders/MTESiemensMartinFurnace.png" width="400" alt="平炉 / Siemens-Martin Furnace"><br><em>平炉 / Siemens-Martin Furnace</em></p>
 
 **大型焦炉 / Large Coke Oven (LCO)**
 
@@ -222,59 +222,59 @@ Structure renders use the [GTSR White v1 strategy](README/white/strategy.json): 
 
 仅钢级，过热蒸汽驱动；过热机制提升炉温，支持炉温带来的加工增益。
 
-<p align="center"><img src="README/white/MTELargeGeothermalSteamBoiler-T1.png" width="260" alt="大型地热蒸汽锅炉 / Large Geothermal Steam Boiler"> <img src="README/white/MTELargeGeothermalSteamBoiler-T2.png" width="260" alt="大型地热蒸汽锅炉 / Large Geothermal Steam Boiler"><br><em>大型地热蒸汽锅炉 / Large Geothermal Steam Boiler（青铜/钢）</em></p>
+<p align="center"><img src="README/renders/MTELargeGeothermalSteamBoiler-T1.png" width="260" alt="大型地热蒸汽锅炉 / Large Geothermal Steam Boiler"> <img src="README/renders/MTELargeGeothermalSteamBoiler-T2.png" width="260" alt="大型地热蒸汽锅炉 / Large Geothermal Steam Boiler"><br><em>大型地热蒸汽锅炉 / Large Geothermal Steam Boiler（青铜/钢）</em></p>
 
 **大型地热蒸汽锅炉 / Large Geothermal Steam Boiler (LGB)**
 
 消耗岩浆产蒸汽；结垢与超压机制并存。
 
-<p align="center"><img src="README/white/MTEMegaSteamTurbineArray-T1.png" width="240" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"> <img src="README/white/MTEMegaSteamTurbineArray-T3.png" width="240" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"> <img src="README/white/MTEMegaSteamTurbineArray-T6.png" width="240" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"><br><em>巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）</em></p>
+<p align="center"><img src="README/renders/MTEMegaSteamTurbineArray-T1.png" width="240" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"> <img src="README/renders/MTEMegaSteamTurbineArray-T3.png" width="240" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"> <img src="README/renders/MTEMegaSteamTurbineArray-T6.png" width="240" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"><br><em>巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）</em></p>
 
 **巨型蒸汽轮机机组 / Mega Steam Turbine Array (MSTA)**
 
 12级蒸汽发电机组；堆叠层数越多效率上限越高，支持全蒸汽类型。
 
-<p align="center"><img src="README/white/MTELargeSolarOverpressureArray-T1.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/white/MTELargeSolarOverpressureArray-T2.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/white/MTELargeSolarOverpressureArray-T3.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"><br><em>大型太阳能超压阵列 / Large Solar Overpressure Array（青铜/钢/银）</em></p>
+<p align="center"><img src="README/renders/MTELargeSolarOverpressureArray-T1.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/renders/MTELargeSolarOverpressureArray-T2.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/renders/MTELargeSolarOverpressureArray-T3.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"><br><em>大型太阳能超压阵列 / Large Solar Overpressure Array（青铜/钢/银）</em></p>
 
 **大型太阳能超压阵列 / Large Solar Overpressure Array (LSOA)**
 
 3级（青铜/钢/银）太阳能产蒸汽阵列；银级产出过热蒸汽。
 
-<p align="center"><img src="README/white/MTEKineticProcessingArray-T1.png" width="260" alt="动力加工阵列 / Kinetic Processing Array（等级 1/5）"> <img src="README/white/MTEKineticProcessingArray-T5.png" width="260" alt="动力加工阵列 / Kinetic Processing Array（等级 1/5）"><br><em>动力加工阵列 / Kinetic Processing Array（等级 1/5）</em></p>
+<p align="center"><img src="README/renders/MTEKineticProcessingArray-T1.png" width="260" alt="动力加工阵列 / Kinetic Processing Array（等级 1/5）"> <img src="README/renders/MTEKineticProcessingArray-T5.png" width="260" alt="动力加工阵列 / Kinetic Processing Array（等级 1/5）"><br><em>动力加工阵列 / Kinetic Processing Array（等级 1/5）</em></p>
 
 **动力加工阵列 / Kinetic Processing Array (KPA)**
 
 仅过热蒸汽，12级；处理放入的任意单方块机器配方。
 
-<p align="center"><img src="README/white/MTEGearSteamCompressor-T1.png" width="260" alt="自驱式机械蒸汽压缩机 / Gear Steam Compressor"> <img src="README/white/MTEGearSteamCompressor-T2.png" width="260" alt="自驱式机械蒸汽压缩机 / Gear Steam Compressor"><br><em>自驱式机械蒸汽压缩机 / Gear Steam Compressor（青铜/钢）</em></p>
+<p align="center"><img src="README/renders/MTEGearSteamCompressor-T1.png" width="260" alt="自驱式机械蒸汽压缩机 / Gear Steam Compressor"> <img src="README/renders/MTEGearSteamCompressor-T2.png" width="260" alt="自驱式机械蒸汽压缩机 / Gear Steam Compressor"><br><em>自驱式机械蒸汽压缩机 / Gear Steam Compressor（青铜/钢）</em></p>
 
 **自驱式机械蒸汽压缩机 / Gear Steam Compressor (GSC)**
 
 普通蒸汽转化为过热蒸汽与蒸馏水，是无需电力锅炉即可取得过热蒸汽的关键机器。
 
-<p align="center"><img src="README/white/MTEAmmoniaPlant.png" width="400" alt="制氨工厂 / Ammonia Plant"><br><em>制氨工厂 / Ammonia Plant</em></p>
+<p align="center"><img src="README/renders/MTEAmmoniaPlant.png" width="400" alt="制氨工厂 / Ammonia Plant"><br><em>制氨工厂 / Ammonia Plant</em></p>
 
 **制氨工厂 / Ammonia Plant (AP)**
 
 仅钢级，热量系统 + 7级催化剂（更高级催化剂=更多并行+更快反应），过热蒸汽为副产物。
 
-<p align="center"><img src="README/white/MTEReinforcedBrickBlastFurnace.png" width="260" alt="加固砖高炉 / Reinforced Brick Blast Furnace"><br><em>加固砖高炉 / Reinforced Brick Blast Furnace</em></p>
+<p align="center"><img src="README/renders/MTEReinforcedBrickBlastFurnace.png" width="260" alt="加固砖高炉 / Reinforced Brick Blast Furnace"><br><em>加固砖高炉 / Reinforced Brick Blast Furnace</em></p>
 
 **加固砖高炉 / Reinforced Brick Blast Furnace (RBBF)**
 
 单级、无需蒸汽，执行 GT5U 原始高炉配方；炉温越高并行越多、配方越快。
 
-<p align="center"><img src="README/white/MTEThermochemicalDenseSteamGenerator.png" width="500" alt="热化学致密蒸汽发生系统"><br><em>热化学致密蒸汽发生系统 / Thermochemical Dense Steam Generator</em></p>
+<p align="center"><img src="README/renders/MTEThermochemicalDenseSteamGenerator.png" width="500" alt="热化学致密蒸汽发生系统"><br><em>热化学致密蒸汽发生系统 / Thermochemical Dense Steam Generator</em></p>
 
 **热化学致密蒸汽发生系统 / Thermochemical Dense Steam Generator (TCDS)**
 
 吞下一切可燃流体的蒸汽巨兽：燃气与燃油皆可为食，终端可调**设定流量**驱动燃烧——产出与最大热量随流量伸缩，部分供给自动降流量不停机。
 
-燃气与燃油可同时供给，致密蒸汽芯片启用致密输出；空气、水与燃料供给共同影响运行。详情见 [热化学致密蒸汽发生系统](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki/Dense-Steam-Generator_CN)。
+燃气与燃油可同时供给，致密蒸汽芯片启用致密输出；空气、水与燃料供给共同影响运行。详情见 [热化学致密蒸汽发生系统](https://miaokatze.com/entry/gtsr-16b6ae270c1f)。
 
 ***
 
-地热与太阳能设备使用普通水会结垢，蒸馏水可避免结垢；缺水会停机。地热过热芯片启用过热蒸汽与稀有副产物。动力加工阵列兼容洁净室与 ME 合成总线，管道和齿轮箱可升级加工能力。详细机制见 [强化加工机器](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki/Enhanced-Machines_CN)。
+地热与太阳能设备使用普通水会结垢，蒸馏水可避免结垢；缺水会停机。地热过热芯片启用过热蒸汽与稀有副产物。动力加工阵列兼容洁净室与 ME 合成总线，管道和齿轮箱可升级加工能力。详细机制见 [强化加工机器](https://miaokatze.com/entry/gtsr-doc-15ad910563c7)。
 
 ### Singularity Machines / 奇点机器
 
@@ -282,7 +282,7 @@ Structure renders use the [GTSR White v1 strategy](README/white/strategy.json): 
 
 消耗输入仓中最高等级的普通、过热或超临界蒸汽，累积热量产出蒸汽纠缠奇点；不接受致密蒸汽。
 
-<p align="center"><img src="README/white/MTESteamSingularityEntangler.png" width="450" alt="蒸汽奇点纠缠装置 / Steam Singularity Entangler"><br><em>蒸汽奇点纠缠装置 / Steam Singularity Entangler</em></p>
+<p align="center"><img src="README/renders/MTESteamSingularityEntangler.png" width="450" alt="蒸汽奇点纠缠装置 / Steam Singularity Entangler"><br><em>蒸汽奇点纠缠装置 / Steam Singularity Entangler</em></p>
 
 <p align="center"><img src="README/SSE-Terminal.png" width="900" alt="蒸汽奇点纠缠装置机器终端 / Steam Singularity Entangler Terminal"><br><em>蒸汽奇点纠缠装置机器终端 / Steam Singularity Entangler Terminal</em></p>
 
@@ -290,7 +290,7 @@ Structure renders use the [GTSR White v1 strategy](README/white/strategy.json): 
 
 仅接收致密蒸汽、致密过热与致密超临界蒸汽，累积热量产出临界蒸汽纠缠奇点。运行时消耗输入仓蒸汽并禁用蒸汽冷却，需要输入总线；结构核心显示纠缠奇点动画。
 
-<p align="center"><img src="README/white/MTECriticalSingularityCompressor.png" width="450" alt="临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer"><br><em>临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer</em></p>
+<p align="center"><img src="README/renders/MTECriticalSingularityCompressor.png" width="450" alt="临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer"><br><em>临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer</em></p>
 
 <p align="center"><img src="README/CSC-Terminal.png" width="900" alt="临界纠缠奇点稳定装置机器终端 / Critical Entangled Singularity Stabilizer Terminal"><br><em>临界纠缠奇点稳定装置机器终端 / Critical Entangled Singularity Stabilizer Terminal</em></p>
 
@@ -302,11 +302,11 @@ Right-click either controller with the Machine Terminal to view its live heat fo
 
 支持蒸汽压缩和蒸汽解压，以普通或临界奇点为燃料，实现常规蒸汽与致密态蒸汽转换；临界奇点可避免普通奇点的输出损失。
 
-<p align="center"><img src="README/white/MTEDenseStateManipulator.png" width="450" alt="致密态蒸汽操控装置 / Dense State Manipulator"><br><em>致密态蒸汽操控装置 / Dense State Manipulator</em></p>
+<p align="center"><img src="README/renders/MTEDenseStateManipulator.png" width="450" alt="致密态蒸汽操控装置 / Dense State Manipulator"><br><em>致密态蒸汽操控装置 / Dense State Manipulator</em></p>
 
 ***
 
-压缩、解压与纠缠设备的结构和运行条件见 [奇点体系](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki/Singularity-System_CN)。
+压缩、解压与纠缠设备的结构和运行条件见 [奇点体系](https://miaokatze.com/entry/gtsr-doc-e69a5a563138)。
 
 ## 繁荣时代：探索与资源 / Prosperity
 
@@ -316,7 +316,7 @@ Right-click either controller with the Machine Terminal to view its live heat fo
 
 **时空奇点祭坛 / Spacetime Singularity Altar**
 
-<p align="center"><img src="README/white/Spacetime-Singularity-Altar.png" width="600" alt="时空奇点祭坛，14×14×15 实际结构"><br><em>时空奇点祭坛：通往繁荣时代维度遗迹的大门 / Spacetime Singularity Altar</em></p>
+<p align="center"><img src="README/renders/Spacetime-Singularity-Altar.png" width="600" alt="时空奇点祭坛，14×14×15 实际结构"><br><em>时空奇点祭坛：通往繁荣时代维度遗迹的大门 / Spacetime Singularity Altar</em></p>
 
 在主世界寻找祭坛，右击剧情板阅读线索并解锁本座祭坛的奖励箱。手持神秘法杖，点击剧情界面的“持杖激活奇点”：六种原始 vis 必须各有至少 50，成功后各扣除 50；任一种不足时全部不扣。激活约 10 秒后，奇点开始吸引附近玩家并将其送入繁荣。
 
@@ -324,11 +324,11 @@ Right-click either controller with the Machine Terminal to view its live heat fo
 
 **时空奇点校准工程 / Spacetime Singularity Calibration Engineering**
 
-<p align="center"><img src="README/white/MTESpacetimeSingularityCalibration.png" width="500" alt="时空奇点校准工程"><br><em>时空奇点校准工程 / Spacetime Singularity Calibration Engineering</em></p>
+<p align="center"><img src="README/renders/MTESpacetimeSingularityCalibration.png" width="500" alt="时空奇点校准工程"><br><em>时空奇点校准工程 / Spacetime Singularity Calibration Engineering</em></p>
 
 建立通向繁荣的稳定通道，需要 LuV 阶段能源与完整结构、维护及持续供电。核心牵引实体而不破坏方块，校准完成后可进入繁荣。时空锚定信标保存回程点并提供跨维度返程。
 
-入口与返程条件见 [时空校准指南](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki/Spacetime-Calibration_CN)；遗址、故事与遭遇见 [繁荣维度](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki/Prosperity-Dimension_CN)。
+入口与返程条件见 [时空校准指南](https://miaokatze.com/entry/gtsr-1f1210425ec6)；遗址、故事与遭遇见 [繁荣维度](https://miaokatze.com/entry/gtsr-doc-43406eed2bf0)。
 
 **六条流体工业线 / Six Resource Fluids**
 
@@ -345,7 +345,7 @@ Right-click either controller with the Machine Terminal to view its live heat fo
 
 植物净液是至暗泥泞加工所得中间液；含氟主线从三途余汽的凝液蒸馏开始。各支线的流体体积与粉体用途以当前配方为准；请在 [详细指南](README/FEATURES.md#六流体产线) 中查看选线与接续要点。
 
-各原液的接续加工见 [六流体工业线](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki/Industrial-Fluids_CN)。
+各原液的接续加工见 [六流体工业线](https://miaokatze.com/entry/gtsr-doc-79dc978365a7)。
 
 ## 便携武器 / Portable Weapons
 
@@ -353,15 +353,15 @@ Right-click either controller with the Machine Terminal to view its live heat fo
 
 LM12 提供转管持续火力，标准与压制模式有不同的过热管理；T20 支持空爆；QLZ04 提供普通、霰榴弹和轮毂弹夹模式；107 工程奇点控制器可装填普通或临界奇点，普通模式牵引后爆发，失稳模式蓄力后直接引爆，均支持手动遥爆。制造阶段依次为 LV、MV、HV 与 EV。
 
-普通弹药包耗尽会销毁；拟态弹药包停火后缓慢补弹，耗尽仍保留。四种武器支持附魔，107 使用纠缠奇点物品装填。模式、弹药与附魔详情见 [便携武器指南](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki/Portable-Weapons_CN)。
+普通弹药包耗尽会销毁；拟态弹药包停火后缓慢补弹，耗尽仍保留。四种武器支持附魔，107 使用纠缠奇点物品装填。模式、弹药与附魔详情见 [便携武器指南](https://miaokatze.com/entry/gtsr-doc-fc3dc22d2461)。
 
 ## Single-Block Nodes / 单方块节点
 
 ### Cache Nodes & Singularity Compartments / 缓存节点与奇点仓室
 
 <table>
-<tr><td align="center"><img src="README/white/SteamCacheNodes.png" width="180" alt="蒸汽缓存节点"><br>蒸汽缓存节点</td><td align="center"><img src="README/white/WaterCacheNodes.png" width="180" alt="流体缓存节点"><br>流体缓存节点</td></tr>
-<tr><td align="center"><img src="README/white/SingularitySteamHatches.png" width="180" alt="奇点蒸汽仓"><br>奇点蒸汽仓</td><td align="center"><img src="README/white/SingularityFluidHatches.png" width="180" alt="奇点流体仓"><br>奇点流体仓</td></tr>
+<tr><td align="center"><img src="README/renders/SteamCacheNodes.png" width="180" alt="蒸汽缓存节点"><br>蒸汽缓存节点</td><td align="center"><img src="README/renders/WaterCacheNodes.png" width="180" alt="流体缓存节点"><br>流体缓存节点</td></tr>
+<tr><td align="center"><img src="README/renders/SingularitySteamHatches.png" width="180" alt="奇点蒸汽仓"><br>奇点蒸汽仓</td><td align="center"><img src="README/renders/SingularityFluidHatches.png" width="180" alt="奇点流体仓"><br>奇点流体仓</td></tr>
 </table>
 
 基于数字储罐的节点，绑定枢纽实现跨区块/维度流体传输。支持流体锁定、自动输出、溢出虚空、枢纽终端调整交互速率（六缓存节点+四奇点仓）与容量上限档（见下）。
@@ -384,7 +384,7 @@ LM12 提供转管持续火力，标准与压制模式有不同的过热管理；
 
 ### Remote Worker Nodes / 远程工作节点
 
-<p align="center"><img src="README/white/RemoteWorkerNodes.png" width="320" alt="远程工作节点 / Remote Worker Nodes"><br><em>远程工作节点 / Remote Worker Nodes</em></p>
+<p align="center"><img src="README/renders/RemoteWorkerNodes.png" width="320" alt="远程工作节点 / Remote Worker Nodes"><br><em>远程工作节点 / Remote Worker Nodes</em></p>
 
 由奇点钻井枢纽驱动执行远程作业的节点。消耗钻管向下钻探，下降过程中逐层扫描并开采。
 
@@ -401,9 +401,9 @@ LM12 提供转管持续火力，标准与压制模式有不同的过热管理；
 ## Hatches / 仓室
 
 <table>
-<tr><td align="center"><img src="README/white/SteamHatches.png" width="180" alt="通用蒸汽输入/输出仓"><br>通用蒸汽输入/输出仓</td><td align="center"><img src="README/white/PressureSteamHatches.png" width="180" alt="耐压蒸汽输入/输出仓"><br>耐压蒸汽输入/输出仓</td><td align="center"><img src="README/white/CoolingHatches.png" width="180" alt="蒸汽冷却仓"><br>蒸汽冷却仓</td></tr>
-<tr><td align="center"><img src="README/white/SteamHubHatches.png" width="180" alt="蒸汽枢纽输入/输出仓"><br>蒸汽枢纽输入/输出仓</td><td align="center"><img src="README/white/WaterHubHatches.png" width="180" alt="蓄水枢纽输入/输出仓"><br>蓄水枢纽输入/输出仓</td><td align="center"><img src="README/white/OverpressureTurbineHatch.png" width="180" alt="巨型超压蒸汽输入仓"><br>巨型超压蒸汽输入仓</td></tr>
-<tr><td align="center"><img src="README/white/MegaAirHatch.png" width="180" alt="巨型空气输入仓"><br>巨型空气输入仓</td><td align="center"><img src="README/white/DistilledWaterHatch.png" width="180" alt="蒸馏水仓"><br>蒸馏水仓</td><td align="center"><img src="README/white/RedstoneHatch.png" width="180" alt="红石仓"><br>红石仓</td></tr>
+<tr><td align="center"><img src="README/renders/SteamHatches.png" width="180" alt="通用蒸汽输入/输出仓"><br>通用蒸汽输入/输出仓</td><td align="center"><img src="README/renders/PressureSteamHatches.png" width="180" alt="耐压蒸汽输入/输出仓"><br>耐压蒸汽输入/输出仓</td><td align="center"><img src="README/renders/CoolingHatches.png" width="180" alt="蒸汽冷却仓"><br>蒸汽冷却仓</td></tr>
+<tr><td align="center"><img src="README/renders/SteamHubHatches.png" width="180" alt="蒸汽枢纽输入/输出仓"><br>蒸汽枢纽输入/输出仓</td><td align="center"><img src="README/renders/WaterHubHatches.png" width="180" alt="蓄水枢纽输入/输出仓"><br>蓄水枢纽输入/输出仓</td><td align="center"><img src="README/renders/OverpressureTurbineHatch.png" width="180" alt="巨型超压蒸汽输入仓"><br>巨型超压蒸汽输入仓</td></tr>
+<tr><td align="center"><img src="README/renders/MegaAirHatch.png" width="180" alt="巨型空气输入仓"><br>巨型空气输入仓</td><td align="center"><img src="README/renders/DistilledWaterHatch.png" width="180" alt="蒸馏水仓"><br>蒸馏水仓</td><td align="center"><img src="README/renders/RedstoneHatch.png" width="180" alt="红石仓"><br>红石仓</td></tr>
 </table>
 
 GTSR 机器专用仓室，具有不同容量和流体过滤：
@@ -459,6 +459,14 @@ GTSR 机器专用蒸汽输出仓。
 用于枢纽阵列层叠的存储单元，分枢纽 / 加固枢纽 / 超压枢纽三种。
 
 ***
+
+### Critical ME Hatches / 临界 ME 仓室
+
+<p align="center"><img src="README/renders/CriticalMEHatches.png" width="260" alt="临界 ME 输入仓、输入总线、输出仓与输出总线"><br><em>UHV 级临界 ME 仓室 / UHV Critical ME Hatches</em></p>
+
+四种接口兼容普通机器的原生 ME 输入输出。临界输入端支持逐槽长整型供料上限，输出端带长整型缓存，ME 离线时暂存、恢复联网后推送。它们由太空电梯组装模块（等级 1）制造，配方耗时 60 秒，使用 UHV 电压；具体材料与接入位置见 NEI 和机器说明。
+
+The four interfaces retain native ME compatibility. Critical inputs use per-slot long stocking limits, while outputs buffer products offline and export after the network reconnects. Manufacture them in a tier-1 Space Elevator assembly module at UHV, with a 60-second recipe.
 
 ## Items / 物品
 

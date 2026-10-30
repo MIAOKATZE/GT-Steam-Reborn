@@ -1,0 +1,10 @@
+{
+  "id": "gtsr-transparent-v1",
+  "mod": "GTSR",
+  "background": "transparent",
+  "cleanSmallTiers": true,
+  "camera": {"yawDegrees": 35, "pitchDegrees": 25},
+  "canvas": {"landscape": [1600, 1200], "portrait": [1200, 2000]},
+  "footer": {"position": "bottom-right", "fields": ["MOD", "TEXTURES"]},
+  "repeat": {"MTESteamHubArray": 14, "MTEWaterHubArray": 13, "MTEMegaSteamTurbineArray": 4}
+}
