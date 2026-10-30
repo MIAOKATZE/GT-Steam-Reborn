@@ -30,6 +30,7 @@ import com.gtnewhorizon.structurelib.structure.IStructureElementCheckOnly;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
@@ -507,11 +508,12 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             if (mSingularityMode == 0) {
                 if (!enterSingularityModeIfPossible()) return CheckRecipeResultRegistry.NO_RECIPE;
             }
-            drainGrade(grade, false);
+            amount = drainGradePaid(grade, false);
+            if (amount <= 0) return CheckRecipeResultRegistry.NO_RECIPE;
             // v1.10.8：等级切换保留已累积量（按原等级比例折算续算），
             // 原实现 mAccum=0 使混合等级输入永久零产出、流体与燃料纯消耗。
             if (mAccumGrade >= 0 && grade != mAccumGrade) {
-                mAccum = mAccum * getGradeRatio(grade) / getGradeRatio(mAccumGrade);
+                mAccum = mAccum * getGradeRatio(mAccumGrade) / getGradeRatio(grade);
             }
             mAccumGrade = grade;
             mAccum += (double) amount / DENSE_COMPRESSION_RATIO * getSingularityOutputCoefficient();
@@ -547,10 +549,11 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             if (mSingularityMode == 0) {
                 if (!enterSingularityModeIfPossible()) return CheckRecipeResultRegistry.NO_RECIPE;
             }
-            drainDenseGrade(grade);
+            amount = drainDenseGrade(grade);
+            if (amount <= 0) return CheckRecipeResultRegistry.NO_RECIPE;
             // v1.10.8：等级切换保留已累积量（同 compression 折算续算）
             if (mAccumGrade >= 0 && grade != mAccumGrade) {
-                mAccum = mAccum * getGradeRatio(grade) / getGradeRatio(mAccumGrade);
+                mAccum = mAccum * getGradeRatio(mAccumGrade) / getGradeRatio(grade);
             }
             mAccumGrade = grade;
             mAccum += (double) amount * DENSE_COMPRESSION_RATIO * getSingularityOutputCoefficient();
@@ -607,17 +610,19 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
         return amount;
     }
 
-    private void drainDenseGrade(int grade) {
+    private long drainDenseGrade(int grade) {
         FluidStack request = FluidRegistry.getFluidStack(DENSE_FLUID_NAMES[grade], 1);
-        if (request == null) return;
-        for (gregtech.api.metatileentity.implementations.MTEHatch hatch : getSteamInputHatches()) {
-            // v1.10.60：对齐 v1.10.55 grade 族——直接 MAX_VALUE 实扣（原"模拟探测+实扣"两段
-            // 依赖配方窗口位置，beta-1 窗口外模拟即真提取会双扣；直接实扣双版本等效，
-            // "输入仓有多少消耗多少"设计语义不变）。
+        if (request == null) return 0;
+        long paid = 0;
+        for (gregtech.api.metatileentity.implementations.MTEHatch hatch : GTUtility
+            .validMTEList(getSteamInputHatches())) {
+            // A native ME drain inside a recipe window is only a reservation. Account for real
+            // powered extraction instead, including partial/zero receipts and shared networks.
             FluidStack full = request.copy();
             full.amount = Integer.MAX_VALUE;
-            hatch.drain(ForgeDirection.UNKNOWN, full, true);
+            paid += GTSRHatchFluidAccess.drainFluidExact(hatch, full);
         }
+        return paid;
     }
 
     @Override

@@ -334,11 +334,10 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
         long amount;
         if (hasOverlimitMechanics()) {
             amount = inputControl().drain(entanglementInputRows(), grade);
-            if (amount <= 0) return CheckRecipeResultRegistry.NO_RECIPE;
         } else {
-            amount = sumGrade(grade, includeDenseSteam());
-            drainGrade(grade, includeDenseSteam());
+            amount = drainGradePaid(grade, includeDenseSteam());
         }
+        if (amount <= 0) return CheckRecipeResultRegistry.NO_RECIPE;
         double base = getHeatMax() * amount / (amount + getHeatHalfPoint());
         // T4 热量乘数钩子：默认 1.0（聚合器/致密机不受影响）；SSE=(1+超限/100)、CESS=(1+超限/100)(1+撕裂/100)
         mHeat += GRADE_COEF[grade] * base * getHeatMultiplier();
@@ -435,17 +434,23 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
     }
 
     protected final void drainGrade(int grade, boolean includeDense) {
+        drainGradePaid(grade, includeDense);
+    }
+
+    /** Real paid quantity, not a tank snapshot or an ME recipe-window reservation. */
+    protected final long drainGradePaid(int grade, boolean includeDense) {
+        long paid = 0;
         for (FluidStack request : gradeProbeStacks(grade, includeDense, isDenseSteamOnly())) {
             if (request == null) continue;
-            for (MTEHatch hatch : getSteamInputHatches()) {
-                // v1.10.55：直接 MAX_VALUE 实扣（"输入仓有多少消耗多少"设计语义）；
-                // 原"模拟探测+实扣"两段在 beta-1 的 MTEHatchInputME.drain 忽略 doDrain 时会先模拟全扣再实扣 0，
-                // 直接实扣双版本等效（beta-1/beta-2 的实扣路径一致）
+            for (MTEHatch hatch : GTUtility.validMTEList(getSteamInputHatches())) {
+                // Keep the existing per-hatch bound. The access layer uses powered ME extraction
+                // without modifying virtual extracted, so parent window close cannot charge twice.
                 FluidStack full = request.copy();
                 full.amount = Integer.MAX_VALUE;
-                hatch.drain(ForgeDirection.UNKNOWN, full, true);
+                paid += GTSRHatchFluidAccess.drainFluidExact(hatch, full);
             }
         }
+        return paid;
     }
 
     protected final int fillOutput(FluidStack stack) {

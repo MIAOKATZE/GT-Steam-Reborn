@@ -827,7 +827,15 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
 
     @Override
     public final void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
+        // The digital-tank parent also auto-outputs. Keep its other tick obligations, but give
+        // this node's configured transfer rate a single owner (and avoid its speculative debit).
+        boolean autoOutput = mOutputFluid;
+        mOutputFluid = false;
+        try {
+            super.onPostTick(aBaseMetaTileEntity, aTick);
+        } finally {
+            mOutputFluid = autoOutput;
+        }
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
         // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定；成功登记每 600t 周期复查
@@ -855,10 +863,11 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
             IFluidHandler tTank = aBaseMetaTileEntity.getITankContainerAtSide(aBaseMetaTileEntity.getFrontFacing());
             if (tTank != null) {
                 FluidStack tDrained = drain(getBaseHubTransferRate(), false);
-                if (tDrained != null) {
-                    int tFilledAmount = tTank.fill(aBaseMetaTileEntity.getBackFacing(), tDrained, false);
-                    if (tFilledAmount > 0)
-                        tTank.fill(aBaseMetaTileEntity.getBackFacing(), drain(tFilledAmount, true), true);
+                if (tDrained != null && tDrained.amount > 0) {
+                    // The source is our local tank; only the destination's committed receipt is a debit.
+                    int offered = tDrained.amount;
+                    int accepted = tTank.fill(aBaseMetaTileEntity.getBackFacing(), tDrained.copy(), true);
+                    if (accepted > 0) drain(Math.min(offered, accepted), true);
                 }
             }
         }

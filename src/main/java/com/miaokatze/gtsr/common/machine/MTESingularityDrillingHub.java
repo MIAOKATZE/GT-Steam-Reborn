@@ -805,7 +805,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         ItemStack toPlace = stack.copy();
         toPlace.stackSize = fits;
         gtsr$storeItemIntoBusses(toPlace, false);
-        return stack.stackSize - fits;
+        return stack.stackSize - fits + toPlace.stackSize;
     }
 
     /** RC2 native simulation and insertion share the bus capacity and filter contract. */
@@ -906,7 +906,9 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         World hubWorld = base == null ? null : base.getWorld();
         long now = hubWorld == null ? 0L : hubWorld.getTotalWorldTime();
         if (bound.cachedWorker != null && (bound.lastLookupTick == now || now < bound.nextLookupTick)) {
-            return bound.cachedWorker;
+            if (isLiveCachedWorker(bound) && isWorkerBoundToThisHub(bound.cachedWorker)) return bound.cachedWorker;
+            bound.cachedWorker = null;
+            bound.nextLookupTick = 0;
         }
         if (!loadChunk && now < bound.nextLookupTick) return null;
 
@@ -933,7 +935,9 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
         bound.lastLookupLoaded = true;
         TileEntity te = world.getTileEntity(bound.x, bound.y, bound.z);
-        if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof MTERemoteWorkerNode node) {
+        if (te instanceof IGregTechTileEntity gte && !gte.isDead()
+            && gte.getMetaTileEntity() instanceof MTERemoteWorkerNode node
+            && isWorkerBoundToThisHub(node)) {
             bound.cachedWorker = node;
             bound.nextLookupTick = now + 20;
             return node;
@@ -941,6 +945,25 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         bound.cachedWorker = null;
         bound.nextLookupTick = now + 20;
         return null;
+    }
+
+    private boolean isLiveCachedWorker(BoundDrillNode bound) {
+        IGregTechTileEntity tile = bound.cachedWorker.getBaseMetaTileEntity();
+        World world = DimensionManager.getWorld(bound.dimensionId);
+        return tile != null && !tile.isDead() && world != null && tile.getWorld() == world
+            && tile.getMetaTileEntity() == bound.cachedWorker
+            && world.blockExists(bound.x, bound.y, bound.z)
+            && world.getTileEntity(bound.x, bound.y, bound.z) == tile;
+    }
+
+    private boolean isWorkerBoundToThisHub(MTERemoteWorkerNode node) {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return base != null && base.getWorld() != null
+            && node.isBoundToHubAt(
+                base.getXCoord(),
+                base.getYCoord(),
+                base.getZCoord(),
+                base.getWorld().provider.dimensionId);
     }
 
     /**
@@ -1160,14 +1183,9 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         if (fluid == null || fluid.amount <= 0) return 0;
         for (MTEHatch hatch : mOutputHatches) {
             if (fluid.amount <= 0) break;
-            int tAmount = hatch.fill(fluid, false);
-            if (tAmount >= fluid.amount) {
-                hatch.fill(fluid, true);
-                fluid.amount = 0;
-                break;
-            } else if (tAmount > 0) {
-                fluid.amount -= hatch.fill(fluid, true);
-            }
+            int offered = fluid.amount;
+            int accepted = hatch.fill(fluid.copy(), true);
+            fluid.amount -= Math.max(0, Math.min(offered, accepted));
         }
         return fluid.amount;
     }

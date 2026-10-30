@@ -402,10 +402,10 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     @Override
     protected void detachHatchControllers() {
         for (MTEWaterHubInputHatch hatch : mWaterInputHatches) {
-            hatch.mController = null;
+            if (hatch.mController == this) hatch.mController = null;
         }
         for (MTEWaterHubOutputHatch hatch : mWaterOutputHatches) {
-            hatch.mController = null;
+            if (hatch.mController == this) hatch.mController = null;
         }
     }
 
@@ -534,7 +534,7 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     }
 
     public int receiveWater(FluidStack aFluid, boolean doFill) {
-        if (aFluid == null) return 0;
+        if (aFluid == null || aFluid.amount <= 0) return 0;
         if (!isWaterFluid(aFluid)) return 0;
         if (mStoredFluidType != null && !mStoredFluidType.equals(
             aFluid.getFluid()
@@ -542,7 +542,7 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
             return 0;
 
         long capacity = getTotalCapacity();
-        long canAccept = capacity - mWaterStored;
+        long canAccept = Math.max(0L, capacity - mWaterStored);
 
         if (mOverflowInput) {
             if (doFill) {
@@ -570,7 +570,7 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     }
 
     public FluidStack extractWater(int maxDrain, boolean doDrain) {
-        if (mWaterStored <= 0 || mStoredFluidType == null) return null;
+        if (maxDrain <= 0 || mWaterStored <= 0 || mStoredFluidType == null) return null;
 
         int toDrain = (int) Math.min(maxDrain, mWaterStored);
         FluidStack result = FluidStack.loadFluidStackFromNBT(createFluidTag(mStoredFluidType, toDrain));
@@ -775,9 +775,11 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         } else {
             FluidStack drained = gtTile.drain(ForgeDirection.UNKNOWN, nodeRate, false);
             if (drained != null && drained.amount > 0) {
-                int accepted = receiveWater(drained, true);
+                int accepted = receiveWater(drained, false);
                 if (accepted > 0) {
-                    gtTile.drain(ForgeDirection.UNKNOWN, accepted, true);
+                    FluidStack committed = gtTile
+                        .drain(ForgeDirection.UNKNOWN, new FluidStack(drained, accepted), true);
+                    if (committed != null && committed.amount > 0) receiveWater(committed, true);
                 }
             }
         }

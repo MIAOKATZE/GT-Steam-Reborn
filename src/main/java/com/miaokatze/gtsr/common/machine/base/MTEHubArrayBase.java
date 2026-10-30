@@ -149,6 +149,13 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
     /** 总容量公式（单元计数与芯片倍率族差异：字段留子类，读数经本钩子单点化）。 */
     public abstract long getTotalCapacity();
 
+    /** Native removal/unload also enters clearHatches; release custom I/O references there too. */
+    @Override
+    public void clearHatches() {
+        detachHatchControllers();
+        super.clearHatches();
+    }
+
     public boolean isFormed() {
         return mMachine;
     }
@@ -227,8 +234,12 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         World hubWorld = base == null ? null : base.getWorld();
         long now = hubWorld == null ? 0L : hubWorld.getTotalWorldTime();
         if (bound.cachedTile != null && (bound.lastLookupTick == now || now < bound.nextLookupTick)) {
-            IMetaTileEntity mte = bound.cachedTile.getMetaTileEntity();
-            return mte instanceof IHubCacheNode node ? node : null;
+            if (isLiveCachedNode(bound)) {
+                IMetaTileEntity mte = bound.cachedTile.getMetaTileEntity();
+                if (mte instanceof IHubCacheNode node && isNodeBoundToThisHub(node)) return node;
+            }
+            bound.cachedTile = null;
+            bound.nextLookupTick = 0;
         }
         if (!loadChunk && now < bound.nextLookupTick) return null;
 
@@ -255,7 +266,9 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
 
         bound.lastLookupLoaded = true;
         TileEntity te = world.getTileEntity(bound.x, bound.y, bound.z);
-        if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof IHubCacheNode node) {
+        if (te instanceof IGregTechTileEntity gte && !gte.isDead()
+            && gte.getMetaTileEntity() instanceof IHubCacheNode node
+            && isNodeBoundToThisHub(node)) {
             bound.cachedTile = gte;
             bound.nextLookupTick = now + BOUND_NODE_RETRY_INTERVAL;
             return node;
@@ -263,6 +276,24 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         bound.cachedTile = null;
         bound.nextLookupTick = now + BOUND_NODE_RETRY_INTERVAL;
         return null;
+    }
+
+    private boolean isLiveCachedNode(BoundCacheNode bound) {
+        IGregTechTileEntity tile = bound.cachedTile;
+        World world = DimensionManager.getWorld(bound.dimensionId);
+        return tile != null && !tile.isDead() && world != null && tile.getWorld() == world
+            && world.blockExists(bound.x, bound.y, bound.z)
+            && world.getTileEntity(bound.x, bound.y, bound.z) == tile;
+    }
+
+    private boolean isNodeBoundToThisHub(IHubCacheNode node) {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return base != null && base.getWorld() != null
+            && node.isBoundToHubAt(
+                base.getXCoord(),
+                base.getYCoord(),
+                base.getZCoord(),
+                base.getWorld().provider.dimensionId);
     }
 
     // endregion
@@ -571,6 +602,8 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
                 invalidNodes.add(node);
                 continue;
             }
+            // The live node owns its direction; a persisted hub entry may predate a mode change.
+            node.isOutputMode = cacheNode.isOutputMode();
             if (!chipInstalled) continue;
             transferOneNode(node, node.cachedTile, getNodeTransferRate(node.cachedTile));
         }

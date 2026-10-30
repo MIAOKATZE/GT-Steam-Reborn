@@ -21,7 +21,8 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
  *
  * <p>
  * 原子语义（{@code MTEAmmoniaPlant.consumeFuelAndSteam} 范式）：先跨仓合计探测两项是否同时
- * 足量（仅模拟），两者均足才统一实扣；<b>任一不足则两项均不扣（双零扣）</b>并按项置红标。
+ * 足量（仅模拟），两者均足才统一实扣；<b>预检任一不足则两项均不扣（双零扣）</b>并按项置红标。
+ * 实扣仍须取得足额收据：ME 能量不足等提交失败不授予热量/运行许可，已付部分不伪装为零扣。
  * 蒸汽按 S8 种类口径择优：识别输入仓内实际蒸汽种类（{@link ClusterParams.SteamGrade} 六种，
  * divisor 降序、tier 门控），等效需求 ÷divisor 向上取整后以单一种类原子扣除，优先最高级；
  * 润滑剂取 {@code Materials.Lubricant.getFluid}；全部数值常量
@@ -49,7 +50,7 @@ public final class ClusterSteamEconomy {
      */
     public static final class EconomySettleResult {
 
-        /** 本秒结算是否成功（蒸汽且润滑均足额并已实扣；false = 双零扣）。 */
+        /** 本秒结算是否成功（蒸汽且润滑均足额并已实扣；提交失败可能已部分支付）。 */
         public boolean ok;
 
         /** 蒸汽跨仓合计是否足额（false 项不扣，与润滑互为原子）。 */
@@ -303,10 +304,19 @@ public final class ClusterSteamEconomy {
             return result;
         }
         if (selection != null) {
-            GTSRHatchFluidAccess.depleteFluidAcross(hatches, selection.toStack());
+            FluidStack steam = selection.toStack();
+            if (GTSRHatchFluidAccess.depleteFluidAcross(hatches, steam) != steam.amount) {
+                steamShortage = true;
+                result.steamEnough = false;
+                return result;
+            }
             lastSteamGrade = selection.grade;
         }
-        GTSRHatchFluidAccess.depleteFluidAcross(hatches, lubricant);
+        if (GTSRHatchFluidAccess.depleteFluidAcross(hatches, lubricant) != lubricant.amount) {
+            lubricantOk = false;
+            result.lubricantEnough = false;
+            return result;
+        }
         result.ok = true;
         return result;
     }

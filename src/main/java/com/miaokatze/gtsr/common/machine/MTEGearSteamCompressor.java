@@ -193,6 +193,8 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
     public long mSteamConsumedLastTick = 0;
     public long mSuperheatedOutputLastTick = 0;
     public long mWaterOutputLastTick = 0;
+    /** Water numerator carried in twentieths of a litre; only paid cycles advance it. */
+    private int mWaterOutputRemainder;
 
     public MTEGearSteamCompressor(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -539,7 +541,9 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
         }
 
         long superheatedOut = SUPERHEATED_OUTPUT_PER_SEC[tier] / 20;
-        long waterOut = DISTILLED_WATER_OUTPUT_PER_SEC[tier] / 20;
+        long waterNumerator = DISTILLED_WATER_OUTPUT_PER_SEC[tier] + mWaterOutputRemainder;
+        long waterOut = waterNumerator / 20;
+        mWaterOutputRemainder = (int) (waterNumerator % 20);
 
         outputSuperheatedSteam(superheatedOut);
         outputDistilledWater(waterOut);
@@ -839,6 +843,7 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
         aNBT.setLong("mSteamConsumedLastTick", mSteamConsumedLastTick);
         aNBT.setLong("mSuperheatedOutputLastTick", mSuperheatedOutputLastTick);
         aNBT.setLong("mWaterOutputLastTick", mWaterOutputLastTick);
+        aNBT.setInteger("mWaterOutputRemainder", mWaterOutputRemainder);
     }
 
     @Override
@@ -852,5 +857,6 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
         mSteamConsumedLastTick = aNBT.getLong("mSteamConsumedLastTick");
         mSuperheatedOutputLastTick = aNBT.getLong("mSuperheatedOutputLastTick");
         mWaterOutputLastTick = aNBT.getLong("mWaterOutputLastTick");
+        mWaterOutputRemainder = Math.max(0, Math.min(19, aNBT.getInteger("mWaterOutputRemainder")));
     }
 }

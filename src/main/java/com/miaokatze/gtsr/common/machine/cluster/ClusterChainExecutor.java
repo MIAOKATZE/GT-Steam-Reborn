@@ -28,6 +28,7 @@ import gregtech.api.recipe.RecipeMap;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.tileentities.machines.outputme.MTEHatchOutputBusME;
 
 /**
@@ -244,20 +245,23 @@ public final class ClusterChainExecutor {
         // 9) 扣料（IOF :317 口径：live 引用 stackSize -= take；0-size 槽由总线自身 tick 收口）
         // ——此后输入已吞入，在飞批次仅能经 MTEBasicLogisticsUnit.abortPendingRun 中止（吞料）
         applyTakes(takes);
+        if (meWindow && !unit.endMEBusProcessing(cluster)) {
+            // A native snapshot is not a payment receipt (the native bus also stops the controller);
+            // do not restart a virtual recipe or publish outputs for an unpaid/partially paid batch.
+            return abortUnpaidBatch(cluster, unit);
+        }
         // S1-T10 进入统计：吞入台账按 item+meta 累计（主控持久，per-item 输入计数）
         for (InputTake take : takes) {
             cluster.addStatInput(take.live, take.amount);
         }
-        if (meWindow) unit.endMEBusProcessing(cluster);
-
         // 10) 提交：预检已证明输出可接收，实扣配方流体（§3.6.5-4，r6 S2：直接对物流单元输入仓
         // 跨仓结算）；此点之后不再回滚。
         // 增幅液开批一次扣（v1.20.16 L/矿口径）：5c 预检通过的本批参与模块按 batch×单价（同一
-        // helper）跨各自输入仓一次扣除；预检与实扣同 tick 且中间无增幅仓写入，整扣必成
-        // （防御性返回值仅忽略——增幅短缺不再触发中止，见主控收窄语义）。
-        fluids.consume(unit);
+        // helper）跨各自输入仓一次扣除。ME 库存模拟不保证有 AE 能量完成实扣，因此必须检查收据。
+        // 普通预检短缺仍只剔除增幅；提交时意外支付失败则按已吞入批次中止，不发放未支付产物。
+        if (!fluids.consume(unit)) return abortUnpaidBatch(cluster, unit);
         for (MTEBasicAmplifierUnit amplifier : booster.getActiveUnits()) {
-            amplifier.tryConsumeForBatch(batch);
+            if (!amplifier.tryConsumeForBatch(batch)) return abortUnpaidBatch(cluster, unit);
         }
         unit.markDirty();
         // S1-T9/T10 提交后记账：批流体摘要供终端 FLUID 行；增幅额外产出（bonusSink）回填主控
@@ -280,6 +284,14 @@ public final class ClusterChainExecutor {
         cluster.addProcessedOre(batch);
         batchHost.addRealBatchThroughput(batch);
         return batch;
+    }
+
+    /** A commit-time native payment failure cannot grant a recipe or boosted products. */
+    private static int abortUnpaidBatch(MTESteamMineralLogisticsCluster cluster, MTEBasicLogisticsUnit unit) {
+        cluster.stopMachine(ShutDownReasonRegistry.CRITICAL_NONE);
+        unit.abortPendingRun();
+        unit.markDirty();
+        return 0;
     }
 
     // ==================== 取料（IOF :306-319，I/O 经物流单元输入总线） ====================
@@ -473,20 +485,23 @@ public final class ClusterChainExecutor {
         }
 
         /**
-         * 提交实扣（输出可接收后调用；isSatisfiable 已验存量，此处跨仓按台账量整扣——
-         * 探测/实扣之间无外部写入（同 tick 主线程），口径一致）。
+         * 提交实扣（输出可接收后调用）。库存探测不是支付保证：原生 ME 仍可能缺少提取能量。
+         * 任一收据不足立即失败；已支付部分不重放，调用方按原有吞料中止语义丢弃本批产物。
          */
-        void consume(MTEBasicLogisticsUnit unit) {
+        boolean consume(MTEBasicLogisticsUnit unit) {
             List<MTEHatchInput> hatches = unit.getLogisticsInputHatches();
             if (plainWaterMb > 0) {
-                GTSRHatchFluidAccess.depleteFluidAcross(hatches, ledgerStack(plainWaterFluid, plainWaterMb));
+                if (GTSRHatchFluidAccess.depleteFluidAcross(hatches, ledgerStack(plainWaterFluid, plainWaterMb))
+                    != plainWaterMb) return false;
             }
             if (distilledWaterMb > 0) {
-                GTSRHatchFluidAccess.depleteFluidAcross(hatches, ledgerStack(distilledWaterFluid, distilledWaterMb));
+                if (GTSRHatchFluidAccess.depleteFluidAcross(hatches, ledgerStack(distilledWaterFluid, distilledWaterMb))
+                    != distilledWaterMb) return false;
             }
             if (chemFluid != null && chemFluid.amount > 0) {
-                GTSRHatchFluidAccess.depleteFluidAcross(hatches, chemFluid);
+                if (GTSRHatchFluidAccess.depleteFluidAcross(hatches, chemFluid) != chemFluid.amount) return false;
             }
+            return true;
         }
 
         /**
@@ -983,16 +998,16 @@ public final class ClusterChainExecutor {
 
     // ==================== 产出回填（I/O 经物流单元输出总线） ====================
 
-    /** 一笔实放台账：目标总线 + 物品 id + 实放数量（整批失败时按此扣回）。 */
+    /** 一笔实放台账：目标总线 + 完整物品身份（含 NBT）+ 实放数量。 */
     private static final class OutputLedger {
 
         final MTEHatchOutputBus bus;
-        final int itemId;
+        final ItemStack template;
         int amount;
 
-        OutputLedger(MTEHatchOutputBus bus, int itemId, int amount) {
+        OutputLedger(MTEHatchOutputBus bus, ItemStack template, int amount) {
             this.bus = bus;
-            this.itemId = itemId;
+            this.template = template.copy();
             this.amount = amount;
         }
     }
@@ -1024,7 +1039,7 @@ public final class ClusterChainExecutor {
                 GTSROutputBusCompat.storePartial(bus, insertion, false);
                 int placed = accepted - Math.max(0, insertion.stackSize);
                 if (placed > 0) {
-                    ledger.add(new OutputLedger(bus, GTUtility.stackToInt(out), placed));
+                    ledger.add(new OutputLedger(bus, out, placed));
                     remaining -= placed;
                 }
                 if (placed != accepted) {
@@ -1083,7 +1098,7 @@ public final class ClusterChainExecutor {
     }
 
     /**
-     * 实放回滚：按台账在各<b>普通</b>总线内扫同 id 堆扣回登记数量（扣空槽置 null）。台账按构造
+     * 实放回滚：按台账在各<b>普通</b>总线内扫同 item/meta/NBT 堆扣回登记数量（扣空槽置 null）。台账按构造
      * 不变量永不含 ME 条目（ME cache 不在槽表、扣回恒 no-op——见 {@link #tryEmitOutputs} 趟 2），
      * 回滚精确。实放可能并入既有同类堆，回滚按物品多重集复原——槽位排布可能与回滚前有微小
      * 差异（GT 总线本就周期 compact，无语义影响）。
@@ -1093,7 +1108,8 @@ public final class ClusterChainExecutor {
             for (int i = 0, n = entry.bus.getSizeInventory(); i < n && entry.amount > 0; i++) {
                 ItemStack slot = entry.bus.getStackInSlot(i);
                 if (GTUtility.isStackInvalid(slot)) continue;
-                if (GTUtility.stackToInt(slot) != entry.itemId) continue;
+                if (!slot.isItemEqual(entry.template) || !ItemStack.areItemStackTagsEqual(slot, entry.template))
+                    continue;
                 int remove = Math.min(entry.amount, slot.stackSize);
                 slot.stackSize -= remove;
                 entry.amount -= remove;
