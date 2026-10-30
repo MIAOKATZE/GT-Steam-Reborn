@@ -4,10 +4,6 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.minecraft.world.gen.layer.GenLayer;
-import net.minecraft.world.gen.layer.GenLayerSmooth;
-import net.minecraft.world.gen.layer.GenLayerVoronoiZoom;
-import net.minecraft.world.gen.layer.GenLayerZoom;
-import net.minecraft.world.gen.layer.IntCache;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,7 +13,7 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
 /**
  * dim78/dim79 GenLayer 群系分布链的组合器/门面（切片 A：纯新增核心，B1/B2 才接线消费）。
  * <p>
- * 链结构（复用 vanilla 三个纯 id 操作层，蓝本 {@code GenLayer.initializeAllBiomeGenerators}
+ * 链结构（保持 vanilla 三个纯 id 操作层的采样规则，蓝本 {@code GenLayer.initializeAllBiomeGenerators}
  * {@code GenLayer.java:32-100} 的 b0=4 zoom + Smooth + VoronoiZoom 骨架；<b>骨架同形、zoom 次数
  * 本仓自成档位</b>，见 {@link #DEFAULT_ZOOM_LEVELS}）：
  * 
@@ -31,8 +27,8 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
  * </pre>
  * 
  * vanilla 三层均为 public 构造、只复制/平滑父层 int id（zoom/smooth 的 selectRandom/
- * selectModeOrRandom 只从输入里挑；voronoi 的 {@code & 255} 对 ≤254 的 id 是恒等），故直接组合复用，
- * 不自写等价类。
+ * selectModeOrRandom 只从输入里挑；voronoi 的 {@code & 255} 对 ≤254 的 id 是恒等）。
+ * 本链保留其种子/选值规则，但私有采样层不使用共享 IntCache。
  * <p>
  * <b>坐标系契约（B1 接线依据）</b>：
  * <ul>
@@ -55,9 +51,9 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
  * 入参应已含维度域分离——B1 接线建议传 {@code worldSeed ^ def.getSeedSalt()}，避免两维同种子
  * 同群系表时链输出逐位相同。
  * <p>
- * <b>线程模型</b>：与 vanilla WorldChunkManager 的 GenLayer 相同——{@code getInts} 会改写层内
- * {@code chunkSeed} 实例态，<b>非线程安全</b>；每维（每 WorldChunkManager）各持一条链即可，
- * 跨线程并发查询由 B1 接线方规避。
+ * <b>线程模型</b>：原生层会改写 {@code chunkSeed}，IntCache 也由整个 JVM 共享。
+ * 本门面在链实例监视器内完成整次查询，并在解锁前拷出窗口。各采样层仅使用私有数组，
+ * 不分配或重置共享 IntCache；原生/其他模组的池重置不会污染本链，本链也不会回收其活跃数组。
  * <p>
  * <b>输出 id 防御钳制</b>：zoom/smooth/voronoi 理论上只复制不发明新 id；每条公共出口仍校验
  * 输出 id ∈ 入参 biomeIds 集合，越界值替换为 {@code biomeIds[0]} 并 <b>log 一次</b>
@@ -162,10 +158,13 @@ public final class GTSRGenLayerChain {
         final GTSRGenLayerSelector selector = new GTSRGenLayerSelector(
             GTSRGenLayerSelector.SELECTOR_BASE_SEED,
             this.biomeIds);
-        final GenLayer zoomed = GenLayerZoom.magnify(ZOOM_SALT, selector, zoomLevels);
-        final GenLayer smoothed = new GenLayerSmooth(SMOOTH_SALT, zoomed);
+        GenLayer zoomed = selector;
+        for (int level = 0; level < zoomLevels; level++) {
+            zoomed = new OwnedZoom(ZOOM_SALT + level, zoomed);
+        }
+        final GenLayer smoothed = new OwnedSmooth(SMOOTH_SALT, zoomed);
         this.coarseRoot = smoothed;
-        this.fineRoot = new GenLayerVoronoiZoom(VORONOI_SALT, smoothed);
+        this.fineRoot = new OwnedVoronoi(VORONOI_SALT, smoothed);
         // 标准 GenLayer 初始化礼仪：对两链根各调一次 initWorldGenSeed（沿 parent 传播到 selector；
         // 幂等——vanilla initializeAllBiomeGenerators:97-98 同款双调）
         this.coarseRoot.initWorldGenSeed(worldSeed);
@@ -185,16 +184,20 @@ public final class GTSRGenLayerChain {
     /**
      * 粗层窗口采样（1:4 身份面）。
      * <p>
-     * 返回数组是 IntCache 瞬态存储（vanilla WorldChunkManager 同款约定）：下一次本链任何采样
-     * 调用都可能复用并覆写它——需要跨调用保留请自行拷贝。
+     * The complete sampling transaction holds this chain's monitor to serialize mutable GenLayer
+     * seed state and private scratch. Return an owned logical-window snapshot before unlocking.
+     * Neither this chain nor its selector touches Minecraft's process-global IntCache.
      *
      * @param x 粗层 X（1 单位 = 4 方块；方块坐标换算 {@code blockX >> 2}）
      * @param z 粗层 Z（同上）
      * @return 行主序 {@code out[i + j * width]}；id ∈ biomeIds（防御钳制后保证）
      */
     public int[] coarseInts(int x, int z, int width, int height) {
-        IntCache.resetIntCache();
-        return sanitize(this.coarseRoot.getInts(x, z, width, height), width * height, "coarseInts");
+        synchronized (this) {
+            return Arrays.copyOf(
+                sanitize(this.coarseRoot.getInts(x, z, width, height), width * height, "coarseInts"),
+                width * height);
+        }
     }
 
     /**
@@ -203,35 +206,40 @@ public final class GTSRGenLayerChain {
      * 实现为 1×1 小窗 getInts，不求值整图。
      */
     public int biomeAtCoarse(int blockX, int blockZ) {
-        IntCache.resetIntCache();
-        final int[] out = this.coarseRoot.getInts(blockX >> COARSE_BLOCK_SHIFT, blockZ >> COARSE_BLOCK_SHIFT, 1, 1);
-        return sanitizeOne(out[0], "biomeAtCoarse");
+        synchronized (this) {
+            final int[] out = this.coarseRoot.getInts(blockX >> COARSE_BLOCK_SHIFT, blockZ >> COARSE_BLOCK_SHIFT, 1, 1);
+            return sanitizeOne(out[0], "biomeAtCoarse");
+        }
     }
 
     /**
      * 细层窗口采样（1:1 方块级，voronoi 有机边界；vanilla {@code biomeIndexLayer} 同口径）。
-     * 返回数组同样是 IntCache 瞬态存储（见 {@link #coarseInts}）。
+     * 返回数组是独立窗口快照（见 {@link #coarseInts}）。
      */
     public int[] fineInts(int blockX, int blockZ, int width, int height) {
-        IntCache.resetIntCache();
-        return sanitize(this.fineRoot.getInts(blockX, blockZ, width, height), width * height, "fineInts");
+        synchronized (this) {
+            return Arrays.copyOf(
+                sanitize(this.fineRoot.getInts(blockX, blockZ, width, height), width * height, "fineInts"),
+                width * height);
+        }
     }
 
     /**
      * 细层单点（方块坐标 1:1）。实现为 1×1 小窗 getInts，不求值整图。
      */
     public int biomeAtFine(int blockX, int blockZ) {
-        IntCache.resetIntCache();
-        final int[] out = this.fineRoot.getInts(blockX, blockZ, 1, 1);
-        return sanitizeOne(out[0], "biomeAtFine");
+        synchronized (this) {
+            final int[] out = this.fineRoot.getInts(blockX, blockZ, 1, 1);
+            return sanitizeOne(out[0], "biomeAtFine");
+        }
     }
 
     /**
      * 输出防御钳制：越界 id 替换为 {@code biomeIds[0]} 并每链只 log 一次
      * （zoom/smooth/voronoi 只复制父层值，此路径理论不可达——纯防御，不抛异常）。
      * <p>
-     * 只走 {@code length} 个<b>逻辑</b>格：IntCache 返回的底数组长度是 intCacheSize
-     * （可能大于请求尺寸），层只写前 {@code width*height} 格——尾部是陈旧垃圾，
+     * 只走 {@code length} 个<b>逻辑</b>格：私有 scratch 可能大于请求尺寸，
+     * 层只写前 {@code width*height} 格——尾部是陈旧垃圾，
      * 不能进钳制扫描（首跑曾把未写尾部当越界 id 误报）。
      */
     private int[] sanitize(int[] ids, int length, String where) {
@@ -254,5 +262,165 @@ public final class GTSRGenLayerChain {
                 this.biomeIds[0]);
         }
         return this.biomeIds[0];
+    }
+
+    /**
+     * GTSR-only sampling stages. These implement the documented zoom / smooth / nearest-jittered-
+     * corner rules, while retaining Minecraft's GenLayer seed and selection methods. They do not
+     * extend or invoke the pooled vanilla stages, or modify other mods' layers. Native parity is
+     * checked by tools/dim1/GenLayerIsolationCheck.java; do not change RNG call order or tie rules.
+     */
+    private abstract static class OwnedLayer extends GenLayer {
+
+        // At most 16 KiB per stage; exceptionally large queries do not enlarge retained scratch.
+        private static final int MAX_RETAINED_CELLS = 4096;
+        private int[] retained = new int[0];
+
+        OwnedLayer(long salt, GenLayer parent) {
+            super(salt);
+            this.parent = parent;
+        }
+
+        final int[] output(int size) {
+            if (size > MAX_RETAINED_CELLS) return new int[size];
+            if (retained.length < size) retained = new int[size];
+            return retained;
+        }
+    }
+
+    private static final class OwnedZoom extends OwnedLayer {
+
+        OwnedZoom(long salt, GenLayer parent) {
+            super(salt, parent);
+        }
+
+        @Override
+        public int[] getInts(int x, int z, int width, int height) {
+            final int offsetX = x & 1, offsetZ = z & 1;
+            final int parentWidth = ((width + offsetX + 1) >> 1) + 1;
+            final int parentHeight = ((height + offsetZ + 1) >> 1) + 1;
+            final int[] input = parent.getInts(x >> 1, z >> 1, parentWidth, parentHeight);
+            final int[] out = output(width * height);
+            for (int row = 0; row < height; row++) {
+                for (int column = 0; column < width; column++) {
+                    final int localX = column + offsetX, localZ = row + offsetZ;
+                    final int cell = (localZ >> 1) * parentWidth + (localX >> 1);
+                    final int northwest = input[cell];
+                    final int target = row * width + column;
+                    if (((localX | localZ) & 1) == 0) {
+                        out[target] = northwest;
+                        continue;
+                    }
+                    // A tile draws south, then east, then the centre, in that order. Earlier draws
+                    // still have to be consumed when only its eastern or centre cell is requested.
+                    initChunkSeed(((x >> 1) + (localX >> 1)) << 1, ((z >> 1) + (localZ >> 1)) << 1);
+                    final int southwest = input[cell + parentWidth];
+                    final int south = selectRandom(northwest, southwest);
+                    if ((localX & 1) == 0) {
+                        out[target] = south;
+                        continue;
+                    }
+                    final int northeast = input[cell + 1];
+                    final int east = selectRandom(northwest, northeast);
+                    out[target] = (localZ & 1) == 0 ? east
+                        : selectModeOrRandom(northwest, northeast, southwest, input[cell + parentWidth + 1]);
+                }
+            }
+            return out;
+        }
+    }
+
+    private static final class OwnedSmooth extends OwnedLayer {
+
+        OwnedSmooth(long salt, GenLayer parent) {
+            super(salt, parent);
+        }
+
+        @Override
+        public int[] getInts(int x, int z, int width, int height) {
+            final int stride = width + 2;
+            final int[] input = parent.getInts(x - 1, z - 1, stride, height + 2);
+            final int[] out = output(width * height);
+            for (int row = 0; row < height; row++) {
+                for (int column = 0; column < width; column++) {
+                    final int center = (row + 1) * stride + column + 1;
+                    final boolean horizontal = input[center - 1] == input[center + 1];
+                    final boolean vertical = input[center - stride] == input[center + stride];
+                    int value = input[center];
+                    if (horizontal && vertical) {
+                        initChunkSeed(x + column, z + row);
+                        value = nextInt(2) == 0 ? input[center - 1] : input[center - stride];
+                    } else if (horizontal) {
+                        value = input[center - 1];
+                    } else if (vertical) {
+                        value = input[center - stride];
+                    }
+                    out[row * width + column] = value;
+                }
+            }
+            return out;
+        }
+    }
+
+    private static final class OwnedVoronoi extends OwnedLayer {
+
+        // Two jitter coordinates per parent corner. Large calls, as above, are not retained.
+        private double[] retainedJitter = new double[0];
+
+        OwnedVoronoi(long salt, GenLayer parent) {
+            super(salt, parent);
+        }
+
+        @Override
+        public int[] getInts(int x, int z, int width, int height) {
+            final int shiftedX = x - 2, shiftedZ = z - 2;
+            final int offsetX = shiftedX & 3, offsetZ = shiftedZ & 3;
+            // Include the complete requested rectangle, including odd-sized unaligned windows.
+            final int parentWidth = ((width + offsetX + 3) >> 2) + 1;
+            final int parentHeight = ((height + offsetZ + 3) >> 2) + 1;
+            final int[] input = parent.getInts(shiftedX >> 2, shiftedZ >> 2, parentWidth, parentHeight);
+            final int jitterSize = 2 * parentWidth * parentHeight;
+            final double[] jitter;
+            if (jitterSize > 8192) {
+                jitter = new double[jitterSize];
+            } else {
+                if (retainedJitter.length < jitterSize) retainedJitter = new double[jitterSize];
+                jitter = retainedJitter;
+            }
+            for (int row = 0; row < parentHeight; row++) {
+                for (int column = 0; column < parentWidth; column++) {
+                    initChunkSeed(((shiftedX >> 2) + column) << 2, ((shiftedZ >> 2) + row) << 2);
+                    final int at = 2 * (row * parentWidth + column);
+                    jitter[at] = (nextInt(1024) / 1024.0D - 0.5D) * 3.6D;
+                    jitter[at + 1] = (nextInt(1024) / 1024.0D - 0.5D) * 3.6D;
+                }
+            }
+            final int[] out = output(width * height);
+            for (int row = 0; row < height; row++) {
+                for (int column = 0; column < width; column++) {
+                    final int localX = column + offsetX, localZ = row + offsetZ;
+                    final int northwest = (localZ >> 2) * parentWidth + (localX >> 2);
+                    final int northeast = northwest + 1, southwest = northwest + parentWidth;
+                    final int southeast = southwest + 1;
+                    final int dx = localX & 3, dz = localZ & 3;
+                    final double nw = distance(jitter, northwest, dx, dz, false, false);
+                    final double ne = distance(jitter, northeast, dx, dz, true, false);
+                    final double sw = distance(jitter, southwest, dx, dz, false, true);
+                    final double se = distance(jitter, southeast, dx, dz, true, true);
+                    // Equal distances deliberately fall through to the southeast corner.
+                    final int nearest = nw < ne && nw < sw && nw < se ? northwest
+                        : ne < nw && ne < sw && ne < se ? northeast
+                            : sw < nw && sw < ne && sw < se ? southwest : southeast;
+                    out[row * width + column] = input[nearest];
+                }
+            }
+            return out;
+        }
+
+        private static double distance(double[] jitter, int corner, int x, int z, boolean east, boolean south) {
+            final double dx = x - (jitter[2 * corner] + (east ? 4.0D : 0.0D));
+            final double dz = z - (jitter[2 * corner + 1] + (south ? 4.0D : 0.0D));
+            return dz * dz + dx * dx;
+        }
     }
 }

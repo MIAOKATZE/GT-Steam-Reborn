@@ -314,7 +314,7 @@ public class GTSRCommand extends CommandBase {
     private void processTpdimBiome(ICommandSender sender, String[] args, EntityPlayerMP player, int dimId, String which,
         WorldServer targetWorld) {
         final String rawName = joinTrailingArgs(args, 2);
-        final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimension(dimId);
+        final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forWorld(targetWorld);
         final GTSRBiomeAuthority.BiomeId target = authority.findRosterByName(rawName);
         if (target == null) {
             throw new WrongUsageException(

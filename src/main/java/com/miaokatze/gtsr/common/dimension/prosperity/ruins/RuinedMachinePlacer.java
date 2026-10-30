@@ -178,12 +178,12 @@ public final class RuinedMachinePlacer {
      * 所以取的是已夹紧的档表下限（零新增随机源、零新增族盐）。
      * 默认档（身份不可得）⇒ 0 ⇒ 与改造前逐位相同。
      */
-    public static int buryingAt(RuinedMachineShapes.Shape shape, int originX, int originZ) {
-        return buryingAt(shape, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(originX, originZ));
+    public static int buryingAt(long worldSeed, RuinedMachineShapes.Shape shape, int originX, int originZ) {
+        return buryingAt(shape, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(worldSeed, originX, originZ));
     }
 
     /**
-     * {@link #buryingAt(RuinedMachineShapes.Shape, int, int)} 的<b>身份显式形态</b>（同一实现体）：
+     * {@link #buryingAt(long, RuinedMachineShapes.Shape, int, int)} 的<b>身份显式形态</b>（同一实现体）：
      * 离线判据据此在未装配 L1 账本的 JVM 里逐档复算生产同一条算式；装配了账本时两条出口逐点同值
      * （{@code P17StructureBiomeVarianceCheck} 的 SOURCE 组）。
      */
@@ -373,7 +373,7 @@ public final class RuinedMachinePlacer {
                 ground,
                 BlockSink.FLAG_POPULATE,
                 null,
-                buryingAt(roll.shape, x, z));
+                buryingAt(worldSeed, roll.shape, x, z));
         }
         return permit.commit(counter.solid());
     }
@@ -393,7 +393,7 @@ public final class RuinedMachinePlacer {
      */
     private static RuinedColossusShapes.Morph morphAt(long worldSeed, RuinedMachineShapes.Shape shape, int originX,
         int originZ) {
-        return morphAt(worldSeed, shape, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(originX, originZ));
+        return morphAt(worldSeed, shape, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(worldSeed, originX, originZ));
     }
 
     /**
@@ -545,7 +545,7 @@ public final class RuinedMachinePlacer {
      * B1 的边界③（覆盖到城 buffer 时邻槽不再补片）就是靠它证伪/证真的。
      */
     public static boolean spanReadyAt(long worldSeed, int ax, int az) {
-        final Roll r = roll(worldSeed, ax, az, machineWeightAt(ax, az));
+        final Roll r = roll(worldSeed, ax, az, machineWeightAt(worldSeed, ax, az));
         return r != null && r.span && spanAllowsAt(worldSeed, ax, az, r);
     }
 
@@ -569,7 +569,7 @@ public final class RuinedMachinePlacer {
                 if (ax == cx && az == cz) {
                     continue; // 本槽自己的锚点由 placeAll 主管（含真实门与预算）
                 }
-                final Roll r = roll(worldSeed, ax, az, machineWeightAt(ax, az));
+                final Roll r = roll(worldSeed, ax, az, machineWeightAt(worldSeed, ax, az));
                 if (r == null || !r.span) {
                     continue;
                 }
@@ -602,7 +602,7 @@ public final class RuinedMachinePlacer {
      * {@link #placeAll} 的那一份同值，由 {@code PlacementContractCheck} C7 在真地形上逐槽对账钉住）。
      */
     public static PlacementGate.Intent intentAt(long worldSeed, int cx, int cz) {
-        return intentAt(worldSeed, cx, cz, machineWeightAt(cx, cz));
+        return intentAt(worldSeed, cx, cz, machineWeightAt(worldSeed, cx, cz));
     }
 
     /** {@link #intentAt(long, int, int)} 的权重显式形态（{@code placeAll} 一侧用编排器算出的权重）。 */
@@ -621,9 +621,9 @@ public final class RuinedMachinePlacer {
     };
 
     /** 机器族的群系权重（L1 唯一出口 + 编排器的权重表；与 {@code ProsperityWorldGenerator#biomeWeight} 同口径）。 */
-    private static float machineWeightAt(int cx, int cz) {
+    private static float machineWeightAt(long worldSeed, int cx, int cz) {
         final GTSRBiomeAuthority.Resolution res = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY)
-            .ordinalAt((cx << 4) + 8, (cz << 4) + 8);
+            .ordinalAtSeed(worldSeed, ProsperityTerrainProfile.CHAIN_SEED_SALT, (cx << 4) + 8, (cz << 4) + 8);
         return ProsperityWorldGenerator.weightForRosterIndex(res.ordinal, ProsperityWorldGenerator.MACHINE_WEIGHTS);
     }
 

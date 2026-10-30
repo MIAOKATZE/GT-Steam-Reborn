@@ -63,6 +63,8 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
 public class GTSRWorldChunkManager extends WorldChunkManager {
 
     private final long seed;
+    /** World-local source; the static authority registry contains only allocation metadata. */
+    private final GTSRBiomeAuthority authority;
     /**
      * 按权重展开的群系选择表（B1 起只剩"空表 ⇒ EMPTY"的判空口径：null = 空群系表，即
      * {@link GTSRBiomeAuthority.Degraded#EMPTY}；身份/平面采样已改走 {@link #genChain}，
@@ -76,8 +78,8 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
     /**
      * B1 GenLayer 链（每维一条，链内含粗/细两根；null = 空表降级 {@code EMPTY}，无群系分布）。
      * <p>
-     * 链种子 = {@code seed ^ def.getSeedSalt()}；链非线程安全（{@code getInts} 改写层内种子态），
-     * 与 vanilla 每 WorldChunkManager 一条链同款纪律——跨线程并发查询由调用方规避。
+     * 链种子 = {@code seed ^ def.getSeedSalt()}；每 manager 私有一条链。
+     * GTSRGenLayerChain 的实例查询锁与私有数组隔离种子态；不使用共享 IntCache。
      */
     private final GTSRGenLayerChain genChain;
     /** 链出参 id → 本维群系实例的查表（下标 = biome id；null 槽 = 非本维 id，防御路径用）。 */
@@ -160,9 +162,9 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
             : Collections.unmodifiableList(Arrays.asList(table));
         // L1 绑定：身份解析复用本 manager 的采样函数（同表、同种子、同一条 GenLayer 链）
         if (this.dimKey != null) {
-            // P8：同一次 bind 顺带把 micro 强度的只读出口交给 L1（见 Source#microStrengthAtChunk）。
+            // P8：同一次 scoped 绑定顺带把 micro 强度的只读出口交给 L1（见 Source#microStrengthAtChunk）。
             // 身份面仍逐字是 this::biomeAt 那一份实现体，未加任何分支或缓存 ⇒ L1 语义零改动。
-            GTSRBiomeAuthority.bind(this.dimKey, def.getResolvedDimId(), new GTSRBiomeAuthority.Source() {
+            this.authority = GTSRBiomeAuthority.scoped(this.dimKey, def.getResolvedDimId(), new GTSRBiomeAuthority.Source() {
 
                 @Override
                 public BiomeGenBase biomeAtChunk(final int chunkX, final int chunkZ) {
@@ -174,7 +176,14 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
                     return GTSRWorldChunkManager.this.microStrengthAt(chunkX, chunkZ);
                 }
             });
+        } else {
+            this.authority = GTSRBiomeAuthority.scoped(null, -1, null);
         }
+    }
+
+    /** Spatial authority for this manager only; safe from other worlds replacing global bindings. */
+    public GTSRBiomeAuthority biomeAuthority() {
+        return this.authority;
     }
 
     /**
@@ -422,8 +431,9 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
         final int spanX = ((x + range) >> 2) - startX + 1;
         final int spanZ = ((z + range) >> 2) - startZ + 1;
         final int[] ids = this.genChain.coarseInts(startX, startZ, spanX, spanZ);
-        for (final int id : ids) {
-            if (!biomes.contains(biomeById(id))) {
+        // IntCache can return a much larger pooled array. Only this query's logical window is valid.
+        for (int i = 0; i < spanX * spanZ; i++) {
+            if (!biomes.contains(biomeById(ids[i]))) {
                 return false;
             }
         }

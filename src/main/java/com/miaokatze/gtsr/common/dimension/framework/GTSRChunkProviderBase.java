@@ -510,15 +510,15 @@ public class GTSRChunkProviderBase implements IChunkProvider {
      * <p>
      * 正常态（{@code degraded == NONE}）<b>零介入</b>——这是"改造前后逐字节一致"的前提；
      * SHORT 时 L1 点名得到的群系照常铺表层，点名不到（该群系无槽位＝缺席）的列不铺。
-     * 账本未绑定（离线合成缝 / 维度未注册）时不介入，与既有工具的驱动口径一致。
+     * 无已注册维度且无分配账目（离线合成缝）时不介入；不再读取任何全局空间源。
      */
     private static boolean columnSurfaceable(String dimKey, BiomeGenBase biome) {
         if (LAY_SURFACE_WHEN_DEGRADED || dimKey == null) {
             return true;
         }
         final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimKey(dimKey);
-        if (!authority.isBound()) {
-            return true;
+        if (authority.boundDimId() < 0 && authority.allocatedCount() == 0) {
+            return true; // Unregistered synthetic table: no allocation ledger to enforce.
         }
         if (authority.degraded() == GTSRBiomeAuthority.Degraded.NONE) {
             return true;
@@ -678,8 +678,8 @@ public class GTSRChunkProviderBase implements IChunkProvider {
     public static String buildEntryDiagLine(int dimId, String dimKey, GTSRWorldChunkManager mgr) {
         // dimKey 缺失（S1 匿名模板路径）时按维度回查权威（UNBOUND 时 degraded=EMPTY、isBound=false，
         // 与全部既有消费方同一口径），不向 forDimKey 塞 null 键
-        final GTSRBiomeAuthority authority = dimKey == null ? GTSRBiomeAuthority.forDimension(dimId)
-            : GTSRBiomeAuthority.forDimKey(dimKey);
+        final GTSRBiomeAuthority authority = mgr != null ? mgr.biomeAuthority()
+            : dimKey == null ? GTSRBiomeAuthority.forDimension(dimId) : GTSRBiomeAuthority.forDimKey(dimKey);
         final GTSRBiomeAuthority.Degraded degraded = mgr != null ? mgr.degraded() : authority.degraded();
         final String occupant = authority.occupantSummary();
         final Function<String, String> supplement = diagSupplement;
@@ -690,7 +690,7 @@ public class GTSRChunkProviderBase implements IChunkProvider {
             String raw = supplement.apply(dimKey);
             extra = raw == null || raw.isEmpty() ? " extra=empty" : " " + raw;
         }
-        return "[GTSR][diag]" + " dim=" + dimId + " def=" + dimKey + " bound=" + authority.isBound()
+        return "[GTSR][diag]" + " dim=" + dimId + " def=" + dimKey + " bound=" + (mgr != null && authority.isBound())
         // P0：群系平面通道（short = EndlessIDs 群系扩展在场，byte = 原版平面）；取运行时一次性探测值
             + " plane="
             + BiomePlaneAccess.runtimeMode()
@@ -864,7 +864,7 @@ public class GTSRChunkProviderBase implements IChunkProvider {
         if (world == null || world.provider == null) {
             return null;
         }
-        final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimension(world.provider.dimensionId);
+        final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forWorld(world);
         final GTSRBiomeAuthority.Resolution resolved = authority.ordinalAt(x, z);
         if (resolved == null || !resolved.resolved()) {
             // P12（L8）：降级态下"权重被吞"从静默变可 grep（同一 dimKey/级别只一行），返回值仍是 null，

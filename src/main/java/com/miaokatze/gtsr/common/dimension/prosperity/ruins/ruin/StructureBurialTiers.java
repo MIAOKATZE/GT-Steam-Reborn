@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin;
 
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
+import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerRosterFace;
 import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkSpans;
 
@@ -63,7 +64,7 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkSpans;
  * （半截结构在邻槽凭空多埋/少埋几层）。故 {@link #rosterIndexAtOrigin} 的入参在四个族里
  * <b>一律是结构原点</b>（{@code Intent.originX/originZ}），与 {@code RuinDamageOps.roll} 的
  * 坐标输入同一口径；小机型/outpost/废墟整机在单 chunk 内，原点与所在 chunk 同解，不存在两套读数。
- * 身份出口仍是 L1 唯一那一条 {@link GTSRBiomeAuthority#ordinalAt(int, int)}（P6 红线：身份只有
+ * 身份出口仍是 L1 唯一那一条 {@link GTSRBiomeAuthority#ordinalAtSeed(long, long, int, int)}（P6 红线：身份只有
  * {@code ordinalAt} 一条出口；本类不自建第二份身份面）。
  */
 public final class StructureBurialTiers {
@@ -249,12 +250,12 @@ public final class StructureBurialTiers {
      * <p>
      * 调用频度是"每座结构一次"，不是"每列一次"（S-A 那侧 {@code heightAt} 的逐列取数代价是另一个
      * 量级，见 {@code plan/tmp/p17-sa/SA-RESULT.md} §5）；出口仍是 L1 那一条
-     * {@link GTSRBiomeAuthority#ordinalAt(int, int)}，本类不自建第二份身份面、也不持有身份缓存。
+     * {@link GTSRBiomeAuthority#ordinalAtSeed(long, long, int, int)}，本类不自建第二份身份面、也不持有身份缓存。
      *
      * @return {@code [0, rosterSize)} 内的名册下标；身份不可得时 {@code -1}（⇒ 默认档，见类注释）
      */
-    public static int rosterIndexAtOrigin(int originBlockX, int originBlockZ) {
+    public static int rosterIndexAtOrigin(long worldSeed, int originBlockX, int originBlockZ) {
         return GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY)
-            .ordinalAt(originBlockX, originBlockZ).ordinal;
+            .ordinalAtSeed(worldSeed, ProsperityTerrainProfile.CHAIN_SEED_SALT, originBlockX, originBlockZ).ordinal;
     }
 }

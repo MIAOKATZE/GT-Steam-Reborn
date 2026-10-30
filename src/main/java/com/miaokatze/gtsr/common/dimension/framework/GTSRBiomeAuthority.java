@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.common.dimension.framework;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -8,8 +9,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
+import net.minecraft.world.biome.WorldChunkManager;
 
+import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
+import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerRosterFace;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 /**
@@ -25,7 +30,7 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * <li><b>写入方</b>：L0 持有者（{@code ProsperityBiomes} / {@code ShatteredBiomes}）在配槽成功/
  * 失败时调用 {@link #recordAllocation} / {@link #recordNoSlot}，形成分配账本；</li>
  * <li><b>绑定方</b>：{@link GTSRWorldChunkManager} 构造时把自身的空间采样绑进来
- * （{@link #bind}），保证 L1 与 L0 出自同一张群系表；</li>
+ * （{@link #scoped}），保证 L1 与 L0 出自同一张群系表；</li>
  * <li><b>消费方</b>：只调 {@link #ordinalAt(int, int)} 拿 {@code {群系枚举, ordinal, degraded}}。</li>
  * </ul>
  * <b>硬约束（plan §2.1 L1 禁止项）</b>：本类<b>不读</b> {@code Chunk} 保存的 byte biome id——
@@ -236,15 +241,34 @@ public final class GTSRBiomeAuthority {
 
     private final String dimKey;
     /** 名册成员（按 {@link BiomeId#rosterIndex()} 维内顺序），分配前即已存在。 */
-    private final List<Entry> roster = new ArrayList<>();
-    private final Map<BiomeId, Entry> byKey = new EnumMap<>(BiomeId.class);
-    private final Map<BiomeGenBase, Entry> byInstance = new IdentityHashMap<>();
+    private final List<Entry> roster;
+    private final Map<BiomeId, Entry> byKey;
+    private final Map<BiomeGenBase, Entry> byInstance;
     private Source source;
+    /** Bounded seed-only planner cache: never stores a World, provider, or manager. */
+    private final List<SeedChain> seedChains = new ArrayList<>();
+    private static final int SEED_CHAIN_CAPACITY = 4;
+
+    private static final class SeedChain {
+
+        final long chainSeed;
+        final int[] ids;
+        final GTSRGenLayerChain chain;
+
+        SeedChain(long chainSeed, int[] ids) {
+            this.chainSeed = chainSeed;
+            this.ids = ids;
+            this.chain = new GTSRGenLayerChain(chainSeed, ids);
+        }
+    }
     private int dimId = -1;
     private boolean unboundWarned;
 
     private GTSRBiomeAuthority(String dimKey) {
         this.dimKey = dimKey;
+        this.roster = new ArrayList<>();
+        this.byKey = new EnumMap<>(BiomeId.class);
+        this.byInstance = new IdentityHashMap<>();
         for (final BiomeId id : BiomeId.values()) {
             if (id.dimKey()
                 .equals(dimKey)) {
@@ -263,6 +287,7 @@ public final class GTSRBiomeAuthority {
      */
     public static synchronized void recordAllocation(BiomeId key, int preferredId, int actualId, BiomeGenBase biome) {
         final Entry entry = entryOf(key, preferredId);
+        forgetPreviousInstance(key, entry);
         entry.actualId = actualId;
         entry.biome = biome;
         if (biome != null) {
@@ -273,9 +298,18 @@ public final class GTSRBiomeAuthority {
     /** 记录一次"扫到上界仍无空槽"（degraded 由账本自动推导，无需持有者显式上报）。 */
     public static synchronized void recordNoSlot(BiomeId key, int preferredId, String preferredOccupant) {
         final Entry entry = entryOf(key, preferredId);
+        forgetPreviousInstance(key, entry);
         entry.actualId = GTSRBiomeBase.NO_SLOT;
         entry.biome = null;
         entry.preferredOccupant = preferredOccupant;
+    }
+
+    /** Keep reverse identity lookup consistent with the last allocation, including withdrawal. */
+    private static void forgetPreviousInstance(BiomeId key, Entry entry) {
+        final Map<BiomeGenBase, Entry> instances = forDimKey(key.dimKey()).byInstance;
+        if (entry.biome != null && instances.get(entry.biome) == entry) {
+            instances.remove(entry.biome);
+        }
     }
 
     /** 记录首选槽的占用者名（owner 快照，L8；即使该成员最终顺延成功也要记）。 */
@@ -295,9 +329,36 @@ public final class GTSRBiomeAuthority {
     // ————— 绑定侧（L0 群系表 → L1 采样源） —————
 
     /**
-     * 绑定空间采样源（{@link GTSRWorldChunkManager} 构造内调用；一个维度后绑的覆盖先绑的，
-     * 与 vanilla 的"当前世界的 chunk manager 即权威"口径一致）。
+     * A manager owns its spatial authority; only allocation metadata is shared. Neither the registry
+     * nor another world's authority retains this source. Client seed zero, a second save, and a
+     * replacement manager therefore cannot replace a server's GenLayer chain.
      */
+    public static synchronized GTSRBiomeAuthority scoped(String dimKey, int dimId, Source source) {
+        if (dimKey == null) {
+            return UNBOUND;
+        }
+        final GTSRBiomeAuthority ledger = forDimKey(dimKey);
+        ledger.dimId = dimId;
+        if (dimId >= 0) {
+            BY_DIM_ID.put(dimId, ledger);
+        }
+        return new GTSRBiomeAuthority(ledger, dimId, source);
+    }
+
+    private GTSRBiomeAuthority(GTSRBiomeAuthority ledger, int dimId, Source source) {
+        this.dimKey = ledger.dimKey;
+        this.roster = ledger.roster;
+        this.byKey = ledger.byKey;
+        this.byInstance = ledger.byInstance;
+        this.dimId = dimId;
+        this.source = source;
+    }
+
+    /**
+     * Legacy isolated-tool binding, not a world binding. Runtime spatial consumers must use
+     * {@link #forWorld(World)} or an explicit-seed query; manager construction never calls this.
+     */
+    @Deprecated
     public static synchronized void bind(String dimKey, int dimId, Source source) {
         final GTSRBiomeAuthority authority = forDimKey(dimKey);
         authority.source = source;
@@ -305,6 +366,19 @@ public final class GTSRBiomeAuthority {
         if (dimId >= 0) {
             BY_DIM_ID.put(dimId, authority);
         }
+    }
+
+    /**
+     * Resolve through the exact world's current manager, on either logical side. No dimension-only
+     * fallback: a missing/replaced world must never inherit a previous save's sampling source.
+     * There is no static world map and thus no unload/stop hook or world-retention lifecycle.
+     */
+    public static GTSRBiomeAuthority forWorld(World world) {
+        if (world == null || world.provider == null) {
+            return UNBOUND;
+        }
+        final WorldChunkManager manager = world.getWorldChunkManager();
+        return manager instanceof GTSRWorldChunkManager ? ((GTSRWorldChunkManager) manager).biomeAuthority() : UNBOUND;
     }
 
     // ————— 读取侧（L1 唯一身份出口） —————
@@ -320,7 +394,7 @@ public final class GTSRBiomeAuthority {
     }
 
     /**
-     * 按维度 id 取权威（消费方主入口，如 {@code forDimension(world.provider.dimensionId)}）。
+     * 按维度 id 取分配账本（不用于世界空间采样；运行期坐标查询必须用 {@link #forWorld}）。
      * 未绑定（维度未注册 / 群系表从未建过）时返回共享的 {@link #UNBOUND}——其
      * {@code degraded()==EMPTY} 且一切解析落空，调用方按降级口径处理即可，不抛异常。
      */
@@ -370,6 +444,52 @@ public final class GTSRBiomeAuthority {
     public float microStrengthAt(int x, int z) {
         final Source resolver = this.source;
         return resolver == null ? 1.0F : resolver.microStrengthAtChunk(x >> 4, z >> 4);
+    }
+
+    /**
+     * Explicit-seed counterpart for pure planners that have no World. Preserve ordinalAt's chunk
+     * center coordinate convention, selector roster, and XOR salt; do not consult a bound source.
+     */
+    public Resolution ordinalAtSeed(long worldSeed, long domainSalt, int x, int z) {
+        final GTSRGenLayerChain chain = seedChain(worldSeed ^ domainSalt);
+        if (chain == null) {
+            return of(null);
+        }
+        final int id = chain.biomeAtCoarse(((x >> 4) << 4) + 8, ((z >> 4) << 4) + 8);
+        for (final Entry entry : this.roster) {
+            if (entry.biome != null && entry.actualId == id) {
+                return of(entry.biome);
+            }
+        }
+        return of(null);
+    }
+
+    private synchronized GTSRGenLayerChain seedChain(long chainSeed) {
+        final int[] ids = GTSRGenLayerRosterFace.allocatedRosterIds(this.dimKey);
+        if (ids.length == 0) {
+            return null;
+        }
+        for (int i = 0; i < this.seedChains.size(); i++) {
+            final SeedChain cached = this.seedChains.get(i);
+            if (cached.chainSeed == chainSeed && Arrays.equals(cached.ids, ids)) {
+                // Access-order eviction keeps active integrated/server seeds without unbounded save retention.
+                this.seedChains.remove(i);
+                this.seedChains.add(cached);
+                return cached.chain;
+            }
+        }
+        if (this.seedChains.size() == SEED_CHAIN_CAPACITY) {
+            this.seedChains.remove(0);
+        }
+        final SeedChain created = new SeedChain(chainSeed, ids);
+        this.seedChains.add(created);
+        return created.chain;
+    }
+
+    /** Explicit-seed micro query, with the same empty-selector neutral value as the manager. */
+    public float microStrengthAtSeed(long worldSeed, long domainSalt, int x, int z) {
+        return GTSRGenLayerRosterFace.allocatedRosterIds(this.dimKey).length == 0 ? 1.0F
+            : BiomeZoneSelector.microStrength(worldSeed, x >> 4, z >> 4, domainSalt);
     }
 
     /** 群系实例 → 身份解析（供已持有实例的消费方使用；同一账本，同一降级口径）。 */

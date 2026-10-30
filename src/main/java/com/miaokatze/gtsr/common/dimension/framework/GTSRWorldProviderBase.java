@@ -22,6 +22,7 @@ public abstract class GTSRWorldProviderBase extends WorldProvider {
     @Override
     protected final void registerWorldChunkManager() {
         this.def = DimensionRegistrar.defForDimension(this.dimensionId);
+        // Each logical world owns its source. Client seed zero never rebinds a server manager.
         this.worldChunkMgr = new GTSRWorldChunkManager(this.worldObj.getSeed(), this.def);
         this.isHellWorld = false;
         this.hasNoSky = false;

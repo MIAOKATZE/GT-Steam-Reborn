@@ -240,6 +240,7 @@ public final class RemasterWorldgen {
         if (w.isRemote || !RemasterRollout.allowsGeneration(site)) return;
         RemasterData data = RemasterData.get(w);
         data.register(site);
+        if (data.site(site.id()) == null) return; // Unreadable saved progress is frozen, never recreated as empty.
         net.minecraft.nbt.NBTTagCompound state = data.state(site.id());
         state.setInteger("legacyAnchorX", ax);
         state.setInteger("legacyAnchorY", y0);

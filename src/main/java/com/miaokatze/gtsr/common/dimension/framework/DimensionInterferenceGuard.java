@@ -88,7 +88,7 @@ public final class DimensionInterferenceGuard {
         if (!(world.provider instanceof GTSRWorldProviderBase)) {
             return; // 非 GTSR 维度：零触碰
         }
-        final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimension(world.provider.dimensionId);
+        final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forWorld(world);
         final GTSRBiomeAuthority.Resolution resolved = authority.ordinalAt(event.x, event.z);
         if (resolved == null || !resolved.resolved() || !(resolved.biome instanceof GTSRBiomeBase)) {
             // 降级态与 getPossibleCreatures 同口径：无表 = 不刷（不回退他方表）。
