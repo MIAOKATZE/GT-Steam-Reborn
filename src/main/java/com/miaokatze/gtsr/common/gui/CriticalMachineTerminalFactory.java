@@ -16,6 +16,7 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.miaokatze.gtsr.common.gui.mui2.BoundedTerminalScreen;
 import com.miaokatze.gtsr.common.items.HubTerminal;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
+import com.miaokatze.gtsr.common.terminal.TerminalServerSessions;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -68,6 +69,7 @@ public final class CriticalMachineTerminalFactory implements UIFactory<PosGuiDat
 
     @Override
     public boolean canInteractWith(EntityPlayer player, PosGuiData data) {
+        if (!TerminalServerSessions.canInspectLocalPosition(player, data, 64)) return false;
         MTECriticalMachine machine = machine(data);
         return player == data.getPlayer() && !player.isDead
             && data.getSquaredDistance(player) <= 64
@@ -78,13 +80,12 @@ public final class CriticalMachineTerminalFactory implements UIFactory<PosGuiDat
 
     @Override
     public ModularPanel createPanel(PosGuiData data, PanelSyncManager manager, UISettings settings) {
-        MTECriticalMachine machine = machine(data);
-        // MUI2 also accepts client-requested open packets: reject them before binding any mutable slots/actions.
-        if (machine == null || !canInteractWith(data.getPlayer(), data)
-            || !data.getWorld().isRemote && !hasTerminal(data.getPlayer())) {
+        // MUI2 also accepts client-requested open packets: validate coordinates before any tile lookup.
+        if (!canInteractWith(data.getPlayer(), data) || !data.getWorld().isRemote && !hasTerminal(data.getPlayer())) {
             settings.canInteractWith(player -> false);
             return ModularPanel.defaultPanel("critical_terminal_denied");
         }
+        MTECriticalMachine machine = machine(data);
         settings.canInteractWith(player -> machine(data) == machine && canInteractWith(player, data));
         return new MTECriticalMachineTerminalGui(machine).build(data, manager, settings);
     }

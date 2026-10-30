@@ -11,6 +11,7 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.PlacementGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
+import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityOutpostPlacer;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedMachinePlacer;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityBlockResolver;
@@ -41,7 +42,7 @@ import com.miaokatze.gtsr.config.Config;
  * {@link #placeAll} 与 {@link #intentAt} 共用它；② 问门一律走 {@code Entry} + {@link #RUIN_INTENT}。
  * <p>
  * ═══ micro 强度层（判据 6：收口 P6 的悬空层）═══
- * {@link #microStrengthAt(int, int)} 是本仓<b>第一个</b>结构侧对 {@code microStrengthAt} 的消费点
+ * {@link #microStrengthAt(long, int, int)} 是本仓<b>第一个</b>结构侧对 {@code microStrengthAt} 的消费点
  * （经 {@link GTSRBiomeAuthority} 的只读出口；L1 既不伪造身份也不伪造强度）。它调两件事：
  * <b>密度</b>（{@code P = micro / prosperityRuinChance}）与<b>规模档</b>
  * （{@link RuinShapes#allowedByMicro(float)}，弱 cell 不放大件）。关掉
@@ -107,12 +108,12 @@ public final class RuinPlacer {
      * （本族改造前没有抖动埋深通道 ⇒ 实际取的是已夹紧的档表下限，零新增随机源）。
      * 默认档（身份不可得）⇒ 0 ⇒ 与改造前逐位相同。
      */
-    public static int buryingAt(RuinTemplate ruin, int originX, int originZ) {
-        return buryingAt(ruin, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(originX, originZ));
+    public static int buryingAt(long worldSeed, RuinTemplate ruin, int originX, int originZ) {
+        return buryingAt(ruin, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(worldSeed, originX, originZ));
     }
 
     /**
-     * {@link #buryingAt(RuinTemplate, int, int)} 的<b>身份显式形态</b>（同一个实现体，只是把
+     * {@link #buryingAt(long, RuinTemplate, int, int)} 的<b>身份显式形态</b>（同一个实现体，只是把
      * "锚点原点 → 名册下标"那一跳交给调用方）：离线判据据此在未装配 L1 账本的 JVM 里逐档复算
      * 生产同一条算式（装配了账本时两条出口逐点同值，由
      * {@code P17StructureBiomeVarianceCheck} 的 SOURCE 组钉）。
@@ -236,7 +237,7 @@ public final class RuinPlacer {
             ground,
             BlockSink.FLAG_POPULATE,
             // P17 S-D：群系埋深档，身份按锚点原点 (x,z) 反查；默认档 ⇒ 0 ⇒ 逐位等于改造前
-            buryingAt(roll.ruin, x, z));
+            buryingAt(worldSeed, roll.ruin, x, z));
         return permit.commit(counter.solid());
     }
 
@@ -330,7 +331,7 @@ public final class RuinPlacer {
         if (chance <= 0) {
             return null; // 0 = 禁用（与机器/outpost 同一"0 = 关闭"约定）
         }
-        final float micro = microStrengthAt(cx, cz);
+        final float micro = microStrengthAt(worldSeed, cx, cz);
         final Random r = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, cx, cz) ^ SALT_RUIN);
         if (r.nextDouble() * chance >= micro) {
             return null;
@@ -362,15 +363,15 @@ public final class RuinPlacer {
 
     /**
      * micro 强度读取（<b>全仓结构侧第一个消费点</b>，plan §5 P8 判据 6 收口 P6 的悬空层）：
-     * 走 L1 的只读出口 {@link GTSRBiomeAuthority#microStrengthAt(int, int)}，采样坐标与本族落点判定
+     * 走 L1 的只读出口 {@link GTSRBiomeAuthority#microStrengthAtSeed(long, long, int, int)}，采样坐标与本族落点判定
      * 同一口径（chunk 中心块坐标）。{@link Config#prosperityRuinMicroModulation} 关 ⇒ 返回中性 1.0F，
      * 但<b>仍然经过</b>那个出口（回退位关的是调制，不是接线；否则判据 6 又变回悬空层）。
      * <p>
      * 本方法<b>不参与群系身份</b>，也不得被反推身份（P6 红线：身份只有 {@code ordinalAt} 一条出口）。
      */
-    static float microStrengthAt(int cx, int cz) {
+    static float microStrengthAt(long worldSeed, int cx, int cz) {
         final float raw = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY)
-            .microStrengthAt((cx << 4) + 8, (cz << 4) + 8);
+            .microStrengthAtSeed(worldSeed, ProsperityTerrainProfile.CHAIN_SEED_SALT, (cx << 4) + 8, (cz << 4) + 8);
         return Config.prosperityRuinMicroModulation ? raw : 1.0F;
     }
 

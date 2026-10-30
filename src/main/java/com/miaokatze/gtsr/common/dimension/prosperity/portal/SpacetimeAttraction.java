@@ -1,9 +1,9 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.portal;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,8 +21,9 @@ import com.miaokatze.gtsr.common.machine.MTESpacetimeCalibration;
 /** Server motion only, bounded work, collision checked, and no persistent flight capabilities. */
 public final class SpacetimeAttraction {
 
-    private final Map<Entity, Integer> stages = new HashMap<>();
-    private final Map<EntityPlayerMP, Contact> contacts = new HashMap<>();
+    // Vanilla Entity equality reuses numeric IDs across respawn; contact is an exact actor lease.
+    private final Map<Entity, Integer> stages = new IdentityHashMap<>();
+    private final Map<EntityPlayerMP, Contact> contacts = new IdentityHashMap<>();
     private World attractionWorld;
 
     private static final class Contact {
@@ -60,7 +61,7 @@ public final class SpacetimeAttraction {
         nearby.sort(
             Comparator.comparingInt((Entity e) -> e instanceof EntityPlayer ? 0 : 1)
                 .thenComparingDouble(e -> e.getDistanceSq(centre.xCoord, centre.yCoord, centre.zCoord)));
-        Set<Entity> retained = new HashSet<>();
+        Set<Entity> retained = Collections.newSetFromMap(new IdentityHashMap<>());
         int processed = 0;
         long now = machine.getBaseMetaTileEntity()
             .getWorld()

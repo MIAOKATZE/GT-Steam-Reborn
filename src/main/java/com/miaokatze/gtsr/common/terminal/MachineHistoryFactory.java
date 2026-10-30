@@ -10,6 +10,7 @@ import java.util.function.Consumer;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.common.util.FakePlayer;
 
@@ -30,6 +31,7 @@ import com.miaokatze.gtsr.common.gui.mui2.BoundedTerminalScreen;
 import com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions;
 import com.miaokatze.gtsr.common.gui.mui2.TerminalUiStyle;
 import com.miaokatze.gtsr.common.gui.mui2.TerminalViewport;
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.relauncher.Side;
@@ -63,10 +65,12 @@ public final class MachineHistoryFactory implements UIFactory<MachineHistoryFact
                 .copy();
             int requestedSlot = server.inventory.currentItem;
             Object previousContainer = server.openContainer;
+            NetHandlerPlayServer connection = server.playerNetServerHandler;
             // C08 copies the held stack after onItemRightClick and still queries the old inventory slots.
             // Bind the session only after that packet has finished; later stack replacements still revoke it.
             Mui2ServerActions.enqueue(() -> {
-                if (server.isDead || server.openContainer != previousContainer
+                if (!ServerPacketAuthority.isCurrentPlayer(server, connection)
+                    || server.openContainer != previousContainer
                     || server.inventory.currentItem != requestedSlot
                     || !MachineTerminalHistory.held(server)
                     || !ItemStack.areItemStacksEqual(requestedTerminal, server.getHeldItem())) return;
@@ -263,6 +267,7 @@ public final class MachineHistoryFactory implements UIFactory<MachineHistoryFact
         private final String terminalId;
         private final int slot;
         private final boolean issued;
+        private final NetHandlerPlayServer connection;
 
         Data(EntityPlayer player, List<MachineTerminalHistory.Entry> entries, boolean issued) {
             super(player);
@@ -270,13 +275,15 @@ public final class MachineHistoryFactory implements UIFactory<MachineHistoryFact
             terminal = player.getHeldItem();
             slot = player.inventory.currentItem;
             this.issued = issued;
+            this.connection = ServerPacketAuthority.connection(player);
             terminalId = issued ? MachineTerminalHistory.terminalId(player) : "";
         }
 
         boolean valid(EntityPlayer player) {
             return player == getPlayer() && !player.isDead
                 && !(player instanceof FakePlayer)
-                && (player.worldObj.isRemote || issued && MachineTerminalHistory.held(player)
+                && (player.worldObj.isRemote || issued && ServerPacketAuthority.isCurrentPlayer(player, connection)
+                    && MachineTerminalHistory.held(player)
                     && player.inventory.currentItem == slot
                     && player.getHeldItem() == terminal
                     && terminalId.equals(MachineTerminalHistory.terminalId(player)));

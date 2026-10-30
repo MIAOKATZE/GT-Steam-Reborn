@@ -7,6 +7,9 @@ import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.renderer.entity.RenderManager;
+import net.minecraft.client.resources.IReloadableResourceManager;
+import net.minecraft.client.resources.IResourceManager;
+import net.minecraft.client.resources.IResourceManagerReloadListener;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
@@ -29,7 +32,7 @@ import com.miaokatze.gtsr.common.weapons.WeaponPose;
 import cpw.mods.fml.client.registry.RenderingRegistry;
 
 /** Current Outpost meshes extracted into portable weapons. Lists cache geometry, never animation state. */
-public final class PortableWeaponRenderer implements IItemRenderer {
+public final class PortableWeaponRenderer implements IItemRenderer, IResourceManagerReloadListener {
 
     private static final String[] PARTS = { "body", "barrel", "magazine", "belt", "charging_handle", "cover", "grip",
         "stock", "support_hand" };
@@ -38,6 +41,8 @@ public final class PortableWeaponRenderer implements IItemRenderer {
 
     public static void register() {
         PortableWeaponRenderer renderer = new PortableWeaponRenderer();
+        ((IReloadableResourceManager) Minecraft.getMinecraft()
+            .getResourceManager()).registerReloadListener(renderer);
         PortableWeaponPlayerPose.register();
         for (WeaponKind kind : WeaponKind.values()) {
             MinecraftForgeClient.registerItemRenderer(PortableWeapons.weapons[kind.id], renderer);
@@ -50,6 +55,18 @@ public final class PortableWeaponRenderer implements IItemRenderer {
             .registerEntityRenderingHandler(EntityWeaponProjectile.class, new PortableProjectileRenderer());
         RenderingRegistry
             .registerEntityRenderingHandler(EntityWeaponSingularity.class, new PortableSingularityRenderer());
+    }
+
+    @Override
+    public void onResourceManagerReload(IResourceManager manager) {
+        releaseCaches(list -> GL11.glDeleteLists(list, 1));
+    }
+
+    static void releaseCaches(java.util.function.IntConsumer deleteList) {
+        // OBJ data and compiled geometry belong to this resource generation, unlike animation state.
+        for (int list : LISTS.values()) deleteList.accept(list);
+        LISTS.clear();
+        MODELS.clear();
     }
 
     public boolean handleRenderType(ItemStack stack, ItemRenderType type) {

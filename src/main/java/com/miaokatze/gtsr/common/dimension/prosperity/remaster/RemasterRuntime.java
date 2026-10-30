@@ -715,13 +715,10 @@ public final class RemasterRuntime {
             boolean authored = false;
             for (JsonObject node : nodes(s))
                 if (cage.equals(string(node, "id", "")) && "spawner".equals(string(node, "role", ""))) authored = true;
-            String member = cage + ":" + nodeIndex;
-            if (!authored || !data.flag(owner, "spawner-admitted:" + member)
-                || data.flag(owner, "spawner-dead:" + member)) return;
-            data.flag(owner, "spawner-dead:" + member, true);
-            NBTTagCompound state = data.state(owner)
-                .getCompoundTag("spawner:" + cage);
-            state.setInteger("deadCount", state.getInteger("deadCount") + 1);
+            if (!authored || !data.flag(owner, "spawner-admitted:" + cage + ":" + nodeIndex)) return;
+            NBTTagCompound siteState = data.state(owner), state = siteState.getCompoundTag("spawner:" + cage);
+            if (RemasterSpawnerLedger.compact(siteState, state, cage)) data.markDirty();
+            if (!RemasterSpawnerLedger.died(siteState, state, cage, nodeIndex)) return;
             data.markDirty();
             return;
         }
@@ -1113,6 +1110,7 @@ public final class RemasterRuntime {
         String k = "spawner:" + tile.nodeId;
         if (!state.hasKey(k)) state.setTag(k, new NBTTagCompound());
         NBTTagCompound spawner = state.getCompoundTag(k);
+        if (RemasterSpawnerLedger.compact(state, spawner, tile.nodeId)) data.markDirty();
         long now = w.getTotalWorldTime();
         int tier = spawnerTier(n), quota = RemasterSpawnerContract.quota(tier);
         if (spawner.getInteger("contract") != 1) {
@@ -1133,9 +1131,7 @@ public final class RemasterRuntime {
             data.markDirty();
             tile.refresh();
         }
-        EntityPlayer near = w.getClosestPlayer(tile.xCoord + .5, tile.yCoord + .5, tile.zCoord + .5, 16);
-        if (near == null || !near.isEntityAlive() || near.capabilities.isCreativeMode || near instanceof FakePlayer)
-            return;
+        if (!hasSpawnerPlayer(w, tile.xCoord + .5, tile.yCoord + .5, tile.zCoord + .5)) return;
         if (!spawner.hasKey("next")) {
             spawner.setLong("next", now + RemasterSpawnerContract.delay(w.rand));
             data.markDirty();
@@ -1189,6 +1185,17 @@ public final class RemasterRuntime {
         }
         data.markDirty();
         tile.refresh();
+    }
+
+    /** Ineligible bystanders must not mask another player's activation; retain the native strict radius. */
+    private static boolean hasSpawnerPlayer(World world, double x, double y, double z) {
+        for (Object object : world.playerEntities) {
+            EntityPlayer player = (EntityPlayer) object;
+            if (player.isEntityAlive() && !player.capabilities.isCreativeMode
+                && !(player instanceof FakePlayer)
+                && player.getDistanceSq(x, y, z) < 16 * 16) return true;
+        }
+        return false;
     }
 
     /** A cached inactive display must also invalidate Minecraft's saved emitted-light calculation. */

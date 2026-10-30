@@ -141,14 +141,8 @@ public final class SealedChestLoot {
         while (!pool.isEmpty() && dungeon.size() < dungeonTarget) {
             WeightedRandomChestContent entry = (WeightedRandomChestContent) WeightedRandom.getRandomItem(random, pool);
             pool.remove(entry);
-            // Every native emission is captured, even when vanilla randomly chooses the same slot twice.
-            Capture capture = new Capture(chest);
-            WeightedRandomChestContent
-                .generateChestContents(random, new WeightedRandomChestContent[] { entry }, capture, 1);
-            List<ItemStack> combined = new ArrayList<>(dungeon);
-            combined.addAll(capture.stacks);
-            List<ItemStack> generated = normalize(combined);
-            if (generated.isEmpty() || generated.size() > dungeonTarget) continue;
+            List<ItemStack> generated = dungeonCandidate(chest, random, dungeon, entry, dungeonTarget);
+            if (generated == null || generated.isEmpty()) continue;
             dungeon = generated;
             pool.removeIf(other -> same(entry.theItemId, other.theItemId));
         }
@@ -159,7 +153,8 @@ public final class SealedChestLoot {
                 + ", actual="
                 + dungeon.size());
         plan.addAll(dungeon);
-        List<ItemStack> merged = normalize(plan);
+        List<ItemStack> merged = normalize(plan, 53);
+        if (merged == null) throw new IllegalStateException("Sealed chest reward exceeds capacity");
         plan.clear();
         plan.addAll(merged);
         List<Candidate> known = candidates(table.getAsJsonArray("parts"));
@@ -180,36 +175,60 @@ public final class SealedChestLoot {
         return plan;
     }
 
+    private static List<ItemStack> dungeonCandidate(IInventory chest, Random random, List<ItemStack> dungeon,
+        WeightedRandomChestContent entry, int limit) {
+        // Every native emission is captured, even when vanilla randomly chooses the same slot twice.
+        Capture capture = new Capture(chest);
+        try {
+            WeightedRandomChestContent
+                .generateChestContents(random, new WeightedRandomChestContent[] { entry }, capture, 1);
+        } catch (RewardCapacityExceeded oversized) {
+            // Reject this candidate, not the entire reward or the already accepted dungeon rolls.
+            return null;
+        }
+        List<ItemStack> combined = new ArrayList<>(dungeon);
+        combined.addAll(capture.stacks);
+        return normalize(combined, limit);
+    }
+
     private static boolean add(List<ItemStack> plan, ItemStack stack, int limit) {
         if (stack == null) return false;
         List<ItemStack> combined = new ArrayList<>(plan);
         combined.add(stack);
-        List<ItemStack> split = normalize(combined);
-        if (split.size() > limit) return false;
+        List<ItemStack> split = normalize(combined, limit);
+        if (split == null) return false;
         plan.clear();
         plan.addAll(split);
         return true;
     }
 
-    private static List<ItemStack> normalize(List<ItemStack> stacks) {
+    /** Null means overflow; never allocate the rejected remainder or mutate the caller's stacks. */
+    private static List<ItemStack> normalize(List<ItemStack> stacks, int limit) {
         List<ItemStack> result = new ArrayList<>();
-        for (ItemStack stack : stacks) if (stack != null && stack.getItem() != null && stack.stackSize > 0) {
-            int left = stack.stackSize, max = Math.min(64, stack.getMaxStackSize());
-            if (max < 1) throw new IllegalStateException("Invalid reward maxStackSize");
-            for (ItemStack existing : result) if (same(existing, stack) && existing.stackSize < max) {
-                int transferred = Math.min(left, max - existing.stackSize);
-                existing.stackSize += transferred;
-                left -= transferred;
-                if (left == 0) break;
-            }
-            while (left > 0) {
-                ItemStack copy = stack.copy();
-                copy.stackSize = Math.min(left, max);
-                result.add(copy);
-                left -= copy.stackSize;
-            }
-        }
+        for (ItemStack stack : stacks) if (!append(result, stack, limit)) return null;
         return result;
+    }
+
+    /** The result is detached: callers must discard it on overflow, never commit a partial candidate. */
+    private static boolean append(List<ItemStack> result, ItemStack stack, int limit) {
+        if (stack == null || stack.getItem() == null || stack.stackSize <= 0) return true;
+        int left = stack.stackSize, max = Math.min(64, stack.getMaxStackSize());
+        if (max < 1) throw new IllegalStateException("Invalid reward maxStackSize");
+        for (ItemStack existing : result) if (same(existing, stack) && existing.stackSize < max) {
+            int transferred = Math.min(left, max - existing.stackSize);
+            existing.stackSize += transferred;
+            left -= transferred;
+            if (left == 0) break;
+        }
+        // Widen before arithmetic; a third-party stack may contain Integer.MAX_VALUE items.
+        if ((long) left > (long) (limit - result.size()) * max) return false;
+        while (left > 0) {
+            ItemStack copy = stack.copy();
+            copy.stackSize = Math.min(left, max);
+            result.add(copy);
+            left -= copy.stackSize;
+        }
+        return true;
     }
 
     private static boolean same(ItemStack a, ItemStack b) {
@@ -346,7 +365,9 @@ public final class SealedChestLoot {
         }
 
         public void setInventorySlotContents(int slot, ItemStack stack) {
-            if (stack != null) stacks.add(stack.copy());
+            // Merge emissions as they arrive instead of retaining an unbounded intermediate list.
+            // This bounds our copies, not allocations performed internally by third-party generators.
+            if (!append(stacks, stack, 53)) throw new RewardCapacityExceeded();
         }
 
         public String getInventoryName() {
@@ -374,5 +395,10 @@ public final class SealedChestLoot {
         public boolean isItemValidForSlot(int slot, ItemStack stack) {
             return delegate.isItemValidForSlot(slot, stack);
         }
+    }
+
+    private static final class RewardCapacityExceeded extends RuntimeException {
+
+        private static final long serialVersionUID = 1L;
     }
 }

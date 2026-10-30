@@ -54,7 +54,7 @@ public class PacketTerminalAction implements IMessage {
             this.z = pb.readInt();
             this.actionCode = pb.readVarIntFromBuffer();
             int len = pb.readVarIntFromBuffer();
-            if (len < 0 || len > TerminalNet.MAX_PAYLOAD_BYTES) {
+            if (len < 0 || len > TerminalNet.MAX_PAYLOAD_BYTES || pb.readableBytes() != len) {
                 // 异常长度即断：不继续读（伪造包零副作用）
                 this.corrupt = true;
                 return;
@@ -62,7 +62,7 @@ public class PacketTerminalAction implements IMessage {
             this.payload = new byte[len];
             pb.readBytes(this.payload);
             this.uiType = TerminalUiType.fromId(uiTypeId);
-            if (this.uiType == null) {
+            if (this.uiType == null || pb.isReadable()) {
                 this.corrupt = true;
             }
         } catch (Exception e) {

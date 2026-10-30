@@ -12,7 +12,7 @@
   <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 2.0.1" src="https://img.shields.io/badge/Release-2.0.1-green.svg"></a>
 </p>
 
-此版本客户端与服务端均必须安装前置库 [MIAOKATZE Core 0.1.8](https://github.com/MIAOKATZE/MIAOKATZE-Core)（最低版本：0.1.8）。FalsePatternLib 可在缺失时补下载；已有旧版请手动更新。
+此版本客户端与服务端均必须安装前置库 [MIAOKATZE Core 0.1.27](https://github.com/MIAOKATZE/MIAOKATZE-Core)（最低版本：0.1.27）。FalsePatternLib 可在缺失时补下载；已有旧版请手动更新。
 
 仅支持 GTNH 2.9.0 RC 版本。自 v2.0.0 起，建议 GTIT、GTSWN、GTSR 三者一起更新。
 

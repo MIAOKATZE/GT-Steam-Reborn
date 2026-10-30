@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
 
@@ -20,6 +21,7 @@ import com.miaokatze.gtsr.common.machine.cluster.LogisticsChain;
 import com.miaokatze.gtsr.common.machine.cluster.MTEBasicLogisticsUnit;
 import com.miaokatze.gtsr.common.machine.cluster.MTEClusterUnitBase;
 import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster;
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalActions;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalData;
 import com.miaokatze.gtsr.common.terminal.TerminalNet;
@@ -34,6 +36,7 @@ public final class ClusterSessionSyncHandler extends SyncHandler<ClusterSessionS
     private final ClusterTerminalFactory.ClusterGuiData data;
     private final MTESteamMineralLogisticsCluster machine;
     private final TileEntity tile;
+    private final NetHandlerPlayServer connection;
     private final AtomicBoolean pending = new AtomicBoolean();
     private final ConcurrentLinkedQueue<Runnable> incoming = new ConcurrentLinkedQueue<>();
     private final MTEClusterUnitBase[] members = new MTEClusterUnitBase[60];
@@ -69,6 +72,7 @@ public final class ClusterSessionSyncHandler extends SyncHandler<ClusterSessionS
     public ClusterSessionSyncHandler(ClusterTerminalFactory.ClusterGuiData data,
         MTESteamMineralLogisticsCluster machine) {
         this.data = data;
+        this.connection = ServerPacketAuthority.connection(data.getPlayer());
         this.machine = machine;
         this.tile = data.getTileEntity();
         allowC2S();
@@ -76,6 +80,7 @@ public final class ClusterSessionSyncHandler extends SyncHandler<ClusterSessionS
 
     private boolean active() {
         return isValid() && !getSyncManager().isClient()
+            && ServerPacketAuthority.isCurrentPlayer(data.getPlayer(), connection)
             && data.getPlayer().openContainer == getSyncManager().getContainer()
             && (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data)
                 || data.getPlayer().worldObj == tile.getWorldObj())

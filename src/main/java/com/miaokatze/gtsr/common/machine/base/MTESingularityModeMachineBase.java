@@ -16,10 +16,18 @@ import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.api.progress.IGTSRProgressProvider;
 
+import appeng.api.networking.security.IActionHost;
+import appeng.api.networking.security.MachineSource;
+import appeng.api.storage.data.IAEItemStack;
+import appeng.me.GridAccessException;
+import appeng.me.helpers.AENetworkProxy;
+import appeng.util.Platform;
+import appeng.util.item.AEItemStack;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.util.GTUtility;
+import gregtech.common.tileentities.machines.MTEHatchInputBusME;
 
 /** 统一奇点模式基类：mSingularityMode 0=关/1=普通(Steam)/2=临界(Critical)；工作才消耗（canConsumeSingularity 门控）、关机仅计时；默认 200s。 */
 public abstract class MTESingularityModeMachineBase<T extends MTESingularityModeMachineBase<T>>
@@ -115,15 +123,18 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
             mSingularityCheckCooldown = 0;
             // 包配方窗口使 ME 输入总线的虚拟引用可读（getStackInSlot 仅窗口内有效）；
             // v1.10.61：dual 样板仓消耗分支已删除，窗口包装仅服务于输入总线奇点消耗，仍须保留；
-            // 与基类 checkRecipe 的窗口嵌套安全（start/end 均幂等）
+            // 父 tick 的配方窗口已结束；这里只打开独立读取窗口。ME 燃料直接实扣，不改虚拟视图。
             startRecipeProcessing();
-            checkSingularityMode();
-            endRecipeProcessing();
+            try {
+                checkSingularityMode();
+            } finally {
+                endRecipeProcessing();
+            }
         }
     }
 
     /**
-     * 奇点消耗（amount 个指定奇点物品）：输入总线 mInputBusses 候选收集 + decrStackSize 实扣。
+     * 奇点消耗（amount 个指定奇点物品）：输入总线候选收集，物理槽/原生 ME 网络分别实扣。
      * v1.10.61：移除 mDualInputHatches（样板仓）分支——奇点燃料仅走输入总线；
      * 遵循 v1.10.8 教训：绝不用 getAllItems() 对 CraftingInputME 的内嵌物品栈做活引用直改
      * （会损坏样板数据/存档复活=复制燃料），对返回副本的实现则扣减静默失效（免费燃料）。
@@ -131,15 +142,15 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
      * @return 是否成功消耗全部数量
      */
     protected boolean consumeSingularityFromInputBuses(int amount, ItemStack singularity) {
-        if (singularity == null) return false;
+        if (singularity == null || amount <= 0) return false;
         int remaining = amount;
-        // 先收集所有可消耗的输入总线槽位，避免部分消耗后无法回滚
+        // 先探测可见槽位；原生 ME 的可见数量不是支付保证，实扣仍以下方返回收据为准。
         List<Pair<MTEHatchInputBus, Integer>> candidates = new ArrayList<>();
         for (MTEHatchInputBus bus : GTUtility.validMTEList(mInputBusses)) {
             if (bus == null) continue;
             for (int i = 0; i < bus.getSizeInventory(); i++) {
                 ItemStack stack = bus.getStackInSlot(i);
-                if (stack != null && GTUtility.areUnificationsEqual(stack, singularity, true)) {
+                if (stack != null && stack.stackSize > 0 && GTUtility.areUnificationsEqual(stack, singularity, true)) {
                     candidates.add(Pair.of(bus, i));
                     remaining -= stack.stackSize;
                     if (remaining <= 0) break;
@@ -150,7 +161,7 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
         if (remaining > 0) {
             return false;
         }
-        // 实扣：输入总线以 decrStackSize 安全语义扣减（v1.10.8 基类教训）
+        // 实扣：物理槽用 decrStackSize；原生 ME 配置槽必须取得网络支付收据。
         remaining = amount;
         for (Pair<MTEHatchInputBus, Integer> candidate : candidates) {
             MTEHatchInputBus bus = candidate.getLeft();
@@ -158,7 +169,7 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
             ItemStack stack = bus.getStackInSlot(slot);
             if (stack == null || !GTUtility.areUnificationsEqual(stack, singularity, true)) continue;
             int toConsume = Math.min(remaining, stack.stackSize);
-            ItemStack removed = bus.decrStackSize(slot, toConsume);
+            ItemStack removed = consumeSingularityStack(bus, slot, stack, toConsume);
             if (removed != null && GTUtility.areUnificationsEqual(removed, singularity, true)) {
                 remaining -= Math.min(toConsume, Math.max(0, removed.stackSize));
             }
@@ -168,6 +179,31 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
             if (bus != null) bus.updateSlots();
         }
         return remaining <= 0;
+    }
+
+    /** Native stocking slots are virtual: debit AE now without changing their deferred debit view. */
+    private ItemStack consumeSingularityStack(MTEHatchInputBus bus, int slot, ItemStack stack, int amount) {
+        if (amount <= 0) return null;
+        if (bus instanceof MTEHatchInputBusME me && slot < MTEHatchInputBusME.SLOT_COUNT) {
+            // Unknown stocking subclasses may impose their own access or accounting policy.
+            if (me.getClass() != MTEHatchInputBusME.class || !me.isAllowedToWork()) return null;
+            try {
+                AENetworkProxy proxy = me.getProxy();
+                ItemStack request = stack.copy();
+                request.stackSize = amount;
+                IAEItemStack paid = Platform.poweredExtraction(
+                    proxy.getEnergy(),
+                    proxy.getStorage()
+                        .getItemInventory(),
+                    AEItemStack.create(request),
+                    new MachineSource((IActionHost) me.getBaseMetaTileEntity()));
+                return paid == null ? null : paid.getItemStack();
+            } catch (GridAccessException unavailable) {
+                return null;
+            }
+        }
+        // Includes the real manual slot of native ME buses, not a configured stocking view.
+        return bus.decrStackSize(slot, amount);
     }
 
     public int getSingularityModeForGui() {
@@ -194,7 +230,9 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
         } else {
             mSingularityMode = aNBT.getInteger("mSingularityModeLevel");
         }
-        mSingularityModeTicks = aNBT.getInteger("mSingularityModeTicks");
+        if (mSingularityMode < 0 || mSingularityMode > 2) mSingularityMode = 0;
+        mSingularityModeTicks = mSingularityMode == 0 ? 0
+            : Math.max(0, Math.min(getSingularityDurationTicks(), aNBT.getInteger("mSingularityModeTicks")));
     }
 
     // region GTSR 进度显示基础设施（IGTSRProgressProvider）

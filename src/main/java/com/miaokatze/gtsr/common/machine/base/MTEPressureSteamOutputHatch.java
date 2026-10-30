@@ -7,7 +7,6 @@ import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.IFluidHandler;
 
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
@@ -82,23 +81,8 @@ public class MTEPressureSteamOutputHatch extends MTESteamOutputHatch {
     }
 
     @Override
-    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
-
-        if (!aBaseMetaTileEntity.isServerSide()) return;
-        if (getDrainableStack() == null || getDrainableStack().amount <= 0) return;
-
-        ForgeDirection outputDirection = aBaseMetaTileEntity.getFrontFacing();
-        IFluidHandler tTank = aBaseMetaTileEntity.getITankContainerAtSide(outputDirection);
-        if (tTank != null) {
-            FluidStack tDrained = drain(PRESSURE_OUTPUT_PER_TICK, false);
-            if (tDrained != null && tDrained.amount > 0) {
-                int tFilledAmount = tTank.fill(outputDirection.getOpposite(), tDrained, false);
-                if (tFilledAmount > 0) {
-                    tTank.fill(outputDirection.getOpposite(), drain(tFilledAmount, true), true);
-                }
-            }
-        }
+    protected int getOutputPerTick() {
+        return PRESSURE_OUTPUT_PER_TICK;
     }
 
     @Override

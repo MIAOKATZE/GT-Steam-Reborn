@@ -198,7 +198,7 @@ public class EntityGearPigeon extends EntityAnimal implements ProsperityDeathVis
         if (world == null || world.provider == null) {
             return -1;
         }
-        final GTSRBiomeAuthority.Resolution resolved = GTSRBiomeAuthority.forDimension(world.provider.dimensionId)
+        final GTSRBiomeAuthority.Resolution resolved = GTSRBiomeAuthority.forWorld(world)
             .ordinalAt((int) Math.floor(x), (int) Math.floor(z));
         return resolved == null ? -1 : resolved.ordinal;
     }

@@ -54,7 +54,9 @@ public final class TerminalLifecycleRegression {
         set(h,ClusterSessionSyncHandler.class,"data",data); set(h,ClusterSessionSyncHandler.class,"incoming",new ConcurrentLinkedQueue<Runnable>());
         set(h,ClusterSessionSyncHandler.class,"drafts",new HashMap<>()); set(h,ClusterSessionSyncHandler.class,"topology",new byte[0]);
         set(h,ClusterSessionSyncHandler.class,"performance",new ClusterPerformanceModel());
-        h.init("test",new PanelSyncManager(new ModularSyncManager(true),true));
+        ModularSyncManager manager=(ModularSyncManager)u.allocateInstance(ModularSyncManager.class);set(manager,ModularSyncManager.class,"client",true);
+        PanelSyncManager panel=(PanelSyncManager)u.allocateInstance(PanelSyncManager.class);set(panel,PanelSyncManager.class,"modularSyncManager",manager);set(panel,PanelSyncManager.class,"client",true);
+        h.init("test",panel);
         read(h,1,delta(1,10)); h.clientTick();
         List<?> before=(List<?>)get(h.performance,ClusterPerformanceModel.class,"rows");
         read(h,2,delta(1,73)); read(h,3,delta(0,true)); h.clientTick();
@@ -79,6 +81,12 @@ public final class TerminalLifecycleRegression {
         set(player,Entity.class,"entityUniqueID",UUID.randomUUID()); player.dimension=0; player.worldObj=world; player.playerNetServerHandler=(net.minecraft.network.NetHandlerPlayServer)u.allocateInstance(net.minecraft.network.NetHandlerPlayServer.class);
         FakeServer server=(FakeServer)u.allocateInstance(FakeServer.class); server.world=world;
         set(null,MinecraftServer.class,"mcServer",server);
+        Configuration configuration=(Configuration)u.allocateInstance(Configuration.class);
+        set(configuration,net.minecraft.server.management.ServerConfigurationManager.class,"playerEntityList",new ArrayList<>());server.setConfigManager(configuration);configuration.playerEntityList.add(player);
+        player.playerNetServerHandler.playerEntity=player;
+        NetworkManager connection=new NetworkManager(false);
+        set(connection,NetworkManager.class,"channel",new io.netty.channel.embedded.EmbeddedChannel(new io.netty.channel.ChannelInboundHandlerAdapter()));
+        set(player.playerNetServerHandler,NetHandlerPlayServer.class,"netManager",connection);
         // Preserve the production request/action handler; replace only outbound transport.
         Class.forName(TerminalNet.class.getName());
         Field network=field(TerminalNet.class,"NETWORK"); u.putObject(u.staticFieldBase(network),u.staticFieldOffset(network),u.allocateInstance(RecordingNetwork.class));
@@ -94,13 +102,29 @@ public final class TerminalLifecycleRegression {
         check(TerminalServerSessions.getAliveBaseTile(-7042010,1,2,3)==null,"unloaded dimension stays unavailable");
         Map<UUID,Long> ticks=(Map<UUID,Long>)get(null,TerminalNet.class,"LAST_REQUEST_TICK"); ticks.put(player.getUniqueID(),1000000L);
         TerminalServerSessions.isDuplicateAction(player.getUniqueID(),1,0,2);
-        ((Queue<Object>)get(null,TerminalNet.class,"PENDING")).offer(new Object());
+        seedPending();
         invoke(null,TerminalNet.class,"clearServerState",new Class<?>[0]);
         check(ticks.isEmpty(),"server stop clears high-world cooldown");
-        check(((Queue<?>)get(null,TerminalNet.class,"PENDING")).isEmpty(),"server stop discards queued tasks");
+        check(pendingSize()==0,"server stop discards queued tasks");
         check(!TerminalServerSessions.isDuplicateAction(player.getUniqueID(),1,0,2),"server stop clears debounce");
         invoke(null,TerminalNet.class,"handleRequest",new Class<?>[]{EntityPlayerMP.class,PacketTerminalRequest.class},player,new PacketTerminalRequest(TerminalUiType.CLUSTER_TERMINAL,0,1,2,3));
         check(ticks.containsKey(player.getUniqueID()),"new low-age world request admitted");
+    }
+    static void seedPending() throws Exception {
+        Object pending=get(null,TerminalNet.class,"PENDING");
+        if(pending instanceof Queue) ((Queue<Object>)pending).offer(new Object());
+        else pending.getClass().getMethod("offer",Object.class,Object.class).invoke(pending,new Object(),new Object());
+    }
+    static int pendingSize() throws Exception {
+        Object pending=get(null,TerminalNet.class,"PENDING");return (Integer)pending.getClass().getMethod("size").invoke(pending);
+    }
+    static void deliverData(PacketTerminalData packet) throws Exception {
+        try { TerminalClientPacketSink.class.getMethod("handleDataScheduled",PacketTerminalData.class,net.minecraft.client.network.NetHandlerPlayClient.class).invoke(null,packet,Minecraft.getMinecraft().getNetHandler()); }
+        catch(NoSuchMethodException oldApi) { TerminalClientPacketSink.class.getMethod("handleDataScheduled",PacketTerminalData.class).invoke(null,packet); }
+    }
+    static void deliverOpen(PacketOpenTerminalUi packet) throws Exception {
+        try { TerminalClientPacketSink.class.getMethod("handleOpenScheduled",PacketOpenTerminalUi.class,net.minecraft.client.network.NetHandlerPlayClient.class).invoke(null,packet,Minecraft.getMinecraft().getNetHandler()); }
+        catch(NoSuchMethodException oldApi) { TerminalClientPacketSink.class.getMethod("handleOpenScheduled",PacketOpenTerminalUi.class).invoke(null,packet); }
     }
     static void drain(Queue<?> queue) { Object task; while((task=queue.poll())!=null)((Runnable)task).run(); }
     static void cooldown() throws Exception {
@@ -108,16 +132,18 @@ public final class TerminalLifecycleRegression {
         UUID id=UUID.randomUUID();
         Map<UUID,Long> ticks=(Map<UUID,Long>)get(null,TerminalNet.class,"LAST_REQUEST_TICK"); ticks.put(id,1000000L);
         TerminalServerSessions.isDuplicateAction(id,1,0,2);
-        ((Queue<Object>)get(null,TerminalNet.class,"PENDING")).offer(new Object());
+        seedPending();
         ((com.miaokatze.gtsr.main.GTSteamReborn)u.allocateInstance(com.miaokatze.gtsr.main.GTSteamReborn.class)).serverStopped(null);
         check(ticks.isEmpty(),"real serverStopped clears high-world cooldown");
-        check(((Queue<?>)get(null,TerminalNet.class,"PENDING")).isEmpty(),"real serverStopped clears pending tasks");
+        check(pendingSize()==0,"real serverStopped clears pending tasks");
         check(!TerminalServerSessions.isDuplicateAction(id,1,0,2),"real serverStopped clears debounce");
     }
     static void client() throws Exception {
         Minecraft mc=(Minecraft)u.allocateInstance(Minecraft.class);
         set(null,Minecraft.class,"theMinecraft",mc); Queue<Object> q=new ConcurrentLinkedQueue<>();
         set(mc,Minecraft.class,"field_152351_aB",q); set(mc,Minecraft.class,"field_152352_aC",new Thread());
+        net.minecraft.client.entity.EntityClientPlayerMP client=(net.minecraft.client.entity.EntityClientPlayerMP)u.allocateInstance(net.minecraft.client.entity.EntityClientPlayerMP.class);
+        set(client,net.minecraft.client.entity.EntityClientPlayerMP.class,"sendQueue",u.allocateInstance(net.minecraft.client.network.NetHandlerPlayClient.class));mc.thePlayer=client;
         WorldClient world=(WorldClient)u.allocateInstance(WorldClient.class); set(world,World.class,"provider",new WorldProviderSurface()); mc.theWorld=world;
         ClusterTerminalClientCache.accept(packet(10000,90));
         Class<?> lifecycle;
@@ -127,22 +153,22 @@ public final class TerminalLifecycleRegression {
             check(ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_HEAT,0)==12,"disconnect must permit same-anchor low version after reconnect");
             return;
         }
-        TerminalClientPacketSink.handleDataScheduled(packet(10001,91));
-        TerminalClientPacketSink.handleOpenScheduled(new PacketOpenTerminalUi(TerminalUiType.STEAM_HUB,0,1,2,3,0));
+        deliverData(packet(10001,91));
+        deliverOpen(new PacketOpenTerminalUi(TerminalUiType.STEAM_HUB,0,1,2,3,0));
         Object listener=lifecycle.getConstructor().newInstance();
         lifecycle.getMethod("onDisconnect",cpw.mods.fml.common.network.FMLNetworkEvent.ClientDisconnectionFromServerEvent.class).invoke(listener,new Object[]{null});
         drain(q);
         check(!ClusterTerminalClientCache.isAnchored(1,2,3,0),"disconnect clears cached anchor and skips queued old data/open");
         lifecycle.getMethod("onConnect",cpw.mods.fml.common.network.FMLNetworkEvent.ClientConnectedToServerEvent.class).invoke(listener,new Object[]{null});
-        TerminalClientPacketSink.handleDataScheduled(packet(1,12)); drain(q);
+        deliverData(packet(1,12)); drain(q);
         check(ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_HEAT,0)==12,"new connection accepts same-anchor low version");
-        TerminalClientPacketSink.handleDataScheduled(packet(0,50)); drain(q);
+        deliverData(packet(0,50)); drain(q);
         check(ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_HEAT,0)==12,"same-connection monotonic version still enforced");
-        TerminalClientPacketSink.handleDataScheduled(new PacketTerminalData(TerminalUiType.CLUSTER_TERMINAL,0,8,9,10,true,0,delta(1,34))); drain(q);
+        deliverData(new PacketTerminalData(TerminalUiType.CLUSTER_TERMINAL,0,8,9,10,true,0,delta(1,34))); drain(q);
         check(ClusterTerminalClientCache.isAnchored(8,9,10,0)&&ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_HEAT,0)==34,"new anchor accepts lower version");
-        TerminalClientPacketSink.handleDataScheduled(new PacketTerminalData(TerminalUiType.CLUSTER_TERMINAL,0,1,2,3,false,0,new byte[0])); drain(q);
+        deliverData(new PacketTerminalData(TerminalUiType.CLUSTER_TERMINAL,0,1,2,3,false,0,new byte[0])); drain(q);
         check(ClusterTerminalClientCache.isAnchored(8,9,10,0),"old-anchor invalidation preserves new anchor");
-        TerminalClientPacketSink.handleDataScheduled(new PacketTerminalData(TerminalUiType.CLUSTER_TERMINAL,0,8,9,10,false,0,new byte[0])); drain(q);
+        deliverData(new PacketTerminalData(TerminalUiType.CLUSTER_TERMINAL,0,8,9,10,false,0,new byte[0])); drain(q);
         check(!ClusterTerminalClientCache.isAnchored(8,9,10,0),"matching invalidation clears cache");
         for(String name:new String[]{"drilling","cache"}) { Field f=field(HubTerminalClientCache.class,name);f.set(null,u.allocateInstance(f.getType())); }
         Field agg=field(AggregatorClientCache.class,"snapshot");agg.set(null,u.allocateInstance(agg.getType()));
@@ -162,6 +188,7 @@ public final class TerminalLifecycleRegression {
         private RecordingNetwork(){super("unused");}
         @Override public void sendTo(IMessage message,EntityPlayerMP player) {}
     }
+    private static final class Configuration extends net.minecraft.server.management.ServerConfigurationManager { private Configuration(){super(null);} }
     private static final class FakeServer extends MinecraftServer {
         SparseWorld world;
         private FakeServer(){super(null,null);}

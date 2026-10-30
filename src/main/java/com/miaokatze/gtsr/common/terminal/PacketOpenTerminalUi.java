@@ -51,7 +51,7 @@ public class PacketOpenTerminalUi implements IMessage {
             this.z = pb.readInt();
             this.initialPage = pb.readVarIntFromBuffer();
             this.uiType = TerminalUiType.fromId(uiTypeId);
-            if (this.uiType == null) {
+            if (this.uiType == null || pb.isReadable()) {
                 this.corrupt = true;
             }
         } catch (Exception e) {

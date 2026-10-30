@@ -3,12 +3,11 @@ package com.miaokatze.gtsr.common.network;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 import com.miaokatze.gtsr.common.debug.MachineDebugRegistry;
@@ -36,9 +35,14 @@ import io.netty.buffer.ByteBuf;
 public final class WandNet {
 
     private static final SimpleNetworkWrapper NETWORK = NetworkRegistry.INSTANCE.newSimpleChannel("gtsr_wand");
-    private static final ConcurrentLinkedQueue<Pending> PENDING = new ConcurrentLinkedQueue<>();
+    private static final BoundedRequestQueue<Pending> PENDING = new BoundedRequestQueue<>();
     private static final Map<UUID, Session> SESSIONS = new HashMap<>();
     private static int nextToken;
+
+    public static void clearServerState() {
+        PENDING.clear();
+        SESSIONS.clear();
+    }
 
     public static void init() {
         NETWORK.registerMessage(SelectHandler.class, PacketWandSelect.class, 0, Side.SERVER);
@@ -107,7 +111,14 @@ public final class WandNet {
         if (context.getServerHandler() == null) return;
         EntityPlayerMP player = context.getServerHandler().playerEntity;
         // Snapshot reference only; all validation and mutation happens in ServerTick.
-        PENDING.add(new Pending(player, player.getHeldItem(), player.inventory.currentItem, message));
+        if (player != null) PENDING.offer(
+            context.getServerHandler(),
+            new Pending(
+                player,
+                context.getServerHandler(),
+                player.getHeldItem(),
+                player.inventory.currentItem,
+                message));
     }
 
     public static class SelectHandler implements IMessageHandler<PacketWandSelect, IMessage> {
@@ -162,11 +173,14 @@ public final class WandNet {
     private static final class Pending {
 
         private final EntityPlayerMP player;
+        private final NetHandlerPlayServer connection;
         private final ItemStack wand;
         private final int slot;
         private final IMessage message;
 
-        private Pending(EntityPlayerMP player, ItemStack wand, int slot, IMessage message) {
+        private Pending(EntityPlayerMP player, NetHandlerPlayServer connection, ItemStack wand, int slot,
+            IMessage message) {
+            this.connection = connection;
             this.player = player;
             this.wand = wand;
             this.slot = slot;
@@ -279,12 +293,9 @@ public final class WandNet {
                     entry -> entry.getValue()
                         .expiry() < System.currentTimeMillis());
             Pending task;
-            while ((task = PENDING.poll()) != null) {
+            for (int n = 0; n < BoundedRequestQueue.MAX_PER_TICK && (task = PENDING.poll()) != null; n++) {
                 EntityPlayerMP player = task.player();
-                if (player == null || player.isDead
-                    || player instanceof FakePlayer
-                    || player.playerNetServerHandler == null
-                    || !player.playerNetServerHandler.netManager.isChannelOpen()) continue;
+                if (!ServerPacketAuthority.isCurrentPlayer(player, task.connection)) continue;
                 ItemStack held = player.getHeldItem();
                 if (held == null || held != task.wand() || player.inventory.currentItem != task.slot()) continue;
                 if (task.message() instanceof PacketTerminalTarget target) {

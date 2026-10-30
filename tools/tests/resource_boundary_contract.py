@@ -17,6 +17,18 @@ def methods(path, required, optional=()):
 
 def main():
     sources = {k: v for k, v in SOURCES.items() if k.startswith("net/minecraft/nbt/")}
+    sources["net/minecraft/nbt/NBTTagCompound.java"] = sources["net/minecraft/nbt/NBTTagCompound.java"].replace(
+        ' public void removeTag(',
+        ' public Object getTag(String k){return data.get(k);}'
+        ' public boolean hasKey(String k,int type){Object v=data.get(k);return type==9?v instanceof NBTTagList:type==10?v instanceof NBTTagCompound:data.containsKey(k);}'
+        ' public NBTTagCompound copy(){NBTTagCompound n=new NBTTagCompound();for(Map.Entry<String,Object> e:data.entrySet()){Object v=e.getValue();n.setTag(e.getKey(),v instanceof NBTTagCompound?((NBTTagCompound)v).copy():v instanceof NBTTagList?((NBTTagList)v).copy():v);}return n;}'
+        ' public void removeTag(')
+    sources["net/minecraft/nbt/NBTTagList.java"] = sources["net/minecraft/nbt/NBTTagList.java"].replace(
+        ' public NBTTagCompound getCompoundTagAt(',
+        ' public int func_150303_d(){return data.isEmpty()?0:10;}'
+        ' public NBTTagCompound removeTag(int i){return data.remove(i);}'
+        ' public NBTTagList copy(){NBTTagList n=new NBTTagList();for(NBTTagCompound v:data)n.appendTag(v.copy());return n;}'
+        ' public NBTTagCompound getCompoundTagAt(')
     sources["net/minecraft/item/ItemStack.java"] = '''
 package net.minecraft.item;
 import net.minecraft.nbt.NBTTagCompound;
@@ -24,6 +36,7 @@ public class ItemStack {
  public int stackSize,id,damage;public NBTTagCompound tag;private Object item;
  public ItemStack(int id,int size,int damage){this.id=id;stackSize=size;this.damage=damage;item=id;}
  public ItemStack(Object item){this.item=item;stackSize=1;id=1;}
+ public NBTTagCompound getTagCompound(){return tag;}public void setTagCompound(NBTTagCompound n){tag=n;}public boolean hasTagCompound(){return tag!=null;}
  public Object getItem(){return item;}public int getItemDamage(){return damage;}public void setItemDamage(int v){damage=v;}
  public NBTTagCompound writeToNBT(NBTTagCompound n){n.setInteger("id",id);n.setInteger("Damage",damage);n.setByte("Count",(byte)stackSize);if(tag!=null)n.setTag("tag",tag);return n;}
  public static ItemStack loadItemStackFromNBT(NBTTagCompound n){if(n.getInteger("id")<=0)return null;ItemStack s=new ItemStack(n.getInteger("id"),n.getByte("Count"),n.getInteger("Damage"));s.tag=n.hasKey("tag")?n.getCompoundTag("tag"):null;return s;}
@@ -50,7 +63,9 @@ public enum GTSRItemList {CriticalSteamEntangledSingularity,SteamEntangledSingul
             "public void saveNBTData(", "public void setItemNBT(", "public void loadNBTData("], ["private void savePendingItems("]),
         "BucketBoundary": methods(paths["BucketBoundary"], [
             "public void onFillBucket(", "private static int offset(", "private static boolean playerCanEdit(", "private static boolean isProsperityDim("]),
-        "WeaponBoundary": methods(paths["WeaponBoundary"], ["private void refundMagazine("], ["private static void returnAmmo("]),
+        "WeaponBoundary": methods(paths["WeaponBoundary"], [], ["private void refundMagazine(",
+            "private boolean refundMagazine(", "private static void returnAmmo(", "private static int returnAmmo(",
+            "private static NBTTagList magazinePayments(", "private static boolean readablePayments("]),
     }
     for fixture, snippet in snippets.items():
         template = Path(__file__).with_name("resource-boundaries").joinpath(fixture + ".java").read_text(encoding="utf-8")

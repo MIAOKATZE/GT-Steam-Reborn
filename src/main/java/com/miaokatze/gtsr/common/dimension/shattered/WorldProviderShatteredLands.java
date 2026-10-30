@@ -68,7 +68,7 @@ public class WorldProviderShatteredLands extends GTSRWorldProviderBase {
      * <b>取色内容与常量零改动</b>，只换身份来源。
      */
     private GTSRBiomeAuthority.BiomeId biomeIdentityAt(int x, int z) {
-        return GTSRBiomeAuthority.forDimension(this.worldObj.provider.dimensionId)
+        return GTSRBiomeAuthority.forWorld(this.worldObj)
             .ordinalAt(x, z).biomeId;
     }
 

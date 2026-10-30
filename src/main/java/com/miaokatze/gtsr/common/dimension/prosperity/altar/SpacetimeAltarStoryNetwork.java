@@ -5,6 +5,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.network.NetHandlerPlayServer;
+
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -22,9 +25,15 @@ import io.netty.buffer.ByteBuf;
 public final class SpacetimeAltarStoryNetwork {
 
     private static final SimpleNetworkWrapper NETWORK = NetworkRegistry.INSTANCE.newSimpleChannel("gtsr_altarstory");
-    private static final Map<EntityPlayerMP, UUID> PENDING = new ConcurrentHashMap<>();
+    private static final Map<NetHandlerPlayServer, PendingActivation> PENDING = new ConcurrentHashMap<>();
 
     private SpacetimeAltarStoryNetwork() {}
+
+    public static void resetServerState() {
+        synchronized (PENDING) {
+            PENDING.clear();
+        }
+    }
 
     public static void register() {
         NETWORK.registerMessage(ReadingHandler.class, Reading.class, 0, Side.CLIENT);
@@ -140,12 +149,28 @@ public final class SpacetimeAltarStoryNetwork {
         }
     }
 
+    private static final class PendingActivation {
+
+        final EntityPlayerMP player;
+        final UUID nonce;
+
+        PendingActivation(NetHandlerPlayServer connection, UUID nonce) {
+            player = connection.playerEntity;
+            this.nonce = nonce;
+        }
+    }
+
     public static final class ActivateHandler implements IMessageHandler<Activate, IMessage> {
 
         @Override
         public IMessage onMessage(Activate message, MessageContext context) {
-            if (message.valid && context.getServerHandler() != null && PENDING.size() < 256)
-                PENDING.put(context.getServerHandler().playerEntity, message.nonce);
+            NetHandlerPlayServer connection = context.getServerHandler();
+            if (message.valid && connection != null) {
+                synchronized (PENDING) {
+                    if (PENDING.size() < 256 || PENDING.containsKey(connection))
+                        PENDING.put(connection, new PendingActivation(connection, message.nonce));
+                }
+            }
             return null;
         }
     }
@@ -155,9 +180,13 @@ public final class SpacetimeAltarStoryNetwork {
         @SubscribeEvent
         public void tick(TickEvent.ServerTickEvent event) {
             if (event.phase != TickEvent.Phase.END) return;
-            for (Map.Entry<EntityPlayerMP, UUID> row : PENDING.entrySet())
-                if (PENDING.remove(row.getKey(), row.getValue()))
-                    SpacetimeAltarStory.activateFromReading(row.getKey(), row.getValue());
+            SpacetimeAltarStory.expireSessions();
+            for (Map.Entry<NetHandlerPlayServer, PendingActivation> row : PENDING.entrySet()) {
+                PendingActivation request = row.getValue();
+                if (PENDING.remove(row.getKey(), request)
+                    && ServerPacketAuthority.isCurrentPlayer(request.player, row.getKey()))
+                    SpacetimeAltarStory.activateFromReading(request.player, request.nonce);
+            }
         }
     }
 }

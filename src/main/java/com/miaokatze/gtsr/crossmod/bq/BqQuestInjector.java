@@ -8,17 +8,22 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -69,17 +74,17 @@ import gregtech.api.util.GTOreDictUnificator;
  * 流程（照抄 BQ 官方装载路径 QuestCommandDefaults.load 的同构形状）：
  * <ol>
  * <li>读 assets/gtsr/bqquests/index.json 清单（规避 1.7.10 jar 目录枚举）</li>
- * <li>逐文件 Gson 解析 → NBTConverter.JSONtoNBT_Object(format=true)</li>
+ * <li>整包预检：逐文件解析、UUID/前置身份与清单一致性校验，再以脱离数据库的实例验证 BQ 定义解析；失败不写库</li>
  * <li>任务与任务线幂等 get-or-create 装载（get(id)==null 才 new + readFromNBT）</li>
  * <li>QuestLineEntry 挂线（未挂才 put）与 QuestLineDatabase.setOrderIndex</li>
  * <li>版本戳对账（世界目录 gtsr-injected.json vs Tags.VERSION）：不一致时执行
  * 「定义刷新」——快照进度→重读定义→merge 回填，完成/领取状态保留，
  * 挂线坐标同步替换；老世界无版本戳视为待升级刷一次。
  * 由此实现「新任务覆盖老任务」：发新版只需替换 jar，玩家免手动迁移</li>
- * <li>剪枝（无条件执行）：线上存在但 index.json 清单中已删除的任务，摘线并移出
- * 任务数据库——删除操作同样自动传播到所有世界</li>
- * <li>进度回填：QuestProgress 目录逐玩家 merge=true 重放（对抗 default load
- * 对"库内不存在任务"进度的静默丢弃）</li>
+ * <li>剪枝（无条件执行）：仅摘除 GTSR 线上已删除的 GTSR 任务；未被任何其他线引用时才
+ * 移出任务数据库。外部任务/任务线只做 get-or-create，不覆盖定义、坐标或排序</li>
+ * <li>进度回填：仅对本次补建任务先重放 QuestProgress.json，再逐玩家 merge=true 重放目录记录
+ * （对抗 default load 对"库内不存在任务"进度的静默丢弃；不覆盖已存任务的当前进度）</li>
  * <li>前排有序规则收尾（gtsr→gtswn→gtit 依存在线序位 setOrderIndex）</li>
  * <li>同步四连（NetSettingSync / NetQuestSync.quickSync / NetChapterSync / markDirty）</li>
  * </ol>
@@ -91,6 +96,9 @@ public final class BqQuestInjector {
 
     /** 世界侧版本戳文件名（位于 BQ_Settings.curWorldDir 下），记录最近一次注入所用定义版本 */
     private static final String STAMP_FILE_NAME = "gtsr-injected.json";
+
+    /** Only this UUID namespace is owned by the bundled pack; shared/foreign quests are not deletions. */
+    private static final long MANAGED_QUEST_HIGH = 0x4754535200000000L;
 
     /**
      * 前排有序常量表（规范 §6 条款 10，2026-09-07 拍板 gtsr→gtswn→gtit）。
@@ -130,25 +138,40 @@ public final class BqQuestInjector {
                 GTSteamReborn.LOG.warn("[BQ] 任务清单缺少 questLines 数组，跳过任务注入");
                 return;
             }
+            // A missing/corrupt asset is not an intentional deletion. Resolve and validate the
+            // entire pack before changing live definitions, pruning entries, or stamping success.
+            Map<String, NBTTagCompound> resources = prepareResources(lines, BqQuestInjector::readNbtResource);
+            Set<UUID> pruneCandidates = new HashSet<>();
+            Set<UUID> progressTargets = new HashSet<>();
             int questCount = 0;
             int refreshedCount = 0;
             int prunedCount = 0;
             int lineCreatedCount = 0;
             int skippedCount = 0;
-            // 版本戳对账：版本变化（含老世界无戳）→ 刷新全部已存在任务的定义与挂线坐标
+            // 版本戳对账：版本变化（含老世界无戳）→ 刷新 GTSR 自有任务的定义与挂线坐标
             boolean refresh = isDefinitionRefreshNeeded();
             for (int i = 0; i < lines.size(); i++) {
                 int[] r = loadQuestLine(
                     lines.get(i)
                         .getAsJsonObject(),
-                    refresh);
+                    refresh,
+                    resources,
+                    pruneCandidates,
+                    progressTargets);
                 questCount += r[0];
                 refreshedCount += r[1];
                 prunedCount += r[2];
                 lineCreatedCount += r[3];
                 skippedCount += r[4];
             }
-            restoreProgress();
+            // Loading all lines first also preserves quests moved between lines in this update.
+            for (UUID id : pruneCandidates) {
+                boolean referenced = QuestLineDatabase.INSTANCE.values()
+                    .stream()
+                    .anyMatch(line -> line.get(id) != null);
+                if (!referenced) QuestDatabase.INSTANCE.remove(id);
+            }
+            restoreProgress(progressTargets);
             if (refresh) {
                 writeStamp(Tags.VERSION);
             }
@@ -176,6 +199,112 @@ public final class BqQuestInjector {
         }
     }
 
+    /** Preflight custom packs as well as the bundled pack; an explicitly empty entries list is valid. */
+    static Map<String, NBTTagCompound> prepareResources(JsonArray lines, Function<String, NBTTagCompound> reader) {
+        Map<String, NBTTagCompound> resources = new HashMap<>();
+        Set<UUID> lineIds = new HashSet<>();
+        Map<UUID, String> questFiles = new HashMap<>();
+        for (JsonElement element : lines) {
+            JsonObject line = element.getAsJsonObject();
+            UUID lineId = new UUID(requireLong(line, "idHigh"), requireLong(line, "idLow"));
+            Math.toIntExact(requireLong(line, "orderIndex"));
+            if (!lineIds.add(lineId)) throw new IllegalStateException("Duplicate BQ quest line: " + lineId);
+            NBTTagCompound lineTag = requireResource(
+                resources,
+                reader,
+                line.get("lineFile")
+                    .getAsString());
+            if (!lineId.equals(requireId(lineTag, "questLineID"))) {
+                throw new IllegalStateException("BQ quest line identity disagrees with manifest: " + lineId);
+            }
+            Set<UUID> entriesSeen = new HashSet<>();
+            JsonArray entries = line.getAsJsonArray("entries");
+            if (entries == null) throw new IllegalStateException("Missing BQ entries array: " + lineId);
+            for (JsonElement entryElement : entries) {
+                JsonObject entry = entryElement.getAsJsonObject();
+                String questFile = entry.get("questFile")
+                    .getAsString();
+                NBTTagCompound quest = requireResource(resources, reader, questFile);
+                UUID questId = requireId(quest, "questID");
+                String priorFile = questFiles.putIfAbsent(questId, questFile);
+                if ((priorFile != null && !priorFile.equals(questFile)) || !entriesSeen.add(questId)) {
+                    throw new IllegalStateException("Conflicting BQ quest definition/entry: " + questId);
+                }
+                NBTTagCompound entryTag = requireResource(
+                    resources,
+                    reader,
+                    entry.get("entryFile")
+                        .getAsString());
+                if (!questId.equals(requireId(entryTag, "questID"))) {
+                    throw new IllegalStateException("BQ quest entry identity disagrees with definition: " + questId);
+                }
+            }
+        }
+        // JSON/NBT and UUID validity do not imply that a registered BQ task/reward parser
+        // accepts the definition. For example, Standard's completion reward throws on a
+        // malformed target UUID, after readFromNBT has already replaced a live quest's
+        // properties and tasks. Exercise native deserialization on detached instances for
+        // the entire pack before the first live write. This is not plugin-side-effect rollback.
+        for (String questFile : new HashSet<>(questFiles.values())) {
+            try {
+                NBTTagCompound definition = resources.get(questFile);
+                validatePrerequisites(definition);
+                new QuestInstance().readFromNBT((NBTTagCompound) definition.copy());
+            } catch (RuntimeException e) {
+                throw new IllegalStateException("Invalid BQ quest definition: " + questFile, e);
+            }
+        }
+        return resources;
+    }
+
+    private static void validatePrerequisites(NBTTagCompound quest) {
+        if (!quest.hasKey("preRequisites")) return;
+        // Native BQ supports legacy integer arrays, but silently drops malformed UUID-list
+        // entries. Losing a prerequisite is not a safe interpretation of a damaged quest pack.
+        if (quest.hasKey("preRequisites", Constants.NBT.TAG_INT_ARRAY)) return;
+        if (!quest.hasKey("preRequisites", Constants.NBT.TAG_LIST)) {
+            throw new IllegalStateException("Invalid BQ prerequisite list");
+        }
+        NBTTagList prerequisites = (NBTTagList) quest.getTag("preRequisites");
+        if (prerequisites.tagCount() > 0 && prerequisites.func_150303_d() != Constants.NBT.TAG_COMPOUND) {
+            throw new IllegalStateException("Invalid BQ prerequisite entry type");
+        }
+        for (int i = 0; i < prerequisites.tagCount(); i++) {
+            requireId(prerequisites.getCompoundTagAt(i), "questID");
+        }
+    }
+
+    private static long requireLong(JsonObject object, String key) {
+        JsonElement value = object.get(key);
+        if (value == null || !value.isJsonPrimitive()
+            || !value.getAsJsonPrimitive()
+                .isNumber()) {
+            throw new IllegalStateException("Missing/non-numeric BQ identity or order: " + key);
+        }
+        // Gson getAsLong silently truncates fractional and overflowing values.
+        return new BigDecimal(value.getAsString()).longValueExact();
+    }
+
+    private static UUID requireId(NBTTagCompound tag, String prefix) {
+        // Native BQ readId defaults absent or wrongly typed halves to zero.
+        if (!tag.hasKey(prefix + "High", Constants.NBT.TAG_LONG)
+            || !tag.hasKey(prefix + "Low", Constants.NBT.TAG_LONG)) {
+            throw new IllegalStateException("Missing/invalid BQ identity: " + prefix);
+        }
+        return new UUID(tag.getLong(prefix + "High"), tag.getLong(prefix + "Low"));
+    }
+
+    private static NBTTagCompound requireResource(Map<String, NBTTagCompound> resources,
+        Function<String, NBTTagCompound> reader, String path) {
+        NBTTagCompound tag = resources.get(path);
+        if (tag == null) {
+            tag = reader.apply(path);
+            if (tag == null) throw new IllegalStateException("Incomplete BQ quest pack: " + path);
+            resources.put(path, tag);
+        }
+        return tag;
+    }
+
     /**
      * 装载单条任务线及其下所有任务（全幂等 + 版本化定义刷新）。
      * <p>
@@ -187,15 +316,15 @@ public final class BqQuestInjector {
      * （进度快照→readFromNBT→merge 回填，完成/领取保留），挂线坐标用
      * {@code line.put} 直接替换（UuidDatabase map 语义）。
      * <p>
-     * 剪枝规则（无条件执行）：线上存在、但 index.json 清单中已不存在的任务视为
-     * 已删除——摘线并从任务数据库移除（进度文件残留无害），使删除操作同样
-     * 自动传播到老世界。
+     * 剪枝规则（无条件执行）：GTSR 线上存在、但清单中已不存在的 GTSR 任务摘线；
+     * 全部线装载后确认没有其他线引用才从数据库移除。外部 UUID 的任务和线不剪枝。
      *
      * @param lineSpec index.json 中该线的声明对象
      * @param refresh  是否对已存在任务执行定义刷新
      * @return int[]{本次新建任务数, 本次刷新定义任务数, 本次剪枝删除任务数, 线新建(0/1), 本次跳过任务数}
      */
-    private static int[] loadQuestLine(JsonObject lineSpec, boolean refresh) {
+    private static int[] loadQuestLine(JsonObject lineSpec, boolean refresh, Map<String, NBTTagCompound> resources,
+        Set<UUID> pruneCandidates, Set<UUID> progressTargets) {
         UUID lineId = new UUID(
             lineSpec.get("idHigh")
                 .getAsLong(),
@@ -207,20 +336,17 @@ public final class BqQuestInjector {
         IQuestLine line = QuestLineDatabase.INSTANCE.get(lineId);
         boolean lineCreated = false;
         if (line == null) {
-            NBTTagCompound lineTag = readNbtResource(
+            NBTTagCompound lineTag = resources.get(
                 lineSpec.get("lineFile")
                     .getAsString());
-            if (lineTag == null) {
-                GTSteamReborn.LOG.warn("[BQ] 任务线定义文件缺失，跳过该线: {}", lineSpec.get("lineFile"));
-                return new int[] { 0, 0, 0, 0, 0 };
-            }
             line = new QuestLine();
             line.readFromNBT(lineTag);
             QuestLineDatabase.INSTANCE.put(lineId, line);
             lineCreated = true;
         }
-        // setOrderIndex 幂等（仅重排 lineOrder 列表），无条件执行
-        QuestLineDatabase.INSTANCE.setOrderIndex(lineId, orderIndex);
+        // Existing foreign/custom lines are get-or-create only; do not reorder another pack.
+        boolean managedLine = lineId.getMostSignificantBits() == MANAGED_QUEST_HIGH;
+        if (lineCreated || managedLine) QuestLineDatabase.INSTANCE.setOrderIndex(lineId, orderIndex);
 
         int created = 0;
         int refreshed = 0;
@@ -230,22 +356,23 @@ public final class BqQuestInjector {
         for (int i = 0; i < entries.size(); i++) {
             JsonObject entry = entries.get(i)
                 .getAsJsonObject();
-            NBTTagCompound questTag = readNbtResource(
+            NBTTagCompound questTag = resources.get(
                 entry.get("questFile")
                     .getAsString());
-            if (questTag == null) {
-                GTSteamReborn.LOG.warn("[BQ] 任务定义文件缺失，跳过: {}", entry.get("questFile"));
-                continue;
-            }
-            UUID questId = NBTConverter.UuidValueType.QUEST.readId(questTag);
+            UUID questId = requireId(questTag, "questID");
             expected.add(questId);
             IQuest existing = QuestDatabase.INSTANCE.get(questId);
             if (existing == null) {
+                // Only missing definitions lose their progress during BQ's default reload.
+                // Existing quests already have authoritative in-memory progress (including
+                // resets/claims made by earlier startup handlers). Never replay older disk
+                // records over that state, even when the UUID belongs to this pack.
+                progressTargets.add(questId);
                 IQuest quest = new QuestInstance();
                 quest.readFromNBT(questTag);
                 QuestDatabase.INSTANCE.put(questId, quest);
                 created++;
-            } else if (refresh) {
+            } else if (refresh && questId.getMostSignificantBits() == MANAGED_QUEST_HIGH) {
                 // 版本升级：重读定义（名称/描述/前置/奖励/任务），玩家进度保留
                 refreshDefinition(existing, questTag);
                 refreshed++;
@@ -255,35 +382,24 @@ public final class BqQuestInjector {
             }
             // 任务必须挂线（/bq_admin purge_hidden_quests 会清未挂线任务）：未挂才 put；
             // 已挂线且刷新中则替换条目以同步编辑器坐标
-            if (line.get(questId) == null) {
-                NBTTagCompound entryTag = readNbtResource(
+            if (line.get(questId) == null
+                || (refresh && managedLine && questId.getMostSignificantBits() == MANAGED_QUEST_HIGH)) {
+                NBTTagCompound entryTag = resources.get(
                     entry.get("entryFile")
                         .getAsString());
-                if (entryTag == null) {
-                    GTSteamReborn.LOG.warn("[BQ] 线内条目文件缺失，任务暂未挂线: {}", entry.get("entryFile"));
-                    continue;
-                }
                 line.put(questId, new QuestLineEntry(entryTag));
-            } else if (refresh) {
-                NBTTagCompound entryTag = readNbtResource(
-                    entry.get("entryFile")
-                        .getAsString());
-                if (entryTag == null) {
-                    GTSteamReborn.LOG.warn("[BQ] 线内条目文件缺失，坐标保持原样: {}", entry.get("entryFile"));
-                } else {
-                    line.put(questId, new QuestLineEntry(entryTag));
-                }
             }
         }
-        // 剪枝：清单中已删除的任务从线上摘除并移出任务数据库（无条件执行，删除自动传播到老世界）
+        // Only remove owned stale entries. Foreign editor-added quests and quests shared with
+        // another line must survive; global deletion waits until all declared lines are loaded.
         int pruned = 0;
         List<UUID> stale = line.orderedEntries()
             .map(Map.Entry::getKey)
-            .filter(id -> !expected.contains(id))
+            .filter(id -> managedLine && id.getMostSignificantBits() == MANAGED_QUEST_HIGH && !expected.contains(id))
             .collect(Collectors.toList());
         for (UUID id : stale) {
             line.remove(id);
-            QuestDatabase.INSTANCE.remove(id);
+            pruneCandidates.add(id);
             pruned++;
         }
         if (pruned > 0) {
@@ -388,29 +504,51 @@ public final class BqQuestInjector {
      * <p>
      * default load 的进度快照恢复只对"库内存在"的任务生效，本 mod 任务
      * 在其 clear→重载窗口内不在库中，进度被静默丢弃；此处注册完成后
-     * （早于任何玩家登录）从 QuestProgress 目录逐玩家 merge=true 重放。
-     * merge 幂等：config 任务内存进度与磁盘同源同值，注入任务刚注册无内存进度。
+     * （早于任何玩家登录）先从旧版 QuestProgress.json，再从 QuestProgress 目录逐玩家
+     * merge=true 重放，仅限本次补建的任务；已存任务以内存为准，不以旧磁盘记录撤销领取/重置。
+     * 补建任务没有内存进度；已存任务的定义刷新通过快照回填保留其当前状态。
      * 不调用 savePlayerProgress/markDirtyPlayers，也不再 quickSync（无在线玩家）。
      */
-    private static void restoreProgress() {
+    private static void restoreProgress(Set<UUID> progressTargets) {
+        if (progressTargets.isEmpty()) return;
+        // BQ 3.8.87 loads the legacy aggregate first, then newer per-player files. The aggregate
+        // may still be the only copy of progress for quests absent during BQ's default reload.
+        restoreProgressFile(new File(BQ_Settings.curWorldDir, "QuestProgress.json"), progressTargets);
         File dir = new File(BQ_Settings.curWorldDir, "QuestProgress");
         File[] files = dir.listFiles();
-        if (files == null) {
-            return;
-        }
+        if (files == null) return;
         for (File f : files) {
-            if (!f.getName()
-                .endsWith(".json")) {
-                continue;
+            if (f.getName()
+                .endsWith(".json")) restoreProgressFile(f, progressTargets);
+        }
+    }
+
+    private static void restoreProgressFile(File file, Set<UUID> progressTargets) {
+        if (!file.isFile()) return;
+        try {
+            JsonObject json = JsonHelper.ReadFromFile(file);
+            // Validate before the converter can silently truncate fractional/overflowing UUIDs.
+            validateResourceIds(json);
+            NBTTagCompound nbt = NBTConverter.JSONtoNBT_Object(json, new NBTTagCompound(), true);
+            if (!nbt.hasKey("questProgress", Constants.NBT.TAG_LIST)) {
+                throw new IllegalStateException("Missing BQ questProgress list");
             }
-            try {
-                NBTTagCompound nbt = NBTConverter
-                    .JSONtoNBT_Object(JsonHelper.ReadFromFile(f), new NBTTagCompound(), true);
-                QuestDatabase.INSTANCE
-                    .readProgressFromNBT(nbt.getTagList("questProgress", Constants.NBT.TAG_COMPOUND), true);
-            } catch (Throwable t) {
-                GTSteamReborn.LOG.warn("[BQ] 进度回填跳过无法解析的文件: {}", f.getName(), t);
+            NBTTagList entries = nbt.getTagList("questProgress", Constants.NBT.TAG_COMPOUND);
+            List<NBTTagCompound> selected = new ArrayList<>();
+            for (int i = 0; i < entries.tagCount(); i++) {
+                NBTTagCompound entry = entries.getCompoundTagAt(i);
+                // Old integer-ID quests belong to the upstream book, not this UUID-based pack.
+                if (!entry.hasKey("questIDHigh") && !entry.hasKey("questIDLow")) continue;
+                UUID id = requireId(entry, "questID");
+                if (progressTargets.contains(id)) selected.add(entry);
             }
+            // Validate the complete file's identities before replaying any selected record.
+            for (NBTTagCompound entry : selected) {
+                IQuest quest = QuestDatabase.INSTANCE.get(requireId(entry, "questID"));
+                if (quest != null) quest.readProgressFromNBT(entry, true);
+            }
+        } catch (Throwable t) {
+            GTSteamReborn.LOG.warn("[BQ] 进度回填跳过无法解析的文件: {}", file.getName(), t);
         }
     }
 
@@ -428,8 +566,29 @@ public final class BqQuestInjector {
         if (json == null) {
             return null;
         }
+        validateResourceIds(json);
         resolveRuntimeTargets(json);
         return NBTConverter.JSONtoNBT_Object(json, new NBTTagCompound(), true);
+    }
+
+    private static void validateResourceIds(JsonElement element) {
+        if (element.isJsonArray()) {
+            for (JsonElement child : element.getAsJsonArray()) validateResourceIds(child);
+        } else if (element.isJsonObject()) {
+            JsonObject object = element.getAsJsonObject();
+            for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
+                String key = entry.getKey();
+                for (String id : new String[] { "questIDHigh", "questIDLow", "questLineIDHigh", "questLineIDLow" }) {
+                    if (key.equals(id) || key.startsWith(id + ":")) {
+                        // Reject alternate type tags too: JSONtoNBT strips suffixes and could
+                        // otherwise let a second same-name tag overwrite the checked UUID half.
+                        if (!key.equals(id + ":4")) throw new IllegalStateException("Invalid BQ UUID tag: " + key);
+                        requireLong(object, key);
+                    }
+                }
+                validateResourceIds(entry.getValue());
+            }
+        }
     }
 
     /** Resolve only GTSR's explicitly marked targets after GT has registered its material cells. */

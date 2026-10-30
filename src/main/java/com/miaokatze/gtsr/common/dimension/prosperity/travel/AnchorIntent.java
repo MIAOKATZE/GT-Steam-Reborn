@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.travel;
 
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -31,9 +32,20 @@ public final class AnchorIntent {
     private static final AtomicInteger QUEUED = new AtomicInteger();
     private static final Map<UUID, Pending> WAITING = new HashMap<>();
     private static final Map<UUID, Use> USES = new HashMap<>();
-    private static final Map<UUID, Integer> LAST = new HashMap<>();
+    // ticksExisted belongs to an entity lifetime, not a UUID: death/relogin creates a new clock.
+    private static final Map<UUID, LastMark> LAST = new HashMap<>();
 
     private AnchorIntent() {}
+
+    public static void resetServerState() {
+        synchronized (QUEUE) {
+            QUEUE.clear();
+            QUEUED.set(0);
+            WAITING.clear();
+            USES.clear();
+            LAST.clear();
+        }
+    }
 
     public static void init() {
         NET.registerMessage(Handler.class, Intent.class, 0, Side.SERVER);
@@ -63,14 +75,27 @@ public final class AnchorIntent {
         }
     }
 
+    private static final class LastMark {
+
+        final WeakReference<EntityPlayerMP> player;
+        final int tick;
+
+        LastMark(EntityPlayerMP p) {
+            player = new WeakReference<>(p);
+            tick = p.ticksExisted;
+        }
+    }
+
     private static final class Pending {
 
         final NetHandlerPlayServer handler;
+        final EntityPlayerMP player;
         final long receivedNanos;
         int firstTick;
 
         Pending(NetHandlerPlayServer h) {
             handler = h;
+            player = h.playerEntity;
             receivedNanos = System.nanoTime();
         }
     }
@@ -92,11 +117,11 @@ public final class AnchorIntent {
 
         public IMessage onMessage(Intent m, MessageContext c) {
             if (m.valid && c.getServerHandler() != null) {
-                if (QUEUED.incrementAndGet() > 128) {
-                    QUEUED.decrementAndGet();
-                    return null;
+                synchronized (QUEUE) {
+                    if (QUEUED.get() >= 128) return null;
+                    QUEUE.add(new Pending(c.getServerHandler()));
+                    QUEUED.incrementAndGet();
                 }
-                QUEUE.add(new Pending(c.getServerHandler()));
             }
             return null;
         }
@@ -107,10 +132,15 @@ public final class AnchorIntent {
         @SubscribeEvent
         public void tick(TickEvent.ServerTickEvent event) {
             if (event.phase != TickEvent.Phase.END) return;
-            Pending incoming;
-            while ((incoming = QUEUE.poll()) != null) {
-                EntityPlayerMP p = incoming.handler.playerEntity;
-                if (p == null || p.playerNetServerHandler != incoming.handler
+            for (int drained = 0; drained < 128; drained++) {
+                Pending incoming;
+                synchronized (QUEUE) {
+                    incoming = QUEUE.poll();
+                    if (incoming == null) break;
+                }
+                EntityPlayerMP p = incoming.player;
+                if (p == null || incoming.handler.playerEntity != p
+                    || p.playerNetServerHandler != incoming.handler
                     || !incoming.handler.netManager.isChannelOpen()
                     || System.nanoTime() - incoming.receivedNanos > 500000000L) {
                     QUEUED.decrementAndGet();
@@ -129,8 +159,9 @@ public final class AnchorIntent {
             while (it.hasNext()) {
                 Map.Entry<UUID, Pending> entry = it.next();
                 Pending pending = entry.getValue();
-                EntityPlayerMP p = pending.handler.playerEntity;
-                boolean connected = p != null && p.playerNetServerHandler == pending.handler
+                EntityPlayerMP p = pending.player;
+                boolean connected = p != null && pending.handler.playerEntity == p
+                    && p.playerNetServerHandler == pending.handler
                     && pending.handler.netManager.isChannelOpen();
                 Use use = USES.get(entry.getKey());
                 if (connected && use == null
@@ -139,21 +170,24 @@ public final class AnchorIntent {
                 it.remove();
                 QUEUED.decrementAndGet();
                 if (!connected) {
-                    USES.remove(entry.getKey());
-                    LAST.remove(entry.getKey());
+                    if (use != null && use.player == p) USES.remove(entry.getKey());
+                    LastMark last = LAST.get(entry.getKey());
+                    if (last != null && last.player.get() == p) LAST.remove(entry.getKey());
                     continue;
                 }
                 ItemStack held = p.getHeldItem();
-                if (use == null || System.nanoTime() - pending.receivedNanos > 500000000L
+                if (use == null || use.player != p
+                    || System.nanoTime() - pending.receivedNanos > 500000000L
+                    || p.ticksExisted - use.tick < 0
                     || p.ticksExisted - use.tick > 5
                     || held != use.stack
                     || held == null
                     || !(held.getItem() instanceof SpacetimeAnchorBeacon)
                     || !SpacetimeTravel.eligible(p)) continue;
-                int last = LAST.getOrDefault(entry.getKey(), -100);
-                if (p.ticksExisted - last < 5) continue;
+                LastMark last = LAST.get(entry.getKey());
+                if (last != null && last.player.get() == p && p.ticksExisted - last.tick < 5) continue;
                 USES.remove(entry.getKey());
-                LAST.put(entry.getKey(), p.ticksExisted);
+                LAST.put(entry.getKey(), new LastMark(p));
                 p.stopUsingItem();
                 SpacetimeTravel.mark(p, held);
             }

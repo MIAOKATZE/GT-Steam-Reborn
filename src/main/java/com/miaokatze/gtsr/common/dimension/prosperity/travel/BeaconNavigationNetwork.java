@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.travel;
 
+import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -7,6 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.WorldProviderProsperityRuins;
@@ -14,6 +16,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarNaviga
 import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterData;
 import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterSite;
 import com.miaokatze.gtsr.common.items.SpacetimeAnchorBeacon;
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -55,10 +58,12 @@ public final class BeaconNavigationNetwork {
         return false;
     }
 
-    private static boolean connected(EntityPlayerMP player) {
-        return player != null && player.isEntityAlive()
-            && player.playerNetServerHandler != null
-            && player.playerNetServerHandler.netManager.isChannelOpen();
+    public static void resetServerState() {
+        synchronized (QUEUE) {
+            QUEUE.clear();
+            QUEUED.set(0);
+        }
+        SESSIONS.clear();
     }
 
     @SubscribeEvent
@@ -66,16 +71,23 @@ public final class BeaconNavigationNetwork {
         if (event.phase != TickEvent.Phase.END) return;
         SpacetimeAltarNavigationSearch.beginTick();
         for (int i = 0; i < 32; i++) {
-            Pending pending = QUEUE.poll();
-            if (pending == null) break;
-            QUEUED.decrementAndGet();
+            Pending pending;
+            synchronized (QUEUE) {
+                pending = QUEUE.poll();
+                if (pending == null) break;
+                QUEUED.decrementAndGet();
+            }
             EntityPlayerMP player = pending.player;
-            if (connected(player) && pending.hello.dimension == player.dimension) {
+            if (ServerPacketAuthority.isCurrentPlayer(player, pending.connection) && player.isEntityAlive()
+                && pending.hello.dimension == player.dimension) {
                 Session session = SESSIONS.get(player);
-                if (session == null || session.world != player.worldObj
-                    || session.connection != player.playerNetServerHandler
+                if (session == null || session.player.get() != player
+                    || session.world.get() != player.worldObj
+                    || session.connection.get() != player.playerNetServerHandler
                     || session.nonce != pending.hello.nonce) {
                     session = new Session(player, pending.hello.nonce);
+                    // Vanilla respawn can reuse Entity.equals IDs; replace the weak key as well.
+                    SESSIONS.remove(player);
                     SESSIONS.put(player, session);
                 }
                 // Ack even without a beacon. Repeated hello packets do not reset targets or cause index queries.
@@ -93,8 +105,10 @@ public final class BeaconNavigationNetwork {
             Map.Entry<EntityPlayerMP, Session> entry = iterator.next();
             EntityPlayerMP player = entry.getKey();
             Session session = entry.getValue();
-            if (!connected(player) || player.worldObj != session.world
-                || player.playerNetServerHandler != session.connection) {
+            if (session.player.get() != player
+                || !ServerPacketAuthority.isCurrentPlayer(player, session.connection.get())
+                || !player.isEntityAlive()
+                || player.worldObj != session.world.get()) {
                 iterator.remove();
                 continue;
             }
@@ -159,8 +173,9 @@ public final class BeaconNavigationNetwork {
 
     private static final class Session {
 
-        final World world;
-        final net.minecraft.network.NetHandlerPlayServer connection;
+        final WeakReference<EntityPlayerMP> player;
+        final WeakReference<World> world;
+        final WeakReference<NetHandlerPlayServer> connection;
         final long nonce;
         final BeaconTargetLock target = new BeaconTargetLock();
         private boolean sent;
@@ -168,8 +183,9 @@ public final class BeaconNavigationNetwork {
         long lastHelloTick = Long.MIN_VALUE;
 
         Session(EntityPlayerMP player, long nonce) {
-            world = player.worldObj;
-            connection = player.playerNetServerHandler;
+            this.player = new WeakReference<>(player);
+            world = new WeakReference<>(player.worldObj);
+            connection = new WeakReference<>(player.playerNetServerHandler);
             this.nonce = nonce;
         }
 
@@ -187,10 +203,12 @@ public final class BeaconNavigationNetwork {
     private static final class Pending {
 
         final EntityPlayerMP player;
+        final NetHandlerPlayServer connection;
         final Hello hello;
 
-        Pending(EntityPlayerMP player, Hello hello) {
-            this.player = player;
+        Pending(NetHandlerPlayServer connection, Hello hello) {
+            this.connection = connection;
+            this.player = connection.playerEntity;
             this.hello = hello;
         }
     }
@@ -283,12 +301,12 @@ public final class BeaconNavigationNetwork {
 
         @Override
         public IMessage onMessage(Hello hello, MessageContext context) {
-            if (!hello.valid) return null;
-            if (QUEUED.incrementAndGet() > 64) {
-                QUEUED.decrementAndGet();
-                return null;
+            if (!hello.valid || context.getServerHandler() == null) return null;
+            synchronized (QUEUE) {
+                if (QUEUED.get() >= 64) return null;
+                QUEUE.add(new Pending(context.getServerHandler(), hello));
+                QUEUED.incrementAndGet();
             }
-            QUEUE.add(new Pending(context.getServerHandler().playerEntity, hello));
             return null;
         }
     }

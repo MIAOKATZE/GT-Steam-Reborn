@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.loader.recipes;
 
-import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.filterNulls;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.get;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.hasNull;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.log;
@@ -11,6 +10,7 @@ import static gregtech.api.util.GTRecipeBuilder.SECONDS;
 
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
@@ -127,26 +127,27 @@ public final class MultiblockMachineRecipes {
         // --- 临界蒸汽纠缠奇点稳定装置 (GTUDK 配方：替换原 LV 配方，IV 级) ---
         ItemStack cscOut = get(GTSRItemList.CriticalSingularityCompressor, 1);
         if (!hasNull(cscOut)) {
-            ItemStack[] cscInputs = filterNulls(
+            ItemStack[] cscInputs = new ItemStack[] {
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings8"), 64, 6),
                 new ItemStack(GameRegistry.findItem("gregtech", "bw.frames"), 64, 88),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.blockframes"), 32, 70),
                 get(OrePrefixes.circuit, Materials.UV, 16),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings4"), 32, 7),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings4"), 32, 6),
-                GTSRItemList.SteamEntangledSingularity.get(64),
-                GTSRItemList.SteamEntangledSingularity.get(64),
-                GTSRItemList.SteamEntangledSingularity.get(64));
-            if (!hasNull(cscInputs)) {
+                GTSRItemList.SteamEntangledSingularity.get(64), GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64) };
+            // GT's builder removes null fluids; missing required solder must skip, not discount, the recipe.
+            FluidStack cscSolder = FluidRegistry.getFluidStack("molten.indalloy140", 32000);
+            if (!hasNull(cscInputs) && cscSolder != null) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(cscInputs)
                     .itemOutputs(cscOut)
-                    .fluidInputs(FluidRegistry.getFluidStack("molten.indalloy140", 32000))
+                    .fluidInputs(cscSolder)
                     .duration(4800)
                     .eut(32768)
                     .addTo(assemblerRecipes);
             } else {
-                warn("Skipped CriticalSingularityCompressor recipe - inputs contain null");
+                warn("Skipped CriticalSingularityCompressor recipe - required items or solder are missing");
             }
         } else {
             warn("Skipped CriticalSingularityCompressor recipe - output is null");
@@ -155,26 +156,26 @@ public final class MultiblockMachineRecipes {
         // --- 致密态操纵装置 (GTUDK 配方：替换原 LV 配方，IV 级) ---
         ItemStack dsmOut = get(GTSRItemList.DenseStateManipulator, 1);
         if (!hasNull(dsmOut)) {
-            ItemStack[] dsmInputs = filterNulls(
+            ItemStack[] dsmInputs = new ItemStack[] {
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings8"), 64, 6),
                 new ItemStack(GameRegistry.findItem("gregtech", "bw.frames"), 64, 88),
                 new ItemStack(GTVersionCompat.getTieredBorosilicateGlassBlock(), 64, 3),
                 get(OrePrefixes.circuit, Materials.UV, 16),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings4"), 64, 7),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 16, 32645),
-                GTSRItemList.SteamEntangledSingularity.get(64),
-                GTSRItemList.SteamEntangledSingularity.get(64),
-                GTSRItemList.SteamEntangledSingularity.get(64));
-            if (!hasNull(dsmInputs)) {
+                GTSRItemList.SteamEntangledSingularity.get(64), GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64) };
+            FluidStack dsmSolder = FluidRegistry.getFluidStack("molten.indalloy140", 32000);
+            if (!hasNull(dsmInputs) && dsmSolder != null) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(dsmInputs)
                     .itemOutputs(dsmOut)
-                    .fluidInputs(FluidRegistry.getFluidStack("molten.indalloy140", 32000))
+                    .fluidInputs(dsmSolder)
                     .duration(4800)
                     .eut(32768)
                     .addTo(assemblerRecipes);
             } else {
-                warn("Skipped DenseStateManipulator recipe - inputs contain null");
+                warn("Skipped DenseStateManipulator recipe - required items or solder are missing");
             }
         } else {
             warn("Skipped DenseStateManipulator recipe - output is null");
@@ -183,13 +184,13 @@ public final class MultiblockMachineRecipes {
         // --- 热化学致密蒸汽发生系统 (GTUDK 配方导出 2026-09-07，编程电路不消耗，EUt 512) ---
         ItemStack tcdsOut = get(GTSRItemList.TcdsController, 1);
         if (!hasNull(tcdsOut)) {
-            ItemStack[] tcdsInputs = filterNulls(
+            ItemStack[] tcdsInputs = new ItemStack[] {
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings4"), 32, 1),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.blockframes"), 64, 306),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.blockmachines"), 64, 5144),
                 get(OrePrefixes.circuit, Materials.HV, 32),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 32, 32622),
-                new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 48, 32612));
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 48, 32612) };
             if (!hasNull(tcdsInputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(tcdsInputs)
@@ -224,40 +225,42 @@ public final class MultiblockMachineRecipes {
 
         ItemStack paOut = get(GTSRItemList.KineticProcessingArray, 1);
         if (!hasNull(paOut)) {
-            ItemStack[] inputs = filterNulls(
-                GTSRItemList.SteamEntangledSingularity.get(8),
-                get(OrePrefixes.frameGt, Materials.Steel, 4),
-                get(OrePrefixes.circuit, Materials.LV, 4),
-                ItemList.Electric_Motor_LV.get(4),
-                ItemList.Conveyor_Module_LV.get(4),
-                ItemList.Electric_Pump_LV.get(4));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(paOut)
-                .fluidInputs(Materials.SolderingAlloy.getMolten(16 * INGOTS))
-                .duration(60 * SECONDS)
-                .eut(TierEU.RECIPE_LV)
-                .addTo(assemblerRecipes);
+            ItemStack[] inputs = new ItemStack[] { GTSRItemList.SteamEntangledSingularity.get(8),
+                get(OrePrefixes.frameGt, Materials.Steel, 4), get(OrePrefixes.circuit, Materials.LV, 4),
+                ItemList.Electric_Motor_LV.get(4), ItemList.Conveyor_Module_LV.get(4),
+                ItemList.Electric_Pump_LV.get(4) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(paOut)
+                    .fluidInputs(Materials.SolderingAlloy.getMolten(16 * INGOTS))
+                    .duration(60 * SECONDS)
+                    .eut(TierEU.RECIPE_LV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped KineticProcessingArray recipe - output is null");
         }
 
         ItemStack voidBorerOut = get(GTSRItemList.CrustMatterAggregator, 1);
         if (!hasNull(voidBorerOut)) {
-            ItemStack[] inputs = filterNulls(
-                GTSRItemList.SteamEntangledSingularity.get(8),
-                GTSRItemList.CrustSteamBorer.get(1),
-                get(OrePrefixes.plateTriple, Materials.Steel, 8),
-                get(OrePrefixes.frameGt, Materials.Steel, 2),
-                get(OrePrefixes.circuit, Materials.LV, 2),
-                ItemList.Electric_Piston_LV.get(4));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(voidBorerOut)
-                .fluidInputs(Materials.SolderingAlloy.getMolten(4 * INGOTS))
-                .duration(30 * SECONDS)
-                .eut(TierEU.RECIPE_LV)
-                .addTo(assemblerRecipes);
+            ItemStack[] inputs = new ItemStack[] { GTSRItemList.SteamEntangledSingularity.get(8),
+                GTSRItemList.CrustSteamBorer.get(1), get(OrePrefixes.plateTriple, Materials.Steel, 8),
+                get(OrePrefixes.frameGt, Materials.Steel, 2), get(OrePrefixes.circuit, Materials.LV, 2),
+                ItemList.Electric_Piston_LV.get(4) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(voidBorerOut)
+                    .fluidInputs(Materials.SolderingAlloy.getMolten(4 * INGOTS))
+                    .duration(30 * SECONDS)
+                    .eut(TierEU.RECIPE_LV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped CrustMatterAggregator recipe - output is null");
         }
@@ -268,16 +271,12 @@ public final class MultiblockMachineRecipes {
         // --- 强化奇点枢纽升级芯片 ---
         ItemStack reinforcedChipOut = get(GTSRItemList.ReinforcedHubSingularityChip, 1);
         if (!hasNull(reinforcedChipOut)) {
-            ItemStack[] inputs = filterNulls(
-                GTSRItemList.SteamEntangledSingularity.get(64),
-                GTSRItemList.SteamEntangledSingularity.get(64),
-                GTSRItemList.SteamEntangledSingularity.get(64),
-                GTSRItemList.SteamEntangledSingularity.get(64),
-                GTSRItemList.SteamEntangledSingularity.get(64),
-                GTSRItemList.SteamEntangledSingularity.get(64),
-                get(OrePrefixes.circuit, Materials.UV, 16),
+            ItemStack[] inputs = new ItemStack[] { GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64), GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64), GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64), get(OrePrefixes.circuit, Materials.UV, 16),
                 get(OrePrefixes.plateDense, Materials.Europium, 32),
-                get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 64));
+                get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 64) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -305,16 +304,17 @@ public final class MultiblockMachineRecipes {
                                                                                                // 已确认）
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 64, 32616) }; // 电动泵 ZPM（GT5U lang
                                                                                                  // 已确认）
-            if (!hasNull(inputs)) {
+            FluidStack turbineChipGas = FluidRegistry.getFluidStack("oganesson", 1000);
+            if (!hasNull(inputs) && turbineChipGas != null) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
                     .itemOutputs(turbineChipOut)
-                    .fluidInputs(FluidRegistry.getFluidStack("oganesson", 1000))
+                    .fluidInputs(turbineChipGas)
                     .duration(12000)
                     .eut(131072)
                     .addTo(assemblerRecipes);
             } else {
-                warn("Skipped SteamTurbineCycleOverlimitChip recipe - inputs contain null");
+                warn("Skipped SteamTurbineCycleOverlimitChip recipe - required items or oganesson are missing");
             }
         } else {
             warn("Skipped SteamTurbineCycleOverlimitChip recipe - output is null");
@@ -326,13 +326,11 @@ public final class MultiblockMachineRecipes {
         // --- 超压蒸汽缓存节点 ---
         ItemStack overpressureCacheOut = get(GTSRItemList.OverpressureSteamCacheNode, 1);
         if (!hasNull(overpressureCacheOut)) {
-            ItemStack[] inputs = filterNulls(
-                GTSRItemList.CriticalSteamEntangledSingularity.get(16),
-                GTSRItemList.ReinforcedSteamCacheNode.get(1),
-                get(OrePrefixes.circuit, Materials.LuV, 4),
+            ItemStack[] inputs = new ItemStack[] { GTSRItemList.CriticalSteamEntangledSingularity.get(16),
+                GTSRItemList.ReinforcedSteamCacheNode.get(1), get(OrePrefixes.circuit, Materials.LuV, 4),
                 ItemList.Sensor_LuV.get(2),
                 get(OrePrefixes.screw, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 64),
-                get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 16));
+                get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 16) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -351,13 +349,11 @@ public final class MultiblockMachineRecipes {
         // --- 超压通用流体缓存节点（镜像超压蒸汽缓存节点：下位节点升级式组装机配方） ---
         ItemStack overpressureWaterCacheOut = get(GTSRItemList.OverpressureWaterCacheNode, 1);
         if (!hasNull(overpressureWaterCacheOut)) {
-            ItemStack[] inputs = filterNulls(
-                GTSRItemList.CriticalSteamEntangledSingularity.get(16),
-                GTSRItemList.ReinforcedWaterCacheNode.get(1),
-                get(OrePrefixes.circuit, Materials.LuV, 4),
+            ItemStack[] inputs = new ItemStack[] { GTSRItemList.CriticalSteamEntangledSingularity.get(16),
+                GTSRItemList.ReinforcedWaterCacheNode.get(1), get(OrePrefixes.circuit, Materials.LuV, 4),
                 ItemList.Sensor_LuV.get(2),
                 get(OrePrefixes.screw, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 64),
-                get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 16));
+                get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 16) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -377,12 +373,9 @@ public final class MultiblockMachineRecipes {
     /** 奇点仓四件套段（GTUDK 组装机配方，电路 1/2 区分输入输出仓）。 */
     private static void registerAssemblerSingularityCompartments() {
         // --- 奇点仓四件套（GTUDK 组装机配方） ---
-        ItemStack[] singularityInputs = filterNulls(
-            GTSRItemList.ReinforcedWaterCacheNode.get(1),
-            GTSRItemList.SteamEntangledSingularity.get(24),
-            ItemList.Sensor_LV.get(12),
-            get(OrePrefixes.circuit, Materials.LV, 24),
-            get(OrePrefixes.plate, Materials.PulsatingIron, 48));
+        ItemStack[] singularityInputs = new ItemStack[] { GTSRItemList.ReinforcedWaterCacheNode.get(1),
+            GTSRItemList.SteamEntangledSingularity.get(24), ItemList.Sensor_LV.get(12),
+            get(OrePrefixes.circuit, Materials.LV, 24), get(OrePrefixes.plate, Materials.PulsatingIron, 48) };
         ItemStack singularitySteamCompartment = get(GTSRItemList.SingularityFluidInputCompartment, 1);
         if (!hasNull(singularityInputs) && !hasNull(singularitySteamCompartment)) GTValues.RA.stdBuilder()
             .itemInputs(singularityInputs)
@@ -392,12 +385,9 @@ public final class MultiblockMachineRecipes {
             .duration(3200)
             .eut(TierEU.RECIPE_LV)
             .addTo(assemblerRecipes);
-        ItemStack[] singularitySteamOutputInputs = filterNulls(
-            GTSRItemList.ReinforcedWaterCacheNode.get(1),
-            GTSRItemList.SteamEntangledSingularity.get(24),
-            ItemList.Emitter_LV.get(12),
-            get(OrePrefixes.circuit, Materials.LV, 24),
-            get(OrePrefixes.plate, Materials.PulsatingIron, 48));
+        ItemStack[] singularitySteamOutputInputs = new ItemStack[] { GTSRItemList.ReinforcedWaterCacheNode.get(1),
+            GTSRItemList.SteamEntangledSingularity.get(24), ItemList.Emitter_LV.get(12),
+            get(OrePrefixes.circuit, Materials.LV, 24), get(OrePrefixes.plate, Materials.PulsatingIron, 48) };
         ItemStack singularitySteamOutputCompartment = get(GTSRItemList.SingularityFluidOutputCompartment, 1);
         if (!hasNull(singularitySteamOutputInputs) && !hasNull(singularitySteamOutputCompartment))
             GTValues.RA.stdBuilder()
@@ -408,12 +398,9 @@ public final class MultiblockMachineRecipes {
                 .duration(3200)
                 .eut(TierEU.RECIPE_LV)
                 .addTo(assemblerRecipes);
-        ItemStack[] singularityFluidInputs = filterNulls(
-            GTSRItemList.ReinforcedSteamCacheNode.get(1),
-            GTSRItemList.SteamEntangledSingularity.get(16),
-            ItemList.Sensor_LV.get(8),
-            get(OrePrefixes.circuit, Materials.LV, 16),
-            get(OrePrefixes.plateTriple, Materials.Steel, 32));
+        ItemStack[] singularityFluidInputs = new ItemStack[] { GTSRItemList.ReinforcedSteamCacheNode.get(1),
+            GTSRItemList.SteamEntangledSingularity.get(16), ItemList.Sensor_LV.get(8),
+            get(OrePrefixes.circuit, Materials.LV, 16), get(OrePrefixes.plateTriple, Materials.Steel, 32) };
         ItemStack singularityFluidInputCompartment = get(GTSRItemList.SingularitySteamCompartment, 1);
         if (!hasNull(singularityFluidInputs) && !hasNull(singularityFluidInputCompartment)) GTValues.RA.stdBuilder()
             .itemInputs(singularityFluidInputs)
@@ -423,12 +410,9 @@ public final class MultiblockMachineRecipes {
             .duration(3200)
             .eut(TierEU.RECIPE_LV)
             .addTo(assemblerRecipes);
-        ItemStack[] singularityFluidOutputInputs = filterNulls(
-            GTSRItemList.ReinforcedSteamCacheNode.get(1),
-            GTSRItemList.SteamEntangledSingularity.get(16),
-            ItemList.Emitter_LV.get(8),
-            get(OrePrefixes.circuit, Materials.LV, 16),
-            get(OrePrefixes.plateTriple, Materials.Steel, 32));
+        ItemStack[] singularityFluidOutputInputs = new ItemStack[] { GTSRItemList.ReinforcedSteamCacheNode.get(1),
+            GTSRItemList.SteamEntangledSingularity.get(16), ItemList.Emitter_LV.get(8),
+            get(OrePrefixes.circuit, Materials.LV, 16), get(OrePrefixes.plateTriple, Materials.Steel, 32) };
         ItemStack singularityFluidOutputCompartment = get(GTSRItemList.SingularitySteamOutputCompartment, 1);
         if (!hasNull(singularityFluidOutputInputs) && !hasNull(singularityFluidOutputCompartment))
             GTValues.RA.stdBuilder()
@@ -446,12 +430,10 @@ public final class MultiblockMachineRecipes {
         // --- 超压枢纽存储单元 ---
         ItemStack overpressureHubOut = get(GTSRItemList.OverpressureHubStorageUnit, 1);
         if (!hasNull(overpressureHubOut)) {
-            ItemStack[] inputs = filterNulls(
-                GTSRItemList.SteamEntangledSingularity.get(16),
-                GTSRItemList.ReinforcedHubStorageUnit.get(1),
-                ItemList.Super_Tank_IV.get(1),
+            ItemStack[] inputs = new ItemStack[] { GTSRItemList.SteamEntangledSingularity.get(16),
+                GTSRItemList.ReinforcedHubStorageUnit.get(1), ItemList.Super_Tank_IV.get(1),
                 get(OrePrefixes.screw, Materials.TungstenSteel, 16),
-                get(OrePrefixes.plateDense, Materials.TungstenSteel, 4));
+                get(OrePrefixes.plateDense, Materials.TungstenSteel, 4) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -469,14 +451,11 @@ public final class MultiblockMachineRecipes {
         // --- 超压巨型轮机阵列输入仓 ---
         ItemStack overpressureTurbineOut = get(GTSRItemList.OverpressureTurbineInputHatch, 1);
         if (!hasNull(overpressureTurbineOut)) {
-            ItemStack[] inputs = filterNulls(
-                GTSRItemList.SteamEntangledSingularity.get(64),
-                GTSRItemList.SteamEntangledSingularity.get(64),
-                GTSRItemList.PressureSteamHatch.get(1),
-                ItemList.Quantum_Tank_LV.get(1),
-                ItemList.Electric_Pump_LuV.get(16),
+            ItemStack[] inputs = new ItemStack[] { GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64), GTSRItemList.PressureSteamHatch.get(1),
+                ItemList.Quantum_Tank_LV.get(1), ItemList.Electric_Pump_LuV.get(16),
                 get(OrePrefixes.screw, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 16),
-                get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 4));
+                get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 4) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)

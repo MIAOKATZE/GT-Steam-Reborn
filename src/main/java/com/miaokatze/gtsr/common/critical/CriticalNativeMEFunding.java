@@ -46,7 +46,7 @@ public final class CriticalNativeMEFunding {
         }
     }
 
-    /** Consume every matching native stocking view, once per backing ME inventory. */
+    /** Consume matching views once per ME inventory, retaining anything beyond the long receipt capacity. */
     public static ItemConsumption consumeAllItem(MTEMultiBlockBase host, List<MTEHatchInputBus> inputBusses,
         ItemStack wanted) {
         List<MTEHatchInputBusME> opened = new ArrayList<>();
@@ -90,18 +90,21 @@ public final class CriticalNativeMEFunding {
                 }
             }
             for (ItemChoice choice : selected.values()) {
+                // Bound the request before extraction; saturating a sum afterwards would lose paid items.
+                long request = Math.min(choice.amount, Long.MAX_VALUE - amount);
+                if (request == 0) break;
                 if (choice.source == null) {
-                    amount = Math.addExact(amount, choice.ref.stackSize);
-                    choice.ref.stackSize = 0;
+                    amount = Math.addExact(amount, request);
+                    choice.ref.stackSize -= (int) request;
                 } else {
                     longExtractionAttempted = true;
-                    long extracted = choice.source.extract(choice.amount, true);
-                    if (extracted < 0 || extracted > choice.amount) {
+                    long extracted = choice.source.extract(request, true);
+                    if (extracted < 0 || extracted > request) {
                         settled = false;
                         break;
                     }
                     amount = Math.addExact(amount, extracted);
-                    if (extracted != choice.amount) {
+                    if (extracted != request) {
                         settled = false;
                         break;
                     }

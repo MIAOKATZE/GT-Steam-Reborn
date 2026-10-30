@@ -6,7 +6,6 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.IFluidHandler;
 
 import com.miaokatze.gtsr.api.compat.IPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
@@ -74,24 +73,8 @@ public class MTEPressureSteamCoolingHatch extends MTESteamCoolingHatch implement
     }
 
     @Override
-    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (!aBaseMetaTileEntity.isServerSide()) return;
-
-        FluidStack tDrainable = getDrainableStack();
-        if (tDrainable == null || tDrainable.amount <= 0) return;
-
-        ForgeDirection outputDirection = aBaseMetaTileEntity.getFrontFacing();
-        IFluidHandler tTank = aBaseMetaTileEntity.getITankContainerAtSide(outputDirection);
-        if (tTank != null) {
-            FluidStack tDrained = drain(Math.min(OUTPUT_PER_TICK, tDrainable.amount), false);
-            if (tDrained != null && tDrained.amount > 0) {
-                int tFilledAmount = tTank.fill(outputDirection.getOpposite(), tDrained, false);
-                if (tFilledAmount > 0) {
-                    tTank.fill(outputDirection.getOpposite(), drain(tFilledAmount, true), true);
-                }
-            }
-        }
+    protected int getOutputPerTick() {
+        return OUTPUT_PER_TICK;
     }
 
     @Override

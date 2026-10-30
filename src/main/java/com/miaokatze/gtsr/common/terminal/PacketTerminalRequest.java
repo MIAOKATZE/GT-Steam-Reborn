@@ -46,7 +46,7 @@ public class PacketTerminalRequest implements IMessage {
             this.y = pb.readInt();
             this.z = pb.readInt();
             this.uiType = TerminalUiType.fromId(uiTypeId);
-            if (this.uiType == null) {
+            if (this.uiType == null || pb.isReadable()) {
                 this.corrupt = true;
             }
         } catch (Exception e) {

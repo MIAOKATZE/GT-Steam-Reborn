@@ -232,7 +232,7 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
      * {@code ProsperityDecorPlacer.tierForRosterIndex}）。身份出口仍只有 {@code ordinalAt} 一条。
      */
     private static int biomeRosterIndex(World world, int chunkX, int chunkZ) {
-        return GTSRBiomeAuthority.forDimension(world.provider.dimensionId)
+        return GTSRBiomeAuthority.forWorld(world)
             .ordinalAt((chunkX << 4) + 8, (chunkZ << 4) + 8).ordinal;
     }
 

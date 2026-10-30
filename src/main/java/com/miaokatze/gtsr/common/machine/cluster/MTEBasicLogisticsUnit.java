@@ -341,11 +341,17 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         }
     }
 
-    /** T14：关闭所有 ME 输入总线窗口并触发差额实扣；失败由总线自身停机。 */
-    public void endMEBusProcessing(MTESteamMineralLogisticsCluster controller) {
+    /** Close every ME window and require each native extraction receipt before publishing a batch. */
+    public boolean endMEBusProcessing(MTESteamMineralLogisticsCluster controller) {
+        boolean paid = true;
         for (MTEHatchInputBus bus : mInputBusses) {
-            if (bus instanceof MTEHatchInputBusME) ((MTEHatchInputBusME) bus).endRecipeProcessing(controller);
+            if (bus instanceof MTEHatchInputBusME me) {
+                var result = me.endRecipeProcessing(controller);
+                // Do not short circuit: later buses must also close their recipe windows.
+                if (result == null || !result.wasSuccessful()) paid = false;
+            }
         }
+        return paid;
     }
 
     /**

@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.tileentity.TileEntity;
 
 import com.miaokatze.gtsr.client.gui.terminal.GuiAggregatorConfigScreen;
@@ -91,28 +92,34 @@ public final class TerminalClientPacketSink {
     }
 
     /** open 包落地入口（Netty 线程调用）：切主线程后校验（零 lambda 纪律：匿名 Runnable） */
-    public static void handleOpenScheduled(final PacketOpenTerminalUi msg) {
+    public static void handleOpenScheduled(final PacketOpenTerminalUi msg, final NetHandlerPlayClient connection) {
         final long epoch = CONNECTION_EPOCH.get();
         Minecraft.getMinecraft()
             .func_152344_a(new Runnable() {
 
                 @Override
                 public void run() {
-                    if (epoch != CONNECTION_EPOCH.get()) return;
+                    if (epoch != CONNECTION_EPOCH.get() || connection == null
+                        || connection != Minecraft.getMinecraft()
+                            .getNetHandler())
+                        return;
                     TerminalClientPacketSink.handleOpen(msg);
                 }
             });
     }
 
     /** data 包落地入口（Netty 线程调用）：切主线程后写缓存分派 */
-    public static void handleDataScheduled(final PacketTerminalData msg) {
+    public static void handleDataScheduled(final PacketTerminalData msg, final NetHandlerPlayClient connection) {
         final long epoch = CONNECTION_EPOCH.get();
         Minecraft.getMinecraft()
             .func_152344_a(new Runnable() {
 
                 @Override
                 public void run() {
-                    if (epoch != CONNECTION_EPOCH.get()) return;
+                    if (epoch != CONNECTION_EPOCH.get() || connection == null
+                        || connection != Minecraft.getMinecraft()
+                            .getNetHandler())
+                        return;
                     TerminalClientPacketSink.handleData(msg);
                 }
             });

@@ -257,6 +257,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     private boolean mActiveDense = false;
     // 产出实数累积（NBT 持久化）
     private double mOreAccumulator = 0.0d;
+    /** Exact remainder of an already-accounted ore group; never reroll or replay its placed prefix. */
+    private ItemStack mPendingOreOutput;
 
     // —— 客户端粒子状态（getUpdateData/onValueUpdate 字节通道同步）——
     private boolean mWorkingForFX = false;
@@ -1076,6 +1078,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     @Override
     public CheckRecipeResult checkProcessing() {
+        if (!flushPendingOreOutput()) return CheckRecipeResultRegistry.ITEM_OUTPUT_FULL;
         rebuildPoolIfNeeded();
 
         // 时运钳位已迁移至 onPostTick 每 tick 即时降档（v1.10.56：checkProcessing 仅周期开始时调用，
@@ -1129,6 +1132,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             if (!outputOre(oreStack)) break;
             mLastOreName = oreStack.getDisplayName();
             mOreAccumulator -= 1.0d;
+            if (mPendingOreOutput != null) break;
         }
         updateSlots();
     }
@@ -1200,8 +1204,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
      * 模式 2 按该粗矿的研磨机配方主产物数量 ×1.5 输出粉碎矿（红石/冰晶石等特殊矿自动得到实际数量，
      * 如红石 ×10→×15、普通矿 ×2→×3）；已是加工形态不转换；无配方回退 crushed×2（=×3 现状）；目标形态不存在回退原样输出 ×1。
      *
-     * @return v1.10.61：该矿石是否已实际放入输出总线（protectItem=false 销毁模式恒 true；
-     *         protectItem=true 限流模式整组放不下返回 false，调用方不扣 mOreAccumulator）
+     * @return 该矿石是否已由输出总线/持久暂存接管（protectItem=false 销毁模式恒 true；
+     *         protectItem=true 预检放不下返回 false，调用方不扣 mOreAccumulator）
      */
     private boolean outputOre(ItemStack rawOre) {
         ItemStack out;
@@ -1244,12 +1248,31 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         return tryOutputOre(out);
     }
 
-    /** RC2 native simulation and insertion share the bus capacity and filter contract. */
+    /** Reserve only after a full-fit probe; retain the actual insertion remainder if acceptance changes. */
     private boolean tryOutputOre(ItemStack ore) {
         if (GTUtility.isStackInvalid(ore)) return false;
         for (MTEHatchOutputBus bus : GTUtility.validMTEList(mOutputBusses)) {
             if (GTSROutputBusCompat.storePartial(bus, GTUtility.copyOrNull(ore), true)) {
-                GTSROutputBusCompat.storePartial(bus, ore, false);
+                ItemStack remaining = ore.copy();
+                GTSROutputBusCompat.storePartial(bus, remaining, false);
+                if (remaining.stackSize > 0) mPendingOreOutput = remaining;
+                // The group is now owned by output storage or the persisted pending remainder.
+                // Charge the accumulator exactly once, even after a partial or zero actual receipt.
+                markDirty();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Drain an already-paid output group before allowing any new cycle or random ore selection. */
+    private boolean flushPendingOreOutput() {
+        if (mPendingOreOutput == null) return true;
+        for (MTEHatchOutputBus bus : GTUtility.validMTEList(mOutputBusses)) {
+            GTSROutputBusCompat.storePartial(bus, mPendingOreOutput, false);
+            markDirty();
+            if (mPendingOreOutput.stackSize <= 0) {
+                mPendingOreOutput = null;
                 return true;
             }
         }
@@ -1560,6 +1583,12 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setDouble("oreAccumulator", mOreAccumulator);
+        if (mPendingOreOutput != null) {
+            NBTTagCompound pending = mPendingOreOutput.writeToNBT(new NBTTagCompound());
+            // Vanilla ItemStack Count is a byte; fortune groups may exceed 127 items.
+            pending.setInteger("gtsrCount", mPendingOreOutput.stackSize);
+            aNBT.setTag("pendingOreOutput", pending);
+        } else aNBT.removeTag("pendingOreOutput");
         aNBT.setString("lastDimAbbr", lastDimAbbr);
         aNBT.setString("mLastOreName", mLastOreName);
         aNBT.setBoolean("dropMapValid", dropMapValid);
@@ -1585,6 +1614,12 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         mOreAccumulator = aNBT.getDouble("oreAccumulator");
+        NBTTagCompound pending = aNBT.getCompoundTag("pendingOreOutput");
+        mPendingOreOutput = ItemStack.loadItemStackFromNBT(pending);
+        if (mPendingOreOutput != null) {
+            mPendingOreOutput.stackSize = pending.getInteger("gtsrCount");
+            if (mPendingOreOutput.stackSize <= 0) mPendingOreOutput = null;
+        }
         lastDimAbbr = aNBT.getString("lastDimAbbr");
         mLastOreName = aNBT.getString("mLastOreName");
         dropMapValid = aNBT.getBoolean("dropMapValid");

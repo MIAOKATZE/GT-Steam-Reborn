@@ -431,10 +431,10 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
     @Override
     protected void detachHatchControllers() {
         for (MTESteamHubInputHatch hatch : mSteamInputHatches) {
-            hatch.mController = null;
+            if (hatch.mController == this) hatch.mController = null;
         }
         for (MTESteamHubOutputHatch hatch : mSteamOutputHatches) {
-            hatch.mController = null;
+            if (hatch.mController == this) hatch.mController = null;
         }
     }
 
@@ -558,7 +558,7 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
     }
 
     public int receiveSteam(FluidStack aFluid, boolean doFill) {
-        if (aFluid == null) return 0;
+        if (aFluid == null || aFluid.amount <= 0) return 0;
         boolean isAllowed = mSetTier >= 3 && hasReinforcedChipInstalled()
             ? MTESteamHubOutputHatch.isAnySteamFluid(aFluid)
             : MTESteamHubOutputHatch.isSteamFluid(aFluid);
@@ -566,7 +566,7 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         if (mStoredFluidType != null && !mStoredFluidType.isFluidEqual(aFluid)) return 0;
 
         long capacity = getTotalCapacity();
-        long canAccept = capacity - mSteamStored;
+        long canAccept = Math.max(0L, capacity - mSteamStored);
 
         if (mOverflowInput) {
             if (doFill) {
@@ -592,7 +592,7 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
     }
 
     public FluidStack extractSteam(int maxDrain, boolean doDrain) {
-        if (mSteamStored <= 0 || mStoredFluidType == null) return null;
+        if (maxDrain <= 0 || mSteamStored <= 0 || mStoredFluidType == null) return null;
 
         int toDrain = (int) Math.min(maxDrain, mSteamStored);
         FluidStack result = new FluidStack(mStoredFluidType.getFluid(), toDrain);
@@ -872,8 +872,11 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         } else {
             FluidStack drained = gte.drain(ForgeDirection.UNKNOWN, nodeRate, false);
             if (drained != null && drained.amount > 0) {
-                int received = receiveSteam(drained, true);
-                if (received > 0) gte.drain(ForgeDirection.UNKNOWN, received, true);
+                int accepted = receiveSteam(drained, false);
+                if (accepted > 0) {
+                    FluidStack committed = gte.drain(ForgeDirection.UNKNOWN, new FluidStack(drained, accepted), true);
+                    if (committed != null && committed.amount > 0) receiveSteam(committed, true);
+                }
             }
         }
     }

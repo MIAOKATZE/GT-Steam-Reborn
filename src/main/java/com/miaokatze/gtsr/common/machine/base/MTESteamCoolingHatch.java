@@ -101,24 +101,28 @@ public class MTESteamCoolingHatch extends MTEHatchOutput implements ICoolingHatc
         return this.fill(ForgeDirection.UNKNOWN, water, true);
     }
 
+    protected int getOutputPerTick() {
+        return OUTPUT_PER_TICK;
+    }
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
+        // GT205's output-hatch tick owns an unbounded push and an inventory notification;
+        // its ancestors have no tick work. Replace only the push, notifying with the real tank
+        // visible (temporarily hiding mFluid around super would mislead native watchers).
         if (!aBaseMetaTileEntity.isServerSide()) return;
-
-        FluidStack tDrainable = getDrainableStack();
-        if (tDrainable == null || tDrainable.amount <= 0) return;
-
-        ForgeDirection outputDirection = aBaseMetaTileEntity.getFrontFacing();
-        IFluidHandler tTank = aBaseMetaTileEntity.getITankContainerAtSide(outputDirection);
-        if (tTank != null) {
-            FluidStack tDrained = drain(Math.min(OUTPUT_PER_TICK, tDrainable.amount), false);
-            if (tDrained != null && tDrained.amount > 0) {
-                int tFilledAmount = tTank.fill(outputDirection.getOpposite(), tDrained, false);
-                if (tFilledAmount > 0) {
-                    tTank.fill(outputDirection.getOpposite(), drain(tFilledAmount, true), true);
-                }
-            }
+        try {
+            if (!aBaseMetaTileEntity.isAllowedToWork()) return;
+            ForgeDirection outputDirection = aBaseMetaTileEntity.getFrontFacing();
+            IFluidHandler tank = aBaseMetaTileEntity.getITankContainerAtSide(outputDirection);
+            if (tank == null) return;
+            FluidStack outgoing = drain(getOutputPerTick(), false);
+            if (outgoing == null || outgoing.amount <= 0) return;
+            int offered = outgoing.amount;
+            int accepted = tank.fill(outputDirection.getOpposite(), outgoing.copy(), true);
+            if (accepted > 0) drain(Math.min(offered, accepted), true);
+        } finally {
+            detectInventoryChange();
         }
     }
 

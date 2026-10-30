@@ -26,7 +26,7 @@ public final class CriticalHatchFunding {
             : bus.getCircuitSlot());
     }
 
-    /** A single server-thread transaction; a failed commit must lock its construction journal. */
+    /** A single long-bounded transaction; excess stays in its source and a failed commit locks the journal. */
     public static CriticalNativeMEFunding.ItemConsumption consumeAllItem(MTEMultiBlockBase host,
         List<MTEHatchInputBus> busses, ItemStack wanted) {
         List<ItemDebit> debits = new ArrayList<>();
@@ -45,16 +45,19 @@ public final class CriticalHatchFunding {
         long amount = network.amount;
         try {
             for (ItemDebit debit : debits) {
+                // Native long inputs may already fill the receipt. Do not remove unrepresentable excess.
+                int request = (int) Math.min(debit.amount, Long.MAX_VALUE - amount);
+                if (request == 0) break;
                 if (debit.bus instanceof gregtech.api.metatileentity.implementations.MTEHatchInputBusDebug) {
-                    amount += debit.amount;
+                    amount += request;
                     continue;
                 }
                 if (debit.bus.getStackInSlot(debit.slot) != debit.ref || debit.ref.stackSize != debit.amount)
                     return new CriticalNativeMEFunding.ItemConsumption(
                         CriticalNativeMEFunding.Result.COMMIT_FAILED,
                         amount);
-                ItemStack removed = debit.bus.decrStackSize(debit.slot, debit.amount);
-                if (!same(removed, wanted) || removed.stackSize != debit.amount)
+                ItemStack removed = debit.bus.decrStackSize(debit.slot, request);
+                if (!same(removed, wanted) || removed.stackSize != request)
                     return new CriticalNativeMEFunding.ItemConsumption(
                         CriticalNativeMEFunding.Result.COMMIT_FAILED,
                         amount);

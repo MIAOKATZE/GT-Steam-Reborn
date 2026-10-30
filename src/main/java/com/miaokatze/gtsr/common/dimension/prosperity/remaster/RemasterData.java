@@ -2,9 +2,12 @@ package com.miaokatze.gtsr.common.dimension.prosperity.remaster;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
@@ -15,6 +18,13 @@ public final class RemasterData extends WorldSavedData {
 
     private static final String KEY = "gtsr.prosperityRemaster7";
     private final Map<String, NBTTagCompound> records = new HashMap<>();
+    // Pausing a prefab/variant freezes its ledger, not its saved progress. Keep opaque records out
+    // of every runtime/index lookup while preserving them for a later compatible rollout.
+    private final List<NBTTagCompound> frozenRecords = new ArrayList<>();
+    // A readable identity with unreadable progress must not be replayed by seed planning.
+    private final Set<String> frozenIds = new HashSet<>();
+    // An unreadable container has no trustworthy identities. Preserve it and admit no fresh sites.
+    private NBTBase frozenSites;
     private final Map<Long, List<String>> chunks = new HashMap<>();
     private List<GeneratedOwner> generatedOwners;
     private List<GeneratedOwner> retryOwners;
@@ -97,7 +107,9 @@ public final class RemasterData extends WorldSavedData {
     }
 
     public void register(RemasterSite s) {
-        if (!RemasterRollout.allowsGeneration(s) || records.containsKey(s.id())) return;
+        if (frozenSites != null || !RemasterRollout.allowsGeneration(s)
+            || frozenIds.contains(s.id())
+            || records.containsKey(s.id())) return;
         NBTTagCompound record = s.save();
         records.put(s.id(), record);
         generatedOwners = retryOwners = null;
@@ -136,7 +148,8 @@ public final class RemasterData extends WorldSavedData {
 
     /** The same saved identity is stable; different scenes must not overlap an actual saved footprint. */
     public boolean allowsSavedPlacement(RemasterSite candidate) {
-        if (!RemasterRollout.allowsGeneration(candidate)) return false;
+        if (frozenSites != null || !RemasterRollout.allowsGeneration(candidate) || frozenIds.contains(candidate.id()))
+            return false;
         if (records.containsKey(candidate.id())) return true;
         java.util.Set<String> checked = new java.util.HashSet<>();
         for (int x = candidate.minX() >> 4; x <= candidate.maxX() >> 4; x++)
@@ -175,23 +188,134 @@ public final class RemasterData extends WorldSavedData {
     @Override
     public void readFromNBT(NBTTagCompound n) {
         records.clear();
+        frozenRecords.clear();
+        frozenIds.clear();
+        frozenSites = null;
         chunks.clear();
         generatedOwners = retryOwners = null;
+        NBTBase container = n.getTag("sites");
+        if (container != null && (!(container instanceof NBTTagList) || n.getTagList("sites", 10)
+            .tagCount() != ((NBTTagList) container).tagCount())) {
+            // getTagList silently returns an empty list for the wrong element type.
+            frozenSites = container.copy();
+            return;
+        }
         NBTTagList list = n.getTagList("sites", 10);
         for (int i = 0; i < list.tagCount(); i++) {
             NBTTagCompound record = list.getCompoundTagAt(i);
+            if (!hasIdentity(record)) {
+                // Numeric getters otherwise turn missing/wrong-type identity fields into zero.
+                frozenRecords.add((NBTTagCompound) record.copy());
+                continue;
+            }
             // Filter before indexing: removed prefabs must never reach descriptor loading.
             RemasterSite saved = RemasterSite.read(record);
-            if (!RemasterRollout.allowsGeneration(saved) || records.containsKey(saved.id())) continue;
+            if (!RemasterRollout.allowsGeneration(saved) || !record.hasKey("y", 3)
+                || saved.y < 0
+                || saved.y >= 256
+                || Math.abs((long) saved.x) > 30000000L
+                || Math.abs((long) saved.z) > 30000000L
+                || !readableState(record)) {
+                frozenRecords.add((NBTTagCompound) record.copy());
+                frozenIds.add(saved.id());
+                continue;
+            }
+            if (records.containsKey(saved.id())) {
+                // Conflicting duplicate progress has no authoritative winner. Never pick the first
+                // (possibly unclaimed) copy and silently delete a later spent/claimed ledger.
+                frozenRecords.add((NBTTagCompound) record.copy());
+                frozenIds.add(saved.id());
+                continue;
+            }
             records.put(saved.id(), record);
-            index(saved);
+        }
+        // Input order must not let a healthy-looking duplicate replace unreadable same-site progress.
+        for (String id : frozenIds) {
+            NBTTagCompound record = records.remove(id);
+            if (record != null) frozenRecords.add((NBTTagCompound) record.copy());
+        }
+        for (NBTTagCompound record : records.values()) index(RemasterSite.read(record));
+    }
+
+    private static boolean hasIdentity(NBTTagCompound record) {
+        return record.hasKey("prefab", 8) && record.hasKey("variant", 3)
+            && record.hasKey("seed", 4)
+            && record.hasKey("x", 3)
+            && record.hasKey("z", 3)
+            && record.hasKey("layout", 8);
+    }
+
+    /** Validate only schemas this revision reads; unknown extension tags stay opaque and untouched. */
+    private static boolean readableState(NBTTagCompound record) {
+        if (!record.hasKey("state")) return true;
+        if (!record.hasKey("state", 10)) return false;
+        NBTTagCompound state = record.getCompoundTag("state");
+        for (Object raw : state.func_150296_c()) {
+            String key = (String) raw;
+            if (key.startsWith("spawner:")) {
+                if (!state.hasKey(key, 10)) return false;
+                NBTTagCompound spawner = state.getCompoundTag(key);
+                if (!typedIfPresent(spawner, 3, "count", "serial", "deadCount", "contract", "pendingLedgerVersion")
+                    || !typedIfPresent(spawner, 4, "next", "unsealAt", "unlockAt", "pulseAt")) return false;
+            } else if (flagKey(key) && !state.hasKey(key, 1)) return false;
+        }
+        return typedIfPresent(
+            state,
+            3,
+            "legacyAnchorX",
+            "legacyAnchorY",
+            "legacyAnchorZ",
+            "industrialBossStage",
+            "industrialRevivalTicks") && typedIfPresent(state, 5, "industrialBossHealth")
+            && typedIfPresent(state, 8, "legacyEncounter");
+    }
+
+    private static boolean typedIfPresent(NBTTagCompound tag, int type, String... keys) {
+        for (String key : keys) if (tag.hasKey(key) && !tag.hasKey(key, type)) return false;
+        return true;
+    }
+
+    private static boolean flagKey(String key) {
+        return key.equals("boss-dead") || key.equals("mission-boss-ready")
+            || key.startsWith("geom:")
+            || key.startsWith("node:")
+            || key.startsWith("entity:")
+            || key.startsWith("dead:")
+            || key.startsWith("claimed:")
+            || key.startsWith("destroyed:")
+            || key.startsWith("sealed:")
+            || key.startsWith("puzzle:")
+            || key.startsWith("witness:")
+            || key.startsWith("story-read:")
+            || key.startsWith("boss-dead:")
+            || spawnerMemberFlag(key);
+    }
+
+    private static boolean spawnerMemberFlag(String key) {
+        if (!key.startsWith("spawner-admitted:") && !key.startsWith("spawner-dead:")) return false;
+        int member = key.lastIndexOf(':');
+        // The runtime/compactor consumes canonical nonnegative serials only. Future marker suffixes
+        // are opaque extension data, not malformed booleans, and must not freeze a valid survivor.
+        if (member <= key.indexOf(':') + 1) return false;
+        String serial = key.substring(member + 1);
+        try {
+            int parsed = Integer.parseInt(serial);
+            return parsed >= 0 && Integer.toString(parsed)
+                .equals(serial);
+        } catch (NumberFormatException invalid) {
+            return false;
         }
     }
 
     @Override
     public void writeToNBT(NBTTagCompound n) {
+        if (frozenSites != null) {
+            n.setTag("sites", frozenSites.copy());
+            return;
+        }
         NBTTagList list = new NBTTagList();
         for (NBTTagCompound r : records.values()) list.appendTag(r);
+        for (NBTTagCompound r : frozenRecords) list.appendTag(r.copy());
         n.setTag("sites", list);
     }
 }

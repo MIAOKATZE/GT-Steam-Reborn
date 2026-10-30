@@ -1,7 +1,9 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.lore;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -14,6 +16,7 @@ import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.WorldServer;
@@ -22,6 +25,7 @@ import net.minecraftforge.common.util.FakePlayer;
 import com.miaokatze.gtsr.client.lore.NavigatorClient;
 import com.miaokatze.gtsr.common.commands.RuinLocateCommand;
 import com.miaokatze.gtsr.common.dimension.prosperity.WorldProviderProsperityRuins;
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -43,8 +47,8 @@ public final class NavigatorNetwork {
     private static final AtomicInteger QUEUED = new AtomicInteger();
     private static final Deque<LocateJob> ACTIVE = new ArrayDeque<>();
     private static final long TICK_BUDGET_NS = 10000000L, SESSION_TTL_NS = 55000000000L;
-    private static final Map<EntityPlayerMP, Long> LAST_QUERY = new WeakHashMap<>();
-    private static final Map<EntityPlayerMP, EntityItem> PENDING_GIFTS = new WeakHashMap<>();
+    private static final Map<EntityPlayerMP, QueryStamp> LAST_QUERY = new WeakHashMap<>();
+    private static final Map<UUID, WeakReference<EntityItem>> PENDING_GIFTS = new HashMap<>();
 
     private NavigatorNetwork() {}
 
@@ -54,6 +58,16 @@ public final class NavigatorNetwork {
         FMLCommonHandler.instance()
             .bus()
             .register(new NavigatorNetwork());
+    }
+
+    public static void resetServerState() {
+        synchronized (QUEUE) {
+            QUEUE.clear();
+            QUEUED.set(0);
+        }
+        ACTIVE.clear();
+        LAST_QUERY.clear();
+        PENDING_GIFTS.clear();
     }
 
     public static boolean holdsCompass(EntityPlayer player) {
@@ -70,7 +84,8 @@ public final class NavigatorNetwork {
             || !player.isEntityAlive()
             || holdsCompass(player)) return false;
         EntityPlayerMP mp = (EntityPlayerMP) player;
-        EntityItem pending = PENDING_GIFTS.get(mp);
+        WeakReference<EntityItem> reference = PENDING_GIFTS.get(mp.getUniqueID());
+        EntityItem pending = reference == null ? null : reference.get();
         if (pending != null && !pending.isDead
             && pending.worldObj == player.worldObj
             && pending.getEntityItem() != null
@@ -82,7 +97,7 @@ public final class NavigatorNetwork {
             drop.func_145797_a(player.getCommandSenderName());
             drop.func_145799_b(player.getCommandSenderName());
             if (!player.worldObj.spawnEntityInWorld(drop) || drop.isDead) return false;
-            PENDING_GIFTS.put(mp, drop);
+            PENDING_GIFTS.put(mp.getUniqueID(), new WeakReference<>(drop));
         }
         HistoryProgress.recordGrantedRelic(player, RELIC_ID);
         mp.inventoryContainer.detectAndSendChanges();
@@ -96,7 +111,7 @@ public final class NavigatorNetwork {
     }
 
     private static boolean eligible(EntityPlayerMP player) {
-        return player != null && !(player instanceof FakePlayer)
+        return ServerPacketAuthority.isCurrentPlayer(player) && !(player instanceof FakePlayer)
             && player.isEntityAlive()
             && !player.worldObj.isRemote
             && player.worldObj instanceof WorldServer
@@ -111,12 +126,23 @@ public final class NavigatorNetwork {
     @SubscribeEvent
     public void tick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        // Dropped items belong to the world, not this transient inventory witness cache.
+        PENDING_GIFTS.values()
+            .removeIf(reference -> {
+                EntityItem item = reference.get();
+                return item == null || item.isDead;
+            });
         // Netty only enqueues; admission and all world access belong to this thread.
         for (int count = 0; count < 4; count++) {
-            Pending pending = QUEUE.poll();
-            if (pending == null) break;
-            QUEUED.decrementAndGet();
-            if (System.nanoTime() - pending.created <= SESSION_TTL_NS) execute(pending.player, pending.query);
+            Pending pending;
+            synchronized (QUEUE) {
+                pending = QUEUE.poll();
+                if (pending == null) break;
+                QUEUED.decrementAndGet();
+            }
+            if (System.nanoTime() - pending.created <= SESSION_TTL_NS
+                && ServerPacketAuthority.isCurrentPlayer(pending.player, pending.connection))
+                execute(pending.player, pending.query);
         }
         long deadline = System.nanoTime() + TICK_BUDGET_NS;
         for (int steps = 0; steps < 1024 && !ACTIVE.isEmpty() && System.nanoTime() < deadline; steps++) {
@@ -145,7 +171,8 @@ public final class NavigatorNetwork {
 
     private static boolean submitLocate(EntityPlayerMP player, RuinLocateCommand.Lookup lookup,
         Consumer<RuinLocateCommand.Location> complete, Runnable expired, boolean compass) {
-        if (ACTIVE.size() >= 4) return false;
+        if (!ServerPacketAuthority.isCurrentPlayer(player) || !player.isEntityAlive() || ACTIVE.size() >= 4)
+            return false;
         for (LocateJob job : ACTIVE) if (job.player == player) return false;
         ACTIVE.addLast(new LocateJob(player, lookup, complete, expired, compass));
         return true;
@@ -174,9 +201,8 @@ public final class NavigatorNetwork {
         }
 
         boolean valid() {
-            return player.isEntityAlive() && player.worldObj == world
-                && connection != null
-                && player.playerNetServerHandler == connection
+            return ServerPacketAuthority.isCurrentPlayer(player, connection) && player.isEntityAlive()
+                && player.worldObj == world
                 && !world.isRemote
                 && (!compass || eligible(player));
         }
@@ -187,12 +213,15 @@ public final class NavigatorNetwork {
         List<String> ids = RuinLocateCommand.names();
         if (query.index < 0 || query.index >= ids.size()) return;
         long now = System.nanoTime();
-        Long last = LAST_QUERY.get(player);
-        if (last != null && now - last < 1000000000L) {
+        QueryStamp last = LAST_QUERY.get(player);
+        if (last != null && last.player.get() == player
+            && last.connection.get() == player.playerNetServerHandler
+            && now - last.time < 1000000000L) {
             NETWORK.sendTo(new Result(player, query.index, query.serial, 3, 0), player);
             return;
         }
-        LAST_QUERY.put(player, now);
+        LAST_QUERY.remove(player);
+        LAST_QUERY.put(player, new QueryStamp(player, now));
         WorldServer world = (WorldServer) player.worldObj;
         int ox = MathHelper.floor_double(player.posX), oz = MathHelper.floor_double(player.posZ);
         String id = ids.get(query.index);
@@ -228,14 +257,29 @@ public final class NavigatorNetwork {
                 result.distance));
     }
 
+    private static final class QueryStamp {
+
+        final WeakReference<EntityPlayerMP> player;
+        final WeakReference<NetHandlerPlayServer> connection;
+        final long time;
+
+        QueryStamp(EntityPlayerMP player, long time) {
+            this.player = new WeakReference<>(player);
+            connection = new WeakReference<>(player.playerNetServerHandler);
+            this.time = time;
+        }
+    }
+
     private static final class Pending {
 
         final EntityPlayerMP player;
+        final NetHandlerPlayServer connection;
         final Query query;
         final long created = System.nanoTime();
 
-        Pending(EntityPlayerMP player, Query query) {
-            this.player = player;
+        Pending(NetHandlerPlayServer connection, Query query) {
+            this.connection = connection;
+            this.player = connection.playerEntity;
             this.query = query;
         }
     }
@@ -321,12 +365,12 @@ public final class NavigatorNetwork {
 
         @Override
         public IMessage onMessage(Query query, MessageContext context) {
-            if (!query.valid) return null;
-            if (QUEUED.incrementAndGet() > 64) {
-                QUEUED.decrementAndGet();
-                return null;
+            if (!query.valid || context.getServerHandler() == null) return null;
+            synchronized (QUEUE) {
+                if (QUEUED.get() >= 64) return null;
+                QUEUE.add(new Pending(context.getServerHandler(), query));
+                QUEUED.incrementAndGet();
             }
-            QUEUE.add(new Pending(context.getServerHandler().playerEntity, query));
             return null;
         }
     }

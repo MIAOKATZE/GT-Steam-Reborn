@@ -38,6 +38,18 @@ public final class SpacetimeTravel {
         SpacetimeEffects.init();
     }
 
+    /** Server-stop hook: deadlines, leases and queued actors must not enter a replacement save. */
+    public static void resetServerState() {
+        COOLDOWN.clear();
+        TRANSFERRING.clear();
+        AnchorIntent.resetServerState();
+        BeaconNavigationNetwork.resetServerState();
+        com.miaokatze.gtsr.common.dimension.prosperity.lore.NavigatorNetwork.resetServerState();
+        com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStory.resetServerState();
+        com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarStoryNetwork.resetServerState();
+        com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarNavigationSearch.resetServerState();
+    }
+
     private static long now() {
         return MinecraftServer.getServer()
             .worldServerForDimension(0)
@@ -95,6 +107,15 @@ public final class SpacetimeTravel {
         }
         NBTTagCompound m = stack.getTagCompound()
             .getCompoundTag("gtsrAnchor");
+        // Missing or wrong-type numeric tags otherwise silently become an overworld/origin mark.
+        if (!m.hasKey("dimension", 3) || !m.hasKey("x", 6)
+            || !m.hasKey("y", 6)
+            || !m.hasKey("z", 6)
+            || !m.hasKey("yaw", 5)
+            || !m.hasKey("pitch", 5)) {
+            message(p, "unsafe");
+            return false;
+        }
         double x = m.getDouble("x"), y = m.getDouble("y"), z = m.getDouble("z");
         float yaw = m.getFloat("yaw"), pitch = m.getFloat("pitch");
         if (!Double.isFinite(x) || !Double.isFinite(y)
@@ -106,8 +127,16 @@ public final class SpacetimeTravel {
             message(p, "unsafe");
             return false;
         }
-        WorldServer destination = destination(m.getInteger("dimension"));
-        double[] point = destination == null ? null : safeLanding(destination, p, x, y, z);
+        WorldServer destination;
+        double[] point;
+        try {
+            destination = destination(m.getInteger("dimension"));
+            point = destination == null ? null : safeLanding(destination, p, x, y, z);
+        } catch (RuntimeException failure) {
+            // Cold chunk generation and mod collision callbacks can fail before any debit or movement.
+            message(p, "failed");
+            return false;
+        }
         if (point == null) {
             message(p, "unsafe");
             return false;

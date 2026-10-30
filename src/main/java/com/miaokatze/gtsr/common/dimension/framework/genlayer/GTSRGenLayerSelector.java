@@ -1,7 +1,6 @@
 package com.miaokatze.gtsr.common.dimension.framework.genlayer;
 
 import net.minecraft.world.gen.layer.GenLayer;
-import net.minecraft.world.gen.layer.IntCache;
 
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
 
@@ -64,7 +63,9 @@ public class GTSRGenLayerSelector extends GenLayer {
      */
     @Override
     public int[] getInts(int areaX, int areaZ, int areaWidth, int areaHeight) {
-        final int[] out = IntCache.getIntCache(areaWidth * areaHeight);
+        // The selector must not borrow from the global pool either: its parent may be evaluated
+        // concurrently with native worldgen, whose reset can reclaim any pooled live array.
+        final int[] out = new int[areaWidth * areaHeight];
         for (int z = 0; z < areaHeight; z++) {
             for (int x = 0; x < areaWidth; x++) {
                 this.initChunkSeed(areaX + x, areaZ + z);

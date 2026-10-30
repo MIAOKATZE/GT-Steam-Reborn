@@ -17,6 +17,7 @@ import com.miaokatze.gtsr.common.gui.mui2.BoundedTerminalScreen;
 import com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions;
 import com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
+import com.miaokatze.gtsr.common.terminal.TerminalServerSessions;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -65,6 +66,7 @@ public final class AggregatorConfigFactory implements UIFactory<PosGuiData> {
     public boolean canInteractWith(EntityPlayer player, PosGuiData data) {
         if (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data))
             return com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.canUseRemote(player, data);
+        if (!TerminalServerSessions.canInspectLocalPosition(player, data, 64)) return false;
         return (data.getWorld().isRemote || Mui2TerminalRoutes.aggregatorConfig) && player == data.getPlayer()
             && player.isEntityAlive()
             && !(player instanceof FakePlayer)

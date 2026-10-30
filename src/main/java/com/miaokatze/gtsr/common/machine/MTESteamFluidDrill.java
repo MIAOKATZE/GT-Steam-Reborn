@@ -445,13 +445,18 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         }
 
         if (getTotalSteamStored() >= getSteamPerSecond()) {
-            mMaxProgresstime = PROGRESSION_TIME_TICKS;
-            mEfficiencyIncrease = getEfficiencyIncrease();
             // v1.20.23：扣汽前判定蒸汽类型（扣汽后本地罐可能已排空导致误判）。
             // 本机蒸汽消耗不走 lEUt/onRunningTick 路径，mixin 的冷却产物推送不触发，
             // 需在扣汽后手动推送（普通→蒸馏水 160:1、过热→压力冷却仓 1:1），与奇点枢纽/地壳钻机同源。
             boolean isSuperheated = hasSuperheatedSteamInHatch();
-            tryConsumeSteam(getSteamPerSecond());
+            if (!tryConsumeSteam(getSteamPerSecond())) {
+                mOutputFluids = null;
+                mMaxProgresstime = 0;
+                mEfficiency = 0;
+                return CheckRecipeResultRegistry.NO_RECIPE;
+            }
+            mMaxProgresstime = PROGRESSION_TIME_TICKS;
+            mEfficiencyIncrease = getEfficiencyIncrease();
             SteamCoolingSupport.pushCoolingProducts((ICoolingHatchHolder) this, getSteamPerSecond(), isSuperheated);
             mOutputFluids = getOutputFluid(waterOutput);
             updateSlots();

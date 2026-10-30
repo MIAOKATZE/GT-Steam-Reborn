@@ -11,7 +11,7 @@ SOURCES = {
     "net/minecraft/item/ItemStack.java": """
 package net.minecraft.item;
 public class ItemStack { public int stackSize; public final int id;
- public ItemStack(int id,int size){this.id=id;stackSize=size;} }
+ public ItemStack(int id,int size){this.id=id;stackSize=size;} public ItemStack copy(){return new ItemStack(id,stackSize);} }
 """,
     "net/minecraft/nbt/NBTTagCompound.java": """
 package net.minecraft.nbt;
@@ -87,6 +87,28 @@ public class MTEEnhancedMultiBlockBase<T> {
  public void onPostTick(IGregTechTileEntity base,long tick){}
  public void startRecipeProcessing(){starts++;} public void endRecipeProcessing(){ends++;}
  public void saveNBTData(NBTTagCompound nbt){} public void loadNBTData(NBTTagCompound nbt){} }
+""",
+    "appeng/api/networking/security/IActionHost.java": "package appeng.api.networking.security; public interface IActionHost {}",
+    "appeng/api/networking/security/MachineSource.java": "package appeng.api.networking.security; public class MachineSource { public MachineSource(IActionHost host){} }",
+    "appeng/api/storage/data/IAEItemStack.java": "package appeng.api.storage.data; public interface IAEItemStack { net.minecraft.item.ItemStack getItemStack(); }",
+    "appeng/me/GridAccessException.java": "package appeng.me; public class GridAccessException extends Exception {}",
+    "appeng/me/helpers/AENetworkProxy.java": """
+package appeng.me.helpers;
+public class AENetworkProxy {
+ public Object getEnergy() throws appeng.me.GridAccessException {return null;}
+ public AENetworkProxy getStorage(){return this;} public Object getItemInventory(){return null;} }
+""",
+    "appeng/util/Platform.java": """
+package appeng.util;
+public class Platform {public static appeng.api.storage.data.IAEItemStack poweredExtraction(Object e,Object i,Object r,Object s){throw new AssertionError("Native ME tested by test_machine_conservation_r3.py");}}
+""",
+    "appeng/util/item/AEItemStack.java": "package appeng.util.item; public class AEItemStack {public static Object create(net.minecraft.item.ItemStack stack){return stack;}}",
+    "gregtech/common/tileentities/machines/MTEHatchInputBusME.java": """
+package gregtech.common.tileentities.machines;
+public class MTEHatchInputBusME extends gregtech.api.metatileentity.implementations.MTEHatchInputBus {
+ public static final int SLOT_COUNT=16; public MTEHatchInputBusME(){super(0,0);}
+ public boolean isAllowedToWork(){return true;} public appeng.me.helpers.AENetworkProxy getProxy(){return new appeng.me.helpers.AENetworkProxy();}
+ public Object getBaseMetaTileEntity(){return null;} }
 """,
     PACKAGE + "/SingularityModeContract.java": """
 package com.miaokatze.gtsr.common.machine.base;

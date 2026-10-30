@@ -274,6 +274,10 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         return mBound;
     }
 
+    public boolean isBoundToHubAt(int x, int y, int z, int dim) {
+        return mBound && mHubX == x && mHubY == y && mHubZ == z && mHubDim == dim;
+    }
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);

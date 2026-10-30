@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
 
@@ -11,6 +12,7 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.value.sync.SyncHandler;
 import com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 import com.miaokatze.gtsr.common.terminal.AggregatorTerminalData;
 import com.miaokatze.gtsr.common.terminal.AggregatorTerminalData.OreEntry;
 import com.miaokatze.gtsr.common.terminal.TerminalNet;
@@ -28,6 +30,7 @@ public final class AggregatorConfigSession extends SyncHandler<AggregatorConfigS
     private final PosGuiData data;
     private final MTECrustMatterAggregator machine;
     private final TileEntity tile;
+    private final NetHandlerPlayServer connection;
     private final AtomicBoolean pending = new AtomicBoolean();
     private volatile AggregatorTerminalData.Snapshot snapshot;
     private volatile String receipt = "gtsr.aggregator_config.mui2.ready";
@@ -39,6 +42,7 @@ public final class AggregatorConfigSession extends SyncHandler<AggregatorConfigS
 
     public AggregatorConfigSession(PosGuiData data, MTECrustMatterAggregator machine) {
         this.data = data;
+        this.connection = ServerPacketAuthority.connection(data.getPlayer());
         this.machine = machine;
         this.tile = data.getTileEntity();
         allowC2S();
@@ -82,6 +86,7 @@ public final class AggregatorConfigSession extends SyncHandler<AggregatorConfigS
 
     private boolean active() {
         return isValid() && !getSyncManager().isClient()
+            && ServerPacketAuthority.isCurrentPlayer(data.getPlayer(), connection)
             && data.getPlayer().openContainer == getSyncManager().getContainer()
             && (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data)
                 || data.getPlayer().worldObj == tile.getWorldObj())

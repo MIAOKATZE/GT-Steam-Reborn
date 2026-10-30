@@ -279,12 +279,16 @@ public final class ProsperityOutpostPlacer {
      * {@link StructureBurialTiers#burialDepthFor}（本族改造前没有埋深通道 ⇒ 取已夹紧的档表下限，
      * 零新增随机源、零新增族盐）。默认档（身份不可得）⇒ 0 ⇒ 与改造前逐位相同。
      */
-    public static int buryingAt(Outpost outpost, int originX, int originZ) {
-        return buryingAt(outpost, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(originX, originZ));
+    public static int buryingAt(long worldSeed, Outpost outpost, int originX, int originZ) {
+        return buryingAt(
+            outpost,
+            originX,
+            originZ,
+            StructureBurialTiers.rosterIndexAtOrigin(worldSeed, originX, originZ));
     }
 
     /**
-     * {@link #buryingAt(Outpost, int, int)} 的<b>身份显式形态</b>（同一实现体）：离线判据据此在未装配
+     * {@link #buryingAt(long, Outpost, int, int)} 的<b>身份显式形态</b>（同一实现体）：离线判据据此在未装配
      * L1 账本的 JVM 里逐档复算生产同一条算式；装配了账本时两条出口逐点同值
      * （{@code P17StructureBiomeVarianceCheck} 的 SOURCE 组）。
      */
@@ -451,7 +455,7 @@ public final class ProsperityOutpostPlacer {
             ground,
             BlockSink.FLAG_POPULATE,
             // P17 S-D：群系埋深档，身份按锚点原点 (x,z) 反查；默认档 ⇒ 0 ⇒ 逐位等于改造前
-            buryingAt(roll.outpost, x, z));
+            buryingAt(worldSeed, roll.outpost, x, z));
         return permit.commit(counter.solid());
     }
 

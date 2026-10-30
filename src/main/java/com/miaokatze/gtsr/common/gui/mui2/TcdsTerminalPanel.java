@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
 
@@ -27,6 +28,7 @@ import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
 import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 import com.miaokatze.gtsr.common.terminal.TcdsTerminalData;
 import com.miaokatze.gtsr.common.terminal.TerminalServerSessions;
 import com.miaokatze.gtsr.common.util.GtsrNumFormat;
@@ -394,6 +396,7 @@ public final class TcdsTerminalPanel {
         private final PosGuiData data;
         private final MTEThermoChemicalDenseSteamGenerator machine;
         private final TileEntity tile;
+        private final NetHandlerPlayServer connection;
         private final AtomicBoolean pending = new AtomicBoolean();
         private volatile TcdsTerminalData.Snapshot snapshot;
         private volatile String receiptKey = "gtsr.tcds_terminal.mui2.ready";
@@ -408,6 +411,7 @@ public final class TcdsTerminalPanel {
 
         Session(PosGuiData data, MTEThermoChemicalDenseSteamGenerator machine) {
             this.data = data;
+            this.connection = ServerPacketAuthority.connection(data.getPlayer());
             this.machine = machine;
             this.tile = data.getTileEntity();
             allowC2S();
@@ -455,6 +459,7 @@ public final class TcdsTerminalPanel {
 
         private boolean active() {
             return isValid() && !getSyncManager().isClient()
+                && ServerPacketAuthority.isCurrentPlayer(data.getPlayer(), connection)
                 && data.getPlayer().openContainer == getSyncManager().getContainer()
                 && (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data)
                     || data.getPlayer().worldObj == tile.getWorldObj())

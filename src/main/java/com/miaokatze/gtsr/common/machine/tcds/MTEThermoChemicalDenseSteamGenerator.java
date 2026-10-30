@@ -685,18 +685,21 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
 
-        // g. 先全过后扣（平炉 MTESiemensMartinFurnace 两阶段范式）：燃气 → 燃油 → 空气 → 蒸馏水
-        if (gasFlow > 0) {
-            GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(gas.fluid, gasFlow));
-        }
-        if (liquidFlow > 0) {
-            GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(liquid.fluid, liquidFlow));
-        }
-        if (airToConsume > 0) {
-            GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, Materials.Air.getGas(airToConsume));
-        }
-        if (waterToConsume > 0) {
-            GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, waterWant);
+        // g. Stock previews are not payment receipts: native ME extraction can run out of power
+        // between ingredients. Stop at the first short debit and never credit unpaid steam.
+        // A known paid prefix remains consumed; no speculative rollback or refund is created.
+        if (gasFlow > 0
+            && GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(gas.fluid, gasFlow)) != gasFlow
+            || liquidFlow > 0
+                && GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(liquid.fluid, liquidFlow))
+                    != liquidFlow
+            || airToConsume > 0
+                && GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, Materials.Air.getGas(airToConsume))
+                    != airToConsume
+            || waterToConsume > 0
+                && GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, waterWant) != waterToConsume) {
+            mMaxProgresstime = 0;
+            return CheckRecipeResultRegistry.NO_RECIPE;
         }
 
         // h. 缓冲入账 + 产出档位判定（单燃料按族阈值 / 双燃料需双过热；芯片在落仓时选择致密变体）+ GUI 显示字段
