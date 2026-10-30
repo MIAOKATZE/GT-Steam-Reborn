@@ -1,0 +1,323 @@
+{
+  "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e",
+  "releaseTag": "v2.0.43",
+  "strategy": "gtsr-transparent-v1",
+  "notGameScreenshots": true,
+  "images": {
+    "MTESteamHubArray-T1.png": {
+      "sha256": "51e20053e34af3e91212cd7da48a07307408ed82ac5931e67d19bdec83929ead",
+      "bytes": 479694,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTESteamHubArray-T2.png": {
+      "sha256": "0a44b7bc0bdd4201486f3cbdd1b79c8f481c90ef17b5468c5fa6957ea5607918",
+      "bytes": 438768,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTESteamHubArray-T3.png": {
+      "sha256": "d395f6b278d784cae7db093e3859d0364dab5fa26ed9cef08baf033078413003",
+      "bytes": 432301,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEWaterHubArray-T1.png": {
+      "sha256": "52d6b313eb101d25034c29f5415499522ca78b2732fd79e4539448d2a13d4717",
+      "bytes": 350474,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEWaterHubArray-T2.png": {
+      "sha256": "1534d863b661686f3d9259b362e8a45777c8d5c34ae618783c6bf727110d7fec",
+      "bytes": 330523,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEWaterHubArray-T3.png": {
+      "sha256": "59395ae64a7b073205d4e36e9ba4881a7477fa2ca3b8844876c91168cb81a65a",
+      "bytes": 322177,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTESingularityDrillingHub.png": {
+      "sha256": "836e81028f30e2ad79c45a39205e7eb04387e7c64493a706613167cd90604ab1",
+      "bytes": 1133443,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTELargeSteamFurnace-T1.png": {
+      "sha256": "a6fcb9c45d7a3df062066b6eea7bd57d3f94394aee5f52755713d250c77c8bf8",
+      "bytes": 1042123,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTELargeSteamFurnace-T2.png": {
+      "sha256": "b49929a9203019b12c49627a9b2d32edf148ba260ce199ec37f74688d118efff",
+      "bytes": 770009,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEAirCompressor-T1.png": {
+      "sha256": "880cf9eea75ea0413266a1fa962ea1de0e20043b7454d58694d16d226106f55c",
+      "bytes": 171194,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEAirCompressor-T2.png": {
+      "sha256": "7dfa5041487fc4f5b57e28da73a6c4f8c5d78d56ef0d4c038fd271878a07d4c5",
+      "bytes": 162547,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEAtmosphericCentrifuge-T1.png": {
+      "sha256": "0c19dbdccc61b8af1ea0901e9ccc74ace10abbfbf12de07c1739deb073a25512",
+      "bytes": 281194,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEAtmosphericCentrifuge-T2.png": {
+      "sha256": "5060c644c88cb26c0e62822841ca1a540b7d24fceece1163751a1fc47b7509cc",
+      "bytes": 267239,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTESteamFluidDrill-T1.png": {
+      "sha256": "9ea4f69ece15384aded0451a77c7eadf9fce2b217b52a2df2a8f54b1cdeffef5",
+      "bytes": 171147,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTESteamFluidDrill-T2.png": {
+      "sha256": "5de06753c58ca0ea86a6a1c4348af6b107adffc7b65ea715998eb042c5d9f4d5",
+      "bytes": 166975,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTECrustSteamBorer.png": {
+      "sha256": "f64851c57f58456f6b3c4bd8750e4764c2d6092fad8343327560dd253ce4bb6a",
+      "bytes": 269707,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTECrustMatterAggregator.png": {
+      "sha256": "c1d23e26fa12a7579770299b3f9f100f7d7dec5c20d6639b3b7e122bd79e65c0",
+      "bytes": 626505,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEVeinSteamPyrolyzer-T1.png": {
+      "sha256": "9a72ad166a8f1238bc1d1bd2462d78536f86c61b7fd56f2481c2392353b99493",
+      "bytes": 188727,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEVeinSteamPyrolyzer-T2.png": {
+      "sha256": "8e17fbe64be294016efed1ee1334b276b4ab6c31852d8bc725323bc4b74ea4d5",
+      "bytes": 183531,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "CRUSH-T1.png": {
+      "sha256": "b041a62eeb64c51e8e1bb4346d88d0a983f289cf9ac83e92862418ba8ab4db3c",
+      "bytes": 677222,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTELargeCokeOven-T1.png": {
+      "sha256": "db09263f261cd0cbcedb2f39a1b9a958885d19ddc6436f9b00b22210eb9984d8",
+      "bytes": 221304,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTELargeCokeOven-T2.png": {
+      "sha256": "c8e5af1e1df96dab2959705823e6f13cf9a42bcb609cfbc3ad679a2d1f9c2520",
+      "bytes": 212647,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTESiemensMartinFurnace.png": {
+      "sha256": "b795d0ac270291ae65b2aa77a56536fc4044c1e814d7e5c2f94b59cf44339cb1",
+      "bytes": 598055,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTELargeGeothermalSteamBoiler-T1.png": {
+      "sha256": "72952b7cfcf931ca4e12ea3d0e940186ac7a02fa46f157c17e0075cda1bc5fa7",
+      "bytes": 313770,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTELargeGeothermalSteamBoiler-T2.png": {
+      "sha256": "423ae215019ea887d6b749d2c3e37779eadd92a799c995723b906acee4d1c745",
+      "bytes": 289291,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEMegaSteamTurbineArray-T1.png": {
+      "sha256": "fdec67412cbdbb40aa45e729d9532f5273d9779c127e3a811eaf053bda14b5df",
+      "bytes": 829057,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEMegaSteamTurbineArray-T3.png": {
+      "sha256": "2083f0c6605dd05aa9af0cf318781a2238e6f303abe44083e6ea9baddbaed16a",
+      "bytes": 747887,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEMegaSteamTurbineArray-T6.png": {
+      "sha256": "2db879049e90730fc7296f9a7d6d0e80b17c27ed38acb95a511abfae153ed2c6",
+      "bytes": 761726,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTELargeSolarOverpressureArray-T1.png": {
+      "sha256": "780f2b65830495da31ae36e251c33b1303a6ac3ce844c73bacf85cf56bf0f297",
+      "bytes": 688228,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTELargeSolarOverpressureArray-T2.png": {
+      "sha256": "d9d3b26d0dc2866c9e2a72e1970c1a99cea7ea28b081fe435c3d8e3576dcda16",
+      "bytes": 562924,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTELargeSolarOverpressureArray-T3.png": {
+      "sha256": "9763241062410f4dfcea49e45f1cf5929d1bfd99427aa27604331d87d02801b3",
+      "bytes": 562310,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEKineticProcessingArray-T1.png": {
+      "sha256": "0665613d03ee762dc3017d0a44f3431862e6aa7193b0856fa84c758b63a33d5e",
+      "bytes": 248098,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEKineticProcessingArray-T5.png": {
+      "sha256": "c86274d2b8f27d71d42bfe170bbfdfb6afa8cd0a96d3cb8feacc5e6508492563",
+      "bytes": 226950,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEGearSteamCompressor-T1.png": {
+      "sha256": "28a3608dd3366a1f359243edcb9f17cb2bbbd1b229fe9c2282a385ca6e8a2546",
+      "bytes": 302364,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEGearSteamCompressor-T2.png": {
+      "sha256": "385a139ec3ca541a561425577151a94d2b6756af062f46288f66dea97b3fd1e2",
+      "bytes": 278734,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEAmmoniaPlant.png": {
+      "sha256": "7f3062c764e39e33392ac0dbb1dfa16d44c8b2549b2bc163635010968722bda4",
+      "bytes": 399836,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEReinforcedBrickBlastFurnace.png": {
+      "sha256": "159d5790b2cb3691dab8f175fe911c97b6ee5f25323b2dc667272e740042e514",
+      "bytes": 153893,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEThermochemicalDenseSteamGenerator.png": {
+      "sha256": "8858bd9410cdb9d9994bfbc198b1c34a7e22ecb8bbf52fdaccf5bd800be87d7f",
+      "bytes": 427284,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTESteamSingularityEntangler.png": {
+      "sha256": "f59e3730b13401c8cdc412e30c6281bd1819feed639be56e4a91bdf29dbf8981",
+      "bytes": 730038,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTECriticalSingularityCompressor.png": {
+      "sha256": "eefff6e19be16e53161f8c5df7dd0c5a6a73ae8ba06f8c7cf81d6a0099de6178",
+      "bytes": 703754,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTEDenseStateManipulator.png": {
+      "sha256": "493c0fb9b1c7bc27ecbeebfd603b0d798721c62e27ba991bbd03bf91ed004d6a",
+      "bytes": 394988,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MTESpacetimeSingularityCalibration.png": {
+      "sha256": "842a9ca185a990f1fc4258c7faf6e2ff128119e9fdf4c788d6bebd05d4075310",
+      "bytes": 743361,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "SteamCacheNodes.png": {
+      "sha256": "d3218cdb8e2d66bbd642beb0bf3d48bf6411d0659168486cf7eedca0034c7bcc",
+      "bytes": 56122,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "WaterCacheNodes.png": {
+      "sha256": "3e07cc192d48caf1556c12e1ed5239d2a720b65d89bb95b398dd98e7a397e66a",
+      "bytes": 57952,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "SingularitySteamHatches.png": {
+      "sha256": "3a30419c9e789c27a79d84c0cea4c4fa562a78828600b1f0920b394a01a84153",
+      "bytes": 35209,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "SingularityFluidHatches.png": {
+      "sha256": "3f7ead3f216d92153a23a4c62915c128e1f21840479d32dc5e13eb8ac111f780",
+      "bytes": 34008,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "RemoteWorkerNodes.png": {
+      "sha256": "1889a648a161ab39e316e5d71788d733bc6a7ccdaeb4293e6677a17bdb39c4bb",
+      "bytes": 40190,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "SteamHatches.png": {
+      "sha256": "3f7ead3f216d92153a23a4c62915c128e1f21840479d32dc5e13eb8ac111f780",
+      "bytes": 34008,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "PressureSteamHatches.png": {
+      "sha256": "3a30419c9e789c27a79d84c0cea4c4fa562a78828600b1f0920b394a01a84153",
+      "bytes": 35209,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "CoolingHatches.png": {
+      "sha256": "96ec65a72b3c9d54bb8ae3d2c4e9e228b11470298542df29a1103f292fa655f8",
+      "bytes": 36360,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "SteamHubHatches.png": {
+      "sha256": "3f7ead3f216d92153a23a4c62915c128e1f21840479d32dc5e13eb8ac111f780",
+      "bytes": 34008,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "WaterHubHatches.png": {
+      "sha256": "3f7ead3f216d92153a23a4c62915c128e1f21840479d32dc5e13eb8ac111f780",
+      "bytes": 34008,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "MegaAirHatch.png": {
+      "sha256": "36082bc3f4bfbdc1af1a996af45298fb86c49dabbd53c71b6dee919a6aeac92a",
+      "bytes": 36034,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "DistilledWaterHatch.png": {
+      "sha256": "7342476baf29a33a84c8b04911efd8df58236a66738c266bd1631c88a31b1281",
+      "bytes": 35571,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "RedstoneHatch.png": {
+      "sha256": "b21be3c14e662019ed64b37f1495b27afe8bfcc321dd9f63b6f769edcdb5c993",
+      "bytes": 34303,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "OverpressureTurbineHatch.png": {
+      "sha256": "ad12c53a7d7175c4c2512518526afd386793eda370e5a47842a3929001d0db2b",
+      "bytes": 33164,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "critical-loom.png": {
+      "sha256": "c9dfc778534f1c0310543ed0f7a64144333d11dd9417c23033a55bb97c31a09d",
+      "bytes": 750414,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "critical-solar.png": {
+      "sha256": "0db28642ad995e49bc594117c027e62373a3464b3d933a28958cab65c20905b3",
+      "bytes": 1495921,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "critical-turbine.png": {
+      "sha256": "524caa15647278d397a08519c1499c86a152f4cedb001818a5b0bef4f411ec73",
+      "bytes": 1646877,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "critical-battery.png": {
+      "sha256": "2927419691559f4d515ef4b5918221685f629fad95b53ead208b1b047d97de3e",
+      "bytes": 1649628,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "critical-sun.png": {
+      "sha256": "3311c12d0dec6fd8d2def94cd8484f675bae73f2e20f26477de7a4fec8249417",
+      "bytes": 1628405,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "Spacetime-Singularity-Altar.png": {
+      "sha256": "1ad066c15529cf82f0b2f041eb8dda500c8b1956396411c49127db25b5a67a1d",
+      "bytes": 836461,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    },
+    "CriticalMEHatches.png": {
+      "sha256": "3ea98040ae83071d02f885c3d36b11af0ff2c2f30891f93a51486e6377c55cf0",
+      "bytes": 35798,
+      "sourceCommit": "57d082e9e748c8918ae3bb2c33df386c9a1cc99e"
+    }
+  }
+}

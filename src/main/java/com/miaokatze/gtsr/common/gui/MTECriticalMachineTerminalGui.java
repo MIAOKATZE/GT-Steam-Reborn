@@ -824,16 +824,18 @@ public final class MTECriticalMachineTerminalGui {
             if (manager.isClient() || data.mouseButton != 0) return;
             final ModularContainer container = manager.getContainer();
             final long generation = openGeneration.get();
-            if (!manager.getModularSyncManager().isOpen() || container == null
-                || player == null || player.openContainer != container
+            if (!manager.getModularSyncManager()
+                .isOpen() || container == null
+                || player == null
+                || player.openContainer != container
                 || !actionPending.compareAndSet(false, true)) return;
             // Only a fixed button command is retained, never MouseData/PacketBuffer or editable widget values.
             Mui2ServerActions.enqueue(() -> {
                 try {
                     // MUI deliberately retains closed managers for reopen; their network IDs still route packets.
-                    if (!ServerPacketAuthority.isCurrentPlayer(player, connection)
-                        || openGeneration.get() != generation
-                        || !manager.getModularSyncManager().isOpen()
+                    if (!ServerPacketAuthority.isCurrentPlayer(player, connection) || openGeneration.get() != generation
+                        || !manager.getModularSyncManager()
+                            .isOpen()
                         || manager.getPlayer() != player
                         || manager.getContainer() != container
                         || player.openContainer != container

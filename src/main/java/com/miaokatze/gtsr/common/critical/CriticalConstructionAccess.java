@@ -21,7 +21,8 @@ final class CriticalConstructionAccess {
         UUID ownerId;
         try {
             ownerId = UUID.fromString(owner);
-            if (!ownerId.toString().equalsIgnoreCase(owner)) return false;
+            if (!ownerId.toString()
+                .equalsIgnoreCase(owner)) return false;
         } catch (IllegalArgumentException invalidOwner) {
             return false;
         }
@@ -35,8 +36,7 @@ final class CriticalConstructionAccess {
         }
         if (actor == null) {
             if (!(world instanceof WorldServer server)) return false;
-            if (offlineOwner == null || offlineOwner.worldObj != world
-                || !ownerId.equals(offlineOwner.getUniqueID()))
+            if (offlineOwner == null || offlineOwner.worldObj != world || !ownerId.equals(offlineOwner.getUniqueID()))
                 offlineOwner = new FakePlayer(server, new GameProfile(ownerId, "[GTSR Builder]"));
             actor = offlineOwner;
         }

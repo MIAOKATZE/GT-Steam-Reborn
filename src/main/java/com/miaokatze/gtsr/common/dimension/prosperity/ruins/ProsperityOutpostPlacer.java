@@ -280,7 +280,11 @@ public final class ProsperityOutpostPlacer {
      * 零新增随机源、零新增族盐）。默认档（身份不可得）⇒ 0 ⇒ 与改造前逐位相同。
      */
     public static int buryingAt(long worldSeed, Outpost outpost, int originX, int originZ) {
-        return buryingAt(outpost, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(worldSeed, originX, originZ));
+        return buryingAt(
+            outpost,
+            originX,
+            originZ,
+            StructureBurialTiers.rosterIndexAtOrigin(worldSeed, originX, originZ));
     }
 
     /**

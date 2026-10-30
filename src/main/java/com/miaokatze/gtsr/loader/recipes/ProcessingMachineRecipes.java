@@ -237,11 +237,9 @@ public final class ProcessingMachineRecipes {
         ItemStack rareOut = get(GTSRItemList.RareGasSeparationChip, 1);
 
         if (!hasNull(t1out)) {
-            ItemStack[] inputs = new ItemStack[] {
-                get(ItemList.OilDrill2, 1),
+            ItemStack[] inputs = new ItemStack[] { get(ItemList.OilDrill2, 1),
                 get(GTSRItemList.SteamEntangledSingularity, 16),
-                get(OrePrefixes.plateDouble, Materials.StainlessSteel, 32),
-                get(OrePrefixes.circuit, Materials.HV, 8) };
+                get(OrePrefixes.plateDouble, Materials.StainlessSteel, 32), get(OrePrefixes.circuit, Materials.HV, 8) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -258,12 +256,9 @@ public final class ProcessingMachineRecipes {
         }
 
         if (!hasNull(t2out)) {
-            ItemStack[] inputs = new ItemStack[] {
-                get(ItemList.OilDrill3, 1),
-                get(GTSRItemList.SteamEntangledSingularity, 32),
-                get(OrePrefixes.plateTriple, Materials.Titanium, 64),
-                get(OrePrefixes.circuit, Materials.EV, 16),
-                get(GTSRItemList.VeinPyrolyzerChipT1, 1) };
+            ItemStack[] inputs = new ItemStack[] { get(ItemList.OilDrill3, 1),
+                get(GTSRItemList.SteamEntangledSingularity, 32), get(OrePrefixes.plateTriple, Materials.Titanium, 64),
+                get(OrePrefixes.circuit, Materials.EV, 16), get(GTSRItemList.VeinPyrolyzerChipT1, 1) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -280,11 +275,9 @@ public final class ProcessingMachineRecipes {
         }
 
         if (!hasNull(t3out)) {
-            ItemStack[] inputs = new ItemStack[] {
-                get(ItemList.OilDrill4, 1),
+            ItemStack[] inputs = new ItemStack[] { get(ItemList.OilDrill4, 1),
                 get(GTSRItemList.SteamEntangledSingularity, 64),
-                get(OrePrefixes.plateDense, Materials.TungstenSteel, 64),
-                get(OrePrefixes.circuit, Materials.IV, 32),
+                get(OrePrefixes.plateDense, Materials.TungstenSteel, 64), get(OrePrefixes.circuit, Materials.IV, 32),
                 get(GTSRItemList.VeinPyrolyzerChipT2, 1) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
@@ -302,12 +295,9 @@ public final class ProcessingMachineRecipes {
         }
 
         if (!hasNull(geoOut)) {
-            ItemStack[] inputs = new ItemStack[] {
-                get(GTSRItemList.SteamEntangledSingularity, 6),
-                get(OrePrefixes.plate, Materials.Gold, 4),
-                get(OrePrefixes.plate, Materials.Steel, 4),
-                get(OrePrefixes.circuit, Materials.LV, 2),
-                get(ItemList.Electric_Pump_LV, 8) };
+            ItemStack[] inputs = new ItemStack[] { get(GTSRItemList.SteamEntangledSingularity, 6),
+                get(OrePrefixes.plate, Materials.Gold, 4), get(OrePrefixes.plate, Materials.Steel, 4),
+                get(OrePrefixes.circuit, Materials.LV, 2), get(ItemList.Electric_Pump_LV, 8) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -339,12 +329,9 @@ public final class ProcessingMachineRecipes {
         }
 
         if (!hasNull(rareOut)) {
-            ItemStack[] inputs = new ItemStack[] {
-                get(GTSRItemList.SteamEntangledSingularity, 16),
-                get(OrePrefixes.plateDouble, Materials.StainlessSteel, 32),
-                get(OrePrefixes.circuit, Materials.HV, 8),
-                get(OrePrefixes.screw, Materials.StainlessSteel, 64),
-                get(ItemList.Electric_Motor_HV, 32) };
+            ItemStack[] inputs = new ItemStack[] { get(GTSRItemList.SteamEntangledSingularity, 16),
+                get(OrePrefixes.plateDouble, Materials.StainlessSteel, 32), get(OrePrefixes.circuit, Materials.HV, 8),
+                get(OrePrefixes.screw, Materials.StainlessSteel, 64), get(ItemList.Electric_Motor_HV, 32) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -363,8 +350,7 @@ public final class ProcessingMachineRecipes {
         // --- 致密蒸汽芯片 (GTUDK 配方导出 2026-09-07，编程电路不消耗，EUt 2048) ---
         ItemStack chipOut = get(GTSRItemList.TcdsBoostChip, 1);
         if (!hasNull(chipOut)) {
-            ItemStack[] chipInputs = new ItemStack[] {
-                get(OrePrefixes.circuit, Materials.EV, 32),
+            ItemStack[] chipInputs = new ItemStack[] { get(OrePrefixes.circuit, Materials.EV, 32),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 16, 32643),
                 GTSRItemList.SteamEntangledSingularity.get(32),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 32, 19028) };
@@ -391,10 +377,8 @@ public final class ProcessingMachineRecipes {
 
         ItemStack niOut = get(GTSRItemList.AmmoniaCatalystNickel, 1);
         if (!hasNull(niOut)) {
-            ItemStack[] inputs = new ItemStack[] {
-                get(OrePrefixes.dust, Materials.Nickel, 48),
-                get(OrePrefixes.dust, Materials.Aluminium, 24),
-                get(OrePrefixes.plate, Materials.StainlessSteel, 32) };
+            ItemStack[] inputs = new ItemStack[] { get(OrePrefixes.dust, Materials.Nickel, 48),
+                get(OrePrefixes.dust, Materials.Aluminium, 24), get(OrePrefixes.plate, Materials.StainlessSteel, 32) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -412,10 +396,8 @@ public final class ProcessingMachineRecipes {
 
         ItemStack ptOut = get(GTSRItemList.AmmoniaCatalystPlatinum, 1);
         if (!hasNull(ptOut)) {
-            ItemStack[] inputs = new ItemStack[] {
-                get(OrePrefixes.dust, Materials.Platinum, 16),
-                get(OrePrefixes.dust, Materials.Aluminium, 48),
-                get(OrePrefixes.plate, Materials.Titanium, 32) };
+            ItemStack[] inputs = new ItemStack[] { get(OrePrefixes.dust, Materials.Platinum, 16),
+                get(OrePrefixes.dust, Materials.Aluminium, 48), get(OrePrefixes.plate, Materials.Titanium, 32) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -433,10 +415,8 @@ public final class ProcessingMachineRecipes {
 
         ItemStack uOut = get(GTSRItemList.AmmoniaCatalystUranium, 1);
         if (!hasNull(uOut)) {
-            ItemStack[] inputs = new ItemStack[] {
-                get(OrePrefixes.dust, Materials.Uranium, 16),
-                get(OrePrefixes.dust, Materials.Iron, 32),
-                get(OrePrefixes.dust, Materials.Aluminium, 24),
+            ItemStack[] inputs = new ItemStack[] { get(OrePrefixes.dust, Materials.Uranium, 16),
+                get(OrePrefixes.dust, Materials.Iron, 32), get(OrePrefixes.dust, Materials.Aluminium, 24),
                 get(OrePrefixes.plate, Materials.TungstenSteel, 48) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
@@ -455,10 +435,8 @@ public final class ProcessingMachineRecipes {
 
         ItemStack osOut = get(GTSRItemList.AmmoniaCatalystOsmium, 1);
         if (!hasNull(osOut)) {
-            ItemStack[] inputs = new ItemStack[] {
-                get(OrePrefixes.dust, Materials.Osmium, 48),
-                get(OrePrefixes.dust, Materials.Aluminium, 40),
-                get(OrePrefixes.dust, Materials.Silicon, 8),
+            ItemStack[] inputs = new ItemStack[] { get(OrePrefixes.dust, Materials.Osmium, 48),
+                get(OrePrefixes.dust, Materials.Aluminium, 40), get(OrePrefixes.dust, Materials.Silicon, 8),
                 get(OrePrefixes.plateDense, Materials.TungstenSteel, 48) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
@@ -481,11 +459,8 @@ public final class ProcessingMachineRecipes {
             if (luvPlate == null) {
                 warn("Osmiridium dense plate (32) returned null!");
             }
-            ItemStack[] inputs = new ItemStack[] {
-                get(OrePrefixes.dust, Materials.Iron, 64),
-                get(OrePrefixes.dust, Materials.Cobalt, 8),
-                get(OrePrefixes.dust, Materials.Aluminium, 16),
-                luvPlate };
+            ItemStack[] inputs = new ItemStack[] { get(OrePrefixes.dust, Materials.Iron, 64),
+                get(OrePrefixes.dust, Materials.Cobalt, 8), get(OrePrefixes.dust, Materials.Aluminium, 16), luvPlate };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -507,11 +482,8 @@ public final class ProcessingMachineRecipes {
             if (rutheniumDust == null) {
                 warn("WerkstoffLoader.Ruthenium.get(dust, 16) returned null!");
             }
-            ItemStack[] inputs = new ItemStack[] {
-                rutheniumDust,
-                get(OrePrefixes.dust, Materials.Carbon, 40),
-                get(OrePrefixes.dust, Materials.Aluminium, 8),
-                get(OrePrefixes.plateDense, Materials.Iridium, 48) };
+            ItemStack[] inputs = new ItemStack[] { rutheniumDust, get(OrePrefixes.dust, Materials.Carbon, 40),
+                get(OrePrefixes.dust, Materials.Aluminium, 8), get(OrePrefixes.plateDense, Materials.Iridium, 48) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -533,9 +505,7 @@ public final class ProcessingMachineRecipes {
             if (quantumDust == null) {
                 warn("Materials.Quantium.getDust(64) returned null!");
             }
-            ItemStack[] inputs = new ItemStack[] {
-                get(OrePrefixes.dust, Materials.CosmicNeutronium, 16),
-                quantumDust,
+            ItemStack[] inputs = new ItemStack[] { get(OrePrefixes.dust, Materials.CosmicNeutronium, 16), quantumDust,
                 get(OrePrefixes.plateDense, Materials.Osmium, 48) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()

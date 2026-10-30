@@ -100,7 +100,9 @@ public final class TerminalClientPacketSink {
                 @Override
                 public void run() {
                     if (epoch != CONNECTION_EPOCH.get() || connection == null
-                        || connection != Minecraft.getMinecraft().getNetHandler()) return;
+                        || connection != Minecraft.getMinecraft()
+                            .getNetHandler())
+                        return;
                     TerminalClientPacketSink.handleOpen(msg);
                 }
             });
@@ -115,7 +117,9 @@ public final class TerminalClientPacketSink {
                 @Override
                 public void run() {
                     if (epoch != CONNECTION_EPOCH.get() || connection == null
-                        || connection != Minecraft.getMinecraft().getNetHandler()) return;
+                        || connection != Minecraft.getMinecraft()
+                            .getNetHandler())
+                        return;
                     TerminalClientPacketSink.handleData(msg);
                 }
             });

@@ -1674,7 +1674,8 @@ public final class WeaponAuditCommand extends CommandBase {
             modeStep(false, false, false);
         }
         pack.setItemDamage(0);
-        int reserveBeforeRefund = ordinaryReserve(WeaponKind.QLZ04), paidBeforeRefund = gunData.getInteger("paidMagazine");
+        int reserveBeforeRefund = ordinaryReserve(WeaponKind.QLZ04),
+            paidBeforeRefund = gunData.getInteger("paidMagazine");
         modeStep(false, false, true);
         require(
             pack.getItemDamage() == 0 && ordinaryReserve(WeaponKind.QLZ04) == reserveBeforeRefund + paidBeforeRefund,

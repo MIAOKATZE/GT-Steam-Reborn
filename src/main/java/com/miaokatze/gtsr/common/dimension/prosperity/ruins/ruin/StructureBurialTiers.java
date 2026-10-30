@@ -1,9 +1,9 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin;
 
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
-import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerRosterFace;
 import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkSpans;
+import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
 
 /**
  * <b>城外结构半埋的群系档表</b>（dim78 P17 S-D；需求原话「结构生成上也有些差异，比如沙漠更多是

@@ -30,13 +30,12 @@ public final class RuinsEncounterData extends WorldSavedData {
         // width/depth must not allocate an unbounded index, and edge coordinates must not wrap.
         int maxX = (int) (((long) site.x + site.width - 1) >> 8);
         int maxZ = (int) (((long) site.z + site.depth - 1) >> 8);
-        for (int cx = site.x >> 8; cx <= maxX; cx++)
-            for (int cz = site.z >> 8; cz <= maxZ; cz++) {
-                long k = cell(cx, cz);
-                if (!spatial.containsKey(k)) spatial.put(k, new HashSet<String>());
-                spatial.get(k)
-                    .add(id);
-            }
+        for (int cx = site.x >> 8; cx <= maxX; cx++) for (int cz = site.z >> 8; cz <= maxZ; cz++) {
+            long k = cell(cx, cz);
+            if (!spatial.containsKey(k)) spatial.put(k, new HashSet<String>());
+            spatial.get(k)
+                .add(id);
+        }
     }
 
     public void registerSite(RuinSite s) {
@@ -65,14 +64,7 @@ public final class RuinsEncounterData extends WorldSavedData {
         if (kind < 0 || kind >= RuinSite.NAMES.length || layout < 1 || layout > 2) return null;
         int x = r.getInteger("x"), z = r.getInteger("z");
         if (x < -30000000 || x >= 30000000 || z < -30000000 || z >= 30000000) return null;
-        return new RuinSite(
-            r.getLong("seed"),
-            kind,
-            x,
-            r.getInteger("y"),
-            z,
-            0,
-            layout);
+        return new RuinSite(r.getLong("seed"), kind, x, r.getInteger("y"), z, 0, layout);
     }
 
     public List<RuinSite> existingSitesNear(int x, int z, int radius) {

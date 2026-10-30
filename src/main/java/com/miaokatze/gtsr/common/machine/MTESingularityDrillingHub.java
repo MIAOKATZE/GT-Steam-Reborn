@@ -950,7 +950,9 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     private boolean isLiveCachedWorker(BoundDrillNode bound) {
         IGregTechTileEntity tile = bound.cachedWorker.getBaseMetaTileEntity();
         World world = DimensionManager.getWorld(bound.dimensionId);
-        return tile != null && !tile.isDead() && world != null && tile.getWorld() == world
+        return tile != null && !tile.isDead()
+            && world != null
+            && tile.getWorld() == world
             && tile.getMetaTileEntity() == bound.cachedWorker
             && world.blockExists(bound.x, bound.y, bound.z)
             && world.getTileEntity(bound.x, bound.y, bound.z) == tile;

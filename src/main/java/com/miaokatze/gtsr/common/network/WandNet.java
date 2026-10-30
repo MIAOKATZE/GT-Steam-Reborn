@@ -113,7 +113,12 @@ public final class WandNet {
         // Snapshot reference only; all validation and mutation happens in ServerTick.
         if (player != null) PENDING.offer(
             context.getServerHandler(),
-            new Pending(player, context.getServerHandler(), player.getHeldItem(), player.inventory.currentItem, message));
+            new Pending(
+                player,
+                context.getServerHandler(),
+                player.getHeldItem(),
+                player.inventory.currentItem,
+                message));
     }
 
     public static class SelectHandler implements IMessageHandler<PacketWandSelect, IMessage> {
@@ -173,7 +178,8 @@ public final class WandNet {
         private final int slot;
         private final IMessage message;
 
-        private Pending(EntityPlayerMP player, NetHandlerPlayServer connection, ItemStack wand, int slot, IMessage message) {
+        private Pending(EntityPlayerMP player, NetHandlerPlayServer connection, ItemStack wand, int slot,
+            IMessage message) {
             this.connection = connection;
             this.player = player;
             this.wand = wand;

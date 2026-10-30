@@ -24,17 +24,20 @@ public final class ServerPacketAuthority {
     }
 
     public static boolean isCurrentPlayer(EntityPlayerMP player, NetHandlerPlayServer connection) {
-        if (player == null || player.isDead || player instanceof FakePlayer
-            || connection == null || player.playerNetServerHandler != connection
-            || connection.playerEntity != player || connection.netManager == null
+        if (player == null || player.isDead
+            || player instanceof FakePlayer
+            || connection == null
+            || player.playerNetServerHandler != connection
+            || connection.playerEntity != player
+            || connection.netManager == null
             || !connection.netManager.isChannelOpen()
-            || player.worldObj == null || player.worldObj.isRemote) return false;
+            || player.worldObj == null
+            || player.worldObj.isRemote) return false;
         MinecraftServer server = MinecraftServer.getServer();
         if (server == null || server.getConfigurationManager() == null
             || server.worldServerForDimension(player.dimension) != player.worldObj) return false;
         // Object identity matters after respawn/reconnect, even if both entities have the same UUID.
-        for (Object online : server.getConfigurationManager().playerEntityList)
-            if (online == player) return true;
+        for (Object online : server.getConfigurationManager().playerEntityList) if (online == player) return true;
         return false;
     }
 }

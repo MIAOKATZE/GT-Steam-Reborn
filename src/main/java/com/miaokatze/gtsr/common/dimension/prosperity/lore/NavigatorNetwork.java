@@ -127,10 +127,11 @@ public final class NavigatorNetwork {
     public void tick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         // Dropped items belong to the world, not this transient inventory witness cache.
-        PENDING_GIFTS.values().removeIf(reference -> {
-            EntityItem item = reference.get();
-            return item == null || item.isDead;
-        });
+        PENDING_GIFTS.values()
+            .removeIf(reference -> {
+                EntityItem item = reference.get();
+                return item == null || item.isDead;
+            });
         // Netty only enqueues; admission and all world access belong to this thread.
         for (int count = 0; count < 4; count++) {
             Pending pending;
@@ -214,7 +215,8 @@ public final class NavigatorNetwork {
         long now = System.nanoTime();
         QueryStamp last = LAST_QUERY.get(player);
         if (last != null && last.player.get() == player
-            && last.connection.get() == player.playerNetServerHandler && now - last.time < 1000000000L) {
+            && last.connection.get() == player.playerNetServerHandler
+            && now - last.time < 1000000000L) {
             NETWORK.sendTo(new Result(player, query.index, query.serial, 3, 0), player);
             return;
         }

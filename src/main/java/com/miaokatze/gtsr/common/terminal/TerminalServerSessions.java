@@ -97,12 +97,17 @@ public final class TerminalServerSessions {
 
     /** Validate untrusted local factory coordinates before getTileEntity can load a chunk. */
     public static boolean canInspectLocalPosition(EntityPlayer player, PosGuiData data, double rangeSquared) {
-        if (player == null || data == null || player != data.getPlayer() || player.isDead
-            || player instanceof FakePlayer || player.worldObj == null || player.worldObj != data.getWorld()
+        if (player == null || data == null
+            || player != data.getPlayer()
+            || player.isDead
+            || player instanceof FakePlayer
+            || player.worldObj == null
+            || player.worldObj != data.getWorld()
             || !(data.getSquaredDistance(player) <= rangeSquared)) return false;
         World world = data.getWorld();
         return data.getY() >= 0 && data.getY() < world.getHeight()
-            && world.getChunkProvider().chunkExists(data.getX() >> 4, data.getZ() >> 4);
+            && world.getChunkProvider()
+                .chunkExists(data.getX() >> 4, data.getZ() >> 4);
     }
 
     /**

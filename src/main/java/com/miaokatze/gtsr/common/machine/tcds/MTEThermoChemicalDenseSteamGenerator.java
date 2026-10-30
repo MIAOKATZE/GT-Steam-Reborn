@@ -690,8 +690,9 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         // A known paid prefix remains consumed; no speculative rollback or refund is created.
         if (gasFlow > 0
             && GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(gas.fluid, gasFlow)) != gasFlow
-            || liquidFlow > 0 && GTSRHatchFluidAccess
-                .depleteFluidAcross(mInputHatches, new FluidStack(liquid.fluid, liquidFlow)) != liquidFlow
+            || liquidFlow > 0
+                && GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(liquid.fluid, liquidFlow))
+                    != liquidFlow
             || airToConsume > 0
                 && GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, Materials.Air.getGas(airToConsume))
                     != airToConsume

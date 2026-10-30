@@ -108,7 +108,8 @@ public final class RemasterData extends WorldSavedData {
 
     public void register(RemasterSite s) {
         if (frozenSites != null || !RemasterRollout.allowsGeneration(s)
-            || frozenIds.contains(s.id()) || records.containsKey(s.id())) return;
+            || frozenIds.contains(s.id())
+            || records.containsKey(s.id())) return;
         NBTTagCompound record = s.save();
         records.put(s.id(), record);
         generatedOwners = retryOwners = null;
@@ -147,8 +148,8 @@ public final class RemasterData extends WorldSavedData {
 
     /** The same saved identity is stable; different scenes must not overlap an actual saved footprint. */
     public boolean allowsSavedPlacement(RemasterSite candidate) {
-        if (frozenSites != null || !RemasterRollout.allowsGeneration(candidate)
-            || frozenIds.contains(candidate.id())) return false;
+        if (frozenSites != null || !RemasterRollout.allowsGeneration(candidate) || frozenIds.contains(candidate.id()))
+            return false;
         if (records.containsKey(candidate.id())) return true;
         java.util.Set<String> checked = new java.util.HashSet<>();
         for (int x = candidate.minX() >> 4; x <= candidate.maxX() >> 4; x++)
@@ -193,8 +194,8 @@ public final class RemasterData extends WorldSavedData {
         chunks.clear();
         generatedOwners = retryOwners = null;
         NBTBase container = n.getTag("sites");
-        if (container != null && (!(container instanceof NBTTagList)
-            || n.getTagList("sites", 10).tagCount() != ((NBTTagList) container).tagCount())) {
+        if (container != null && (!(container instanceof NBTTagList) || n.getTagList("sites", 10)
+            .tagCount() != ((NBTTagList) container).tagCount())) {
             // getTagList silently returns an empty list for the wrong element type.
             frozenSites = container.copy();
             return;
@@ -258,8 +259,14 @@ public final class RemasterData extends WorldSavedData {
                     || !typedIfPresent(spawner, 4, "next", "unsealAt", "unlockAt", "pulseAt")) return false;
             } else if (flagKey(key) && !state.hasKey(key, 1)) return false;
         }
-        return typedIfPresent(state, 3, "legacyAnchorX", "legacyAnchorY", "legacyAnchorZ",
-            "industrialBossStage", "industrialRevivalTicks") && typedIfPresent(state, 5, "industrialBossHealth")
+        return typedIfPresent(
+            state,
+            3,
+            "legacyAnchorX",
+            "legacyAnchorY",
+            "legacyAnchorZ",
+            "industrialBossStage",
+            "industrialRevivalTicks") && typedIfPresent(state, 5, "industrialBossHealth")
             && typedIfPresent(state, 8, "legacyEncounter");
     }
 
@@ -269,11 +276,19 @@ public final class RemasterData extends WorldSavedData {
     }
 
     private static boolean flagKey(String key) {
-        return key.equals("boss-dead") || key.equals("mission-boss-ready") || key.startsWith("geom:")
-            || key.startsWith("node:") || key.startsWith("entity:") || key.startsWith("dead:")
-            || key.startsWith("claimed:") || key.startsWith("destroyed:") || key.startsWith("sealed:")
-            || key.startsWith("puzzle:") || key.startsWith("witness:") || key.startsWith("story-read:")
-            || key.startsWith("boss-dead:") || spawnerMemberFlag(key);
+        return key.equals("boss-dead") || key.equals("mission-boss-ready")
+            || key.startsWith("geom:")
+            || key.startsWith("node:")
+            || key.startsWith("entity:")
+            || key.startsWith("dead:")
+            || key.startsWith("claimed:")
+            || key.startsWith("destroyed:")
+            || key.startsWith("sealed:")
+            || key.startsWith("puzzle:")
+            || key.startsWith("witness:")
+            || key.startsWith("story-read:")
+            || key.startsWith("boss-dead:")
+            || spawnerMemberFlag(key);
     }
 
     private static boolean spawnerMemberFlag(String key) {
@@ -285,7 +300,8 @@ public final class RemasterData extends WorldSavedData {
         String serial = key.substring(member + 1);
         try {
             int parsed = Integer.parseInt(serial);
-            return parsed >= 0 && Integer.toString(parsed).equals(serial);
+            return parsed >= 0 && Integer.toString(parsed)
+                .equals(serial);
         } catch (NumberFormatException invalid) {
             return false;
         }

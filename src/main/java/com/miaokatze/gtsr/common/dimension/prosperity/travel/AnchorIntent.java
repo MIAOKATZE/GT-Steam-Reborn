@@ -139,7 +139,8 @@ public final class AnchorIntent {
                     if (incoming == null) break;
                 }
                 EntityPlayerMP p = incoming.player;
-                if (p == null || incoming.handler.playerEntity != p || p.playerNetServerHandler != incoming.handler
+                if (p == null || incoming.handler.playerEntity != p
+                    || p.playerNetServerHandler != incoming.handler
                     || !incoming.handler.netManager.isChannelOpen()
                     || System.nanoTime() - incoming.receivedNanos > 500000000L) {
                     QUEUED.decrementAndGet();
@@ -160,7 +161,8 @@ public final class AnchorIntent {
                 Pending pending = entry.getValue();
                 EntityPlayerMP p = pending.player;
                 boolean connected = p != null && pending.handler.playerEntity == p
-                    && p.playerNetServerHandler == pending.handler && pending.handler.netManager.isChannelOpen();
+                    && p.playerNetServerHandler == pending.handler
+                    && pending.handler.netManager.isChannelOpen();
                 Use use = USES.get(entry.getKey());
                 if (connected && use == null
                     && p.ticksExisted - pending.firstTick < 5

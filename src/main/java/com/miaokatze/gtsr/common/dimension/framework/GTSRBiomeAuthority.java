@@ -261,6 +261,7 @@ public final class GTSRBiomeAuthority {
             this.chain = new GTSRGenLayerChain(chainSeed, ids);
         }
     }
+
     private int dimId = -1;
     private boolean unboundWarned;
 

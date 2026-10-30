@@ -281,7 +281,9 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
     private boolean isLiveCachedNode(BoundCacheNode bound) {
         IGregTechTileEntity tile = bound.cachedTile;
         World world = DimensionManager.getWorld(bound.dimensionId);
-        return tile != null && !tile.isDead() && world != null && tile.getWorld() == world
+        return tile != null && !tile.isDead()
+            && world != null
+            && tile.getWorld() == world
             && world.blockExists(bound.x, bound.y, bound.z)
             && world.getTileEntity(bound.x, bound.y, bound.z) == tile;
     }

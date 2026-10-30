@@ -14,12 +14,14 @@ final class RemasterSpawnerLedger {
         if (spawner.getInteger("pendingLedgerVersion") >= 1) return false;
         String admitted = "spawner-admitted:" + cage + ":", dead = "spawner-dead:" + cage + ":";
         // Two passes avoid both iterator invalidation and dependence on NBT map iteration order.
-        for (Iterator<?> keys = site.func_150296_c().iterator(); keys.hasNext();) {
+        for (Iterator<?> keys = site.func_150296_c()
+            .iterator(); keys.hasNext();) {
             String key = (String) keys.next();
             if (key.startsWith(admitted) && serial(key.substring(admitted.length()))
                 && site.getBoolean(dead + key.substring(admitted.length()))) keys.remove();
         }
-        for (Iterator<?> keys = site.func_150296_c().iterator(); keys.hasNext();) {
+        for (Iterator<?> keys = site.func_150296_c()
+            .iterator(); keys.hasNext();) {
             String key = (String) keys.next();
             if (key.startsWith(dead) && serial(key.substring(dead.length())) && site.getBoolean(key)) keys.remove();
         }
@@ -39,7 +41,8 @@ final class RemasterSpawnerLedger {
     private static boolean serial(String value) {
         try {
             int parsed = Integer.parseInt(value);
-            return parsed >= 0 && Integer.toString(parsed).equals(value);
+            return parsed >= 0 && Integer.toString(parsed)
+                .equals(value);
         } catch (NumberFormatException invalid) {
             return false;
         }

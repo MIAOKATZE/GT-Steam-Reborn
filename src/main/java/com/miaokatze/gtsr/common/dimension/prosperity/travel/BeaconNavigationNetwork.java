@@ -78,10 +78,11 @@ public final class BeaconNavigationNetwork {
                 QUEUED.decrementAndGet();
             }
             EntityPlayerMP player = pending.player;
-            if (ServerPacketAuthority.isCurrentPlayer(player, pending.connection)
-                && player.isEntityAlive() && pending.hello.dimension == player.dimension) {
+            if (ServerPacketAuthority.isCurrentPlayer(player, pending.connection) && player.isEntityAlive()
+                && pending.hello.dimension == player.dimension) {
                 Session session = SESSIONS.get(player);
-                if (session == null || session.player.get() != player || session.world.get() != player.worldObj
+                if (session == null || session.player.get() != player
+                    || session.world.get() != player.worldObj
                     || session.connection.get() != player.playerNetServerHandler
                     || session.nonce != pending.hello.nonce) {
                     session = new Session(player, pending.hello.nonce);
@@ -104,8 +105,10 @@ public final class BeaconNavigationNetwork {
             Map.Entry<EntityPlayerMP, Session> entry = iterator.next();
             EntityPlayerMP player = entry.getKey();
             Session session = entry.getValue();
-            if (session.player.get() != player || !ServerPacketAuthority.isCurrentPlayer(player, session.connection.get())
-                || !player.isEntityAlive() || player.worldObj != session.world.get()) {
+            if (session.player.get() != player
+                || !ServerPacketAuthority.isCurrentPlayer(player, session.connection.get())
+                || !player.isEntityAlive()
+                || player.worldObj != session.world.get()) {
                 iterator.remove();
                 continue;
             }

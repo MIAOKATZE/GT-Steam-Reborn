@@ -158,8 +158,7 @@ public final class HatchRecipes {
             return;
         }
 
-        ItemStack[] inputs = new ItemStack[] {
-            GregtechItemList.Hatch_Reservoir.get(1),
+        ItemStack[] inputs = new ItemStack[] { GregtechItemList.Hatch_Reservoir.get(1),
             get(GTSRItemList.SteamEntangledSingularity, 16) };
         if (hasNull(inputs)) {
             warn("Skipped DistilledWaterHatch recipe - inputs contain null");

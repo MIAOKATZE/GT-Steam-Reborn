@@ -12,9 +12,9 @@ import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster;
 import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
-import com.miaokatze.gtsr.main.GTSteamReborn;
 import com.miaokatze.gtsr.common.network.BoundedRequestQueue;
 import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
+import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;

@@ -5,10 +5,8 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.NetHandlerPlayServer;
-
-import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.FakePlayer;
 
@@ -17,6 +15,7 @@ import com.cleanroommc.modularui.value.sync.SyncHandler;
 import com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions;
 import com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 import com.miaokatze.gtsr.common.terminal.TerminalServerSessions;
 
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;

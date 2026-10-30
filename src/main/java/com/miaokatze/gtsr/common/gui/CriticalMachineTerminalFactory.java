@@ -16,7 +16,6 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.miaokatze.gtsr.common.gui.mui2.BoundedTerminalScreen;
 import com.miaokatze.gtsr.common.items.HubTerminal;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
-
 import com.miaokatze.gtsr.common.terminal.TerminalServerSessions;
 
 import cpw.mods.fml.relauncher.Side;
@@ -82,8 +81,7 @@ public final class CriticalMachineTerminalFactory implements UIFactory<PosGuiDat
     @Override
     public ModularPanel createPanel(PosGuiData data, PanelSyncManager manager, UISettings settings) {
         // MUI2 also accepts client-requested open packets: validate coordinates before any tile lookup.
-        if (!canInteractWith(data.getPlayer(), data)
-            || !data.getWorld().isRemote && !hasTerminal(data.getPlayer())) {
+        if (!canInteractWith(data.getPlayer(), data) || !data.getWorld().isRemote && !hasTerminal(data.getPlayer())) {
             settings.canInteractWith(player -> false);
             return ModularPanel.defaultPanel("critical_terminal_denied");
         }

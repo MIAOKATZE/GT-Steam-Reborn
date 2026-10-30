@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -277,11 +278,11 @@ public final class CriticalEnergyRuntime {
         // CriticalEnergyPorts owns the exact long-input adapter. The generic legacy helper intentionally
         // rejects ME subclasses, so only pass it the sources that need its native compatibility check.
         if (GTSRHatchFluidAccess.hasUnsupportedWorkingFluidSources(
-            host.getCriticalInputHatches().stream()
+            host.getCriticalInputHatches()
+                .stream()
                 .filter(hatch -> hatch.getClass() != MTEHatchCriticalInputME.class)
-                .toList(),
-            host.getCriticalDualInputHatches()))
-            return state.fail("不支持的化学流体输入实现，原料保留");
+                .collect(Collectors.toList()),
+            host.getCriticalDualInputHatches())) return state.fail("不支持的化学流体输入实现，原料保留");
         // Funded v1 batches finish their frozen EU before migration. Residual v1 heat is
         // paid at its recorded base value to the recorded owner, never repriced.
         if (data.getTagList("chemicalCredits", 10)

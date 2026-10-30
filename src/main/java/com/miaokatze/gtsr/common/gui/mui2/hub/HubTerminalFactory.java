@@ -21,9 +21,8 @@ import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
 import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
 import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
 import com.miaokatze.gtsr.common.terminal.CacheNodeTerminalData;
-import com.miaokatze.gtsr.common.terminal.TerminalUiType;
-
 import com.miaokatze.gtsr.common.terminal.TerminalServerSessions;
+import com.miaokatze.gtsr.common.terminal.TerminalUiType;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;

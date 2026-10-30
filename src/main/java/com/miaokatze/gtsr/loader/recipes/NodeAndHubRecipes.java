@@ -236,13 +236,9 @@ public final class NodeAndHubRecipes {
 
         ItemStack minerOut = get(GTSRItemList.SingularityMinerNode, 1);
         if (!hasNull(minerOut) && miningPipe != null) {
-            ItemStack[] inputs = new ItemStack[] {
-                get(GTSRItemList.SteamEntangledSingularity, 2),
-                get(OrePrefixes.frameGt, Materials.Steel, 1),
-                get(OrePrefixes.gearGt, Materials.Steel, 8),
-                get(OrePrefixes.plateDense, Materials.Steel, 4),
-                miningPipe,
-                get(ItemList.Electric_Piston_LV, 4),
+            ItemStack[] inputs = new ItemStack[] { get(GTSRItemList.SteamEntangledSingularity, 2),
+                get(OrePrefixes.frameGt, Materials.Steel, 1), get(OrePrefixes.gearGt, Materials.Steel, 8),
+                get(OrePrefixes.plateDense, Materials.Steel, 4), miningPipe, get(ItemList.Electric_Piston_LV, 4),
                 get(OrePrefixes.circuit, Materials.LV, 2) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
@@ -261,13 +257,9 @@ public final class NodeAndHubRecipes {
 
         ItemStack drillOut = get(GTSRItemList.SingularityDrillingNode, 1);
         if (!hasNull(drillOut) && miningPipe != null) {
-            ItemStack[] inputs = new ItemStack[] {
-                get(GTSRItemList.SteamEntangledSingularity, 2),
-                get(OrePrefixes.frameGt, Materials.Steel, 1),
-                get(OrePrefixes.pipeHuge, Materials.Steel, 4),
-                get(OrePrefixes.plateDense, Materials.Steel, 4),
-                miningPipe,
-                get(ItemList.Electric_Pump_LV, 6),
+            ItemStack[] inputs = new ItemStack[] { get(GTSRItemList.SteamEntangledSingularity, 2),
+                get(OrePrefixes.frameGt, Materials.Steel, 1), get(OrePrefixes.pipeHuge, Materials.Steel, 4),
+                get(OrePrefixes.plateDense, Materials.Steel, 4), miningPipe, get(ItemList.Electric_Pump_LV, 6),
                 get(OrePrefixes.circuit, Materials.LV, 2) };
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()

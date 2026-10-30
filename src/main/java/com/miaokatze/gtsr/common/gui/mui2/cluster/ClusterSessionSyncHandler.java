@@ -9,10 +9,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.NetHandlerPlayServer;
-
-import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
 
 import com.cleanroommc.modularui.value.sync.SyncHandler;
@@ -23,6 +21,7 @@ import com.miaokatze.gtsr.common.machine.cluster.LogisticsChain;
 import com.miaokatze.gtsr.common.machine.cluster.MTEBasicLogisticsUnit;
 import com.miaokatze.gtsr.common.machine.cluster.MTEClusterUnitBase;
 import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster;
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalActions;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalData;
 import com.miaokatze.gtsr.common.terminal.TerminalNet;

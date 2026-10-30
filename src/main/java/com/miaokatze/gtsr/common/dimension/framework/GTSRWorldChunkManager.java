@@ -164,18 +164,19 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
         if (this.dimKey != null) {
             // P8：同一次 scoped 绑定顺带把 micro 强度的只读出口交给 L1（见 Source#microStrengthAtChunk）。
             // 身份面仍逐字是 this::biomeAt 那一份实现体，未加任何分支或缓存 ⇒ L1 语义零改动。
-            this.authority = GTSRBiomeAuthority.scoped(this.dimKey, def.getResolvedDimId(), new GTSRBiomeAuthority.Source() {
+            this.authority = GTSRBiomeAuthority
+                .scoped(this.dimKey, def.getResolvedDimId(), new GTSRBiomeAuthority.Source() {
 
-                @Override
-                public BiomeGenBase biomeAtChunk(final int chunkX, final int chunkZ) {
-                    return GTSRWorldChunkManager.this.biomeAt(chunkX, chunkZ);
-                }
+                    @Override
+                    public BiomeGenBase biomeAtChunk(final int chunkX, final int chunkZ) {
+                        return GTSRWorldChunkManager.this.biomeAt(chunkX, chunkZ);
+                    }
 
-                @Override
-                public float microStrengthAtChunk(final int chunkX, final int chunkZ) {
-                    return GTSRWorldChunkManager.this.microStrengthAt(chunkX, chunkZ);
-                }
-            });
+                    @Override
+                    public float microStrengthAtChunk(final int chunkX, final int chunkZ) {
+                        return GTSRWorldChunkManager.this.microStrengthAt(chunkX, chunkZ);
+                    }
+                });
         } else {
             this.authority = GTSRBiomeAuthority.scoped(null, -1, null);
         }

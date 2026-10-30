@@ -359,7 +359,10 @@ public final class WeaponController {
         NBTTagCompound payment = new NBTTagCompound();
         payment.setInteger("paid", paid);
         payment.setString("id", k == WeaponKind.SINGULARITY ? "" : packId(source));
-        if (source.hasTagCompound()) payment.setTag("tag", source.getTagCompound().copy());
+        if (source.hasTagCompound()) payment.setTag(
+            "tag",
+            source.getTagCompound()
+                .copy());
         payments.appendTag(payment);
     }
 
@@ -389,17 +392,18 @@ public final class WeaponController {
                     ItemStack returned = (old == 1
                         ? com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSteamEntangledSingularity
                         : com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamEntangledSingularity).get(amount);
-                    if (payment.hasKey("tag", 10))
-                        returned.setTagCompound((NBTTagCompound) payment.getCompoundTag("tag").copy());
+                    if (payment.hasKey("tag", 10)) returned.setTagCompound(
+                        (NBTTagCompound) payment.getCompoundTag("tag")
+                            .copy());
                     restored = returnAmmo(s.player, returned);
                 } else {
                     ItemStack target = null;
                     for (ItemStack item : s.player.inventory.mainInventory)
                         if (matches(item, k, old) && item.stackSize == 1
                             && packId(item).equals(payment.getString("id"))) {
-                            target = item;
-                            break;
-                        }
+                                target = item;
+                                break;
+                            }
                     // A missing mimic is still a valuable regenerating vessel elsewhere. Keep its
                     // rounds loaded and reject this switch; never reconstruct a second vessel.
                     if (old == 1 && target == null) return false;
@@ -411,8 +415,9 @@ public final class WeaponController {
                     }
                     if (restored < amount) {
                         ItemStack returned = new ItemStack(PortableWeapons.ammo[k.id]);
-                        if (payment.hasKey("tag", 10))
-                            returned.setTagCompound((NBTTagCompound) payment.getCompoundTag("tag").copy());
+                        if (payment.hasKey("tag", 10)) returned.setTagCompound(
+                            (NBTTagCompound) payment.getCompoundTag("tag")
+                                .copy());
                         // A detached ordinary package has no independent empty-container value.
                         // Preserve custom tags, but do not clone a live package's routing identity.
                         data(returned).removeTag("id");
@@ -548,9 +553,9 @@ public final class WeaponController {
             if (!readablePayments(n)) return;
             magazinePayments(n); // Migrate legacy counts before decrementing this shot's magazine.
             n.setInteger("magazine", n.getInteger("magazine") - 1);
-        } else if (!debit(
-            a,
-            paidUnits(1, WeaponEnchantments.level(s.gun, WeaponEnchantments.economy), s.player.getRNG()))) return;
+        } else
+            if (!debit(a, paidUnits(1, WeaponEnchantments.level(s.gun, WeaponEnchantments.economy), s.player.getRNG())))
+                return;
         EntityWeaponProjectile projectile = new EntityWeaponProjectile(
             s.player.worldObj,
             s.player,

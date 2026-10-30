@@ -7,10 +7,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.NetHandlerPlayServer;
-
-import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
@@ -30,6 +28,7 @@ import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
 import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 import com.miaokatze.gtsr.common.terminal.TcdsTerminalData;
 import com.miaokatze.gtsr.common.terminal.TerminalServerSessions;
 import com.miaokatze.gtsr.common.util.GtsrNumFormat;

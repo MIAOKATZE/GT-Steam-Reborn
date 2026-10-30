@@ -34,16 +34,18 @@ public final class SpacetimeAltarStory {
 
     /** Retire idle reading leases as well as leases submitted for activation. Never load chunks here. */
     public static void expireSessions() {
-        SESSIONS.entrySet().removeIf(entry -> {
-            EntityPlayerMP player = entry.getKey();
-            Session session = entry.getValue();
-            World world = session.world.get();
-            return session.player.get() != player
-                || !ServerPacketAuthority.isCurrentPlayer(player, session.connection.get())
-                || world == null || player.worldObj != world
-                || session.expires < world.getTotalWorldTime()
-                || session.board.get() == null;
-        });
+        SESSIONS.entrySet()
+            .removeIf(entry -> {
+                EntityPlayerMP player = entry.getKey();
+                Session session = entry.getValue();
+                World world = session.world.get();
+                return session.player.get() != player
+                    || !ServerPacketAuthority.isCurrentPlayer(player, session.connection.get())
+                    || world == null
+                    || player.worldObj != world
+                    || session.expires < world.getTotalWorldTime()
+                    || session.board.get() == null;
+            });
     }
 
     public static boolean place(World world, int x, int y, int z, String id) {
@@ -156,8 +158,7 @@ public final class SpacetimeAltarStory {
             || session.connection.get() != player.playerNetServerHandler) return;
         SESSIONS.remove(player);
         TileSpacetimeAltarStory board = session.board.get();
-        if (!session.nonce.equals(nonce)
-            || session.world.get() != player.worldObj
+        if (!session.nonce.equals(nonce) || session.world.get() != player.worldObj
             || session.expires < player.worldObj.getTotalWorldTime()
             || !validBoard(player, board)) return;
         SpacetimeAltarIndex.Entry entry = owner(player.worldObj, board.instanceId());

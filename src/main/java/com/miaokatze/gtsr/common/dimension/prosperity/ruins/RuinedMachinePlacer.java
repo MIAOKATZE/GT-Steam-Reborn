@@ -179,7 +179,11 @@ public final class RuinedMachinePlacer {
      * 默认档（身份不可得）⇒ 0 ⇒ 与改造前逐位相同。
      */
     public static int buryingAt(long worldSeed, RuinedMachineShapes.Shape shape, int originX, int originZ) {
-        return buryingAt(shape, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(worldSeed, originX, originZ));
+        return buryingAt(
+            shape,
+            originX,
+            originZ,
+            StructureBurialTiers.rosterIndexAtOrigin(worldSeed, originX, originZ));
     }
 
     /**
@@ -393,7 +397,12 @@ public final class RuinedMachinePlacer {
      */
     private static RuinedColossusShapes.Morph morphAt(long worldSeed, RuinedMachineShapes.Shape shape, int originX,
         int originZ) {
-        return morphAt(worldSeed, shape, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(worldSeed, originX, originZ));
+        return morphAt(
+            worldSeed,
+            shape,
+            originX,
+            originZ,
+            StructureBurialTiers.rosterIndexAtOrigin(worldSeed, originX, originZ));
     }
 
     /**

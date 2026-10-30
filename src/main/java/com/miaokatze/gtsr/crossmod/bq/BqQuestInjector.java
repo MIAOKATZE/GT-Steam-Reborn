@@ -266,7 +266,7 @@ public final class BqQuestInjector {
             throw new IllegalStateException("Invalid BQ prerequisite list");
         }
         NBTTagList prerequisites = (NBTTagList) quest.getTag("preRequisites");
-        if (prerequisites.tagCount() > 0 && prerequisites.getTagType() != Constants.NBT.TAG_COMPOUND) {
+        if (prerequisites.tagCount() > 0 && prerequisites.func_150303_d() != Constants.NBT.TAG_COMPOUND) {
             throw new IllegalStateException("Invalid BQ prerequisite entry type");
         }
         for (int i = 0; i < prerequisites.tagCount(); i++) {
@@ -382,8 +382,8 @@ public final class BqQuestInjector {
             }
             // 任务必须挂线（/bq_admin purge_hidden_quests 会清未挂线任务）：未挂才 put；
             // 已挂线且刷新中则替换条目以同步编辑器坐标
-            if (line.get(questId) == null || (refresh && managedLine
-                && questId.getMostSignificantBits() == MANAGED_QUEST_HIGH)) {
+            if (line.get(questId) == null
+                || (refresh && managedLine && questId.getMostSignificantBits() == MANAGED_QUEST_HIGH)) {
                 NBTTagCompound entryTag = resources.get(
                     entry.get("entryFile")
                         .getAsString());
@@ -518,7 +518,8 @@ public final class BqQuestInjector {
         File[] files = dir.listFiles();
         if (files == null) return;
         for (File f : files) {
-            if (f.getName().endsWith(".json")) restoreProgressFile(f, progressTargets);
+            if (f.getName()
+                .endsWith(".json")) restoreProgressFile(f, progressTargets);
         }
     }
 
