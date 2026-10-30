@@ -39,6 +39,7 @@ import gregtech.api.interfaces.tileentity.IEnergyConnected;
 public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEnergyConnected {
 
     private TileEntity host;
+    private final CriticalConstructionAccess constructionAccess = new CriticalConstructionAccess();
     private boolean protectionDirty = true;
     private final Map<Long, Integer> protectionIndices = new java.util.HashMap<>();
     public net.minecraft.world.World worldObj;
@@ -3047,12 +3048,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     private boolean placeOwnedBlock(CriticalGeometry.Voxel v) {
         if (!worldObj.isAirBlock(wx(v), wy(v), wz(v))) return false;
-        EntityPlayer ownerPlayer = null;
-        for (Object object : worldObj.playerEntities) if (object instanceof EntityPlayer p && owner.equals(
-            p.getUniqueID()
-                .toString()))
-            ownerPlayer = p;
-        if (ownerPlayer != null && !worldObj.canMineBlock(ownerPlayer, wx(v), wy(v), wz(v))) return false;
+        if (!canEditSupply(v)) return false;
         if (blockBudgetStarted == 0) blockBudgetStarted = System.nanoTime();
         boolean placedBlock = CriticalStructures.isController(v)
             ? new CriticalStructures.ControllerElement(v.z == 47, config.kind, getStructureFacing())
@@ -3173,11 +3169,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private boolean canEditSupply(CriticalGeometry.Voxel v) {
-        for (Object object : worldObj.playerEntities) if (object instanceof EntityPlayer p && owner.equals(
-            p.getUniqueID()
-                .toString()))
-            return worldObj.canMineBlock(p, wx(v), wy(v), wz(v));
-        return true;
+        return constructionAccess.canEdit(worldObj, owner, wx(v), wy(v), wz(v));
     }
 
     private void retirePaidPosition(int index) {
@@ -3256,6 +3248,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (!worldObj.blockExists(wx(v), wy(v), wz(v))) return false;
         if (worldObj.isAirBlock(wx(v), wy(v), wz(v))) return true;
         if (!matchesMaterial(v)) return fail("外延供给舱或外壳拆除冲突，禁止覆盖外来方块");
+        if (!canEditSupply(v)) return fail("目标位置无施工权限，拆除暂停");
         if (!hasBlockBudget(v)) return false;
         boolean light = v.block.getLightValue(worldObj, wx(v), wy(v), wz(v)) > 0;
         if (blockBudgetStarted == 0) blockBudgetStarted = System.nanoTime();
@@ -3292,6 +3285,10 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 && !worldObj.isAirBlock(wx(v), wy(v), wz(v))) {
                 if (!matches(v)) {
                     fail("拆除冲突，目标不是已登记结构方块");
+                    return;
+                }
+                if (!canEditSupply(v)) {
+                    fail("目标位置无施工权限，拆除暂停");
                     return;
                 }
                 if (!hasBlockBudget(v)) {

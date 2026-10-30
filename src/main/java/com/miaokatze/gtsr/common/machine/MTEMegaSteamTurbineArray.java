@@ -876,7 +876,17 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         this.mSteamConsumption = (int) Math.min(Integer.MAX_VALUE, steamConsumption);
         this.mSteamType = selectedType;
 
-        depleteSteamByType(selectedType, steamConsumption);
+        // A stocking snapshot is not a receipt (e.g. an ME network may have stock but no extraction power).
+        // Never authorize energy or cooling products when the real input sources did not pay the full demand.
+        if (!depleteSteamByType(selectedType, steamConsumption)) {
+            mEUt = 0;
+            mFullBaseEUt = 0;
+            mTheoreticalEUt = 0;
+            mSteamConsumption = 0;
+            mSteamType = SteamType.NONE;
+            mMaxProgresstime = 0;
+            return CheckRecipeResultRegistry.NO_FUEL_FOUND;
+        }
         outputCoolingProduct(selectedType, steamConsumption);
 
         // mFullBaseEUt 存储全精度基础 EU/t，平滑插值在 long 域进行（公式不变：每 tick 1% 或 10）；
