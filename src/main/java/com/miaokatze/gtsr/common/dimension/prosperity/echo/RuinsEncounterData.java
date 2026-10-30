@@ -24,10 +24,14 @@ public final class RuinsEncounterData extends WorldSavedData {
     }
 
     private void index(String id, NBTTagCompound r) {
-        if (!r.hasKey("width")) return;
-        int x = r.getInteger("x"), z = r.getInteger("z");
-        for (int cx = x >> 8; cx <= (x + r.getInteger("width") - 1) >> 8; cx++)
-            for (int cz = z >> 8; cz <= (z + r.getInteger("depth") - 1) >> 8; cz++) {
+        RuinSite site = site(r);
+        if (site == null) return;
+        // Footprints are authored by kind/layout, not by mutable save dimensions. A malformed
+        // width/depth must not allocate an unbounded index, and edge coordinates must not wrap.
+        int maxX = (int) (((long) site.x + site.width - 1) >> 8);
+        int maxZ = (int) (((long) site.z + site.depth - 1) >> 8);
+        for (int cx = site.x >> 8; cx <= maxX; cx++)
+            for (int cz = site.z >> 8; cz <= maxZ; cz++) {
                 long k = cell(cx, cz);
                 if (!spatial.containsKey(k)) spatial.put(k, new HashSet<String>());
                 spatial.get(k)
@@ -51,16 +55,24 @@ public final class RuinsEncounterData extends WorldSavedData {
     }
 
     public RuinSite site(String id) {
-        NBTTagCompound r = sites.get(id);
+        return site(sites.get(id));
+    }
+
+    private static RuinSite site(NBTTagCompound r) {
         if (r == null || !r.hasKey("width")) return null;
+        int kind = r.getInteger("kind"), layout = r.hasKey("layoutVersion") ? r.getInteger("layoutVersion") : 1;
+        // Preserve opaque/unknown saved records, but never expose them as a valid authored site.
+        if (kind < 0 || kind >= RuinSite.NAMES.length || layout < 1 || layout > 2) return null;
+        int x = r.getInteger("x"), z = r.getInteger("z");
+        if (x < -30000000 || x >= 30000000 || z < -30000000 || z >= 30000000) return null;
         return new RuinSite(
             r.getLong("seed"),
-            r.getInteger("kind"),
-            r.getInteger("x"),
+            kind,
+            x,
             r.getInteger("y"),
-            r.getInteger("z"),
+            z,
             0,
-            r.hasKey("layoutVersion") ? r.getInteger("layoutVersion") : 1);
+            layout);
     }
 
     public List<RuinSite> existingSitesNear(int x, int z, int radius) {

@@ -90,7 +90,11 @@ public final class EchoCombatProjectile extends Entity
             return;
         }
         Vec3 from = Vec3.createVectorHelper(posX, posY, posZ), to = Vec3.createVectorHelper(nx, ny, nz);
-        MovingObjectPosition block = worldObj.rayTraceBlocks(from, to);
+        // Native block DDA advances its input origin through each crossed voxel. Player contacts
+        // must still use the complete flight segment, including targets before the first block.
+        MovingObjectPosition block = worldObj.rayTraceBlocks(
+            Vec3.createVectorHelper(from.xCoord, from.yCoord, from.zCoord),
+            Vec3.createVectorHelper(to.xCoord, to.yCoord, to.zCoord));
         double nearest = block == null ? Double.POSITIVE_INFINITY : from.squareDistanceTo(block.hitVec);
         Vec3 impact = block == null ? null : block.hitVec;
         for (Object object : worldObj.playerEntities) {

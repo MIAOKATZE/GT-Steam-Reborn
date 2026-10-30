@@ -6,9 +6,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.Vec3;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -293,7 +295,7 @@ public final class WeaponController {
         for (ItemStack item : s.player.inventory.mainInventory)
             if (matches(item, k, next) && units(item, k) > 0) available = true;
         if (!available) return;
-        refundMagazine(s, k, old);
+        if (!refundMagazine(s, k, old)) return;
         n.setInteger("ammoType", next);
         cancelCharge(s);
         s.reload = 0;
@@ -315,53 +317,137 @@ public final class WeaponController {
 
     private void switchMode(Session s, WeaponKind k) {
         NBTTagCompound n = data(s.gun);
+        if (k == WeaponKind.QLZ04 && !refundMagazine(s, k, selected(s.gun, s.player, k))) return;
         n.setInteger("mode", (mode(s.gun, k) + 1) % WeaponMode.count(k));
         cancelCharge(s);
         s.spin = 0;
         s.remoteTicks = 0;
         s.reload = 0;
         s.reloadPack = null;
-        if (k == WeaponKind.QLZ04) {
-            refundMagazine(s, k, selected(s.gun, s.player, k));
-            startReload(s);
-        }
+        if (k == WeaponKind.QLZ04) startReload(s);
         s.player.inventoryContainer.detectAndSendChanges();
     }
 
-    private void refundMagazine(Session s, WeaponKind k, int old) {
-        NBTTagCompound n = data(s.gun);
-        int paid = Math.min(n.getInteger("magazine"), n.getInteger("paidMagazine"));
-        if (paid > 0 && (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY)) {
-            if (k == WeaponKind.SINGULARITY) {
-                ItemStack returned = (old == 1
-                    ? com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSteamEntangledSingularity
-                    : com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamEntangledSingularity).get(paid);
-                returnAmmo(s.player, returned);
-            } else {
-                ItemStack target = null;
-                for (ItemStack item : s.player.inventory.mainInventory)
-                    if (matches(item, k, old) && packId(item).equals(n.getString("returnPack"))) {
-                        target = item;
-                        break;
-                    }
-                if (target == null) {
-                    target = new ItemStack(old == 1 ? PortableWeapons.mimicAmmo[k.id] : PortableWeapons.ammo[k.id]);
-                    target.setItemDamage(k.capacity);
-                    data(target).setString("id", n.getString("returnPack"));
-                    target.setItemDamage(Math.max(0, target.getItemDamage() - paid));
-                    returnAmmo(s.player, target);
-                } else target.setItemDamage(Math.max(0, target.getItemDamage() - paid));
+    /** Native typed getters can return detached empty lists; do not pay into an unreadable receipt schema. */
+    private static boolean readablePayments(NBTTagCompound n) {
+        if (!n.hasKey("magazinePayments")) return true;
+        if (!n.hasKey("magazinePayments", 9)) return false;
+        int type = ((NBTTagList) n.getTag("magazinePayments")).func_150303_d();
+        return type == 0 || type == 10;
+    }
+
+    /** Paid rounds retain their source tags; legacy magazines have only the old final-pack identity. */
+    private static NBTTagList magazinePayments(NBTTagCompound n) {
+        if (!n.hasKey("magazinePayments", 9)) {
+            NBTTagList payments = new NBTTagList();
+            int paid = Math.max(0, Math.min(n.getInteger("magazine"), n.getInteger("paidMagazine")));
+            if (paid > 0) {
+                NBTTagCompound legacy = new NBTTagCompound();
+                legacy.setInteger("paid", paid);
+                legacy.setString("id", n.getString("returnPack"));
+                payments.appendTag(legacy);
             }
+            n.setTag("magazinePayments", payments);
+        }
+        return n.getTagList("magazinePayments", 10);
+    }
+
+    private static void rememberPayment(NBTTagCompound n, ItemStack source, WeaponKind k, int paid) {
+        // Even an all-free top-up overwrites returnPack below; migrate legacy paid provenance first.
+        NBTTagList payments = magazinePayments(n);
+        if (paid <= 0) return;
+        NBTTagCompound payment = new NBTTagCompound();
+        payment.setInteger("paid", paid);
+        payment.setString("id", k == WeaponKind.SINGULARITY ? "" : packId(source));
+        if (source.hasTagCompound()) payment.setTag("tag", source.getTagCompound().copy());
+        payments.appendTag(payment);
+    }
+
+    private static void spendPayment(NBTTagCompound n) {
+        NBTTagList payments = magazinePayments(n);
+        if (payments.tagCount() == 0) return;
+        NBTTagCompound payment = payments.getCompoundTagAt(0);
+        int left = payment.getInteger("paid") - 1;
+        if (left <= 0) payments.removeTag(0);
+        else payment.setInteger("paid", left);
+    }
+
+    private boolean refundMagazine(Session s, WeaponKind k, int old) {
+        NBTTagCompound n = data(s.gun);
+        if ((k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY) && !readablePayments(n)) return false;
+        int paid = Math.max(0, Math.min(n.getInteger("magazine"), n.getInteger("paidMagazine")));
+        if (paid > 0 && (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY)) {
+            NBTTagList payments = magazinePayments(n);
+            while (paid > 0 && payments.tagCount() > 0) {
+                NBTTagCompound payment = payments.getCompoundTagAt(0);
+                int amount = Math.min(paid, Math.max(0, payment.getInteger("paid"))), restored = 0;
+                if (amount == 0) {
+                    payments.removeTag(0);
+                    continue;
+                }
+                if (k == WeaponKind.SINGULARITY) {
+                    ItemStack returned = (old == 1
+                        ? com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalSteamEntangledSingularity
+                        : com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamEntangledSingularity).get(amount);
+                    if (payment.hasKey("tag", 10))
+                        returned.setTagCompound((NBTTagCompound) payment.getCompoundTag("tag").copy());
+                    restored = returnAmmo(s.player, returned);
+                } else {
+                    ItemStack target = null;
+                    for (ItemStack item : s.player.inventory.mainInventory)
+                        if (matches(item, k, old) && item.stackSize == 1
+                            && packId(item).equals(payment.getString("id"))) {
+                            target = item;
+                            break;
+                        }
+                    // A missing mimic is still a valuable regenerating vessel elsewhere. Keep its
+                    // rounds loaded and reject this switch; never reconstruct a second vessel.
+                    if (old == 1 && target == null) return false;
+                    if (target != null) {
+                        restored = Math.min(amount, Math.max(0, target.getItemDamage()));
+                        target.setItemDamage(target.getItemDamage() - restored);
+                        // Regeneration has already replaced any capacity the receipt can no longer fit.
+                        if (old == 1) restored = amount;
+                    }
+                    if (restored < amount) {
+                        ItemStack returned = new ItemStack(PortableWeapons.ammo[k.id]);
+                        if (payment.hasKey("tag", 10))
+                            returned.setTagCompound((NBTTagCompound) payment.getCompoundTag("tag").copy());
+                        // A detached ordinary package has no independent empty-container value.
+                        // Preserve custom tags, but do not clone a live package's routing identity.
+                        data(returned).removeTag("id");
+                        returned.setItemDamage(k.capacity - (amount - restored));
+                        if (returnAmmo(s.player, returned) == 1) restored = amount;
+                    }
+                }
+                paid -= restored;
+                n.setInteger("paidMagazine", paid);
+                n.setInteger("magazine", n.getInteger("magazine") - restored);
+                payment.setInteger("paid", amount - restored);
+                if (restored == amount) payments.removeTag(0);
+                s.player.inventory.markDirty();
+                if (restored < amount) return false;
+            }
+            if (paid > 0) return false;
         }
         n.setInteger("magazine", 0);
         n.setInteger("paidMagazine", 0);
+        n.removeTag("magazinePayments");
         n.setString("loadedPack", "");
+        return true;
     }
 
-    private static void returnAmmo(EntityPlayerMP player, ItemStack returned) {
+    /** Return the quantity actually delivered, not the inventory API's possibly partial boolean. */
+    private static int returnAmmo(EntityPlayerMP player, ItemStack returned) {
+        int count = returned.stackSize;
         player.inventory.addItemStackToInventory(returned);
-        // Native insertion may accept only part of the stack; deliver its exact remainder before clearing the magazine.
-        if (returned.stackSize > 0) player.entityDropItem(returned, 0);
+        if (returned.stackSize > 0) {
+            // Native entityDropItem returns an entity even when World rejects its admission.
+            EntityItem drop = player.entityDropItem(returned, 0);
+            if (drop != null && (player.worldObj.loadedEntityList.contains(drop)
+                || player.captureDrops && player.capturedDrops.contains(drop))) return count;
+        }
+        return count - returned.stackSize;
     }
 
     private void startReload(Session s) {
@@ -386,6 +472,7 @@ public final class WeaponController {
         if (!present || !matches(a, k, selected(s.gun, s.player, k))) return;
         NBTTagCompound n = data(s.gun);
         if (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY) {
+            if (!readablePayments(n)) return;
             int capacity = WeaponMode.capacity(k, mode(s.gun, k));
             int needed = capacity - Math.max(0, Math.min(capacity, n.getInteger("magazine")));
             int units = Math.min(needed, units(a, k));
@@ -394,6 +481,7 @@ public final class WeaponController {
                 if (a.stackSize < cost) return;
                 a.stackSize -= cost;
             } else if (!debit(a, cost)) return;
+            rememberPayment(n, a, k, cost);
             n.setInteger("paidMagazine", n.getInteger("paidMagazine") + cost);
             n.setInteger("magazine", Math.min(capacity, n.getInteger("magazine") + units));
             n.setInteger("loadedType", selected(s.gun, s.player, k));
@@ -456,9 +544,11 @@ public final class WeaponController {
         }
         if (s.player.worldObj.getTotalWorldTime() < n.getLong("nextShot")) return;
         int oldMagazine = n.getInteger("magazine"), oldDamage = a == null ? 0 : a.getItemDamage();
-        if (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY)
+        if (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY) {
+            if (!readablePayments(n)) return;
+            magazinePayments(n); // Migrate legacy counts before decrementing this shot's magazine.
             n.setInteger("magazine", n.getInteger("magazine") - 1);
-        else if (!debit(
+        } else if (!debit(
             a,
             paidUnits(1, WeaponEnchantments.level(s.gun, WeaponEnchantments.economy), s.player.getRNG()))) return;
         EntityWeaponProjectile projectile = new EntityWeaponProjectile(
@@ -484,9 +574,10 @@ public final class WeaponController {
             s.remoteProjectile = projectile;
             startReload(s);
         }
-        if (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY)
+        if (k == WeaponKind.QLZ04 || k == WeaponKind.SINGULARITY) {
+            if (n.getInteger("paidMagazine") > 0) spendPayment(n);
             n.setInteger("paidMagazine", Math.max(0, n.getInteger("paidMagazine") - 1));
-        else removeEmpty(s.player, a, k);
+        } else removeEmpty(s.player, a, k);
         s.player.getEntityData()
             .setLong("gtsr.lastWeaponShot", s.player.worldObj.getTotalWorldTime());
         s.serial = s.player.getEntityData()
