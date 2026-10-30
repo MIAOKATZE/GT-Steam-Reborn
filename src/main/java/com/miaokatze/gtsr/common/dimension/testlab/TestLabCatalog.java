@@ -1,10 +1,12 @@
 package com.miaokatze.gtsr.common.dimension.testlab;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
+import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 
 /** The enum is the coverage authority: new registered IDs automatically appear in the lab. */
 public final class TestLabCatalog {
@@ -14,8 +16,10 @@ public final class TestLabCatalog {
     public static List<TestLabTask> tasks() {
         List<TestLabTask> tasks = new ArrayList<>();
         for (MetaTileEntityID id : MetaTileEntityID.values()) {
-            if (id.name()
-                .startsWith("CRITICAL_") && id != MetaTileEntityID.CRITICAL_SINGULARITY_COMPRESSOR) {
+            if (id == MetaTileEntityID.CRITICAL_LOOM || Arrays.stream(CriticalMachineKind.values())
+                .anyMatch(
+                    kind -> id.name()
+                        .equals("CRITICAL_" + kind.name()))) {
                 tasks.add(
                     new TestLabCriticalTask(
                         id.name()
