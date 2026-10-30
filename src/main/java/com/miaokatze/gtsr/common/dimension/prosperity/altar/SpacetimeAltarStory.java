@@ -1,11 +1,13 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.altar;
 
+import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.world.World;
@@ -16,6 +18,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.encounter.TileEntitySealed
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.HistoryProgress;
 import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterBlocks;
 import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime;
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 
 /** Reading evidence is scoped to one generated altar. There is no client request that records a read. */
 public final class SpacetimeAltarStory {
@@ -24,6 +27,24 @@ public final class SpacetimeAltarStory {
     private static final Map<EntityPlayerMP, Session> SESSIONS = new WeakHashMap<>();
 
     private SpacetimeAltarStory() {}
+
+    public static void resetServerState() {
+        SESSIONS.clear();
+    }
+
+    /** Retire idle reading leases as well as leases submitted for activation. Never load chunks here. */
+    public static void expireSessions() {
+        SESSIONS.entrySet().removeIf(entry -> {
+            EntityPlayerMP player = entry.getKey();
+            Session session = entry.getValue();
+            World world = session.world.get();
+            return session.player.get() != player
+                || !ServerPacketAuthority.isCurrentPlayer(player, session.connection.get())
+                || world == null || player.worldObj != world
+                || session.expires < world.getTotalWorldTime()
+                || session.board.get() == null;
+        });
+    }
 
     public static boolean place(World world, int x, int y, int z, String id) {
         if (world.isRemote || world.provider.dimensionId != 0) return false;
@@ -41,7 +62,8 @@ public final class SpacetimeAltarStory {
     }
 
     private static boolean playerValid(EntityPlayer player) {
-        return player instanceof EntityPlayerMP && player.isEntityAlive()
+        return player instanceof EntityPlayerMP && ServerPacketAuthority.isCurrentPlayer(player)
+            && player.isEntityAlive()
             && !player.worldObj.isRemote
             && player.worldObj.provider.dimensionId == 0
             && !(player instanceof FakePlayer);
@@ -84,7 +106,9 @@ public final class SpacetimeAltarStory {
         SpacetimeAltarIndex.get(player.worldObj)
             .markRead(board.instanceId());
         HistoryProgress.spacetimeAltarRead(serverPlayer, board);
-        Session session = new Session(board, player.worldObj.getTotalWorldTime() + 1200);
+        Session session = new Session(serverPlayer, board, player.worldObj.getTotalWorldTime() + 1200);
+        // Entity.equals uses the numeric ID, which vanilla respawn reuses. Replace the weak key too.
+        SESSIONS.remove(serverPlayer);
         SESSIONS.put(serverPlayer, session);
         SpacetimeAltarStoryNetwork.show(serverPlayer, board, session.nonce);
         player.addChatMessage(new ChatComponentTranslation("gtsr.altar.chest_unlocked"));
@@ -125,26 +149,36 @@ public final class SpacetimeAltarStory {
     }
 
     public static void activateFromReading(EntityPlayerMP player, UUID nonce) {
-        Session session = SESSIONS.remove(player);
-        if (session == null || !session.nonce.equals(nonce)
-            || session.world != player.worldObj
+        if (!playerValid(player)) return;
+        Session session = SESSIONS.get(player);
+        // An old queued player must neither spend inventory nor consume a replacement entity's lease.
+        if (session == null || session.player.get() != player
+            || session.connection.get() != player.playerNetServerHandler) return;
+        SESSIONS.remove(player);
+        TileSpacetimeAltarStory board = session.board.get();
+        if (!session.nonce.equals(nonce)
+            || session.world.get() != player.worldObj
             || session.expires < player.worldObj.getTotalWorldTime()
-            || !validBoard(player, session.board)) return;
-        SpacetimeAltarIndex.Entry entry = owner(player.worldObj, session.board.instanceId());
+            || !validBoard(player, board)) return;
+        SpacetimeAltarIndex.Entry entry = owner(player.worldObj, board.instanceId());
         if (entry != null)
             ((TileSpacetimeAltar) player.worldObj.getTileEntity(entry.x, entry.y, entry.z)).activate(player);
     }
 
     private static final class Session {
 
-        final TileSpacetimeAltarStory board;
-        final World world;
+        final WeakReference<EntityPlayerMP> player;
+        final WeakReference<NetHandlerPlayServer> connection;
+        final WeakReference<TileSpacetimeAltarStory> board;
+        final WeakReference<World> world;
         final long expires;
         final UUID nonce = UUID.randomUUID();
 
-        Session(TileSpacetimeAltarStory board, long expires) {
-            this.board = board;
-            this.world = board.getWorldObj();
+        Session(EntityPlayerMP player, TileSpacetimeAltarStory board, long expires) {
+            this.player = new WeakReference<>(player);
+            this.connection = new WeakReference<>(player.playerNetServerHandler);
+            this.board = new WeakReference<>(board);
+            this.world = new WeakReference<>(board.getWorldObj());
             this.expires = expires;
         }
     }

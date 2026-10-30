@@ -16,6 +16,10 @@ public final class SpacetimeAltarNavigationSearch {
 
     private SpacetimeAltarNavigationSearch() {}
 
+    public static void resetServerState() {
+        SEARCHES.clear();
+    }
+
     public static void beginTick() {
         for (AltarSearchQueue search : SEARCHES.values()) search.beginTick();
     }

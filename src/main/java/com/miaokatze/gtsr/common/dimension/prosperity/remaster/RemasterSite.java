@@ -33,7 +33,11 @@ public final class RemasterSite {
     }
 
     public boolean intersects(int cx, int cz) {
-        return (cx << 4) <= maxX() && (cx << 4) + 15 >= minX() && (cz << 4) <= maxZ() && (cz << 4) + 15 >= minZ();
+        // Ownership flags are persisted text; out-of-range chunk numbers must not wrap onto a real owner.
+        long bx = (long) cx << 4, bz = (long) cz << 4;
+        return bx <= (long) x + bound("max", 0) && bx + 15 >= (long) x + bound("min", 0)
+            && bz <= (long) z + bound("max", 2)
+            && bz + 15 >= (long) z + bound("min", 2);
     }
 
     public int minX() {
