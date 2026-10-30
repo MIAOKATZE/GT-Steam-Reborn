@@ -20,17 +20,16 @@ public class FluidGridFrontend extends RecipeMapFrontend {
     private static final int xDirMaxCount = 3;
     private static final int yOrigin = 8;
 
-    private final int fluidRowCount;
-
     public FluidGridFrontend(BasicUIPropertiesBuilder uiPropertiesBuilder,
         NEIRecipePropertiesBuilder neiPropertiesBuilder) {
         super(uiPropertiesBuilder.logoPos(new Pos2d(80, 62)), neiPropertiesBuilder);
-        this.fluidRowCount = getFluidRowCount();
     }
 
     @Override
     protected NEIRecipePropertiesBuilder modifyNEIProperties(NEIRecipePropertiesBuilder neiPropertiesBuilder) {
-        neiPropertiesBuilder.recipeBackgroundSize(new Size(170, 82 + Math.max(fluidRowCount - 2, 0) * 18));
+        // RecipeMapFrontend invokes this override from its constructor, before subclass fields
+        // are initialized. Its uiProperties is already built, so derive rows directly from it.
+        neiPropertiesBuilder.recipeBackgroundSize(new Size(170, 82 + Math.max(getFluidRowCount() - 2, 0) * 18));
         return super.modifyNEIProperties(neiPropertiesBuilder);
     }
 

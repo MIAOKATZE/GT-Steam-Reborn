@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.loader.recipes;
 
-import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.filterNulls;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.get;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.hasNull;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.log;
@@ -237,42 +236,50 @@ public final class NodeAndHubRecipes {
 
         ItemStack minerOut = get(GTSRItemList.SingularityMinerNode, 1);
         if (!hasNull(minerOut) && miningPipe != null) {
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 get(GTSRItemList.SteamEntangledSingularity, 2),
                 get(OrePrefixes.frameGt, Materials.Steel, 1),
                 get(OrePrefixes.gearGt, Materials.Steel, 8),
                 get(OrePrefixes.plateDense, Materials.Steel, 4),
                 miningPipe,
                 get(ItemList.Electric_Piston_LV, 4),
-                get(OrePrefixes.circuit, Materials.LV, 2));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(minerOut)
-                .fluidInputs(Materials.SolderingAlloy.getMolten(2 * INGOTS))
-                .duration(20 * SECONDS)
-                .eut(TierEU.RECIPE_LV)
-                .addTo(assemblerRecipes);
+                get(OrePrefixes.circuit, Materials.LV, 2) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(minerOut)
+                    .fluidInputs(Materials.SolderingAlloy.getMolten(2 * INGOTS))
+                    .duration(20 * SECONDS)
+                    .eut(TierEU.RECIPE_LV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped SingularityMinerNode recipe" + (miningPipe == null ? " - miningPipe is null" : ""));
         }
 
         ItemStack drillOut = get(GTSRItemList.SingularityDrillingNode, 1);
         if (!hasNull(drillOut) && miningPipe != null) {
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 get(GTSRItemList.SteamEntangledSingularity, 2),
                 get(OrePrefixes.frameGt, Materials.Steel, 1),
                 get(OrePrefixes.pipeHuge, Materials.Steel, 4),
                 get(OrePrefixes.plateDense, Materials.Steel, 4),
                 miningPipe,
                 get(ItemList.Electric_Pump_LV, 6),
-                get(OrePrefixes.circuit, Materials.LV, 2));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(drillOut)
-                .fluidInputs(Materials.SolderingAlloy.getMolten(2 * INGOTS))
-                .duration(20 * SECONDS)
-                .eut(TierEU.RECIPE_LV)
-                .addTo(assemblerRecipes);
+                get(OrePrefixes.circuit, Materials.LV, 2) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(drillOut)
+                    .fluidInputs(Materials.SolderingAlloy.getMolten(2 * INGOTS))
+                    .duration(20 * SECONDS)
+                    .eut(TierEU.RECIPE_LV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped SingularityDrillingNode recipe" + (miningPipe == null ? " - miningPipe is null" : ""));
         }

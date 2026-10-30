@@ -15,7 +15,7 @@ import gregtech.api.util.GTOreDictUnificator;
 /**
  * 配方注册公共工具（SR-A03：自 GTSRRecipeLoader 门面上提，[GTSR-Recipe] 日志前缀与
  * 物料 null 防御单源化）。log/warn 供门面 safeRegister 与 recipes/ 各域类共用；
- * get/hasNull/filterNulls 为配方物料装配防御三件套，方法体逐字未动。
+ * get/hasNull 统一检查必需物料；不得先丢弃缺失输入，否则会注册降价配方。
  */
 public final class RecipeLoaderUtils {
 
@@ -54,12 +54,17 @@ public final class RecipeLoaderUtils {
     }
 
     public static boolean hasNull(ItemStack... stacks) {
+        if (stacks == null) return true;
         for (ItemStack s : stacks) {
-            if (s == null) return true;
+            // A missing registry item can still be wrapped in a non-null ItemStack.
+            // Zero-size integrated circuits are legitimate non-consumed selectors.
+            if (s == null || s.getItem() == null) return true;
         }
         return false;
     }
 
+    /** Legacy helper retained for binary compatibility; never use for mandatory recipe inputs. */
+    @Deprecated
     public static ItemStack[] filterNulls(ItemStack... stacks) {
         List<ItemStack> list = new ArrayList<>();
         for (ItemStack s : stacks) {

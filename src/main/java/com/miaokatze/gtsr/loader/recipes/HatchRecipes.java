@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.loader.recipes;
 
-import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.filterNulls;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.get;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.hasNull;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.log;
@@ -159,9 +158,9 @@ public final class HatchRecipes {
             return;
         }
 
-        ItemStack[] inputs = filterNulls(
+        ItemStack[] inputs = new ItemStack[] {
             GregtechItemList.Hatch_Reservoir.get(1),
-            get(GTSRItemList.SteamEntangledSingularity, 16));
+            get(GTSRItemList.SteamEntangledSingularity, 16) };
         if (hasNull(inputs)) {
             warn("Skipped DistilledWaterHatch recipe - inputs contain null");
             return;

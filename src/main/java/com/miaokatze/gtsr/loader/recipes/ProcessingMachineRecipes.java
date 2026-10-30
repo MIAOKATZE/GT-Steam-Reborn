@@ -5,7 +5,6 @@ import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.ammoniaPlantRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.atmosphericCentrifugeRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.largeCokeOvenRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.siemensMartinRecipes;
-import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.filterNulls;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.get;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.hasNull;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.log;
@@ -238,72 +237,88 @@ public final class ProcessingMachineRecipes {
         ItemStack rareOut = get(GTSRItemList.RareGasSeparationChip, 1);
 
         if (!hasNull(t1out)) {
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 get(ItemList.OilDrill2, 1),
                 get(GTSRItemList.SteamEntangledSingularity, 16),
                 get(OrePrefixes.plateDouble, Materials.StainlessSteel, 32),
-                get(OrePrefixes.circuit, Materials.HV, 8));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(t1out)
-                .fluidInputs(Materials.SolderingAlloy.getMolten(4 * INGOTS))
-                .duration(30 * SECONDS)
-                .eut(TierEU.RECIPE_HV)
-                .addTo(assemblerRecipes);
+                get(OrePrefixes.circuit, Materials.HV, 8) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(t1out)
+                    .fluidInputs(Materials.SolderingAlloy.getMolten(4 * INGOTS))
+                    .duration(30 * SECONDS)
+                    .eut(TierEU.RECIPE_HV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped VeinPyrolyzerChipT1 recipe - output is null");
         }
 
         if (!hasNull(t2out)) {
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 get(ItemList.OilDrill3, 1),
                 get(GTSRItemList.SteamEntangledSingularity, 32),
                 get(OrePrefixes.plateTriple, Materials.Titanium, 64),
                 get(OrePrefixes.circuit, Materials.EV, 16),
-                get(GTSRItemList.VeinPyrolyzerChipT1, 1));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(t2out)
-                .fluidInputs(Materials.SolderingAlloy.getMolten(6 * INGOTS))
-                .duration(45 * SECONDS)
-                .eut(TierEU.RECIPE_EV)
-                .addTo(assemblerRecipes);
+                get(GTSRItemList.VeinPyrolyzerChipT1, 1) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(t2out)
+                    .fluidInputs(Materials.SolderingAlloy.getMolten(6 * INGOTS))
+                    .duration(45 * SECONDS)
+                    .eut(TierEU.RECIPE_EV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped VeinPyrolyzerChipT2 recipe - output is null");
         }
 
         if (!hasNull(t3out)) {
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 get(ItemList.OilDrill4, 1),
                 get(GTSRItemList.SteamEntangledSingularity, 64),
                 get(OrePrefixes.plateDense, Materials.TungstenSteel, 64),
                 get(OrePrefixes.circuit, Materials.IV, 32),
-                get(GTSRItemList.VeinPyrolyzerChipT2, 1));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(t3out)
-                .fluidInputs(Materials.SolderingAlloy.getMolten(8 * INGOTS))
-                .duration(60 * SECONDS)
-                .eut(TierEU.RECIPE_IV)
-                .addTo(assemblerRecipes);
+                get(GTSRItemList.VeinPyrolyzerChipT2, 1) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(t3out)
+                    .fluidInputs(Materials.SolderingAlloy.getMolten(8 * INGOTS))
+                    .duration(60 * SECONDS)
+                    .eut(TierEU.RECIPE_IV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped VeinPyrolyzerChipT3 recipe - output is null");
         }
 
         if (!hasNull(geoOut)) {
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 get(GTSRItemList.SteamEntangledSingularity, 6),
                 get(OrePrefixes.plate, Materials.Gold, 4),
                 get(OrePrefixes.plate, Materials.Steel, 4),
                 get(OrePrefixes.circuit, Materials.LV, 2),
-                get(ItemList.Electric_Pump_LV, 8));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(geoOut)
-                .fluidInputs(Materials.SolderingAlloy.getMolten(2 * INGOTS))
-                .duration(20 * SECONDS)
-                .eut(TierEU.RECIPE_LV)
-                .addTo(assemblerRecipes);
+                get(ItemList.Electric_Pump_LV, 8) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(geoOut)
+                    .fluidInputs(Materials.SolderingAlloy.getMolten(2 * INGOTS))
+                    .duration(20 * SECONDS)
+                    .eut(TierEU.RECIPE_LV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped GeothermalOverheatChip recipe - output is null");
         }
@@ -324,19 +339,23 @@ public final class ProcessingMachineRecipes {
         }
 
         if (!hasNull(rareOut)) {
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 get(GTSRItemList.SteamEntangledSingularity, 16),
                 get(OrePrefixes.plateDouble, Materials.StainlessSteel, 32),
                 get(OrePrefixes.circuit, Materials.HV, 8),
                 get(OrePrefixes.screw, Materials.StainlessSteel, 64),
-                get(ItemList.Electric_Motor_HV, 32));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(rareOut)
-                .fluidInputs(Materials.SolderingAlloy.getMolten(6 * INGOTS))
-                .duration(40 * SECONDS)
-                .eut(TierEU.RECIPE_HV)
-                .addTo(assemblerRecipes);
+                get(ItemList.Electric_Motor_HV, 32) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(rareOut)
+                    .fluidInputs(Materials.SolderingAlloy.getMolten(6 * INGOTS))
+                    .duration(40 * SECONDS)
+                    .eut(TierEU.RECIPE_HV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped RareGasSeparationChip recipe - output is null");
         }
@@ -344,11 +363,11 @@ public final class ProcessingMachineRecipes {
         // --- 致密蒸汽芯片 (GTUDK 配方导出 2026-09-07，编程电路不消耗，EUt 2048) ---
         ItemStack chipOut = get(GTSRItemList.TcdsBoostChip, 1);
         if (!hasNull(chipOut)) {
-            ItemStack[] chipInputs = filterNulls(
+            ItemStack[] chipInputs = new ItemStack[] {
                 get(OrePrefixes.circuit, Materials.EV, 32),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 16, 32643),
                 GTSRItemList.SteamEntangledSingularity.get(32),
-                new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 32, 19028));
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 32, 19028) };
             if (!hasNull(chipInputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(chipInputs)
@@ -372,70 +391,86 @@ public final class ProcessingMachineRecipes {
 
         ItemStack niOut = get(GTSRItemList.AmmoniaCatalystNickel, 1);
         if (!hasNull(niOut)) {
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 get(OrePrefixes.dust, Materials.Nickel, 48),
                 get(OrePrefixes.dust, Materials.Aluminium, 24),
-                get(OrePrefixes.plate, Materials.StainlessSteel, 32));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(niOut)
-                .fluidInputs(Materials.Oxygen.getGas(24000))
-                .duration(480 * SECONDS)
-                .eut(TierEU.RECIPE_HV)
-                .addTo(assemblerRecipes);
+                get(OrePrefixes.plate, Materials.StainlessSteel, 32) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(niOut)
+                    .fluidInputs(Materials.Oxygen.getGas(24000))
+                    .duration(480 * SECONDS)
+                    .eut(TierEU.RECIPE_HV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped AmmoniaCatalystNickel recipe");
         }
 
         ItemStack ptOut = get(GTSRItemList.AmmoniaCatalystPlatinum, 1);
         if (!hasNull(ptOut)) {
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 get(OrePrefixes.dust, Materials.Platinum, 16),
                 get(OrePrefixes.dust, Materials.Aluminium, 48),
-                get(OrePrefixes.plate, Materials.Titanium, 32));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(ptOut)
-                .fluidInputs(Materials.Hydrogen.getGas(16000))
-                .duration(640 * SECONDS)
-                .eut(TierEU.RECIPE_EV)
-                .addTo(assemblerRecipes);
+                get(OrePrefixes.plate, Materials.Titanium, 32) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(ptOut)
+                    .fluidInputs(Materials.Hydrogen.getGas(16000))
+                    .duration(640 * SECONDS)
+                    .eut(TierEU.RECIPE_EV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped AmmoniaCatalystPlatinum recipe");
         }
 
         ItemStack uOut = get(GTSRItemList.AmmoniaCatalystUranium, 1);
         if (!hasNull(uOut)) {
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 get(OrePrefixes.dust, Materials.Uranium, 16),
                 get(OrePrefixes.dust, Materials.Iron, 32),
                 get(OrePrefixes.dust, Materials.Aluminium, 24),
-                get(OrePrefixes.plate, Materials.TungstenSteel, 48));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(uOut)
-                .fluidInputs(Materials.Nitrogen.getGas(16000))
-                .duration(800 * SECONDS)
-                .eut(TierEU.RECIPE_IV)
-                .addTo(assemblerRecipes);
+                get(OrePrefixes.plate, Materials.TungstenSteel, 48) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(uOut)
+                    .fluidInputs(Materials.Nitrogen.getGas(16000))
+                    .duration(800 * SECONDS)
+                    .eut(TierEU.RECIPE_IV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped AmmoniaCatalystUranium recipe");
         }
 
         ItemStack osOut = get(GTSRItemList.AmmoniaCatalystOsmium, 1);
         if (!hasNull(osOut)) {
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 get(OrePrefixes.dust, Materials.Osmium, 48),
                 get(OrePrefixes.dust, Materials.Aluminium, 40),
                 get(OrePrefixes.dust, Materials.Silicon, 8),
-                get(OrePrefixes.plateDense, Materials.TungstenSteel, 48));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(osOut)
-                .fluidInputs(Materials.Nitrogen.getGas(24000))
-                .duration(800 * SECONDS)
-                .eut(TierEU.RECIPE_IV)
-                .addTo(assemblerRecipes);
+                get(OrePrefixes.plateDense, Materials.TungstenSteel, 48) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(osOut)
+                    .fluidInputs(Materials.Nitrogen.getGas(24000))
+                    .duration(800 * SECONDS)
+                    .eut(TierEU.RECIPE_IV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped AmmoniaCatalystOsmium recipe");
         }
@@ -446,18 +481,22 @@ public final class ProcessingMachineRecipes {
             if (luvPlate == null) {
                 warn("Osmiridium dense plate (32) returned null!");
             }
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 get(OrePrefixes.dust, Materials.Iron, 64),
                 get(OrePrefixes.dust, Materials.Cobalt, 8),
                 get(OrePrefixes.dust, Materials.Aluminium, 16),
-                luvPlate);
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(feCoOut)
-                .fluidInputs(Materials.Oxygen.getGas(32000))
-                .duration(960 * SECONDS)
-                .eut(TierEU.RECIPE_LuV)
-                .addTo(assemblerRecipes);
+                luvPlate };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(feCoOut)
+                    .fluidInputs(Materials.Oxygen.getGas(32000))
+                    .duration(960 * SECONDS)
+                    .eut(TierEU.RECIPE_LuV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped AmmoniaCatalystFeCo recipe");
         }
@@ -468,18 +507,22 @@ public final class ProcessingMachineRecipes {
             if (rutheniumDust == null) {
                 warn("WerkstoffLoader.Ruthenium.get(dust, 16) returned null!");
             }
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 rutheniumDust,
                 get(OrePrefixes.dust, Materials.Carbon, 40),
                 get(OrePrefixes.dust, Materials.Aluminium, 8),
-                get(OrePrefixes.plateDense, Materials.Iridium, 48));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(ruOut)
-                .fluidInputs(Materials.Hydrogen.getGas(24000))
-                .duration(1200 * SECONDS)
-                .eut(TierEU.RECIPE_ZPM)
-                .addTo(assemblerRecipes);
+                get(OrePrefixes.plateDense, Materials.Iridium, 48) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(ruOut)
+                    .fluidInputs(Materials.Hydrogen.getGas(24000))
+                    .duration(1200 * SECONDS)
+                    .eut(TierEU.RECIPE_ZPM)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped AmmoniaCatalystRuthenium recipe");
         }
@@ -490,17 +533,21 @@ public final class ProcessingMachineRecipes {
             if (quantumDust == null) {
                 warn("Materials.Quantium.getDust(64) returned null!");
             }
-            ItemStack[] inputs = filterNulls(
+            ItemStack[] inputs = new ItemStack[] {
                 get(OrePrefixes.dust, Materials.CosmicNeutronium, 16),
                 quantumDust,
-                get(OrePrefixes.plateDense, Materials.Osmium, 48));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(qOut)
-                .fluidInputs(WerkstoffLoader.Krypton.getFluidOrGas(32000))
-                .duration(1440 * SECONDS)
-                .eut(TierEU.RECIPE_UV)
-                .addTo(assemblerRecipes);
+                get(OrePrefixes.plateDense, Materials.Osmium, 48) };
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(qOut)
+                    .fluidInputs(WerkstoffLoader.Krypton.getFluidOrGas(32000))
+                    .duration(1440 * SECONDS)
+                    .eut(TierEU.RECIPE_UV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped recipe - required inputs are unavailable");
+            }
         } else {
             warn("Skipped AmmoniaCatalystQuantum recipe");
         }
