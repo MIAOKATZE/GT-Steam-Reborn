@@ -7,6 +7,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.NetHandlerPlayServer;
+
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 import net.minecraft.tileentity.TileEntity;
 
 import com.cleanroommc.modularui.factory.PosGuiData;
@@ -36,6 +39,7 @@ public final class HubTerminalSession extends SyncHandler<HubTerminalSession> {
     private final PosGuiData data;
     private final IMetaTileEntity machine;
     private final TileEntity tile;
+    private final NetHandlerPlayServer connection;
     private final AtomicBoolean pending = new AtomicBoolean();
     private final AtomicReference<Snapshot> incoming = new AtomicReference<>();
     private final AtomicReference<Reply> incomingReply = new AtomicReference<>();
@@ -50,6 +54,7 @@ public final class HubTerminalSession extends SyncHandler<HubTerminalSession> {
     public HubTerminalSession(HubTerminalFactory factory, PosGuiData data, IMetaTileEntity machine) {
         this.factory = factory;
         this.data = data;
+        this.connection = ServerPacketAuthority.connection(data.getPlayer());
         this.machine = machine;
         this.tile = data.getTileEntity();
         this.view = new HubTerminalViewState(
@@ -60,6 +65,7 @@ public final class HubTerminalSession extends SyncHandler<HubTerminalSession> {
 
     public boolean active() {
         return isValid() && !getSyncManager().isClient()
+            && ServerPacketAuthority.isCurrentPlayer(data.getPlayer(), connection)
             && tile != null
             && !tile.isInvalid()
             && data.getPlayer().openContainer == getSyncManager().getContainer()

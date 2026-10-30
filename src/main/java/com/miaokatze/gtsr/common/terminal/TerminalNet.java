@@ -3,9 +3,9 @@ package com.miaokatze.gtsr.common.terminal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.network.NetHandlerPlayServer;
 
 import com.miaokatze.gtsr.client.terminal.TerminalClientPacketSink;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
@@ -13,6 +13,8 @@ import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster;
 import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
 import com.miaokatze.gtsr.main.GTSteamReborn;
+import com.miaokatze.gtsr.common.network.BoundedRequestQueue;
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -64,7 +66,7 @@ public class TerminalNet {
     private static final SimpleNetworkWrapper NETWORK = NetworkRegistry.INSTANCE.newSimpleChannel("gtsr_terminal");
 
     /** C2S 待处理任务（Netty 线程入队 → ServerTickEvent(END) 主线程排水） */
-    private static final ConcurrentLinkedQueue<PendingTask> PENDING = new ConcurrentLinkedQueue<PendingTask>();
+    private static final BoundedRequestQueue<PendingTask> PENDING = new BoundedRequestQueue<>();
 
     /** 每玩家上次放行请求的服务端 tick（仅主线程访问：排水后分发） */
     private static final Map<UUID, Long> LAST_REQUEST_TICK = new HashMap<UUID, Long>();
@@ -143,7 +145,7 @@ public class TerminalNet {
         if (msg.isCorrupt() || msg.getUiType() == null) {
             return; // 坏包静默丢弃
         }
-        if (player == null || player.playerNetServerHandler == null) {
+        if (!ServerPacketAuthority.isCurrentPlayer(player)) {
             return; // 已掉线
         }
         if (player.dimension != msg.getDim()) {
@@ -205,7 +207,7 @@ public class TerminalNet {
         if (msg.isCorrupt() || msg.getUiType() == null) {
             return; // 坏包静默丢弃（含异常长度即断标记）
         }
-        if (player == null || player.playerNetServerHandler == null) {
+        if (!ServerPacketAuthority.isCurrentPlayer(player)) {
             return;
         }
         if (player.dimension != msg.getDim()) {
@@ -333,8 +335,9 @@ public class TerminalNet {
 
         @Override
         public IMessage onMessage(PacketTerminalRequest msg, MessageContext ctx) {
-            EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-            TerminalNet.PENDING.offer(new PendingTask(player, msg, null));
+            NetHandlerPlayServer connection = ctx.getServerHandler();
+            if (connection != null && msg != null && !msg.isCorrupt())
+                TerminalNet.PENDING.offer(connection, new PendingTask(connection, msg, null));
             return null;
         }
     }
@@ -344,8 +347,9 @@ public class TerminalNet {
 
         @Override
         public IMessage onMessage(PacketTerminalAction msg, MessageContext ctx) {
-            EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-            TerminalNet.PENDING.offer(new PendingTask(player, null, msg));
+            NetHandlerPlayServer connection = ctx.getServerHandler();
+            if (connection != null && msg != null && !msg.isCorrupt())
+                TerminalNet.PENDING.offer(connection, new PendingTask(connection, null, msg));
             return null;
         }
     }
@@ -358,7 +362,7 @@ public class TerminalNet {
         @Override
         @SideOnly(Side.CLIENT)
         public IMessage onMessage(PacketOpenTerminalUi msg, MessageContext ctx) {
-            TerminalClientPacketSink.handleOpenScheduled(msg);
+            TerminalClientPacketSink.handleOpenScheduled(msg, ctx.getClientHandler());
             return null;
         }
     }
@@ -369,7 +373,7 @@ public class TerminalNet {
         @Override
         @SideOnly(Side.CLIENT)
         public IMessage onMessage(PacketTerminalData msg, MessageContext ctx) {
-            TerminalClientPacketSink.handleDataScheduled(msg);
+            TerminalClientPacketSink.handleDataScheduled(msg, ctx.getClientHandler());
             return null;
         }
     }
@@ -393,7 +397,8 @@ public class TerminalNet {
                 return;
             }
             PendingTask task;
-            while ((task = TerminalNet.PENDING.poll()) != null) {
+            for (int n = 0; n < BoundedRequestQueue.MAX_PER_TICK && (task = TerminalNet.PENDING.poll()) != null; n++) {
+                if (!ServerPacketAuthority.isCurrentPlayer(task.player, task.connection)) continue;
                 try {
                     if (task.request != null) {
                         TerminalNet.handleRequest(task.player, task.request);
@@ -411,11 +416,13 @@ public class TerminalNet {
     private static final class PendingTask {
 
         final EntityPlayerMP player;
+        final NetHandlerPlayServer connection;
         final PacketTerminalRequest request;
         final PacketTerminalAction action;
 
-        PendingTask(EntityPlayerMP player, PacketTerminalRequest request, PacketTerminalAction action) {
-            this.player = player;
+        PendingTask(NetHandlerPlayServer connection, PacketTerminalRequest request, PacketTerminalAction action) {
+            this.connection = connection;
+            this.player = connection.playerEntity;
             this.request = request;
             this.action = action;
         }

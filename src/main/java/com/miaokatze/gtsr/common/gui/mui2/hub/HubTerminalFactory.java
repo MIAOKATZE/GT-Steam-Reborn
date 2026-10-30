@@ -23,6 +23,8 @@ import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
 import com.miaokatze.gtsr.common.terminal.CacheNodeTerminalData;
 import com.miaokatze.gtsr.common.terminal.TerminalUiType;
 
+import com.miaokatze.gtsr.common.terminal.TerminalServerSessions;
+
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -132,6 +134,7 @@ public final class HubTerminalFactory implements UIFactory<PosGuiData> {
     public boolean canInteractWith(EntityPlayer player, PosGuiData data) {
         if (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data))
             return com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.canUseRemote(player, data);
+        if (!TerminalServerSessions.canInspectLocalPosition(player, data, 64 * 64)) return false;
         if (player == null || data.getWorld() == null
             || player != data.getPlayer()
             || player.isDead
@@ -150,12 +153,12 @@ public final class HubTerminalFactory implements UIFactory<PosGuiData> {
 
     @Override
     public ModularPanel createPanel(PosGuiData data, PanelSyncManager manager, UISettings settings) {
-        IMetaTileEntity machine = machine(data);
-        TileEntity tile = data.getTileEntity();
-        if (machine == null || !canInteractWith(data.getPlayer(), data)) {
+        if (!canInteractWith(data.getPlayer(), data)) {
             settings.canInteractWith(player -> false);
             return ModularPanel.defaultPanel("hub_terminal_denied");
         }
+        IMetaTileEntity machine = machine(data);
+        TileEntity tile = data.getTileEntity();
         settings.canInteractWith(
             player -> data.getTileEntity() == tile && machine(data) == machine && canInteractWith(player, data));
         return HubTerminalPanel.build(this, data, machine, manager);

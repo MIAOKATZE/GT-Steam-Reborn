@@ -9,6 +9,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.FakePlayer;
@@ -27,6 +28,7 @@ import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster;
 import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 
@@ -307,6 +309,7 @@ public final class MachineTerminalHistory {
     static final class Grant {
 
         final EntityPlayer player;
+        final NetHandlerPlayServer connection;
         final ItemStack terminal;
         final String terminalId;
         final int slot;
@@ -316,6 +319,7 @@ public final class MachineTerminalHistory {
 
         Grant(EntityPlayer player, Entry entry, IGregTechTileEntity base) {
             this.player = player;
+            this.connection = ServerPacketAuthority.connection(player);
             this.entry = entry;
             this.base = base;
             this.machine = base.getMetaTileEntity();
@@ -325,7 +329,8 @@ public final class MachineTerminalHistory {
         }
 
         boolean valid(EntityPlayer player) {
-            return player == this.player && player.inventory.currentItem == slot
+            return player == this.player && ServerPacketAuthority.isCurrentPlayer(player, connection)
+                && player.inventory.currentItem == slot
                 && player.getHeldItem() == terminal
                 && held(player)
                 && terminal.hasTagCompound()

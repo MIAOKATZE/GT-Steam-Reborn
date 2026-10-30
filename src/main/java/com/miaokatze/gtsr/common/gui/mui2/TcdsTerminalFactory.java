@@ -72,6 +72,7 @@ public final class TcdsTerminalFactory implements UIFactory<PosGuiData> {
     public boolean canInteractWith(EntityPlayer player, PosGuiData data) {
         if (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data))
             return com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.canUseRemote(player, data);
+        if (!TerminalServerSessions.canInspectLocalPosition(player, data, 64 * 64)) return false;
         ItemStack held = player.getHeldItem();
         double range = TerminalServerSessions.MAX_INTERACTION_DISTANCE;
         return (data.getWorld().isRemote || Mui2TerminalRoutes.tcdsTerminal) && player == data.getPlayer()
@@ -85,12 +86,12 @@ public final class TcdsTerminalFactory implements UIFactory<PosGuiData> {
 
     @Override
     public ModularPanel createPanel(PosGuiData data, PanelSyncManager manager, UISettings settings) {
-        MTEThermoChemicalDenseSteamGenerator machine = machine(data);
-        TileEntity tile = data.getTileEntity();
-        if (machine == null || !canInteractWith(data.getPlayer(), data)) {
+        if (!canInteractWith(data.getPlayer(), data)) {
             settings.canInteractWith(player -> false);
             return ModularPanel.defaultPanel("tcds_terminal_denied");
         }
+        MTEThermoChemicalDenseSteamGenerator machine = machine(data);
+        TileEntity tile = data.getTileEntity();
         settings.canInteractWith(
             player -> player.worldObj == tile.getWorldObj() && data.getTileEntity() == tile
                 && machine(data) == machine

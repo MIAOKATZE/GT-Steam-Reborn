@@ -5,11 +5,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
+import net.minecraftforge.common.util.FakePlayer;
+
+import com.cleanroommc.modularui.factory.PosGuiData;
 
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 
@@ -89,6 +93,16 @@ public final class TerminalServerSessions {
             return null;
         }
         return (IGregTechTileEntity) te;
+    }
+
+    /** Validate untrusted local factory coordinates before getTileEntity can load a chunk. */
+    public static boolean canInspectLocalPosition(EntityPlayer player, PosGuiData data, double rangeSquared) {
+        if (player == null || data == null || player != data.getPlayer() || player.isDead
+            || player instanceof FakePlayer || player.worldObj == null || player.worldObj != data.getWorld()
+            || !(data.getSquaredDistance(player) <= rangeSquared)) return false;
+        World world = data.getWorld();
+        return data.getY() >= 0 && data.getY() < world.getHeight()
+            && world.getChunkProvider().chunkExists(data.getX() >> 4, data.getZ() >> 4);
     }
 
     /**

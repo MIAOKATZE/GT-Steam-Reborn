@@ -84,6 +84,7 @@ public final class ClusterTerminalFactory implements UIFactory<ClusterTerminalFa
         if (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data))
             return com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.canUseRemote(player, data);
         double range = TerminalServerSessions.MAX_INTERACTION_DISTANCE;
+        if (!TerminalServerSessions.canInspectLocalPosition(player, data, range * range)) return false;
         return player != null && !player.isDead
             && !(player instanceof FakePlayer)
             && player.worldObj == data.getWorld()
@@ -104,12 +105,12 @@ public final class ClusterTerminalFactory implements UIFactory<ClusterTerminalFa
 
     @Override
     public ModularPanel createPanel(ClusterGuiData data, PanelSyncManager manager, UISettings settings) {
-        MTESteamMineralLogisticsCluster machine = machine(data);
-        TileEntity tile = data.getTileEntity();
-        if (machine == null || !canUse(data)) {
+        if (!canUse(data)) {
             settings.canInteractWith(player -> false);
             return ModularPanel.defaultPanel("cluster_terminal_denied");
         }
+        MTESteamMineralLogisticsCluster machine = machine(data);
+        TileEntity tile = data.getTileEntity();
         settings.canInteractWith(
             player -> player == data.getPlayer() && data.getTileEntity() == tile
                 && machine(data) == machine

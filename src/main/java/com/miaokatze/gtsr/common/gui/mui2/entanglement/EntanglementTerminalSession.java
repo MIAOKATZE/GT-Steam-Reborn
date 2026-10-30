@@ -7,6 +7,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.NetHandlerPlayServer;
+
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 import net.minecraft.tileentity.TileEntity;
 
 import com.cleanroommc.modularui.factory.PosGuiData;
@@ -23,8 +26,11 @@ public final class EntanglementTerminalSession extends SyncHandler<EntanglementT
 
     private final PosGuiData data;
     private final TileEntity tile;
+    private final NetHandlerPlayServer connection;
     private final MTESingularityMachineBase machine;
     private final AtomicBoolean pending = new AtomicBoolean();
+    // Navigation has no client-side awaiting flag. It must not consume the one command/ACK slot.
+    private final AtomicBoolean pagePending = new AtomicBoolean();
     private final Map<String, String> drafts = new LinkedHashMap<>();
     private volatile EntanglementSnapshot incoming;
     private volatile Reply reply;
@@ -37,6 +43,7 @@ public final class EntanglementTerminalSession extends SyncHandler<EntanglementT
 
     EntanglementTerminalSession(PosGuiData data, MTESingularityMachineBase machine) {
         this.data = data;
+        this.connection = ServerPacketAuthority.connection(data.getPlayer());
         this.tile = data.getTileEntity();
         this.machine = machine;
         allowC2S();
@@ -210,6 +217,7 @@ public final class EntanglementTerminalSession extends SyncHandler<EntanglementT
 
     private boolean active() {
         return isValid() && !getSyncManager().isClient()
+            && ServerPacketAuthority.isCurrentPlayer(data.getPlayer(), connection)
             && data.getPlayer().openContainer == getSyncManager().getContainer()
             && (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data)
                 || data.getPlayer().worldObj == tile.getWorldObj())
@@ -250,14 +258,14 @@ public final class EntanglementTerminalSession extends SyncHandler<EntanglementT
     public void readOnServer(int id, PacketBuffer buffer) throws IOException {
         if (id == 3 && buffer.readableBytes() == 4) {
             int requestedPage = buffer.readInt();
-            if (!pending.compareAndSet(false, true)) return;
+            if (!pagePending.compareAndSet(false, true)) return;
             Mui2ServerActions.enqueue(() -> {
                 try {
                     if (!active()) return;
                     page = machine.entanglementSnapshot(requestedPage).page;
                     lastPoll = Long.MIN_VALUE;
                 } finally {
-                    pending.set(false);
+                    pagePending.set(false);
                 }
             });
             return;

@@ -1,4 +1,4 @@
-﻿"""Compile and exercise only the terminal lifecycle production sources against a dev jar.
+"""Compile and exercise only the terminal lifecycle production sources against a dev jar.
 
 This is a detached source-overlay contract, not a packaged-jar, TCP, FML startup or GL test.
 """
@@ -13,6 +13,10 @@ import tempfile
 from verify_remote import ROOT, CACHES, dependency
 
 SOURCES = (
+    'common/network/BoundedRequestQueue.java',
+    'common/network/ServerPacketAuthority.java',
+    'common/network/WandNet.java',
+    'common/network/GTSRFXNet.java',
     'common/terminal/TerminalNet.java',
     'common/terminal/TerminalServerSessions.java',
     'main/GTSteamReborn.java',

@@ -1,8 +1,7 @@
 package com.miaokatze.gtsr.common.network;
 
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
@@ -34,7 +33,7 @@ import io.netty.buffer.ByteBuf;
  */
 public class GTSRFXNet {
 
-    private static final ConcurrentLinkedQueue<PendingBind> PENDING_BIND = new ConcurrentLinkedQueue<PendingBind>();
+    private static final BoundedRequestQueue<PendingBind> PENDING_BIND = new BoundedRequestQueue<>();
 
     private static final SimpleNetworkWrapper NETWORK = NetworkRegistry.INSTANCE.newSimpleChannel("gtsr_fx");
 
@@ -71,7 +70,7 @@ public class GTSRFXNet {
                 double dx = p.posX - fx;
                 double dy = p.posY - fy;
                 double dz = p.posZ - fz;
-                if (dx * dx + dy * dy + dz * dz <= maxDistSq) {
+                if (p.worldObj == world && dx * dx + dy * dy + dz * dz <= maxDistSq) {
                     NETWORK.sendTo(msg, p);
                 }
             }
@@ -83,12 +82,16 @@ public class GTSRFXNet {
         NETWORK.sendToServer(new HubBindMessage(x, y, z, dim));
     }
 
+    public static void clearServerState() {
+        PENDING_BIND.clear();
+    }
+
     public static class HubBindHandler implements IMessageHandler<HubBindMessage, IMessage> {
 
         @Override
         public IMessage onMessage(HubBindMessage msg, MessageContext ctx) {
             if (ctx.getServerHandler() != null)
-                PENDING_BIND.add(new PendingBind(ctx.getServerHandler().playerEntity, msg));
+                PENDING_BIND.offer(ctx.getServerHandler(), new PendingBind(ctx.getServerHandler(), msg));
             return null;
         }
     }
@@ -96,10 +99,12 @@ public class GTSRFXNet {
     private static final class PendingBind {
 
         final EntityPlayerMP player;
+        final NetHandlerPlayServer connection;
         final HubBindMessage msg;
 
-        PendingBind(EntityPlayerMP p, HubBindMessage m) {
-            player = p;
+        PendingBind(NetHandlerPlayServer connection, HubBindMessage m) {
+            this.connection = connection;
+            player = connection.playerEntity;
             msg = m;
         }
     }
@@ -110,10 +115,12 @@ public class GTSRFXNet {
         public void onServerTick(TickEvent.ServerTickEvent event) {
             if (event.phase != TickEvent.Phase.END) return;
             PendingBind task;
-            while ((task = PENDING_BIND.poll()) != null) {
+            for (int n = 0; n < BoundedRequestQueue.MAX_PER_TICK && (task = PENDING_BIND.poll()) != null; n++) {
                 EntityPlayerMP player = task.player;
-                if (player == null || player.dimension != task.msg.dim) continue;
+                if (!ServerPacketAuthority.isCurrentPlayer(player, task.connection) || player.dimension != task.msg.dim)
+                    continue;
                 if (player.getDistanceSq(task.msg.x + .5, task.msg.y + .5, task.msg.z + .5) >= 64.0) continue;
+                if (!player.worldObj.blockExists(task.msg.x, task.msg.y, task.msg.z)) continue;
                 TileEntity te = player.worldObj.getTileEntity(task.msg.x, task.msg.y, task.msg.z);
                 if (!(te instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gte)) continue;
                 if (gte.getMetaTileEntity() instanceof MTEHubArrayBase hub && hub.canBindHeld(player.getHeldItem()))

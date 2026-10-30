@@ -1,6 +1,10 @@
 package com.miaokatze.gtsr.common.gui;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.StatCollector;
 
@@ -9,6 +13,7 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
 import com.cleanroommc.modularui.factory.PosGuiData;
+import com.cleanroommc.modularui.screen.ModularContainer;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
@@ -31,8 +36,10 @@ import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
 import com.miaokatze.gtsr.common.critical.CriticalTier;
+import com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions;
 import com.miaokatze.gtsr.common.gui.mui2.TerminalViewport;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 
 import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.common.modularui2.widget.GTProgressWidget;
@@ -43,6 +50,7 @@ public final class MTECriticalMachineTerminalGui {
     private final MTECriticalMachine multiblock;
     private final CriticalMachineState state;
     private EntityPlayer viewer;
+    private final AtomicBoolean actionPending = new AtomicBoolean();
     private BooleanSyncValue permitted;
     private BooleanSyncValue loomController;
     private StringSyncValue actionName, actionDetail;
@@ -189,7 +197,7 @@ public final class MTECriticalMachineTerminalGui {
                 .tooltipBuilder(t -> t.add(headerStatus()))
                 .tooltipAutoUpdate(true));
         header.child(action(manager, "power", player -> {
-            if (loomController.getValue()) return state.setEnabled(player, !state.isConstructionEnabled());
+            if (multiblock.isKindSelector()) return state.setEnabled(player, !state.isConstructionEnabled());
             return state.setProductionEnabled(player, !state.isProductionEnabled());
         }).overlay(
             IKey.dynamic(this::powerLabel)
@@ -806,23 +814,48 @@ public final class MTECriticalMachineTerminalGui {
 
     private InteractionSyncHandler interaction(PanelSyncManager manager, String name,
         java.util.function.Predicate<EntityPlayer> command) {
+        // The panel is built before its container is bound. Capture the opening connection from the viewer.
+        final EntityPlayer player = viewer;
+        final NetHandlerPlayServer connection = ServerPacketAuthority.connection(player);
+        final AtomicLong openGeneration = new AtomicLong();
+        // Reopening retained MUI managers starts a new interval even with the same container.
+        manager.addOpenListener(ignored -> openGeneration.incrementAndGet());
         InteractionSyncHandler handler = new InteractionSyncHandler().setOnMousePressed(data -> {
             if (manager.isClient() || data.mouseButton != 0) return;
-            EntityPlayer player = manager.getPlayer();
-            lastAction = name;
-            if (!state.canUse(player)) {
-                lastActionAccepted = false;
-                lastActionDetail = "action.permission";
-                player.addChatMessage(new ChatComponentTranslation(key("action.permission")));
-                return;
-            }
-            lastActionAccepted = command.test(player);
-            lastActionDetail = state.getDisplayStatusKey();
-            if (!lastActionAccepted) player.addChatMessage(
-                new ChatComponentTranslation(
-                    key("action.rejected"),
-                    new ChatComponentTranslation(key(lastAction)),
-                    new ChatComponentTranslation(key(lastActionDetail))));
+            final ModularContainer container = manager.getContainer();
+            final long generation = openGeneration.get();
+            if (!manager.getModularSyncManager().isOpen() || container == null
+                || player == null || player.openContainer != container
+                || !actionPending.compareAndSet(false, true)) return;
+            // Only a fixed button command is retained, never MouseData/PacketBuffer or editable widget values.
+            Mui2ServerActions.enqueue(() -> {
+                try {
+                    // MUI deliberately retains closed managers for reopen; their network IDs still route packets.
+                    if (!ServerPacketAuthority.isCurrentPlayer(player, connection)
+                        || openGeneration.get() != generation
+                        || !manager.getModularSyncManager().isOpen()
+                        || manager.getPlayer() != player
+                        || manager.getContainer() != container
+                        || player.openContainer != container
+                        || !container.canInteractWith(player)) return;
+                    lastAction = name;
+                    if (!state.canUse(player)) {
+                        lastActionAccepted = false;
+                        lastActionDetail = "action.permission";
+                        player.addChatMessage(new ChatComponentTranslation(key("action.permission")));
+                        return;
+                    }
+                    lastActionAccepted = command.test(player);
+                    lastActionDetail = state.getDisplayStatusKey();
+                    if (!lastActionAccepted) player.addChatMessage(
+                        new ChatComponentTranslation(
+                            key("action.rejected"),
+                            new ChatComponentTranslation(key(lastAction)),
+                            new ChatComponentTranslation(key(lastActionDetail))));
+                } finally {
+                    actionPending.set(false);
+                }
+            });
         });
         manager.syncValue("critical.action." + name, handler);
         return handler;

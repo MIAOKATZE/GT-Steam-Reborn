@@ -6,6 +6,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.NetHandlerPlayServer;
+
+import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.FakePlayer;
 
@@ -26,6 +29,7 @@ public final class WorkerUiSession extends SyncHandler<WorkerUiSession> {
     private final PosGuiData data;
     private final MTERemoteWorkerNode machine;
     private final TileEntity tile;
+    private final NetHandlerPlayServer connection;
     private final AtomicBoolean pending = new AtomicBoolean();
     private final AtomicReference<Incoming> incoming = new AtomicReference<>();
     private final AtomicReference<Reply> reply = new AtomicReference<>();
@@ -39,6 +43,7 @@ public final class WorkerUiSession extends SyncHandler<WorkerUiSession> {
 
     public WorkerUiSession(PosGuiData data, MTERemoteWorkerNode machine) {
         this.data = data;
+        this.connection = ServerPacketAuthority.connection(data.getPlayer());
         this.machine = machine;
         this.tile = data.getTileEntity();
         allowC2S();
@@ -61,6 +66,7 @@ public final class WorkerUiSession extends SyncHandler<WorkerUiSession> {
 
     private boolean active() {
         return isValid() && !getSyncManager().isClient()
+            && ServerPacketAuthority.isCurrentPlayer(data.getPlayer(), connection)
             && Mui2TerminalRoutes.remoteWorkerNodes
             && canUse()
             && data.getPlayer().openContainer == getSyncManager().getContainer();
