@@ -86,6 +86,7 @@ public final class MachineTerminalRemoteContract {
             field(player, Entity.class, "entityUniqueID", UUID.fromString("562e48d9-e220-4f1f-a963-3712d46a7407"));
             player.worldObj = world; player.dimension = 0; player.posX = 100000; player.posY = 70; player.posZ = 100000;
             player.inventory = new InventoryPlayer(player);
+            connect(player, world);
             HubTerminal item = (HubTerminal) unsafe.allocateInstance(HubTerminal.class);
             Object delegate = Proxy.newProxyInstance(cpw.mods.fml.common.registry.RegistryDelegate.class.getClassLoader(),
                 new Class<?>[] { cpw.mods.fml.common.registry.RegistryDelegate.class }, (proxy, method, values) ->
@@ -140,6 +141,46 @@ public final class MachineTerminalRemoteContract {
             check(!MachineTerminalHistory.hasRemoteAccess(player, original), "Closing a remote container revokes the range exception");
         } finally { registry.remove(world.provider.dimensionId); }
         System.out.println("PASS MachineTerminalRemoteContract checks=" + checks + " (detached models; no live Mixin/UI assertion)");
+    }
+
+    /** Grant validity now includes the issuing live connection, not merely item/player identity. */
+    private static void connect(EntityPlayerMP player, WorldServer world) throws Exception {
+        AuthorityServer server = (AuthorityServer) unsafe.allocateInstance(AuthorityServer.class);
+        server.world = world;
+        field(null, net.minecraft.server.MinecraftServer.class, "mcServer", server);
+        AuthorityConfiguration configuration = (AuthorityConfiguration) unsafe.allocateInstance(AuthorityConfiguration.class);
+        field(configuration, net.minecraft.server.management.ServerConfigurationManager.class,
+            "playerEntityList", new java.util.ArrayList<>());
+        server.setConfigManager(configuration);
+        configuration.playerEntityList.add(player);
+        net.minecraft.network.NetHandlerPlayServer connection = (net.minecraft.network.NetHandlerPlayServer)
+            unsafe.allocateInstance(net.minecraft.network.NetHandlerPlayServer.class);
+        connection.playerEntity = player;
+        player.playerNetServerHandler = connection;
+        net.minecraft.network.NetworkManager network = new net.minecraft.network.NetworkManager(false);
+        field(network, net.minecraft.network.NetworkManager.class, "channel",
+            new io.netty.channel.embedded.EmbeddedChannel(new io.netty.channel.ChannelInboundHandlerAdapter()));
+        field(connection, net.minecraft.network.NetHandlerPlayServer.class, "netManager", network);
+    }
+
+    private static final class AuthorityConfiguration extends net.minecraft.server.management.ServerConfigurationManager {
+        private AuthorityConfiguration() { super(null); }
+    }
+
+    private static final class AuthorityServer extends net.minecraft.server.MinecraftServer {
+        WorldServer world;
+        private AuthorityServer() { super(null, null); }
+        @Override public WorldServer worldServerForDimension(int dimension) { return world; }
+        @Override protected boolean startServer() { return false; }
+        @Override public boolean canStructuresSpawn() { return false; }
+        @Override public net.minecraft.world.WorldSettings.GameType getGameType() { return null; }
+        @Override public net.minecraft.world.EnumDifficulty getDifficulty() { return null; }
+        @Override public boolean isHardcore() { return false; }
+        @Override public int getOpPermissionLevel() { return 0; }
+        @Override public boolean isDedicatedServer() { return false; }
+        @Override public boolean func_152363_m() { return false; }
+        @Override public boolean isCommandBlockEnabled() { return false; }
+        @Override public String shareToLAN(net.minecraft.world.WorldSettings.GameType type, boolean cheats) { return null; }
     }
 
     private static void identityCodec() {

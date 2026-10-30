@@ -95,6 +95,9 @@ public class GTSteamReborn {
         com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions.clear();
         com.miaokatze.gtsr.common.terminal.ClusterTerminalData.clearSessions();
         com.miaokatze.gtsr.common.terminal.TerminalNet.clearServerState();
+        com.miaokatze.gtsr.common.network.WandNet.clearServerState();
+        com.miaokatze.gtsr.common.network.GTSRFXNet.clearServerState();
+        com.miaokatze.gtsr.common.dimension.prosperity.travel.SpacetimeTravel.resetServerState();
     }
 
     /**

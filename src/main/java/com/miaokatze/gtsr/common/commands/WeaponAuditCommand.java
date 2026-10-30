@@ -395,6 +395,14 @@ public final class WeaponAuditCommand extends CommandBase {
         }
     }
 
+    private int ordinaryReserve(WeaponKind kind) {
+        int rounds = 0;
+        for (ItemStack stack : player.inventory.mainInventory)
+            if (PortableWeapons.ammoKind(stack) == kind && !((PortableWeapons.AmmoItem) stack.getItem()).mimic)
+                rounds += WeaponController.remaining(stack);
+        return rounds;
+    }
+
     private void switchingMechanics() {
         ItemStack ordinary = setup(WeaponKind.QLZ04);
         ItemStack mimic = new ItemStack(PortableWeapons.mimicAmmo[2]);
@@ -408,11 +416,12 @@ public final class WeaponAuditCommand extends CommandBase {
                 .getInteger("ammoType") == 0,
             "QLZ sticky ordinary reload");
         ordinary.setItemDamage(0);
+        int reserveBeforeRefund = ordinaryReserve(WeaponKind.QLZ04);
         control(false, false, true);
         require(
             ordinary.getItemDamage() == 0 && WeaponController.data(gun)
-                .getInteger("magazine") == 0,
-            "QLZ full-pack refund overflow discarded");
+                .getInteger("magazine") == 0 && ordinaryReserve(WeaponKind.QLZ04) == reserveBeforeRefund + 12,
+            "QLZ full-pack refund preserves twelve paid ordinary rounds");
         for (int i = 0; i < 39; i++) control(false, false, false);
         require(
             mimic.getItemDamage() == 12 && WeaponController.data(gun)
@@ -1660,12 +1669,16 @@ public final class WeaponAuditCommand extends CommandBase {
             // Restore a fully paid magazine so each next iteration has an exact independent refund expectation.
             gunData.setInteger("magazine", capacity);
             gunData.setInteger("paidMagazine", capacity);
+            gunData.removeTag("magazinePayments"); // Synthetic restoration starts a fresh legacy receipt.
             pack.setItemDamage(capacity);
             modeStep(false, false, false);
         }
         pack.setItemDamage(0);
+        int reserveBeforeRefund = ordinaryReserve(WeaponKind.QLZ04), paidBeforeRefund = gunData.getInteger("paidMagazine");
         modeStep(false, false, true);
-        require(pack.getItemDamage() == 0, "QLZ full ordinary pack discards refund overflow");
+        require(
+            pack.getItemDamage() == 0 && ordinaryReserve(WeaponKind.QLZ04) == reserveBeforeRefund + paidBeforeRefund,
+            "QLZ full ordinary pack preserves the exact paid refund remainder");
         for (int i = 0; i < 39; i++) modeStep(false, false, false);
         gunData.setInteger("paidMagazine", 0);
         int before = pack.getItemDamage();
