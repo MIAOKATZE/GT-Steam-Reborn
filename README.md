@@ -12,7 +12,7 @@
   <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 2.0.1" src="https://img.shields.io/badge/Release-2.0.1-green.svg"></a>
 </p>
 
-此版本客户端与服务端均必须安装前置库 [MIAOKATZE Core 0.2.0](https://github.com/MIAOKATZE/MIAOKATZE-Core)（最低版本：0.2.0）。FalsePatternLib 可在缺失时补下载；已有旧版请手动更新。
+此版本客户端与服务端均必须安装前置库 [MIAOKATZE Core 0.2.0 ~ +](https://github.com/MIAOKATZE/MIAOKATZE-Core)（最低版本：0.2.0，无上限）。FalsePatternLib 可在缺失时补下载；已有旧版请手动更新。
 
 当前源码为待发布候选 v2.1.0，仅支持 GTNH 2.9.0 正式版。RC-2 最终候选为 v2.0.46，亦未发布。建议 GTIT、GTSWN、GTSR 三者一起更新。
 
@@ -45,10 +45,10 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 
 公开下载以 [Release 列表](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases) 中的资产与版本说明为准，`latest` 可能仍指向旧 RC 发布。普通 `gtsr-*.jar` 放入客户端和服务器的 `mods` 文件夹；`dev` 与 `sources` 文件不是游玩版本。升级时请保留现有配置与存档备份。
 
-| GTNH         | GTSR           | Maintenance / 维护 |
+| GTNH         | GTSR 版本范围 / Version range | 已发布下载 / Status |
 | ------------ | -------------- | :--------------: |
-| 2.9.0 正式版 | **2.1.0 候选** | 待发布 |
-| 2.9.0 RC-2 | **2.0.46 最终候选** | 待发布 |
+| 2.9.0 正式版 | 2.1.0 ~ + | 当前 2.1.0 待发布草稿 / Draft |
+| 2.9.0 RC-1 / RC-2 | 2.0.0 ~ 2.0.46 | [v2.0.43](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/tag/v2.0.43)；范围上限 2.0.46 为未发布候选 |
 
 ***
 
