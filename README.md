@@ -14,7 +14,7 @@
 
 此版本客户端与服务端均必须安装前置库 [MIAOKATZE Core 0.2.0 ~ +](https://github.com/MIAOKATZE/MIAOKATZE-Core)（最低版本：0.2.0，无上限）。FalsePatternLib 可在缺失时补下载；已有旧版请手动更新。
 
-当前源码为待发布候选 v2.1.0，仅支持 GTNH 2.9.0 正式版。RC-2 最终候选为 v2.0.46，亦未发布。建议 GTIT、GTSWN、GTSR 三者一起更新。
+当前源码为待发布候选 v2.1.0，仅支持 GTNH 2.9.0 正式版。RC-2 最终版 v2.0.46 已发布。建议 GTIT、GTSWN、GTSR 三者一起更新。
 
 GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
 
@@ -48,7 +48,7 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 | GTNH         | GTSR 版本范围 / Version range | 已发布下载 / Status |
 | ------------ | -------------- | :--------------: |
 | 2.9.0 正式版 | 2.1.0 ~ + | 当前 2.1.0 待发布草稿 / Draft |
-| 2.9.0 RC-1 / RC-2 | 2.0.0 ~ 2.0.46 | [v2.0.43](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/tag/v2.0.43)；范围上限 2.0.46 为未发布候选 |
+| 2.9.0 RC-1 / RC-2 | 2.0.0 ~ 2.0.46 | [v2.0.46](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/tag/v2.0.46)；RC 最终版已发布，随附 Core 0.1.28 |
 
 ***
 
