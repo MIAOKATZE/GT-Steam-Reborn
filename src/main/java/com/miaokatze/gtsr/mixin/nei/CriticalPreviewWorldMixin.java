@@ -53,6 +53,11 @@ public abstract class CriticalPreviewWorldMixin implements CriticalPreviewWorld 
         return gtsr$previewRevision;
     }
 
+    @Inject(method = "clear()V", at = @At("HEAD"), require = 1)
+    private void gtsr$worldCleared(CallbackInfo callback) {
+        if (gtsr$criticalPreview) gtsr$previewRevision++;
+    }
+
     // The optional jar uses SRG names in production and MCP names in the development classpath.
     @Inject(
         method = { "setBlock(IIILnet/minecraft/block/Block;II)Z", "func_147465_d(IIILnet/minecraft/block/Block;II)Z" },

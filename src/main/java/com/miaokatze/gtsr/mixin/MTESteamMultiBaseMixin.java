@@ -1,13 +1,10 @@
 package com.miaokatze.gtsr.mixin;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.fluids.Fluid;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -30,23 +27,26 @@ import com.miaokatze.gtsr.config.Config;
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEExtendedPowerMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
-import gregtech.api.metatileentity.implementations.MTEHatchInputDebug;
-import gregtech.api.metatileentity.implementations.MTEHatchMultiInput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchVoidBus;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
-import gregtech.common.tileentities.machines.MTEHatchInputME;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
 @Mixin(value = MTESteamMultiBlockBase.class, remap = false)
-public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder, IGTSRProgressProvider {
+public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockBase<MTESteamMultiBaseMixin>
+    implements ICoolingHatchHolder, IGTSRProgressProvider {
+
+    protected MTESteamMultiBaseMixin(String name) {
+        super(name);
+    }
 
     // Shadow fields from MTESteamMultiBlockBase (mSteamInputFluids is NOT final in GT5U source)
     @Shadow
@@ -702,7 +702,7 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder, IGT
      *         MTESteamMultiBlockBase override replaces it with getFillableStack() (local tank),
      *         which is always null for ME hatches. This makes all MTESteamMultiBlockBase machines
      *         unable to see ME input hatch fluids during recipe collection.
-     *         This override mirrors the GT5U native implementation while preserving the
+     *         This override calls the GT5U native implementation while preserving the
      *         mSteamInputFluids (GT++ custom fluid hatches) iteration.
      * @author GTSR
      *         注：转为 @Inject(HEAD, cancellable=true) + GTNL 守卫，避免影响 GTNL 子类机器（GTNL 走原生）。
@@ -727,44 +727,8 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder, IGT
                 rList.add(tHatch.getFillableStack());
             }
         }
-        // 对齐 GT5U 原生 mInputHatches 语义（MTEMultiBlockBase:1852-1892）：
-        // MTEHatchInputME → getStoredFluids() 特判并按流体类型去重；其余 → getFillableStack()
-        Map<Fluid, net.minecraftforge.fluids.FluidStack> inputsFromME = new HashMap<>();
-        MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
-        for (MTEHatchInput tHatch : GTUtility.validMTEList(multiBlockSelf.mInputHatches)) {
-            byte hatchColor = tHatch.getColor();
-            if (color.isPresent() && hatchColor != -1 && hatchColor != color.get()) continue;
-            if (tHatch instanceof MTEHatchMultiInput multiInputHatch) {
-                for (net.minecraftforge.fluids.FluidStack tFluid : multiInputHatch.getStoredFluid()) {
-                    if (tFluid != null) {
-                        rList.add(tFluid);
-                    }
-                }
-            } else if (tHatch instanceof MTEHatchInputME meHatch) {
-                for (net.minecraftforge.fluids.FluidStack fluidStack : meHatch.getStoredFluids()) {
-                    if (fluidStack != null) {
-                        // 防止不同 ME 仓中的相同流体被重复识别（与 GT5U 原生行为一致）
-                        inputsFromME.put(fluidStack.getFluid(), fluidStack);
-                    }
-                }
-            } else if (tHatch instanceof MTEHatchInputDebug debugHatch) {
-                for (net.minecraftforge.fluids.FluidStack fluid : debugHatch.getFluidList()) {
-                    if (fluid != null) {
-                        net.minecraftforge.fluids.FluidStack stack = fluid.copy();
-                        stack.amount = Integer.MAX_VALUE;
-                        rList.add(stack);
-                    }
-                }
-            } else {
-                net.minecraftforge.fluids.FluidStack fillableStack = tHatch.getFillableStack();
-                if (fillableStack != null) {
-                    rList.add(fillableStack);
-                }
-            }
-        }
-        if (!inputsFromME.isEmpty()) {
-            rList.addAll(inputsFromME.values());
-        }
+        // 直接复用正式版的 Solidifier 隔离、颜色过滤、配方映射和 ME 去重。
+        rList.addAll(super.getStoredFluidsForColor(color));
         cir.setReturnValue(rList);
     }
 

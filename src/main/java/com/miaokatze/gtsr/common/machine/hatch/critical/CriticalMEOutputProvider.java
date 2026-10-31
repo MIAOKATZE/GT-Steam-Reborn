@@ -9,7 +9,6 @@ import net.minecraft.nbt.NBTTagList;
 import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.StorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
 import appeng.util.IterationCounter;
@@ -18,13 +17,12 @@ import gregtech.common.tileentities.machines.outputme.base.MTEHatchOutputMEBase;
 /** One authoritative native cache, with a fixed total capacity and checked long accounting. */
 public final class CriticalMEOutputProvider<T extends IAEStack<T>> extends MTEHatchOutputMEBase<T> {
 
-    // AE1080 ceilDiv adds the divisor before subtracting one. Keep both that addition and double power math safe.
+    // AE ceilDiv adds the divisor before subtracting one. Keep both that addition and double power math safe.
     static final long FLUSH_CHUNK = (1L << 52) - 1;
     private final Environment<T> environment;
 
     public CriticalMEOutputProvider(Environment<T> environment) {
-        // Preserve GT's global DEFAULT_CAPACITY for ordinary native outputs.
-        super(environment, environment.getChannel() == StorageChannel.FLUIDS ? 128_000 : 1_600);
+        super(environment);
         this.environment = environment;
         baseCapacity = Long.MAX_VALUE;
     }

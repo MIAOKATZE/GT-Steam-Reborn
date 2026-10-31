@@ -87,7 +87,7 @@ public class GTSRMixinPlugin implements IMixinConfigPlugin {
         }
     }
 
-    /** The optional optimization is coupled to the inspected 1.4.24 scene/batch contract. */
+    /** The optional optimization is coupled to the inspected 1.4.25 scene/batch contract. */
     private static final class BlockRendererPreviewShape {
 
         private static final boolean SUPPORTED = hasPreviewShape();
@@ -117,9 +117,11 @@ public class GTSRMixinPlugin implements IMixinConfigPlugin {
                     && AngelicaCaptureShape.calls(
                         scene,
                         "drawWorld",
-                        "it/unimi/dsi/fastutil/longs/LongSet",
-                        "forEach",
-                        "(Lit/unimi/dsi/fastutil/longs/LongConsumer;)V")
+                        "it/unimi/dsi/fastutil/longs/Long2ObjectMaps",
+                        "fastIterable",
+                        "(Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;)Lit/unimi/dsi/fastutil/objects/ObjectIterable;")
+                    && field(world, "tileMap", "Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;")
+                    && method(world, "clear", "()V")
                     && (method(world, "setBlock", "(IIILnet/minecraft/block/Block;II)Z")
                         || method(world, "func_147465_d", "(IIILnet/minecraft/block/Block;II)Z"))
                     && (method(world, "setBlockMetadataWithNotify", "(IIIII)Z")
@@ -161,14 +163,31 @@ public class GTSRMixinPlugin implements IMixinConfigPlugin {
                 ClassNode contextNode = new ClassNode(), taskNode = new ClassNode();
                 new ClassReader(contextBytes).accept(contextNode, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
                 new ClassReader(taskBytes).accept(taskNode, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-                String descriptor = "([II[I[ILorg/embeddedt/embeddium/impl/render/chunk/compile/ChunkBuildBuffers;"
+                String descriptor = "([III[I[ILorg/embeddedt/embeddium/impl/render/chunk/compile/ChunkBuildBuffers;"
                     + "Lorg/embeddedt/embeddium/impl/render/chunk/terrain/material/Material;ZZ)V";
+                String encodeDescriptor = "([III[I[ILnet/minecraft/block/Block;"
+                    + "Lorg/embeddedt/embeddium/impl/render/chunk/compile/ChunkBuildBuffers;"
+                    + "Lcom/gtnewhorizons/angelica/rendering/celeritas/AngelicaChunkBuildContext;"
+                    + "Lorg/embeddedt/embeddium/impl/render/chunk/terrain/material/Material;Z"
+                    + "Lcom/gtnewhorizons/angelica/rendering/celeritas/iris/ContextAwareChunkVertexEncoder;)V";
                 return calls(
                     taskNode,
-                    "renderBlock",
+                    "encodeTessellated",
                     "com/gtnewhorizons/angelica/rendering/celeritas/AngelicaChunkBuildContext",
                     "copyRawBuffer",
                     descriptor)
+                    && calls(
+                        taskNode,
+                        "renderBlock",
+                        "com/gtnewhorizons/angelica/rendering/celeritas/AngelicaChunkBuilderMeshingTask",
+                        "encodeTessellated",
+                        encodeDescriptor)
+                    && calls(
+                        taskNode,
+                        "finishDeferred",
+                        "com/gtnewhorizons/angelica/rendering/celeritas/AngelicaChunkBuilderMeshingTask",
+                        "encodeTessellated",
+                        encodeDescriptor)
                     && calls(
                         contextNode,
                         "copyRawBuffer",

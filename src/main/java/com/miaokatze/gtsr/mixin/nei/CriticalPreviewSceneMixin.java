@@ -14,7 +14,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Coerce;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.miaokatze.gtsr.client.nei.CriticalPreviewCache;
@@ -22,8 +21,6 @@ import com.miaokatze.gtsr.client.nei.CriticalPreviewTessellatorSupport;
 import com.miaokatze.gtsr.client.nei.CriticalPreviewWorld;
 
 import it.unimi.dsi.fastutil.longs.LongCollection;
-import it.unimi.dsi.fastutil.longs.LongConsumer;
-import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongSet;
 
 /** Optional, domain-scoped substitution. Camera, raytrace, overlays and all TESR callbacks stay upstream. */
@@ -86,18 +83,5 @@ public abstract class CriticalPreviewSceneMixin {
         callback.cancel();
     }
 
-    @Redirect(
-        method = "drawWorld",
-        at = @At(
-            value = "INVOKE",
-            target = "Lit/unimi/dsi/fastutil/longs/LongSet;forEach(Lit/unimi/dsi/fastutil/longs/LongConsumer;)V"),
-        require = 1)
-    private void gtsr$visitTileCandidates(LongSet positions, LongConsumer consumer) {
-        CriticalPreviewCache cache = gtsr$cache();
-        if (cache != null) cache.forEachTile(positions, consumer);
-        else {
-            LongIterator iterator = positions.iterator();
-            while (iterator.hasNext()) consumer.accept(iterator.nextLong());
-        }
-    }
+    // BlockRenderer 1.4.25 traverses tileMap directly, including native pass and selection checks.
 }

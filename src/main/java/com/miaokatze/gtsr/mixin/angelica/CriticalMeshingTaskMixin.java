@@ -14,23 +14,33 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.miaokatze.gtsr.client.critical.CriticalAngelicaCompat;
 
-/** The capture exception belongs to one block and is restored even if conversion throws. */
+/** Covers immediate and deferred encoding; the per-block scope is restored even if conversion throws. */
 @Pseudo
 @Mixin(targets = "com.gtnewhorizons.angelica.rendering.celeritas.AngelicaChunkBuilderMeshingTask", remap = false)
 public abstract class CriticalMeshingTaskMixin {
 
     @WrapOperation(
-        method = "renderBlock",
+        method = "encodeTessellated",
         at = @At(
             value = "INVOKE",
-            target = "Lcom/gtnewhorizons/angelica/rendering/celeritas/AngelicaChunkBuildContext;copyRawBuffer([II[I[ILorg/embeddedt/embeddium/impl/render/chunk/compile/ChunkBuildBuffers;Lorg/embeddedt/embeddium/impl/render/chunk/terrain/material/Material;ZZ)V"),
+            target = "Lcom/gtnewhorizons/angelica/rendering/celeritas/AngelicaChunkBuildContext;copyRawBuffer([III[I[ILorg/embeddedt/embeddium/impl/render/chunk/compile/ChunkBuildBuffers;Lorg/embeddedt/embeddium/impl/render/chunk/terrain/material/Material;ZZ)V"),
         require = 1)
-    private void gtsr$captureCritical(AngelicaChunkBuildContext context, int[] raw, int count, int[] states,
-        int[] shaderIds, ChunkBuildBuffers buffers, Material material, boolean shaderOverride, boolean smoothLighting,
-        Operation<Void> original, @Local(argsOnly = true) Block block) {
+    private static void gtsr$captureCritical(AngelicaChunkBuildContext context, int[] raw, int offset, int count,
+        int[] states, int[] shaderIds, ChunkBuildBuffers buffers, Material material, boolean shaderOverride,
+        boolean smoothLighting, Operation<Void> original, @Local(argsOnly = true) Block block) {
         Boolean previous = CriticalAngelicaCompat.beginCapture(block);
         try {
-            original.call(context, raw, count, states, shaderIds, buffers, material, shaderOverride, smoothLighting);
+            original.call(
+                context,
+                raw,
+                offset,
+                count,
+                states,
+                shaderIds,
+                buffers,
+                material,
+                shaderOverride,
+                smoothLighting);
         } finally {
             CriticalAngelicaCompat.endCapture(previous);
         }

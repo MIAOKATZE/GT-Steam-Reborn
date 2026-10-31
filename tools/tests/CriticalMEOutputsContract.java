@@ -11,7 +11,7 @@ import net.minecraftforge.fluids.*;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.*;
 
-/** Actual narrow accessor transformation and real GT205/AE1080 quantity/cache codecs. */
+/** Actual narrow accessor transformation and real GT264/AE1095 quantity/cache codecs. */
 public final class CriticalMEOutputsContract {
     public static void main(String[] args) throws Exception {
         ArrayList<URL> urls = new ArrayList<>();
@@ -43,7 +43,7 @@ public final class CriticalMEOutputsContract {
             .invoke(null, (Object) new Object[] {"7", "10", "99", "99", "1.7.10", "9.05", new File("."), new ArrayList<>()});
         Method run = Launch.classLoader.loadClass("CriticalMEOutputsRuntime").getMethod("run", String.class);
         run.setAccessible(true);
-        run.invoke(null, "5.09.54.205");
+        run.invoke(null, "5.09.54.264");
     }
 }
 
@@ -73,7 +73,7 @@ class CriticalMEOutputsRuntime {
         controllerField.setAccessible(true);
         Object controller = controllerField.get(cpw.mods.fml.common.Loader.instance());
         cpw.mods.fml.common.ModMetadata metadata = new cpw.mods.fml.common.ModMetadata();
-        metadata.modId = "appliedenergistics2"; metadata.name = "AE detached API bootstrap"; metadata.version = "rv3-beta-1080-GTNH";
+        metadata.modId = "appliedenergistics2"; metadata.name = "AE detached API bootstrap"; metadata.version = "rv3-beta-1095-GTNH";
         var objects = com.google.common.collect.HashBiMap.create();
         objects.put(new cpw.mods.fml.common.DummyModContainer(metadata), appeng.core.AppEng.instance());
         set(controller, "modObjectList", objects);
@@ -84,6 +84,7 @@ class CriticalMEOutputsRuntime {
         ordinaryAndLegacy();
         partialAndNativeTransactions();
         cellTransferBoundary();
+        registration();
         System.out.println("PASS CriticalMEOutputsContract checks=" + checks);
     }
 
@@ -211,7 +212,24 @@ class CriticalMEOutputsRuntime {
             "ordinary-item", 4, new String[0], new gregtech.api.interfaces.ITexture[0][][]);
         check(nativeFluid.getProvider().getCacheCapacity() == 128_000 && nativeItem.getProvider().getCacheCapacity() == 1_600,
             "ordinary native instances retain their providers and capacities");
+        bind(nativeFluid); bind(nativeItem);
+        proxy(nativeFluid.getProvider(), false, 0); proxy(nativeItem.getProvider(), false, 0);
+        for (long saved : new long[] {-1, 0, 73}) {
+            NBTTagCompound capacity = new NBTTagCompound();
+            if (saved >= 0) capacity.setLong("baseCapacity", saved);
+            nativeFluid.getProvider().loadNBTData(capacity);
+            nativeItem.getProvider().loadNBTData(capacity);
+            check(nativeFluid.getProvider().getCacheCapacity() == (saved <= 0 ? 128_000 : saved)
+                && nativeItem.getProvider().getCacheCapacity() == (saved <= 0 ? 1_600 : saved),
+                "native item/fluid per-environment capacity fallback " + saved);
+        }
         var bus = itemBus();
+        for (long saved : new long[] {-1, 0, 73, Long.MAX_VALUE}) {
+            NBTTagCompound capacity = new NBTTagCompound();
+            if (saved >= 0) capacity.setLong("baseCapacity", saved);
+            bus.getProvider().loadNBTData(capacity);
+            check(bus.getProvider().getCacheCapacity() == Long.MAX_VALUE, "critical capacity survives NBT " + saved);
+        }
         var ae = appeng.util.item.AEItemStack.create(new ItemStack(net.minecraft.init.Items.iron_ingot, 1));
         NBTTagCompound valid = new NBTTagCompound();
         net.minecraft.nbt.NBTTagList entries = new net.minecraft.nbt.NBTTagList();
@@ -279,6 +297,32 @@ class CriticalMEOutputsRuntime {
         partial.getProvider().flushCachedStack();
         check(network.stored == 10 && partial.getProvider().getCachedAmount() == 0, "native network reconnect retry never replays inserted contents");
     }
+    static void registration() throws Exception {
+        com.miaokatze.gtsr.loader.MachineLoader.initMachines();
+        String[] names = {"CriticalOutputHatchME", "CriticalOutputBusME", "ClusterController",
+            "ClusterUnitCrusher", "ClusterUnitOreWasher", "ClusterUnitCentrifuge", "ClusterUnitThermalCentrifuge",
+            "ClusterUnitSifter", "ClusterUnitMagneticSeparator", "ClusterUnitFurnace", "ClusterBoosterParallel",
+            "ClusterBoosterSpeed", "ClusterBoosterPrimary", "ClusterBoosterSecondary", "ClusterBoosterSteamSaver",
+            "ClusterUnitLogistics", "TcdsController"};
+        var creative = com.miaokatze.gtsr.register.CreativeTabManager.getRegisteredItems();
+        for (String name : names) {
+            var entry = com.miaokatze.gtsr.common.api.enums.GTSRItemList.valueOf(name);
+            check(entry.hasBeenSet(), "completed ItemList " + name);
+            ItemStack stack = entry.get(1);
+            var template = gregtech.api.GregTechAPI.METATILEENTITIES[stack.getItemDamage()];
+            check(template != null && template.getClass().getName().startsWith("com.miaokatze.gtsr."),
+                "completed native MTE template " + name);
+            check(creative.stream().anyMatch(item -> item.isItemEqual(stack)), "completed creative entry " + name);
+            if (template instanceof com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalOutputME hatch) {
+                check(hatch.getProvider().getCacheCapacity() == Long.MAX_VALUE, "registered fluid template provider");
+            }
+            if (template instanceof com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalOutputBusME bus) {
+                check(bus.getProvider().getCacheCapacity() == Long.MAX_VALUE, "registered item template provider");
+            }
+        }
+        System.out.println("PASS formal registration ItemList/MTE/creative=" + names.length);
+    }
+
     static void cellTransferBoundary() throws Exception {
         var bus = itemBus();
         var iron = appeng.util.item.AEItemStack.create(new ItemStack(net.minecraft.init.Items.iron_ingot, 1));

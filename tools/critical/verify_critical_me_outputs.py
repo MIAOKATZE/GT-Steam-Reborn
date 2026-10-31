@@ -8,8 +8,9 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--jar', type=Path, default=ROOT / 'build/libs/gtsr-v2.0.42-dev.jar')
-parser.add_argument('--out', type=Path, default=ROOT / 'build/critical-me-outputs43')
+parser.add_argument('--jar', type=Path, default=ROOT / 'build/libs/gtsr-v2.1.0-dev.jar')
+parser.add_argument('--out', type=Path, default=ROOT / 'build/critical-me-outputs-formal')
+parser.add_argument('--classpath', type=Path, help='Actual resolved Gradle classpath, one path per line')
 parser.add_argument('--source-overlay', action='store_true', help='Compile production sources over the specified jar')
 args = parser.parse_args()
 BASELINE = args.jar.resolve()
@@ -22,11 +23,14 @@ if not args.source_overlay and (CLASSES / 'com/miaokatze/gtsr').exists():
     raise RuntimeError('Production overlay in fixture directory; select a fresh --out')
 EMPTY = OUT / 'empty'
 EMPTY.mkdir(exist_ok=True)
-GT = next((CACHE / 'com.github.GTNewHorizons/GT5-Unofficial/5.09.54.205').glob('*/*-dev.jar'))
-AE = next((CACHE / 'com.github.GTNewHorizons/Applied-Energistics-2-Unofficial/rv3-beta-1080-GTNH').glob('*/*-dev.jar'))
-DEPS = sorted(p for p in CACHE.glob('*/*/*/*/*.jar')
+GT = next((CACHE / 'com.github.GTNewHorizons/GT5-Unofficial/5.09.54.264').glob('*/*-dev.jar'))
+AE = next((CACHE / 'com.github.GTNewHorizons/Applied-Energistics-2-Unofficial/rv3-beta-1095-GTNH').glob('*/*-dev.jar'))
+DEPS = ([Path(line) for line in args.classpath.read_text('utf-8').splitlines() if line]
+        if args.classpath else sorted(p for p in CACHE.glob('*/*/*/*/*.jar')
               if '/GT5-Unofficial/' not in p.as_posix()
-              and '/Applied-Energistics-2-Unofficial/' not in p.as_posix() and 'gtsr' not in p.name.lower())
+              and '/Applied-Energistics-2-Unofficial/' not in p.as_posix() and 'gtsr' not in p.name.lower()))
+# Plain JDK17 javac compiles this fixture; Jabel is a Gradle compiler service, not a runtime mod dependency.
+DEPS = [p for p in DEPS if not p.name.startswith('jabel-')]
 CP = os.pathsep.join(map(str, [CLASSES, BASELINE, GT, AE,
     ROOT / 'build/classes/java/patchedMc', ROOT / 'build/rfg/recompiled_minecraft-1.7.10.jar',
     ROOT / 'build/rfg/mclauncher-1.7.10.jar', *DEPS]))
@@ -71,6 +75,7 @@ if not any(line.startswith('PASS CriticalMEOutputsContract') for line in lines):
     'sourceSHA256': {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in SOURCES},
     'baselineJar': str(BASELINE), 'baselineSHA256': hashlib.sha256(BASELINE.read_bytes()).hexdigest(),
     'gtJar': str(GT), 'aeJar': str(AE),
-    'scope': 'Real narrow accessor Mixin, GT205 native provider/cache/NBT and AE1080 powered insertion; '
+    'resolvedClasspath': str(args.classpath) if args.classpath else None,
+    'scope': 'Real narrow accessor Mixin, GT264 native provider/cache/NBT and AE1095 powered insertion; '
              'finite network/energy seams, no full client or live AE grid.'}, indent=2), encoding='utf-8')
 print('\n'.join(lines))
