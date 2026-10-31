@@ -9,12 +9,12 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0" src="https://img.shields.io/badge/GTNH-2.9.0-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 2.0.1" src="https://img.shields.io/badge/Release-2.0.1-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Candidate 2.1.1" src="https://img.shields.io/badge/Candidate-2.1.1-orange.svg"></a>
 </p>
 
 此版本客户端与服务端均必须安装前置库 [MIAOKATZE Core 0.2.0 ~ +](https://github.com/MIAOKATZE/MIAOKATZE-Core)（最低版本：0.2.0，无上限）。FalsePatternLib 可在缺失时补下载；已有旧版请手动更新。
 
-当前源码为待发布候选 v2.1.0，仅支持 GTNH 2.9.0 正式版。RC-2 最终版 v2.0.46 已发布。建议 GTIT、GTSWN、GTSR 三者一起更新。
+当前源码为待发布候选 v2.1.1，仅支持 GTNH 2.9.0 正式版。RC-2 最终版 v2.0.46 已发布。建议 GTIT、GTSWN、GTSR 三者一起更新。
 
 GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
 
@@ -47,8 +47,21 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 
 | GTNH         | GTSR 版本范围 / Version range | 已发布下载 / Status |
 | ------------ | -------------- | :--------------: |
-| 2.9.0 正式版 | 2.1.0 ~ + | 当前 2.1.0 待发布草稿 / Draft |
+| 2.9.0 正式版 | 2.1.0 ~ + | 当前 2.1.1 待发布草稿 / Draft |
 | 2.9.0 RC-1 / RC-2 | 2.0.0 ~ 2.0.46 | [v2.0.46](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/tag/v2.0.46)；RC 最终版已发布，随附 Core 0.1.28 |
+
+## GTNL / SNL 可选兼容 / Optional compatibility
+
+v2.1.1 面向 GTNL `0.2.7-rc2.1`，两个选项均默认关闭，修改后需要重启游戏或服务器。在 `config/gtsr/gtsr.cfg` 的 `general` 类别中按需启用：
+
+| 配置 / Configuration | 作用 / Effect |
+| --- | --- |
+| `B:gtnlEnhancement=false` | 为 GTNL 蒸汽机启用 GTSR 过热加速与冷却仓；在 GTNL 原有处理倍率上再叠加 4 倍速度、4 倍每 tick 耗汽。 |
+| `B:gtnlPipelessSteam=false` | 允许 GTSR 耗汽机器接入 GTNL 无管蒸汽仓（tier 0），保留各机原有汽种、原料、耗汽和发电规则。 |
+
+增强只由真实、足额的过热汽支付触发；普通汽和残留过热汽混供不会凭样本获得加速。冷却按实扣体积结算：过热汽 1 L 回收普通汽 1 L，普通汽每 160 L 回收蒸馏水 1 L；未输出余量保留。无管仓沿用自身网络补汽机制，机器只从其本地罐扣汽。
+
+Both options are disabled by default and require a restart. The enhancement preserves GTNL's native processing modifiers before applying the extra superheated-steam boost. Pipeless support uses the hatch's local tank while keeping each GTSR machine's existing fuel and processing rules.
 
 ***
 

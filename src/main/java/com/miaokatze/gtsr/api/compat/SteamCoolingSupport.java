@@ -125,6 +125,12 @@ public final class SteamCoolingSupport {
                 return true;
             }
         }
+        if (self instanceof IAdditionalSteamSourceHolder holder) {
+            for (MTEHatch hatch : holder.gtsr$getAdditionalSteamSources()) {
+                FluidStack probe = hatch.drain(1, false);
+                if (probe != null && probe.isFluidEqual(superheated) && probe.amount > 0) return true;
+            }
+        }
         return false;
     }
 
@@ -152,6 +158,7 @@ public final class SteamCoolingSupport {
     public static void saveNBT(ICoolingHatchHolder holder, NBTTagCompound aNBT) {
         // v1.10.61：int → long（setLong；getLong 兼容旧版 int 存档）
         aNBT.setLong("gtsr.accumulatedSteam", holder.gtsr$getAccumulatedSteam());
+        aNBT.setLong("gtsr.pendingSuperheatedSteam", holder.gtsr$getPendingSuperheatedSteam());
     }
 
     /**
@@ -163,5 +170,6 @@ public final class SteamCoolingSupport {
     public static void loadNBT(ICoolingHatchHolder holder, NBTTagCompound aNBT) {
         // v1.10.61：int → long（getLong 兼容旧版 int 存档）
         holder.gtsr$setAccumulatedSteam(aNBT.getLong("gtsr.accumulatedSteam"));
+        holder.gtsr$setPendingSuperheatedSteam(aNBT.getLong("gtsr.pendingSuperheatedSteam"));
     }
 }

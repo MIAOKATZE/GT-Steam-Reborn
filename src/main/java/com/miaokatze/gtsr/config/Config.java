@@ -25,10 +25,10 @@ public class Config {
     // 由 MetaTileEntityID.java 统一管理（新段 BASE=14700）；v1.11.34 起旧 ID 段已退役，偏移量仅作用于现行 ID 分配。
     public static int metaIdOffset = 0;
 
-    // 是否为 GTNL 蒸汽机基类启用 GTSR 增强（过热蒸汽 4 倍加速 + 冷却舱室支持）。
-    // 默认关闭。开启后 GTNL 蒸汽机将获得 GTSR 的过热蒸汽 4 倍消耗 4 倍速加速机制，
-    // 并能使用 GTSR 冷却舱室。mixin 方法体运行时判断此值（远晚于配置读取），时序安全。
+    /** GTNL enhancement; the same key is read before optional Mixin selection. Restart required. */
     public static boolean gtnlEnhancement = false;
+    /** Independent opt-in for GTNL pipeless local steam tanks; restart required. */
+    public static boolean gtnlPipelessSteam = false;
 
     // 自然生成奇点频率（区块×区块，平均 N×N 区块生成 1 个，默认 48 = 每 chunk 1/2304）。
     public static int singularitySpawnFrequency = 48;
@@ -354,11 +354,8 @@ public class Config {
             5000,
             "应用于 MTE ID 基准值的偏移量 (用于预留 ID 区间)");
 
-        gtnlEnhancement = configuration.getBoolean(
-            "gtnlEnhancement",
-            Configuration.CATEGORY_GENERAL,
-            false,
-            "是否为GTNL蒸汽机基类启用GTSR增强（过热蒸汽4倍加速+冷却舱室支持）。默认关闭。开启后GTNL蒸汽机将获得GTSR的过热蒸汽4倍消耗4倍速加速机制，并能使用GTSR冷却舱室。");
+        gtnlEnhancement = com.miaokatze.gtsr.compat.gtnl.GTNLCompatibilityConfig.enhancement(configuration);
+        gtnlPipelessSteam = com.miaokatze.gtsr.compat.gtnl.GTNLCompatibilityConfig.pipeless(configuration);
 
         singularitySpawnFrequency = configuration.getInt(
             "singularitySpawnFrequency",

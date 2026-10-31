@@ -1,0 +1,46 @@
+// Local-only validation: no game launch and no additional production dependency.
+// Usage: gradlew -I tools/compat/gtnl/contracts.init.gradle gtnlCompatibilityContracts \
+//          -PgtnlTestJar=/absolute/path/sciencenotleisure-0.2.7-rc2.1-dev.jar
+gradle.projectsEvaluated {
+    def target = gradle.rootProject
+    def sourceSets = target.extensions.getByType(org.gradle.api.tasks.SourceSetContainer)
+    def upstream = target.providers.gradleProperty('gtnlTestJar')
+    def output = target.providers.gradleProperty('gtnlContractOutput')
+        .map { target.file(it) }.getOrElse(target.layout.buildDirectory.dir('gtnl-contract').get().asFile)
+    def nativeOutputs = target.files()
+    ['patchedMc', 'injectedTags'].each { name ->
+        if (sourceSets.findByName(name) != null) nativeOutputs += sourceSets.getByName(name).output
+    }
+    def suites = [
+        gtnlSelectionContract: 'GtnlSelectionContract',
+        gtnlPaymentContract: 'GtnlPaymentContract',
+        gtnlCoolingContract: 'GtnlCoolingContract',
+        gtnlMixinShapeContract: 'GtnlMixinShapeContract',
+        gtnlMixinTransformContract: 'GtnlMixinTransformContract'
+    ]
+    suites.each { taskName, mainName ->
+        target.tasks.register(taskName, JavaExec) {
+            group = 'verification'
+            description = 'Checks the pinned GTNL steam compatibility contract without launching Minecraft.'
+            dependsOn target.tasks.named('testClasses')
+            mainClass.set('com.miaokatze.gtsr.compat.gtnl.' + mainName)
+            classpath = sourceSets.getByName('test').runtimeClasspath + nativeOutputs + target.configurations.compileClasspath
+            if (upstream.isPresent()) classpath += target.files(upstream.get())
+            maxHeapSize = '1G'
+            systemProperty 'java.awt.headless', 'true'
+            if (mainName == 'GtnlSelectionContract') args new File(output, 'selection').absolutePath
+            if (mainName == 'GtnlMixinTransformContract') args new File(output, 'mixin').absolutePath
+            doFirst {
+                if (!upstream.isPresent() || !target.file(upstream.get()).isFile()) {
+                    throw new GradleException('Supply -PgtnlTestJar with the pinned GTNL 0.2.7-rc2.1 development jar.')
+                }
+                output.mkdirs()
+            }
+        }
+    }
+    target.tasks.register('gtnlCompatibilityContracts') {
+        group = 'verification'
+        description = 'Runs all five pinned GTNL compatibility contracts without a game/server.'
+        dependsOn suites.keySet().collect { target.tasks.named(it) }
+    }
+}

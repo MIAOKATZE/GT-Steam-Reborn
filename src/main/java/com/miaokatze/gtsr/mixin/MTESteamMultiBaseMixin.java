@@ -5,6 +5,7 @@ import java.util.List;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.fluids.FluidStack;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -15,19 +16,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.api.compat.IAdditionalSteamSourceHolder;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
+import com.miaokatze.gtsr.api.compat.ISelfManagedSteamMachine;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.api.progress.IGTSRProgressProvider;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
-import com.miaokatze.gtsr.config.Config;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEExtendedPowerMultiBlockBase;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
@@ -84,8 +87,8 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
     }
 
     // region ICoolingHatchHolder 接口实现
-    // 暴露 @Unique private 字段供 GTNL 专用 mixin 通过接口访问
-    // （GTNL 子类 mixin 无法直接访问父类 mixin 的 @Unique private 字段）
+    // 暴露 @Unique private 字段供 self-managed 专用 mixin 通过接口访问
+    // （self-managed 子类 mixin 无法直接访问父类 mixin 的 @Unique private 字段）
 
     @Override
     @Unique
@@ -167,16 +170,9 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
 
     // endregion
 
-    /**
-     * 运行时守卫：判断当前实例是否为 GTNL（com.science.gtnl.* 包）机器。
-     * this.getClass() 返回实际运行时类（如 GTNL 子类），而非 Mixin 注入的目标类。
-     * GTNL 机器开启增强时仅对冷却舱室相关逻辑放行，其他回退到 GT5U 原生行为。
-     */
     @Unique
-    private boolean gtsr$isGTNLMachine() {
-        return this.getClass()
-            .getName()
-            .startsWith("com.science.gtnl.");
+    private boolean gtsr$usesOwnSteamImplementation() {
+        return this instanceof ISelfManagedSteamMachine;
     }
 
     /**
@@ -199,13 +195,13 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
      *         Steam consumption formula: aSteamVal = (-lEUt * 10000) / max(1000, mEfficiency)
      *         Superheated: 4x consumption rate, 4x processing speed (via mMaxProgresstime / 4)
      * @author GTSR
-     *         注：转为 @Inject(HEAD, cancellable=true) + GTNL 守卫，避免影响 GTNL 子类机器（GTNL 走原生）。
+     *         注：转为 @Inject(HEAD, cancellable=true) + self-managed 守卫，避免影响 self-managed 子类机器（self-managed 走原生）。
      */
     @Inject(method = "onRunningTick(Lnet/minecraft/item/ItemStack;)Z", at = @At("HEAD"), cancellable = true)
     private void gtsr$onRunningTickHead(ItemStack aStack, CallbackInfoReturnable<Boolean> cir) {
-        // GTNL 守卫：GTNL 机器走 GT5U 原生行为，跳过 GTSR 逻辑
-        // （GTNL 覆写 onRunningTick 不调 super，本注入对 GTNL 机器不触发；守卫保留为双重保险）
-        if (gtsr$isGTNLMachine()) return;
+        // self-managed 守卫：self-managed 机器走 GT5U 原生行为，跳过 GTSR 逻辑
+        // （self-managed 覆写 onRunningTick 不调 super，本注入对 self-managed 机器不触发；守卫保留为双重保险）
+        if (gtsr$usesOwnSteamImplementation()) return;
 
         MTESteamMultiBlockBase self = gtsr$self();
         if (self.lEUt < 0) {
@@ -253,8 +249,8 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
      */
     @Inject(method = "addOutputPartial", at = @At("HEAD"), cancellable = true)
     private void gtsr$onAddOutputPartialHead(ItemStack aStack, CallbackInfo ci) {
-        // GTNL 守卫：GTNL 机器走 GT5U 原生 addOutputPartial 行为（不 cancel），跳过 GTSR 双总线输出逻辑
-        if (gtsr$isGTNLMachine()) return;
+        // self-managed 守卫：self-managed 机器走 GT5U 原生 addOutputPartial 行为（不 cancel），跳过 GTSR 双总线输出逻辑
+        if (gtsr$usesOwnSteamImplementation()) return;
 
         if (GTUtility.isStackInvalid(aStack)) {
             ci.cancel();
@@ -303,7 +299,7 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
      *         - MTEHatchOutput → mOutputHatches
      *         - GTSR cooling hatches → custom lists
      * @author GTSR
-     *         注：转为 @Inject(HEAD, cancellable=true) + GTNL 守卫，避免影响 GTNL 子类机器（GTNL 走原生）。
+     *         注：转为 @Inject(HEAD, cancellable=true) + self-managed 守卫，避免影响 self-managed 子类机器（self-managed 走原生）。
      *         使用方法描述符避免与父类 MTEMultiBlockBase 的单参重载 addToMachineList(IGregTechTileEntity) 歧义。
      */
     @Inject(
@@ -312,10 +308,10 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
         cancellable = true)
     private void gtsr$addToMachineListHead(final IGregTechTileEntity aTileEntity, final int aBaseCasingIndex,
         CallbackInfoReturnable<Boolean> cir) {
-        // GTNL 守卫：GTNL 机器仅在开启增强且为冷却舱室时走 GTSR 注册，其他情况走原生
-        // （避免输入翻倍回归：非冷却舱室走 GTNL 原生 addToMachineList）
-        if (gtsr$isGTNLMachine()) {
-            if (!Config.gtnlEnhancement) return;
+        // self-managed 守卫：self-managed 机器仅在开启增强且为冷却舱室时走 GTSR 注册，其他情况走原生
+        // （避免输入翻倍回归：非冷却舱室走 self-managed 原生 addToMachineList）
+        if (gtsr$usesOwnSteamImplementation()) {
+            if (!((ISelfManagedSteamMachine) this).gtsr$allowsCoolingRegistration()) return;
             final IMetaTileEntity metaTileEntity = (aTileEntity == null) ? null : aTileEntity.getMetaTileEntity();
             if (!gtsr$isCoolingHatch(metaTileEntity)) return;
             // 开启增强 + 冷却舱室：走下方 GTSR 冷却舱室注册逻辑
@@ -358,7 +354,7 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
         }
 
         // MTEHatchSteamBusInput → mSteamInputs only
-        // 取消双注册到 mInputBusses：避免 GTNL 等模组的 getAllStoredInputs 同时遍历 mInputBusses 和 mSteamInputs 导致输入翻倍。
+        // 取消双注册到 mInputBusses：避免 self-managed 等模组的 getAllStoredInputs 同时遍历 mInputBusses 和 mSteamInputs 导致输入翻倍。
         // GTSR 机器的输入物品获取通过 gtsr$onGetAllStoredInputsTail 注入补充 mSteamInputs 遍历来保证。
         if (aMetaTileEntity instanceof MTEHatchSteamBusInput steamBus) {
             gtsr$self().resetRecipeMapForHatch(aTileEntity, gtsr$self().getRecipeMap());
@@ -367,7 +363,8 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
         }
 
         // MTEHatchSteamBusOutput / MTEHatchVoidBus → mSteamOutputs only
-        // 取消双注册到 mOutputBusses：避免 GTNL 等模组的 getOutputBusses/addOutput 同时遍历 mOutputBusses 和 mSteamOutputs 导致输出重复。
+        // 取消双注册到 mOutputBusses：避免 self-managed 等模组的 getOutputBusses/addOutput 同时遍历 mOutputBusses 和 mSteamOutputs
+        // 导致输出重复。
         // GTSR 机器的物品输出通过 gtsr$onGetOutputBussesTail 注入补充 mOutputBusses 遍历，以及 addOutputPartial Mixin 来保证。
         if (aMetaTileEntity instanceof MTEHatchSteamBusOutput || aMetaTileEntity instanceof MTEHatchVoidBus) {
             cir.setReturnValue(
@@ -389,7 +386,9 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
             return;
         }
 
-        cir.setReturnValue(false);
+        cir.setReturnValue(
+            this instanceof IAdditionalSteamSourceHolder holder
+                && holder.gtsr$addAdditionalSteamSource(aTileEntity, aBaseCasingIndex));
     }
 
     // region GT5U Native Adder Compatibility
@@ -407,8 +406,8 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
     @Inject(method = "addSteamInputFluidHatch", at = @At("TAIL"), cancellable = true)
     private void gtsr$onAddSteamInputFluidHatch(IGregTechTileEntity aTileEntity, int aBaseCasingIndex,
         CallbackInfoReturnable<Boolean> cir) {
-        // GTNL 守卫：GTNL 机器走 GT5U 原生 addSteamInputFluidHatch 行为（不 cancel），跳过 GTSR 扩展接受逻辑
-        if (gtsr$isGTNLMachine()) return;
+        // self-managed 守卫：self-managed 机器走 GT5U 原生 addSteamInputFluidHatch 行为（不 cancel），跳过 GTSR 扩展接受逻辑
+        if (gtsr$usesOwnSteamImplementation()) return;
 
         // If original already succeeded, nothing to do
         if (cir.getReturnValueZ()) return;
@@ -420,16 +419,19 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
         // Accept any MTEHatchCustomFluidBase (including pressure steam) that the original rejected
         if (aMetaTileEntity instanceof MTEHatchCustomFluidBase fluidHatch) {
             cir.setReturnValue(gtsr$self().addToMachineListInternal(mSteamInputFluids, fluidHatch, aBaseCasingIndex));
-        }
+        } else if (this instanceof IAdditionalSteamSourceHolder holder
+            && holder.gtsr$addAdditionalSteamSource(aTileEntity, aBaseCasingIndex)) {
+                cir.setReturnValue(true);
+            }
     }
 
-    // gtsr$onAddSteamBusInput 已删除：取消双注册到 mInputBusses，避免 GTNL 等模组的 getAllStoredInputs 输入翻倍。
+    // gtsr$onAddSteamBusInput 已删除：取消双注册到 mInputBusses，避免 self-managed 等模组的 getAllStoredInputs 输入翻倍。
     // 蒸汽输入总线只加到 mSteamInputs（GT5U 原生行为），GTSR 机器通过 gtsr$onGetAllStoredInputsTail 注入补充遍历。
 
     /**
      * Inject into addSteamBusOutput to accept MTEHatchOutput (including cooling hatches) when original fails.
      *
-     * 取消双注册到 mOutputBusses：避免 GTNL 等模组的 getOutputBusses/addOutput 输出重复。
+     * 取消双注册到 mOutputBusses：避免 self-managed 等模组的 getOutputBusses/addOutput 输出重复。
      * 蒸汽输出总线只加到 mSteamOutputs（GT5U 原生行为），GTSR 机器通过 gtsr$onGetOutputBussesTail
      * 注入补充合并 mOutputBusses 遍历，以及 addOutputPartial Mixin 来保证物品输出。
      *
@@ -444,9 +446,9 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
     @Inject(method = "addSteamBusOutput", at = @At("TAIL"), cancellable = true)
     private void gtsr$onAddSteamBusOutput(IGregTechTileEntity aTileEntity, int aBaseCasingIndex,
         CallbackInfoReturnable<Boolean> cir) {
-        // GTNL 守卫：GTNL 机器仅在开启增强且为冷却舱室时走 GTSR 注册，其他情况走原生
-        if (gtsr$isGTNLMachine()) {
-            if (!Config.gtnlEnhancement) return;
+        // self-managed 守卫：self-managed 机器仅在开启增强且为冷却舱室时走 GTSR 注册，其他情况走原生
+        if (gtsr$usesOwnSteamImplementation()) {
+            if (!((ISelfManagedSteamMachine) this).gtsr$allowsCoolingRegistration()) return;
             if (cir.getReturnValueZ()) return; // 原方法已成功，不再处理
             final IMetaTileEntity metaTileEntity = (aTileEntity == null) ? null : aTileEntity.getMetaTileEntity();
             if (!gtsr$isCoolingHatch(metaTileEntity)) return; // 非冷却舱室：走原生
@@ -503,26 +505,26 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
      */
     @Inject(method = "clearHatches", at = @At("RETURN"))
     private void gtsr$onClearHatches(CallbackInfo ci) {
-        // 移除 GTNL 守卫：GTNL 机器继承父类注入的 ICoolingHatchHolder 字段，清理无副作用
-        // GTNL clearHatches 调 super，mixin 触发，让 GTNL 机器也清理冷却舱室列表
+        // 移除 self-managed 守卫：self-managed 机器继承父类注入的 ICoolingHatchHolder 字段，清理无副作用
+        // self-managed clearHatches 调 super，mixin 触发，让 self-managed 机器也清理冷却舱室列表
         SteamCoolingSupport.clearHatches((ICoolingHatchHolder) this);
     }
 
     @Inject(method = "saveNBTData", at = @At("RETURN"))
     private void gtsr$onSaveNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
-        // 移除 GTNL 守卫：GTNL NBT 调 super，mixin 触发，让 GTNL 机器也持久化 accumulatedSteam
+        // 移除 self-managed 守卫：self-managed NBT 调 super，mixin 触发，让 self-managed 机器也持久化 accumulatedSteam
         SteamCoolingSupport.saveNBT((ICoolingHatchHolder) this, aNBT);
     }
 
     @Inject(method = "loadNBTData", at = @At("RETURN"))
     private void gtsr$onLoadNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
-        // 移除 GTNL 守卫：GTNL NBT 调 super，mixin 触发，让 GTNL 机器也加载 accumulatedSteam
+        // 移除 self-managed 守卫：self-managed NBT 调 super，mixin 触发，让 self-managed 机器也加载 accumulatedSteam
         SteamCoolingSupport.loadNBT((ICoolingHatchHolder) this, aNBT);
     }
 
     // endregion
 
-    // region Input/Output Aggregation (取消双注册后的合并读取层，含 GTNL 守卫)
+    // region Input/Output Aggregation (取消双注册后的合并读取层，含 self-managed 守卫)
 
     /**
      * 注入 getAllStoredInputs 的 RETURN，补充遍历 mSteamInputs。
@@ -534,7 +536,7 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
      * 去重：由于取消了双注册，mInputBusses 和 mSteamInputs 没有重复对象。但为了保险（防止其他路径
      * 把蒸汽输入总线加到 mInputBusses），仍然用 IdentityHashMap 去重。
      *
-     * 注意：GTNL 等模组自己覆写了 getAllStoredInputs，本注入对它们无效（mixin 优先级低于子类覆写）。
+     * 注意：self-managed 等模组自己覆写了 getAllStoredInputs，本注入对它们无效（mixin 优先级低于子类覆写）。
      *
      * cancellable=true 必填：方法体内（result == null 分支）调用 cir.setReturnValue(result) 覆写返回值，
      * 未声明 cancellable 会抛出 CancellationException: The call getAllStoredInputs is not cancellable.
@@ -543,9 +545,9 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
      */
     @Inject(method = "getAllStoredInputs", at = @At("RETURN"), cancellable = true)
     private void gtsr$onGetAllStoredInputsTail(CallbackInfoReturnable<ArrayList<net.minecraft.item.ItemStack>> cir) {
-        // GTNL 守卫：GTNL 机器若覆写 getAllStoredInputs 则本注入无效；若未覆写则避免 GTSR 补充 mSteamInputs
-        // 遍历导致输入翻倍，统一跳过让 GTNL 走 GT5U 原生行为
-        if (gtsr$isGTNLMachine()) return;
+        // self-managed 守卫：self-managed 机器若覆写 getAllStoredInputs 则本注入无效；若未覆写则避免 GTSR 补充 mSteamInputs
+        // 遍历导致输入翻倍，统一跳过让 self-managed 走 GT5U 原生行为
+        if (gtsr$usesOwnSteamImplementation()) return;
 
         ArrayList<net.minecraft.item.ItemStack> result = cir.getReturnValue();
         if (result == null) {
@@ -599,8 +601,8 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
     @Inject(method = "getStoredInputsForColor", at = @At("RETURN"), cancellable = true)
     private void gtsr$onGetStoredInputsForColorTail(java.util.Optional<java.lang.Byte> color,
         CallbackInfoReturnable<ArrayList<net.minecraft.item.ItemStack>> cir) {
-        // GTNL 守卫：GTNL 机器走自身覆写/原生行为，避免 GTSR 补充遍历导致输入翻倍
-        if (gtsr$isGTNLMachine()) return;
+        // self-managed 守卫：self-managed 机器走自身覆写/原生行为，避免 GTSR 补充遍历导致输入翻倍
+        if (gtsr$usesOwnSteamImplementation()) return;
 
         ArrayList<net.minecraft.item.ItemStack> result = cir.getReturnValue();
         if (result == null) {
@@ -652,7 +654,7 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
      * 去重：用 IdentityHashMap 去重，防止同一 hatch 被加入两次。
      * 排除未锁定的 VoidBus（与 MTEMultiBlockBase.getOutputBusses 行为一致）。
      *
-     * 注意：GTNL 等模组自己覆写了 getOutputBusses，本注入对它们无效（mixin 优先级低于子类覆写）。
+     * 注意：self-managed 等模组自己覆写了 getOutputBusses，本注入对它们无效（mixin 优先级低于子类覆写）。
      *
      * cancellable=true 必填：方法体内调用 cir.setReturnValue(result) 覆写返回值，
      * 未声明 cancellable 会导致运行时抛出 CancellationException: The call getOutputBusses is not cancellable.
@@ -662,9 +664,9 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
     @Inject(method = "getOutputBusses", at = @At("RETURN"), cancellable = true)
     private void gtsr$onGetOutputBussesTail(
         CallbackInfoReturnable<java.util.List<gregtech.api.interfaces.IOutputBus>> cir) {
-        // GTNL 守卫：GTNL 机器若覆写 getOutputBusses 则本注入无效；若未覆写则避免 GTSR 合并 mOutputBusses
-        // 导致输出重复，统一跳过让 GTNL 走 GT5U 原生行为
-        if (gtsr$isGTNLMachine()) return;
+        // self-managed 守卫：self-managed 机器若覆写 getOutputBusses 则本注入无效；若未覆写则避免 GTSR 合并 mOutputBusses
+        // 导致输出重复，统一跳过让 self-managed 走 GT5U 原生行为
+        if (gtsr$usesOwnSteamImplementation()) return;
 
         java.util.List<gregtech.api.interfaces.IOutputBus> original = cir.getReturnValue();
         java.util.List<gregtech.api.interfaces.IOutputBus> result = new java.util.ArrayList<>(original);
@@ -705,7 +707,7 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
      *         This override calls the GT5U native implementation while preserving the
      *         mSteamInputFluids (GT++ custom fluid hatches) iteration.
      * @author GTSR
-     *         注：转为 @Inject(HEAD, cancellable=true) + GTNL 守卫，避免影响 GTNL 子类机器（GTNL 走原生）。
+     *         注：转为 @Inject(HEAD, cancellable=true) + self-managed 守卫，避免影响 self-managed 子类机器（self-managed 走原生）。
      *         使用方法描述符区分 getStoredInputsForColor(ItemStack) 相关重载。
      */
     @Inject(
@@ -714,8 +716,8 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
         cancellable = true)
     private void gtsr$getStoredFluidsForColorHead(java.util.Optional<java.lang.Byte> color,
         CallbackInfoReturnable<java.util.ArrayList<net.minecraftforge.fluids.FluidStack>> cir) {
-        // GTNL 守卫：GTNL 机器走 GT5U 原生行为，跳过 GTSR 逻辑
-        if (gtsr$isGTNLMachine()) return;
+        // self-managed 守卫：self-managed 机器走 GT5U 原生行为，跳过 GTSR 逻辑
+        if (gtsr$usesOwnSteamImplementation()) return;
 
         ArrayList<net.minecraftforge.fluids.FluidStack> rList = new ArrayList<>();
         // GT++ 原语义：mSteamInputFluids（自定义流体仓，本地罐）
@@ -729,12 +731,22 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
         }
         // 直接复用正式版的 Solidifier 隔离、颜色过滤、配方映射和 ME 去重。
         rList.addAll(super.getStoredFluidsForColor(color));
+        if (this instanceof IAdditionalSteamSourceHolder holder) {
+            for (MTEHatch hatch : holder.gtsr$getAdditionalSteamSources()) {
+                if (!hatch.isValid()) continue;
+                byte hatchColor = hatch.getBaseMetaTileEntity()
+                    .getColorization();
+                if (color.isPresent() && hatchColor != -1 && hatchColor != color.get()) continue;
+                FluidStack fluid = hatch.drain(Integer.MAX_VALUE, false);
+                if (fluid != null && fluid.amount > 0) rList.add(fluid);
+            }
+        }
         cir.setReturnValue(rList);
     }
 
     // endregion
 
-    // region Steam Stack & Deplete Input (HEAD Inject + GTNL 守卫)
+    // region Steam Stack & Deplete Input (HEAD Inject + self-managed 守卫)
 
     /**
      * @reason Inject at HEAD to fix superheated steam detection to work across all input hatches.
@@ -742,13 +754,13 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
      *         only checks for regular steam, missing superheated steam. We override to
      *         iterate mSteamInputFluids directly and detect both steam types.
      * @author GTSR
-     *         注：转为 @Inject(HEAD, cancellable=true) + GTNL 守卫，避免影响 GTNL 子类机器（GTNL 走原生）。
+     *         注：转为 @Inject(HEAD, cancellable=true) + self-managed 守卫，避免影响 self-managed 子类机器（self-managed 走原生）。
      */
     @Inject(method = "getAllSteamStacks()Ljava/util/ArrayList;", at = @At("HEAD"), cancellable = true)
     private void gtsr$getAllSteamStacksHead(
         CallbackInfoReturnable<java.util.ArrayList<net.minecraftforge.fluids.FluidStack>> cir) {
-        // GTNL 守卫：GTNL 机器走 GT5U 原生 getAllSteamStacks 行为，跳过 GTSR 逻辑
-        if (gtsr$isGTNLMachine()) return;
+        // self-managed 守卫：self-managed 机器走 GT5U 原生 getAllSteamStacks 行为，跳过 GTSR 逻辑
+        if (gtsr$usesOwnSteamImplementation()) return;
 
         java.util.ArrayList<net.minecraftforge.fluids.FluidStack> aFluids = new java.util.ArrayList<>();
         net.minecraftforge.fluids.FluidStack aSteam = Materials.Steam.getGas(1);
@@ -786,6 +798,14 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
                 }
             }
         }
+        if (this instanceof IAdditionalSteamSourceHolder holder) {
+            for (MTEHatch hatch : holder.gtsr$getAdditionalSteamSources()) {
+                if (!hatch.isValid()) continue;
+                FluidStack fluid = hatch.drain(Integer.MAX_VALUE, false);
+                if (fluid != null && (fluid.isFluidEqual(aSteam)
+                    || (aSuperheatedSteam != null && fluid.isFluidEqual(aSuperheatedSteam)))) aFluids.add(fluid);
+            }
+        }
         cir.setReturnValue(aFluids);
     }
 
@@ -793,14 +813,14 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
      * @reason Inject at HEAD to support both regular steam and superheated steam input hatches.
      *         Superheated steam is consumed at the requested amount (acts as 4x dense steam).
      * @author GTSR
-     *         注：转为 @Inject(HEAD, cancellable=true) + GTNL 守卫，避免影响 GTNL 子类机器（GTNL 走原生）。
+     *         注：转为 @Inject(HEAD, cancellable=true) + self-managed 守卫，避免影响 self-managed 子类机器（self-managed 走原生）。
      *         使用方法描述符避免与 depleteInput(ItemStack) 重载歧义。
      */
     @Inject(method = "depleteInput(Lnet/minecraftforge/fluids/FluidStack;)Z", at = @At("HEAD"), cancellable = true)
     private void gtsr$depleteInputHead(net.minecraftforge.fluids.FluidStack aLiquid,
         CallbackInfoReturnable<Boolean> cir) {
-        // GTNL 守卫：GTNL 机器走 GT5U 原生 depleteInput(FluidStack) 行为，跳过 GTSR 逻辑
-        if (gtsr$isGTNLMachine()) return;
+        // self-managed 守卫：self-managed 机器走 GT5U 原生 depleteInput(FluidStack) 行为，跳过 GTSR 逻辑
+        if (gtsr$usesOwnSteamImplementation()) return;
 
         if (aLiquid == null) {
             cir.setReturnValue(false);
@@ -860,6 +880,20 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
                     cir.setReturnValue(drained >= aLiquid.amount);
                     return;
                 }
+            }
+        }
+        if (this instanceof IAdditionalSteamSourceHolder holder) {
+            for (MTEHatch hatch : holder.gtsr$getAdditionalSteamSources()) {
+                if (!hatch.isValid()) continue;
+                FluidStack probe = hatch.drain(aLiquid.amount, false);
+                if (probe == null || probe.amount < aLiquid.amount) continue;
+                boolean matches = probe.isFluidEqual(aLiquid) || (isSteamRequest && "ic2superheatedsteam".equals(
+                    probe.getFluid()
+                        .getName()));
+                if (!matches) continue;
+                FluidStack drained = hatch.drain(aLiquid.amount, true);
+                cir.setReturnValue(drained != null && drained.amount >= aLiquid.amount && drained.isFluidEqual(probe));
+                return;
             }
         }
         cir.setReturnValue(false);
