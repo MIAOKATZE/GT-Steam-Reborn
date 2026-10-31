@@ -35,7 +35,7 @@
  */
 dependencies {
     // GT5-Unofficial：GTNH 2.9.0 正式版基线
-    api("com.github.GTNewHorizons:GT5-Unofficial:5.09.54.264") { transitive = false }
+    api("com.github.GTNewHorizons:GT5-Unofficial:5.09.54.265") { transitive = false }
 
     // GT5U rendering signatures use JOML; GTNH supplies it at runtime.
     compileOnly("org.joml:joml:1.10.8")
@@ -68,7 +68,7 @@ dependencies {
     compileOnly("com.github.GTNewHorizons:Botania:1.13.42-GTNH:dev") { transitive = false }
 
     // Optional client compatibility; never adds Angelica to the runtime mod requirements.
-    compileOnly("com.github.GTNewHorizons:Angelica:2.2.42:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:Angelica:2.2.43:dev") { transitive = false }
 
     // Waila API：节点自定义名显示在 WAILA tooltip 头部（GTSRWailaCompat/GTSRNodeWailaProvider）。
     // 版本对齐 GTNH 2.9.0 正式版；运行时缺失 Waila 时 IMC 不激活，兼容层不生效。
