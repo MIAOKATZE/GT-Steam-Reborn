@@ -2,6 +2,8 @@
 import copy
 import contextlib
 import io
+import json
+import re
 import sys
 import tempfile
 import unittest
@@ -9,8 +11,8 @@ from unittest import mock
 import zipfile
 from pathlib import Path
 
-from assets import Resources
-from common import ROOT, file_sha, parse_json, read_json, rooted
+from assets import CRITICAL, FROZEN_NEWLINE_BINDINGS, Resources, historical_hash_match
+from common import ROOT, file_sha, parse_json, read_json, rooted, sha
 from motion import continuous_sweep, golden, validate_definitions
 from pipeline import case_table, compare_images, compare_numbers, required_cases
 import pipeline
@@ -80,6 +82,42 @@ class PipelineTests(unittest.TestCase):
             with mock.patch.object(sys, "argv", argv), mock.patch.object(pipeline, "audit", side_effect=OSError("invalid path")), contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(1, pipeline.main())
             self.assertEqual("FAIL", read_json(out / "validation.json")["status"])
+
+    def test_only_pinned_frozen_newline_variants_match_and_report_raw_hashes(self):
+        for name, allowed in FROZEN_NEWLINE_BINDINGS.items():
+            lf = (ROOT / "src/main/resources" / name).read_bytes().replace(b"\r\n", b"\n")
+            crlf = lf.replace(b"\n", b"\r\n")
+            self.assertEqual({sha(lf), sha(crlf)}, allowed)
+            for raw, expected, endings in ((lf, sha(crlf), "LF"), (crlf, sha(lf), "CRLF")):
+                match = historical_hash_match(name, raw, expected, "test")
+                self.assertEqual("NORMALIZATION_MATCH", match["classification"])
+                self.assertEqual(sha(raw), match["rawSha256"])
+                self.assertEqual(expected, match["expectedSha256"])
+                self.assertEqual(endings, match["actualLineEndings"])
+            self.assertIsNone(historical_hash_match(name, lf, sha(lf), "test"))
+
+    def test_non_newline_edits_member_reordering_and_unpinned_bindings_fail(self):
+        name = CRITICAL + "models/v2_v31_base_t3.geometry.json"
+        lf = (ROOT / "src/main/resources" / name).read_bytes().replace(b"\r\n", b"\n")
+        expected = sha(lf.replace(b"\n", b"\r\n"))
+        # Preserve every byte except the order of the first two physical construction members.
+        text = lf.decode("utf-8")
+        marker = re.search(r'"blocks"\s*:\s*\[', text)
+        first = marker.end()
+        while text[first].isspace(): first += 1
+        decoder = json.JSONDecoder()
+        _, first_end = decoder.raw_decode(text, first)
+        second = first_end
+        while text[second].isspace() or text[second] == ',': second += 1
+        _, second_end = decoder.raw_decode(text, second)
+        reordered = (text[:first] + text[second:second_end] + text[first_end:second] + text[first:first_end] + text[second_end:]).encode("utf-8")
+        self.assertNotEqual(parse_json(lf)["blocks"], parse_json(reordered)["blocks"])
+        for path, raw, digest in ((name, lf + b" ", expected), (name, reordered, expected),
+                                  (CRITICAL + "models/v2_base_t3.geometry.json", lf, expected),
+                                  (name, b"other\nbytes\n", sha(b"other\r\nbytes\r\n"))):
+            with self.subTest(path=path, digest=digest):
+                with self.assertRaises(ValueError):
+                    historical_hash_match(path, raw, digest, "test")
 
     def test_required_universe_must_be_explicit_nonempty_and_unique(self):
         with tempfile.TemporaryDirectory() as folder:

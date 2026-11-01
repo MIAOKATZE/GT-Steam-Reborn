@@ -28,6 +28,8 @@ python tools/workvisual/test_pipeline.py
 - `effects-contract.json`：原 38 加新 3 个排汽锚点、稳定 ID 归属、ABC 的 B 向下和上方空位转换、194 个真实火箱单元及 foreground 字节身份。源 token/孔像素证据不签工作状态、可见面或客户端 tick。
 - `validation.json`：以上回执的精确哈希；失败会覆盖该状态文件为 FAIL，不能保留上次 PASS。当输入来自 JAR 时使用 `--jar <明确候选>`，读取 JAR 内资源而非 source overlay。
 
+历史校验仅有一个明确限定：`v2_v31_base_t3`、`v2_v32_base_t3` 两份冻结 geometry 的旧清单保留源树 CRLF 哈希，而已发布 v2.1.1 和干净 v2.1.2 JAR 使用相同 LF 字节。工具只为这两条路径与已核实的四个完整 SHA 接受精确 CRLF↔LF 字节变体，逐 binding 输出 `NORMALIZATION_MATCH`、原 expected SHA 和实际 raw SHA；runtime manifest 始终记录真实 JAR 字节。它不重写资产/元数据、不重排施工索引，也不接受任意 JSON 语义相等、额外空白、混合换行、成员顺序变化或其他路径。负例验证这些变更仍 FAIL。已发布旧 runtime 与 tagged runtime 的 816 份 critical 文件逐字节相等是独立证据，ZIP 空目录项另计，不能把工作树 CRLF 当模型内容变化。
+
 真实 Java 数值对照使用 `MotionOracleProbe.java`：以候选 dev JAR、Core 099 dev JAR 和目标依赖 classpath 编译运行，入参为 `scalar-oracle.json output.json candidate-dev.jar core-dev.jar`。它忽略请求里的 expected values，实际调用生产 `Group.sample`，重复采样不得推进；校验生产定义类与 Core Sampler 的 CodeSource 都来自显式 JAR，输出完整定义 SHA。随后运行：
 
 可用 `probe_sampler.py --java <java.exe> --javac <javac.exe> --product <candidate-dev.jar> --core <core-dev.jar> --classpath-file <已导出compileClasspath.txt> --requests <scalar-oracle.json> --out <独立目录>` 完成编译/执行并保存精确命令、原始 stdout/stderr、输入哈希和 Java8 字节码回执。runner 将显式 product/Core 放在依赖前面，移除其他 product/Core 路径及纯构建 javac 插件；后者即使 `-proc:none` 也会被某些 javac 自动发现，不属于此纯 probe 的运行依赖。

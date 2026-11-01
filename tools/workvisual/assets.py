@@ -10,6 +10,38 @@ from common import SCHEMA, ROOT, canonical, check_finite_tree, file_sha, parse_j
 CRITICAL = "assets/gtsr/critical/"
 MACHINE = "assets/gtsr/machinevisual/"
 EFFECTS = "assets/gtsr/workeffects/"
+# These two released snapshots retained CRLF source hashes while their published JAR bytes use LF.
+# Both exact variants were checked against the released v2.1.1 runtime; no other binding is relaxed.
+FROZEN_NEWLINE_BINDINGS = {
+    CRITICAL + "models/v2_v31_base_t3.geometry.json": {
+        "04a5336b6d3ecf444c62ab8a8b187ab5a336571668ab3ce8174180a4cd0a9c32",
+        "7bb9a5af1e63d97f53a6e4c1fd2459ca28822148bc4763c78c652abd65115faa",
+    },
+    CRITICAL + "models/v2_v32_base_t3.geometry.json": {
+        "0ed4b6dc88da259ca0265c27f1d71e19e6e37ee6443fdb89189d57da656ed20a",
+        "4b6c3b23442b615d6317318f65e3b33aed779409a3413da670f73c124d7ae569",
+    },
+}
+
+
+def historical_hash_match(name, raw, expected, binding):
+    actual = sha(raw)
+    if actual == expected:
+        return None
+    if expected in FROZEN_NEWLINE_BINDINGS.get(name, ()):
+        lf = raw.replace(b"\r\n", b"\n")
+        crlf = lf.replace(b"\n", b"\r\n")
+        if raw == lf and sha(crlf) == expected:
+            endings = ("LF", "CRLF")
+        elif raw == crlf and sha(lf) == expected:
+            endings = ("CRLF", "LF")
+        else:
+            endings = None
+        if endings is not None:
+            return {"path": name, "binding": binding, "classification": "NORMALIZATION_MATCH",
+                    "expectedSha256": expected, "rawSha256": actual,
+                    "actualLineEndings": endings[0], "expectedLineEndings": endings[1]}
+    raise ValueError("Historical construction geometry changed: " + name)
 
 
 class Resources:
@@ -80,14 +112,17 @@ def runtime_manifest(resources):
         raise ValueError("No critical geometries found")
     closure = {CRITICAL + "materials.json", CRITICAL + "source-sha256.json"}
     geometries = []
+    normalization_matches = []
     for name in geometry_names:
         raw = resources.read(name)
         model = resources.json(name)
         info = _geometry(model, palette, name)
-        # Existing geometry bytes include physical construction indices and must remain exact.
+        # Preserve physical indices; only the two pinned released newline variants are accepted.
         old = binding.get("files", {}).get("src/main/resources/" + name)
-        if old is not None and sha(raw) != old:
-            raise ValueError("Historical construction geometry changed: " + name)
+        if old is not None:
+            match = historical_hash_match(name, raw, old, "files")
+            if match is not None:
+                normalization_matches.append(match)
         closure.add(name)
         geometries.append({"path": name, **info})
     snapshots = binding.get("compatibilitySnapshots", {})
@@ -95,8 +130,11 @@ def runtime_manifest(resources):
         raise ValueError("No historical compatibility snapshot identities")
     for slug, entry in snapshots.items():
         name = CRITICAL + "models/" + relative_name(slug) + ".geometry.json"
-        if name not in closure or sha(resources.read(name)) != entry["sha256"]:
+        if name not in closure:
             raise ValueError("Frozen historical geometry missing/changed: " + name)
+        match = historical_hash_match(name, resources.read(name), entry["sha256"], "compatibilitySnapshots")
+        if match is not None:
+            normalization_matches.append(match)
     sprites = set(walk_sprites(palette))
     # Legacy materials have implicit top/side paths in CriticalMaterials, not sprite properties.
     for properties in palette.values():
@@ -161,7 +199,10 @@ def runtime_manifest(resources):
             "resourceSource": resources.identity, "files": files, "geometries": geometries,
             "counts": {"geometry": len(geometries), "frozenSnapshots": len(snapshots), "materialAliases": len(palette),
                        "materialDefinitions": len({p["id"] for p in palette.values()}), "sprites": len(sprites),
-                       "animatedSprites": animated, "files": len(files)}, "externalSprites": external,
+                       "animatedSprites": animated, "files": len(files),
+                       "historicalNormalizedGeometries": len({value["path"] for value in normalization_matches}),
+                       "historicalNormalizationBindings": len(normalization_matches)}, "externalSprites": external,
+            "historicalNormalizationMatches": normalization_matches,
             "legacyWarnings": [g["path"] + ": released constructionOrder is not a full block-index permutation; exact bytes preserved"
                                for g in geometries if g["constructionOrderFullPermutation"] is False],
             "boundary": "Current resource bytes and historical construction order only; native GT icons require the locked host JAR; no GL/game acceptance.",
