@@ -117,7 +117,7 @@ public final class CriticalPowerLiveProbe {
     private void setup() throws Exception {
         world = TestLabDimension.world();
         TestLabFixtures.attach(world);
-        int x = 8192, y = 68, z = 8192;
+        int x = 8192, y = 96, z = 8192;
         TestLabFixtures.requireChunk(world, x>>4, z>>4);
         check("owned-testlab-empty-controller", air(x,y,z), "isolated testlab at " + x + ',' + y + ',' + z);
         controller = TestLabFixtures.machine(world,x,y,z,CriticalRuntime.getLoomMetaId());
