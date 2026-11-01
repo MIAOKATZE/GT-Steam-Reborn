@@ -42,6 +42,9 @@ import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
@@ -67,7 +70,10 @@ import gregtech.common.blocks.ItemMachines;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
 @IMetaTileEntity.SkipGenerateDescription
-public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDrill> implements ISurvivalConstructable {
+public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDrill>
+    implements ISurvivalConstructable, MachineVisualHost {
+
+    private final MachineVisualState machineVisualState = new MachineVisualState();
 
     // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
     private static final int REPLACEABLE_CASING_POSITIONS = 11;
@@ -682,5 +688,32 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
                 + EnumChatFormatting.LIGHT_PURPLE
                 + NumberFormatUtil.formatNumber(currentOutput)
                 + " L/s" };
+    }
+
+    @Override
+    public MachineVisualState visualState() {
+        return machineVisualState;
+    }
+
+    @Override
+    public MachineVisualDefinition visualDefinition() {
+        return MachineVisualDefinition.get("steam_fluid_drill");
+    }
+
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
+
+    @Override
+    protected void incrementProgressTime() {
+        super.incrementProgressTime();
+        machineVisualState.advanced(getBaseMetaTileEntity().getTimer());
+    }
+
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        machineVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
     }
 }

@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "coordinates": "controller_local_blocks_x_right_y_up_z_back",
+  "auditedControllers": 16,
+  "auditedRegistrations": 82,
+  "excluded": ["KineticProcessingArray", "MegaSteamTurbineArray"],
+  "nativeRoleMaterials": {
+    "casing": [["GregTechAPI.sBlockCasings1", 10], ["GregTechAPI.sBlockCasings2", 0]],
+    "pipe": [["GregTechAPI.sBlockCasings2", 12], ["GregTechAPI.sBlockCasings2", 13]],
+    "gearbox": [["GregTechAPI.sBlockCasings2", 2], ["GregTechAPI.sBlockCasings2", 3]],
+    "firebox": [["GregTechAPI.sBlockCasings3", 13], ["GregTechAPI.sBlockCasings3", 14]],
+    "frame": [["GregTechAPI.sBlockFrames", "Materials.Bronze.mMetaItemSubID"], ["GregTechAPI.sBlockFrames", "Materials.Steel.mMetaItemSubID"]],
+    "reinforced_glass": [["GregTechAPI.sBlockGlass1", 10]]
+  },
+  "machines": {
+    "AirCompressor": {"id": "air_compressor", "members": 4, "cells": 58, "travel": 0.35},
+    "AtmosphericCentrifuge": {"id": "atmospheric_centrifuge", "members": 18, "cells": 253, "travel": 0},
+    "GearSteamCompressor": {"id": "gear_steam_compressor", "members": 30, "cells": 170, "travel": 0.15},
+    "SteamFluidDrill": {"id": "steam_fluid_drill", "members": 6, "cells": 30, "travel": 0.30},
+    "CrustSteamBorer": {"id": "crust_steam_borer", "members": 11, "cells": 119, "travel": 0.60}
+  },
+  "phases": [0, 0.125, 0.25, 0.5, 0.75, 1],
+  "facings": ["north", "east", "south", "west"],
+  "mirrors": [false, true],
+  "qualities": ["OFF", "STANDARD"]
+}

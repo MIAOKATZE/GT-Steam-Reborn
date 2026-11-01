@@ -1,0 +1,1197 @@
+{
+  "schema": 1,
+  "coordinates": "controller_local_blocks_x_right_y_up_z_back",
+  "source": "TASK03 final scope 2026-11-01; visual-reference runtime models revision v7",
+  "definitions": [
+    {
+      "id": "air_compressor",
+      "controller": "AirCompressor",
+      "schema": 1,
+      "shapeLayers": [
+        [
+          "EBE",
+          "CDC",
+          "BBB",
+          "CDC",
+          "EBE"
+        ],
+        [
+          "EBE",
+          "GDG",
+          "G G",
+          "GDG",
+          "EBE"
+        ],
+        [
+          "E~E",
+          "GDG",
+          "G G",
+          "GDG",
+          "EBE"
+        ],
+        [
+          "EBE",
+          "BBB",
+          "BBB",
+          "BBB",
+          "EBE"
+        ]
+      ],
+      "offset": [
+        1,
+        2,
+        0
+      ],
+      "tokenMaterials": {
+        "B": {
+          "role": "casing",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings1",
+              10
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              0
+            ]
+          ]
+        },
+        "C": {
+          "role": "pipe",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings2",
+              12
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              13
+            ]
+          ]
+        },
+        "D": {
+          "role": "gearbox",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings2",
+              2
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              3
+            ]
+          ]
+        },
+        "E": {
+          "role": "frame",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockFrames",
+              "Materials.Bronze.mMetaItemSubID"
+            ],
+            [
+              "GregTechAPI.sBlockFrames",
+              "Materials.Steel.mMetaItemSubID"
+            ]
+          ]
+        },
+        "G": {
+          "role": "reinforced_glass",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockGlass1",
+              10
+            ]
+          ]
+        }
+      },
+      "skipTokens": [
+        " "
+      ],
+      "requiredAirTokens": [],
+      "groups": [
+        {
+          "id": "front_compression_pair",
+          "kind": "translate",
+          "axis": "z",
+          "travel": 0.35,
+          "periodMs": 3200,
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "members": [
+            {
+              "x": 0,
+              "y": 1,
+              "z": 1,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 0,
+              "z": 1,
+              "material": "gear"
+            }
+          ]
+        },
+        {
+          "id": "rear_compression_pair",
+          "kind": "translate",
+          "axis": "z",
+          "travel": -0.35,
+          "periodMs": 3200,
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "members": [
+            {
+              "x": 0,
+              "y": 1,
+              "z": 3,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 0,
+              "z": 3,
+              "material": "gear"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "atmospheric_centrifuge",
+      "controller": "AtmosphericCentrifuge",
+      "schema": 1,
+      "shapeLayers": [
+        [
+          "  EBBBE  ",
+          " BBBBBBB ",
+          "EBBBBBBBE",
+          "BBBBBBBBB",
+          "BBBBBBBBB",
+          "BBBBBBBBB",
+          "EBBBBBBBE",
+          " BBBBBBB ",
+          "  EBBBE  "
+        ],
+        [
+          "  EDDDE  ",
+          " DD   DD ",
+          "ED     DE",
+          "D       D",
+          "D   C   D",
+          "D       D",
+          "ED     DE",
+          " DD   DD ",
+          "  EDDDE  "
+        ],
+        [
+          "  EDDDE  ",
+          " DD   DD ",
+          "ED  C  DE",
+          "D   C   D",
+          "D CCCCC D",
+          "D   C   D",
+          "ED  C  DE",
+          " DD   DD ",
+          "  EDDDE  "
+        ],
+        [
+          "  EB~BE  ",
+          " BB   BB ",
+          "EB  C  BE",
+          "B   C   B",
+          "B CCCCC B",
+          "B   C   B",
+          "EB  C  BE",
+          " BB   BB ",
+          "  EBBBE  "
+        ],
+        [
+          "  EBBBE  ",
+          " BBBBBBB ",
+          "EBBBBBBBE",
+          "BBBBBBBBB",
+          "BBBBBBBBB",
+          "BBBBBBBBB",
+          "EBBBBBBBE",
+          " BBBBBBB ",
+          "  EBBBE  "
+        ]
+      ],
+      "offset": [
+        4,
+        3,
+        0
+      ],
+      "tokenMaterials": {
+        "B": {
+          "role": "casing",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings1",
+              10
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              0
+            ]
+          ]
+        },
+        "C": {
+          "role": "gearbox",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings2",
+              2
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              3
+            ]
+          ]
+        },
+        "D": {
+          "role": "reinforced_glass",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockGlass1",
+              10
+            ]
+          ]
+        },
+        "E": {
+          "role": "frame",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockFrames",
+              "Materials.Bronze.mMetaItemSubID"
+            ],
+            [
+              "GregTechAPI.sBlockFrames",
+              "Materials.Steel.mMetaItemSubID"
+            ]
+          ]
+        }
+      },
+      "skipTokens": [
+        " "
+      ],
+      "requiredAirTokens": [],
+      "groups": [
+        {
+          "id": "original_full_size_double_fan",
+          "kind": "rotate_y",
+          "axis": "y",
+          "travel": 0,
+          "periodMs": 9666,
+          "pivot": [
+            0,
+            0,
+            4
+          ],
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "z": 2,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 0,
+              "z": 3,
+              "material": "gear"
+            },
+            {
+              "x": -2,
+              "y": 0,
+              "z": 4,
+              "material": "gear"
+            },
+            {
+              "x": -1,
+              "y": 0,
+              "z": 4,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 0,
+              "z": 4,
+              "material": "gear"
+            },
+            {
+              "x": 1,
+              "y": 0,
+              "z": 4,
+              "material": "gear"
+            },
+            {
+              "x": 2,
+              "y": 0,
+              "z": 4,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 0,
+              "z": 5,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 0,
+              "z": 6,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 1,
+              "z": 2,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 1,
+              "z": 3,
+              "material": "gear"
+            },
+            {
+              "x": -2,
+              "y": 1,
+              "z": 4,
+              "material": "gear"
+            },
+            {
+              "x": -1,
+              "y": 1,
+              "z": 4,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 1,
+              "z": 4,
+              "material": "gear"
+            },
+            {
+              "x": 1,
+              "y": 1,
+              "z": 4,
+              "material": "gear"
+            },
+            {
+              "x": 2,
+              "y": 1,
+              "z": 4,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 1,
+              "z": 5,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 1,
+              "z": 6,
+              "material": "gear"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "steam_fluid_drill",
+      "controller": "SteamFluidDrill",
+      "schema": 1,
+      "shapeLayers": [
+        [
+          "     ",
+          "     ",
+          "  E  ",
+          "     ",
+          "     "
+        ],
+        [
+          "     ",
+          "     ",
+          "  E  ",
+          "     ",
+          "     "
+        ],
+        [
+          "     ",
+          "  E  ",
+          " ECE ",
+          "  E  ",
+          "     "
+        ],
+        [
+          "     ",
+          "  E  ",
+          " ECE ",
+          "  E  ",
+          "     "
+        ],
+        [
+          "     ",
+          "  D  ",
+          " DCD ",
+          "  D  ",
+          "     "
+        ],
+        [
+          "  ~  ",
+          " BBB ",
+          "BBCBB",
+          " BBB ",
+          "  B  "
+        ]
+      ],
+      "offset": [
+        2,
+        5,
+        0
+      ],
+      "tokenMaterials": {
+        "B": {
+          "role": "casing",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings1",
+              10
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              0
+            ]
+          ]
+        },
+        "C": {
+          "role": "pipe",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings2",
+              12
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              13
+            ]
+          ]
+        },
+        "D": {
+          "role": "gearbox",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings2",
+              2
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              3
+            ]
+          ]
+        },
+        "E": {
+          "role": "frame",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockFrames",
+              "Materials.Bronze.mMetaItemSubID"
+            ],
+            [
+              "GregTechAPI.sBlockFrames",
+              "Materials.Steel.mMetaItemSubID"
+            ]
+          ]
+        }
+      },
+      "skipTokens": [
+        " "
+      ],
+      "requiredAirTokens": [],
+      "groups": [
+        {
+          "id": "original_axial_feed_column",
+          "kind": "translate",
+          "axis": "y",
+          "travel": 0.3,
+          "periodMs": 4600,
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "members": [
+            {
+              "x": 0,
+              "y": 5,
+              "z": 2,
+              "material": "frame"
+            },
+            {
+              "x": 0,
+              "y": 4,
+              "z": 2,
+              "material": "frame"
+            },
+            {
+              "x": 0,
+              "y": 3,
+              "z": 2,
+              "material": "pipe"
+            },
+            {
+              "x": 0,
+              "y": 2,
+              "z": 2,
+              "material": "pipe"
+            },
+            {
+              "x": 0,
+              "y": 1,
+              "z": 2,
+              "material": "pipe"
+            },
+            {
+              "x": 0,
+              "y": 0,
+              "z": 2,
+              "material": "pipe"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "crust_steam_borer",
+      "controller": "CrustSteamBorer",
+      "schema": 1,
+      "shapeLayers": [
+        [
+          "         ",
+          "         ",
+          "         ",
+          "         ",
+          "    F    ",
+          "         ",
+          "         ",
+          "         ",
+          "         "
+        ],
+        [
+          "         ",
+          "         ",
+          "         ",
+          "         ",
+          "    F    ",
+          "         ",
+          "         ",
+          "         ",
+          "         "
+        ],
+        [
+          "         ",
+          "         ",
+          "         ",
+          "         ",
+          "    F    ",
+          "         ",
+          "         ",
+          "         ",
+          "         "
+        ],
+        [
+          "         ",
+          "         ",
+          "         ",
+          "         ",
+          "    F    ",
+          "         ",
+          "         ",
+          "         ",
+          "         "
+        ],
+        [
+          "         ",
+          "         ",
+          "         ",
+          "    F    ",
+          "   FCF   ",
+          "    F    ",
+          "         ",
+          "         ",
+          "         "
+        ],
+        [
+          "         ",
+          "         ",
+          "         ",
+          "    F    ",
+          "   FCF   ",
+          "    F    ",
+          "         ",
+          "         ",
+          "         "
+        ],
+        [
+          "         ",
+          "         ",
+          "         ",
+          "    F    ",
+          "   FCF   ",
+          "    F    ",
+          "         ",
+          "         ",
+          "         "
+        ],
+        [
+          "         ",
+          "         ",
+          "         ",
+          "   EFE   ",
+          "   FCF   ",
+          "   EFE   ",
+          "         ",
+          "         ",
+          "         "
+        ],
+        [
+          "         ",
+          "         ",
+          "  FD DF  ",
+          "  DCBCD  ",
+          "   BCB   ",
+          "  DCBCD  ",
+          "  FD DF  ",
+          "         ",
+          "         "
+        ],
+        [
+          "         ",
+          "   B B   ",
+          "  FB~BF  ",
+          " BB   BB ",
+          "  F C F  ",
+          " BB   BB ",
+          "  FBFBF  ",
+          "   B B   ",
+          "         "
+        ],
+        [
+          "   B B   ",
+          "  BBBBB  ",
+          " BFFFFFB ",
+          "BBF   FBB",
+          " BF C FB ",
+          "BBF   FBB",
+          " BFFFFFB ",
+          "  BBBBB  ",
+          "   B B   "
+        ]
+      ],
+      "offset": [
+        4,
+        9,
+        2
+      ],
+      "tokenMaterials": {
+        "B": {
+          "role": "casing",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings1",
+              10
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              0
+            ]
+          ]
+        },
+        "C": {
+          "role": "pipe",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings2",
+              12
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              13
+            ]
+          ]
+        },
+        "D": {
+          "role": "gearbox",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings2",
+              2
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              3
+            ]
+          ]
+        },
+        "E": {
+          "role": "firebox",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings3",
+              13
+            ],
+            [
+              "GregTechAPI.sBlockCasings3",
+              14
+            ]
+          ]
+        },
+        "F": {
+          "role": "frame",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockFrames",
+              "Materials.Bronze.mMetaItemSubID"
+            ],
+            [
+              "GregTechAPI.sBlockFrames",
+              "Materials.Steel.mMetaItemSubID"
+            ]
+          ]
+        }
+      },
+      "skipTokens": [
+        " "
+      ],
+      "requiredAirTokens": [],
+      "groups": [
+        {
+          "id": "original_axial_feed_column",
+          "kind": "translate",
+          "axis": "y",
+          "travel": 0.6,
+          "periodMs": 6000,
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "members": [
+            {
+              "x": 0,
+              "y": 9,
+              "z": 2,
+              "material": "frame"
+            },
+            {
+              "x": 0,
+              "y": 8,
+              "z": 2,
+              "material": "frame"
+            },
+            {
+              "x": 0,
+              "y": 7,
+              "z": 2,
+              "material": "frame"
+            },
+            {
+              "x": 0,
+              "y": 6,
+              "z": 2,
+              "material": "frame"
+            },
+            {
+              "x": 0,
+              "y": 5,
+              "z": 2,
+              "material": "pipe"
+            },
+            {
+              "x": 0,
+              "y": 4,
+              "z": 2,
+              "material": "pipe"
+            },
+            {
+              "x": 0,
+              "y": 3,
+              "z": 2,
+              "material": "pipe"
+            },
+            {
+              "x": 0,
+              "y": 2,
+              "z": 2,
+              "material": "pipe"
+            },
+            {
+              "x": 0,
+              "y": 1,
+              "z": 2,
+              "material": "pipe"
+            },
+            {
+              "x": 0,
+              "y": 0,
+              "z": 2,
+              "material": "pipe"
+            },
+            {
+              "x": 0,
+              "y": -1,
+              "z": 2,
+              "material": "pipe"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gear_steam_compressor",
+      "controller": "GearSteamCompressor",
+      "schema": 1,
+      "shapeLayers": [
+        [
+          "         ",
+          "         ",
+          "  BBBBB  ",
+          "  BBBBB  ",
+          "  BBBBB  ",
+          "         ",
+          "         "
+        ],
+        [
+          "F       F",
+          " BBBBBBB ",
+          " BDDDDDB ",
+          " BDDDDDB ",
+          " BDDDDDB ",
+          " BBBBBBB ",
+          "F       F"
+        ],
+        [
+          "F       F",
+          " CEEEEEC ",
+          " C     C ",
+          " C     C ",
+          " C     C ",
+          " CEEEEEC ",
+          "F       F"
+        ],
+        [
+          "F       F",
+          " CBB~BBC ",
+          " BDDDDDB ",
+          " BDDDDDB ",
+          " BDDDDDB ",
+          " CBBBBBC ",
+          "F       F"
+        ],
+        [
+          "BB     BB",
+          "BCBBBBBCB",
+          "BBBBBBBBB",
+          "BBBBBBBBB",
+          "BBBBBBBBB",
+          "BCBBBBBCB",
+          "BB     BB"
+        ]
+      ],
+      "offset": [
+        4,
+        3,
+        1
+      ],
+      "tokenMaterials": {
+        "B": {
+          "role": "casing",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings1",
+              10
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              0
+            ]
+          ]
+        },
+        "C": {
+          "role": "pipe",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings2",
+              12
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              13
+            ]
+          ]
+        },
+        "D": {
+          "role": "gearbox",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockCasings2",
+              2
+            ],
+            [
+              "GregTechAPI.sBlockCasings2",
+              3
+            ]
+          ]
+        },
+        "E": {
+          "role": "reinforced_glass",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockGlass1",
+              10
+            ]
+          ]
+        },
+        "F": {
+          "role": "frame",
+          "blockChoices": [
+            [
+              "GregTechAPI.sBlockFrames",
+              "Materials.Bronze.mMetaItemSubID"
+            ],
+            [
+              "GregTechAPI.sBlockFrames",
+              "Materials.Steel.mMetaItemSubID"
+            ]
+          ]
+        }
+      },
+      "skipTokens": [
+        " "
+      ],
+      "requiredAirTokens": [],
+      "groups": [
+        {
+          "id": "gear_compression_upper",
+          "kind": "translate",
+          "axis": "y",
+          "travel": -0.15,
+          "periodMs": 3200,
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "members": [
+            {
+              "x": -2,
+              "y": 2,
+              "z": 1,
+              "material": "gear"
+            },
+            {
+              "x": -1,
+              "y": 2,
+              "z": 1,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 2,
+              "z": 1,
+              "material": "gear"
+            },
+            {
+              "x": 1,
+              "y": 2,
+              "z": 1,
+              "material": "gear"
+            },
+            {
+              "x": 2,
+              "y": 2,
+              "z": 1,
+              "material": "gear"
+            },
+            {
+              "x": -2,
+              "y": 2,
+              "z": 2,
+              "material": "gear"
+            },
+            {
+              "x": -1,
+              "y": 2,
+              "z": 2,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 2,
+              "z": 2,
+              "material": "gear"
+            },
+            {
+              "x": 1,
+              "y": 2,
+              "z": 2,
+              "material": "gear"
+            },
+            {
+              "x": 2,
+              "y": 2,
+              "z": 2,
+              "material": "gear"
+            },
+            {
+              "x": -2,
+              "y": 2,
+              "z": 3,
+              "material": "gear"
+            },
+            {
+              "x": -1,
+              "y": 2,
+              "z": 3,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 2,
+              "z": 3,
+              "material": "gear"
+            },
+            {
+              "x": 1,
+              "y": 2,
+              "z": 3,
+              "material": "gear"
+            },
+            {
+              "x": 2,
+              "y": 2,
+              "z": 3,
+              "material": "gear"
+            }
+          ]
+        },
+        {
+          "id": "gear_compression_lower",
+          "kind": "translate",
+          "axis": "y",
+          "travel": 0.15,
+          "periodMs": 3200,
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "members": [
+            {
+              "x": -2,
+              "y": 0,
+              "z": 1,
+              "material": "gear"
+            },
+            {
+              "x": -1,
+              "y": 0,
+              "z": 1,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 0,
+              "z": 1,
+              "material": "gear"
+            },
+            {
+              "x": 1,
+              "y": 0,
+              "z": 1,
+              "material": "gear"
+            },
+            {
+              "x": 2,
+              "y": 0,
+              "z": 1,
+              "material": "gear"
+            },
+            {
+              "x": -2,
+              "y": 0,
+              "z": 2,
+              "material": "gear"
+            },
+            {
+              "x": -1,
+              "y": 0,
+              "z": 2,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 0,
+              "z": 2,
+              "material": "gear"
+            },
+            {
+              "x": 1,
+              "y": 0,
+              "z": 2,
+              "material": "gear"
+            },
+            {
+              "x": 2,
+              "y": 0,
+              "z": 2,
+              "material": "gear"
+            },
+            {
+              "x": -2,
+              "y": 0,
+              "z": 3,
+              "material": "gear"
+            },
+            {
+              "x": -1,
+              "y": 0,
+              "z": 3,
+              "material": "gear"
+            },
+            {
+              "x": 0,
+              "y": 0,
+              "z": 3,
+              "material": "gear"
+            },
+            {
+              "x": 1,
+              "y": 0,
+              "z": 3,
+              "material": "gear"
+            },
+            {
+              "x": 2,
+              "y": 0,
+              "z": 3,
+              "material": "gear"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

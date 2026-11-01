@@ -9,7 +9,6 @@
   "mixins": [
     "MixinWorldCriticalTime",
     "MixinWorldProviderCriticalNight",
-    "PersonalWorldProviderCriticalNightMixin",
     "MixinWorldCriticalClearance",
     "MixinBlockCriticalProtection",
     "BlockMachinesCriticalProtectionMixin",
@@ -58,6 +57,15 @@
     "gtnl.TurbineSteamSourceMixin"
   ],
   "client": [
+    "RenderBlocksMachineVisualMixin",
+    "BlockMachineVisualFaceMixin",
+    "WorldRendererMachineVisualMixin",
+    "angelica.MachineVisualMeshingMixin",
+    "angelica.MachineVisualUploadMixin",
+    "angelica.MachineVisualWorldSliceAccess",
+    "angelica.MachineVisualJobResultAccess",
+    "angelica.MachineVisualSectionWorldAccess",
+    "angelica.MachineVisualRestorationMixin",
     "WorldCriticalNightClientMixin",
     "WorldProviderCriticalNightClientMixin",
     "RenderGlobalCriticalNightMixin",

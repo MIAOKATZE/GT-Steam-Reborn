@@ -37,6 +37,9 @@ import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.gui.MTESiemensMartinFurnaceGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
@@ -71,7 +74,32 @@ import gregtech.common.tileentities.machines.IDualInputHatch;
 
 @IMetaTileEntity.SkipGenerateDescription
 public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMartinFurnace>
-    implements ISurvivalConstructable {
+    implements ISurvivalConstructable, MachineVisualHost {
+
+    private static final MachineVisualDefinition WORK_VISUAL = MachineVisualDefinition
+        .effects("siemens_martin_furnace", -7, -2, -3, 7, 17, 9);
+    private final MachineVisualState workVisualState = new MachineVisualState();
+
+    @Override
+    public MachineVisualState visualState() {
+        return workVisualState;
+    }
+
+    @Override
+    public MachineVisualDefinition visualDefinition() {
+        return WORK_VISUAL;
+    }
+
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
+
+    @Override
+    protected void incrementProgressTime() {
+        super.incrementProgressTime();
+        workVisualState.advanced(getBaseMetaTileEntity().getTimer());
+    }
 
     // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
     private static final int REPLACEABLE_CASING_POSITIONS = 318;
@@ -466,7 +494,10 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (!aBaseMetaTileEntity.isServerSide()) return;
+        if (!aBaseMetaTileEntity.isServerSide()) {
+            workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
+            return;
+        }
 
         if (mMachine) {
             mStartUpCheck = 100;
@@ -531,6 +562,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
         } else if (!mMachine && !inGracePeriod) {
             mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
         }
+        workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
     }
 
     /**

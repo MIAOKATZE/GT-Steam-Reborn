@@ -1,0 +1,1334 @@
+{
+  "schema": "gtsr.workeffects.v1",
+  "coordinates": "StructureLib ABC; B down; world +Y particle velocity",
+  "machines": [
+    {
+      "machine": "LargeSteamFurnace",
+      "source": "src/main/java/com/miaokatze/gtsr/common/machine/MTELargeSteamFurnace.java",
+      "fireboxToken": "C",
+      "fireboxesABC": [
+        [
+          -1,
+          -3,
+          1
+        ],
+        [
+          0,
+          -3,
+          1
+        ],
+        [
+          1,
+          -3,
+          1
+        ],
+        [
+          -1,
+          -3,
+          2
+        ],
+        [
+          0,
+          -3,
+          2
+        ],
+        [
+          1,
+          -3,
+          2
+        ],
+        [
+          -1,
+          -3,
+          3
+        ],
+        [
+          0,
+          -3,
+          3
+        ],
+        [
+          1,
+          -3,
+          3
+        ],
+        [
+          -1,
+          -2,
+          1
+        ],
+        [
+          0,
+          -2,
+          1
+        ],
+        [
+          1,
+          -2,
+          1
+        ],
+        [
+          -1,
+          -2,
+          2
+        ],
+        [
+          0,
+          -2,
+          2
+        ],
+        [
+          1,
+          -2,
+          2
+        ],
+        [
+          -1,
+          -2,
+          3
+        ],
+        [
+          0,
+          -2,
+          3
+        ],
+        [
+          1,
+          -2,
+          3
+        ],
+        [
+          -1,
+          -1,
+          1
+        ],
+        [
+          0,
+          -1,
+          1
+        ],
+        [
+          1,
+          -1,
+          1
+        ],
+        [
+          -1,
+          -1,
+          2
+        ],
+        [
+          0,
+          -1,
+          2
+        ],
+        [
+          1,
+          -1,
+          2
+        ],
+        [
+          -1,
+          -1,
+          3
+        ],
+        [
+          0,
+          -1,
+          3
+        ],
+        [
+          1,
+          -1,
+          3
+        ]
+      ],
+      "nativeMaterial": "gregtech:sBlockCasings3 meta 13/14, horizontal faces only",
+      "emitters": []
+    },
+    {
+      "machine": "CrustSteamBorer",
+      "source": "src/main/java/com/miaokatze/gtsr/common/machine/MTECrustSteamBorer.java",
+      "fireboxToken": "E",
+      "fireboxesABC": [
+        [
+          -1,
+          -2,
+          1
+        ],
+        [
+          1,
+          -2,
+          1
+        ],
+        [
+          -1,
+          -2,
+          3
+        ],
+        [
+          1,
+          -2,
+          3
+        ]
+      ],
+      "nativeMaterial": "gregtech:sBlockCasings3 meta 13/14, horizontal faces only",
+      "emitters": []
+    },
+    {
+      "machine": "VeinSteamPyrolyzer",
+      "source": "src/main/java/com/miaokatze/gtsr/common/machine/MTEVeinSteamPyrolyzer.java",
+      "fireboxToken": "D",
+      "fireboxesABC": [
+        [
+          0,
+          -3,
+          2
+        ],
+        [
+          0,
+          -2,
+          2
+        ],
+        [
+          0,
+          -1,
+          1
+        ],
+        [
+          -1,
+          -1,
+          2
+        ],
+        [
+          0,
+          -1,
+          2
+        ],
+        [
+          1,
+          -1,
+          2
+        ],
+        [
+          0,
+          -1,
+          3
+        ],
+        [
+          -1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          1
+        ],
+        [
+          -1,
+          0,
+          2
+        ],
+        [
+          0,
+          0,
+          2
+        ],
+        [
+          1,
+          0,
+          2
+        ],
+        [
+          -1,
+          0,
+          3
+        ],
+        [
+          0,
+          0,
+          3
+        ],
+        [
+          1,
+          0,
+          3
+        ],
+        [
+          -1,
+          1,
+          0
+        ],
+        [
+          1,
+          1,
+          0
+        ],
+        [
+          -2,
+          1,
+          1
+        ],
+        [
+          -1,
+          1,
+          1
+        ],
+        [
+          0,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          2,
+          1,
+          1
+        ],
+        [
+          -1,
+          1,
+          2
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          1,
+          1,
+          2
+        ],
+        [
+          -2,
+          1,
+          3
+        ],
+        [
+          -1,
+          1,
+          3
+        ],
+        [
+          0,
+          1,
+          3
+        ],
+        [
+          1,
+          1,
+          3
+        ],
+        [
+          2,
+          1,
+          3
+        ],
+        [
+          -1,
+          1,
+          4
+        ],
+        [
+          1,
+          1,
+          4
+        ]
+      ],
+      "nativeMaterial": "gregtech:sBlockCasings3 meta 13/14, horizontal faces only",
+      "emitters": []
+    },
+    {
+      "machine": "LargeCokeOven",
+      "source": "src/main/java/com/miaokatze/gtsr/common/machine/MTELargeCokeOven.java",
+      "fireboxToken": "E",
+      "fireboxesABC": [
+        [
+          3,
+          1,
+          0
+        ],
+        [
+          4,
+          1,
+          0
+        ],
+        [
+          5,
+          1,
+          0
+        ],
+        [
+          3,
+          1,
+          1
+        ],
+        [
+          4,
+          1,
+          1
+        ],
+        [
+          5,
+          1,
+          1
+        ],
+        [
+          3,
+          1,
+          2
+        ],
+        [
+          4,
+          1,
+          2
+        ],
+        [
+          5,
+          1,
+          2
+        ]
+      ],
+      "nativeMaterial": "gregtech:sBlockCasings3 meta 13/14, horizontal faces only",
+      "emitters": [
+        {
+          "id": "LargeCokeOven:selected-stack-cloud",
+          "abc": [
+            4,
+            -5,
+            1
+          ],
+          "aboveABC": [
+            4,
+            -6,
+            1
+          ],
+          "origin": "selected-proposal",
+          "centerYOffset": 0.55
+        }
+      ]
+    },
+    {
+      "machine": "SiemensMartinFurnace",
+      "source": "src/main/java/com/miaokatze/gtsr/common/machine/MTESiemensMartinFurnace.java",
+      "fireboxToken": "E",
+      "fireboxesABC": [
+        [
+          -5,
+          2,
+          -3
+        ],
+        [
+          -6,
+          2,
+          -2
+        ],
+        [
+          -5,
+          2,
+          -2
+        ],
+        [
+          -4,
+          2,
+          -2
+        ],
+        [
+          -7,
+          2,
+          -1
+        ],
+        [
+          -6,
+          2,
+          -1
+        ],
+        [
+          -5,
+          2,
+          -1
+        ],
+        [
+          -4,
+          2,
+          -1
+        ],
+        [
+          -3,
+          2,
+          -1
+        ],
+        [
+          -7,
+          2,
+          0
+        ],
+        [
+          -6,
+          2,
+          0
+        ],
+        [
+          -5,
+          2,
+          0
+        ],
+        [
+          -4,
+          2,
+          0
+        ],
+        [
+          -3,
+          2,
+          0
+        ],
+        [
+          -1,
+          2,
+          0
+        ],
+        [
+          0,
+          2,
+          0
+        ],
+        [
+          1,
+          2,
+          0
+        ],
+        [
+          -7,
+          2,
+          1
+        ],
+        [
+          -6,
+          2,
+          1
+        ],
+        [
+          -5,
+          2,
+          1
+        ],
+        [
+          -4,
+          2,
+          1
+        ],
+        [
+          -3,
+          2,
+          1
+        ],
+        [
+          -2,
+          2,
+          1
+        ],
+        [
+          -1,
+          2,
+          1
+        ],
+        [
+          0,
+          2,
+          1
+        ],
+        [
+          1,
+          2,
+          1
+        ],
+        [
+          2,
+          2,
+          1
+        ],
+        [
+          4,
+          2,
+          1
+        ],
+        [
+          -7,
+          2,
+          2
+        ],
+        [
+          -6,
+          2,
+          2
+        ],
+        [
+          -5,
+          2,
+          2
+        ],
+        [
+          -4,
+          2,
+          2
+        ],
+        [
+          -3,
+          2,
+          2
+        ],
+        [
+          -2,
+          2,
+          2
+        ],
+        [
+          -1,
+          2,
+          2
+        ],
+        [
+          0,
+          2,
+          2
+        ],
+        [
+          1,
+          2,
+          2
+        ],
+        [
+          2,
+          2,
+          2
+        ],
+        [
+          3,
+          2,
+          2
+        ],
+        [
+          4,
+          2,
+          2
+        ],
+        [
+          5,
+          2,
+          2
+        ],
+        [
+          -7,
+          2,
+          3
+        ],
+        [
+          -6,
+          2,
+          3
+        ],
+        [
+          -5,
+          2,
+          3
+        ],
+        [
+          -4,
+          2,
+          3
+        ],
+        [
+          -3,
+          2,
+          3
+        ],
+        [
+          -2,
+          2,
+          3
+        ],
+        [
+          -1,
+          2,
+          3
+        ],
+        [
+          0,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          2,
+          2,
+          3
+        ],
+        [
+          3,
+          2,
+          3
+        ],
+        [
+          4,
+          2,
+          3
+        ],
+        [
+          5,
+          2,
+          3
+        ],
+        [
+          6,
+          2,
+          3
+        ],
+        [
+          -7,
+          2,
+          4
+        ],
+        [
+          -6,
+          2,
+          4
+        ],
+        [
+          -5,
+          2,
+          4
+        ],
+        [
+          -4,
+          2,
+          4
+        ],
+        [
+          -3,
+          2,
+          4
+        ],
+        [
+          -2,
+          2,
+          4
+        ],
+        [
+          -1,
+          2,
+          4
+        ],
+        [
+          0,
+          2,
+          4
+        ],
+        [
+          1,
+          2,
+          4
+        ],
+        [
+          2,
+          2,
+          4
+        ],
+        [
+          3,
+          2,
+          4
+        ],
+        [
+          4,
+          2,
+          4
+        ],
+        [
+          5,
+          2,
+          4
+        ],
+        [
+          -7,
+          2,
+          5
+        ],
+        [
+          -6,
+          2,
+          5
+        ],
+        [
+          -5,
+          2,
+          5
+        ],
+        [
+          -4,
+          2,
+          5
+        ],
+        [
+          -3,
+          2,
+          5
+        ],
+        [
+          -2,
+          2,
+          5
+        ],
+        [
+          -1,
+          2,
+          5
+        ],
+        [
+          0,
+          2,
+          5
+        ],
+        [
+          1,
+          2,
+          5
+        ],
+        [
+          2,
+          2,
+          5
+        ],
+        [
+          4,
+          2,
+          5
+        ],
+        [
+          -7,
+          2,
+          6
+        ],
+        [
+          -6,
+          2,
+          6
+        ],
+        [
+          -5,
+          2,
+          6
+        ],
+        [
+          -4,
+          2,
+          6
+        ],
+        [
+          -3,
+          2,
+          6
+        ],
+        [
+          -1,
+          2,
+          6
+        ],
+        [
+          0,
+          2,
+          6
+        ],
+        [
+          1,
+          2,
+          6
+        ],
+        [
+          -6,
+          2,
+          7
+        ],
+        [
+          -5,
+          2,
+          7
+        ],
+        [
+          -4,
+          2,
+          7
+        ],
+        [
+          -5,
+          2,
+          8
+        ]
+      ],
+      "nativeMaterial": "gregtech:sBlockCasings3 meta 13/14, horizontal faces only",
+      "emitters": [
+        {
+          "id": "SiemensMartinFurnace:selected-stack-cloud",
+          "abc": [
+            0,
+            -16,
+            3
+          ],
+          "aboveABC": [
+            0,
+            -17,
+            3
+          ],
+          "origin": "selected-proposal",
+          "centerYOffset": 0.55
+        }
+      ]
+    },
+    {
+      "machine": "ReinforcedBrickBlastFurnace",
+      "source": "src/main/java/com/miaokatze/gtsr/common/machine/MTEReinforcedBrickBlastFurnace.java",
+      "fireboxToken": "B",
+      "fireboxesABC": [
+        [
+          -1,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          1,
+          0
+        ],
+        [
+          -1,
+          1,
+          1
+        ],
+        [
+          0,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          -1,
+          1,
+          2
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          1,
+          1,
+          2
+        ]
+      ],
+      "nativeMaterial": "gregtech:sBlockCasings3 meta 13/14, horizontal faces only",
+      "emitters": [
+        {
+          "id": "ReinforcedBrickBlastFurnace:selected-stack-cloud",
+          "abc": [
+            0,
+            -3,
+            1
+          ],
+          "aboveABC": [
+            0,
+            -4,
+            1
+          ],
+          "origin": "selected-proposal",
+          "centerYOffset": 0.55
+        }
+      ]
+    },
+    {
+      "machine": "LargeGeothermalSteamBoiler",
+      "source": "src/main/java/com/miaokatze/gtsr/common/machine/MTELargeGeothermalSteamBoiler.java",
+      "fireboxToken": "D",
+      "fireboxesABC": [
+        [
+          -1,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          1,
+          0
+        ],
+        [
+          -2,
+          1,
+          1
+        ],
+        [
+          -1,
+          1,
+          1
+        ],
+        [
+          0,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          2,
+          1,
+          1
+        ],
+        [
+          -2,
+          1,
+          2
+        ],
+        [
+          -1,
+          1,
+          2
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          1,
+          1,
+          2
+        ],
+        [
+          2,
+          1,
+          2
+        ],
+        [
+          -2,
+          1,
+          3
+        ],
+        [
+          -1,
+          1,
+          3
+        ],
+        [
+          0,
+          1,
+          3
+        ],
+        [
+          1,
+          1,
+          3
+        ],
+        [
+          2,
+          1,
+          3
+        ],
+        [
+          -1,
+          1,
+          4
+        ],
+        [
+          0,
+          1,
+          4
+        ],
+        [
+          1,
+          1,
+          4
+        ]
+      ],
+      "nativeMaterial": "gregtech:sBlockCasings3 meta 13/14, horizontal faces only",
+      "emitters": [
+        {
+          "id": "LargeGeothermalSteamBoiler:source-G:2:0:2",
+          "abc": [
+            -1,
+            -6,
+            1
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeGeothermalSteamBoiler:source-G:3:0:2",
+          "abc": [
+            0,
+            -6,
+            1
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeGeothermalSteamBoiler:source-G:4:0:2",
+          "abc": [
+            1,
+            -6,
+            1
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeGeothermalSteamBoiler:source-G:2:0:3",
+          "abc": [
+            -1,
+            -6,
+            2
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeGeothermalSteamBoiler:source-G:3:0:3",
+          "abc": [
+            0,
+            -6,
+            2
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeGeothermalSteamBoiler:source-G:4:0:3",
+          "abc": [
+            1,
+            -6,
+            2
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeGeothermalSteamBoiler:source-G:2:0:4",
+          "abc": [
+            -1,
+            -6,
+            3
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeGeothermalSteamBoiler:source-G:3:0:4",
+          "abc": [
+            0,
+            -6,
+            3
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeGeothermalSteamBoiler:source-G:4:0:4",
+          "abc": [
+            1,
+            -6,
+            3
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        }
+      ]
+    },
+    {
+      "machine": "LargeSolarOverpressureArray",
+      "source": "src/main/java/com/miaokatze/gtsr/common/machine/MTELargeSolarOverpressureArray.java",
+      "fireboxToken": null,
+      "fireboxesABC": [],
+      "nativeMaterial": null,
+      "emitters": [
+        {
+          "id": "LargeSolarOverpressureArray:source-F:2:2:2",
+          "abc": [
+            -1,
+            -2,
+            1
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeSolarOverpressureArray:source-F:3:2:2",
+          "abc": [
+            0,
+            -2,
+            1
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeSolarOverpressureArray:source-F:4:2:2",
+          "abc": [
+            1,
+            -2,
+            1
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeSolarOverpressureArray:source-F:2:2:3",
+          "abc": [
+            -1,
+            -2,
+            2
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeSolarOverpressureArray:source-F:3:2:3",
+          "abc": [
+            0,
+            -2,
+            2
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeSolarOverpressureArray:source-F:4:2:3",
+          "abc": [
+            1,
+            -2,
+            2
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeSolarOverpressureArray:source-F:2:2:4",
+          "abc": [
+            -1,
+            -2,
+            3
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeSolarOverpressureArray:source-F:3:2:4",
+          "abc": [
+            0,
+            -2,
+            3
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        },
+        {
+          "id": "LargeSolarOverpressureArray:source-F:4:2:4",
+          "abc": [
+            1,
+            -2,
+            3
+          ],
+          "origin": "existing",
+          "centerYOffset": 0
+        }
+      ]
+    }
+  ],
+  "tcds": {
+    "existingAnchors": 20,
+    "owner": "original TcdsParticleFxClient chain"
+  },
+  "cloudPolicy": {
+    "worldVelocity": [
+      0,
+      0.3,
+      0
+    ],
+    "worldXZJitterWidth": 0.8,
+    "thermalExpectedPerControllerTick": "2 * existing native quantized mHeat; sample nine original points",
+    "selectedOutletRate": "one per ten client ticks while authoritative work snapshot is fresh and working",
+    "standardBudgetPerClientTick": 128,
+    "lowBudgetPerClientTick": 32,
+    "maxQueuedOwnersPerTick": 256,
+    "maxParticlesPerOwnerPerTick": 4,
+    "rangeBlocks": 64,
+    "minimumParticlesSetting": "OFF",
+    "ownerPolicy": "exact loaded controller and world; one per owner per budget round"
+  },
+  "foreground": {
+    "resource": "assets/gtsr/workeffects/firebox_grate.png",
+    "sha256": "bf46e1b766edd4562d85371d875c5606953d2eb90a02c3ead9e4f2b8968078f9",
+    "maskedPixels": 48,
+    "apertures": {
+      "x": [
+        4,
+        5,
+        7,
+        8,
+        10,
+        11
+      ],
+      "yInclusive": [
+        4,
+        11
+      ],
+      "nativeApertureMaxRGBRange": [
+        0,
+        17
+      ],
+      "same48PixelsInBronzeAndSteel": true
+    },
+    "source": "TASK03 visual-reference/runtime/app.js proposal:firebox_heat_foreground",
+    "baseTextures": [
+      "gregtech:iconsets/MACHINE_CASING_FIREBOX_BRONZE",
+      "gregtech:iconsets/MACHINE_CASING_FIREBOX_STEEL"
+    ],
+    "baseTextureSHA256": [
+      "9da8c4276feb8d1acc4e2a20be0cd4101da04f6faaf63c4675b56a9976e081cf",
+      "37a904e7c4f6a78c35a70e003557f332b499cf000b282d59841fca19ff799016"
+    ],
+    "resourcePackPolicy": "reload-time exact base PNG hash; incompatible material keeps native static base",
+    "nativeActive": false
+  },
+  "gameValidation": "NOT_RUN"
+}

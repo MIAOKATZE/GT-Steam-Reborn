@@ -114,8 +114,9 @@ def prepare(args: argparse.Namespace) -> None:
             target.parent.mkdir(parents=True, exist_ok=True)
             jar.rename(target)
             old_gtsr.append(str(relative))
-    if len(gt5) != 1 or gt5[0]["file"] != "gregtech-5.09.54.205.jar":
-        raise RuntimeError(f"GT5 baseline differs from required 5.09.54.205: {gt5}")
+    expected_gt5 = getattr(args, "gt5_version", "5.09.54.205")
+    if len(gt5) != 1 or gt5[0]["file"] != f"gregtech-{expected_gt5}.jar":
+        raise RuntimeError(f"GT5 baseline differs from required {expected_gt5}: {gt5}")
     receipt = {"phase": "prepared", "utc": dt.datetime.now(dt.timezone.utc).isoformat(),
                "source_instance": str(source), "sandbox": str(SANDBOX), "copy_mode": "independent copies",
                "eula_accepted": accepted(SANDBOX / "eula.txt"), "gt5": gt5,
@@ -385,6 +386,7 @@ def main() -> None:
     commands = parser.add_subparsers(dest="action", required=True)
     prep = commands.add_parser("prepare")
     prep.add_argument("--instance", type=Path, required=True)
+    prep.add_argument("--gt5-version", default="5.09.54.205")
     boot = commands.add_parser("run")
     boot.add_argument("--jar", type=Path, required=True)
     boot.add_argument("--java", type=Path)

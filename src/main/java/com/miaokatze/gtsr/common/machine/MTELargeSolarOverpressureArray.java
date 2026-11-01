@@ -61,6 +61,9 @@ import com.miaokatze.gtsr.common.gui.MTELargeSolarOverpressureArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import cpw.mods.fml.relauncher.Side;
@@ -91,7 +94,32 @@ import gregtech.common.tileentities.machines.IDualInputHatch;
 
 @IMetaTileEntity.SkipGenerateDescription
 public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELargeSolarOverpressureArray>
-    implements IConstructable, ISurvivalConstructable, IShiftRightClickDecalcifiable {
+    implements IConstructable, ISurvivalConstructable, IShiftRightClickDecalcifiable, MachineVisualHost {
+
+    private static final MachineVisualDefinition WORK_VISUAL = MachineVisualDefinition
+        .effects("large_solar_overpressure_array", -3, -2, -1, 24, 5, 29);
+    private final MachineVisualState workVisualState = new MachineVisualState();
+    private long workVisualClientTicks;
+
+    /** Actual client onPostTick calls, independent of work state, snapshot freshness and effect quality. */
+    public long getWorkVisualClientTicks() {
+        return workVisualClientTicks;
+    }
+
+    @Override
+    public MachineVisualState visualState() {
+        return workVisualState;
+    }
+
+    @Override
+    public MachineVisualDefinition visualDefinition() {
+        return WORK_VISUAL;
+    }
+
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
 
     // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
     private static final int REPLACEABLE_CASING_POSITIONS = 1306;
@@ -179,8 +207,6 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
 
     // 顶面方块形状偏移缓存（静态惰性初始化，运行时扫描 SHAPE_MAIN 计算，勿硬编码数量）
     private static List<int[]> mTopSurfaceOffsets = null;
-    // F 泥土粒子位形状偏移缓存（9 个）
-    private static List<int[]> mParticleOffsets = null;
 
     private static IStructureDefinition<MTELargeSolarOverpressureArray> STRUCTURE_DEFINITION = null;
     private static final NumberFormat numberFormat = NumberFormat.getNumberInstance();
@@ -562,24 +588,6 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
         return mTopSurfaceOffsets;
     }
 
-    // F 泥土粒子位形状偏移（9 个）：(列 2-4, 层 2, 行 2-4) - (3, 4, 1)
-    private static List<int[]> getParticleOffsets() {
-        if (mParticleOffsets == null) {
-            List<int[]> offsets = new ArrayList<>();
-            for (int b = 0; b < SHAPE_MAIN.length; b++) {
-                for (int c = 0; c < SHAPE_MAIN[b].length; c++) {
-                    for (int a = 0; a < SHAPE_MAIN[b][c].length(); a++) {
-                        if (SHAPE_MAIN[b][c].charAt(a) == 'F') {
-                            offsets.add(new int[] { a - HORIZONTAL_OFF_SET, b - VERTICAL_OFF_SET, c - DEPTH_OFF_SET });
-                        }
-                    }
-                }
-            }
-            mParticleOffsets = offsets;
-        }
-        return mParticleOffsets;
-    }
-
     /**
      * 太阳可见比例：顶面各位置经 ExtendedFacing 换算世界偏移并叠加控制器坐标，
      * 用 canBlockSeeTheSky(wy + 1) 判定可见性（y+1 防止顶面方块自身遮挡；1.7.10 heightMap O(1) 查询）。
@@ -605,39 +613,6 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
         mSunRatio = (double) visible / offsets.size();
     }
 
-    /**
-     * 客户端：每 tick 按热量 mHeat 生成上升白色云朵粒子（仿砖高炉 vertical motion 0.3）。
-     * 粒子期望数 = mHeat / 0.5：mHeat=50% → 1 个/tick（现状基准），100% → 2 个/tick，25% → 平均 0.5 个/tick
-     * （小数部分用概率平滑）。
-     */
-    private void spawnCloudParticle() {
-        if (mHeat <= 0.0d) return;
-        double expected = mHeat / 0.5d;
-        int n = (int) expected;
-        if (getBaseMetaTileEntity().getWorld().rand.nextDouble() < expected - n) n++;
-        for (int i = 0; i < n; i++) {
-            spawnOneParticle();
-        }
-    }
-
-    /** 在随机一个 F 泥土位生成单个上升白色云朵粒子 */
-    private void spawnOneParticle() {
-        List<int[]> offsets = getParticleOffsets();
-        if (offsets.isEmpty()) return;
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        World world = base.getWorld();
-        int[] off = offsets.get(world.rand.nextInt(offsets.size()));
-        Vec3Impl worldOff = getExtendedFacing().getWorldOffset(new Vec3Impl(off[0], off[1], off[2]));
-        world.spawnParticle(
-            "cloud",
-            base.getXCoord() + worldOff.get0() + 0.5D + (world.rand.nextDouble() - 0.5D) * 0.8D,
-            base.getYCoord() + worldOff.get1() + 0.5D,
-            base.getZCoord() + worldOff.get2() + 0.5D + (world.rand.nextDouble() - 0.5D) * 0.8D,
-            0.0D,
-            0.3D,
-            0.0D);
-    }
-
     @Override
     protected void incrementProgressTime() {
         // 本机由 onPostTick 的自定义蒸汽周期统一推进；父 runMachine 不再重复增加进度。
@@ -647,18 +622,20 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (aBaseMetaTileEntity.isClientSide()) {
-            // 有热量即渲染气体粒子动画（数量 ∝ mHeat，见 spawnCloudParticle）
-            if (mHeat > 0.0d) {
-                spawnCloudParticle();
-            }
+            workVisualClientTicks++;
+            workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
             return;
         }
         // 加载保护必须在结构早退之前；不改变正常拆壳后的散热。
-        if (mStartUpCheck > 0) return;
+        if (mStartUpCheck > 0) {
+            workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
+            return;
+        }
         if (!mMachine || mSetTier <= 0) {
             // 结构失效时热量仍按衰减速度降至 0，保证客户端经 updateData 同步后停止粒子渲染
             mHeat -= getHeatDecreaseSpeed();
             if (mHeat < 0) mHeat = 0;
+            workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
             return;
         }
 
@@ -730,9 +707,11 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
                 mProgresstime = 0;
                 outputSteam();
             }
+            workVisualState.advanced(aTick);
         } else {
             setCheckRecipeResult(checkProcessing());
         }
+        workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
     }
 
     @Nonnull

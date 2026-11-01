@@ -1993,8 +1993,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public static boolean isSupportedLoomHatchMeta(gregtech.api.interfaces.metatileentity.IMetaTileEntity mte) {
-        return isSupportedHatchMeta(mte)
-            && !(mte instanceof gregtech.api.metatileentity.implementations.MTEHatchDynamo);
+        // Direction remains the hatch's native role. Existing refund/legacy-credit paths may use loom dynamos;
+        // getResourceHatchPorts still keeps commissioned recipe ports separate from fabrication ports.
+        return isSupportedHatchMeta(mte);
     }
 
     /** Physical and native ME stock inputs are supported; dual crafting buffers are excluded. */

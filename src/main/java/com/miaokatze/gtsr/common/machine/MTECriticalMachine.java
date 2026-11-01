@@ -45,7 +45,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
     private boolean preserveBatchDuringStructureStop;
     private int dynamoPacketsSpentThisTick;
     private final java.util.Map<MTEHatch, Long> hatchEnergySpent = new java.util.IdentityHashMap<>();
-    private final java.util.Map<MTEHatchDynamo, Integer> dynamoPacketsSpent = new java.util.IdentityHashMap<>();
+    private final java.util.Map<MTEHatch, Integer> dynamoPacketsSpent = new java.util.IdentityHashMap<>();
     private final java.util.Map<Long, TileEntity> portSnapshot = new java.util.LinkedHashMap<>();
     private int previousJournalState = -1;
     private boolean previousCanonicalValidation;
@@ -450,6 +450,12 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
                     gt,
                     CriticalControllerTextures.casingIndex(current.getGeometryVersion() == 2))
                     && !addEnergyInputToMachineList(
+                        gt,
+                        CriticalControllerTextures.casingIndex(current.getGeometryVersion() == 2))
+                    && !addDynamoToMachineList(
+                        gt,
+                        CriticalControllerTextures.casingIndex(current.getGeometryVersion() == 2))
+                    && !addExoticDynamoToMachineList(
                         gt,
                         CriticalControllerTextures.casingIndex(current.getGeometryVersion() == 2)))
                     addToMachineList(gt, CriticalControllerTextures.casingIndex(current.getGeometryVersion() == 2));
@@ -1055,15 +1061,21 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             emitted = 0;
         int ampBudget = Math.max(0, 16 - dynamoPacketsSpentThisTick);
         java.util.ArrayList<MTEHatchDynamo> original = new java.util.ArrayList<>(mDynamoHatches);
+        java.util.List<MTEHatch> originalExotic = new java.util.ArrayList<>(mExoticDynamoHatches);
+        java.util.List<MTEHatch> outputs = new java.util.ArrayList<>(original);
+        outputs.addAll(originalExotic);
+        java.util.Set<MTEHatch> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         try {
-            // GT205's shared output helper has an int accumulator. Send at most one native
+            // GT .265's shared output helper still has an int accumulator. Send at most one native
             // voltage packet per call, while preserving each hatch's own per-tick amp budget.
-            for (MTEHatchDynamo hatch : original) {
-                if (!hatch.isValid() || hatch.maxEUOutput() > Integer.MAX_VALUE) continue;
+            for (MTEHatch hatch : outputs) {
+                if (!seen.add(hatch) || !hatch.isValid() || hatch.maxEUOutput() > Integer.MAX_VALUE) continue;
                 long nativeAmps = Math
                     .min(ampBudget, Math.max(0L, hatch.maxAmperesOut() - dynamoPacketsSpent.getOrDefault(hatch, 0)));
                 mDynamoHatches.clear();
-                mDynamoHatches.add(hatch);
+                mExoticDynamoHatches.clear();
+                if (hatch instanceof MTEHatchDynamo dynamo) mDynamoHatches.add(dynamo);
+                else mExoticDynamoHatches.add(hatch);
                 for (long amp = 0; amp < nativeAmps && left > 0; amp++) {
                     long hatchFree = Math.max(
                         0L,
@@ -1082,6 +1094,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         } finally {
             mDynamoHatches.clear();
             mDynamoHatches.addAll(original);
+            mExoticDynamoHatches.clear();
+            mExoticDynamoHatches.addAll(originalExotic);
         }
         if (emitted > 0) {
             getBaseMetaTileEntity().decreaseStoredEnergyUnits(emitted, false);
