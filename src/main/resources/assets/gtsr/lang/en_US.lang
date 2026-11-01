@@ -3621,7 +3621,7 @@ gtsr.critical.tooltip.bounds=80x162x80 is the maximum reserved space; actual sha
 gtsr.critical.tooltip.material=Machine casings and additional materials follow the hologram; counts depend on structure.
 gtsr.critical.tooltip.hatches=Supply your own standard GT hatches; they are excluded from construction costs and refunds.
 gtsr.critical.tooltip.physical_inputs=Supports physical and ME item/fluid inputs, ordinary multi-fluid hatches, and normal or multi-amp energy hatches
-gtsr.critical.tooltip.dynamo=Output is at most 16A, limited by native dynamo voltage and capacity.
+gtsr.critical.tooltip.dynamo=Normal, multi-amp and laser dynamos are supported; existing output remains at most 16A, limited by native voltage and capacity.
 gtsr.critical.tab.configuration=Configure / control
 gtsr.critical.tab.inventory=Input / output
 gtsr.critical.configuration_hint=Choose one of four released kinds before construction. The kind then locks; Solar can select its steam form.
@@ -3677,7 +3677,7 @@ gtsr.critical.recipe.accelerator_mox=MOX fuel acceleration
 gtsr.critical.loom.ready=Standalone Mimetic Loom complete: construction available
 gtsr.critical.loom.incomplete=Build the standalone Mimetic Loom first; construction requires a complete loom
 gtsr.critical.loom.dimensions=Loom: 15x36x15, 1940 shell positions; manual or survival assembly
-gtsr.critical.loom.hatches=Legacy loom: supported GT chambers fit alloy frames only. Item/fluid I/O and normal or multi-amp energy are optional; no dynamo or maintenance hatch.
+gtsr.critical.loom.hatches=Legacy loom: supported GT chambers fit alloy frames only. Item/fluid I/O, normal/multi-amp/laser energy inputs and dynamos are optional; no maintenance hatch.
 gtsr.critical.loom.orientation=Use the projector to verify controller and structure positions; stack size 1 previews the independent loom
 gtsr.critical.loom.area=The controller occupies the alloy frame at the front of the loom; reserve up to 80×162×80 for the target
 gtsr.critical.loom.supply=Continuously supply actual GT input buses/fluid hatches; GUI inputs show stored items and allow retrieval
@@ -3691,7 +3691,7 @@ gtsr.critical.construction.missing=Missing materials for the next round
 gtsr.critical.construction.supplied=Current round materials available or no materials required
 gtsr.critical.tooltip.loom_build=Every controller supports projector construction of the loom; survival consumes inventory materials, while the target requires funded construction
 gtsr.critical.tooltip.loom_bounds=Standalone loom: 15x36x15, 1940 shell positions; hatches replace alloy frames.
-gtsr.critical.tooltip.loom_hatches=All loom chambers are optional; item/fluid inputs and normal or multi-amp energy may replace loom casing. No dynamo or maintenance hatch.
+gtsr.critical.tooltip.loom_hatches=All loom chambers are optional: item/fluid I/O, normal/multi-amp/laser energy inputs and dynamos may replace loom casing. No maintenance hatch.
 gtsr.critical.tooltip.loom_preview=Hold the loom or the matching controller to preview its structure; build the permanent loom from the projection.
 gtsr.wand.debug.title=Machine debug settings
 gtsr.wand.debug.air_hint=Choose a capability family and save its wand profile; right-click the matching controller to apply, Alt-right-click to configure the target.
@@ -3739,7 +3739,7 @@ gtsr.critical.construction.no_stage_fluid=No additional construction fluids requ
 gtsr.critical.construction.no_round_fluid=No additional construction fluids required for the current round
 gtsr.critical.construction.solder_hint=Each stage requires 144 mB molten soldering alloy per plate unit, consumed by micro-recipe rounds
 gtsr.critical.tooltip.optional_ports=Item/fluid output ports depend on the target recipe; loom assembly and removal need no dynamo.
-gtsr.critical.tooltip.loom_energy=Loom construction and removal consume EU through energy hatches. Generation enters the owner team's wireless network without dynamos.
+gtsr.critical.tooltip.loom_energy=Loom construction and removal consume EU through energy inputs. Dynamos settle existing local refunds or legacy EU credits; normal generation still enters the owner team's wireless network.
 gtsr.critical.tooltip.port_hint=Supported GT chambers fit valid ports only; all are optional, with no maintenance hatch. Feed construction through the loom and operation through main ports.
 gtsr.critical.ui.operations=Construction and operation
 gtsr.critical.hatch_overview_hint=Read-only hatch and bus overview. Supply construction materials through the loom's input buses or hatches only.
@@ -3962,7 +3962,7 @@ gtsr.critical.v2.main_controller=Critical main controller at local (56,4,35), fa
 gtsr.critical.v2.region=The 112 by 112, 180-high region can start at any coordinates without chunk alignment; target chunks must still be loaded.
 gtsr.critical.v2.controllers=The loom and commissioned main are real GT controllers at Y=4 with opposite fronts; hatches cannot replace them.
 gtsr.critical.v2.ports=Standard GT hatches fit only the declared construction and operating ports below.
-gtsr.critical.v2.loom_ports=Loom casing ring at Y=4 accepts optional item/fluid inputs and outputs, normal or multi-amp energy; no dynamo or maintenance hatch. Costs still apply; controllers and rails cannot be replaced.
+gtsr.critical.v2.loom_ports=Loom casing ring at Y=4 accepts optional item/fluid I/O, normal/multi-amp/laser energy inputs and dynamos; no maintenance hatch. Costs and main/loom port partitions are unchanged; controllers and rails cannot be replaced.
 gtsr.critical.v2.main_ports=90 optional main operating ports: three rows on each of three levels, with 20/32/38 ports. Install supported GT chambers, including dynamos, above the Critical Structure Supply Hatches behind the machine, or leave air. No maintenance hatch required; do not replace the supplies. Legacy chambers and inventory retain their old interfaces until moved; legacy hull updates charge no new materials.
 
 # Critical functional energy backends

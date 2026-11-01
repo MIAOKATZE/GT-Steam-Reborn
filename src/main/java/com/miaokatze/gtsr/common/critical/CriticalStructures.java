@@ -505,7 +505,9 @@ public final class CriticalStructures {
                 HatchElement.OutputHatch,
                 HatchElement.Energy,
                 HatchElement.MultiAmpEnergy,
-                HatchElement.ExoticEnergy)
+                HatchElement.ExoticEnergy,
+                HatchElement.Dynamo,
+                HatchElement.ExoticDynamo)
             .casingIndex(CriticalControllerTextures.casingIndex())
             .hint(1)
             .buildAndChain(shell, 0);
@@ -543,7 +545,9 @@ public final class CriticalStructures {
                     HatchElement.OutputHatch,
                     HatchElement.Energy,
                     HatchElement.MultiAmpEnergy,
-                    HatchElement.ExoticEnergy)
+                    HatchElement.ExoticEnergy,
+                    HatchElement.Dynamo,
+                    HatchElement.ExoticDynamo)
                 .hatchClasses(
                     MTEHatchInputBus.class,
                     MTEHatchOutputBus.class,
@@ -551,6 +555,8 @@ public final class CriticalStructures {
                     MTEHatchOutput.class,
                     MTEHatchEnergy.class,
                     tectech.thing.metaTileEntity.hatch.MTEHatchEnergyMulti.class,
+                    MTEHatchDynamo.class,
+                    tectech.thing.metaTileEntity.hatch.MTEHatchDynamoMulti.class,
                     gregtech.api.metatileentity.implementations.MTEHatchDataAccess.class,
                     gregtech.api.metatileentity.implementations.MTEHatchBulkCatalystHousing.class)
                 .casingIndex(CriticalControllerTextures.casingIndex(v2))
@@ -567,7 +573,8 @@ public final class CriticalStructures {
                     HatchElement.Energy,
                     HatchElement.MultiAmpEnergy,
                     HatchElement.ExoticEnergy,
-                    HatchElement.Dynamo)
+                    HatchElement.Dynamo,
+                    HatchElement.ExoticDynamo)
                 .hatchClasses(
                     MTEHatchInputBus.class,
                     MTEHatchOutputBus.class,
@@ -576,6 +583,7 @@ public final class CriticalStructures {
                     MTEHatchEnergy.class,
                     tectech.thing.metaTileEntity.hatch.MTEHatchEnergyMulti.class,
                     MTEHatchDynamo.class,
+                    tectech.thing.metaTileEntity.hatch.MTEHatchDynamoMulti.class,
                     gregtech.api.metatileentity.implementations.MTEHatchDataAccess.class,
                     gregtech.api.metatileentity.implementations.MTEHatchBulkCatalystHousing.class)
                 .casingIndex(CriticalControllerTextures.casingIndex(v2))
