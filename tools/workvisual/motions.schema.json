@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gtsr:machinevisual:motions:1",
+  "title": "GTSR immutable unit-block motion definitions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "coordinates", "source", "definitions"],
+  "properties": {
+    "schema": {"const": 1},
+    "coordinates": {"const": "controller_local_blocks_x_right_y_up_z_back"},
+    "source": {"type": "string", "minLength": 1},
+    "definitions": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"$ref": "#/$defs/definition"}}
+  },
+  "$defs": {
+    "vector": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+    "member": {
+      "type": "object", "additionalProperties": false,
+      "required": ["x", "y", "z", "material"],
+      "properties": {
+        "x": {"type": "integer", "minimum": -16, "maximum": 16},
+        "y": {"type": "integer", "minimum": -16, "maximum": 16},
+        "z": {"type": "integer", "minimum": -16, "maximum": 16},
+        "material": {"enum": ["gear", "pipe", "frame"]}
+      }
+    },
+    "group": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "kind", "axis", "travel", "periodMs", "pivot", "members"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["translate", "rotate_y"]},
+        "axis": {"enum": ["x", "y", "z"]},
+        "travel": {"type": "number", "minimum": -1, "maximum": 1},
+        "periodMs": {"type": "integer", "minimum": 2, "maximum": 60000},
+        "pivot": {"$ref": "#/$defs/vector"},
+        "members": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"$ref": "#/$defs/member"}}
+      },
+      "allOf": [{"if": {"properties": {"kind": {"const": "rotate_y"}}}, "then": {"properties": {"axis": {"const": "y"}}}}]
+    },
+    "definition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "controller", "schema", "shapeLayers", "offset", "tokenMaterials", "skipTokens", "requiredAirTokens", "groups"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "controller": {"type": "string", "minLength": 1},
+        "schema": {"const": 1},
+        "shapeLayers": {"type": "array", "minItems": 1, "maxItems": 64, "items": {
+          "type": "array", "minItems": 1, "maxItems": 64, "items": {"type": "string", "minLength": 1, "maxLength": 64}
+        }},
+        "offset": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "integer"}},
+        "tokenMaterials": {"type": "object", "minProperties": 1, "propertyNames": {"minLength": 1, "maxLength": 1}, "additionalProperties": {
+          "type": "object", "additionalProperties": false, "required": ["role", "blockChoices"],
+          "properties": {
+            "role": {"enum": ["casing", "pipe", "gearbox", "frame", "firebox", "reinforced_glass"]},
+            "blockChoices": {"type": "array", "minItems": 1, "maxItems": 2, "items": {
+              "type": "array", "minItems": 2, "maxItems": 2,
+              "prefixItems": [{"type": "string"}, {"type": ["integer", "string"]}]
+            }}
+          }
+        }},
+        "skipTokens": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 1}, "uniqueItems": true},
+        "requiredAirTokens": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 1}, "uniqueItems": true},
+        "groups": {"type": "array", "minItems": 1, "maxItems": 8, "items": {"$ref": "#/$defs/group"}}
+      }
+    }
+  }
+}

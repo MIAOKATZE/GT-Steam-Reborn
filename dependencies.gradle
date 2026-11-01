@@ -84,6 +84,7 @@ dependencies {
 
 // Shared library API; immutable candidate versions may be supplied for isolated integration builds.
 dependencies {
-    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.2.0"
+    // TASK03 consumes the immutable animation candidate; public 0.2.0 predates this API.
+    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "v0.2.0-git.8+099f028d1a"
     api("com.miaokatze.miaokatzecore:miaokatzecore:${coreVersion}:dev") { transitive = false }
 }

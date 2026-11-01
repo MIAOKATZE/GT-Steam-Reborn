@@ -55,6 +55,11 @@ final class TestLabStructure {
     }
 
     TestLabStructure(WorldServer world, MTEMultiBlockBase controller, ItemStack trigger) throws Exception {
+        this(world, controller, trigger, Boolean.getBoolean("gtsr.testlab.motionShape"));
+    }
+
+    TestLabStructure(WorldServer world, MTEMultiBlockBase controller, ItemStack trigger, boolean motionShape)
+        throws Exception {
         this.world = world;
         this.controller = controller;
         this.tile = controller.getBaseMetaTileEntity();
@@ -94,19 +99,25 @@ final class TestLabStructure {
                 6,
                 MegaSteamTurbineStructureDef.BASE_TOTAL_HEIGHT - 2,
                 0);
-        } else {
-            int a = readInt(controller, "HORIZONTAL_OFF_SET", "OFFSET_X");
-            int b = readInt(controller, "VERTICAL_OFF_SET", "OFFSET_Y");
-            int c = readInt(controller, "DEPTH_OFF_SET", "OFFSET_Z");
-            if (controller instanceof MTESteamHubArray) {
-                piece("cap", a, -1, c);
-                piece("base", a, b, c);
-                piece("stack", a, 1, c);
-            } else if (controller instanceof MTEWaterHubArray) {
-                piece("base", a, b, c);
-                piece("stack", a, 1, c);
-            } else piece("main", a, b, c);
-        }
+        } else if (motionShape && controller instanceof com.miaokatze.gtsr.common.machinevisual.MachineVisualHost visual
+            && (visual.visualDefinition().id.equals("air_compressor")
+                || visual.visualDefinition().id.equals("atmospheric_centrifuge"))) {
+                    com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition definition = visual
+                        .visualDefinition();
+                    piece("motion", definition.offset(0), definition.offset(1), definition.offset(2));
+                } else {
+                    int a = readInt(controller, "HORIZONTAL_OFF_SET", "OFFSET_X");
+                    int b = readInt(controller, "VERTICAL_OFF_SET", "OFFSET_Y");
+                    int c = readInt(controller, "DEPTH_OFF_SET", "OFFSET_Z");
+                    if (controller instanceof MTESteamHubArray) {
+                        piece("cap", a, -1, c);
+                        piece("base", a, b, c);
+                        piece("stack", a, 1, c);
+                    } else if (controller instanceof MTEWaterHubArray) {
+                        piece("base", a, b, c);
+                        piece("stack", a, 1, c);
+                    } else piece("main", a, b, c);
+                }
     }
 
     void piece(String name, int a, int b, int c) throws Exception {

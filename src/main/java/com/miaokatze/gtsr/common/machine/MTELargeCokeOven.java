@@ -40,6 +40,9 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.gui.MTELargeCokeOvenGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
@@ -72,7 +75,32 @@ import gregtech.common.tileentities.machines.IDualInputHatch;
 
 @IMetaTileEntity.SkipGenerateDescription
 public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
-    implements IConstructable, ISurvivalConstructable {
+    implements IConstructable, ISurvivalConstructable, MachineVisualHost {
+
+    private static final MachineVisualDefinition WORK_VISUAL = MachineVisualDefinition
+        .effects("large_coke_oven", -1, -1, 0, 6, 6, 3);
+    private final MachineVisualState workVisualState = new MachineVisualState();
+
+    @Override
+    public MachineVisualState visualState() {
+        return workVisualState;
+    }
+
+    @Override
+    public MachineVisualDefinition visualDefinition() {
+        return WORK_VISUAL;
+    }
+
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
+
+    @Override
+    protected void incrementProgressTime() {
+        super.incrementProgressTime();
+        workVisualState.advanced(getBaseMetaTileEntity().getTimer());
+    }
 
     private static final int TICKS_PER_SECOND = 20;
     private static final int TIER_UNKNOWN = -1;
@@ -509,11 +537,15 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
         long completedBeforeTick = recipesDone;
         completedBatchParallel = -1;
         super.onPostTick(tile, tick);
-        if (!tile.isServerSide()) return;
+        if (!tile.isServerSide()) {
+            workVisualState.observe(this, tick, mMachine, mProgresstime, mMaxProgresstime, true);
+            return;
+        }
         // 父类在 outputAfterRecipe 后按 max(current,last) 累加，还可能同 tick 开下一批。
         // 完成批只使用该批捕获值，不读取下一批状态，也不受旧 lastParallel 影响。
         if (completedBatchParallel >= 0) recipesDone = completedBeforeTick + completedBatchParallel;
         updateHeat(tile.isActive());
+        workVisualState.observe(this, tick, mMachine, mProgresstime, mMaxProgresstime, true);
     }
 
     @Override

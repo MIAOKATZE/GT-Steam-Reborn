@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -10,6 +11,7 @@ import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCa
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -34,6 +36,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
@@ -41,6 +44,9 @@ import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.ProsperityAirLookup;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.config.Config;
 
@@ -67,7 +73,11 @@ import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
 @IMetaTileEntity.SkipGenerateDescription
-public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> implements ISurvivalConstructable {
+public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor>
+    implements ISurvivalConstructable, MachineVisualHost {
+
+    private final MachineVisualState machineVisualState = new MachineVisualState();
+    private boolean mMotionShape;
 
     // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
     private static final int REPLACEABLE_CASING_POSITIONS = 23;
@@ -200,6 +210,11 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
                     transpose(
                         new String[][] { { "EBE", "CDC", "BBB", "CDC", "EBE" }, { "EBE", "CDC", "B B", "CDC", "EBE" },
                             { "E~E", "CDC", "B B", "CDC", "EBE" }, { "EBE", "BBB", "BBB", "BBB", "EBE" } }))
+                .addShape(
+                    "motion",
+                    transpose(
+                        MachineVisualDefinition.get("air_compressor")
+                            .shapeLayers()))
                 .addElement(
                     'B',
                     ofChain(
@@ -264,6 +279,9 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
                             -1,
                             (MTEAirCompressor t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
                             (MTEAirCompressor t) -> t.mSetTier)))
+                .addElement(
+                    'G',
+                    ofBlock(GTVersionCompat.getReinforcedGlassBlock(), GTVersionCompat.getReinforcedGlassMeta()))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -275,22 +293,13 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
-        buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
+        buildPiece("motion", stackSize, hintsOnly, 1, 2, 0);
     }
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        return survivalBuildPiece(
-            STRUCTURE_PIECE_MAIN,
-            stackSize,
-            HORIZONTAL_OFF_SET,
-            VERTICAL_OFF_SET,
-            DEPTH_OFF_SET,
-            elementBudget,
-            env,
-            false,
-            true);
+        return survivalBuildPiece("motion", stackSize, 1, 2, 0, elementBudget, env, false, true);
     }
 
     @Override
@@ -298,11 +307,20 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
         mMechanicalCasingCount = 0;
         mSetTier = -1;
         mCasingCount = 0;
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+        mMotionShape = checkPiece("motion", 1, 2, 0, new ArrayList<>());
+        if (!mMotionShape) {
+            // A failed candidate pass may have collected partial hatch/casing facts.
+            clearHatches();
+            mMechanicalCasingCount = 0;
             mSetTier = -1;
-            return;
+            mCasingCount = 0;
+            if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+                mSetTier = -1;
+                return;
+            }
         }
-        if (mMechanicalCasingCount < MIN_MECHANICAL_CASINGS) {
+        if (mMechanicalCasingCount
+            < (mMotionShape ? minimumCasings(visualDefinition().countToken('B')) : MIN_MECHANICAL_CASINGS)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -457,10 +475,14 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
             .addInfo(
                 EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.air_compressor.nether"))
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
-            .beginStructureBlock(3, 4, 5, false)
+            .beginStructureBlock(
+                visualDefinition().size(0),
+                visualDefinition().size(1),
+                visualDefinition().size(2),
+                false)
             .addCasingInfoMin(
                 StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),
-                MIN_MECHANICAL_CASINGS,
+                minimumCasings(visualDefinition().countToken('B')),
                 false)
             .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.AirCompressor.hatches"))
             .addController(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.ctrl"))
@@ -470,10 +492,27 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
                 StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
             .addStructureInfo("")
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 23, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 12, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 6, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 16, false)
+            .addCasingInfoExactly(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.casing"),
+                visualDefinition().countToken('B'),
+                false)
+            .addCasingInfoExactly(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"),
+                visualDefinition().countToken('C'),
+                false)
+            .addCasingInfoExactly(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"),
+                visualDefinition().countToken('D'),
+                false)
+            .addCasingInfoExactly(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.frame"),
+                visualDefinition().countToken('E'),
+                false)
+            .addCasingInfoExactly(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.reinforced_glass"),
+                visualDefinition().countToken('G'),
+                false)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.legacy_structure"))
             .addStructureInfo(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
                     + ": "
@@ -575,5 +614,32 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
                 + EnumChatFormatting.YELLOW
                 + getMaxParallelRecipes() };
+    }
+
+    @Override
+    public MachineVisualState visualState() {
+        return machineVisualState;
+    }
+
+    @Override
+    public MachineVisualDefinition visualDefinition() {
+        return MachineVisualDefinition.get("air_compressor");
+    }
+
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
+
+    @Override
+    protected void incrementProgressTime() {
+        super.incrementProgressTime();
+        machineVisualState.advanced(getBaseMetaTileEntity().getTimer());
+    }
+
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        machineVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, mMotionShape);
     }
 }

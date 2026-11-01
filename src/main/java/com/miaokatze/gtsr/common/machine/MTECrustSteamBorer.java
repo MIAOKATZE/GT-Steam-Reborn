@@ -39,6 +39,9 @@ import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import bwcrossmod.galacticgreg.VoidMinerUtility;
@@ -61,7 +64,10 @@ import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
 @IMetaTileEntity.SkipGenerateDescription
-public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBorer> implements ISurvivalConstructable {
+public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBorer>
+    implements ISurvivalConstructable, MachineVisualHost {
+
+    private final MachineVisualState machineVisualState = new MachineVisualState();
 
     // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
     private static final int REPLACEABLE_CASING_POSITIONS = 48;
@@ -403,6 +409,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
+        machineVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
         if (aTick % 20 != 0) return;
         // 配方完成同 tick 会立即重启新配方，重启 tick 存在 1 tick 的 mMaxProgresstime==0 空窗，
         // 机器实际连续运行，不应视为停机（同 MTELargeGeothermalSteamBoiler 先例）
@@ -656,5 +663,26 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.crust_borer.heat")
                 + EnumChatFormatting.GOLD
                 + String.format("%.1f%%", mHeat * 100) };
+    }
+
+    @Override
+    public MachineVisualState visualState() {
+        return machineVisualState;
+    }
+
+    @Override
+    public MachineVisualDefinition visualDefinition() {
+        return MachineVisualDefinition.get("crust_steam_borer");
+    }
+
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
+
+    @Override
+    protected void incrementProgressTime() {
+        super.incrementProgressTime();
+        machineVisualState.advanced(getBaseMetaTileEntity().getTimer());
     }
 }

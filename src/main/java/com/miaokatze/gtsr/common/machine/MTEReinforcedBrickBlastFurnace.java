@@ -33,6 +33,9 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.gui.MTEReinforcedBrickBlastFurnaceGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
@@ -71,7 +74,32 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteam
  */
 @IMetaTileEntity.SkipGenerateDescription
 public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTEReinforcedBrickBlastFurnace>
-    implements ISurvivalConstructable {
+    implements ISurvivalConstructable, MachineVisualHost {
+
+    private static final MachineVisualDefinition WORK_VISUAL = MachineVisualDefinition
+        .effects("reinforced_brick_blast_furnace", -1, -1, 0, 2, 4, 3);
+    private final MachineVisualState workVisualState = new MachineVisualState();
+
+    @Override
+    public MachineVisualState visualState() {
+        return workVisualState;
+    }
+
+    @Override
+    public MachineVisualDefinition visualDefinition() {
+        return WORK_VISUAL;
+    }
+
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
+
+    @Override
+    protected void incrementProgressTime() {
+        super.incrementProgressTime();
+        workVisualState.advanced(getBaseMetaTileEntity().getTimer());
+    }
 
     // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
     private static final int REPLACEABLE_CASING_POSITIONS = 11;
@@ -318,7 +346,10 @@ public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTERei
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (!aBaseMetaTileEntity.isServerSide()) return;
+        if (!aBaseMetaTileEntity.isServerSide()) {
+            workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
+            return;
+        }
 
         if (mMachine) {
             boolean working = mMaxProgresstime > 0 || aBaseMetaTileEntity.isActive();
@@ -332,6 +363,7 @@ public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTERei
             // 避免退出重进后结构检测延迟期间异常降温
             mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
         }
+        workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
     }
 
     @Override

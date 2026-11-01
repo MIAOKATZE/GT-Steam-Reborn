@@ -187,6 +187,9 @@ def run(args) -> None:
         command = [java, "-Xms1G", f"-Xmx{args.xmx_gib}G", "-Djava.awt.headless=true",
                    "-Dfml.readTimeout=180", "-Duser.language=en", "@java9args.txt",
                    "-jar", "lwjgl3ify-forgePatches.jar", "nogui"]
+        if args.motion_shape:
+            command.insert(1, "-Dgtsr.testlab.motionShape=true")
+        receipt["motion_shape_fixture"] = args.motion_shape
         receipt["java_version"] = subprocess.run(
             [java, "-version"], capture_output=True, text=True, timeout=30).stderr
         if args.trace_class_loading:
@@ -371,9 +374,13 @@ def main():
     parser.add_argument("action", choices=["prepare", "run"])
     parser.add_argument("--sandbox", type=Path, default=ROOT / "build/server-testlab-v12134")
     parser.add_argument("--instance", type=Path)
+    parser.add_argument("--gt5-version", default="5.09.54.205",
+                        help="Exact required GT5 artifact version for preparation")
     parser.add_argument("--jar", type=Path)
     parser.add_argument("--scenario", type=Path)
     parser.add_argument("--java", type=Path)
+    parser.add_argument("--motion-shape", action="store_true",
+                        help="Use the opt-in new Air/Atmos shape fixture; the default tests legacy shapes")
     parser.add_argument("--xmx-gib", type=int, choices=[3, 4, 6, 8], default=3)
     parser.add_argument("--deadline", type=int, default=1800)
     parser.add_argument("--wait-memory-seconds", type=int, default=600)

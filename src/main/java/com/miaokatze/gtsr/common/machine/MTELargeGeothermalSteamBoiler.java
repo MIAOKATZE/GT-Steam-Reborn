@@ -27,7 +27,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
-import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -42,7 +41,6 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
-import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
@@ -58,6 +56,9 @@ import com.miaokatze.gtsr.common.gui.MTELargeGeothermalSteamBoilerGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
@@ -92,7 +93,38 @@ import gregtech.common.tileentities.machines.IDualInputHatch;
 
 @IMetaTileEntity.SkipGenerateDescription
 public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELargeGeothermalSteamBoiler>
-    implements IConstructable, ISurvivalConstructable, IShiftRightClickDecalcifiable {
+    implements IConstructable, ISurvivalConstructable, IShiftRightClickDecalcifiable, MachineVisualHost {
+
+    private static final MachineVisualDefinition WORK_VISUAL = MachineVisualDefinition
+        .effects("large_geothermal_steam_boiler", -3, -1, -1, 4, 7, 6);
+    private final MachineVisualState workVisualState = new MachineVisualState();
+    private long workVisualClientTicks;
+
+    /** Actual client onPostTick calls, independent of work state, snapshot freshness and effect quality. */
+    public long getWorkVisualClientTicks() {
+        return workVisualClientTicks;
+    }
+
+    @Override
+    public MachineVisualState visualState() {
+        return workVisualState;
+    }
+
+    @Override
+    public MachineVisualDefinition visualDefinition() {
+        return WORK_VISUAL;
+    }
+
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
+
+    @Override
+    protected void incrementProgressTime() {
+        super.incrementProgressTime();
+        workVisualState.advanced(getBaseMetaTileEntity().getTimer());
+    }
 
     // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
     private static final int REPLACEABLE_CASING_POSITIONS = 71;
@@ -118,8 +150,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
         { " E   E ", "EBDDDBE", " DDDDD ", " DDDDD ", " DDDDD ", "EBDDDBE", " E   E " } };
 
     private static IStructureDefinition<MTELargeGeothermalSteamBoiler> STRUCTURE_DEFINITION = null;
-    // G 草方块位粒子形状偏移缓存（9 个，惰性扫描 SHAPE_MAIN，勿硬编码）
-    private static List<int[]> mParticleOffsets = null;
     private static final NumberFormat numberFormat = NumberFormat.getNumberInstance();
 
     static {
@@ -727,66 +757,18 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
         }
     }
 
-    // G 草方块位粒子形状偏移（9 个）：(列 2-4, 层 0, 行 2-4) - (3, 6, 1)
-    private static List<int[]> getParticleOffsets() {
-        if (mParticleOffsets == null) {
-            List<int[]> offsets = new ArrayList<>();
-            for (int b = 0; b < SHAPE_MAIN.length; b++) {
-                for (int c = 0; c < SHAPE_MAIN[b].length; c++) {
-                    for (int a = 0; a < SHAPE_MAIN[b][c].length(); a++) {
-                        if (SHAPE_MAIN[b][c].charAt(a) == 'G') {
-                            offsets.add(new int[] { a - HORIZONTAL_OFF_SET, b - VERTICAL_OFF_SET, c - DEPTH_OFF_SET });
-                        }
-                    }
-                }
-            }
-            mParticleOffsets = offsets;
-        }
-        return mParticleOffsets;
-    }
-
-    /**
-     * 客户端：每 tick 按热量 mHeat 生成上升白色云朵粒子（仿砖高炉 vertical motion 0.3）。
-     * 粒子期望数 = mHeat / 0.5：mHeat=50% → 1 个/tick（现状基准），100% → 2 个/tick，25% → 平均 0.5 个/tick
-     * （小数部分用概率平滑）。
-     */
-    private void spawnCloudParticle() {
-        if (mHeat <= 0.0d) return;
-        double expected = mHeat / 0.5d;
-        int n = (int) expected;
-        if (getBaseMetaTileEntity().getWorld().rand.nextDouble() < expected - n) n++;
-        for (int i = 0; i < n; i++) {
-            spawnOneParticle();
-        }
-    }
-
-    /** 在随机一个 G 草方块位生成单个上升白色云朵粒子 */
-    private void spawnOneParticle() {
-        List<int[]> offsets = getParticleOffsets();
-        if (offsets.isEmpty()) return;
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        World world = base.getWorld();
-        int[] off = offsets.get(world.rand.nextInt(offsets.size()));
-        Vec3Impl worldOff = getExtendedFacing().getWorldOffset(new Vec3Impl(off[0], off[1], off[2]));
-        world.spawnParticle(
-            "cloud",
-            base.getXCoord() + worldOff.get0() + 0.5D + (world.rand.nextDouble() - 0.5D) * 0.8D,
-            base.getYCoord() + worldOff.get1() + 0.5D,
-            base.getZCoord() + worldOff.get2() + 0.5D + (world.rand.nextDouble() - 0.5D) * 0.8D,
-            0.0D,
-            0.3D,
-            0.0D);
-    }
-
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (aBaseMetaTileEntity.isClientSide()) {
-            // 有热量即渲染气体粒子动画（数量 ∝ mHeat，见 spawnCloudParticle）
-            if (mHeat > 0.0d) spawnCloudParticle();
+            workVisualClientTicks++;
+            workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
             return;
         }
-        if (mStartUpCheck > 0) return;
+        if (mStartUpCheck > 0) {
+            workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
+            return;
+        }
 
         if (mMachine) {
             mStructureGraceTicks = 100;
@@ -906,6 +888,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
         } else if (aTick % 20 == 0 && (!mMachine || mWaterStop || mHeat <= 0.01d)) {
             mCurrentSteamOutput = 0;
         }
+        workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
     }
 
     // v1.9.40 修复：蒸汽输出分配统一优先级——

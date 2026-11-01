@@ -39,6 +39,9 @@ import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
@@ -67,7 +70,38 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteam
 
 @IMetaTileEntity.SkipGenerateDescription
 public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFurnace>
-    implements ISurvivalConstructable {
+    implements ISurvivalConstructable, MachineVisualHost {
+
+    private static final MachineVisualDefinition WORK_VISUAL = MachineVisualDefinition
+        .effects("large_steam_furnace", -2, 0, 0, 3, 5, 5);
+    private final MachineVisualState workVisualState = new MachineVisualState();
+
+    @Override
+    public MachineVisualState visualState() {
+        return workVisualState;
+    }
+
+    @Override
+    public MachineVisualDefinition visualDefinition() {
+        return WORK_VISUAL;
+    }
+
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
+
+    @Override
+    protected void incrementProgressTime() {
+        super.incrementProgressTime();
+        workVisualState.advanced(getBaseMetaTileEntity().getTimer());
+    }
+
+    @Override
+    public void onPostTick(IGregTechTileEntity tile, long tick) {
+        super.onPostTick(tile, tick);
+        workVisualState.observe(this, tick, mMachine, mProgresstime, mMaxProgresstime, true);
+    }
 
     // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
     private static final int REPLACEABLE_CASING_POSITIONS = 41;

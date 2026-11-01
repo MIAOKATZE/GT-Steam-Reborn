@@ -111,7 +111,14 @@ final class TestLabStructureContractTask implements TestLabTask {
         for (MetaTileEntityID id : MetaTileEntityID.values()) {
             Object prototype = GregTechAPI.METATILEENTITIES[id.ID];
             if (!(prototype instanceof MTEMultiBlockBase) || prototype instanceof MTECriticalMachine) continue;
-            all.add(new TestLabStructureContractTask(id, 1, 1, 1, 1, representative(id)));
+            all.add(
+                new TestLabStructureContractTask(
+                    id,
+                    1,
+                    1,
+                    1,
+                    1,
+                    representative(id) || id == MetaTileEntityID.ATMOSPHERIC_CENTRIFUGE));
         }
         for (MetaTileEntityID id : new MetaTileEntityID[] { MetaTileEntityID.KINETIC_PROCESSING_ARRAY,
             MetaTileEntityID.MEGA_STEAM_TURBINE_ARRAY }) {
@@ -199,10 +206,15 @@ final class TestLabStructureContractTask implements TestLabTask {
         ChannelDataAccessor.setChannelData(trigger, "pipe", pipe);
         ChannelDataAccessor.setChannelData(trigger, "gear", gear);
         ChannelDataAccessor.setChannelData(trigger, "height", height);
-        model = new TestLabStructure(world, machine, trigger);
+        // This contract invokes native construct/survivalConstruct, so enumerate their current default shape.
+        model = new TestLabStructure(world, machine, trigger, true);
         if (machine instanceof MTESteamHubArray || machine instanceof MTEWaterHubArray
             || machine instanceof MTEMegaSteamTurbineArray) configureVariablePieces();
-        else plannedPieces.add("main");
+        else plannedPieces.add(
+            machineId == MetaTileEntityID.AIR_COMPRESSOR || machineId == MetaTileEntityID.ATMOSPHERIC_CENTRIFUGE
+                ? "motion"
+                : "main");
+        evidence.put("shapePieces", new ArrayList<>(plannedPieces));
         IStructureDefinition definition = (IStructureDefinition) machine.getClass()
             .getMethod("getStructureDefinition")
             .invoke(machine);
@@ -370,7 +382,7 @@ final class TestLabStructureContractTask implements TestLabTask {
                 boolean formed = TestLabStructure.checkStructure(machine, tile);
                 evidence.put("nativeCheckStructure", formed);
                 if (!formed) {
-                    if (representative(machineId))
+                    if (representative(machineId) || machineId == MetaTileEntityID.ATMOSPHERIC_CENTRIFUGE)
                         require(false, "native constructed representative rejected: " + model.diagnoseFailure());
                     else notRun
                         .add("formation: native shape constructed; specialized port/topology fixture not supplied");

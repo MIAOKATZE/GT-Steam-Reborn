@@ -15,6 +15,9 @@ public class Config {
     /** Reduce decorative 2D UI animation; authoritative construction and recipe information remain visible. */
     public static boolean criticalUiReducedMotion = false;
 
+    /** Client decoration quality; OFF leaves ordinary machine blocks and business behavior intact. */
+    public static String machineVisualQuality = "STANDARD";
+
     /** Opt-in at startup; changing this setting requires a restart. */
     public static boolean testLabEnabled = false;
     /** Isolated lab IDs avoid GalaxySpace's reserved 80 and Outpost's 1048576; collisions never migrate. */
@@ -339,6 +342,13 @@ public class Config {
      */
     public static void synchronizeConfiguration(File configFile) {
         Configuration configuration = new Configuration(configFile);
+
+        machineVisualQuality = configuration.getString(
+            "machineVisualQuality",
+            "client",
+            "STANDARD",
+            "Ordinary machine decorations: OFF, LOW, STANDARD or HIGH. Never changes production.",
+            new String[] { "OFF", "LOW", "STANDARD", "HIGH" });
 
         criticalUiReducedMotion = configuration.getBoolean(
             "criticalUiReducedMotion",

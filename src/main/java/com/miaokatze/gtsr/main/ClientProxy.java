@@ -26,6 +26,22 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
  */
 public class ClientProxy extends CommonProxy {
 
+    @Override
+    public void renderMachineVisual(com.miaokatze.gtsr.common.machinevisual.MachineVisualHost host, double x, double y,
+        double z, float partialTick) {
+        com.miaokatze.gtsr.client.machinevisual.MachineVisualRenderer.render(host, x, y, z, partialTick);
+    }
+
+    @Override
+    public void observeMachineVisual(com.miaokatze.gtsr.common.machinevisual.MachineVisualHost host, long tick) {
+        com.miaokatze.gtsr.client.machinevisual.MachineVisualClient.observe(host, tick);
+    }
+
+    @Override
+    public void receiveMachineVisual(com.miaokatze.gtsr.common.machinevisual.MachineVisualSnapshot snapshot) {
+        com.miaokatze.gtsr.client.machinevisual.MachineVisualClient.receive(snapshot);
+    }
+
     /**
      * 初始化阶段 (Init)
      * 在此阶段注册客户端特定的事件处理器，如 HUD 渲染器。
@@ -34,6 +50,11 @@ public class ClientProxy extends CommonProxy {
     public void init(FMLInitializationEvent event) {
         // 调用父类的 init 方法，确保通用逻辑正常执行
         super.init(event);
+        com.miaokatze.gtsr.client.machinevisual.MachineVisualClient.register();
+        com.miaokatze.gtsr.client.workeffects.WorkEffectRenderer.listen();
+        FMLCommonHandler.instance()
+            .bus()
+            .register(new com.miaokatze.gtsr.client.workeffects.CloudParticleQueue());
         com.miaokatze.gtsr.client.tooltip.GTSRTooltipHandler.register();
         com.miaokatze.gtsr.client.critical.CriticalControllerRenderer.register();
         com.miaokatze.gtsr.client.critical.CriticalMaterialRenderer.register();

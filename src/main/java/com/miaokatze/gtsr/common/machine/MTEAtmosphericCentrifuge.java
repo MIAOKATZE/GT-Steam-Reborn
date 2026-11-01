@@ -12,6 +12,7 @@ import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -43,6 +44,9 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
@@ -69,7 +73,10 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteam
 
 @IMetaTileEntity.SkipGenerateDescription
 public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphericCentrifuge>
-    implements ISurvivalConstructable {
+    implements ISurvivalConstructable, MachineVisualHost {
+
+    private final MachineVisualState machineVisualState = new MachineVisualState();
+    private boolean mMotionShape;
 
     // Only retained mechanical casings on hatch-replaceable positions count toward this minimum.
     private static final int REPLACEABLE_CASING_POSITIONS = 89;
@@ -198,6 +205,11 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                             { " EDDDE ", "ED   DE", "D     D", "D  C  D", "D     D", "ED   DE", " EDDDE " },
                             { " EB~BE ", "EB C BE", "B  C  B", "BCCCCCB", "B  C  B", "EB C BE", " EBBBE " },
                             { " EBBBE ", "EBBBBBE", "BBBBBBB", "BBBBBBB", "BBBBBBB", "EBBBBBE", " EBBBE " } }))
+                .addShape(
+                    "motion",
+                    transpose(
+                        MachineVisualDefinition.get("atmospheric_centrifuge")
+                            .shapeLayers()))
                 .addElement(
                     'B',
                     ofChain(
@@ -271,22 +283,13 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
-        buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
+        buildPiece("motion", stackSize, hintsOnly, 4, 3, 0);
     }
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        return survivalBuildPiece(
-            STRUCTURE_PIECE_MAIN,
-            stackSize,
-            HORIZONTAL_OFF_SET,
-            VERTICAL_OFF_SET,
-            DEPTH_OFF_SET,
-            elementBudget,
-            env,
-            false,
-            true);
+        return survivalBuildPiece("motion", stackSize, 4, 3, 0, elementBudget, env, false, true);
     }
 
     @Override
@@ -294,9 +297,17 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
         mMechanicalCasingCount = 0;
         mSetTier = -1;
         mCasingCount = 0;
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+        mMotionShape = checkPiece("motion", 4, 3, 0, new ArrayList<>());
+        if (!mMotionShape) {
+            // A failed candidate pass may have collected partial hatch/casing facts.
+            clearHatches();
+            mMechanicalCasingCount = 0;
             mSetTier = -1;
-            return;
+            mCasingCount = 0;
+            if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+                mSetTier = -1;
+                return;
+            }
         }
         if (mMechanicalCasingCount < MIN_MECHANICAL_CASINGS) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
@@ -469,7 +480,11 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                     + ")")
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
-            .beginStructureBlock(7, 4, 7, false)
+            .beginStructureBlock(
+                visualDefinition().size(0),
+                visualDefinition().size(1),
+                visualDefinition().size(2),
+                false)
             .addCasingInfoMin(
                 StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),
                 MIN_MECHANICAL_CASINGS,
@@ -486,10 +501,23 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                 EnumChatFormatting.LIGHT_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.mega_air_hint"))
             .addStructureInfo("")
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 89, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 10, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 32, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.reinforced_glass"), 16, false)
+            .addCasingInfoExactly(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.casing"),
+                visualDefinition().countToken('B'),
+                false)
+            .addCasingInfoExactly(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"),
+                visualDefinition().countToken('C'),
+                false)
+            .addCasingInfoExactly(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.frame"),
+                visualDefinition().countToken('E'),
+                false)
+            .addCasingInfoExactly(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.reinforced_glass"),
+                visualDefinition().countToken('D'),
+                false)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.legacy_structure"))
             .addStructureInfo(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
                     + ": "
@@ -616,5 +644,32 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                         + StatCollector.translateToLocal("gtsr.gui.atmospheric_centrifuge.need_steel")
                     : hasRareGasChip() ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.installed")
                         : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.not_installed")) };
+    }
+
+    @Override
+    public MachineVisualState visualState() {
+        return machineVisualState;
+    }
+
+    @Override
+    public MachineVisualDefinition visualDefinition() {
+        return MachineVisualDefinition.get("atmospheric_centrifuge");
+    }
+
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
+
+    @Override
+    protected void incrementProgressTime() {
+        super.incrementProgressTime();
+        machineVisualState.advanced(getBaseMetaTileEntity().getTimer());
+    }
+
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        machineVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, mMotionShape);
     }
 }
