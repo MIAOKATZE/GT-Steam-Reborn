@@ -7,6 +7,8 @@ import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 
+import com.miaokatze.gtsr.common.dimension.prosperity.remaster.ChestTier;
+
 /** No inventory exists while sealed: automation cannot extract a deferred roll. */
 public class TileEntitySealedChest extends TileEntity {
 
@@ -66,12 +68,11 @@ public class TileEntitySealedChest extends TileEntity {
     }
 
     public void initialize(int t, String id, int p) {
-        tier = Math.max(1, Math.min(5, t));
-        if (nativeBossReward(id, p)) tier = 5;
-        else if (remasterSite.isEmpty()) tier = Math.min(4, tier);
-        lootContract = 1;
         encounter = id;
         platform = p;
+        tier = ChestTier.clamp(t);
+        if (remasterSite.isEmpty()) tier = nativeTier(tier);
+        lootContract = 2;
         markDirty();
         worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
     }
@@ -100,16 +101,21 @@ public class TileEntitySealedChest extends TileEntity {
     }
 
     private void migrateLootContract() {
-        if (lootContract != 0) return;
+        if (lootContract >= 2) return;
         if (!remasterSite.isEmpty()) {
             int resolved = com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime
                 .resolveChestTier(this);
             if (resolved == 0) return;
             tier = resolved;
-        } else tier = nativeBossReward(encounter, platform) ? 5 : Math.min(4, Math.max(1, tier));
-        lootContract = 1;
+        } else tier = nativeTier(tier);
+        lootContract = 2;
         markDirty();
         worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+    }
+
+    private int nativeTier(int requested) {
+        return ChestTier
+            .resolveNativeTier(this, requested, nativeBossReward(encounter, platform), !clickUnlock && platform >= 0);
     }
 
     private boolean allowed() {
