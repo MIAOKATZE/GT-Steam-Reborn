@@ -40,13 +40,13 @@ python tools/workvisual/pipeline.py compare-numbers --required build/workvisual-
 
 严格图片比较用 `compare-images --required <case文件> --baseline <旧清单> --candidate <新清单> --baseline-jar <旧jar> --candidate-jar <新jar> --out <回执>`。必需文件格式为 `{"schema":1,"cases":["精确caseId"]}`，不得为空/重复。两份图片清单必须为 `schema:1,status:PASS,artifactSha256,codeSourceSha256,cases:[{id,file,sha256}]`；两侧 case 全集与必需集合必须完全相等，文件在各自清单目录下。PNG 维度与像素样本非零，RGBA 每通道逐像素严格比，包含相同 alpha 下的 RGB 差异。报告读取 status，不只看子进程 exit 0。浏览器、FBO 与实机的采证性质由原 harness 说明，工具不替它升级结论。
 
-候选闭环输入为明确 runtime/dev/sources JAR、上述 validation 与依赖锁。锁格式为 `{"schema":1,"dependencies":[{"id":"core_runtime","coordinate":"明确坐标","path":"实际文件","sha256":"完整哈希"}]}`；相对 path 以锁文件目录为根，不允许逃逸。`candidate` 回读 runtime/dev 中闭包的每个字节，记录三制品、依赖、源码 HEAD/dirty 和可选 `--receipt` 的哈希。所有游戏门保持 NOT_RUN；候选身份 PASS 不表示完成游戏验收、发布或部署。
+候选闭环输入为明确 runtime/dev/sources JAR、上述 validation 与依赖锁。锁格式为 `{"schema":1,"dependencies":[{"id":"core_runtime","coordinate":"明确坐标","path":"实际文件","sha256":"完整哈希"}]}`；相对 path 以锁文件目录为根，不允许逃逸。`candidate` 回读 runtime/dev 中闭包的每个字节，记录三制品、依赖、源码 HEAD/dirty 和可选 `--receipt` 的哈希。附属回执按 kind 标为 `BOUND` 或 `UNBOUND`：数值探针/比较须匹配 motions 定义、GTSR dev CodeSource 与依赖锁 `core_dev`；图片比较须匹配 runtime、runtime CodeSource 与 `core_runtime`（图片清单提供 `coreCodeSourceSha256`）。缺少身份、身份不符或未知 kind 保留为 `UNBOUND` 参考，不计为候选验收证据。`BOUND` 仅表示声明身份相符，不证明回执执行过程。所有游戏门保持 NOT_RUN；候选身份 PASS 不表示完成游戏验收、发布或部署。资源闭包命令仍允许 resource-only fixture，报告明确 `artifactScope=resource_closure_only`，不把 ZIP 合法性当作可运行制品验证。
 
 ```powershell
 python tools/workvisual/pipeline.py candidate --validation build/workvisual-task03/source-audit/validation.json --jar <runtime.jar> --dev <dev.jar> --sources <sources.jar> --dependency-lock <dependency-lock.json> --receipt build/workvisual-task03/scalar-comparison.json --out build/workvisual-task03/candidate.json
 ```
 
-当前复用 Core `v0.2.0-git.8+099f028d1a` 完整候选，未改 Core 源码；公开 0.2.0 不视为包含新动画 API。099 的 Maven 发布/回读身份以本轮主交接为准，常规构建使用 `repositories.gradle` 的默认公共 Maven。离线重现本地镜像时，才同时提供 `-PmiaokatzeCoreVersion=v0.2.0-git.8+099f028d1a` 与 `-PmiaokatzeCoreRepository=file:///E:/CodeGT/plan/stage07-20261101/local-maven/`。GTNH 2.9.0 正式版和实际 GT .265 按锁文件读取，不能用旧 GT205/RC2 fixture 的历史 PASS 代替。
+当前默认依赖与运行最低版本为 Core `0.2.3`，正式坐标由 `repositories.gradle` 的公共 Maven 提供。历史 `v0.2.0-git.8+099f028d1a` 只用于回放旧证据，不与普通 `0.2.0` 混用。离线构建仅显式覆盖 `-PmiaokatzeCoreRepository=<本地镜像>`，每轮依赖锁应记录实际 runtime/dev 文件和哈希；基线保持 GTNH 2.9.0 正式版 / GT5U .265。
 
 普通机运动采用独立的客户端成员/组保留预算，不能拿旧临界 FX claim 数或这些额度当整帧/GPU/百机性能保证：
 

@@ -87,7 +87,7 @@ def main():
     samples = read_json(output)
     if samples.get("status") != "PASS" or not samples.get("cases"):
         raise ValueError("Production probe did not produce nonempty PASS samples")
-    result.update(status="PASS", probeClassMajor=major, probeClassSha256=file_sha(classes / "MotionOracleProbe.class"),
+    result.update(status="PASS", definitionSha256=samples["definitionSha256"], probeClassMajor=major, probeClassSha256=file_sha(classes / "MotionOracleProbe.class"),
                   outputSha256=file_sha(output), codeSources=samples["codeSources"], scalarCases=len(samples["cases"]))
     write_json(out / "execution.json", result)
     print("PASS production scalar cases=" + str(result["scalarCases"]) + "; bytecode=52; game=NOT_RUN")

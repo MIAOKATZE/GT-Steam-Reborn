@@ -84,7 +84,7 @@ dependencies {
 
 // Shared library API; immutable candidate versions may be supplied for isolated integration builds.
 dependencies {
-    // Core 0.2.2 includes the shared late GT multiblock-recipe derivation stage.
-    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.2.2"
+    // Core 0.2.3 includes the shared late GT multiblock-recipe derivation stage.
+    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.2.3"
     api("com.miaokatze.miaokatzecore:miaokatzecore:${coreVersion}:dev") { transitive = false }
 }

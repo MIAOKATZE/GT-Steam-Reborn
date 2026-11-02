@@ -10,7 +10,6 @@ import org.lwjgl.opengl.GL11;
 
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
-import com.miaokatze.gtsr.common.machinevisual.MachineVisualSpace;
 
 /** GT's own atlas/ISBRH draws the original full blocks; only the display matrix moves. */
 public final class MachineVisualRenderer {
@@ -39,6 +38,8 @@ public final class MachineVisualRenderer {
         int ready = MachineVisualVisibility.ready(entry);
         int draw = entry.mask | entry.restoringMask;
         if (draw == 0) return;
+        boolean animating = MachineVisualClient.isAnimating(host);
+        long decorativeTime = animating ? MachineVisualClient.decorativeTime(entry, partialTick) : 0;
         Minecraft.getMinecraft()
             .getTextureManager()
             .bindTexture(TextureMap.locationBlocksTexture);
@@ -57,37 +58,37 @@ public final class MachineVisualRenderer {
                 int bit = 1 << index;
                 if ((draw & bit) == 0) continue;
                 MachineVisualDefinition.Group group = host.visualDefinition().groups.get(index);
+                MachineVisualClearance.GroupGeometry geometry = entry.geometry.groups[index];
                 GL11.glPushMatrix();
                 Tessellator tessellator = Tessellator.instance;
                 boolean batch = false;
                 try {
-                    if (MachineVisualClient.isAnimating(host) && (ready & bit) != 0) {
-                        double value = group.sample(entry.decorativeMs);
+                    if (animating && (ready & bit) != 0) {
+                        double value = group.sample(decorativeTime);
                         if (group.kind.equals("rotate_y")) {
-                            double[] pivot = MachineVisualSpace
-                                .transform(host.getExtendedFacing(), group.pivotX, group.pivotY, group.pivotZ);
-                            double[] axis = MachineVisualSpace.transform(host.getExtendedFacing(), 0., 1., 0.);
+                            double[] pivot = geometry.pivot, axis = geometry.axis;
                             GL11.glTranslated(pivot[0], pivot[1], pivot[2]);
                             GL11.glRotated(
-                                Math.toDegrees(value) * MachineVisualSpace.handedness(host.getExtendedFacing()),
+                                Math.toDegrees(value) * entry.geometry.handedness,
                                 axis[0],
                                 axis[1],
                                 axis[2]);
                             GL11.glTranslated(-pivot[0], -pivot[1], -pivot[2]);
                         } else {
-                            double[] displacement = MachineVisualSpace.transform(
-                                host.getExtendedFacing(),
-                                group.axis.equals("x") ? value : 0,
-                                group.axis.equals("y") ? value : 0,
-                                group.axis.equals("z") ? value : 0);
-                            GL11.glTranslated(displacement[0], displacement[1], displacement[2]);
+                            GL11.glTranslated(
+                                geometry.axis[0] * value,
+                                geometry.axis[1] * value,
+                                geometry.axis[2] * value);
                         }
                     }
-                    for (MachineVisualDefinition.Cell member : group.members) {
-                        int[] p = entry.at(member.x, member.y, member.z);
-                        if (!MachineVisualVisibility.uploadedHidden(entry, p[0], p[1], p[2])) continue;
-                        Block block = entry.world.getBlock(p[0], p[1], p[2]);
-                        if (!member.matches(block, entry.world.getBlockMetadata(p[0], p[1], p[2]))) continue;
+                    for (int i = 0; i < group.members.size(); i++) {
+                        MachineVisualDefinition.Cell member = group.members.get(i);
+                        int px = entry.originX + geometry.members[i * 3],
+                            py = entry.originY + geometry.members[i * 3 + 1],
+                            pz = entry.originZ + geometry.members[i * 3 + 2];
+                        if (!MachineVisualVisibility.uploadedHidden(entry, px, py, pz)) continue;
+                        Block block = entry.world.getBlock(px, py, pz);
+                        if (!member.matches(block, entry.world.getBlockMetadata(px, py, pz))) continue;
                         if (!batch) {
                             tessellator.startDrawingQuads();
                             tessellator.setTranslation(
@@ -96,7 +97,7 @@ public final class MachineVisualRenderer {
                                 -entry.tile.getZCoord() - .5);
                             batch = true;
                         }
-                        blocks.renderBlockByRenderType(block, p[0], p[1], p[2]);
+                        blocks.renderBlockByRenderType(block, px, py, pz);
                         MachineVisualClient.renderedCubes++;
                     }
                     if (batch) MachineVisualClient.recordSubmission(tessellator.draw(), false);

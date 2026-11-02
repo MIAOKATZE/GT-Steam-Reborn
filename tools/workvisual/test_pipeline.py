@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from unittest import mock
 import zipfile
+from types import SimpleNamespace
 from pathlib import Path
 
 from assets import CRITICAL, FROZEN_NEWLINE_BINDINGS, Resources, historical_hash_match
@@ -167,6 +168,68 @@ class PipelineTests(unittest.TestCase):
             candidate["codeSourceSha256"] = "0" * 64
             with self.assertRaises(ValueError):
                 compare_images({"actual_required_view"}, baseline, candidate, root, root, old_product, new_product)
+
+    def test_candidate_receipts_are_bound_to_explicit_product_definition_and_core(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            definition_path = "assets/gtsr/machinevisual/motions.json"
+            definition = b'{"schema":1}'
+            source = root / "author.json"
+            source.write_bytes(b'{}')
+            runtime_files = [{"path": definition_path, "bytes": len(definition), "sha256": sha(definition)}]
+            authors = {"schema": 1, "status": "PASS", "files": [{"root": "repo", "path": source.name, "sha256": file_sha(source)}],
+                       "licenseMetadata": []}
+            authors['contentSha256'] = sha(pipeline.canonical(authors['files']))
+            runtime = {"schema": 1, "status": "PASS", "files": runtime_files,
+                       "contentSha256": sha(pipeline.canonical(runtime_files))}
+            reports = []
+            for name in pipeline.AUDIT_REPORTS:
+                path = root / (name + ".json")
+                value = runtime if name == "runtime-manifest" else authors if name == "authoring-manifest" else {}
+                path.write_text(json.dumps(value), encoding="utf-8")
+                reports.append({"path": path.name, "sha256": file_sha(path)})
+            validation = root / "validation.json"
+            validation.write_text(json.dumps({"schema": 1, "status": "PASS", "kind": "offline_asset_validation",
+                "reports": reports, "runtimeContentSha256": runtime["contentSha256"]}), encoding="utf-8")
+            jars = []
+            for name in ["runtime.jar", "dev.jar", "sources.jar"]:
+                path = root / name
+                with zipfile.ZipFile(path, 'w') as archive:
+                    archive.writestr(definition_path, definition)
+                    archive.writestr("identity", name)
+                jars.append(path)
+            core = root / "core.jar"; core.write_bytes(b"explicit-Core-input")
+            lock = root / "lock.json"
+            lock.write_text(json.dumps({"schema": 1, "dependencies": [{"id": "core_dev", "coordinate": "core:dev:fixture",
+                "path": str(core), "sha256": file_sha(core)}]}), encoding="utf-8")
+            receipt = root / "receipt.json"
+            bound = {"schema": 1, "status": "PASS", "kind": "strict_numeric_comparison", "definitionSha256": sha(definition),
+                "codeSources": [{"class": "com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition", "sha256": file_sha(jars[1])},
+                                {"class": "com.miaokatze.miaokatzecore.api.animation.Sampler", "sha256": file_sha(core)}]}
+            args = SimpleNamespace(validation=validation, repo=root, jar=jars[0], dev=jars[1], sources=jars[2],
+                                   dependency_lock=lock, receipt=[receipt], out=root/"candidate.json")
+            wrong_definition = copy.deepcopy(bound); wrong_definition['definitionSha256'] = 'f'*64
+            wrong_product = copy.deepcopy(bound); wrong_product['codeSources'][0]['sha256'] = 'e'*64
+            wrong_core = copy.deepcopy(bound); wrong_core['codeSources'][1]['sha256'] = 'd'*64
+            missing = copy.deepcopy(bound); missing.pop('codeSources')
+            for value, expected in [(wrong_definition,"UNBOUND"), (wrong_product,"UNBOUND"), (wrong_core,"UNBOUND"),
+                                    (missing,"UNBOUND"), ({"schema":1,"status":"PASS","kind":"unknown"},"UNBOUND"), (bound,"BOUND")]:
+                receipt.write_text(json.dumps(value),encoding='utf-8')
+                with mock.patch.object(pipeline.subprocess, "run", side_effect=[SimpleNamespace(stdout="fixture-head"), SimpleNamespace(stdout="")]):
+                    result = pipeline.candidate(args)
+                self.assertEqual(expected, result['additionalReceipts'][0].get('binding'))
+                self.assertFalse(result['complete'])
+                self.assertEqual({'NOT_RUN'},set(result['gameGates'].values()))
+
+    def test_pixel_receipt_requires_runtime_and_core_identity(self):
+        report = {'kind':'strict_pixel_comparison', 'candidateSha256':'a'*64,
+                  'candidateCodeSourceSha256':'a'*64, 'candidateCoreSha256':'b'*64}
+        artifacts = [{'kind':'runtime','sha256':'a'*64}]
+        dependencies = [{'id':'core_runtime','sha256':'b'*64}]
+        self.assertEqual('BOUND',pipeline.receipt_binding(report,None,artifacts,dependencies)['binding'])
+        for key in ['candidateSha256','candidateCodeSourceSha256','candidateCoreSha256']:
+            wrong = dict(report); wrong[key] = 'c'*64
+            self.assertEqual('UNBOUND',pipeline.receipt_binding(wrong,None,artifacts,dependencies)['binding'])
 
 
 if __name__ == "__main__":

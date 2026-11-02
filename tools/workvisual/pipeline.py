@@ -190,6 +190,7 @@ def compare_numbers(required, oracle, actual, tolerance=1e-9):
                 break
     return {"schema": SCHEMA, "status": "FAIL" if failures else "PASS", "kind": "strict_numeric_comparison",
             "definitionSha256": digest, "requiredCases": len(required), "comparedValues": count,
+            "codeSources": actual.get("codeSources", []),
             "maximumError": maximum, "tolerance": tolerance, "failures": failures,
             "boundary": "Exact required case set; numeric production probe acceptance only, not a GL/world test."}
 
@@ -224,7 +225,37 @@ def compare_images(required, baseline, candidate, baseline_root, candidate_root,
     return {"schema": SCHEMA, "status": "FAIL" if failures else "PASS", "kind": "strict_pixel_comparison",
             "requiredCases": len(required), "comparedPixels": pixels, "failures": failures,
             "baselineSha256": file_sha(baseline_jar), "candidateSha256": file_sha(candidate_jar),
+            "candidateCodeSourceSha256": candidate["codeSourceSha256"],
+            "candidateCoreSha256": candidate.get("coreCodeSourceSha256"),
             "boundary": "PNG bytes/pixels and reported CodeSource identities; capture harness determines whether evidence is browser, FBO or a real client."}
+
+
+def receipt_binding(report, definition_sha, artifacts, dependencies):
+    """Bind supported evidence identities only; never promote this to a game or artifact-validity gate."""
+    kind = report.get("kind")
+    products = {entry["kind"]: entry["sha256"] for entry in artifacts}
+    locked = {entry["id"]: entry["sha256"] for entry in dependencies}
+    checks = []
+    if kind in {"production_sampler_probe", "production_sampler_execution", "strict_numeric_comparison"}:
+        origins = report.get("codeSources")
+        if not isinstance(origins, list) or any(not isinstance(origin, dict) for origin in origins):
+            return {"binding": "UNBOUND", "bindingReason": "Missing explicit numeric CodeSource identities"}
+        sources = {origin.get("class"): origin.get("sha256") for origin in origins}
+        if len(sources) != len(origins):
+            return {"binding": "UNBOUND", "bindingReason": "Duplicate CodeSource identities"}
+        checks = [("definition", report.get("definitionSha256"), definition_sha),
+                  ("dev CodeSource", sources.get("com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition"), products.get("dev")),
+                  ("Core dev CodeSource", sources.get("com.miaokatze.miaokatzecore.api.animation.Sampler"), locked.get("core_dev"))]
+    elif kind == "strict_pixel_comparison":
+        checks = [("runtime artifact", report.get("candidateSha256"), products.get("runtime")),
+                  ("runtime CodeSource", report.get("candidateCodeSourceSha256"), products.get("runtime")),
+                  ("Core runtime CodeSource", report.get("candidateCoreSha256"), locked.get("core_runtime"))]
+    else:
+        return {"binding": "UNBOUND", "bindingReason": "Unsupported receipt kind; retained for reference only"}
+    missing = [name for name, actual, expected in checks
+               if not isinstance(actual, str) or not re.fullmatch(r"[0-9a-f]{64}", actual) or not expected or actual != expected]
+    return {"binding": "UNBOUND" if missing else "BOUND",
+            "bindingReason": "Missing or mismatched: " + ", ".join(missing) if missing else "Explicit candidate and Core identities match"}
 
 
 def candidate(args):
@@ -278,10 +309,12 @@ def candidate(args):
     if len({entry["id"] for entry in locked}) != len(locked):
         raise ValueError("Duplicate dependency identity")
     receipts = []
+    definition_sha = next((entry["sha256"] for entry in manifest["files"] if entry["path"] == MACHINE + "motions.json"), None)
     for path in args.receipt:
         report = read_json(path)
         require_pass(report, "Candidate additional receipt")
-        receipts.append({"file": path.name, "sha256": file_sha(path), "kind": report.get("kind"), "boundary": report.get("boundary")})
+        receipts.append({"file": path.name, "sha256": file_sha(path), "kind": report.get("kind"), "boundary": report.get("boundary"),
+                         **receipt_binding(report, definition_sha, artifacts, locked)})
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=args.repo, check=True, capture_output=True, text=True).stdout.strip()
     dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all"], cwd=args.repo, check=True, capture_output=True, text=True).stdout.splitlines()
     result = {"schema": SCHEMA, "status": "PASS", "kind": "candidate_identity_binding", "complete": False,
@@ -289,7 +322,7 @@ def candidate(args):
               "runtimeContentSha256": manifest["contentSha256"], "authoringContentSha256": authors["contentSha256"],
               "validationSha256": file_sha(validation_path), "additionalReceipts": receipts,
               "gameGates": {gate: "NOT_RUN" for gate in GAME_GATES}, "licenseMetadata": authors["licenseMetadata"],
-              "publication": "NOT_PERFORMED", "deployment": "NOT_PERFORMED",
+              "publication": "NOT_PERFORMED", "deployment": "NOT_PERFORMED", "artifactScope": "resource_closure_only",
               "boundary": "Same-candidate artifact/resource/dependency binding only. This is a reviewable candidate, not completed game acceptance or permission to publish/deploy."}
     write_json(args.out, result)
     return result
