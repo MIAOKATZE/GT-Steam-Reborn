@@ -33,6 +33,7 @@ import com.miaokatze.gtsr.client.gui.terminal.GtsrGuiPalette;
 import com.miaokatze.gtsr.common.critical.CompoundRecipe;
 import com.miaokatze.gtsr.common.critical.CriticalChemicalRecipes;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
+import com.miaokatze.gtsr.common.critical.CriticalDamageHighlights;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.CriticalStellarPolicy;
@@ -117,11 +118,16 @@ public final class MTECriticalMachineTerminalGui {
                 selectedPage = page;
                 armedAction = "";
             });
+        ButtonWidget<?> highlight = action(
+            manager,
+            "highlight_damage",
+            player -> CriticalDamageHighlights.request(player, multiblock))
+                .tooltipBuilder(t -> t.addLine(tr("ui.highlight.hint")));
         pages.addPage(
             new ParentWidget<>().name("critical_page_overview")
                 .size(463, 252)
                 .child(
-                    constructionView.createTerminalOverview()
+                    constructionView.createTerminalOverview(highlight)
                         .setEnabledIf(w -> loomController.getValue()))
                 .child(controlPage(manager).setEnabledIf(w -> !loomController.getValue())));
         pages.addPage(
@@ -229,12 +235,13 @@ public final class MTECriticalMachineTerminalGui {
     }
 
     private String headerStatus() {
+        CriticalBusinessSnapshot sample = business.getValue();
         return tr(loomController.getValue() ? "ui.engineering_status" : "ui.running_status") + ": "
-            + (loomController.getValue() ? business.getValue()
-                .detail()
+            + (loomController.getValue() ? constructionView.phaseName()
                 : tr(
-                    business.getValue()
-                        .runtimeStatusKey()));
+                    sample.dismantleRequested() || sample.structureDamaged() || sample.structureChecking()
+                        ? sample.engineeringStatusKey()
+                        : sample.runtimeStatusKey()));
     }
 
     private String terminalTitle() {
@@ -248,6 +255,12 @@ public final class MTECriticalMachineTerminalGui {
     }
 
     private int statusColor() {
+        if (business.getValue()
+            .dismantleRequested()) return CriticalGuiStyle.TEXT_ACCENT;
+        if (business.getValue()
+            .structureDamaged()) return CriticalGuiStyle.STATE_OFFLINE;
+        if (business.getValue()
+            .structureChecking()) return CriticalGuiStyle.TEXT_ACCENT;
         if (!loomController.getValue()) {
             String status = business.getValue()
                 .runtimeStatusKey();
@@ -300,16 +313,18 @@ public final class MTECriticalMachineTerminalGui {
                 .child(
                     textViewport(
                         "critical_engineering_status",
-                        () -> business.getValue()
-                            .detail(),
+                        () -> tr(
+                            business.getValue()
+                                .engineeringReasonKey()),
                         443,
                         24,
                         this::statusColor).pos(10, 23))
                 .child(
                     textViewport(
                         "critical_engineering_recovery",
-                        () -> business.getValue().construction.status() == 2 ? tr("ui.engineering.complete")
-                            : tr(business.getValue().construction.recoveryKey()),
+                        () -> tr(
+                            business.getValue()
+                                .engineeringRecoveryKey()),
                         443,
                         26).pos(10, 49)));
         page.child(
@@ -326,8 +341,8 @@ public final class MTECriticalMachineTerminalGui {
                         .pos(5, 4)
                         .size(450, 14))
                 .child(
-                    textViewport("critical_engineering_guidance", () -> tr("ui.engineering.guide"), 443, 64)
-                        .pos(10, 25)));
+                    textViewport("critical_engineering_guidance", () -> tr("ui.engineering.guide"), 443, 64).pos(10, 25)
+                        .overlay(CriticalGuiStyle.SCROLL_EDGES)));
         return page;
     }
 
@@ -497,12 +512,14 @@ public final class MTECriticalMachineTerminalGui {
             action(manager, "repair", player -> state.repairStructure(player)).pos(222, 2)
                 .size(105, 18)
                 .setEnabledIf(w -> loomController.getValue())
-                .tooltipBuilder(this::constructionTooltip)
+                .tooltipBuilder(this::repairTooltip)
                 .tooltipAutoUpdate(true));
         bar.child(
             action(manager, "dismantle", player -> state.startDismantle(player)).pos(333, 2)
                 .size(126, 18)
-                .setEnabledIf(w -> loomController.getValue()));
+                .setEnabledIf(w -> loomController.getValue())
+                .tooltipBuilder(this::dismantleTooltip)
+                .tooltipAutoUpdate(true));
         bar.child(
             action(manager, "ui.solar.change_route", player -> state.selectSolarSaltMode(player))
                 .overlay(
@@ -595,6 +612,7 @@ public final class MTECriticalMachineTerminalGui {
     }
 
     private String actionFeedback() {
+        if ("dismantle".equals(armedAction)) return tr("ui.dismantle.confirm");
         if (!armedAction.isEmpty()) return tr("ui.terminal.confirm_hint") + " ? " + tr(armedAction);
         if (actionName.getValue()
             .isEmpty()) return tr("ui.terminal.feedback.idle");
@@ -881,14 +899,16 @@ public final class MTECriticalMachineTerminalGui {
                         : dangerous(name) ? CriticalGuiStyle.STATE_OFFLINE : CriticalGuiStyle.TEXT_CONTROL,
                     Alignment.CENTER))
             .tooltipBuilder(t -> {
-                t.add(tr(name));
-                if (!actionAvailable(name)) t.add(actionDisabledReason(name));
-                else if (dangerous(name)) t.add(tr("ui.terminal.confirm_hint"));
+                t.addLine(tr(name));
+                if (!actionAvailable(name)) t.addLine(actionDisabledReason(name));
+                else if (dangerous(name)) t.addLine(tr("ui.terminal.confirm_hint"));
             })
             .tooltipAutoUpdate(true);
     }
 
     private String actionLabel(String name) {
+        if ("dismantle".equals(name) && business.getValue()
+            .dismantleRequested()) return tr("ui.terminal.action.dismantle_waiting");
         if (name.equals(armedAction)) return tr("ui.terminal.action.confirm");
         return tr(switch (name) {
             case "kind", "build", "repair", "dismantle" -> "ui.terminal.action." + name;
@@ -932,14 +952,19 @@ public final class MTECriticalMachineTerminalGui {
             case "power" -> loomController.getValue() || status == 2;
             case "build", "ui.build_context" -> status == 0;
             case "ui.resume_context" -> !business.getValue().construction.enabled();
-            case "dismantle" -> status == 1 || status == 2 || status == 4;
+            case "dismantle" -> !business.getValue()
+                .dismantleRequested() && (status == 1 || status == 2 || status == 4);
             case "repair" -> status != 0;
+            case "highlight_damage" -> loomController.getValue() && (status == 2 || status == 4);
             default -> true;
         };
     }
 
     private String actionDisabledReason(String name) {
         if (!permitted.getValue()) return tr("action.permission");
+        if ("dismantle".equals(name) && business.getValue()
+            .dismantleRequested()) return tr("ui.dismantle.await_delivery");
+        if ("highlight_damage".equals(name)) return tr("ui.highlight.unavailable");
         return tr(
             "power".equals(name) ? "ui.power.unbuilt"
                 : "ui.resume_context".equals(name) ? "ui.action.unavailable.running"
@@ -1075,6 +1100,14 @@ public final class MTECriticalMachineTerminalGui {
 
     private String runtimeGuidance() {
         CriticalBusinessSnapshot sample = business.getValue();
+        if (sample.dismantleRequested() || sample.structureDamaged() || sample.structureChecking())
+            return tr("ui.engineering_status") + ": "
+                + tr(sample.engineeringStatusKey())
+                + "\n"
+                + tr("ui.next_action")
+                + ": "
+                + tr(sample.engineeringRecoveryKey())
+                + (sample.dismantleRequested() ? "" : "\n" + tr("ui.highlight.entry_hint"));
         if (sample.construction.status() != 2) return tr("ui.power.unbuilt");
         String blocker = sample.runtimeBlockerKey();
         String reason = blocker.isEmpty() ? tr(sample.runtimeStatusKey()) : sample.runtimeBlockerDetail();
@@ -1122,17 +1155,34 @@ public final class MTECriticalMachineTerminalGui {
     }
 
     private void constructionTooltip(com.cleanroommc.modularui.screen.RichTooltip tooltip) {
-        CriticalConfiguration cfg = configuration();
-        int currentStage = Math.max(0, Math.min(5, business.getValue().construction.stage()));
-        tooltip.add(tr("construction") + " " + currentStage);
-        tooltip.add(
-            business.getValue()
-                .nextItems());
-        tooltip.add(
-            business.getValue()
-                .nextFluids());
-        tooltip.add(tr("construction_power") + " " + cfg.tier.constructionVoltage() + " EU/t");
-        tooltip.add(tr("cost_hint"));
+        tooltip.addLine(constructionView.phaseName());
+        String items = business.getValue()
+            .nextItems();
+        String fluids = business.getValue()
+            .nextFluids();
+        if (!items.isEmpty()) tooltip.addLine(items);
+        if (!fluids.isEmpty()) tooltip.addLine(fluids);
+        tooltip.addLine(tr("construction_power") + " " + constructionView.constructionVoltage() + " EU/t");
+        tooltip.addLine(tr("cost_hint"));
+    }
+
+    private void repairTooltip(com.cleanroommc.modularui.screen.RichTooltip tooltip) {
+        tooltip.addLine(tr("ui.repair.button_hint"));
+        tooltip.addLine(tr("ui.repair.controller_hint"));
+        tooltip.addLine(
+            tr(
+                business.getValue()
+                    .engineeringRecoveryKey()));
+        constructionTooltip(tooltip);
+    }
+
+    private void dismantleTooltip(com.cleanroommc.modularui.screen.RichTooltip tooltip) {
+        if (!business.getValue()
+            .dismantleRequested()) tooltip.addLine(tr("ui.dismantle.flow"));
+        tooltip.addLine(
+            tr(business.getValue().economyVersion >= 2 ? "ui.dismantle.refund" : "ui.dismantle.refund_legacy"));
+        tooltip.addLine(tr("ui.dismantle.keep"));
+        tooltip.addLine(tr("ui.dismantle.output"));
     }
 
     private void operationTooltip(com.cleanroommc.modularui.screen.RichTooltip tooltip) {

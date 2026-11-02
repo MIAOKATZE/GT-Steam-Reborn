@@ -858,7 +858,7 @@ public final class CriticalConstructionEconomyContract {
     }
 
     @SuppressWarnings("unchecked")
-    private static void seedSchedule(java.util.Map<String, Block> blocks) throws Exception {
+    static void seedSchedule(java.util.Map<String, Block> blocks) throws Exception {
         gregtech.api.GregTechAPI.sPreloadStarted = true;
         java.lang.reflect.Field access = sun.misc.Unsafe.class.getDeclaredField("theUnsafe"); access.setAccessible(true);
         sun.misc.Unsafe unsafe = (sun.misc.Unsafe) access.get(null);

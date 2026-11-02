@@ -49,7 +49,7 @@ final class CriticalConstructionView {
                 .tooltipBuilder(t -> t.add(phaseName()))
                 .tooltipAutoUpdate(true));
         drawing.child(
-            IKey.dynamic(() -> percent(sample().progress()))
+            IKey.dynamic(this::progressText)
                 .color(CriticalGuiStyle.TEXT_TITLE)
                 .scale(1.45f)
                 .asWidget()
@@ -87,7 +87,7 @@ final class CriticalConstructionView {
         drawing.child(
             new ParentWidget<>().pos(8, 181)
                 .size(270, 2)
-                .background(new CriticalProgressBar(() -> sample().progress())));
+                .background(new CriticalProgressBar(this::displayProgress)));
         page.child(drawing);
 
         ListWidget<IWidget, ?> status = new ListWidget<>().name("critical_construction_priority")
@@ -95,13 +95,19 @@ final class CriticalConstructionView {
             .size(171, 67)
             .padding(7)
             .background(CriticalGuiStyle.CARD)
-            .scrollDirection(CriticalGuiStyle.scroll());
-        line(status, () -> tr("status." + sample().status()), CriticalGuiStyle.TEXT_TITLE);
+            .scrollDirection(CriticalGuiStyle.scroll())
+            .overlay(CriticalGuiStyle.SCROLL_EDGES);
         line(
             status,
-            () -> sample().status() != 2 && !sample().enabled() ? tr("reason.7")
-                : sample().reason() == 0 ? business.getValue()
-                    .detail() : tr("reason." + sample().reason()),
+            () -> tr(
+                business.getValue()
+                    .engineeringStatusKey()),
+            CriticalGuiStyle.TEXT_TITLE);
+        line(
+            status,
+            () -> tr(
+                business.getValue()
+                    .engineeringReasonKey()),
             CriticalGuiStyle.TEXT_ACCENT);
         line(status, this::nextAction, CriticalGuiStyle.TEXT_MUTED);
         line(
@@ -109,6 +115,7 @@ final class CriticalConstructionView {
             () -> business.getValue()
                 .supplyTerraceNotice(),
             CriticalGuiStyle.TEXT_MUTED);
+        line(status, () -> tr("ui.highlight.entry_hint"), CriticalGuiStyle.TEXT_MUTED);
         page.child(status);
 
         ListWidget<IWidget, ?> information = new ListWidget<>().name("critical_construction_live_details")
@@ -116,7 +123,8 @@ final class CriticalConstructionView {
             .size(171, 130)
             .padding(7)
             .background(CriticalGuiStyle.CARD)
-            .scrollDirection(CriticalGuiStyle.scroll());
+            .scrollDirection(CriticalGuiStyle.scroll())
+            .overlay(CriticalGuiStyle.SCROLL_EDGES);
         disclosure(information, 10, "ui.details.construction");
         ListWidget<IWidget, ?> timing = detailGroup(information, 10);
         line(
@@ -146,7 +154,7 @@ final class CriticalConstructionView {
                 .isEmpty()
                 && business.getValue()
                     .nextFluids()
-                    .isEmpty() ? tr("view.no_pending_cost") : "");
+                    .isEmpty() ? noPendingCost() : "");
         disclosure(information, 12, "construction.missing");
         ListWidget<IWidget, ?> missing = detailGroup(information, 12);
         line(
@@ -166,7 +174,7 @@ final class CriticalConstructionView {
                 .isEmpty()
                 && business.getValue()
                     .missingFluids()
-                    .isEmpty() ? tr("construction.supplied") : "",
+                    .isEmpty() ? availableMaterials() : "",
             CriticalGuiStyle.STATE_ONLINE);
         disclosure(information, 13, "ui.economy.layers");
         ListWidget<IWidget, ?> ledger = detailGroup(information, 13);
@@ -201,7 +209,7 @@ final class CriticalConstructionView {
     }
 
     /** Handheld layout; the native GT read-only dialog continues to use create(). */
-    ParentWidget<?> createTerminalOverview() {
+    ParentWidget<?> createTerminalOverview(ButtonWidget<?> highlight) {
         ParentWidget<?> page = new ParentWidget<>().name("critical_page_construction")
             .size(463, 252);
         ParentWidget<?> drawing = new ParentWidget<>().name("critical_construction_drawing")
@@ -215,7 +223,7 @@ final class CriticalConstructionView {
                 .tooltipBuilder(t -> t.add(phaseName()))
                 .tooltipAutoUpdate(true));
         drawing.child(
-            IKey.dynamic(() -> percent(sample().progress()))
+            IKey.dynamic(this::progressText)
                 .scale(1.25f)
                 .color(CriticalGuiStyle.TEXT_TITLE)
                 .asWidget()
@@ -240,14 +248,17 @@ final class CriticalConstructionView {
             CriticalGuiStyle.label(this::stepTime, () -> CriticalGuiStyle.TEXT_BODY, Alignment.CenterLeft)
                 .name("critical_construction_time")
                 .pos(5, 174)
-                .size(276, 14)
+                .size(163, 14)
                 .tooltipBuilder(t -> t.add(stepTime()))
                 .tooltipAutoUpdate(true));
+        drawing.child(
+            highlight.pos(174, 173)
+                .size(105, 17));
         drawing.child(
             new ParentWidget<>().name("critical_construction_progress_bar")
                 .pos(9, 192)
                 .size(268, 4)
-                .background(new CriticalProgressBar(() -> sample().progress())));
+                .background(new CriticalProgressBar(this::displayProgress)));
         page.child(drawing);
 
         ListWidget<IWidget, ?> status = new ListWidget<>().name("critical_construction_priority")
@@ -257,12 +268,17 @@ final class CriticalConstructionView {
             .background(CriticalGuiStyle.CARD)
             .scrollDirection(CriticalGuiStyle.scroll())
             .overlay(CriticalGuiStyle.SCROLL_EDGES);
-        terminalLine(status, () -> tr("status." + sample().status()), CriticalGuiStyle.TEXT_TITLE);
         terminalLine(
             status,
-            () -> sample().status() != 2 && !sample().enabled() ? tr("reason.7")
-                : sample().reason() == 0 ? business.getValue()
-                    .detail() : tr("reason." + sample().reason()),
+            () -> tr(
+                business.getValue()
+                    .engineeringStatusKey()),
+            CriticalGuiStyle.TEXT_TITLE);
+        terminalLine(
+            status,
+            () -> tr(
+                business.getValue()
+                    .engineeringReasonKey()),
             CriticalGuiStyle.TEXT_ACCENT);
         terminalLine(status, this::nextAction, CriticalGuiStyle.TEXT_BODY);
         terminalLine(
@@ -348,13 +364,13 @@ final class CriticalConstructionView {
                 CriticalGuiStyle.TEXT_BODY);
             terminalLine(
                 costs,
-                () -> missing ? hasDeficit() ? "" : tr("construction.supplied")
+                () -> missing ? hasDeficit() ? "" : availableMaterials()
                     : business.getValue()
                         .nextItems()
                         .isEmpty()
                         && business.getValue()
                             .nextFluids()
-                            .isEmpty() ? tr("view.no_pending_cost") : "",
+                            .isEmpty() ? noPendingCost() : "",
                 CriticalGuiStyle.TEXT_MUTED);
             card.child(costs);
             page.child(card);
@@ -423,8 +439,22 @@ final class CriticalConstructionView {
         CriticalBusinessSnapshot sample = business.getValue();
         String items = hasDeficit() ? sample.missingItems() : sample.nextItems();
         String fluids = hasDeficit() ? sample.missingFluids() : sample.nextFluids();
-        return items.isEmpty() && fluids.isEmpty() ? tr("view.no_pending_cost")
+        return items.isEmpty() && fluids.isEmpty() ? noPendingCost()
             : items + (items.isEmpty() || fluids.isEmpty() ? "" : "\n") + fluids;
+    }
+
+    private String noPendingCost() {
+        CriticalBusinessSnapshot s = business.getValue();
+        if (s.dismantleRequested()) return tr("ui.dismantle.queued_detail");
+        if (s.repairPhase() == 1 || s.structureDamaged()) return tr("ui.repair.cost_after_scan");
+        return tr(s.structureChecking() ? "ui.repair.cost_during_validation" : "view.no_pending_cost");
+    }
+
+    private String availableMaterials() {
+        CriticalBusinessSnapshot s = business.getValue();
+        return s.dismantleRequested() || s.repairPhase() == 1 || s.structureDamaged() || s.structureChecking()
+            ? noPendingCost()
+            : tr("construction.supplied");
     }
 
     private static void terminalLine(ListWidget<IWidget, ?> list, Supplier<String> text, int color) {
@@ -439,6 +469,12 @@ final class CriticalConstructionView {
     }
 
     private String stageCounts() {
+        CriticalBusinessSnapshot business = this.business.getValue();
+        if (business.dismantleRequested()) return tr("ui.dismantle.await_delivery_short");
+        if (business.repairPhase() == 1)
+            return tr("view.scan_positions") + " " + business.repairScanProgress() + " / " + business.repairScanTotal();
+        if (business.structureDamaged()) return tr("ui.repair.at_loom_short");
+        if (business.structureChecking()) return tr("ui.repair.validation_pending");
         CriticalConstructionSnapshot s = sample();
         if (s.showsFoundation() && s.foundationScheduleVersion() == 6)
             return tr("view.chunks") + " " + s.completedChunks() + " / " + s.chunkCount();
@@ -480,7 +516,10 @@ final class CriticalConstructionView {
 
     private String stepTime() {
         CriticalConstructionSnapshot s = sample();
-        if (s.status() != 1) return "";
+        if (business.getValue()
+            .dismantleRequested()) return "";
+        if (s.status() != 1 && business.getValue()
+            .repairPhase() != 2) return "";
         if (s.showsFoundation() && s.phase() == 1)
             return tr("view.cell_time") + " " + seconds(s.cellTicks()) + " / " + seconds(s.cellDuration());
         if (s.showsFoundation() && s.phase() == 2)
@@ -493,9 +532,11 @@ final class CriticalConstructionView {
             + seconds(s.constructionDuration());
     }
 
-    private String nextAction() {
-        CriticalConstructionSnapshot s = sample();
-        return tr("ui.next_action") + ": " + tr(s.recoveryKey());
+    String nextAction() {
+        return tr("ui.next_action") + ": "
+            + tr(
+                business.getValue()
+                    .engineeringRecoveryKey());
     }
 
     private String familyLines(String family) {
@@ -536,23 +577,42 @@ final class CriticalConstructionView {
             + s.identity(index, 7);
     }
 
-    private String phaseName() {
+    String phaseName() {
+        CriticalBusinessSnapshot business = this.business.getValue();
         CriticalConstructionSnapshot s = sample();
+        if (business.dismantleRequested()) return tr(business.engineeringStatusKey());
         if (s.status() == 0) return tr("view.phase.planned");
         if (s.status() == 3) return tr("status.3");
-        if (s.status() == 2) return tr("view.phase.complete");
+        if (s.status() == 2 || business.repairPhase() == 1) return tr(business.engineeringStatusKey());
+        String phase = constructionPhaseName(s);
+        return business.repairPhase() == 2 ? tr("view.phase.repair") + " · " + phase : phase;
+    }
+
+    private static String constructionPhaseName(CriticalConstructionSnapshot s) {
         if (s.showsFoundation() && s.phase() == 1) return tr("view.phase.pouring");
         if (s.showsFoundation() && s.phase() == 2) return tr("view.phase.curing");
         if (s.showsFoundation() && s.phase() == 4) return tr("view.phase.heating");
+        if (s.stage() == 0) return tr("view.phase.loom");
         if (s.threePartConstruction()) {
             String phase = s.stage() <= 3 ? "view.phase.base"
                 : s.equipmentStage() ? "view.phase.equipment" : "view.phase.body";
             int part = (s.stage() - 1) % 3 + 1;
             return tr(phase) + " " + Math.max(1, Math.min(3, part)) + "/3";
         }
-        return tr(
-            s.stage() == 0 ? "view.phase.loom"
-                : s.stage() <= 3 ? "view.phase.base" : s.stage() == 5 ? "view.phase.equipment" : "view.phase.body");
+        return tr(s.stage() <= 3 ? "view.phase.base" : s.stage() == 5 ? "view.phase.equipment" : "view.phase.body");
+    }
+
+    private String progressText() {
+        CriticalBusinessSnapshot s = business.getValue();
+        return s.dismantleRequested() || s.structureDamaged() || s.structureChecking() ? "—"
+            : percent(displayProgress());
+    }
+
+    private double displayProgress() {
+        CriticalBusinessSnapshot s = business.getValue();
+        if (s.repairPhase() == 1)
+            return CriticalConstructionSnapshot.ratio(s.repairScanProgress(), s.repairScanTotal());
+        return s.dismantleRequested() || s.structureDamaged() || s.structureChecking() ? 0 : sample().progress();
     }
 
     private String activeLocation() {
@@ -571,7 +631,7 @@ final class CriticalConstructionView {
             + (cell / 4 + 1);
     }
 
-    private long constructionVoltage() {
+    long constructionVoltage() {
         CriticalConstructionSnapshot s = sample();
         return s.loomOwner() || s.phase() == 1 || s.phase() == 2 || s.phase() == 4 ? GTValues.V[9]
             : CriticalTier.byId(s.tier())

@@ -141,6 +141,17 @@ public final class CriticalBusinessSnapshotContract {
             "configuration must be from the same packet");
         check(decoded.configuration() == decoded.configuration(), "immutable display configuration is reused per sample");
         check(decoded.canCancelLegacyStellarBatch(), "legacy recovery action must belong to the same sample");
+        PacketBuffer versionFour = new PacketBuffer(Unpooled.buffer());
+        write.invoke(sample, versionFour);
+        check(versionFour.readVarIntFromBuffer() == 4, "new samples declare the repair presentation wire version");
+        PacketBuffer versionThree = new PacketBuffer(Unpooled.buffer());
+        versionThree.writeVarIntToBuffer(3);
+        versionThree.writeBytes(versionFour, versionFour.readerIndex(), versionFour.readableBytes() - 5 * Integer.BYTES);
+        CriticalBusinessSnapshot oldPresentation = (CriticalBusinessSnapshot) read.invoke(null, versionThree);
+        check(versionThree.readableBytes() == 0 && oldPresentation.repairPhase() == 0
+            && oldPresentation.repairScanProgress() == 0 && oldPresentation.repairScanTotal() == 0
+            && !oldPresentation.structureDamaged() && !oldPresentation.dismantleRequested(),
+            "business v3 retains its full payload and defaults only the newly appended presentation fields");
         PacketBuffer legacy = new PacketBuffer(Unpooled.buffer());
         legacy.writeVarIntToBuffer(2);
         construction.write(legacy);
@@ -164,6 +175,9 @@ public final class CriticalBusinessSnapshotContract {
         CriticalBusinessSnapshot legacyDecoded = (CriticalBusinessSnapshot) read.invoke(null, legacy);
         check(legacy.readableBytes() == 0 && legacyDecoded.networkInputs().contains("2147483647"),
             "business v2 explicitly decodes the legacy int material wire without field misalignment");
+        check(legacyDecoded.repairPhase() == 0 && !legacyDecoded.structureDamaged()
+            && !legacyDecoded.dismantleRequested(), "business v2 does not invent repair or dismantle activity");
+        repairPresentation(write, read);
         PacketBuffer wrongVersion = new PacketBuffer(Unpooled.buffer());
         wrongVersion.writeVarIntToBuffer(99);
         rejects(read, wrongVersion, "unknown packet version must fail closed");
@@ -179,6 +193,77 @@ public final class CriticalBusinessSnapshotContract {
         tooManyIdentities.writeVarIntToBuffer(65);
         rejects(read, tooManyIdentities, "identity count must be bounded before allocation");
         System.out.println("PASS CriticalBusinessSnapshotContract checks=" + checks);
+    }
+
+    private static void repairPresentation(Method write, Method read) throws Exception {
+        CriticalBusinessSnapshot scanning = repairSample(4, 0, new int[] { 1, 1024, 65000, 0, 0 });
+        PacketBuffer packet = new PacketBuffer(Unpooled.buffer());
+        write.invoke(scanning, packet);
+        CriticalBusinessSnapshot decoded = (CriticalBusinessSnapshot) read.invoke(null, packet);
+        check(packet.readableBytes() == 0 && decoded.repairPhase() == 1
+            && decoded.repairScanProgress() == 1024 && decoded.repairScanTotal() == 65000,
+            "real damage scan counters survive the same bounded S2C sample");
+        check(decoded.engineeringStatusKey().equals("ui.repair.scanning")
+            && decoded.engineeringRecoveryKey().equals("ui.repair.await_scan"),
+            "a pending damage scan asks the player to wait rather than reporting completion");
+        CriticalBusinessSnapshot repairing = repairSample(4, 0, new int[] { 2, 0, 0, 0, 0 });
+        check(repairing.construction.stage() == 9 && repairing.engineeringStatusKey().equals("status.4")
+            && repairing.engineeringRecoveryKey().equals("ui.repair.continue"),
+            "controller-install repair keeps its authoritative stage and asks for construction supply");
+        check(repairSample(4, 1, new int[] { 2, 0, 0, 0, 0 }).engineeringReasonKey().equals("reason.1")
+            && repairSample(4, 2, new int[] { 2, 0, 0, 0, 0 }).engineeringRecoveryKey().equals("ui.recover.2"),
+            "repair power and material shortages remain distinct from structure validation");
+        CriticalBusinessSnapshot validating = repairSample(2, 4, new int[] { 3, 0, 0, 0, 0 });
+        check(validating.structureChecking() && !validating.structureDamaged()
+            && validating.engineeringStatusKey().equals("ui.repair.validating")
+            && validating.engineeringRecoveryKey().equals("ui.repair.await_validation"),
+            "completion validation is shown as a check with production still waiting");
+        CriticalBusinessSnapshot damaged = repairSample(2, 4, new int[] { 0, 0, 0, 1, 0 });
+        check(damaged.structureDamaged() && !damaged.structureChecking()
+            && damaged.engineeringStatusKey().equals("ui.repair.damaged")
+            && damaged.engineeringRecoveryKey().equals("ui.repair.at_loom"),
+            "confirmed damage directs the player to the loom repair button");
+        check(repairSample(2, 4, new int[] { 3, 0, 0, 1, 0 }).engineeringStatusKey().equals("ui.repair.damaged"),
+            "damage discovered during completion validation cannot remain labelled as checking");
+        check(repairSample(2, 4, new int[] { 0, 0, 0, 0, 0 }).structureChecking(),
+            "an unvalidated loaded structure is not assumed damaged without monitor evidence");
+        check(repairSample(2, 0, new int[5]).engineeringRecoveryKey().equals("ui.engineering.complete"),
+            "a validated complete structure directs the player to production");
+        for (int status : new int[] { 2, 4 }) {
+            CriticalBusinessSnapshot queued = repairSample(status, 0, new int[] { 0, 0, 0, 0, 1 });
+            PacketBuffer queuedPacket = new PacketBuffer(Unpooled.buffer());
+            write.invoke(queued, queuedPacket);
+            CriticalBusinessSnapshot queuedDecoded = (CriticalBusinessSnapshot) read.invoke(null, queuedPacket);
+            check(queuedPacket.readableBytes() == 0 && queuedDecoded.dismantleRequested()
+                && queuedDecoded.engineeringStatusKey().equals("ui.dismantle.queued")
+                && queuedDecoded.engineeringRecoveryKey().equals("ui.dismantle.await_delivery"),
+                "accepted dismantling stays visible while existing assets settle in state " + status);
+        }
+    }
+
+    private static CriticalBusinessSnapshot repairSample(int status, int reason, int[] repair) throws Exception {
+        int[] values = new int[23];
+        values[9] = 9;
+        values[12] = status;
+        values[16] = reason;
+        values[18] = values[20] = values[21] = 1;
+        Constructor<CriticalConstructionSnapshot> mapConstructor = CriticalConstructionSnapshot.class
+            .getDeclaredConstructor(int[].class);
+        mapConstructor.setAccessible(true);
+        String[] text = new String[11];
+        Arrays.fill(text, "");
+        text[0] = reason == 0 ? "status." + status : "reason." + reason;
+        int[] configuration = new int[12];
+        configuration[7] = 1;
+        configuration[9] = 2;
+        CriticalMaterialSnapshot[] materials = new CriticalMaterialSnapshot[7];
+        Arrays.fill(materials, CriticalMaterialSnapshot.capture(new ItemStack[0], new FluidStack[0]));
+        Constructor<CriticalBusinessSnapshot> constructor = CriticalBusinessSnapshot.class.getDeclaredConstructor(
+            CriticalConstructionSnapshot.class, String[].class, int.class, String[][].class, String[][].class, int[].class,
+            CriticalMaterialSnapshot[].class, int[].class);
+        constructor.setAccessible(true);
+        return constructor.newInstance(mapConstructor.newInstance((Object) values), text, 9, new String[0][9],
+            new String[0][2], configuration, materials, repair);
     }
 
     private static CriticalMaterialSnapshot materialQuantities() throws Exception {

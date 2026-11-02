@@ -53,6 +53,200 @@ public final class CriticalProtectionNativeProbe {
         return (Boolean)m.invoke(null,voxel);
     }
 
+    /** Real World/Chunk break callbacks, including a picked controller's original NBT placed back by hand. */
+    @SuppressWarnings("unchecked")
+    public static JsonArray runOwnership216(WorldServer world)throws Exception {
+        JsonArray checks=new JsonArray();
+        net.minecraft.entity.player.EntityPlayer player=net.minecraftforge.common.util.FakePlayerFactory.getMinecraft(world);
+        com.mojang.authlib.GameProfile profile=(com.mojang.authlib.GameProfile)call(player,"getGameProfile|func_146103_bH");
+        Block gt=gregtech.api.GregTechAPI.sBlockMachines;
+        int ox=32008,oy=100,oz=32015;
+        List<int[]> cleanup=new ArrayList<int[]>();CriticalMachineState state=null;CriticalWorldData data=CriticalWorldData.get(world);
+        Throwable failure=null;
+        try {
+            block(world,ox,oy,oz,gt,0);cleanup.add(new int[]{ox,oy,oz});
+            Object owner=call(world,"getTileEntity|func_147438_o",ox,oy,oz);
+            call(owner,"setInitialValuesAsNBT",null,(short)com.miaokatze.gtsr.common.api.enums.MetaTileEntityID.CRITICAL_LOOM.ID);
+            call(owner,"setOwnerUuid",profile.getId());call(owner,"setOwnerName",profile.getName());
+            Object machine=call(owner,"getMetaTileEntity");state=(CriticalMachineState)call(machine,"getLocalCriticalState");
+            NBTTagCompound n=new NBTTagCompound();
+            call(n,"setInteger|func_74768_a","geometryVersion",2);call(n,"setInteger|func_74768_a","v2LayoutRevision",33);
+            call(n,"setBoolean|func_74757_a","loomController",true);call(n,"setBoolean|func_74757_a","loomJournalOwner",true);
+            call(n,"setString|func_74778_a","structureId",UUID.randomUUID().toString());
+            call(n,"setString|func_74778_a","ownerUuid",profile.getId().toString());call(n,"setString|func_74778_a","jobId","ownership216");
+            call(n,"setInteger|func_74768_a","state",2);
+            call(n,"setTag|func_74782_a","config",new CriticalConfiguration(CriticalTier.T3,CriticalMachineKind.SUN,0,0,0).write());
+            state.readFromNBT(n);call(state,"bindHost",owner);
+            List<CriticalGeometry.Voxel> all=(List<CriticalGeometry.Voxel>)call(state,"allVoxels");
+            set(state,"jobFingerprint",field(state,"modelFingerprint"));
+            CriticalGeometry.Voxel material=null,main=null;
+            for(CriticalGeometry.Voxel voxel:all) {
+                if(controller(voxel)&&!CriticalLoomStructure.isLoomVoxel(voxel))main=voxel;
+                else if(!CriticalLoomStructure.isLoomVoxel(voxel)&&voxel.block instanceof CriticalMaterials.MaterialBlock&&material==null)material=voxel;
+                if(material!=null&&main!=null)break;
+            }
+            check(checks,material!=null&&main!=null,"Native ownership fixture has paid material and main controller");
+            check(checks,data.acquire(state.getStructureId(),profile.getId().toString(),state.getOriginX(),state.getOriginY(),state.getOriginZ(),
+                state.getRegionSize(),state.getRegionHeight(),ox,oy,oz),"Native ownership region acquired");
+            check(checks,data.bindTask(state.getStructureId(),profile.getId().toString(),state.getJobId(),state.getOriginX(),state.getOriginY(),state.getOriginZ()),
+                "Native ownership task bound");
+            int mx=state.blockWorldX(material),my=state.blockWorldY(material.y),mz=state.blockWorldZ(material);
+            int cx=state.blockWorldX(main),cy=state.blockWorldY(main.y),cz=state.blockWorldZ(main);
+            call(call(world,"getChunkProvider|func_72863_F"),"loadChunk|func_73158_c",mx>>4,mz>>4);
+            call(call(world,"getChunkProvider|func_72863_F"),"loadChunk|func_73158_c",cx>>4,cz>>4);
+            cleanup.add(new int[]{mx,my,mz});cleanup.add(new int[]{cx,cy,cz});
+            check(checks,(Boolean)call(state,"placeOwnedBlock",material)&&(Boolean)call(state,"placeOwnedBlock",main),
+                "Native actual owned placement installs material and controller");call(data,"updateProtection",state);
+            BitSet paidBefore=(BitSet)((BitSet)field(state,"placed")).clone();
+            check(checks,hardness(material.block,world,mx,my,mz)==-1F&&hardness(gt,world,cx,cy,cz)==-1F,
+                "Native owned placement establishes both hardness guards");
+            check(checks,(Boolean)call(world,"setBlockMetadataWithNotify|func_72921_c",mx,my,mz,material.metadata^1,2)
+                &&!(Boolean)call(state,"matches",material),"Native metadata-only mutation invalidates owned material");
+            call(world,"setBlockMetadataWithNotify|func_72921_c",mx,my,mz,material.metadata,2);
+            check(checks,!(Boolean)call(state,"matches",material)&&hardness(material.block,world,mx,my,mz)==5F,
+                "Native manually restored metadata does not recover ownership");
+            call(material.block,"removedByPlayer",world,player,mx,my,mz,false);
+            check(checks,(Boolean)call(state,"placeOwnedBlock",material),"Native owned placement restores metadata-damaged material");
+            set(state,"structureValid",true);
+            check(checks,(Boolean)call(world,"setBlockToAir|func_147468_f",mx,my,mz),"Native direct World hard break removes paid material");
+            check(checks,!state.isGeometryValidated(),"Native loaded owner loses valid geometry immediately after hard break");
+            block(world,mx,my,mz,material.block,material.metadata);
+            check(checks,!(Boolean)call(state,"matches",material)&&hardness(material.block,world,mx,my,mz)==5F,
+                "Native same material placed by hand remains invalid and removable");
+            check(checks,(Boolean)call(material.block,"removedByPlayer",world,player,mx,my,mz,false),"Native invalid manual replacement can be cleared normally");
+            check(checks,(Boolean)call(state,"placeOwnedBlock",material)&&(Boolean)call(state,"matches",material)
+                &&hardness(material.block,world,mx,my,mz)==-1F,"Native actual owned reinstallation restores material identity");
+            Object original=call(world,"getTileEntity|func_147438_o",cx,cy,cz);NBTTagCompound picked=new NBTTagCompound();
+            call(original,"writeToNBT|func_145841_b",picked);set(state,"structureValid",true);
+            check(checks,(Boolean)call(world,"setBlockToAir|func_147468_f",cx,cy,cz)&&!state.isGeometryValidated(),
+                "Native GT overriding break callback immediately invalidates the loaded owner");
+            block(world,cx,cy,cz,gt,0);Object manual=call(world,"getTileEntity|func_147438_o",cx,cy,cz);
+            call(manual,"setInitialValuesAsNBT",picked,(short)com.miaokatze.gtsr.common.api.enums.MetaTileEntityID.CRITICAL_SUN.ID);
+            call(manual,"setOwnerUuid",profile.getId());call(manual,"setOwnerName",profile.getName());
+            call(manual,"setFrontFacing",state.getControllerFacing(false));
+            check(checks,!(Boolean)call(state,"matches",main)&&hardness(gt,world,cx,cy,cz)>0F,
+                "Native same controller with original picked NBT cannot restore paid identity");
+            check(checks,!((CriticalMachineState)call(call(manual,"getMetaTileEntity"),"getCriticalState")).isGeometryValidated(),
+                "Native picked main cannot reuse a stale validated owner cache");
+            check(checks,paidBefore.equals(field(state,"placed")),"Native hard breaks preserve the paid placement and refund history");
+        } catch(Exception|Error problem) {failure=problem;throw problem;}
+        finally {
+            try {
+                for(int i=cleanup.size()-1;i>=0;i--) {
+                    int[] position=cleanup.get(i);CriticalBlockProtection.beginOwnedWrite(world,position[0],position[1],position[2]);
+                    try {call(world,"setBlockToAir|func_147468_f",position[0],position[1],position[2]);}
+                    finally {CriticalBlockProtection.endOwnedWrite(world,position[0],position[1],position[2]);}
+                }
+                if(state!=null)data.release(state.getStructureId());
+            } catch(Exception|Error problem) {if(failure==null)throw problem;failure.addSuppressed(problem);}
+        }
+        return checks;
+    }
+
+    /** One current layout, real charged GT and GraviSuite+Neo tools, no explosion/rotation matrix. */
+    @SuppressWarnings("unchecked")
+    public static JsonArray runProtection216(WorldServer world)throws Exception {
+        JsonArray checks=new JsonArray();
+        net.minecraft.entity.player.EntityPlayer player=net.minecraftforge.common.util.FakePlayerFactory.getMinecraft(world);
+        com.mojang.authlib.GameProfile profile=(com.mojang.authlib.GameProfile)call(player,"getGameProfile|func_146103_bH");
+        Object oldHeld=call(player,"getHeldItem|func_70694_bm");
+        boolean oldSneaking=(Boolean)call(player,"isSneaking|func_70093_af");
+        CriticalMachineState state=new CriticalMachineState();
+        NBTTagCompound n=new NBTTagCompound();
+        call(n,"setInteger|func_74768_a","geometryVersion",2);call(n,"setInteger|func_74768_a","v2LayoutRevision",33);
+        call(n,"setBoolean|func_74757_a","loomController",true);call(n,"setBoolean|func_74757_a","loomJournalOwner",true);
+        call(n,"setString|func_74778_a","structureId",UUID.randomUUID().toString());
+        call(n,"setString|func_74778_a","ownerUuid","protection216");call(n,"setString|func_74778_a","jobId","protection216");
+        call(n,"setInteger|func_74768_a","state",1);
+        call(n,"setTag|func_74782_a","config",new CriticalConfiguration(CriticalTier.T3,CriticalMachineKind.SUN,0,0,0).write());
+        state.readFromNBT(n);state.worldObj=world;state.xCoord=30008;state.yCoord=100;state.zCoord=30015;
+        List<CriticalGeometry.Voxel> all=(List<CriticalGeometry.Voxel>)call(state,"allVoxels");
+        set(state,"jobFingerprint",field(state,"modelFingerprint"));BitSet paid=(BitSet)field(state,"placed");
+        CriticalGeometry.Voxel controller=null,material=null,manual=null;
+        for(CriticalGeometry.Voxel voxel:all) {
+            if(controller(voxel)&&!CriticalLoomStructure.isLoomVoxel(voxel))controller=voxel;
+            else if(!CriticalLoomStructure.isLoomVoxel(voxel)&&voxel.block instanceof CriticalMaterials.MaterialBlock) {
+                if(material==null)material=voxel;else if(manual==null)manual=voxel;
+            }
+            if(controller!=null&&material!=null&&manual!=null)break;
+        }
+        check(checks,controller!=null&&material!=null&&manual!=null,"Current layout has main controller, paid material and unpaid manual cell");
+        List<int[]> placed=new ArrayList<int[]>();CriticalWorldData data=CriticalWorldData.get(world);Throwable failure=null;
+        try {
+            call(player,"setSneaking|func_70095_a",false);
+            Block gt=gregtech.api.GregTechAPI.sBlockMachines;
+            int cx=state.blockWorldX(controller),cy=state.blockWorldY(controller.y),cz=state.blockWorldZ(controller);
+            block(world,cx,cy,cz,gt,0);placed.add(new int[]{cx,cy,cz});Object tile=call(world,"getTileEntity|func_147438_o",cx,cy,cz);
+            call(tile,"setInitialValuesAsNBT",null,(short)com.miaokatze.gtsr.common.api.enums.MetaTileEntityID.CRITICAL_SUN.ID);
+            call(tile,"setOwnerUuid",profile.getId());call(tile,"setOwnerName",profile.getName());
+            call(tile,"setFrontFacing",state.getControllerFacing(false));paid.set(all.indexOf(controller));
+            float unclaimedGtHardness=hardness(gt,world,cx,cy,cz);
+            check(checks,unclaimedGtHardness>0F,"Native GT controller has ordinary hardness before claim");
+            int mx=state.blockWorldX(material),my=state.blockWorldY(material.y),mz=state.blockWorldZ(material);
+            block(world,mx,my,mz,material.block,material.metadata);placed.add(new int[]{mx,my,mz});paid.set(all.indexOf(material));
+            check(checks,data.acquire(state.getStructureId(),"protection216",state.getOriginX(),state.getOriginY(),state.getOriginZ(),
+                state.getRegionSize(),state.getRegionHeight(),state.xCoord,state.yCoord,state.zCoord),"Native exact protection region acquired");
+            check(checks,data.bindTask(state.getStructureId(),"protection216",state.getJobId(),state.getOriginX(),state.getOriginY(),state.getOriginZ()),
+                "Native exact protection job bound");call(data,"updateProtection",state);
+            check(checks,hardness(gt,world,cx,cy,cz)==-1F&&hardness(material.block,world,mx,my,mz)==-1F,
+                "Native paid main controller and material hardness -1");
+            call(gt,"onBlockHarvested|func_149681_a",world,cx,cy,cz,0,player);
+            check(checks,!(Boolean)call(gt,"removedByPlayer",world,player,cx,cy,cz,true)
+                &&!(Boolean)call(gt,"removedByPlayer",world,player,cx,cy,cz,false)
+                &&call(world,"getTileEntity|func_147438_o",cx,cy,cz)==tile,"Native GT pre-harvest and both removal modes retain controller tile");
+            check(checks,!(Boolean)call(material.block,"removedByPlayer",world,player,mx,my,mz,true)
+                &&!(Boolean)call(material.block,"removedByPlayer",world,player,mx,my,mz),"Native both Forge material removal overloads refuse paid cell");
+            net.minecraft.item.ItemStack gtTool=gregtech.api.enums.ItemList.Tool_Vajra.get(1);
+            net.minecraft.item.Item graviItem=(net.minecraft.item.Item)field(Class.forName("gravisuite.GraviSuite"),"vajra");
+            net.minecraft.item.ItemStack graviTool=new net.minecraft.item.ItemStack(graviItem);
+            NBTTagCompound toolNbt=new NBTTagCompound();call(toolNbt,"setInteger|func_74768_a","toolMode",1);
+            call(graviTool,"setTagCompound|func_77982_d",toolNbt);
+            check(checks,Arrays.stream(graviItem.getClass().getDeclaredMethods()).anyMatch(method->method.getName().contains("gravisuiteneo$checkHardness")),
+                "Native GraviSuite item has the actual Neo hardness transform");
+            int ux=state.blockWorldX(manual),uy=state.blockWorldY(manual.y),uz=state.blockWorldZ(manual);
+            int gx=cx+3,gy=cy,gz=cz;
+            for(net.minecraft.item.ItemStack tool:new net.minecraft.item.ItemStack[]{gtTool,graviTool}) {
+                String name=tool.getItem().getClass().getName();
+                ic2.api.item.ElectricItem.manager.charge(tool,Double.MAX_VALUE,Integer.MAX_VALUE,true,false);
+                check(checks,ic2.api.item.ElectricItem.manager.canUse(tool,10000),"Native actual Vajra is charged: "+name);
+                call(player,"setCurrentItemOrArmor|func_70062_b",0,tool);
+                int before=world.loadedEntityList.size();
+                call(tool.getItem(),"onItemUse|func_77648_a",tool,player,world,cx,cy,cz,1,.5F,.5F,.5F);
+                call(tool.getItem(),"onItemUse|func_77648_a",tool,player,world,mx,my,mz,1,.5F,.5F,.5F);
+                check(checks,at(world,cx,cy,cz)==gt&&call(world,"getTileEntity|func_147438_o",cx,cy,cz)==tile
+                    &&at(world,mx,my,mz)==material.block&&world.loadedEntityList.size()==before,
+                    "Native actual Vajra preserves paid controller/material and creates no drops: "+name);
+                block(world,ux,uy,uz,material.block,material.metadata);placed.add(new int[]{ux,uy,uz});
+                check(checks,hardness(material.block,world,ux,uy,uz)==5F&&!CriticalBlockProtection.protects(world,ux,uy,uz),
+                    "Native unpaid manual material inside claimed region keeps hardness5: "+name);
+                call(tool.getItem(),"onItemUse|func_77648_a",tool,player,world,ux,uy,uz,1,.5F,.5F,.5F);
+                check(checks,(Boolean)call(world,"isAirBlock|func_147437_c",ux,uy,uz),"Native same Vajra still removes manual material: "+name);
+                block(world,gx,gy,gz,gt,0);placed.add(new int[]{gx,gy,gz});Object manualTile=call(world,"getTileEntity|func_147438_o",gx,gy,gz);
+                call(manualTile,"setInitialValuesAsNBT",null,(short)com.miaokatze.gtsr.common.api.enums.MetaTileEntityID.CRITICAL_SUN.ID);
+                call(manualTile,"setOwnerUuid",profile.getId());call(manualTile,"setOwnerName",profile.getName());
+                call(manualTile,"setFrontFacing",state.getControllerFacing(false));
+                check(checks,hardness(gt,world,gx,gy,gz)==unclaimedGtHardness&&!CriticalBlockProtection.protects(world,gx,gy,gz)
+                    &&(Boolean)call(gt,"removedByPlayer",world,player,gx,gy,gz,true),"Native manual GT controller permits deferred player removal: "+name);
+                call(tool.getItem(),"onItemUse|func_77648_a",tool,player,world,gx,gy,gz,1,.5F,.5F,.5F);
+                check(checks,(Boolean)call(world,"isAirBlock|func_147437_c",gx,gy,gz),"Native same Vajra still removes manual GT controller: "+name);
+            }
+            check(checks,(Boolean)call(world,"setBlockToAir|func_147468_f",mx,my,mz),"Native internal teardown still removes paid material");
+            check(checks,(Boolean)call(world,"setBlockToAir|func_147468_f",cx,cy,cz),"Native internal teardown still removes paid controller");
+        } catch(Exception|Error problem) {
+            failure=problem;throw problem;
+        } finally {
+            try {
+                call(player,"setCurrentItemOrArmor|func_70062_b",0,oldHeld);call(player,"setSneaking|func_70095_a",oldSneaking);
+                for(int[] position:placed)call(world,"setBlockToAir|func_147468_f",position[0],position[1],position[2]);
+                data.release(state.getStructureId());
+            } catch(Exception|Error cleanup) {
+                if(failure==null)throw cleanup;
+                failure.addSuppressed(cleanup);
+            }
+        }
+        return checks;
+    }
+
     /** The caller owns lifecycle/receipt capture and should merge returned rows into its own receipt. */
     @SuppressWarnings("unchecked")
     public static JsonArray run(WorldServer world)throws Exception {
@@ -75,7 +269,7 @@ public final class CriticalProtectionNativeProbe {
             for(int kind=0;kind<3;kind++)for(CriticalGeometry.Voxel v:all) {
                 if(CriticalLoomStructure.isLoomVoxel(v)||controller(v)||!(v.block instanceof CriticalMaterials.MaterialBlock))continue;
                 CriticalMaterials.MaterialBlock b=(CriticalMaterials.MaterialBlock)v.block;
-                if(kind==0&&!b.transparent&&!b.proxy||kind==1&&b.transparent||kind==2&&b.proxy){cells.add(v);break;}
+                if(kind==0&&!b.transparent&&!b.animated||kind==1&&b.transparent||kind==2&&b.animated){cells.add(v);break;}
             }
             CriticalGeometry.Voxel controller=null;
             for(CriticalGeometry.Voxel v:all)if(v.material.equals("v2_main_controller")||v.group.equals("main_controller")) {controller=v;break;}

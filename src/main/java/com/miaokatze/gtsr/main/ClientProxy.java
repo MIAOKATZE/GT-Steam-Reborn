@@ -42,6 +42,12 @@ public class ClientProxy extends CommonProxy {
         com.miaokatze.gtsr.client.machinevisual.MachineVisualClient.receive(snapshot);
     }
 
+    @Override
+    public void receiveCriticalDamageHighlights(com.miaokatze.gtsr.common.critical.CriticalDamageHighlights.Frame frame,
+        Object connection) {
+        com.miaokatze.gtsr.client.critical.CriticalDamageHighlightClient.receive(frame, connection);
+    }
+
     /**
      * 初始化阶段 (Init)
      * 在此阶段注册客户端特定的事件处理器，如 HUD 渲染器。
@@ -51,6 +57,7 @@ public class ClientProxy extends CommonProxy {
         // 调用父类的 init 方法，确保通用逻辑正常执行
         super.init(event);
         com.miaokatze.gtsr.client.machinevisual.MachineVisualClient.register();
+        com.miaokatze.gtsr.client.critical.CriticalDamageHighlightClient.register();
         com.miaokatze.gtsr.client.workeffects.WorkEffectRenderer.listen();
         FMLCommonHandler.instance()
             .bus()

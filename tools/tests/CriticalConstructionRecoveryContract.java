@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 import java.util.BitSet;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Map;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.PlayerCapabilities;
 import net.minecraft.nbt.NBTTagCompound;
@@ -20,6 +21,7 @@ public final class CriticalConstructionRecoveryContract {
         Field f = type.getDeclaredField(name); f.setAccessible(true); return f;
     }
     private static int failures;
+    private static boolean repairCatalogSeeded;
     private static java.util.Set<String> selectedScenarios = java.util.Collections.emptySet();
     private static void scenario(String name, Run run) throws Exception {
         if (!selectedScenarios.isEmpty() && !selectedScenarios.contains(name)) return;
@@ -33,8 +35,9 @@ public final class CriticalConstructionRecoveryContract {
         final Player player;
         final MTECriticalMachine machine;
         Fixture() throws Exception { this(CriticalMachineKind.SUN); }
-        Fixture(CriticalMachineKind kind) throws Exception {
-            world = world(); state = state(world, 31, ForgeDirection.NORTH);
+        Fixture(CriticalMachineKind kind) throws Exception { this(kind, 31); }
+        Fixture(CriticalMachineKind kind, int revision) throws Exception {
+            world = world(); state = state(world, revision, ForgeDirection.NORTH);
             if (kind != CriticalMachineKind.SUN) {
                 set(state, "config", new CriticalConfiguration(CriticalTier.T3, kind, 0, 0, 0));
                 set(state, "geometryCache", null); geometry(state); set(state, "jobFingerprint", field(state, "modelFingerprint"));
@@ -51,11 +54,14 @@ public final class CriticalConstructionRecoveryContract {
             member(MTECriticalMachine.class, "loomStructureValid").setBoolean(machine, true);
             member(MTECriticalMachine.class, "loomGeometryValid").setBoolean(machine, true);
             member(MTECriticalMachine.class, "loomValidationTick").setLong(machine, 0);
-            CriticalWorldData data = CriticalWorldData.get(world);
-            check(data.acquire(state.getStructureId(), "", state.getOriginX(), state.getOriginY(), state.getOriginZ(), state.getRegionSize(), state.getRegionHeight(), state.xCoord, state.yCoord, state.zCoord), "Acquire fixture region");
-            check(data.bindTask(state.getStructureId(), "", state.getJobId(), state.getOriginX(), state.getOriginY(), state.getOriginZ()), "Bind fixture journal");
             player = (Player) unsafe.allocateInstance(Player.class); player.capabilities = new PlayerCapabilities();
             player.posX = state.xCoord + .5; player.posY = state.yCoord + .5; player.posZ = state.zCoord + .5;
+            player.worldObj = world; world.playerEntities.add(player);
+            String owner = player.getUniqueID().toString(); set(state, "owner", owner);
+            host.setOwnerUuid(player.getUniqueID());
+            CriticalWorldData data = CriticalWorldData.get(world);
+            check(data.acquire(state.getStructureId(), owner, state.getOriginX(), state.getOriginY(), state.getOriginZ(), state.getRegionSize(), state.getRegionHeight(), state.xCoord, state.yCoord, state.zCoord), "Acquire fixture region");
+            check(data.bindTask(state.getStructureId(), owner, state.getJobId(), state.getOriginX(), state.getOriginY(), state.getOriginZ()), "Bind fixture journal");
             set(state, "state", 1); set(state, "foundationRequired", true); set(state, "debugIgnoreEnergy", true);
             set(state, "debugRequirements", 3);
         }
@@ -64,13 +70,72 @@ public final class CriticalConstructionRecoveryContract {
         net.minecraft.tileentity.TileEntity host = f.state.getHost(); fill(f.state);
         f.world.tiles.put(key(host.xCoord, host.yCoord, host.zCoord), host);
         for (net.minecraft.tileentity.TileEntity tile : f.world.tiles.values())
-            if (tile != host && tile instanceof BaseMetaTileEntity gt && gt.getMetaTileEntity() instanceof MTECriticalMachine main) {
+            if (tile != host && tile instanceof BaseMetaTileEntity gt && gt.getMetaTileEntity() instanceof MTECriticalMachine) {
+                MTECriticalMachine main = new MTECriticalMachine("recovery_fixture_main", f.state.getKind());
+                member(MetaTileEntity.class, "mBaseMetaTileEntity").set(main, gt); gt.setMetaTileEntity(main);
                 CriticalMachineState local = new CriticalMachineState(); local.setLoomOwnedMain(f.state);
                 member(MTECriticalMachine.class, "state").set(main, local);
             }
         set(f.state, "state", 2); set(f.state, "structureValid", true);
         monitor(f.state).primeConstruction(geometry(f.state).size() + CriticalGeometry.optionalWorkPorts(f.state).size());
     }
+    private static void repairCatalog() throws Exception {
+        if (repairCatalogSeeded) return;
+        net.minecraft.item.ItemStack turbine = com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalTurbine.get(1);
+        java.lang.reflect.Method add = net.minecraft.item.Item.itemRegistry.getClass()
+            .getDeclaredMethod("addObjectRaw", int.class, String.class, Object.class);
+        add.setAccessible(true);
+        int id = 31010;
+        for (String name : new String[] { "EQUIPMENT", "CONTROLLER", "SINGULARITY" })
+            add.invoke(net.minecraft.item.Item.itemRegistry, id++, "gtsr:repair_" + name.toLowerCase(java.util.Locale.ROOT),
+                member(CriticalConstructionEconomyContract.class, name).get(null));
+        CriticalConstructionEconomyContract.seedSchedule(Collections.emptyMap());
+        com.miaokatze.gtsr.common.api.enums.GTSRItemList.CriticalTurbine.set(turbine);
+        repairCatalogSeeded = true;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static CriticalConstructionEconomy frozenFixture(Fixture f, boolean installed) throws Exception {
+        java.util.List<CriticalGeometry.Voxel> paid = new ArrayList<>(geometry(f.state));
+        paid.removeIf(CriticalLoomStructure::isLoomVoxel);
+        CriticalConstructionEconomy economy = CriticalConstructionEconomy.freeze(f.state.getConfiguration(), paid,
+            CriticalLayoutDefinition.forState(f.state).cacheKey());
+        CriticalConstructionLedger ledger = (CriticalConstructionLedger) field(f.state, "constructionLedger");
+        ledger.freezeJob(economy);
+        // This fixture begins with a genuinely paid/installed journal, rather than claiming manual lookalikes.
+        if (installed) ledger.recordRoundPayment(economy.costs(paid, 0, paid.size()), new net.minecraftforge.fluids.FluidStack[0]);
+        Map<CriticalGeometry.Voxel, Integer> indices = (Map<CriticalGeometry.Voxel, Integer>) field(f.state, "voxelIndices");
+        BitSet placed = (BitSet) field(f.state, "placed");
+        if (installed) for (CriticalGeometry.Voxel voxel : paid) {
+            ledger.markPhysicalInstalled(voxel);
+            placed.set(indices.get(voxel));
+        }
+        ledger.resetStage();
+        set(f.state, "geometryCache", null); geometry(f.state);
+        CriticalWorldData.get(f.world).updateProtection(f.state);
+        return economy;
+    }
+
+    private static NBTTagCompound save(CriticalMachineState state) {
+        NBTTagCompound saved = new NBTTagCompound(); state.writeToNBT(saved); return saved;
+    }
+
+    private static long balance(CriticalMachineState state, String column) {
+        net.minecraft.nbt.NBTTagList rows = save(state).getTagList("constructionPhysicalBalances", 10);
+        long total = 0;
+        for (int i = 0; i < rows.tagCount(); i++) total += rows.getCompoundTagAt(i).getLong(column);
+        return total;
+    }
+
+    private static void remove(Fixture f, CriticalGeometry.Voxel voxel) {
+        int x = f.state.blockWorldX(voxel), y = f.state.blockWorldY(voxel.y), z = f.state.blockWorldZ(voxel);
+        net.minecraft.block.Block block = f.world.getBlock(x, y, z); int metadata = f.world.getBlockMetadata(x, y, z);
+        f.world.setBlockToAir(x, y, z);
+        // SparseWorld replaces only world storage; execute the production post-replacement notification unchanged.
+        CriticalBlockProtection.recordRemoval(f.world, x, y, z, block, metadata);
+    }
+
+    private static void update(Fixture f) { f.world.totalWorldTime++; f.state.updateEntity(); }
     public static void main(String[] args) throws Exception {
         if (args.length > 1) selectedScenarios = new java.util.HashSet<>(java.util.Arrays.asList(args[1].split(",")));
         Thread.currentThread().setName("Server thread");
@@ -80,6 +145,32 @@ public final class CriticalConstructionRecoveryContract {
         member(cpw.mods.fml.relauncher.FMLRelaunchLog.class, "side").set(null, cpw.mods.fml.relauncher.Side.SERVER);
         materials();
         CriticalRC2StateContract.seedCatalog();
+        scenario("repair-scan-checkpoint", () -> {
+            Fixture f = new Fixture(); ready(f);
+            check(f.state.repairStructure(f.player), "Public repair starts a full missing-position scan");
+            f.world.totalWorldTime++;
+            f.state.updateEntity();
+            NBTTagCompound checkpoint = new NBTTagCompound(); f.state.writeToNBT(checkpoint);
+            int first = checkpoint.getInteger("repairScanCursor");
+            check(f.state.getState() == 4 && checkpoint.getBoolean("repairScanPending") && first > 0 && first <= 1024,
+                "One server tick performs one bounded repair scan window, not an entire structure; scanned=" + first);
+            check(f.state.getRepairPhase() == 1 && f.state.getRepairScanProgress() == first
+                && f.state.getRepairScanTotal() == geometry(f.state).size(), "Public scan sample reports the actual persisted work");
+            String job = f.state.getJobId();
+            f.state.readFromNBT(checkpoint);
+            f.world.totalWorldTime++;
+            f.state.updateEntity();
+            NBTTagCompound resumed = new NBTTagCompound(); f.state.writeToNBT(resumed);
+            int second = resumed.getInteger("repairScanCursor");
+            check(second > first && second - first <= 1024 && f.state.getJobId().equals(job),
+                "Reload continues the same bounded repair scan and job identity");
+            f.world.loaded = false; f.world.totalWorldTime++;
+            f.state.updateEntity();
+            NBTTagCompound waiting = new NBTTagCompound(); f.state.writeToNBT(waiting);
+            check(waiting.getInteger("repairScanCursor") == second && waiting.getBoolean("repairScanPending"),
+                "Unloaded chunks pause the real scan without restarting or assuming missing positions");
+            f.world.loaded = true;
+        });
         scenario("force-stop-teardown", () -> {
             Fixture f = new Fixture();
             check(f.state.setEnabled(f.player, false), "Public force stop accepted during foundation work");
@@ -223,6 +314,172 @@ public final class CriticalConstructionRecoveryContract {
             NBTTagCompound saved = new NBTTagCompound(); f.state.writeToNBT(saved);
             check(saved.getCompoundTag("criticalBatchRecipe").getBoolean("cancelRefund")
                 && saved.getString("batchId").equals("legacy-overcap"), "Raw-input refund identity survives world NBT");
+        });
+        scenario("repair-replays-frozen-stages", () -> {
+            repairCatalog();
+            Fixture f = new Fixture(CriticalMachineKind.TURBINE);
+            CriticalWorldData data = CriticalWorldData.get(f.world); data.release(f.state.getStructureId());
+            check(data.acquire(f.state.getStructureId(), f.player.getUniqueID().toString(), f.state.getOriginX(),
+                f.state.getOriginY(), f.state.getOriginZ(), f.state.getRegionSize(), f.state.getRegionHeight(),
+                f.state.xCoord, f.state.yCoord, f.state.zCoord), "Owner's real repair region acquired");
+            check(data.bindTask(f.state.getStructureId(), f.player.getUniqueID().toString(), f.state.getJobId(),
+                f.state.getOriginX(), f.state.getOriginY(), f.state.getOriginZ()), "Owner's real repair task bound");
+            ready(f);
+            CriticalConstructionEconomy economy = frozenFixture(f, true);
+            java.util.List<CriticalGeometry.Voxel> voxels = geometry(f.state);
+            CriticalGeometry.Voxel body = voxels.stream().filter(v -> economy.stage(v) == 5
+                && !CriticalStructures.isController(v)).findFirst().orElseThrow();
+            CriticalGeometry.Voxel main = voxels.stream().filter(v -> CriticalStructures.isController(v)
+                && !CriticalLoomStructure.isLoomVoxel(v)).findFirst().orElseThrow();
+            check(economy.stage(main) == 9, "The real frozen controller belongs to the last equipment installation row");
+            f.world.setBlockToAir(f.state.blockWorldX(body), f.state.blockWorldY(body.y), f.state.blockWorldZ(body));
+            f.world.setBlockToAir(f.state.blockWorldX(main), f.state.blockWorldY(main.y), f.state.blockWorldZ(main));
+            check(f.state.repairStructure(f.player), "Missing main controller still accepts repair through its owning loom");
+            String job = f.state.getJobId();
+            for (int tick = 0; tick < 1000 && f.state.getRepairPhase() == 1; tick++) {
+                f.world.totalWorldTime++; f.state.updateEntity();
+            }
+            check(f.state.getRepairPhase() == 2 && ((BitSet) field(f.state, "repairTargets")).cardinality() == 2,
+                "Real scan schedules only the two absent paid positions");
+            // The existing native-controller fixture only replaces World.setBlock's tile-creation boundary.
+            BaseMetaTileEntity mainHost = (BaseMetaTileEntity) unsafe.allocateInstance(
+                Class.forName(CriticalRC2StateContract.class.getName() + "$Host"));
+            member(gregtech.api.metatileentity.BaseTileEntity.class, "mReturnedCoordinates")
+                .set(mainHost, new net.minecraft.util.ChunkCoordinates());
+            mainHost.setWorldObj(f.world); mainHost.xCoord = f.state.blockWorldX(main);
+            mainHost.yCoord = f.state.blockWorldY(main.y); mainHost.zCoord = f.state.blockWorldZ(main);
+            f.world.tiles.put(key(mainHost.xCoord, mainHost.yCoord, mainHost.zCoord), mainHost);
+            set(f.state, "debugSpeed", 3);
+            boolean bodyRestored = false, mainRestored = false, checkpointed = false;
+            int previousStage = f.state.getStage();
+            for (int tick = 0; tick < 500 && f.state.getState() == 4; tick++) {
+                int workingStage = f.state.getStage();
+                f.world.totalWorldTime++; f.state.updateEntity();
+                check(f.state.getStage() >= previousStage && f.state.getJobId().equals(job),
+                    "One repair never resets its original work order or task identity");
+                previousStage = f.state.getStage();
+                if (!bodyRestored && !f.world.isAirBlock(f.state.blockWorldX(body), f.state.blockWorldY(body.y), f.state.blockWorldZ(body))) {
+                    check(workingStage == economy.stage(body) && f.world.isAirBlock(mainHost.xCoord, mainHost.yCoord, mainHost.zCoord),
+                        "Body replacement executes its original stage before the controller installation");
+                    bodyRestored = true;
+                }
+                if (!mainRestored && !f.world.isAirBlock(mainHost.xCoord, mainHost.yCoord, mainHost.zCoord)) {
+                    check(bodyRestored && workingStage == 9 && mainHost.getMetaTileEntity() instanceof MTECriticalMachine restored
+                        && restored.getLocalCriticalState().isLoomOwnedMainOf(f.state),
+                        "Last equipment row creates a real GT controller linked back to the same loom journal");
+                    mainRestored = true;
+                }
+                if (!checkpointed && f.state.getStage() == 5 && f.state.getConstructionElapsedTicks() > 0) {
+                    NBTTagCompound saved = new NBTTagCompound(); f.state.writeToNBT(saved);
+                    int elapsed = f.state.getConstructionElapsedTicks(); f.state.readFromNBT(saved);
+                    check(f.state.getStage() == 5 && f.state.getConstructionElapsedTicks() == elapsed
+                        && f.state.getJobId().equals(job), "Repair reload preserves its frozen row and paid work clock");
+                    checkpointed = true;
+                }
+            }
+            check(bodyRestored && mainRestored && checkpointed && f.state.getState() == 2
+                && f.state.getRepairPhase() == 3 && !f.state.isGeometryValidated(),
+                "Completed replacement enters a real final validation instead of trusting partial repair");
+            for (int tick = 0; tick < 1000 && !f.state.isGeometryValidated(); tick++) {
+                f.world.totalWorldTime++; f.state.updateEntity();
+            }
+            check(f.state.isGeometryValidated() && f.state.getRepairPhase() == 0 && !f.state.hasKnownStructureDamage(),
+                "A complete clean validation leaves repair mode and restores the formed geometry");
+        });
+        scenario("repair-rejects-manual-lookalike", () -> {
+            repairCatalog(); Fixture f = new Fixture(CriticalMachineKind.TURBINE, 33); ready(f);
+            CriticalConstructionEconomy economy = frozenFixture(f, true);
+            CriticalGeometry.Voxel body = geometry(f.state).stream().filter(v -> economy.stage(v) == 5
+                && !CriticalStructures.isController(v)).findFirst().orElseThrow();
+            check(f.state.requestDamageHighlight(f.player) && f.state.isGeometryValidated(),
+                "Diagnostic request preserves the valid machine and production authorization");
+            f.state.tickStructureMonitor();
+            int diagnosticCursor = (Integer) field(monitor(f.state), "cursor");
+            check(monitor(f.state).getLastChecks() <= 1024 && diagnosticCursor > 0
+                && f.state.requestDamageHighlight(f.player) && (Integer) field(monitor(f.state), "cursor") == diagnosticCursor,
+                "Repeated diagnostic requests retain the in-flight bounded scan cursor");
+            long paid = balance(f.state, "paid"), destroyed = balance(f.state, "destroyed");
+            int replacement = 0;
+            for (net.minecraft.item.ItemStack item : economy.bill(body)) replacement += item.stackSize;
+            f.world.setBlockToAir(f.state.blockWorldX(body), f.state.blockWorldY(body.y), f.state.blockWorldZ(body));
+            long observedFingerprint = (Long) field(f.state, "jobFingerprint");
+            check(!CriticalWorldData.get(f.world).isPlacementInvalidated(f.state.getStructureId(), observedFingerprint, body.positionKey()),
+                "External direct-storage removal deliberately bypasses the native removal notification");
+            for (int tick = 0; tick < CriticalStructureMonitor.ROUND_TICKS * 2 && !f.state.hasKnownStructureDamage(); tick++)
+                f.state.tickStructureMonitor();
+            put(f.state, body, body.block);
+            check(!f.state.isGeometryValidated() && f.state.hasKnownStructureDamage(),
+                "Observed hard removal remains invalid when an identical manual block is placed back");
+            check(CriticalWorldData.get(f.world).isPlacementInvalidated(f.state.getStructureId(), observedFingerprint, body.positionKey()),
+                "Real monitor evidence persists lost ownership even without any removal hook");
+            check(balance(f.state, "paid") == paid && balance(f.state, "destroyed") == destroyed + replacement,
+                "Lost original moves installed entitlement to destroyed exactly once without changing paid history");
+            int reads = f.world.unloadedReads; f.world.loaded = false;
+            CriticalMachineState.DamageHighlightSnapshot snapshot = f.state.getDamageHighlightSnapshot();
+            f.world.loaded = true;
+            check(snapshot.knownTotal == 1 && snapshot.positions.length == 3
+                && snapshot.positions[0] == f.state.blockWorldX(body) && snapshot.positions[1] == f.state.blockWorldY(body.y)
+                && snapshot.positions[2] == f.state.blockWorldZ(body) && reads == f.world.unloadedReads,
+                "Cached highlight includes the occupied missing-identity cell without reading any world position");
+            NBTTagCompound checkpoint = save(f.state), regions = new NBTTagCompound();
+            CriticalWorldData.get(f.world).writeToNBT(regions); CriticalWorldData.get(f.world).readFromNBT(regions);
+            f.state.readFromNBT(checkpoint); f.state.bindHost(f.state.getHost());
+            check(f.state.getDamageHighlightSnapshot().knownTotal == 1 && balance(f.state, "destroyed") == destroyed + replacement,
+                "Reload rebuilds persistent damage evidence without double-retiring the original entitlement");
+            check(f.state.repairStructure(f.player), "Owner starts the real repair scan for the occupied invalidated cell");
+            for (int tick = 0; tick < 1000 && !f.state.getStatus().contains("先清空"); tick++) update(f);
+            check(f.state.getState() == 4 && f.state.getStatus().contains("先清空")
+                && balance(f.state, "paid") == paid && !f.state.isConstructionRoundFunded(),
+                "Identical manual occupation is rejected before installation payment and is never swallowed");
+            remove(f, body);
+            CriticalConstructionLedger ledger = (CriticalConstructionLedger) field(f.state, "constructionLedger");
+            ledger.recordRoundPayment(economy.bill(body), new net.minecraftforge.fluids.FluidStack[0]);
+            set(f.state, "debugRequirements", 2); set(f.state, "debugSpeed", 3);
+            for (int tick = 0; tick < 1000 && f.state.getState() == 4; tick++) update(f);
+            long fingerprint = (Long) field(f.state, "jobFingerprint");
+            check(f.state.getState() == 2 && f.world.getBlock(f.state.blockWorldX(body), f.state.blockWorldY(body.y), f.state.blockWorldZ(body)) == body.block
+                && !CriticalWorldData.get(f.world).isPlacementInvalidated(f.state.getStructureId(), fingerprint, body.positionKey()),
+                "Cleared position is restored by actual owned placement before its lost-identity marker clears");
+            check(balance(f.state, "paid") == paid + replacement && balance(f.state, "destroyed") == destroyed + replacement
+                && balance(f.state, "escrow") == 0 && f.state.getDamageHighlightSnapshot().knownTotal == 0,
+                "One replacement allocation installs once, retains the destroyed original, and clears only the repaired marker");
+        });
+        scenario("construction-rejects-never-placed-lookalike", () -> {
+            repairCatalog(); Fixture f = new Fixture(CriticalMachineKind.TURBINE, 33); ready(f);
+            CriticalConstructionEconomy economy = frozenFixture(f, false);
+            java.util.List<CriticalGeometry.Voxel> voxels = geometry(f.state);
+            CriticalGeometry.Voxel body = voxels.stream().filter(v -> economy.stage(v) == 9
+                && !CriticalStructures.isController(v)).findFirst().orElseThrow();
+            for (CriticalGeometry.Voxel voxel : voxels) if (!CriticalLoomStructure.isLoomVoxel(voxel))
+                f.world.setBlockToAir(f.state.blockWorldX(voxel), f.state.blockWorldY(voxel.y), f.state.blockWorldZ(voxel));
+            put(f.state, body, body.block);
+            set(f.state, "state", 1); set(f.state, "foundationRequired", false); set(f.state, "stage", 9);
+            set(f.state, "debugSpeed", 3);
+            check(f.state.setEnabled(f.player, true), "Owner enables the real construction host switch");
+            for (int tick = 0; tick < 10 && f.state.getReasonCode() != 6; tick++) update(f);
+            check(f.state.getReasonCode() == 6 && !((BitSet) field(f.state, "placed")).get(voxels.indexOf(body))
+                && balance(f.state, "paid") == 0 && f.state.getCursor() == 0,
+                "Mid-construction manual lookalike cannot skip owned installation or trigger an installation debit: " + f.state.getStatus());
+        });
+        scenario("legacy-free-hull-repair", () -> {
+            Fixture f = new Fixture(CriticalMachineKind.TURBINE); ready(f);
+            java.util.List<CriticalGeometry.Voxel> hull = CriticalGeometry.supplyHull();
+            java.util.Map<?, ?> indices = (java.util.Map<?, ?>) field(f.state, "protectionIndices");
+            CriticalGeometry.Voxel support = hull.stream().filter(v -> !indices.containsKey(v.positionKey())).findFirst().orElseThrow();
+            ((BitSet) field(f.state, "supplyHullPlaced")).set(hull.indexOf(support));
+            set(f.state, "supplyHullComplete", true); put(f.state, support, support.block);
+            CriticalWorldData.get(f.world).updateProtection(f.state);
+            remove(f, support); put(f.state, support, support.block);
+            check(f.state.repairStructure(f.player), "Legacy free supply hull accepts the same owning-loom repair flow");
+            for (int tick = 0; tick < 1000 && !f.state.getStatus().contains("先清空"); tick++) update(f);
+            check(f.state.getStatus().contains("先清空") && f.state.getDamageHighlightSnapshot().knownTotal == 1,
+                "Legacy identical manual hull occupation remains invalid and is highlighted for clearing");
+            remove(f, support);
+            for (int tick = 0; tick < 1000 && f.state.getState() == 4; tick++) update(f);
+            check(f.state.getState() == 2 && f.world.getBlock(f.state.blockWorldX(support), f.state.blockWorldY(support.y), f.state.blockWorldZ(support)) == support.block
+                && f.state.getDamageHighlightSnapshot().knownTotal == 0 && save(f.state).getByteArray("placed").length == 0
+                && !((CriticalConstructionLedger) field(f.state, "constructionLedger")).hasSpentItems(),
+                "Existing free hull installer restores only the empty legacy casing without adding paid placements or salvage entitlement");
         });
         if (failures != 0) throw new AssertionError("Recovery scenarios failed=" + failures);
         System.out.println("PASS CriticalConstructionRecoveryContract checks=" + checks);
