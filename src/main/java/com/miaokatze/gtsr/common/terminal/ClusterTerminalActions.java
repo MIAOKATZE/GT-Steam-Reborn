@@ -45,5 +45,8 @@ public enum ClusterTerminalActions {
     /**
      * 清空分物品统计三账本（S2b 尾追；空 payload）。服务端 terminalValid 复核通过后清空 statInput/statOutput/statBonus 并 markDirty 落盘，复核失败静默拒绝。
      */
-    CLEAR_STATS
+    CLEAR_STATS,
+
+    /** 切换选中物流模块的原生批处理模式（尾追，空 payload）。 */
+    TOGGLE_BATCH_MODE
 }

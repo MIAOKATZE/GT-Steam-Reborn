@@ -36,9 +36,9 @@ final class ClusterPerformanceModel {
         else {
             DetailFrame frame = parseDetail(snapshot.getFDetail(""));
             List<List<PerfRow>> next = new ArrayList<>(rows);
-            if ((mask & 0xA9F8003A) != 0) next.set(0, buildSummaryLines(frame));
-            if ((mask & 0x3FF8000C) != 0) next.set(1, buildSteamDetailLines(frame));
-            if ((mask & 0x9E100000) != 0) next.set(2, buildChainsBoostLines());
+            if ((mask & 0xA9F8203A) != 0) next.set(0, buildSummaryLines(frame));
+            if ((mask & 0x3FF8200C) != 0) next.set(1, buildSteamDetailLines(frame));
+            if ((mask & 0x9E102000) != 0) next.set(2, buildChainsBoostLines());
             rows = next;
         }
     }
@@ -80,7 +80,10 @@ final class ClusterPerformanceModel {
 
     static List<String> tipLines(PerfRow row) {
         List<String> out = new ArrayList<>();
-        Collections.addAll(out, tr(row.tipKey).split("\\n"));
+        Collections.addAll(
+            out,
+            tr(row.tipKey).replace("\\n", "\n")
+                .split("\n"));
         if (row.tipExtra != null) out.addAll(row.tipExtra);
         return out;
     }
@@ -178,6 +181,22 @@ final class ClusterPerformanceModel {
         appendEntry(out, buildTimeEntry(frame, timeRaw, sum8), "gtsr.terminal.perf.tip.time", null);
         appendEntry(out, buildParEntry(parRaw, sum8), "gtsr.terminal.perf.tip.parallel", null);
         appendEntry(out, buildThruEntry(timeRaw, parRaw, thruRaw), "gtsr.terminal.perf.tip.thru", null);
+        int lastParallel = snapshot.selectedUnitField(2, 0);
+        int lastSize = snapshot.selectedUnitField(3, 0);
+        int rounds = snapshot.selectedUnitField(4, 0);
+        out.add(
+            plainTip(
+                kvLine(
+                    "gtsr.cluster.mui2.batch.amount",
+                    lastParallel > 0 ? GtsrNumFormat.grouped(lastSize) + " / " + GtsrNumFormat.grouped(lastParallel)
+                        : "--"),
+                "gtsr.cluster.mui2.batch.tip"));
+        out.add(
+            plain(
+                kvLine(
+                    "gtsr.cluster.mui2.batch.time_multiplier",
+                    lastParallel > 0 ? "×" + f2((double) lastSize / lastParallel) : "--")));
+        out.add(plain(kvLine("gtsr.cluster.mui2.batch.charged_rounds", rounds > 0 ? String.valueOf(rounds) : "--")));
         // 实际加权公式：标签 + 结构化公式行（KEY_F_FORMULA 令牌串 → S 分步/M §8 附注小字/R 结果；
         // legacy 无 | 串单行 §a 直显；解析空表仅留标签行；small 透传 → wrapRows 按 0.6f cap 折行）
         out.add(
@@ -273,7 +292,7 @@ final class ClusterPerformanceModel {
     /** 并行数词条（PAR）：物流基数[集群档] + Σ并行增幅（基数 = KEY_F_PAR − KEY_BO_SUM 并行位）。 */
     private EntryRow buildParEntry(int parRaw, int[] sum8) {
         EntryRow entry = new EntryRow(KEY_PAR);
-        entry.text = kvLine("gtsr.cluster.gui.link.perf.parallel", String.valueOf(parRaw) + " 矿/批");
+        entry.text = kvLine("gtsr.cluster.gui.link.perf.parallel", String.valueOf(parRaw) + " 矿/轮");
         entry.expansion.add(derivHead(tr("gtsr.cluster.gui.link.perf.parallel")));
         entry.expansion.add(EnumChatFormatting.YELLOW + "并行 = 物流基数[集群档] + Σ并行增幅");
         int bonus = sum8[1];
@@ -281,7 +300,7 @@ final class ClusterPerformanceModel {
         int baseIdx = matchIdx(ClusterParams.LOGISTICS_BASE_PARALLEL, base);
         String baseTxt = String.valueOf(base) + (baseIdx >= 0 ? "（" + tierNameByIdx(baseIdx) + "档）" : "");
         entry.expansion.add(EnumChatFormatting.WHITE + "= " + baseTxt + " + " + bonus + "（并行增幅）");
-        entry.expansion.add(EnumChatFormatting.GREEN + "= " + parRaw + " 矿/批");
+        entry.expansion.add(EnumChatFormatting.GREEN + "= " + parRaw + " 矿/轮");
         entry.expansion
             .add(EnumChatFormatting.DARK_GRAY + "物流基数四档：" + joinTable(ClusterParams.LOGISTICS_BASE_PARALLEL));
         return entry;
@@ -338,7 +357,7 @@ final class ClusterPerformanceModel {
 
     /**
      * 蒸汽口径三行（总蒸汽耗=加权全链口径 / 链蒸汽耗 ▶ / 结算蒸汽 ▶）+ 集群详情词条：
-     * 润滑两段 ▶、最近成功批记账流体（FLUID:i）、五增幅液行 ▶（单价 L/矿 · 本批 L/批 · 徽章）。
+     * 润滑两段 ▶、最近成功批记账流体（FLUID:i）、五增幅液行 ▶（单价 L/轮 · 本批 L/批 · 徽章）。
      */
     private List<PerfRow> buildSteamDetailLines(DetailFrame frame) {
         List<PerfRow> out = new ArrayList<>();
@@ -507,9 +526,9 @@ final class ClusterPerformanceModel {
     }
 
     /**
-     * 五增幅液词条（BOOSTTYPE:o，v1.20.16 L/矿 新口径）：正文 = 单价 L/矿 · 本批 L/批 +
+     * 五增幅液词条（BOOSTTYPE:o，v1.20.16 L/轮 新口径）：正文 = 单价 L/轮 · 本批 L/批 +
      * 徽章（生效绿 / 失效红〔KEY_BO_LIVE 可用位〕/ 未安装灰）；已安装展开 = 单价推导
-     * （基础表×施压×协同÷10）+ 本批推导（单价×KEY_F_PAR）；未安装展开 = 四档单价表。
+     * （基础表×施压×协同÷10）+ 参考批耗（当前单价×服务端计费轮数）；未安装展开 = 四档单价表。
      */
     private EntryRow buildBoosterTypeEntry(DetailFrame frame, int typeOrdinal, List<int[]> costs) {
         ClusterParams.BoosterType type = boosterType(typeOrdinal);
@@ -525,7 +544,7 @@ final class ClusterPerformanceModel {
             if (cost.length >= 5 && cost[4] == typeOrdinal) typeCosts.add(cost);
         }
         boolean installed = typedX100 > 0 || !typeCosts.isEmpty();
-        int par = snapshot.getInt(ClusterTerminalData.KEY_F_PAR, 0);
+        int rounds = snapshot.selectedUnitField(4, 0);
         int synergy = synergyPct(type);
         if (!installed) {
             entry.text = EnumChatFormatting.YELLOW + fluid
@@ -543,8 +562,13 @@ final class ClusterPerformanceModel {
             for (int tier = 0; tier < ClusterParams.TIER_COUNT; tier++) {
                 int price = ClusterParams.amplifierFluidLps(type, tier);
                 entry.expansion.add(
-                    EnumChatFormatting.WHITE + tierNameByIdx(
-                        tier) + "：基础 " + GtsrNumFormat.grouped(price * 10L) + " L/秒 → 单价 " + price + " L/矿");
+                    EnumChatFormatting.WHITE + tierNameByIdx(tier)
+                        + "：基础 "
+                        + GtsrNumFormat.grouped(price * 10L)
+                        + " L/秒 → 单价 "
+                        + price
+                        + " "
+                        + tr("gtsr.cluster.mui2.liters_per_round"));
             }
             entry.expansion.add(EnumChatFormatting.DARK_GRAY + "施压/协同：×(1+Σ施压%)×(1+(同种台数-1)×" + synergy + "%)");
             entry.expansion.add(
@@ -564,15 +588,20 @@ final class ClusterPerformanceModel {
         }
         String priceTxt = typedX100 > 0 ? fmtX100(typedX100)
             : (typeCosts.isEmpty() ? "--" : rateText(sumPriceX10(typeCosts)));
-        String batchTxt = typedX100 > 0 ? fmtBatchX100(typedX100, par)
-            : (typeCosts.isEmpty() ? "--" : fmtBatchX10(sumPriceX10(typeCosts), par));
+        String batchTxt = rounds < 1 ? "--"
+            : typedX100 > 0 ? fmtBatchX100(typedX100, rounds)
+                : (typeCosts.isEmpty() ? "--" : fmtBatchX10(sumPriceX10(typeCosts), rounds));
         entry.text = EnumChatFormatting.YELLOW + fluid
             + "（"
             + typeLabel
             + "）："
             + EnumChatFormatting.GREEN
             + priceTxt
-            + " L/矿 · 本批 "
+            + " "
+            + tr("gtsr.cluster.mui2.liters_per_round")
+            + " · "
+            + tr("gtsr.cluster.mui2.batch.estimate")
+            + " "
             + batchTxt
             + " L"
             + (failing ? EnumChatFormatting.RED + " [" + tr("gtsr.terminal.perf.boost.off") + "]"
@@ -609,7 +638,8 @@ final class ClusterPerformanceModel {
                     + " × "
                     + f2(1 + (formedCount - 1) * synergy / 100.0D)
                     + " ÷ 10");
-            entry.expansion.add(EnumChatFormatting.GREEN + "= " + rateText(cost[0]) + " L/矿");
+            entry.expansion.add(
+                EnumChatFormatting.GREEN + "= " + rateText(cost[0]) + " " + tr("gtsr.cluster.mui2.liters_per_round"));
         } else {
             int unitNo = 1;
             for (int[] cost : typeCosts) {
@@ -618,7 +648,9 @@ final class ClusterPerformanceModel {
                         + (unitNo++)
                         + " "
                         + rateText(cost[0])
-                        + " L/矿（"
+                        + " "
+                        + tr("gtsr.cluster.mui2.liters_per_round")
+                        + "（"
                         + tierLabel(cost[3])
                         + "档 · 施压 +"
                         + surchargeSum(cost)
@@ -627,8 +659,16 @@ final class ClusterPerformanceModel {
         }
         // 推导：本批消耗
         entry.expansion.add(derivHead("本批消耗"));
-        entry.expansion.add(EnumChatFormatting.YELLOW + "本批 = 单价 × 本批实际矿数（开批时一次扣除）");
-        entry.expansion.add(EnumChatFormatting.WHITE + "= " + priceTxt + " L/矿 × " + par + " 矿");
+        entry.expansion.add(EnumChatFormatting.YELLOW + tr("gtsr.cluster.mui2.batch.estimate_formula"));
+        entry.expansion.add(
+            EnumChatFormatting.WHITE + "= "
+                + priceTxt
+                + " "
+                + tr("gtsr.cluster.mui2.liters_per_round")
+                + " × "
+                + rounds
+                + " "
+                + tr("gtsr.cluster.mui2.batch.rounds_unit"));
         entry.expansion.add(EnumChatFormatting.GREEN + "= " + batchTxt + " L/批");
         entry.expansion.add(
             EnumChatFormatting.DARK_GRAY + "施压：速度/并行模块按档 +5/10/30/40% · 协同：同种第 2 台起 +"
@@ -753,7 +793,7 @@ final class ClusterPerformanceModel {
 
     /**
      * 链路概览四行（条/步单位对齐模拟稿）+ 增幅汇总（状态行 生效 x · 失效 y 数据源 KEY_BO_SUM
-     * 首行置顶 + 五合计行 + 蒸汽乘子 ▶）+ 增幅实耗逐增幅器行 #n = 单价×本批矿数 L/批 ▶。
+     * 首行置顶 + 五合计行 + 蒸汽乘子 ▶）+ 逐增幅器参考批耗 #n = 当前单价×计费轮数。
      */
     private List<PerfRow> buildChainsBoostLines() {
         List<PerfRow> out = new ArrayList<>();
@@ -819,12 +859,12 @@ final class ClusterPerformanceModel {
         appendEntry(out, buildMultEntry(sum8), "gtsr.terminal.perf.tip.sum_mult", null);
         out.add(plain(groupHeader("gtsr.terminal.perf.group.boostcost")));
         List<int[]> costs = costRows();
-        int par = snapshot.getInt(ClusterTerminalData.KEY_F_PAR, 0);
+        int rounds = snapshot.selectedUnitField(4, 0);
         for (int i = 0; i < costs.size(); i++) {
             int[] cost = costs.get(i);
             String name = cost.length >= 5 ? tr(boosterType(cost[4]).getFluidLangKey()) + "·" + shortTypeLabel(cost[4])
                 : "--";
-            String batchTxt = fmtBatchX10(Math.max(0, cost[0]), par);
+            String batchTxt = rounds > 0 ? fmtBatchX10(Math.max(0, cost[0]), rounds) : "--";
             EntryRow entry = new EntryRow(KEY_COST_PREFIX + i);
             entry.text = EnumChatFormatting.WHITE + "#"
                 + (i + 1)
@@ -835,12 +875,19 @@ final class ClusterPerformanceModel {
                 + EnumChatFormatting.GREEN
                 + batchTxt
                 + " L/批";
-            entry.expansion.add(derivHead("#" + (i + 1) + " " + name + " 实耗"));
-            entry.expansion.add(EnumChatFormatting.YELLOW + "实耗 = 单价 × 本批实际矿数");
-            entry.expansion
-                .add(EnumChatFormatting.WHITE + "= " + rateText(Math.max(0, cost[0])) + " L/矿 × " + par + " 矿");
+            entry.expansion.add(derivHead("#" + (i + 1) + " " + name + " 参考批耗"));
+            entry.expansion.add(EnumChatFormatting.YELLOW + tr("gtsr.cluster.mui2.batch.estimate_formula"));
+            entry.expansion.add(
+                EnumChatFormatting.WHITE + "= "
+                    + rateText(Math.max(0, cost[0]))
+                    + " "
+                    + tr("gtsr.cluster.mui2.liters_per_round")
+                    + " × "
+                    + rounds
+                    + " "
+                    + tr("gtsr.cluster.mui2.batch.rounds_unit"));
             entry.expansion.add(EnumChatFormatting.GREEN + "= " + batchTxt + " L/批");
-            entry.expansion.add(EnumChatFormatting.DARK_GRAY + "开批一次扣除 · 批越小扣越少（按秒口径退役）");
+            entry.expansion.add(EnumChatFormatting.DARK_GRAY + tr("gtsr.cluster.mui2.batch.rounds_rule"));
             String formula = costFormulaText(cost);
             appendEntry(out, entry, "gtsr.terminal.perf.tip.cost", formula.isEmpty() ? null : formula);
         }
@@ -1010,22 +1057,22 @@ final class ClusterPerformanceModel {
         return String.format("%.1f", priceX10 / 10.0D);
     }
 
-    /** 本批实耗文本：单价×10 × 矿数 → L/批（÷10 无损则整数，否则一位小数）。 */
-    private static String fmtBatchX10(int priceX10, int par) {
-        long v = (long) priceX10 * par;
+    /** 当前单价×10 × 服务端计费轮数 → 参考批耗（整数或一位小数）。 */
+    private static String fmtBatchX10(int priceX10, int chargedRounds) {
+        long v = (long) priceX10 * chargedRounds;
         return v % 10 == 0 ? GtsrNumFormat.grouped(v / 10) : String.format("%.1f", v / 10.0D);
     }
 
-    /** 本批实耗文本（×100 定点单价合计版）：typedX100 × 矿数 → L/批。 */
-    private static String fmtBatchX100(int priceX100, int par) {
-        long v = (long) priceX100 * par;
+    /** 当前同型单价合计×100 × 服务端计费轮数 → 参考批耗。 */
+    private static String fmtBatchX100(int priceX100, int chargedRounds) {
+        long v = (long) priceX100 * chargedRounds;
         return v % 100 == 0 ? GtsrNumFormat.grouped(v / 100) : f2(v / 100.0D);
     }
 
     /**
-     * 实耗公式串（tooltip 附加行，代入实值，v1.20.16 L/矿 口径）：
-     * {@code 基础 50 × (1 + 10%[速度 钢] + 5%[并行 青铜]) = 57.5 L/矿}；无联动加成时显示
-     * {@code 基础 N × (1) = N L/矿}；无实耗数据（基础值 ≤ 0）返回空串不出 tooltip。
+     * 每计费轮单价公式串（tooltip 附加行；v2.1.5 并行波次口径）：
+     * {@code 基础 50 × (1 + 10%[速度 钢] + 5%[并行 青铜]) = 57.5 L/轮}；无联动加成时显示
+     * {@code 基础 N × (1) = N L/轮}；无实耗数据（基础值 ≤ 0）返回空串不出 tooltip。
      */
     static String costFormulaText(int[] cost) {
         if (cost == null || cost.length < 2 || cost[1] <= 0) return "";
@@ -1047,7 +1094,8 @@ final class ClusterPerformanceModel {
         }
         sb.append(") = ")
             .append(rateText(cost[0]))
-            .append(" L/矿");
+            .append(' ')
+            .append(tr("gtsr.cluster.mui2.liters_per_round"));
         return sb.toString();
     }
 

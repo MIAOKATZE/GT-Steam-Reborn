@@ -119,7 +119,11 @@ public final class ClusterTerminalData {
     public static final String KEY_RUN = "cl.run";
     /** 链路页：选中物流单元下标（varint）。 */
     public static final String KEY_SEL_LOGI = "cl.selLogi";
-    /** 链路页：物流单元清单 CSV（{@code seg:flags}，flags：bit0 已关联/bit1 自成型/bit2 电源开/bit3 当前可执行）。 */
+    /**
+     * 链路页物流单元 CSV：{@code seg:flags:lastParallel:lastSize:chargedRounds}。
+     * 首两字段保持兼容；flags bit0 已关联/bit1 自成型/bit2 电源开/bit3 当前可执行/bit4 批处理开启。
+     * 尾三字段为最近成功批的服务端实值，无样本为 0；旧消费者继续只读首两字段。
+     */
     public static final String KEY_LE_UNITS = "cl.le.units";
     /** 链路页：选中单元整链快照（link ordinal CSV）。 */
     public static final String KEY_LE_CHAIN = "cl.le.chain";
@@ -158,7 +162,7 @@ public final class ClusterTerminalData {
     /**
      * 增幅页：实耗组（{@code priceX10:base[:pct:tier:type]...} 条目 CSV，20t 采样）。
      * v1.20.16 首字段语义演进（协议键名/条目结构/键数量不变，同 jar 双端交付）：
-     * {@code priceX10} = 单份单价 ×10 定点（L/矿，开批按 batch×单价一次扣除），不再是
+     * {@code priceX10} = 每计费轮单价 ×10 定点（v2.1.5：L/轮，按 ceil(总份数/并行宽度) 一次扣除），不再是
      * 联动加成后秒耗 ×10（短批反比倍率退役）；{@code base} 仍为基础表值。
      */
     public static final String KEY_BO_COST = "cl.bo.cost";
@@ -286,6 +290,12 @@ public final class ClusterTerminalData {
 
     public static void releaseSession(UUID playerId, Object owner) {
         if (SESSION_OWNERS.get(playerId) == owner) releaseSession(playerId);
+    }
+
+    /** A mode action must return the new authoritative flag with its receipt, without waiting for sampling. */
+    public static void invalidateLogisticsSample(UUID playerId) {
+        ClusterSession session = SESSIONS.get(playerId);
+        if (session != null) session.primed[K_LE_UNITS] = false;
     }
 
     // ==================== 服务端快照组装 ====================
@@ -467,7 +477,7 @@ public final class ClusterTerminalData {
         return out;
     }
 
-    /** 链路页物流单元清单串：{@code seg:flags} CSV（flags 位见 {@link #KEY_LE_UNITS}）。 */
+    /** 首两字段及单元顺序不变；最近批次字段只向尾部追加。 */
     private static String encodeUnits(MTESteamMineralLogisticsCluster cluster) {
         StringBuilder sb = new StringBuilder(40);
         List<MTEBasicLogisticsUnit> units = cluster.getTopology()
@@ -481,10 +491,17 @@ public final class ClusterTerminalData {
                 if (unit.isUnitStructureFormed()) flags |= 0x02;
                 if (unit.isPowerAllowed()) flags |= 0x04;
                 if (unit.isChainExecutableNow()) flags |= 0x08;
+                if (unit.isBatchModeEnabled()) flags |= 0x10;
             }
             sb.append(unit != null ? unit.getSegmentIndex() : -1)
                 .append(':')
-                .append(flags);
+                .append(flags)
+                .append(':')
+                .append(unit == null ? 0 : unit.getLastBatchParallel())
+                .append(':')
+                .append(unit == null ? 0 : unit.getLastBatchSize())
+                .append(':')
+                .append(unit == null ? 0 : unit.getLastBatchChargedRounds());
         }
         return sb.toString();
     }
@@ -624,8 +641,8 @@ public final class ClusterTerminalData {
 
     /**
      * 增幅实耗串：条目逗号分隔（与 KEY_BO_STRUCT 同序同过滤，下标一一对应），条目内
-     * {@code priceX10:base:pct:tier:typeOrdinal...}——首字段为单份单价 ×10 定点（口径 L/矿；
-     * 开批由执行器按 batch×单价一次扣除，客户端本批实耗 = priceX10×矿数÷10），次字段基础表值，
+     * {@code priceX10:base:pct:tier:typeOrdinal...}——首字段为每计费轮单价 ×10 定点（L/轮；
+     * v2.1.5 开批按向上取整的计费轮数一次扣除，客户端仅可据当前单价估算），次字段基础表值，
      * 其后为施加方三元组 {@code pct:tier:typeOrdinal}（{@code amplifierSurchargeSources()} 真值）。
      * v1.20.16 语义演进：原「联动加成后实际秒耗 ×10（含短批反比倍率）」退役，键名与条目结构
      * 不变（详见 {@link #KEY_BO_COST}）。
@@ -634,7 +651,7 @@ public final class ClusterTerminalData {
         StringBuilder sb = new StringBuilder(64);
         List<MTEBasicAmplifierUnit> units = cluster.getTopology()
             .getBoosterUnits();
-        // v1.20.16：短批流体倍率已退役，消耗模型改 L/矿单价（开批一次扣）；首字段 = round(单价×10)
+        // 首字段 = round(单价×10)，v2.1.5 起同一基础单价按计费轮数结算。
         for (MTEBasicAmplifierUnit unit : units) {
             if (unit == null || unit.getBoosterType() == null) continue;
             if (sb.length() > 0) sb.append(',');
@@ -779,7 +796,7 @@ public final class ClusterTerminalData {
             lubeLogi = ClusterParams.LOGISTICS_UNIT_LUBRICANT_LPS[logiTier];
             appendDetailRow(sb, "LUBE:logi:" + toX100(lubeLogi));
         }
-        // ---- 选择无关组：增幅 5 型逐型单价合计（v1.20.16 起 L/矿单价口径，短批倍率退役）+ 三组合计真值 ----
+        // ---- 选择无关组：增幅 5 型逐型每轮单价合计 + 三组合计真值 ----
         ClusterParams.BoosterType[] boostTypes = ClusterParams.BoosterType.values();
         double[] typedLps = new double[boostTypes.length];
         double boostTotal = 0.0D;
@@ -1040,6 +1057,7 @@ public final class ClusterTerminalData {
             case CLEAR_CHAIN:
             case APPLY_PRESET:
             case TOGGLE_FORMULA:
+            case TOGGLE_BATCH_MODE: // Formal MUI2 route alone supplies member identity, generation and access checks.
                 return;
             default:
                 break;

@@ -18,6 +18,7 @@ final class UiQaScript {
     volatile JsonObject pending;
     volatile Throwable failure;
     boolean dispatched; String group="pilot"; int recovery;
+    boolean worldUnloadRequested;
     UiQaScript(Mui2ClientQa owner,Path plan)throws Exception {
         q=owner;
         gallery=new UiQaGallery(this);
@@ -39,7 +40,11 @@ final class UiQaScript {
     }
     void advance()throws Exception {
         if(failure!=null)throw new RuntimeException("Server script step "+index,failure);
-        if(index>=steps.size()){q.finish(null);return;}
+        if(index>=steps.size()){
+            if(!worldUnloadRequested){worldUnloadRequested=true;q.pendingTooltip=null;Mui2ClientQa.call(q.mc,"displayGuiScreen|func_147108_a",Mui2ClientQa.type("net.minecraft.client.gui.GuiMainMenu").newInstance());Mui2ClientQa.call(q.mc,"loadWorld|func_71403_a",(Object)null);return;}
+            if(!q.scriptServerStopped)return;
+            q.receipt.addProperty("scriptServerStoppedBeforeShutdown",true);q.finish(null);return;
+        }
         JsonObject step=steps.get(index).getAsJsonObject();q.phase=1000+index;
         if(string(step,"op","").equals("wait")){
             if(++wait<step.get("ticks").getAsInt())return;
@@ -124,6 +129,7 @@ final class UiQaScript {
         String op=string(s,"op","");Object result=null;
         if(op.equals("group")){group=s.get("name").getAsString();}
         else if(op.startsWith("gallery")){gallery.execute(s);}
+        else if(op.startsWith("cluster215")){UiQaScriptCluster215.execute(this,s);}
         else if(op.equals("record")){JsonObject record=new JsonObject();record.addProperty("name",s.get("name").getAsString());record.addProperty("value",String.valueOf(eval(s.get("value"))));events.add(record);}
         else if(op.equals("geometry")){capture();Object widget=q.find(q.panel,s.get("widget").getAsString());if(widget==null)throw new AssertionError("Geometry widget missing");JsonObject event=new JsonObject();event.addProperty("geometry",s.get("name").getAsString());JsonObject tree=geometry(widget,s.has("depth")?s.get("depth").getAsInt():2);event.add("tree",tree);Object parent=Mui2ClientQa.call(widget,"getParent");if(parent!=null)event.add("parent",geometry(parent,0));events.add(event);if(s.has("assertTextFit")&&s.get("assertTextFit").getAsBoolean())verifyTextGeometry(tree,s.get("name").getAsString(),s.has("assertLastVisible")&&s.get("assertLastVisible").getAsBoolean());}
         else if(op.equals("wandAir")){Object player=target("player"),movement=Mui2ClientQa.field(player,"movementInput|field_71158_b"),old=Mui2ClientQa.field(q.mc,"objectMouseOver|field_71476_x");boolean sneak=(Boolean)Mui2ClientQa.field(movement,"sneak|field_78899_d");try{Mui2ClientQa.set(movement,"sneak|field_78899_d",true);Mui2ClientQa.set(q.mc,"objectMouseOver|field_71476_x",null);Object held=Mui2ClientQa.call(player,"getHeldItem|func_70694_bm");q.check("fixture.actual-client-wand-held",held!=null&&Mui2ClientQa.call(held,"getItem|func_77973_b").getClass().getName().endsWith("SingularityTuningWand"),"Actual client held="+(held==null?"null":Mui2ClientQa.call(held,"getItem|func_77973_b").getClass().getName()));q.check("fixture.actual-client-sneaking",Boolean.TRUE.equals(Mui2ClientQa.call(player,"isSneaking|func_70093_af")),"Actual client movement/sneak readback before normal Item.onItemRightClick");Mui2ClientQa.call(Mui2ClientQa.call(held,"getItem|func_77973_b"),"onItemRightClick|func_77659_a",held,target("clientWorld"),player);}finally{Mui2ClientQa.set(movement,"sneak|field_78899_d",sneak);Mui2ClientQa.set(q.mc,"objectMouseOver|field_71476_x",old);}}

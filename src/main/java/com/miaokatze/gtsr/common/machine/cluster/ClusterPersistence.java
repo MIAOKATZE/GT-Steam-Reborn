@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 import net.minecraft.nbt.NBTTagCompound;
@@ -49,6 +50,9 @@ public final class ClusterPersistence {
 
     /** 最近蒸汽 LPS 显示记账（M5 吞吐批落地前写 0 占位，读取保持对称）。 */
     private static final String KEY_LAST_STEAM_LPS = "clusterLastSteamLps";
+
+    /** 恢复在飞批次时保留磁选/热离的实际参与扣电窗口。 */
+    private static final String KEY_LAST_BATCH_LINKS = "clusterLastBatchLinks";
 
     /** 单元句柄条目内键：X 坐标。 */
     private static final String KEY_UNIT_X = "x";
@@ -122,6 +126,12 @@ public final class ClusterPersistence {
         nbt.setTag(KEY_STATS, stats);
 
         nbt.setLong(KEY_LAST_STEAM_LPS, 0L);
+        nbt.setIntArray(
+            KEY_LAST_BATCH_LINKS,
+            cluster.getLastBatchLinks()
+                .stream()
+                .mapToInt(Enum::ordinal)
+                .toArray());
     }
 
     /**
@@ -183,5 +193,11 @@ public final class ClusterPersistence {
 
         // 显示记账键：读出保持写读对称，总控侧无 setter——最近 LPS 由 M5 吞吐批重算刷新
         if (nbt.hasKey(KEY_LAST_STEAM_LPS)) nbt.getLong(KEY_LAST_STEAM_LPS);
+        EnumSet<ChainLink> links = EnumSet.noneOf(ChainLink.class);
+        ChainLink[] values = ChainLink.values();
+        for (int ordinal : nbt.getIntArray(KEY_LAST_BATCH_LINKS)) {
+            if (ordinal >= 0 && ordinal < values.length) links.add(values[ordinal]);
+        }
+        cluster.recordBatchLinks(links);
     }
 }

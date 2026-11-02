@@ -7,6 +7,7 @@ import net.minecraft.util.StatCollector;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
@@ -197,6 +198,244 @@ final class CriticalConstructionView {
         }
         page.child(information);
         return page;
+    }
+
+    /** Handheld layout; the native GT read-only dialog continues to use create(). */
+    ParentWidget<?> createTerminalOverview() {
+        ParentWidget<?> page = new ParentWidget<>().name("critical_page_construction")
+            .size(463, 252);
+        ParentWidget<?> drawing = new ParentWidget<>().name("critical_construction_drawing")
+            .size(286, 202)
+            .background(CriticalGuiStyle.CARD);
+        drawing.child(
+            CriticalGuiStyle.label(this::phaseName, () -> CriticalGuiStyle.TEXT_ACCENT, Alignment.CenterLeft)
+                .name("critical_construction_phase")
+                .pos(5, 3)
+                .size(276, 16)
+                .tooltipBuilder(t -> t.add(phaseName()))
+                .tooltipAutoUpdate(true));
+        drawing.child(
+            IKey.dynamic(() -> percent(sample().progress()))
+                .scale(1.25f)
+                .color(CriticalGuiStyle.TEXT_TITLE)
+                .asWidget()
+                .name("critical_construction_percent")
+                .pos(9, 24)
+                .size(108, 18));
+        drawing.child(
+            CriticalGuiStyle.label(this::stageCounts, () -> CriticalGuiStyle.TEXT_BODY, Alignment.CenterRight)
+                .name("critical_construction_stage_counts")
+                .pos(120, 24)
+                .size(158, 18)
+                .tooltipBuilder(t -> t.add(stageCounts()))
+                .tooltipAutoUpdate(true));
+        drawing.child(
+            new ParentWidget<>().name("critical_construction_preview")
+                .pos(6, 48)
+                .size(274, 120)
+                .background(new CriticalConstructionPreview(business::getValue))
+                .tooltipBuilder(t -> t.add(tr(sample().showsFoundation() ? "view.grid_hint" : "view.ghost_hint")))
+                .tooltipAutoUpdate(true));
+        drawing.child(
+            CriticalGuiStyle.label(this::stepTime, () -> CriticalGuiStyle.TEXT_BODY, Alignment.CenterLeft)
+                .name("critical_construction_time")
+                .pos(5, 174)
+                .size(276, 14)
+                .tooltipBuilder(t -> t.add(stepTime()))
+                .tooltipAutoUpdate(true));
+        drawing.child(
+            new ParentWidget<>().name("critical_construction_progress_bar")
+                .pos(9, 192)
+                .size(268, 4)
+                .background(new CriticalProgressBar(() -> sample().progress())));
+        page.child(drawing);
+
+        ListWidget<IWidget, ?> status = new ListWidget<>().name("critical_construction_priority")
+            .pos(292, 0)
+            .size(171, 202)
+            .padding(8)
+            .background(CriticalGuiStyle.CARD)
+            .scrollDirection(CriticalGuiStyle.scroll())
+            .overlay(CriticalGuiStyle.SCROLL_EDGES);
+        terminalLine(status, () -> tr("status." + sample().status()), CriticalGuiStyle.TEXT_TITLE);
+        terminalLine(
+            status,
+            () -> sample().status() != 2 && !sample().enabled() ? tr("reason.7")
+                : sample().reason() == 0 ? business.getValue()
+                    .detail() : tr("reason." + sample().reason()),
+            CriticalGuiStyle.TEXT_ACCENT);
+        terminalLine(status, this::nextAction, CriticalGuiStyle.TEXT_BODY);
+        terminalLine(
+            status,
+            () -> tr("ui.journal_owner") + ": " + tr(sample().loomOwner() ? "ui.journal.loom" : "ui.journal.main"),
+            CriticalGuiStyle.TEXT_MUTED);
+        terminalLine(
+            status,
+            () -> tr("view.base_power") + " " + constructionVoltage() + " EU/t",
+            CriticalGuiStyle.TEXT_MUTED);
+        terminalLine(status, this::activeLocation, CriticalGuiStyle.TEXT_MUTED);
+        terminalLine(
+            status,
+            () -> sample().phase() == 1 ? tr(sample().cellFunded() ? "construction.funded" : "construction.unfunded")
+                : "",
+            CriticalGuiStyle.TEXT_MUTED);
+        terminalLine(
+            status,
+            () -> business.getValue()
+                .supplyTerraceNotice(),
+            CriticalGuiStyle.TEXT_ACCENT);
+        page.child(status);
+
+        ParentWidget<?> materials = new ParentWidget<>().name("critical_construction_material_summary")
+            .pos(0, 208)
+            .size(463, 44)
+            .background(CriticalGuiStyle.CARD);
+        materials.child(
+            CriticalGuiStyle
+                .label(
+                    () -> tr(hasDeficit() ? "construction.missing" : "construction.next_cost"),
+                    () -> hasDeficit() ? CriticalGuiStyle.STATE_OFFLINE : CriticalGuiStyle.TEXT_MUTED,
+                    Alignment.CenterLeft)
+                .pos(5, 1)
+                .size(450, 13));
+        ListWidget<IWidget, ?> materialSummary = new ListWidget<>().name("critical_construction_cost_summary")
+            .pos(9, 16)
+            .size(445, 23)
+            .scrollDirection(CriticalGuiStyle.scroll());
+        terminalLine(materialSummary, () -> materialSummary(), CriticalGuiStyle.TEXT_BODY);
+        materials.child(materialSummary);
+        page.child(materials);
+        return page;
+    }
+
+    ParentWidget<?> createTerminalMaterials() {
+        ParentWidget<?> page = new ParentWidget<>().name("critical_page_materials")
+            .size(463, 252);
+        for (int side = 0; side < 2; side++) {
+            final boolean missing = side == 1;
+            ParentWidget<?> card = new ParentWidget<>().name("critical_material_card_" + side)
+                .pos(side * 235, 0)
+                .size(228, 96)
+                .background(CriticalGuiStyle.CARD);
+            card.child(
+                CriticalGuiStyle
+                    .label(
+                        () -> tr(missing ? "construction.missing" : "construction.next_cost"),
+                        () -> missing ? CriticalGuiStyle.STATE_OFFLINE : CriticalGuiStyle.TEXT_ACCENT,
+                        Alignment.CenterLeft)
+                    .pos(5, 3)
+                    .size(216, 14));
+            ListWidget<IWidget, ?> costs = new ListWidget<>()
+                .name(missing ? "critical_material_deficit" : "critical_material_next")
+                .pos(7, 21)
+                .size(214, 68)
+                .padding(3)
+                .scrollDirection(CriticalGuiStyle.scroll())
+                .overlay(CriticalGuiStyle.SCROLL_EDGES);
+            terminalLine(
+                costs,
+                () -> missing ? business.getValue()
+                    .missingItems()
+                    : business.getValue()
+                        .nextItems(),
+                CriticalGuiStyle.TEXT_BODY);
+            terminalLine(
+                costs,
+                () -> missing ? business.getValue()
+                    .missingFluids()
+                    : business.getValue()
+                        .nextFluids(),
+                CriticalGuiStyle.TEXT_BODY);
+            terminalLine(
+                costs,
+                () -> missing ? hasDeficit() ? "" : tr("construction.supplied")
+                    : business.getValue()
+                        .nextItems()
+                        .isEmpty()
+                        && business.getValue()
+                            .nextFluids()
+                            .isEmpty() ? tr("view.no_pending_cost") : "",
+                CriticalGuiStyle.TEXT_MUTED);
+            card.child(costs);
+            page.child(card);
+        }
+        ParentWidget<?> ledger = new ParentWidget<>().name("critical_material_ledger_card")
+            .pos(0, 102)
+            .size(463, 150)
+            .background(CriticalGuiStyle.CARD);
+        ledger.child(
+            CriticalGuiStyle
+                .label(() -> tr("ui.economy.layers"), () -> CriticalGuiStyle.TEXT_ACCENT, Alignment.CenterLeft)
+                .pos(5, 3)
+                .size(450, 14)
+                .tooltipBuilder(t -> {
+                    t.add(tr(business.getValue().economyVersion == 2 ? "ui.economy.rc2" : "ui.economy.legacy"));
+                    t.add(tr("ui.economy.network_unpaid"));
+                })
+                .tooltipAutoUpdate(true));
+        ListWidget<IWidget, ?> families = new ListWidget<>().name("critical_economy_families")
+            .pos(7, 22)
+            .size(449, 121)
+            .padding(3)
+            .scrollDirection(CriticalGuiStyle.scroll())
+            .overlay(CriticalGuiStyle.SCROLL_EDGES);
+        for (int family = 0; family < FAMILIES.length; family++) {
+            final int index = family;
+            families.child(
+                new ButtonWidget<>().name("critical_economy_family_" + FAMILIES[index])
+                    .height(16)
+                    .fullWidth()
+                    .marginBottom(3)
+                    .background(CriticalGuiStyle.BUTTON)
+                    .hoverBackground(CriticalGuiStyle.HOVER)
+                    .overlay(
+                        CriticalGuiStyle.fitted(
+                            () -> (expanded[index] ? "− " : "+ ") + tr("ui.economy.family." + FAMILIES[index]),
+                            () -> CriticalGuiStyle.TEXT_BODY,
+                            Alignment.CenterLeft))
+                    .onMousePressed(button -> {
+                        if (button != 0) return false;
+                        expanded[index] = !expanded[index];
+                        return true;
+                    }));
+            families.child(
+                CriticalGuiStyle.compactText(IKey.dynamic(() -> familyLines(FAMILIES[index])))
+                    .color(CriticalGuiStyle.TEXT_BODY)
+                    .fullWidth()
+                    .marginBottom(5)
+                    .setEnabledIf(w -> expanded[index]));
+        }
+        ledger.child(families);
+        page.child(ledger);
+        return page;
+    }
+
+    private boolean hasDeficit() {
+        return !business.getValue()
+            .missingItems()
+            .isEmpty()
+            || !business.getValue()
+                .missingFluids()
+                .isEmpty();
+    }
+
+    private String materialSummary() {
+        CriticalBusinessSnapshot sample = business.getValue();
+        String items = hasDeficit() ? sample.missingItems() : sample.nextItems();
+        String fluids = hasDeficit() ? sample.missingFluids() : sample.nextFluids();
+        return items.isEmpty() && fluids.isEmpty() ? tr("view.no_pending_cost")
+            : items + (items.isEmpty() || fluids.isEmpty() ? "" : "\n") + fluids;
+    }
+
+    private static void terminalLine(ListWidget<IWidget, ?> list, Supplier<String> text, int color) {
+        list.child(
+            CriticalGuiStyle.compactText(IKey.dynamic(text))
+                .color(color)
+                .fullWidth()
+                .marginBottom(5)
+                .setEnabledIf(
+                    w -> !text.get()
+                        .isEmpty()));
     }
 
     private String stageCounts() {

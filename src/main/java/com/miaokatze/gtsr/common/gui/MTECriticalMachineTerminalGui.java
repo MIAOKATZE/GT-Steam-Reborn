@@ -16,6 +16,7 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularContainer;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.InteractionSyncHandler;
@@ -58,9 +59,7 @@ public final class MTECriticalMachineTerminalGui {
     private String lastAction = "", lastActionDetail = "";
     private boolean lastActionAccepted;
     private int selectedPage;
-    private boolean runtimeExpanded;
-    private boolean initialPageSelected;
-    private boolean pageChosen;
+    private String armedAction = "";
     private CriticalConstructionView constructionView;
     private GenericSyncValue<CriticalBusinessSnapshot, ?> business;
 
@@ -111,39 +110,45 @@ public final class MTECriticalMachineTerminalGui {
     }
 
     public Flow createMainColumn(ModularPanel panel, PanelSyncManager manager) {
+        // Every page and handler exists on both sides; navigation only changes local presentation.
         PagedWidget<?> pages = new PagedWidget<>().name("critical_pages")
-            .size(463, 202);
-        pages.addPage(constructionView.create());
-        ParentWidget<?> controls = new ParentWidget<>().name("critical_page_management")
-            .size(463, 202);
-        controls.child(controlPage(manager).setEnabledIf(w -> !loomController.getValue()));
-        controls.child(engineeringPage(manager).setEnabledIf(w -> loomController.getValue()));
-        pages.addPage(controls);
+            .size(463, 252)
+            .onPageChange(page -> {
+                selectedPage = page;
+                armedAction = "";
+            });
+        pages.addPage(
+            new ParentWidget<>().name("critical_page_overview")
+                .size(463, 252)
+                .child(
+                    constructionView.createTerminalOverview()
+                        .setEnabledIf(w -> loomController.getValue()))
+                .child(controlPage(manager).setEnabledIf(w -> !loomController.getValue())));
+        pages.addPage(
+            new ParentWidget<>().name("critical_page_details")
+                .size(463, 252)
+                .child(
+                    constructionView.createTerminalMaterials()
+                        .setEnabledIf(w -> loomController.getValue()))
+                .child(runtimeDetailsPage().setEnabledIf(w -> !loomController.getValue())));
+        pages.addPage(engineeringPage(manager));
         pages.addPage(inventoryPage(manager));
-        pages.onUpdateListener(widget -> {
-            // Wait for the first authoritative descriptor; a remote client may not have the target TE.
-            if (!initialPageSelected && business.getValue()
-                .hasSample() && pages.isValid()) {
-                initialPageSelected = true;
-                if (!pageChosen) {
-                    selectedPage = loomController.getValue() ? 0 : 1;
-                    pages.setPage(selectedPage);
-                }
-            }
-        });
-        ParentWidget<?> tabs = new ParentWidget<>().size(463, 20);
-        String[] loomTabs = { "tab.construction", "ui.tab.engineering", "ui.tab.construction_inventory" };
+        ParentWidget<?> tabs = new ParentWidget<>().name("critical_navigation")
+            .size(463, 20);
+        String[] loomTabs = { "ui.terminal.tab.progress", "ui.terminal.tab.materials", "ui.terminal.tab.engineering",
+            "tab.inventory" };
         for (int i = 0; i < loomTabs.length; i++) {
             tabs.child(
-                tab(pages, "critical_tab_" + i, loomTabs[i], i, i * 156, 151)
+                tab(pages, "critical_tab_" + i, loomTabs[i], i, i * 117, 112)
                     .setEnabledIf(w -> loomController.getValue()));
         }
-        tabs.child(
-            tab(pages, "critical_main_tab_1", "ui.tab.runtime", 1, 0, 228)
-                .setEnabledIf(w -> !loomController.getValue()));
-        tabs.child(
-            tab(pages, "critical_main_tab_2", "tab.inventory", 2, 235, 228)
-                .setEnabledIf(w -> !loomController.getValue()));
+        String[] mainTabs = { "ui.terminal.tab.overview", "ui.terminal.tab.runtime", "tab.inventory" };
+        int[] mainPages = { 0, 1, 3 };
+        for (int i = 0; i < mainTabs.length; i++) {
+            tabs.child(
+                tab(pages, "critical_main_tab_" + mainPages[i], mainTabs[i], mainPages[i], i * 156, 151)
+                    .setEnabledIf(w -> !loomController.getValue()));
+        }
         Flow content = Flow.column()
             .pos(0, 0)
             .size(475, 350)
@@ -151,12 +156,7 @@ public final class MTECriticalMachineTerminalGui {
             .child(statusHeader(manager))
             .child(tabs)
             .child(pages)
-            .child(
-                SlotGroupWidget.playerInventory(
-                    (index, slot) -> slot.background(CriticalGuiStyle.SLOT)
-                        .hoverBackground(CriticalGuiStyle.SLOT))
-                    .marginTop(4)
-                    .alignX(0.5f));
+            .child(actionBar(manager));
         return Flow.column()
             .child(
                 TerminalViewport.wrapExact("critical_terminal_viewport", content, 475, 350)
@@ -171,14 +171,14 @@ public final class MTECriticalMachineTerminalGui {
                 new DynamicDrawable(() -> selectedPage == page ? CriticalGuiStyle.SELECTED_TAB : CriticalGuiStyle.TAB))
             .hoverBackground(CriticalGuiStyle.HOVER)
             .overlay(
-                IKey.dynamic(() -> (selectedPage == page ? "• " : "") + tr(label))
-                    .scale(0.9f)
-                    .color(() -> selectedPage == page ? CriticalGuiStyle.TEXT_ACCENT : CriticalGuiStyle.TEXT_BODY))
+                CriticalGuiStyle.fitted(
+                    () -> tr(label),
+                    () -> selectedPage == page ? CriticalGuiStyle.TEXT_ACCENT : CriticalGuiStyle.TEXT_BODY,
+                    Alignment.CENTER))
+            .tooltipBuilder(t -> t.add(tr(label)))
             .onMousePressed(button -> {
                 if (button != 0) return false;
                 pages.setPage(page);
-                selectedPage = page;
-                pageChosen = true;
                 return true;
             });
     }
@@ -188,32 +188,31 @@ public final class MTECriticalMachineTerminalGui {
             .size(463, 32)
             .background(CriticalGuiStyle.CARD);
         header.child(
-            textViewport("critical_terminal_title", this::terminalTitle, 335, 12, () -> CriticalGuiStyle.TEXT_TITLE)
-                .pos(8, 4)
+            CriticalGuiStyle.label(this::terminalTitle, () -> CriticalGuiStyle.TEXT_TITLE, Alignment.CenterLeft)
+                .name("critical_terminal_title")
+                .pos(5, 2)
+                .size(365, 14)
                 .tooltipBuilder(t -> t.add(terminalTitle()))
                 .tooltipAutoUpdate(true));
         header.child(
-            textViewport("critical_status_detail", this::headerStatus, 335, 10, this::statusColor).pos(8, 19)
+            CriticalGuiStyle.label(this::headerStatus, this::statusColor, Alignment.CenterLeft)
+                .name("critical_status_detail")
+                .pos(5, 16)
+                .size(450, 12)
                 .tooltipBuilder(t -> t.add(headerStatus()))
                 .tooltipAutoUpdate(true));
-        header.child(action(manager, "power", player -> {
-            if (multiblock.isKindSelector()) return state.setEnabled(player, !state.isConstructionEnabled());
-            return state.setProductionEnabled(player, !state.isProductionEnabled());
-        }).overlay(
-            IKey.dynamic(this::powerLabel)
-                .color(() -> powerEnabled() ? CriticalGuiStyle.STATE_ONLINE : CriticalGuiStyle.TEXT_MUTED))
-            .pos(351, 4)
-            .size(104, 24)
-            .tooltipBuilder(t -> {
-                if (loomController.getValue()) t.add(tr("ui.power.construction_hint"));
-                else {
-                    t.add(
-                        tr(
-                            configuration().kind == CriticalMachineKind.SOLAR ? "ui.power.solar_hint"
-                                : "ui.power.production_hint"));
-                    if (configuration().kind == CriticalMachineKind.SUN) t.add(tr("ui.sun.power_hint"));
-                }
-            }));
+        header.child(
+            CriticalGuiStyle
+                .label(
+                    () -> tr(permitted.getValue() ? "ui.terminal.access.edit" : "ui.terminal.access.view"),
+                    () -> permitted.getValue() ? CriticalGuiStyle.TEXT_MUTED : CriticalGuiStyle.STATE_OFFLINE,
+                    Alignment.CenterRight)
+                .name("critical_access_state")
+                .pos(371, 3)
+                .size(84, 12)
+                .tooltipBuilder(
+                    t -> t.add(tr(permitted.getValue() ? "ui.terminal.access.edit_hint" : "action.permission")))
+                .tooltipAutoUpdate(true));
         return header;
     }
 
@@ -224,7 +223,9 @@ public final class MTECriticalMachineTerminalGui {
     }
 
     private String powerLabel() {
-        return tr((loomController.getValue() ? "ui.power.construction." : "ui.power.production.") + powerEnabled());
+        return tr(
+            (loomController.getValue() ? "ui.terminal.power.construction." : "ui.terminal.power.production.")
+                + powerEnabled());
     }
 
     private String headerStatus() {
@@ -262,124 +263,78 @@ public final class MTECriticalMachineTerminalGui {
 
     private ParentWidget<?> engineeringPage(PanelSyncManager manager) {
         ParentWidget<?> page = new ParentWidget<>().name("critical_page_engineering")
-            .size(463, 202);
-        page.child(
-            action(manager, "kind", player -> change(player, 1, 1))
-                .overlay(
-                    IKey.dynamic(() -> tr("ui.target") + ": " + tr("machine." + configuration().kind.key))
-                        .color(CriticalGuiStyle.TEXT_CONTROL)
-                        .scale(0.85f))
-                .pos(8, 8)
-                .size(447, 22)
+            .size(463, 252);
+        ParentWidget<?> target = new ParentWidget<>().name("critical_engineering_target")
+            .size(463, 56)
+            .background(CriticalGuiStyle.CARD);
+        target.child(
+            CriticalGuiStyle.label(() -> tr("ui.target"), () -> CriticalGuiStyle.TEXT_MUTED, Alignment.CenterLeft)
+                .pos(5, 5)
+                .size(345, 12));
+        target.child(
+            CriticalGuiStyle
+                .label(
+                    () -> tr("machine." + configuration().kind.key),
+                    () -> CriticalGuiStyle.TEXT_TITLE,
+                    Alignment.CenterLeft)
+                .name("critical_target_name")
+                .pos(5, 22)
+                .size(345, 22)
+                .tooltipBuilder(t -> t.add(tr("machine." + configuration().kind.key)))
+                .tooltipAutoUpdate(true));
+        target.child(
+            action(manager, "kind", player -> change(player, 1, 1)).pos(355, 21)
+                .size(100, 20)
                 .tooltipBuilder(t -> t.add(tr("configuration_hint"))));
+        page.child(target);
         page.child(
-            textViewport(
-                "critical_engineering_status",
-                () -> business.getValue()
-                    .detail(),
-                447,
-                24,
-                this::statusColor).pos(8, 36));
+            new ParentWidget<>().name("critical_engineering_recovery_card")
+                .pos(0, 62)
+                .size(463, 84)
+                .background(CriticalGuiStyle.CARD)
+                .child(
+                    CriticalGuiStyle
+                        .label(() -> tr("ui.next_action"), () -> CriticalGuiStyle.TEXT_ACCENT, Alignment.CenterLeft)
+                        .pos(5, 4)
+                        .size(450, 14))
+                .child(
+                    textViewport(
+                        "critical_engineering_status",
+                        () -> business.getValue()
+                            .detail(),
+                        443,
+                        24,
+                        this::statusColor).pos(10, 23))
+                .child(
+                    textViewport(
+                        "critical_engineering_recovery",
+                        () -> business.getValue().construction.status() == 2 ? tr("ui.engineering.complete")
+                            : tr(business.getValue().construction.recoveryKey()),
+                        443,
+                        26).pos(10, 49)));
         page.child(
-            action(manager, "build", player -> state.startConstruction(player)).pos(8, 66)
-                .size(144, 20)
-                .tooltipBuilder(this::constructionTooltip)
-                .tooltipAutoUpdate(true));
-        page.child(
-            action(manager, "repair", player -> state.repairStructure(player)).pos(160, 66)
-                .size(144, 20)
-                .tooltipBuilder(this::constructionTooltip)
-                .tooltipAutoUpdate(true));
-        page.child(
-            action(manager, "dismantle", player -> state.startDismantle(player)).pos(312, 66)
-                .size(143, 20));
-        page.child(
-            textViewport(
-                "critical_engineering_guidance",
-                () -> tr("ui.engineering.guide") + "\n\n"
-                    + tr("ui.next_action")
-                    + ": "
-                    + (business.getValue().construction.status() == 2 ? tr("ui.engineering.complete")
-                        : tr(business.getValue().construction.recoveryKey())),
-                447,
-                104).pos(8, 94)
-                    .background(CriticalGuiStyle.CARD));
+            new ParentWidget<>().name("critical_engineering_help_card")
+                .pos(0, 152)
+                .size(463, 100)
+                .background(CriticalGuiStyle.CARD)
+                .child(
+                    CriticalGuiStyle
+                        .label(
+                            () -> tr("ui.terminal.engineering.connections"),
+                            () -> CriticalGuiStyle.TEXT_MUTED,
+                            Alignment.CenterLeft)
+                        .pos(5, 4)
+                        .size(450, 14))
+                .child(
+                    textViewport("critical_engineering_guidance", () -> tr("ui.engineering.guide"), 443, 64)
+                        .pos(10, 25)));
         return page;
     }
 
     private ParentWidget<?> controlPage(PanelSyncManager manager) {
         ParentWidget<?> page = new ParentWidget<>().name("critical_page_control")
-            .size(463, 202);
-        page.child(
-            action(manager, "ui.solar.change_route", player -> state.selectSolarSaltMode(player))
-                .overlay(
-                    IKey.dynamic(() -> tr("ui.solar.route." + runtimeValue("solar.route")))
-                        .color(CriticalGuiStyle.TEXT_CONTROL))
-                .pos(0, 0)
-                .size(210, 20)
-                .setEnabledIf(w -> configuration().kind == CriticalMachineKind.SOLAR && !loomController.getValue())
-                .tooltipBuilder(t -> t.add(IKey.lang(key("ui.solar.route_hint")))));
-        page.child(
-            action(manager, "ui.change_mode", player -> state.selectSteamMode(player))
-                .overlay(
-                    IKey.dynamic(
-                        () -> tr(
-                            "steam_mode." + business.getValue()
-                                .steamMode()))
-                        .color(CriticalGuiStyle.TEXT_CONTROL))
-                .pos(215, 0)
-                .size(160, 20)
-                .setEnabledIf(w -> configuration().kind == CriticalMachineKind.SOLAR));
-        page.child(
-            textViewport(
-                "critical_chemical_recipe",
-                this::chemicalRecipeTitle,
-                160,
-                20,
-                () -> CriticalGuiStyle.TEXT_ACCENT).pos(215, 0)
-                    .setEnabledIf(w -> configuration().kind == CriticalMachineKind.BATTERY)
-                    .tooltipBuilder(t -> t.add(chemicalRecipeTitle()))
-                    .tooltipAutoUpdate(true));
-        page.child(
-            action(manager, "ui.sun.extinguish", player -> state.shutdownStellar(player)).pos(0, 0)
-                .size(210, 20)
-                .setEnabledIf(w -> configuration().kind == CriticalMachineKind.SUN)
-                .tooltipBuilder(t -> t.add(tr("ui.sun.extinguish_hint"))));
-        page.child(
-            action(manager, "ui.sun.production_pause", player -> state.selectStellarProductionPaused(player))
-                .overlay(
-                    IKey.dynamic(() -> tr("ui.sun.production_pause." + runtimeValue("sun.production_paused")))
-                        .color(CriticalGuiStyle.TEXT_CONTROL))
-                .pos(215, 0)
-                .size(160, 20)
-                .setEnabledIf(w -> configuration().kind == CriticalMachineKind.SUN));
-        page.child(
-            new ButtonWidget<>().name("critical_recipe_preview")
-                .background(CriticalGuiStyle.BUTTON)
-                .hoverBackground(CriticalGuiStyle.HOVER)
-                .overlay(
-                    IKey.lang(key("operation.details"))
-                        .color(CriticalGuiStyle.TEXT_CONTROL))
-                .pos(380, 0)
-                .size(83, 20)
-                .onMousePressed(button -> {
-                    if (button != 0) return false;
-                    openRecipeCatalogue();
-                    return true;
-                })
-                .setEnabledIf(
-                    w -> !business.getValue()
-                        .canCancelLegacyStellarBatch())
-                .tooltipBuilder(this::operationTooltip)
-                .tooltipAutoUpdate(true));
-        page.child(
-            action(manager, "ui.sun.cancel_legacy", player -> state.cancelLegacyStellarBatch(player)).pos(380, 0)
-                .size(83, 20)
-                .setEnabledIf(
-                    w -> business.getValue()
-                        .canCancelLegacyStellarBatch())
-                .tooltipBuilder(t -> t.add(IKey.lang(key("ui.sun.cancel_legacy_hint")))));
-        page.child(metric("ui.energy", this::primaryMetricValue, () -> 0, 0, 26).setEnabledIf(w -> !runtimeExpanded));
+            .size(463, 252);
+        page.child(metric("ui.energy", this::primaryMetricValue, () -> 0, 0, 0));
         page.child(
             metric(
                 "ui.secondary",
@@ -390,49 +345,35 @@ public final class MTECriticalMachineTerminalGui {
                     business.getValue()
                         .batchDuration()),
                 235,
-                26).setEnabledIf(w -> !runtimeExpanded));
-        ParentWidget<?> summary = new ParentWidget<>().pos(0, 74)
-            .size(463, 70)
-            .background(CriticalGuiStyle.CARD)
-            .setEnabledIf(w -> !runtimeExpanded);
-        summary.child(runtimeDisclosure("critical_runtime_disclosure"));
-        ParentWidget<?> details = new ParentWidget<>().name("critical_runtime_details")
-            .pos(0, 26)
-            .size(463, 118)
-            .background(CriticalGuiStyle.CARD)
-            .setEnabledIf(w -> runtimeExpanded);
-        details.child(runtimeDisclosure("critical_runtime_collapse"));
-        ListWidget<IWidget, ?> summaryText = new ListWidget<>().name("critical_status_summary")
-            .pos(8, 26)
-            .size(447, 85)
-            .scrollDirection(CriticalGuiStyle.scroll());
-        for (int i = 0; i < 40; i++) {
-            final int row = i;
-            constructionLine(summaryText, () -> runtimeLine(row));
-        }
-        details.child(summaryText);
-        page.child(details);
-        summary.child(
+                0));
+        ParentWidget<?> process = new ParentWidget<>().name("critical_runtime_process_card")
+            .pos(0, 58)
+            .size(463, 72)
+            .background(CriticalGuiStyle.CARD);
+        process.child(
+            CriticalGuiStyle.label(this::sampleScope, () -> CriticalGuiStyle.TEXT_MUTED, Alignment.CenterLeft)
+                .name("critical_runtime_sample_scope")
+                .pos(5, 3)
+                .size(450, 14)
+                .tooltipBuilder(t -> t.add(sampleScope()))
+                .tooltipAutoUpdate(true));
+        process.child(
             new ParentWidget<>().name("critical_runtime_process")
-                .pos(8, 26)
+                .pos(10, 27)
                 .size(190, 37)
                 .background(new CriticalRuntimeDiagram(business::getValue))
                 .tooltipBuilder(this::operationTooltip)
-                .tooltipAutoUpdate(true)
-                .setEnabledIf(w -> !runtimeExpanded));
-        summary.child(
-            textViewport("critical_chemical_flow", this::chemicalFlowSummary, 164, 37, () -> CriticalGuiStyle.TEXT_BODY)
-                .pos(29, 26)
-                .setEnabledIf(w -> !runtimeExpanded && configuration().kind == CriticalMachineKind.BATTERY));
-        summary.child(
+                .tooltipAutoUpdate(true));
+        process.child(
+            textViewport("critical_chemical_flow", this::chemicalFlowSummary, 164, 37).pos(31, 27)
+                .setEnabledIf(w -> configuration().kind == CriticalMachineKind.BATTERY));
+        process.child(
             textViewport(
                 "critical_runtime_priority",
                 () -> configuration().kind == CriticalMachineKind.BATTERY ? chemicalProgressSummary()
                     : tr(
                         business.getValue()
                             .runtimeStatusKey())
-                        + "\n"
-                        + sampleScope()
                         + "\n"
                         + tr("batch")
                         + ": "
@@ -441,22 +382,20 @@ public final class MTECriticalMachineTerminalGui {
                                 .batchTicks(),
                             business.getValue()
                                 .batchDuration()),
-                222,
+                218,
                 37,
-                this::statusColor).pos(205, 26)
-                    .setEnabledIf(w -> !runtimeExpanded));
+                this::statusColor).pos(210, 27));
         GTProgressWidget batchProgress = new GTProgressWidget() {
 
             @Override
             public Interactable.Result onMousePressed(int button) {
-                // Resolve from the received descriptor at interaction time, including remote clients without a tile.
                 gregtech.api.recipe.RecipeMap<?> map = catalogue();
                 if (map == null) return Interactable.Result.IGNORE;
                 neiTransferRect(map);
                 return super.onMousePressed(button);
             }
         };
-        summary.child(
+        process.child(
             batchProgress.texture(GTGuiTextures.PROGRESSBAR_ARROW_STANDARD, 20)
                 .progress(
                     () -> ratio(
@@ -464,33 +403,209 @@ public final class MTECriticalMachineTerminalGui {
                             .batchTicks(),
                         business.getValue()
                             .batchDuration()))
-                .pos(435, 48)
+                .pos(435, 43)
                 .size(20, 16));
-        page.child(summary);
-        ListWidget<IWidget, ?> feedback = textViewport("critical_action_feedback", this::runtimeGuidance, 447, 44);
+        page.child(process);
         page.child(
-            new ParentWidget<>().pos(0, 150)
-                .size(463, 52)
+            new ParentWidget<>().name("critical_runtime_guidance_card")
+                .pos(0, 136)
+                .size(463, 84)
                 .background(CriticalGuiStyle.CARD)
-                .child(feedback.pos(8, 4)));
-
+                .child(
+                    CriticalGuiStyle
+                        .label(() -> tr("ui.next_action"), () -> CriticalGuiStyle.TEXT_ACCENT, Alignment.CenterLeft)
+                        .pos(5, 3)
+                        .size(450, 14))
+                .child(textViewport("critical_runtime_guidance", this::runtimeGuidance, 443, 58).pos(10, 21)));
+        page.child(
+            CriticalGuiStyle.label(this::chemicalRecipeTitle, () -> CriticalGuiStyle.TEXT_BODY, Alignment.CenterLeft)
+                .name("critical_chemical_recipe")
+                .pos(5, 225)
+                .size(450, 20)
+                .setEnabledIf(w -> configuration().kind == CriticalMachineKind.BATTERY)
+                .tooltipBuilder(t -> t.add(chemicalRecipeTitle()))
+                .tooltipAutoUpdate(true));
+        page.child(
+            CriticalGuiStyle
+                .label(() -> tr("ui.terminal.runtime_hint"), () -> CriticalGuiStyle.TEXT_MUTED, Alignment.CenterLeft)
+                .name("critical_runtime_hint")
+                .pos(5, 225)
+                .size(450, 20)
+                .setEnabledIf(w -> configuration().kind != CriticalMachineKind.BATTERY));
         return page;
     }
 
-    private ButtonWidget<?> runtimeDisclosure(String name) {
-        return new ButtonWidget<>().name(name)
-            .pos(8, 5)
-            .size(447, 17)
-            .background(CriticalGuiStyle.BUTTON)
-            .hoverBackground(CriticalGuiStyle.HOVER)
-            .overlay(
-                IKey.dynamic(() -> (runtimeExpanded ? "− " : "+ ") + tr("ui.details.runtime"))
-                    .color(CriticalGuiStyle.TEXT_ACCENT))
-            .onMousePressed(button -> {
-                if (button != 0) return false;
-                runtimeExpanded = !runtimeExpanded;
-                return true;
-            });
+    private ParentWidget<?> runtimeDetailsPage() {
+        ParentWidget<?> page = new ParentWidget<>().name("critical_page_runtime_details")
+            .size(463, 252)
+            .background(CriticalGuiStyle.CARD);
+        page.child(
+            CriticalGuiStyle
+                .label(() -> tr("ui.details.runtime"), () -> CriticalGuiStyle.TEXT_ACCENT, Alignment.CenterLeft)
+                .pos(5, 3)
+                .size(450, 16));
+        ListWidget<IWidget, ?> rows = new ListWidget<>().name("critical_status_summary")
+            .pos(8, 24)
+            .size(447, 220)
+            .padding(5)
+            .scrollDirection(CriticalGuiStyle.scroll())
+            .overlay(CriticalGuiStyle.SCROLL_EDGES);
+        constructionLine(
+            rows,
+            () -> configuration().kind.isReleased() ? "" : tr("tooltip.frozen"),
+            () -> CriticalGuiStyle.TEXT_ACCENT);
+        for (int i = 0; i < 40; i++) {
+            final int row = i;
+            constructionLine(rows, () -> runtimeLine(row));
+        }
+        page.child(rows);
+        return page;
+    }
+
+    private ParentWidget<?> actionBar(PanelSyncManager manager) {
+        ParentWidget<?> bar = new ParentWidget<>().name("critical_action_bar")
+            .size(463, 34)
+            .background(CriticalGuiStyle.CARD);
+        bar.child(action(manager, "power", player -> {
+            if (multiblock.isKindSelector()) return state.setEnabled(player, !state.isConstructionEnabled());
+            return state.setProductionEnabled(player, !state.isProductionEnabled());
+        }).overlay(
+            CriticalGuiStyle.fitted(
+                this::powerLabel,
+                () -> actionAvailable("power")
+                    ? powerEnabled() ? CriticalGuiStyle.STATE_ONLINE : CriticalGuiStyle.TEXT_BODY
+                    : CriticalGuiStyle.TEXT_MUTED,
+                Alignment.CENTER))
+            .pos(4, 2)
+            .size(101, 18)
+            .tooltipBuilder(t -> {
+                t.add(
+                    tr(
+                        loomController.getValue() ? "ui.power.construction_hint"
+                            : configuration().kind == CriticalMachineKind.SOLAR ? "ui.power.solar_hint"
+                                : "ui.power.production_hint"));
+                if (!loomController.getValue() && configuration().kind == CriticalMachineKind.SUN)
+                    t.add(tr("ui.sun.power_hint"));
+            }));
+        bar.child(
+            action(manager, "build", player -> state.startConstruction(player)).pos(111, 2)
+                .size(105, 18)
+                .setEnabledIf(w -> loomController.getValue())
+                .tooltipBuilder(this::constructionTooltip)
+                .tooltipAutoUpdate(true));
+        bar.child(
+            action(manager, "repair", player -> state.repairStructure(player)).pos(222, 2)
+                .size(105, 18)
+                .setEnabledIf(w -> loomController.getValue())
+                .tooltipBuilder(this::constructionTooltip)
+                .tooltipAutoUpdate(true));
+        bar.child(
+            action(manager, "dismantle", player -> state.startDismantle(player)).pos(333, 2)
+                .size(126, 18)
+                .setEnabledIf(w -> loomController.getValue()));
+        bar.child(
+            action(manager, "ui.solar.change_route", player -> state.selectSolarSaltMode(player))
+                .overlay(
+                    CriticalGuiStyle.fitted(
+                        () -> tr("ui.solar.route." + runtimeValue("solar.route")),
+                        () -> actionAvailable("ui.solar.change_route") ? CriticalGuiStyle.TEXT_CONTROL
+                            : CriticalGuiStyle.TEXT_MUTED,
+                        Alignment.CENTER))
+                .pos(111, 2)
+                .size(137, 18)
+                .setEnabledIf(w -> !loomController.getValue() && configuration().kind == CriticalMachineKind.SOLAR)
+                .tooltipBuilder(t -> t.add(tr("ui.solar.route_hint"))));
+        bar.child(
+            action(manager, "ui.change_mode", player -> state.selectSteamMode(player))
+                .overlay(
+                    CriticalGuiStyle.fitted(
+                        () -> tr(
+                            "steam_mode." + business.getValue()
+                                .steamMode()),
+                        () -> actionAvailable("ui.change_mode") ? CriticalGuiStyle.TEXT_CONTROL
+                            : CriticalGuiStyle.TEXT_MUTED,
+                        Alignment.CENTER))
+                .pos(254, 2)
+                .size(101, 18)
+                .setEnabledIf(w -> !loomController.getValue() && configuration().kind == CriticalMachineKind.SOLAR)
+                .tooltipBuilder(
+                    t -> t.add(
+                        tr(
+                            "steam_mode." + business.getValue()
+                                .steamMode())))
+                .tooltipAutoUpdate(true));
+        bar.child(
+            action(manager, "ui.sun.production_pause", player -> state.selectStellarProductionPaused(player))
+                .overlay(
+                    CriticalGuiStyle.fitted(
+                        () -> tr("ui.sun.production_pause." + runtimeValue("sun.production_paused")),
+                        () -> actionAvailable("ui.sun.production_pause") ? CriticalGuiStyle.TEXT_CONTROL
+                            : CriticalGuiStyle.TEXT_MUTED,
+                        Alignment.CENTER))
+                .pos(111, 2)
+                .size(137, 18)
+                .setEnabledIf(w -> !loomController.getValue() && configuration().kind == CriticalMachineKind.SUN)
+                .tooltipBuilder(t -> t.add(tr("ui.sun.power_hint"))));
+        bar.child(
+            action(manager, "ui.sun.extinguish", player -> state.shutdownStellar(player)).pos(254, 2)
+                .size(101, 18)
+                .setEnabledIf(w -> !loomController.getValue() && configuration().kind == CriticalMachineKind.SUN)
+                .tooltipBuilder(t -> t.add(tr("ui.sun.extinguish_hint"))));
+        bar.child(
+            new ButtonWidget<>().name("critical_recipe_preview")
+                .pos(361, 2)
+                .size(98, 18)
+                .background(CriticalGuiStyle.BUTTON)
+                .hoverBackground(CriticalGuiStyle.HOVER)
+                .overlay(
+                    CriticalGuiStyle.fitted(
+                        () -> tr("ui.terminal.action.recipe"),
+                        () -> CriticalGuiStyle.TEXT_CONTROL,
+                        Alignment.CENTER))
+                .onMousePressed(button -> {
+                    if (button != 0) return false;
+                    armedAction = "";
+                    openRecipeCatalogue();
+                    return true;
+                })
+                .setEnabledIf(
+                    w -> !loomController.getValue() && !business.getValue()
+                        .canCancelLegacyStellarBatch())
+                .tooltipBuilder(this::operationTooltip)
+                .tooltipAutoUpdate(true));
+        bar.child(
+            action(manager, "ui.sun.cancel_legacy", player -> state.cancelLegacyStellarBatch(player)).pos(361, 2)
+                .size(98, 18)
+                .setEnabledIf(
+                    w -> !loomController.getValue() && business.getValue()
+                        .canCancelLegacyStellarBatch())
+                .tooltipBuilder(t -> t.add(tr("ui.sun.cancel_legacy_hint"))));
+        bar.child(
+            CriticalGuiStyle.label(this::actionFeedback, this::feedbackColor, Alignment.CenterLeft)
+                .name("critical_action_feedback")
+                .pos(4, 21)
+                .size(455, 11)
+                .tooltipBuilder(t -> {
+                    t.add(actionFeedback());
+                    if (!actionName.getValue()
+                        .isEmpty()) t.add(tr(actionDetail.getValue()));
+                })
+                .tooltipAutoUpdate(true));
+        return bar;
+    }
+
+    private String actionFeedback() {
+        if (!armedAction.isEmpty()) return tr("ui.terminal.confirm_hint") + " ? " + tr(armedAction);
+        if (actionName.getValue()
+            .isEmpty()) return tr("ui.terminal.feedback.idle");
+        return tr(actionName.getValue()) + " ? " + tr(actionAccepted.getValue() ? "action.accepted" : "action.refused");
+    }
+
+    private int feedbackColor() {
+        return !armedAction.isEmpty() ? CriticalGuiStyle.STATE_OFFLINE
+            : actionName.getValue()
+                .isEmpty() ? CriticalGuiStyle.TEXT_MUTED
+                    : actionAccepted.getValue() ? CriticalGuiStyle.STATE_ONLINE : CriticalGuiStyle.STATE_OFFLINE;
     }
 
     private String primaryMetricLabel() {
@@ -636,32 +751,27 @@ public final class MTECriticalMachineTerminalGui {
 
     private ParentWidget<?> metric(String label, java.util.function.Supplier<String> value,
         java.util.function.DoubleSupplier progress, int x, int y) {
-        return new ParentWidget<>().pos(x, y)
-            .size(228, 44)
+        return new ParentWidget<>().name("critical_metric_card_" + label)
+            .pos(x, y)
+            .size(228, 52)
             .background(CriticalGuiStyle.CARD)
             .child(
-                IKey.dynamic(
-                    () -> "ui.energy".equals(label) ? primaryMetricLabel()
-                        : "ui.secondary".equals(label) ? secondaryMetricLabel() : tr(label))
-                    .color(CriticalGuiStyle.TEXT_MUTED)
-                    .asWidget()
-                    .pos(8, 5)
-                    .size(212, 10))
+                CriticalGuiStyle
+                    .label(
+                        () -> "ui.energy".equals(label) ? primaryMetricLabel()
+                            : "ui.secondary".equals(label) ? secondaryMetricLabel() : tr(label),
+                        () -> CriticalGuiStyle.TEXT_MUTED,
+                        Alignment.CenterLeft)
+                    .pos(4, 3)
+                    .size(220, 13))
             .child(
-                new ListWidget<>().name("critical_metric_" + label)
-                    .size(212, 19)
-                    .scrollDirection(CriticalGuiStyle.scroll())
-                    .child(
-                        CriticalGuiStyle.text(IKey.dynamic(value))
-                            .color(CriticalGuiStyle.TEXT_TITLE)
-                            .fullWidth())
-                    .pos(8, 15)
+                textViewport("critical_metric_" + label, value, 212, 25, () -> CriticalGuiStyle.TEXT_TITLE).pos(8, 18)
                     .tooltipBuilder(t -> t.add(value.get()))
                     .tooltipAutoUpdate(true))
             .child(
                 new ParentWidget<>().background(new CriticalProgressBar(progress))
-                    .pos(8, 35)
-                    .size(212, 4)
+                    .pos(8, 45)
+                    .size(212, 3)
                     .setEnabledIf(
                         w -> !"ui.energy".equals(label)
                             && !(configuration().kind == CriticalMachineKind.BATTERY && "ui.secondary".equals(label))));
@@ -732,7 +842,7 @@ public final class MTECriticalMachineTerminalGui {
     private static void constructionLine(ListWidget<IWidget, ?> list, java.util.function.Supplier<String> text,
         java.util.function.IntSupplier color) {
         list.child(
-            CriticalGuiStyle.text(IKey.dynamic(text))
+            CriticalGuiStyle.compactText(IKey.dynamic(text))
                 .color(color)
                 .fullWidth()
                 .marginBottom(3)
@@ -765,10 +875,29 @@ public final class MTECriticalMachineTerminalGui {
                 new DynamicDrawable(() -> actionAvailable(name) ? CriticalGuiStyle.HOVER : CriticalGuiStyle.DISABLED))
             .syncHandler(interaction(manager, name, command))
             .overlay(
-                IKey.lang(key(name))
-                    .color(() -> actionAvailable(name) ? CriticalGuiStyle.TEXT_CONTROL : CriticalGuiStyle.TEXT_MUTED))
-            .tooltipBuilder(t -> { if (!actionAvailable(name)) t.add(actionDisabledReason(name)); })
+                CriticalGuiStyle.fitted(
+                    () -> actionLabel(name),
+                    () -> !actionAvailable(name) ? CriticalGuiStyle.TEXT_MUTED
+                        : dangerous(name) ? CriticalGuiStyle.STATE_OFFLINE : CriticalGuiStyle.TEXT_CONTROL,
+                    Alignment.CENTER))
+            .tooltipBuilder(t -> {
+                t.add(tr(name));
+                if (!actionAvailable(name)) t.add(actionDisabledReason(name));
+                else if (dangerous(name)) t.add(tr("ui.terminal.confirm_hint"));
+            })
             .tooltipAutoUpdate(true);
+    }
+
+    private String actionLabel(String name) {
+        if (name.equals(armedAction)) return tr("ui.terminal.action.confirm");
+        return tr(switch (name) {
+            case "kind", "build", "repair", "dismantle" -> "ui.terminal.action." + name;
+            default -> name;
+        });
+    }
+
+    private static boolean dangerous(String name) {
+        return "dismantle".equals(name) || "ui.sun.extinguish".equals(name) || "ui.sun.cancel_legacy".equals(name);
     }
 
     /** Keep unavailable controls hoverable so their reason remains discoverable. */
@@ -783,6 +912,13 @@ public final class MTECriticalMachineTerminalGui {
         @Override
         public Interactable.Result onMousePressed(int button) {
             if (!actionAvailable(action)) return Interactable.Result.STOP;
+            if (button == 0) {
+                if (dangerous(action) && !action.equals(armedAction)) {
+                    armedAction = action;
+                    return Interactable.Result.STOP;
+                }
+                armedAction = "";
+            }
             return super.onMousePressed(button);
         }
 
@@ -865,23 +1001,27 @@ public final class MTECriticalMachineTerminalGui {
 
     private IWidget inventoryPage(PanelSyncManager manager) {
         ParentWidget<?> page = new ParentWidget<>().name("critical_page_inventory")
-            .size(463, 202);
-
+            .size(463, 252);
         for (int side = 0; side < 2; side++) {
             final int index = side;
-            ParentWidget<?> card = new ParentWidget<>().pos(side * 235, 0)
-                .size(228, 166)
+            ParentWidget<?> card = new ParentWidget<>().name("critical_inventory_card_" + side)
+                .pos(side * 235, 0)
+                .size(228, 142)
                 .background(CriticalGuiStyle.CARD);
             card.child(
-                IKey.lang(key(side == 0 ? "input" : "output"))
-                    .color(CriticalGuiStyle.TEXT_ACCENT)
-                    .asWidget()
-                    .pos(8, 8)
-                    .size(212, 14));
+                CriticalGuiStyle
+                    .label(
+                        () -> tr(index == 0 ? "input" : "output"),
+                        () -> CriticalGuiStyle.TEXT_ACCENT,
+                        Alignment.CenterLeft)
+                    .pos(4, 3)
+                    .size(220, 14));
             ListWidget<IWidget, ?> contents = new ListWidget<>().name("critical_inventory_" + side)
-                .pos(8, 28)
-                .size(212, 130)
-                .scrollDirection(CriticalGuiStyle.scroll());
+                .pos(7, 23)
+                .size(214, 112)
+                .padding(3)
+                .scrollDirection(CriticalGuiStyle.scroll())
+                .overlay(CriticalGuiStyle.SCROLL_EDGES);
             if (index == 0) {
                 constructionLine(
                     contents,
@@ -909,13 +1049,27 @@ public final class MTECriticalMachineTerminalGui {
             card.child(contents);
             page.child(card);
         }
-        page.child(
-            textViewport(
-                "critical_inventory_hint",
-                () -> loomController.getValue() ? tr("ui.inventory.construction_hint") : runtimeGuidance(),
-                447,
-                24).background(CriticalGuiStyle.CARD)
-                    .pos(8, 172));
+        ParentWidget<?> backpack = new ParentWidget<>().name("critical_player_inventory_card")
+            .pos(0, 148)
+            .size(463, 104)
+            .background(CriticalGuiStyle.CARD);
+        backpack.child(
+            CriticalGuiStyle
+                .label(
+                    () -> tr("ui.terminal.player_inventory"),
+                    () -> CriticalGuiStyle.TEXT_MUTED,
+                    Alignment.CenterLeft)
+                .pos(4, 3)
+                .size(220, 14));
+        backpack
+            .child(textViewport("critical_inventory_hint", () -> tr("ui.terminal.inventory_hint"), 205, 70).pos(9, 23));
+        // A single native player group: changing pages never replaces its slots or sync identity.
+        backpack.child(
+            SlotGroupWidget.playerInventory(
+                (index, slot) -> slot.background(CriticalGuiStyle.SLOT)
+                    .hoverBackground(CriticalGuiStyle.SLOT))
+                .pos(267, 19));
+        page.child(backpack);
         return page;
     }
 
@@ -957,7 +1111,7 @@ public final class MTECriticalMachineTerminalGui {
             .size(width, height)
             .scrollDirection(CriticalGuiStyle.scroll())
             .child(
-                CriticalGuiStyle.text(IKey.dynamic(text))
+                CriticalGuiStyle.compactText(IKey.dynamic(text))
                     .color(color)
                     .fullWidth());
     }
