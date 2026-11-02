@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.critical;
 
+import static com.miaokatze.gtsr.common.critical.CriticalResourceNbt.journal;
 import static com.miaokatze.gtsr.common.critical.CriticalResourceNbt.readFluids;
 import static com.miaokatze.gtsr.common.critical.CriticalResourceNbt.readItems;
 import static com.miaokatze.gtsr.common.critical.CriticalResourceNbt.writeFluids;
@@ -266,6 +267,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private boolean enabled = true, stageFunded, refundPrepared, dismantleRequested;
+    private NBTTagCompound resourceNbtQuarantine;
+    private static final String RESOURCE_NBT_ERROR = "资源NBT完整性错误，原始记录已隔离，任务已锁定待人工恢复";
     private ItemStack[] escrow = new ItemStack[0], pendingItems = new ItemStack[0];
     private FluidStack[] fluidEscrow = new FluidStack[0], pendingFluids = new FluidStack[0];
     private long recoverySeed;
@@ -1279,8 +1282,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public boolean canUse(EntityPlayer p) {
-        return permitsTerminalAccess(p) && (isUseableByPlayer(p)
-            || com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.hasRemoteAccess(p, host));
+        return resourceNbtQuarantine == null && permitsTerminalAccess(p)
+            && (isUseableByPlayer(p)
+                || com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.hasRemoteAccess(p, host));
     }
 
     public boolean configure(EntityPlayer p, CriticalTier tier, CriticalMachineKind kind, int a, int b, int c) {
@@ -1754,7 +1758,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public boolean canRemove() {
-        if (state != 0 || !structureId.isEmpty()
+        if (resourceNbtQuarantine != null || state != 0
+            || !structureId.isEmpty()
             || CriticalStellarRuntime.hasAssets(stellarRuntime)
             || CriticalEnergyRuntime.hasChemicalEscrow(energyRuntime)
             || energyRuntime.getBoolean("funded")
@@ -2267,6 +2272,10 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public void updateEntity() {
+        if (resourceNbtQuarantine != null) {
+            status = RESOURCE_NBT_ERROR;
+            return;
+        }
         constructionAdvancing = false;
         blocksChangedThisTick = lightsChangedThisTick = 0;
         constructionBlockBudget = 128;
@@ -3851,7 +3860,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public int fill(ForgeDirection from, FluidStack resource, boolean doFill) {
-        if (resource == null || resource.amount <= 0) return 0;
+        if (resourceNbtQuarantine != null || resource == null || resource.amount <= 0) return 0;
         for (int i = 0; i < 8; i++) if (tanks[i] != null && tanks[i].isFluidEqual(resource)) {
             int amount = Math.min(resource.amount, TANK_CAPACITY - tanks[i].amount);
             if (doFill) {
@@ -3900,7 +3909,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public boolean canFill(ForgeDirection from, Fluid fluid) {
-        return fluid != null;
+        return resourceNbtQuarantine == null && fluid != null;
     }
 
     public boolean canDrain(ForgeDirection from, Fluid fluid) {
@@ -3939,7 +3948,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public void setInventorySlotContents(int slot, ItemStack stack) {
-        if (slot < 0 || slot >= 36) return;
+        if (resourceNbtQuarantine != null || slot < 0 || slot >= 36) return;
         inventory[slot] = stack != null && stack.stackSize > 0 ? stack : null;
         if (stack != null) stack.stackSize = Math.min(stack.stackSize, Math.min(64, stack.getMaxStackSize()));
         markDirty();
@@ -3989,7 +3998,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public void closeInventory() {}
 
     public boolean isItemValidForSlot(int slot, ItemStack stack) {
-        return slot >= 0 && slot < 18;
+        return resourceNbtQuarantine == null && slot >= 0 && slot < 18;
     }
 
     public int[] getAccessibleSlotsFromSide(int side) {
@@ -3999,7 +4008,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public boolean canInsertItem(int slot, ItemStack item, int side) {
-        return slot >= 0 && slot < 18;
+        return resourceNbtQuarantine == null && slot >= 0 && slot < 18;
     }
 
     public boolean canExtractItem(int slot, ItemStack item, int side) {
@@ -4007,6 +4016,18 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     public void writeToNBT(NBTTagCompound n) {
+        if (resourceNbtQuarantine != null) {
+            // Preserve the complete paid record, rather than saving partially decoded arrays over it.
+            for (String key : resourceNbtQuarantine.func_150296_c()) n.setTag(
+                key,
+                resourceNbtQuarantine.getTag(key)
+                    .copy());
+            n.setTag("resourceNbtQuarantine", resourceNbtQuarantine.copy());
+            n.setBoolean("nativeFundingUncertain", true);
+            n.setString("status", RESOURCE_NBT_ERROR);
+            return;
+        }
+        n.removeTag("resourceNbtQuarantine");
         n.setTag("criticalStellarRuntime", stellarRuntime);
         n.setTag("criticalBatchRecipe", batchRecipe);
         n.setBoolean("foundationRequired", foundationRequired);
@@ -4105,10 +4126,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         hatchPortsCache = null;
 
         nativeFundingUncertain = n.getBoolean("nativeFundingUncertain");
-        uncertainFundingItems = readItems(n.getTagList("uncertainFundingItems", 10), -1);
-        uncertainFundingFluids = readFluids(n.getTagList("uncertainFundingFluids", 10), -1);
-        constructionLedger.read(n);
-        if (constructionLedger.hasIntegrityError()) nativeFundingUncertain = true;
         constructionTimeVersion = n.getInteger("constructionTimeVersion");
         debugRequirements = Math.max(0, Math.min(3, n.getInteger("constructionDebugRequirements")));
         debugSpeed = Math.max(0, Math.min(3, n.getInteger("constructionDebugSpeed")));
@@ -4136,13 +4153,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         pendingGenerated = n.getLong("pendingGenerated");
         cycleTicks = n.getInteger("cycleTicks");
         cycleDuration = n.getInteger("cycleDuration");
-        System.arraycopy(readItems(n.getTagList("inventory", 10), 36), 0, inventory, 0, 36);
-        System.arraycopy(readFluids(n.getTagList("tanks", 10), 16), 0, tanks, 0, 16);
-        escrow = readItems(n.getTagList("escrow", 10), -1);
-        fluidEscrow = readFluids(n.getTagList("fluidEscrow", 10), -1);
-        pendingItems = readItems(n.getTagList("pendingItems", 10), -1);
-        pendingFluids = readFluids(n.getTagList("pendingFluids", 10), -1);
-        constructionLedger.readSpent(n);
         placed.clear();
         placed.or(BitSet.valueOf(n.getByteArray("placed")));
         supplyTerracePlaced.clear();
@@ -4160,7 +4170,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         repairScanPending = n.getBoolean("repairScanPending");
         repairScanCursor = Math.max(0, n.getInteger("repairScanCursor"));
         repairFunded = n.getBoolean("repairFunded");
-        repairEscrow = readItems(n.getTagList("repairEscrow", 10), -1);
         repairStages = null;
         jobFingerprint = n.getLong("jobFingerprint");
         geometryCache = null;
@@ -4174,6 +4183,41 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         structureValid = false;
         structureLoadTicks = 0;
         lastStructureLoadingTick = Long.MIN_VALUE;
+        resourceNbtQuarantine = n.hasKey("resourceNbtQuarantine", 10)
+            ? (NBTTagCompound) n.getCompoundTag("resourceNbtQuarantine")
+                .copy()
+            : null;
+        try {
+            if (resourceNbtQuarantine == null) {
+                uncertainFundingItems = readItems(journal(n, "uncertainFundingItems"), -1);
+                uncertainFundingFluids = readFluids(journal(n, "uncertainFundingFluids"), -1);
+                // These journals are decoded inside the ledger; validate their container types at this boundary.
+                for (String key : new String[] { "constructionStageCosts", "constructionStageFluidCosts",
+                    "constructionPaidFluids", "spent" }) journal(n, key);
+                constructionLedger.read(n);
+                System.arraycopy(readItems(journal(n, "inventory"), 36), 0, inventory, 0, 36);
+                System.arraycopy(readFluids(journal(n, "tanks"), 16), 0, tanks, 0, 16);
+                escrow = readItems(journal(n, "escrow"), -1);
+                fluidEscrow = readFluids(journal(n, "fluidEscrow"), -1);
+                pendingItems = readItems(journal(n, "pendingItems"), -1);
+                pendingFluids = readFluids(journal(n, "pendingFluids"), -1);
+                constructionLedger.readSpent(n);
+                repairEscrow = readItems(journal(n, "repairEscrow"), -1);
+                if (constructionLedger.hasIntegrityError()) resourceNbtQuarantine = (NBTTagCompound) n.copy();
+            }
+        } catch (CriticalResourceNbt.InvalidJournalException invalidJournal) {
+            resourceNbtQuarantine = (NBTTagCompound) n.copy();
+        }
+        if (resourceNbtQuarantine != null) {
+            resourceNbtQuarantine.removeTag("resourceNbtQuarantine");
+            nativeFundingUncertain = true;
+            status = RESOURCE_NBT_ERROR;
+            // Native inventory/fluid callers must not withdraw a partially decoded prefix and replay it later.
+            java.util.Arrays.fill(inventory, null);
+            java.util.Arrays.fill(tanks, null);
+            escrow = pendingItems = repairEscrow = uncertainFundingItems = new ItemStack[0];
+            fluidEscrow = pendingFluids = uncertainFundingFluids = new FluidStack[0];
+        }
     }
 
     public Packet getDescriptionPacket() {

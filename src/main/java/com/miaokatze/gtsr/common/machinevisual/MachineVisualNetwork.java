@@ -2,14 +2,13 @@ package com.miaokatze.gtsr.common.machinevisual;
 
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.WorldServer;
 
+import com.miaokatze.gtsr.common.network.BoundedRequestQueue;
 import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
@@ -30,8 +29,7 @@ public final class MachineVisualNetwork {
 
     private static final SimpleNetworkWrapper NETWORK = NetworkRegistry.INSTANCE.newSimpleChannel("gtsr_workvis");
     private static final long SESSION = new java.security.SecureRandom().nextLong();
-    private static final ConcurrentLinkedQueue<Pending> QUEUE = new ConcurrentLinkedQueue<>();
-    private static final AtomicInteger QUEUED = new AtomicInteger();
+    private static final BoundedRequestQueue<Pending> QUEUE = new BoundedRequestQueue<>();
     private static final Map<EntityPlayerMP, Rate> RATES = new WeakHashMap<>();
 
     private MachineVisualNetwork() {}
@@ -79,13 +77,9 @@ public final class MachineVisualNetwork {
     @SubscribeEvent
     public void tick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
-        for (int i = 0; i < 64; i++) {
-            Pending pending;
-            synchronized (QUEUE) {
-                pending = QUEUE.poll();
-                if (pending == null) break;
-                QUEUED.decrementAndGet();
-            }
+        for (int i = 0; i < BoundedRequestQueue.MAX_PER_TICK; i++) {
+            Pending pending = QUEUE.poll();
+            if (pending == null) break;
             EntityPlayerMP player = pending.player;
             Subscribe r = pending.request;
             if (!ServerPacketAuthority.isCurrentPlayer(player, pending.connection) || player.dimension != r.dimension
@@ -115,9 +109,9 @@ public final class MachineVisualNetwork {
         final NetHandlerPlayServer connection;
         final Subscribe request;
 
-        Pending(EntityPlayerMP player, Subscribe request) {
-            this.player = player;
-            this.connection = player.playerNetServerHandler;
+        Pending(NetHandlerPlayServer connection, Subscribe request) {
+            this.player = connection.playerEntity;
+            this.connection = connection;
             this.request = request;
         }
     }
@@ -171,11 +165,8 @@ public final class MachineVisualNetwork {
 
         @Override
         public IMessage onMessage(Subscribe message, MessageContext context) {
-            synchronized (QUEUE) {
-                if (QUEUED.get() >= 256) return null;
-                QUEUE.add(new Pending(context.getServerHandler().playerEntity, message));
-                QUEUED.incrementAndGet();
-            }
+            NetHandlerPlayServer connection = context.getServerHandler();
+            QUEUE.offer(connection, new Pending(connection, message));
             return null;
         }
     }

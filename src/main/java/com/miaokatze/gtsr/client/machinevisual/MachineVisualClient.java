@@ -29,18 +29,25 @@ public final class MachineVisualClient {
     }
 
     private static Quality quality = Quality.STANDARD;
+    private static final int HOST_LIMIT = 512, CANDIDATE_LIMIT = 512, HOST_ADMISSIONS_PER_TICK = 4;
+    private static final long HOST_LEASE_TICKS = 120, RECENT_VISIBLE_TICKS = 40;
     private static final Map<MachineVisualHost, Entry> ENTRIES = new IdentityHashMap<>();
+    private static final Map<MachineVisualHost, Observation> CANDIDATES = new IdentityHashMap<>();
+    private static final Map<MachineVisualHost, Entry> RETIRING = new IdentityHashMap<>();
     private static final ConcurrentLinkedQueue<MachineVisualSnapshot> INBOUND = new ConcurrentLinkedQueue<>();
     private static final AtomicInteger QUEUED = new AtomicInteger();
     private static final java.util.concurrent.atomic.AtomicLong NONCES = new java.util.concurrent.atomic.AtomicLong(
         new java.security.SecureRandom().nextLong());
     private static World world;
-    private static long tick, pausedAt, frame;
+    private static long tick, pausedAt, frame, observationSequence;
     public static long framesReceived, framesRejected, subscriptionRequests, renderCalls, renderedCubes;
     /** Completed Tessellator submissions and their returned byte counts; these are not GPU timer measurements. */
     public static long motionSubmissions, motionSubmittedBytes, restorationSubmissions, restorationSubmittedBytes;
     public static int heldMotionMembers, heldMotionGroups, motionMemberLimit, motionGroupLimit;
     public static long budgetDeferredHosts, budgetRotations;
+    public static int registeredHosts, waitingHosts, retiringHosts;
+    public static long hostAdmissions, hostRetirements, clearanceMemberChecks, clearanceAirChecks,
+        clearanceWorldQueries;
 
     static void recordSubmission(int bytes, boolean restoration) {
         if (restoration) {
@@ -62,10 +69,32 @@ public final class MachineVisualClient {
         MachineVisualVisibility.register();
     }
 
-    public static void observe(MachineVisualHost host, long tick) {
+    public static void observe(MachineVisualHost host, long hostTick) {
         IGregTechTileEntity tile = host.getBaseMetaTileEntity();
-        if (tile.getWorld() != Minecraft.getMinecraft().theWorld) return;
-        if (ENTRIES.size() < 512) ENTRIES.computeIfAbsent(host, Entry::new);
+        Minecraft mc = Minecraft.getMinecraft();
+        if (tile.getWorld() != mc.theWorld) return;
+        boolean visible = hostTick == 0;
+        Entry entry = ENTRIES.get(host);
+        if (entry != null) {
+            if (visible) entry.lastVisibleTick = tick;
+            return;
+        }
+        if (!near(mc, tile)) return;
+        Observation observation = CANDIDATES.get(host);
+        if (observation == null) {
+            if (CANDIDATES.size() >= CANDIDATE_LIMIT) {
+                if (!visible) return;
+                Observation oldest = null;
+                for (Observation candidate : CANDIDATES.values()) if (!recentlyVisible(candidate.lastVisibleTick)
+                    && (oldest == null || candidate.order < oldest.order)) oldest = candidate;
+                if (oldest == null) return;
+                CANDIDATES.remove(oldest.host);
+            }
+            observation = new Observation(host, ++observationSequence);
+            CANDIDATES.put(host, observation);
+        }
+        observation.lastSeenTick = tick;
+        if (visible) observation.lastVisibleTick = tick;
     }
 
     public static void receive(MachineVisualSnapshot snapshot) {
@@ -130,8 +159,11 @@ public final class MachineVisualClient {
         if (mc.theWorld != world) {
             for (Entry entry : ENTRIES.values()) MachineVisualVisibility.remove(entry);
             ENTRIES.clear();
+            CANDIDATES.clear();
+            RETIRING.clear();
             MachineVisualVisibility.clear();
             heldMotionMembers = heldMotionGroups = 0;
+            registeredHosts = waitingHosts = retiringHosts = 0;
             synchronized (INBOUND) {
                 INBOUND.clear();
                 QUEUED.set(0);
@@ -155,6 +187,8 @@ public final class MachineVisualClient {
             pausedAt = 0;
         }
         tick++;
+        retireHosts(mc);
+        admitHosts(mc);
         for (int i = 0; i < 64; i++) {
             MachineVisualSnapshot snapshot;
             synchronized (INBOUND) {
@@ -166,33 +200,19 @@ public final class MachineVisualClient {
         }
         java.util.List<Entry> requests = new java.util.ArrayList<>();
         java.util.List<Entry> motion = new java.util.ArrayList<>();
-        Iterator<Entry> iterator = ENTRIES.values()
-            .iterator();
-        while (iterator.hasNext()) {
-            Entry entry = iterator.next();
-            IGregTechTileEntity tile = entry.tile;
-            if (entry.retired || entry.facing != entry.host.getExtendedFacing()
-                || ((net.minecraft.tileentity.TileEntity) tile).isInvalid()
-                || tile.getMetaTileEntity() != entry.host
-                || entry.world != world
-                || !world.blockExists(tile.getXCoord(), tile.getYCoord(), tile.getZCoord())
-                || world.getTileEntity(tile.getXCoord(), tile.getYCoord(), tile.getZCoord()) != tile) {
-                MachineVisualVisibility.remove(entry);
-                iterator.remove();
-                continue;
-            }
-            boolean near = mc.thePlayer != null
-                && mc.thePlayer.getDistanceSq(tile.getXCoord() + .5, tile.getYCoord() + .5, tile.getZCoord() + .5)
-                    <= 4096;
-            if (near && (entry.lastRequest == Long.MIN_VALUE || tick - entry.lastRequest >= 40)) requests.add(entry);
-            boolean fresh = near && quality != Quality.OFF && entry.fresh(now);
+        for (Entry entry : ENTRIES.values()) {
+            if (entry.lastRequest == Long.MIN_VALUE || tick - entry.lastRequest >= 40) requests.add(entry);
+            boolean fresh = quality != Quality.OFF && entry.fresh(now);
+            entry.previousDecorativeMs = entry.decorativeMs;
             if (fresh && isAnimating(entry.host)) {
                 entry.decorativeMs += Math.min(100, Math.max(0, (now - entry.lastClock) / 1000000L));
-            } else entry.decorativeMs = 0;
+            } else entry.previousDecorativeMs = entry.decorativeMs = entry.sampledDecorativeMs = 0;
             entry.lastClock = now;
-            entry.eligibleMask = fresh && entry.snapshot.motionShape() && isWorking(entry.host)
-                ? MachineVisualClearance.safeGroups(entry.host) & ~entry.restoringMask
+            entry.candidateMask = fresh && entry.snapshot.motionShape() && entry.snapshot.working()
+                ? (1 << entry.host.visualDefinition().groups.size()) - 1 & ~entry.restoringMask
                 : 0;
+            // Already-published groups always see current obstacles, even while a native upload is pending.
+            entry.eligibleMask = MachineVisualClearance.safeGroups(entry, entry.mask & entry.candidateMask);
             if (!entry.host.visualDefinition().groups.isEmpty()) motion.add(entry);
             if (fresh) com.miaokatze.gtsr.client.workeffects.WorkEffectParticles.tick(entry.host, tick);
         }
@@ -206,6 +226,109 @@ public final class MachineVisualClient {
             entry.lastRequest = tick;
             subscriptionRequests++;
         }
+        registeredHosts = ENTRIES.size();
+        waitingHosts = CANDIDATES.size();
+        retiringHosts = RETIRING.size();
+    }
+
+    private static boolean near(Minecraft mc, IGregTechTileEntity tile) {
+        return mc.thePlayer != null
+            && mc.thePlayer.getDistanceSq(tile.getXCoord() + .5, tile.getYCoord() + .5, tile.getZCoord() + .5) <= 4096;
+    }
+
+    private static boolean recentlyVisible(long observedTick) {
+        return observedTick != Long.MIN_VALUE && tick - observedTick <= RECENT_VISIBLE_TICKS;
+    }
+
+    private static void retire(Entry entry) {
+        MachineVisualVisibility.remove(entry);
+        if ((entry.mask | entry.restoringMask) != 0) RETIRING.put(entry.host, entry);
+        hostRetirements++;
+    }
+
+    private static void retireHosts(Minecraft mc) {
+        Iterator<Entry> iterator = ENTRIES.values()
+            .iterator();
+        while (iterator.hasNext()) {
+            Entry entry = iterator.next();
+            IGregTechTileEntity tile = entry.tile;
+            if (entry.retired || entry.facing != entry.host.getExtendedFacing()
+                || ((net.minecraft.tileentity.TileEntity) tile).isInvalid()
+                || tile.getMetaTileEntity() != entry.host
+                || entry.world != world
+                || !near(mc, tile)
+                || !world.blockExists(entry.originX, entry.originY, entry.originZ)
+                || world.getTileEntity(entry.originX, entry.originY, entry.originZ) != tile) {
+                retire(entry);
+                iterator.remove();
+            }
+        }
+        MachineVisualVisibility.prune();
+        RETIRING.values()
+            .removeIf(entry -> (entry.mask | entry.restoringMask) == 0);
+    }
+
+    private static void admitHosts(Minecraft mc) {
+        CANDIDATES.values()
+            .removeIf(
+                candidate -> tick - candidate.lastSeenTick > RECENT_VISIBLE_TICKS
+                    || candidate.host.getBaseMetaTileEntity()
+                        .getWorld() != world
+                    || !near(mc, candidate.host.getBaseMetaTileEntity()));
+        java.util.List<Observation> waiting = new java.util.ArrayList<>(CANDIDATES.values());
+        waiting.sort(
+            java.util.Comparator.comparing((Observation item) -> !recentlyVisible(item.lastVisibleTick))
+                .thenComparingLong(item -> item.order));
+        int admitted = 0;
+        for (Observation candidate : waiting) {
+            if (admitted == HOST_ADMISSIONS_PER_TICK) break;
+            IGregTechTileEntity tile = candidate.host.getBaseMetaTileEntity();
+            boolean restoring = false;
+            for (Entry owner : RETIRING.values())
+                if (owner.originX == tile.getXCoord() && owner.originY == tile.getYCoord()
+                    && owner.originZ == tile.getZCoord()) {
+                        restoring = true;
+                        break;
+                    }
+            if (restoring) continue;
+            if (((net.minecraft.tileentity.TileEntity) tile).isInvalid() || tile.getMetaTileEntity() != candidate.host
+                || !world.blockExists(tile.getXCoord(), tile.getYCoord(), tile.getZCoord())
+                || world.getTileEntity(tile.getXCoord(), tile.getYCoord(), tile.getZCoord()) != tile) {
+                CANDIDATES.remove(candidate.host);
+                continue;
+            }
+            if (ENTRIES.size() >= HOST_LIMIT) {
+                Entry victim = null;
+                for (Entry entry : ENTRIES.values()) {
+                    boolean lowerPriority = recentlyVisible(candidate.lastVisibleTick)
+                        && !recentlyVisible(entry.lastVisibleTick);
+                    if (!lowerPriority && tick - entry.registeredAt < HOST_LEASE_TICKS) continue;
+                    if (victim == null
+                        || recentlyVisible(victim.lastVisibleTick) && !recentlyVisible(entry.lastVisibleTick)
+                        || recentlyVisible(victim.lastVisibleTick) == recentlyVisible(entry.lastVisibleTick)
+                            && entry.registeredAt < victim.registeredAt)
+                        victim = entry;
+                }
+                if (victim == null) break;
+                retire(victim);
+                ENTRIES.remove(victim.host);
+            }
+            Entry entry = new Entry(candidate.host);
+            entry.lastVisibleTick = candidate.lastVisibleTick;
+            ENTRIES.put(candidate.host, entry);
+            CANDIDATES.remove(candidate.host);
+            admitted++;
+            hostAdmissions++;
+        }
+    }
+
+    static long decorativeTime(Entry entry, float partialTick) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (pausedAt != 0 || mc.isSingleplayer() && mc.isGamePaused()) return entry.sampledDecorativeMs;
+        double fraction = Math.max(0, Math.min(1, partialTick));
+        entry.sampledDecorativeMs = entry.previousDecorativeMs
+            + (long) ((entry.decorativeMs - entry.previousDecorativeMs) * fraction);
+        return entry.sampledDecorativeMs;
     }
 
     private static void admitMotion(java.util.List<Entry> entries) {
@@ -218,12 +341,12 @@ public final class MachineVisualClient {
         boolean[] active = new boolean[count];
         for (int i = 0; i < count; i++) {
             Entry entry = entries.get(i);
-            members[i] = memberCost(entry, entry.eligibleMask);
-            groups[i] = Integer.bitCount(entry.eligibleMask);
-            int extra = entry.eligibleMask & ~(entry.mask | entry.restoringMask);
+            members[i] = memberCost(entry, entry.candidateMask);
+            groups[i] = Integer.bitCount(entry.candidateMask);
+            int extra = entry.candidateMask & ~(entry.mask | entry.restoringMask);
             extraMembers[i] = memberCost(entry, extra);
             extraGroups[i] = Integer.bitCount(extra);
-            granted[i] = entry.lastMotionGrant;
+            granted[i] = Math.max(entry.lastMotionGrant, entry.lastCandidateScan);
             leases[i] = entry.motionLeaseUntil;
             active[i] = entry.mask != 0;
         }
@@ -245,12 +368,18 @@ public final class MachineVisualClient {
             tick);
         for (int i = 0; i < count; i++) {
             Entry entry = entries.get(i);
-            int next = selected[i] ? entry.eligibleMask : 0;
+            int next = 0;
+            if (selected[i]) {
+                int extra = entry.candidateMask & ~(entry.mask | entry.restoringMask);
+                if (extra != 0) entry.lastCandidateScan = tick;
+                // Admission bounds candidate member/group scans before any world query or sweep work.
+                next = entry.eligibleMask | MachineVisualClearance.safeGroups(entry, extra);
+            }
             if (next != 0 && entry.mask == 0) {
                 entry.lastMotionGrant = tick;
                 entry.motionLeaseUntil = tick + 120;
             }
-            if (entry.eligibleMask != 0 && next == 0) {
+            if (entry.candidateMask != 0 && !selected[i]) {
                 budgetDeferredHosts++;
                 if (entry.mask != 0) budgetRotations++;
             }
@@ -375,13 +504,17 @@ public final class MachineVisualClient {
         final World world;
         final com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing facing;
         final int originX, originY, originZ;
+        final MachineVisualClearance.Plan geometry;
+        final long registeredAt = tick;
         final long nonce = NONCES.incrementAndGet();
         MachineVisualSnapshot snapshot;
-        long receivedAt, advanceUntil, decorativeMs, lastClock = System.nanoTime(), lastRequest = Long.MIN_VALUE,
-            changedAtTick, lastRenderFrame = Long.MIN_VALUE;
+        long receivedAt, advanceUntil, decorativeMs, previousDecorativeMs, sampledDecorativeMs,
+            lastClock = System.nanoTime(), lastRequest = Long.MIN_VALUE, changedAtTick,
+            lastRenderFrame = Long.MIN_VALUE;
         volatile int mask;
-        int eligibleMask;
-        long lastMotionGrant = Long.MIN_VALUE, motionLeaseUntil;
+        int eligibleMask, candidateMask;
+        long lastMotionGrant = Long.MIN_VALUE, lastCandidateScan = Long.MIN_VALUE, motionLeaseUntil,
+            lastVisibleTick = Long.MIN_VALUE;
         int restoringMask;
         boolean retired;
         final long[] maskEpochs = new long[8];
@@ -396,14 +529,13 @@ public final class MachineVisualClient {
             originX = tile.getXCoord();
             originY = tile.getYCoord();
             originZ = tile.getZCoord();
+            geometry = MachineVisualClearance.plan(host.visualDefinition(), facing);
         }
 
         int[] at(int x, int y, int z) {
-            int[] p = com.miaokatze.gtsr.common.machinevisual.MachineVisualSpace.transform(facing, x, y, z);
-            p[0] += originX;
-            p[1] += originY;
-            p[2] += originZ;
-            return p;
+            return new int[] { originX + x * geometry.x[0] + y * geometry.y[0] + z * geometry.z[0],
+                originY + x * geometry.x[1] + y * geometry.y[1] + z * geometry.z[1],
+                originZ + x * geometry.x[2] + y * geometry.y[2] + z * geometry.z[2] };
         }
 
         boolean fresh(long now) {
@@ -412,6 +544,18 @@ public final class MachineVisualClient {
                 && now - receivedAt <= 2000000000L
                 && snapshot.orientation == host.getExtendedFacing()
                     .getIndex();
+        }
+    }
+
+    private static final class Observation {
+
+        final MachineVisualHost host;
+        final long order;
+        long lastSeenTick = tick, lastVisibleTick = Long.MIN_VALUE;
+
+        Observation(MachineVisualHost host, long order) {
+            this.host = host;
+            this.order = order;
         }
     }
 }
