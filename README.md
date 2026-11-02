@@ -39,7 +39,7 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 > This is an unofficial mod. Please avoid discussing this mod in official GTNH forums.
 > 这是一个非官方模组，讨论此模组时请注意场合。
 
-> 📖 **完整文档请查阅 [Wiki](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki) / For full documentation, see the [Wiki](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki)**
+> 📖 **完整文档请查阅 [Wiki](https://miaokatze.com/guide/gtsr) / For full documentation, see the [Wiki](https://miaokatze.com/guide/gtsr)**
 
 ## 下载与版本需求 / Downloads & Requirements
 
@@ -157,7 +157,7 @@ Structure renders use the [GTSR Transparent v1 strategy](README/renders/strategy
 
 ***
 
-绑定、传输、终端与节点详情见 [枢纽指南](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki/Hub-System_CN)。
+绑定、传输、终端与节点详情见 [枢纽指南](https://miaokatze.com/entry/gtsr-doc-27e828ed0af0)。
 
 ### Steam Processing Machines / 蒸汽加工机器
 
@@ -499,7 +499,7 @@ The four interfaces retain native ME compatibility. Critical inputs use per-slot
 
 ## 配方与进阶 / Recipes & Progression
 
-用 NEI 查询当前整合包中的配方与材料需求，按机器说明选择蒸汽、仓室与芯片。工作台负责部分基础设备，组装机承接高级控制器、奇点组件、催化剂与武器。需要操作细节时，请阅读 [玩家详细指南](README/FEATURES.md) 或 [Wiki](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki)。
+用 NEI 查询当前整合包中的配方与材料需求，按机器说明选择蒸汽、仓室与芯片。工作台负责部分基础设备，组装机承接高级控制器、奇点组件、催化剂与武器。需要操作细节时，请阅读 [玩家详细指南](README/FEATURES.md) 或 [Wiki](https://miaokatze.com/guide/gtsr)。
 
 ***
 
