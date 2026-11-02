@@ -4,12 +4,11 @@ import java.util.UUID;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.encounter.SceneBossSignal;
 
-/** World identity and short leases prevent stale scene bars after disconnects and teleports. */
+/** The ordered server stream owns scene departures; client ticks must not expire a stalled server's scene. */
 public final class SceneBossCache {
 
     private Object world;
     private SceneBossSignal signal;
-    private int ticks;
 
     public void receive(Object current, int dimension, UUID player, SceneBossSignal s) {
         if (current == null || !s.valid || !s.sane() || dimension != s.dimension || !s.player.equals(player)) return;
@@ -26,7 +25,6 @@ public final class SceneBossCache {
         }
         world = current;
         signal = s.kind == 0 ? null : s;
-        ticks = signal == null ? 0 : 60;
     }
 
     public void tick(Object current, int dimension, UUID player) {
@@ -35,21 +33,17 @@ public final class SceneBossCache {
     }
 
     public void tick(Object current) {
-        if (current == null || current != world || ticks <= 1) clear();
-        else {
-            ticks--;
-            if (signal != null && signal.state == 1) signal.renderRevivalTicks = Math
-                .min(signal.revivalDuration(), Math.min(signal.revivalTicks + 10, signal.renderRevivalTicks + 1));
-        }
+        if (current == null || current != world) clear();
+        else if (signal != null && signal.state == 1) signal.renderRevivalTicks = Math
+            .min(signal.revivalDuration(), Math.min(signal.revivalTicks + 10, signal.renderRevivalTicks + 1));
     }
 
     public SceneBossSignal get(Object current) {
-        return current != null && current == world && ticks > 0 ? signal : null;
+        return current != null && current == world ? signal : null;
     }
 
     public void clear() {
         world = null;
         signal = null;
-        ticks = 0;
     }
 }
