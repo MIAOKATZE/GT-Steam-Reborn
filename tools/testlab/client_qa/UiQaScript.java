@@ -71,7 +71,7 @@ final class UiQaScript {
     Object target(String name)throws Exception {
         if(name.startsWith("@")){
             String type=name.substring(1);
-            if(!type.startsWith("com.miaokatze.")&&!type.startsWith("gregtech.")&&!type.startsWith("net.minecraft.")&&!type.startsWith("net.minecraftforge.")&&!type.startsWith("com.cleanroommc.")&&!type.startsWith("cpw.mods.")&&!type.startsWith("gtneioreplugin."))throw new IllegalArgumentException("Fixture class outside game/mod scope");
+            if(!type.startsWith("com.miaokatze.")&&!type.startsWith("gregtech.")&&!type.startsWith("net.minecraft.")&&!type.startsWith("net.minecraftforge.")&&!type.startsWith("com.cleanroommc.")&&!type.startsWith("cpw.mods.")&&!type.startsWith("gtneioreplugin.")&&!type.equals("audit.CriticalProtectionNativeProbe"))throw new IllegalArgumentException("Fixture class outside game/mod scope");
             return Mui2ClientQa.type(type);
         }
         if(variables.containsKey(name))return variables.get(name);

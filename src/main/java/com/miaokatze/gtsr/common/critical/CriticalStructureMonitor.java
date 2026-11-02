@@ -57,6 +57,13 @@ public final class CriticalStructureMonitor {
         status = Status.BROKEN;
     }
 
+    /** A diagnostic sweep keeps the current verdict until a real mismatch or a complete round replaces it. */
+    public void requestFastSweep() {
+        cursor = credit = lastChecks = 0;
+        roundClean = true;
+        initialSweep = true;
+    }
+
     public boolean tick(int total, IntPredicate matches) {
         return tickSamples(total, index -> matches.test(index) ? Sample.MATCH : Sample.BROKEN);
     }

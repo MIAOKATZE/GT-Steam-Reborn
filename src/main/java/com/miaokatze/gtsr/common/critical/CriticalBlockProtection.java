@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.critical;
 
+import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -15,8 +16,44 @@ import net.minecraftforge.event.world.ExplosionEvent;
 public final class CriticalBlockProtection {
 
     private static final Map<CriticalMachineState, ClientClaim> CLIENT = new WeakHashMap<>();
+    private static final ThreadLocal<ArrayDeque<OwnedWrite>> OWNED_WRITES = ThreadLocal.withInitial(ArrayDeque::new);
 
     private CriticalBlockProtection() {}
+
+    /** Notifications may change other coordinates; exempt only the actual owned write, including nested calls. */
+    public static void beginOwnedWrite(World world, int x, int y, int z) {
+        OWNED_WRITES.get()
+            .addLast(new OwnedWrite(world, x, y, z));
+    }
+
+    public static void endOwnedWrite(World world, int x, int y, int z) {
+        ArrayDeque<OwnedWrite> writes = OWNED_WRITES.get();
+        writes.removeLast();
+        if (writes.isEmpty()) OWNED_WRITES.remove();
+    }
+
+    /** Chunk replacement has already changed the world when breakBlock runs, so use its old block/meta payload. */
+    public static void recordRemoval(World world, int x, int y, int z, Block removed, int metadata) {
+        if (world.isRemote || !(removed instanceof CriticalMaterials.MaterialBlock)
+            && removed != gregtech.api.GregTechAPI.sBlockMachines) return;
+        for (OwnedWrite write : OWNED_WRITES.get())
+            if (write.world == world && write.x == x && write.y == y && write.z == z) return;
+        CriticalWorldData.get(world)
+            .recordRemovedPlacement(world, x, y, z, removed, metadata);
+    }
+
+    private static final class OwnedWrite {
+
+        final World world;
+        final int x, y, z;
+
+        OwnedWrite(World world, int x, int y, int z) {
+            this.world = world;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+    }
 
     public static boolean protects(World world, int x, int y, int z) {
         if (world == null) return false;

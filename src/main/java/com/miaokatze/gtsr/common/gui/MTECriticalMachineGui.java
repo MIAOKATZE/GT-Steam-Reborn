@@ -63,6 +63,12 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
         super.registerSyncValues(manager);
         manager.syncValue("critical.native.loom", new BooleanSyncValue(state::isLoomStructureValid));
         manager.syncValue("critical.native.status", new IntSyncValue(state::getStatusCode));
+        manager.syncValue("critical.native.dismantleQueued", new BooleanSyncValue(state::isDismantleRequested));
+        manager.syncValue(
+            "critical.native.integrity",
+            new IntSyncValue(
+                () -> manager.isClient() || state.getStatusCode() != 2 ? 0
+                    : state.hasKnownStructureDamage() ? 2 : state.isGeometryValidated() ? 0 : 1));
         manager.syncValue("critical.native.runtime", new StringSyncValue(state::getRuntimeStatusKey));
         manager.syncValue(
             "critical.native.blocker",
@@ -92,13 +98,21 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager manager, ModularPanel panel) {
         BooleanSyncValue loom = manager.findSyncHandler("critical.native.loom", BooleanSyncValue.class);
         IntSyncValue status = manager.findSyncHandler("critical.native.status", IntSyncValue.class);
+        BooleanSyncValue dismantleQueued = manager
+            .findSyncHandler("critical.native.dismantleQueued", BooleanSyncValue.class);
+        IntSyncValue integrity = manager.findSyncHandler("critical.native.integrity", IntSyncValue.class);
         ListWidget<IWidget, ?> list = super.createTerminalTextWidget(manager, panel);
         if (loomController) {
             line(
                 list,
                 () -> (loom.getValue() ? EnumChatFormatting.GREEN : EnumChatFormatting.RED)
                     + tr(loom.getValue() ? "loom.formed" : "loom.unformed"));
-            line(list, () -> EnumChatFormatting.YELLOW + tr("status." + status.getValue()));
+            line(
+                list,
+                () -> EnumChatFormatting.YELLOW + tr(
+                    dismantleQueued.getValue() ? "ui.dismantle.queued"
+                        : integrity.getValue() == 2 ? "ui.repair.damaged"
+                            : integrity.getValue() == 1 ? "ui.repair.validating" : "status." + status.getValue()));
             line(list, () -> EnumChatFormatting.GRAY + tr("ui.native.loom_hint"));
         } else {
             StringSyncValue runtime = manager.findSyncHandler("critical.native.runtime", StringSyncValue.class);
@@ -106,10 +120,23 @@ public final class MTECriticalMachineGui extends MTEMultiBlockBaseGui<MTECritica
             line(list, () -> EnumChatFormatting.YELLOW + tr("ui.running_status") + ": " + tr(runtime.getValue()));
             line(
                 list,
+                () -> !dismantleQueued.getValue() && integrity.getValue() == 0 ? ""
+                    : EnumChatFormatting.YELLOW + tr(
+                        dismantleQueued.getValue() ? "ui.dismantle.queued"
+                            : integrity.getValue() == 2 ? "ui.repair.damaged" : "ui.repair.validating"));
+            line(
+                list,
+                () -> !dismantleQueued.getValue() && integrity.getValue() == 0 ? ""
+                    : EnumChatFormatting.GRAY + tr(
+                        dismantleQueued.getValue() ? "ui.dismantle.await_delivery"
+                            : integrity.getValue() == 2 ? "ui.repair.at_loom" : "ui.repair.await_validation"));
+            line(
+                list,
                 () -> blocker.getValue()
                     .isEmpty() ? "" : EnumChatFormatting.YELLOW + blocker.getValue());
             line(list, () -> EnumChatFormatting.GRAY + tr("ui.native.main_hint"));
         }
+        line(list, () -> EnumChatFormatting.GRAY + tr("ui.highlight.entry_hint"));
         return list;
     }
 

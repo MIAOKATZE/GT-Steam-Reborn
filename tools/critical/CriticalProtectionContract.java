@@ -35,15 +35,11 @@ public final class CriticalProtectionContract {
     static String key(int x,int y,int z){return x+","+y+","+z;}
     @SuppressWarnings("unchecked") static void materials()throws Exception {
         Constructor<CriticalMaterials.MaterialBlock> c=CriticalMaterials.MaterialBlock.class.getDeclaredConstructor(
-            String.class,boolean.class,boolean.class,boolean.class,boolean.class,boolean.class);c.setAccessible(true);
-        for(Map.Entry<String,JsonElement> entry:CriticalGeometry.readJson("materials.json").entrySet()) {
-            JsonObject p=entry.getValue().getAsJsonObject();String id=p.get("id").getAsString();
-            for(boolean proxy:new boolean[]{false,true})for(boolean loom:new boolean[]{false,true}) {
-                Field f=CriticalMaterials.class.getDeclaredField(loom?proxy?"LOOM_PROXY":"LOOM_STATIC":proxy?"PROXY":"STATIC");
-                f.setAccessible(true);Map<String,Block> map=(Map<String,Block>)f.get(null);
-                if(!map.containsKey(id))map.put(id,c.newInstance(id,proxy,!p.get("alphaMode").getAsString().equals("opaque"),
-                    p.get("animated").getAsBoolean(),p.get("emissionStrength").getAsDouble()>0,loom));
-            }
+            CriticalMaterialDefinitions.Definition.class);c.setAccessible(true);
+        Field f=CriticalMaterials.class.getDeclaredField("MATERIALS");f.setAccessible(true);
+        Map<String,Block> map=(Map<String,Block>)f.get(null);
+        for(CriticalMaterialDefinitions.Definition definition:CriticalMaterialDefinitions.catalog().definitions().values()) {
+            if(!map.containsKey(definition.id))map.put(definition.id,c.newInstance(definition));
         }
     }
     static SparseWorld world()throws Exception {
@@ -94,7 +90,7 @@ public final class CriticalProtectionContract {
             for(int kind=0;kind<3;kind++)for(CriticalGeometry.Voxel v:all) {
                 if(CriticalLoomStructure.isLoomVoxel(v)||CriticalStructures.isController(v)||!(v.block instanceof CriticalMaterials.MaterialBlock))continue;
                 CriticalMaterials.MaterialBlock b=(CriticalMaterials.MaterialBlock)v.block;
-                if(kind==0&&!b.transparent&&!b.proxy||kind==1&&b.transparent||kind==2&&b.proxy) {selected.add(v);break;}
+                if(kind==0&&!b.transparent&&!b.animated||kind==1&&b.transparent||kind==2&&b.animated) {selected.add(v);break;}
             }
             check(selected.size()==3,"solid transparent moving candidates "+revision+" "+facing);
             for(CriticalGeometry.Voxel v:selected) {put(s,v,v.block);((BitSet)field(s,"placed")).set(all.indexOf(v));}
@@ -110,13 +106,13 @@ public final class CriticalProtectionContract {
                 new CriticalRuntime.StructureChangeListener().onExplosion(new ExplosionEvent.Detonate(w,explosion,new ArrayList<>()));
                 check(explosion.affectedBlockPositions.size()==1&&explosion.affectedBlockPositions.get(0).chunkPosX==x+1000,
                     "actual Forge detonate removes paid and keeps unrelated at arbitrary explosion power");
-                w.blocks.put(key(x+1000,y,z),b);check(b.getBlockHardness(w,x+1000,y,z)==500F,"same material outside claim stays hardness500");
+                w.blocks.put(key(x+1000,y,z),b);check(b.getBlockHardness(w,x+1000,y,z)==5F,"same material outside claim stays hardness5");
             }
             CriticalGeometry.Voxel unpaid=all.stream().filter(cell->!selected.contains(cell)
                 && !CriticalLoomStructure.isLoomVoxel(cell)&&!CriticalStructures.isController(cell)).findFirst().orElseThrow();
             put(s,unpaid,unpaid.block);
-            check(unpaid.block.getBlockHardness(w,s.blockWorldX(unpaid),s.blockWorldY(unpaid.y),s.blockWorldZ(unpaid))==500F,
-                "same structure material at unpaid cell inside region stays hardness500");
+            check(unpaid.block.getBlockHardness(w,s.blockWorldX(unpaid),s.blockWorldY(unpaid.y),s.blockWorldZ(unpaid))==5F,
+                "same structure material at unpaid cell inside region stays hardness5");
             CriticalGeometry.Voxel manual=all.stream().filter(CriticalLoomStructure::isLoomVoxel).findFirst().orElseThrow();
             Block shell=CriticalLoomStructure.shell(manual);put(s,manual,shell);int mx=s.blockWorldX(manual),my=s.blockWorldY(manual.y),mz=s.blockWorldZ(manual);
             check(shell.getBlockHardness(w,mx,my,mz)==5F,"manual loom normal hardness5");
@@ -138,13 +134,13 @@ public final class CriticalProtectionContract {
             Object cached=clients.get(visual);visual.readVisualData(s.getVisualData());
             check(clients.get(visual)==cached,"unchanged client claim reuses paid coordinate index");
             NBTTagCompound removed=s.getVisualData();removed.getCompoundTag("protection").setByteArray("placed",new byte[0]);
-            visual.readVisualData(removed);check(v.block.getBlockHardness(w,x,y,z)==500F,"client paid-bit withdrawal clears previous protection");
+            visual.readVisualData(removed);check(v.block.getBlockHardness(w,x,y,z)==5F,"client paid-bit withdrawal clears previous protection");
             visual.readVisualData(s.getVisualData());
             CriticalRenderAnchors.BLOCK.onBlockExploded(w,a.xCoord,a.yCoord,a.zCoord,new Explosion(w,null,a.xCoord,a.yCoord,a.zCoord,Float.MAX_VALUE));
             check(w.getTileEntity(a.xCoord,a.yCoord,a.zCoord)==a&&w.getBlock(a.xCoord,a.yCoord,a.zCoord)==CriticalRenderAnchors.BLOCK,
                 "actual internal anchor exploded callback retains attachment");
             check(w.setBlockToAir(a.xCoord,a.yCoord,a.zCoord),"internal anchor remains removable by GUI world mutation");
-            check(v.block.getBlockHardness(w,x,y,z)==500F,"unloaded client source cannot protect later manual block");
+            check(v.block.getBlockHardness(w,x,y,z)==5F,"unloaded client source cannot protect later manual block");
             new CriticalRuntime.StructureChangeListener().onWorldUnload(new net.minecraftforge.event.world.WorldEvent.Unload(w));
             if(revision==31&&facing==ForgeDirection.NORTH)check(!clients.containsKey(visual),"actual WorldEvent.Unload releases client world cache");
         }
@@ -166,6 +162,7 @@ public final class CriticalProtectionContract {
             if(ownerUnloaded&&x==ownerX&&y==ownerY&&z==ownerZ)throw new AssertionError("Unloaded controller must not be loaded by protection");
             return tiles.get(key(x,y,z));
         }
+        @Override public void removeTileEntity(int x,int y,int z){tiles.remove(key(x,y,z));}
         @Override public boolean blockExists(int x,int y,int z){return true;}
         @Override public IChunkProvider getChunkProvider(){return chunks;}
         @Override public long getTotalWorldTime(){return 0;}

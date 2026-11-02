@@ -1,9 +1,13 @@
 package com.miaokatze.gtsr.common.critical;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
+import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.ChunkCoordIntPair;
@@ -203,40 +207,96 @@ public final class CriticalWorldData extends WorldSavedData {
             controller.getOriginX(),
             controller.getOriginY(),
             controller.getOriginZ())) return;
-        region.protection = controller.protectionSnapshot();
+        NBTTagCompound snapshot = controller.protectionSnapshot();
+        if (!placementInvalidationsMatch(region.id, snapshot.getLong("fingerprint"))) return;
+        region.protection = snapshot;
         region.protectionState = null;
         markDirty();
     }
 
+    /** Lost physical ownership is separate from the paid placement/refund history. */
+    public boolean placementInvalidationsMatch(String id, long fingerprint) {
+        Region region = regions.get(id);
+        return region == null || region.invalidatedPlacements.isEmpty()
+            || region.invalidationFingerprint == fingerprint;
+    }
+
+    public boolean isPlacementInvalidated(String id, long fingerprint, long position) {
+        Region region = regions.get(id);
+        return region != null && region.invalidationFingerprint == fingerprint
+            && region.invalidatedPlacements.contains(position);
+    }
+
+    public Set<Long> snapshotPlacementInvalidations(String id, long fingerprint) {
+        Region region = regions.get(id);
+        if (region == null || region.invalidationFingerprint != fingerprint) return Collections.emptySet();
+        return Collections.unmodifiableSet(new LinkedHashSet<>(region.invalidatedPlacements));
+    }
+
+    /** Only a successful owned placement may restore this coordinate's physical identity. */
+    public void clearPlacementInvalidation(String id, long fingerprint, long position) {
+        Region region = regions.get(id);
+        if (region != null && region.invalidationFingerprint == fingerprint
+            && region.invalidatedPlacements.remove(position)) markDirty();
+    }
+
+    void recordRemovedPlacement(World world, int x, int y, int z, Block removed, int metadata) {
+        for (Region region : regions.values()) {
+            if (!contains(region, x, y, z)) continue;
+            CriticalMachineState claim = protectionState(world, region);
+            if (claim == null) return;
+            long position = claim.placementPositionAt(x, y, z);
+            if (!claim.ownsRecordedPlacement(position, removed, metadata)) return;
+            long fingerprint = claim.protectionSnapshot()
+                .getLong("fingerprint");
+            if (!placementInvalidationsMatch(region.id, fingerprint)) return;
+            region.invalidationFingerprint = fingerprint;
+            if (!region.invalidatedPlacements.add(position)) return;
+            markDirty();
+            // Snapshot-only claims have no live economic journal. The owner reconciles this set after load.
+            if (claim != region.protectionState) claim.onPlacementInvalidated(position);
+            return;
+        }
+    }
+
+    private static boolean contains(Region region, int x, int y, int z) {
+        return x >= region.x && x < region.x + region.size
+            && z >= region.z
+            && z < region.z + region.size
+            && y >= region.y
+            && y < region.y + region.height;
+    }
+
+    private CriticalMachineState protectionState(World world, Region region) {
+        if (world.getChunkProvider()
+            .chunkExists(region.cx >> 4, region.cz >> 4)) {
+            CriticalMachineState live = CriticalMachineState
+                .resolve(world.getTileEntity(region.cx, region.cy, region.cz));
+            if (live != null && ownsTask(
+                region.id,
+                region.owner,
+                live.getJobId(),
+                live.getOriginX(),
+                live.getOriginY(),
+                live.getOriginZ())) return live;
+        }
+        if (region.protection == null) return null;
+        if (region.protectionState == null) {
+            region.protectionState = new CriticalMachineState();
+            region.protectionState.worldObj = world;
+            region.protectionState.xCoord = region.cx;
+            region.protectionState.yCoord = region.cy;
+            region.protectionState.zCoord = region.cz;
+            region.protectionState.readProtectionSnapshot(region.protection);
+        }
+        return region.protectionState;
+    }
+
     public boolean protectsPlayerBreak(World world, int x, int y, int z) {
         for (Region region : regions.values()) {
-            if (x < region.x || x >= region.x + region.size
-                || z < region.z
-                || z >= region.z + region.size
-                || y < region.y
-                || y >= region.y + region.height) continue;
-            if (world.getChunkProvider()
-                .chunkExists(region.cx >> 4, region.cz >> 4)) {
-                CriticalMachineState live = CriticalMachineState
-                    .resolve(world.getTileEntity(region.cx, region.cy, region.cz));
-                if (live != null && ownsTask(
-                    region.id,
-                    region.owner,
-                    live.getJobId(),
-                    live.getOriginX(),
-                    live.getOriginY(),
-                    live.getOriginZ())) return live.protectsPlayerBreak(x, y, z);
-            }
-            if (region.protection == null) return false;
-            if (region.protectionState == null) {
-                region.protectionState = new CriticalMachineState();
-                region.protectionState.worldObj = world;
-                region.protectionState.xCoord = region.cx;
-                region.protectionState.yCoord = region.cy;
-                region.protectionState.zCoord = region.cz;
-                region.protectionState.readProtectionSnapshot(region.protection);
-            }
-            return region.protectionState.protectsPlayerBreak(x, y, z);
+            if (!contains(region, x, y, z)) continue;
+            CriticalMachineState claim = protectionState(world, region);
+            return claim != null && claim.protectsPlayerBreak(x, y, z);
         }
         return false;
     }
@@ -281,6 +341,11 @@ public final class CriticalWorldData extends WorldSavedData {
                     r.getInteger("z"));
                 region.jobId = r.getString("jobId");
                 region.protection = r.hasKey("protection") ? r.getCompoundTag("protection") : null;
+                region.invalidationFingerprint = r.getLong("invalidationFingerprint");
+                NBTTagList invalidated = r.getTagList("invalidatedPlacements", 10);
+                for (int j = 0; j < invalidated.tagCount(); j++) region.invalidatedPlacements.add(
+                    invalidated.getCompoundTagAt(j)
+                        .getLong("position"));
                 region.size = r.hasKey("size") ? r.getInteger("size") : 80;
                 region.height = r.hasKey("height") ? r.getInteger("height") : 162;
                 region.cx = r.hasKey("cx") ? r.getInteger("cx") : region.x + 40;
@@ -313,6 +378,16 @@ public final class CriticalWorldData extends WorldSavedData {
             t.setString("owner", r.owner);
             t.setString("jobId", r.jobId);
             if (r.protection != null) t.setTag("protection", r.protection.copy());
+            if (!r.invalidatedPlacements.isEmpty()) {
+                t.setLong("invalidationFingerprint", r.invalidationFingerprint);
+                NBTTagList invalidated = new NBTTagList();
+                for (long position : r.invalidatedPlacements) {
+                    NBTTagCompound entry = new NBTTagCompound();
+                    entry.setLong("position", position);
+                    invalidated.appendTag(entry);
+                }
+                t.setTag("invalidatedPlacements", invalidated);
+            }
             t.setInteger("x", r.x);
             t.setInteger("y", r.y);
             t.setInteger("z", r.z);
@@ -334,6 +409,8 @@ public final class CriticalWorldData extends WorldSavedData {
         String jobId = "";
         NBTTagCompound protection;
         CriticalMachineState protectionState;
+        final Set<Long> invalidatedPlacements = new LinkedHashSet<>();
+        long invalidationFingerprint;
 
         Region(String id, String owner, int x, int y, int z) {
             this.id = id;

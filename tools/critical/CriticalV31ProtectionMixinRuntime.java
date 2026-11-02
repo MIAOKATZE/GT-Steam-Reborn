@@ -50,7 +50,7 @@ public final class CriticalV31ProtectionMixinRuntime {
         try {
             for(ForgeDirection facing:new ForgeDirection[]{ForgeDirection.NORTH,ForgeDirection.EAST,ForgeDirection.SOUTH,ForgeDirection.WEST}) {
                 CriticalProtectionContract.SparseWorld world=CriticalProtectionContract.world();
-                CriticalMachineState state=CriticalProtectionContract.state(world,31,facing);
+                CriticalMachineState state=CriticalProtectionContract.state(world,33,facing);
                 List<CriticalGeometry.Voxel> cells=CriticalProtectionContract.geometry(state);
                 CriticalGeometry.Voxel controller=cells.stream().filter(v->CriticalStructures.isController(v)&&v.z!=47).findFirst().orElseThrow();
                 int x=state.blockWorldX(controller),y=state.blockWorldY(controller.y),z=state.blockWorldZ(controller);
@@ -61,6 +61,26 @@ public final class CriticalV31ProtectionMixinRuntime {
                 ((BitSet)CriticalProtectionContract.field(state,"placed")).set(cells.indexOf(controller));
                 CriticalWorldData data=CriticalProtectionContract.claim(state);
                 check(rows,shared.getBlockHardness(world,x,y,z)==-1F,"Actual transformed shared Block getter protects paid controller "+facing);
+                check(rows,!shared.removedByPlayer(world,null,x,y,z,true),
+                    "Actual GT willHarvest callback rejects paid controller before deferred harvest "+facing);
+                check(rows,!shared.removedByPlayer(world,null,x,y,z,false),
+                    "Actual GT ordinary removal rejects paid controller "+facing);
+                check(rows,world.getBlock(x,y,z)==shared&&world.getTileEntity(x,y,z)==tile,
+                    "Rejected player removal preserves paid controller and tile "+facing);
+                CriticalGeometry.Voxel material=cells.stream().filter(v->!CriticalLoomStructure.isLoomVoxel(v)
+                    && !CriticalStructures.isController(v)&&v.block instanceof CriticalMaterials.MaterialBlock).findFirst().orElseThrow();
+                int mx=state.blockWorldX(material),my=state.blockWorldY(material.y),mz=state.blockWorldZ(material);
+                CriticalProtectionContract.put(state,material,material.block);
+                ((BitSet)CriticalProtectionContract.field(state,"placed")).set(cells.indexOf(material));
+                data.updateProtection(state);
+                check(rows,!material.block.removedByPlayer(world,null,mx,my,mz,true),
+                    "Actual Block willHarvest callback rejects paid material "+facing);
+                check(rows,!material.block.removedByPlayer(world,null,mx,my,mz),
+                    "Actual legacy Block callback rejects paid material "+facing);
+                int manualX=mx+1000;world.blocks.put(CriticalProtectionContract.key(manualX,my,mz),material.block);
+                check(rows,material.block.getBlockHardness(world,manualX,my,mz)==5F
+                    &&material.block.removedByPlayer(world,null,manualX,my,mz,true)&&world.isAirBlock(manualX,my,mz),
+                    "Same manual material keeps normal hardness and actual player removal "+facing);
                 check(rows,shared.getExplosionResistance(null,world,x,y,z,x,y,z)==Float.MAX_VALUE,
                     "Actual transformed GT coordinate resistance "+facing);
                 ProbeEntity entity=(ProbeEntity)CriticalProtectionContract.unsafe.allocateInstance(ProbeEntity.class);
@@ -98,12 +118,51 @@ public final class CriticalV31ProtectionMixinRuntime {
                     "Shared ordinary GT block keeps its original resistance "+facing);
                 check(rows,entity.func_145774_a(explosion,world,ordinaryX,y,z,shared,Float.MAX_VALUE),
                     "Actual Entity hook still permits ordinary GT block "+facing);
+                check(rows,shared.removedByPlayer(world,null,ordinaryX,y,z,true)
+                    &&shared.removedByPlayer(world,null,ordinaryX,y,z,false)&&world.isAirBlock(ordinaryX,y,z),
+                    "Same manual GT block still permits deferred and ordinary player removal "+facing);
                 CriticalGeometry.Voxel port=CriticalGeometry.optionalWorkPorts(state).get(0);
                 int hx=state.blockWorldX(port),hy=state.blockWorldY(port.y),hz=state.blockWorldZ(port);
                 MTEHatchInputBus bus=(MTEHatchInputBus)CriticalProtectionContract.unsafe.allocateInstance(MTEHatchInputBus.class);
                 tile(world,bus,hx,hy,hz,facing);world.blocks.put(CriticalProtectionContract.key(hx,hy,hz),shared);
                 check(rows,shared.getBlockHardness(world,hx,hy,hz)==5F&&entity.func_145774_a(explosion,world,hx,hy,hz,shared,Float.MAX_VALUE),
                     "Actual GT manual chamber remains maintainable "+facing);
+                CriticalBlockProtection.beginOwnedWrite(world,mx,my,mz);
+                try {material.block.breakBlock(world,mx,my,mz,material.block,material.metadata);}
+                finally {CriticalBlockProtection.endOwnedWrite(world,mx,my,mz);}
+                check(rows,material.block.getBlockHardness(world,mx,my,mz)==-1F,
+                    "Exact internal owned write does not revoke material ownership "+facing);
+                BitSet paidBefore=(BitSet)((BitSet)CriticalProtectionContract.field(state,"placed")).clone();
+                CriticalBlockProtection.beginOwnedWrite(world,mx+1,my,mz);
+                try {material.block.breakBlock(world,mx,my,mz,material.block,material.metadata);}
+                finally {CriticalBlockProtection.endOwnedWrite(world,mx+1,my,mz);}
+                world.setBlockToAir(mx,my,mz);
+                CriticalProtectionContract.put(state,material,material.block);
+                java.lang.reflect.Method matches=CriticalMachineState.class.getDeclaredMethod("matches",CriticalGeometry.Voxel.class);
+                matches.setAccessible(true);
+                check(rows,!(Boolean)matches.invoke(state,material),
+                    "Hard break then same-material manual replacement cannot restore construction identity "+facing);
+                check(rows,material.block.getBlockHardness(world,mx,my,mz)==5F,
+                    "Hard-broken paid cell manually replaced by same block keeps manual hardness "+facing);
+                long fingerprint=((Number)CriticalProtectionContract.field(state,"jobFingerprint")).longValue();
+                check(rows,data.isPlacementInvalidated(state.getStructureId(),fingerprint,material.positionKey())
+                    &&paidBefore.equals(CriticalProtectionContract.field(state,"placed")),
+                    "Hard break invalidates physical identity while retaining paid history "+facing);
+                check(rows,!data.placementInvalidationsMatch(state.getStructureId(),fingerprint^1),
+                    "Lost ownership remains bound to the original model fingerprint "+facing);
+                data.clearPlacementInvalidation(state.getStructureId(),fingerprint^1,material.positionKey());
+                check(rows,data.isPlacementInvalidated(state.getStructureId(),fingerprint,material.positionKey()),
+                    "Different model cannot clear retained ownership loss "+facing);
+                NBTTagCompound saved=new NBTTagCompound();data.writeToNBT(saved);
+                CriticalWorldData restored=new CriticalWorldData();restored.readFromNBT(saved);
+                world.perWorldStorage.setData("gtsr_critical_regions",restored);data=restored;
+                check(rows,data.isPlacementInvalidated(state.getStructureId(),fingerprint,material.positionKey())
+                    &&!(Boolean)matches.invoke(state,material),"World NBT preserves loss across owner reload and same-block replacement "+facing);
+                NBTTagCompound legacy=(NBTTagCompound)saved.copy();
+                legacy.getTagList("regions",10).getCompoundTagAt(0).removeTag("invalidatedPlacements");
+                CriticalWorldData oldData=new CriticalWorldData();oldData.readFromNBT(legacy);
+                check(rows,!oldData.isPlacementInvalidated(state.getStructureId(),fingerprint,material.positionKey()),
+                    "Old world NBT without provenance loss preserves its existing compatibility boundary "+facing);
                 check(rows,world.setBlockToAir(x,y,z),"Internal world teardown still removes the protected controller "+facing);
                 data.release(state.getStructureId());
             }

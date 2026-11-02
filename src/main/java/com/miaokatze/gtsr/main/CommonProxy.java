@@ -79,6 +79,9 @@ public class CommonProxy {
 
     public void receiveMachineVisual(com.miaokatze.gtsr.common.machinevisual.MachineVisualSnapshot snapshot) {}
 
+    public void receiveCriticalDamageHighlights(com.miaokatze.gtsr.common.critical.CriticalDamageHighlights.Frame frame,
+        Object connection) {}
+
     /**
      * 预初始化阶段 (PreInit)
      * 在此阶段读取配置文件，并将机器注册任务添加到 GregTech 的处理队列中。
@@ -264,6 +267,7 @@ public class CommonProxy {
     @SuppressWarnings({ "unused" })
     public void init(FMLInitializationEvent event) {
         com.miaokatze.gtsr.common.machinevisual.MachineVisualNetwork.register();
+        com.miaokatze.gtsr.common.critical.CriticalDamageHighlights.register();
         // v1.20.40 P19-U1：深渊执念流体方块+桶+事件面（plan §I）。init 段调用——材料流体
         // abyssal_obsession 在 GT preInit 末尾 Materials.init() 回调链才进 FluidRegistry
         // （gtsr required-before:gregtech ⇒ 自身 preInit 时不可取，同下方探针的时序依据）；

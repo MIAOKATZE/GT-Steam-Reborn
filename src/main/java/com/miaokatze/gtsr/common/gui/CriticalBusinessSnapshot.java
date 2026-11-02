@@ -26,7 +26,7 @@ import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 /** A bounded, read-only S2C sample. No field in this class authorizes payment or construction. */
 final class CriticalBusinessSnapshot {
 
-    private static final int VERSION = 3;
+    private static final int VERSION = 4;
     private static final int MAX_TEXT = 4096;
     private static final int TEXT_FIELDS = 11;
     private static final int MAX_IDENTITIES = 64;
@@ -39,9 +39,16 @@ final class CriticalBusinessSnapshot {
     private final int[] configuration;
     private final CriticalConfiguration displayConfiguration;
     private final CriticalMaterialSnapshot[] materials;
+    private final int[] repair;
 
     private CriticalBusinessSnapshot(CriticalConstructionSnapshot construction, String[] text, int economyVersion,
         String[][] identities, String[][] runtime, int[] configuration, CriticalMaterialSnapshot[] materials) {
+        this(construction, text, economyVersion, identities, runtime, configuration, materials, new int[5]);
+    }
+
+    private CriticalBusinessSnapshot(CriticalConstructionSnapshot construction, String[] text, int economyVersion,
+        String[][] identities, String[][] runtime, int[] configuration, CriticalMaterialSnapshot[] materials,
+        int[] repair) {
         this.construction = construction;
         this.text = text;
         this.economyVersion = economyVersion;
@@ -50,6 +57,7 @@ final class CriticalBusinessSnapshot {
         this.configuration = configuration;
         this.displayConfiguration = decodeConfiguration();
         this.materials = materials;
+        this.repair = repair;
     }
 
     /** Empty client-side bootstrap; never used to validate an action or a payment. */
@@ -91,7 +99,8 @@ final class CriticalBusinessSnapshot {
                     && Arrays.deepEquals(a.identities, b.identities)
                     && Arrays.deepEquals(a.runtime, b.runtime)
                     && sameMaterials(a.materials, b.materials)
-                    && Arrays.equals(a.configuration, b.configuration))
+                    && Arrays.equals(a.configuration, b.configuration)
+                    && Arrays.equals(a.repair, b.repair))
             .copyImmutable()
             .build();
         manager.syncValue("critical.businessSnapshot", value);
@@ -154,7 +163,9 @@ final class CriticalBusinessSnapshot {
                 state.isLoomStructureValid() ? 1 : 0, state.canCancelLegacyStellarBatch() ? 1 : 0,
                 // Keep the version-2 wire width; the former model-layout fields are reserved.
                 state.getGeometryVersion(), 0, 0 },
-            materials);
+            materials,
+            new int[] { state.getRepairPhase(), state.getRepairScanProgress(), state.getRepairScanTotal(),
+                state.hasKnownStructureDamage() ? 1 : 0, state.isDismantleRequested() ? 1 : 0 });
     }
 
     private void write(PacketBuffer packet) throws IOException {
@@ -168,11 +179,12 @@ final class CriticalBusinessSnapshot {
         for (String[] row : runtime) for (String value : row) packet.writeStringToBuffer(value);
         for (int value : configuration) packet.writeInt(value);
         for (CriticalMaterialSnapshot value : materials) value.write(packet);
+        for (int value : repair) packet.writeInt(value);
     }
 
     private static CriticalBusinessSnapshot read(PacketBuffer packet) throws IOException {
         int version = packet.readVarIntFromBuffer();
-        if (version != 2 && version != VERSION)
+        if (version != 2 && version != 3 && version != VERSION)
             throw new IOException("Unsupported critical business snapshot: " + version);
         CriticalConstructionSnapshot construction = CriticalConstructionSnapshot.read(packet);
         String[] text = new String[TEXT_FIELDS];
@@ -192,6 +204,8 @@ final class CriticalBusinessSnapshot {
         for (int i = 0; i < configuration.length; i++) configuration[i] = packet.readInt();
         CriticalMaterialSnapshot[] materials = new CriticalMaterialSnapshot[7];
         for (int i = 0; i < materials.length; i++) materials[i] = CriticalMaterialSnapshot.read(packet, version >= 3);
+        int[] repair = new int[5];
+        if (version >= 4) for (int i = 0; i < repair.length; i++) repair[i] = packet.readInt();
         return new CriticalBusinessSnapshot(
             construction,
             text,
@@ -199,11 +213,73 @@ final class CriticalBusinessSnapshot {
             identities,
             runtime,
             configuration,
-            materials);
+            materials,
+            repair);
     }
 
     String detail() {
         return StatCollector.translateToLocal("gtsr.critical." + text[0]);
+    }
+
+    int repairPhase() {
+        return repair[0];
+    }
+
+    int repairScanProgress() {
+        return repair[1];
+    }
+
+    int repairScanTotal() {
+        return repair[2];
+    }
+
+    boolean structureDamaged() {
+        return construction.status() == 2 && repair[3] != 0;
+    }
+
+    boolean structureChecking() {
+        return construction.status() == 2 && !structureDamaged() && (repairPhase() == 3 || construction.reason() == 4);
+    }
+
+    boolean dismantleRequested() {
+        return repair[4] != 0;
+    }
+
+    String engineeringStatusKey() {
+        if (dismantleRequested()) return "ui.dismantle.queued";
+        if (structureDamaged()) return "ui.repair.damaged";
+        if (repairPhase() == 1) return "ui.repair.scanning";
+        if (structureChecking()) return "ui.repair.validating";
+        return "status." + construction.status();
+    }
+
+    String engineeringReasonKey() {
+        if (dismantleRequested()) return "ui.dismantle.queued_detail";
+        if (construction.status() == 2) {
+            if (structureDamaged()) return "ui.repair.damaged_detail";
+            return structureChecking() ? "ui.repair.validating_detail" : "status.2";
+        }
+        int cause = construction.enabled() ? construction.reason() : 7;
+        if (cause == 4 && !loomValid()) return "ui.repair.loom_damage";
+        if (cause != 0 && !(repairPhase() == 1 && cause == 4)) return "reason." + cause;
+        return repairPhase() == 1 ? "ui.repair.scanning_detail" : text[0];
+    }
+
+    String engineeringRecoveryKey() {
+        if (dismantleRequested()) return "ui.dismantle.await_delivery";
+        if (construction.status() == 2) {
+            if (structureDamaged()) return "ui.repair.at_loom";
+            return structureChecking() ? "ui.repair.await_validation" : "ui.engineering.complete";
+        }
+        if (!construction.enabled()) return "ui.recover.construction";
+        int cause = construction.reason();
+        if (cause == 4 && !loomValid()) return "ui.repair.restore_loom";
+        if (repairPhase() == 1 && (cause == 0 || cause == 4)) return "ui.repair.await_scan";
+        if (construction.status() == 3 && cause == 0) return "ui.recover.dismantle";
+        if (construction.status() == 3 && cause == 5) return "ui.recover.dismantle_output";
+        if (repairPhase() == 2 && cause == 0) return "ui.repair.continue";
+        if (construction.status() == 0 && cause == 0) return "ui.recover.build";
+        return construction.recoveryKey();
     }
 
     String supplyTerraceNotice() {
