@@ -43,9 +43,6 @@ import betterquesting.api.storage.BQ_Settings;
 import betterquesting.api.utils.JsonHelper;
 import betterquesting.api.utils.NBTConverter;
 import betterquesting.handlers.SaveLoadHandler;
-import betterquesting.network.handlers.NetChapterSync;
-import betterquesting.network.handlers.NetQuestSync;
-import betterquesting.network.handlers.NetSettingSync;
 import betterquesting.questing.QuestDatabase;
 import betterquesting.questing.QuestInstance;
 import betterquesting.questing.QuestLine;
@@ -86,7 +83,7 @@ import gregtech.api.util.GTOreDictUnificator;
  * <li>进度回填：仅对本次补建任务先重放 QuestProgress.json，再逐玩家 merge=true 重放目录记录
  * （对抗 default load 对"库内不存在任务"进度的静默丢弃；不覆盖已存任务的当前进度）</li>
  * <li>前排有序规则收尾（gtsr→gtswn→gtit 依存在线序位 setOrderIndex）</li>
- * <li>同步四连（NetSettingSync / NetQuestSync.quickSync / NetChapterSync / markDirty）</li>
+ * <li>标记定义需要保存；远程玩家由 BQ 原生登录同步接收定义与进度</li>
  * </ol>
  */
 public final class BqQuestInjector {
@@ -176,10 +173,8 @@ public final class BqQuestInjector {
                 writeStamp(Tags.VERSION);
             }
             int frontOrdered = applyFrontOrder();
-            // 同步四连（与 QuestCommandDefaults.load 尾部同款）
-            NetSettingSync.sendSync(null);
-            NetQuestSync.quickSync(null, true, true);
-            NetChapterSync.sendSync(null, null);
+            // 启动时不排队广播：迟到的全书定义包会清空单机共享任务库的进度。
+            // 本机直接共享数据库，远程玩家由 BQ 原生登录同步接收定义与进度。
             SaveLoadHandler.INSTANCE.markDirty();
             GTSteamReborn.LOG.info(
                 "[BQ] 任务注入完成（serverStarted）：任务线总数 {}（线新建 {}），任务新建 {}，跳过 {}，删除 {}，定义刷新 {}{}，"
@@ -412,12 +407,12 @@ public final class BqQuestInjector {
     }
 
     /**
-     * 前排有序规则（注入收尾、同步四连之前执行一次）。
+     * 前排有序规则（注入收尾、保存定义之前执行一次）。
      * 按常量表序扫描 QuestLineDatabase.INSTANCE.keySet()，UUID 高 32 位命中库内
      * 已存在线者依存在线序位 i（命中才递增，缺线无空洞）setOrderIndex(lineId, i)；
      * setOrderIndex 为 remove+clamp-insert（QuestLineDatabase.java:84-87），幂等收敛，
      * 最后执行者定最终序。禁用 setOrderedEntries（其首行整库 clear）。
-     * 客户端顺序经 NetChapterSync order 列表自动镜像，零客户端代码。
+     * 远程玩家的顺序由 BQ 原生登录同步携带的 order 列表镜像。
      *
      * @return 实际 setOrderIndex 的线数（计数日志用）
      */

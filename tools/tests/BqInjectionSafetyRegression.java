@@ -34,7 +34,7 @@ public final class BqInjectionSafetyRegression {
 
     private static void run(String[] args) throws Exception {
         resources = Paths.get(args[0]);
-        net.minecraft.init.Bootstrap.register();
+        net.minecraft.init.Bootstrap.func_151354_b();
         BqCompat.detect();
         betterquesting.questing.rewards.RewardRegistry.INSTANCE.register(
             bq_standard.rewards.factory.FactoryRewardQuestCompletion.INSTANCE);
@@ -261,6 +261,11 @@ public final class BqInjectionSafetyRegression {
             && live.getRequirements().contains(betterquesting.api.utils.UuidConverter.convertLegacyId(42)));
 
         checkNativeParserFamilies();
+
+        check("server-start injection never broadcasts, including skip, refresh and prune passes",
+            betterquesting.network.handlers.NetSettingSync.sends == 0
+                && betterquesting.network.handlers.NetQuestSync.sends == 0
+                && betterquesting.network.handlers.NetChapterSync.sends == 0);
 
         System.out.println("BQ native checks="+checks+" failures="+failures);
         if(failures!=0)throw new AssertionError(failures+" BQ safety regressions");
