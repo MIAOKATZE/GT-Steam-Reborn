@@ -1,6 +1,6 @@
 # GTSR 玩家详细指南
 
-[返回 README](../README.md) · [Wiki](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki)
+[返回 README](../README.md) · [Wiki](https://miaokatze.com/guide/gtsr)
 
 本文补充首页画廊后的操作与供给规则。版本：2.0.43，更新：2026-10-30。配方、结构材料与机器状态请结合游戏内 NEI、物品提示及控制器界面查看。
 

@@ -9,12 +9,12 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0" src="https://img.shields.io/badge/GTNH-2.9.0-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Candidate 2.1.1" src="https://img.shields.io/badge/Candidate-2.1.1-orange.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="GTSR 2.1.9" src="https://img.shields.io/badge/GTSR-2.1.9-green.svg"></a>
 </p>
 
-此版本客户端与服务端均必须安装前置库 [MIAOKATZE Core 0.2.0 ~ +](https://github.com/MIAOKATZE/MIAOKATZE-Core)（最低版本：0.2.0，无上限）。FalsePatternLib 可在缺失时补下载；已有旧版请手动更新。
+此版本客户端与服务端均必须安装前置库 [MIAOKATZE Core 0.2.3 ~ +](https://github.com/MIAOKATZE/MIAOKATZE-Core)（最低版本：0.2.3，无上限）。FalsePatternLib 可在缺失时补下载；已有旧版请手动更新。
 
-当前源码为待发布候选 v2.1.1，仅支持 GTNH 2.9.0 正式版。RC-2 最终版 v2.0.46 已发布。建议 GTIT、GTSWN、GTSR 三者一起更新。
+当前正式版为 v2.1.9，仅支持 GTNH 2.9.0 正式版。RC-2 最终版 v2.0.46 保留为历史版本。建议 GTIT、GTSWN、GTSR 三者一起更新。
 
 GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
 
@@ -39,7 +39,7 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 > This is an unofficial mod. Please avoid discussing this mod in official GTNH forums.
 > 这是一个非官方模组，讨论此模组时请注意场合。
 
-> 📖 **完整文档请查阅 [Wiki](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki) / For full documentation, see the [Wiki](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki)**
+> 📖 **完整文档请查阅 [Wiki](https://miaokatze.com/guide/gtsr) / For full documentation, see the [Wiki](https://miaokatze.com/guide/gtsr)**
 
 ## 下载与版本需求 / Downloads & Requirements
 
@@ -47,8 +47,13 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 
 | GTNH         | GTSR 版本范围 / Version range | 已发布下载 / Status |
 | ------------ | -------------- | :--------------: |
-| 2.9.0 正式版 | 2.1.0 ~ + | 当前 2.1.1 待发布草稿 / Draft |
+| 2.9.0 正式版 / final | 2.1.0 ~ + | [v2.1.9](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/tag/v2.1.9) |
 | 2.9.0 RC-1 / RC-2 | 2.0.0 ~ 2.0.46 | [v2.0.46](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/tag/v2.0.46)；RC 最终版已发布，随附 Core 0.1.28 |
+
+本次 v2.1.9 修复 BQ 启动同步竞态：注入后只保存任务定义，单机保留共享任务进度，远程玩家由 BQ 原生登录同步接收完整任务与进度。
+
+This release removes pre-login quest broadcasts after injection. Definitions remain persistent, and remote players receive quests and progress through BetterQuesting's native login synchronization.
+
 
 ## GTNL / SNL 可选兼容 / Optional compatibility
 
@@ -157,7 +162,7 @@ Structure renders use the [GTSR Transparent v1 strategy](README/renders/strategy
 
 ***
 
-绑定、传输、终端与节点详情见 [枢纽指南](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki/Hub-System_CN)。
+绑定、传输、终端与节点详情见 [枢纽指南](https://miaokatze.com/entry/gtsr-doc-27e828ed0af0)。
 
 ### Steam Processing Machines / 蒸汽加工机器
 
@@ -499,7 +504,7 @@ The four interfaces retain native ME compatibility. Critical inputs use per-slot
 
 ## 配方与进阶 / Recipes & Progression
 
-用 NEI 查询当前整合包中的配方与材料需求，按机器说明选择蒸汽、仓室与芯片。工作台负责部分基础设备，组装机承接高级控制器、奇点组件、催化剂与武器。需要操作细节时，请阅读 [玩家详细指南](README/FEATURES.md) 或 [Wiki](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki)。
+用 NEI 查询当前整合包中的配方与材料需求，按机器说明选择蒸汽、仓室与芯片。工作台负责部分基础设备，组装机承接高级控制器、奇点组件、催化剂与武器。需要操作细节时，请阅读 [玩家详细指南](README/FEATURES.md) 或 [Wiki](https://miaokatze.com/guide/gtsr)。
 
 ***
 

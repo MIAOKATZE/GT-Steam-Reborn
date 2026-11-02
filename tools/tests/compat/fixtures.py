@@ -12,7 +12,7 @@ BQ = {'BqAbsentCheck.java': 'public class BqAbsentCheck{public static void main(
  'Config.java': 'package com.miaokatze.gtsr.config;public class Config{public static int '
                 'prosperityDimId=78;}',
  'Loader.java': 'package cpw.mods.fml.common;public class Loader{public static boolean '
-                'isModLoaded(String name){return true;}}',
+                'isModLoaded(String name){return true;}public static Loader instance(){return new Loader();}public ModContainer activeModContainer(){return null;}}',
  'BQ_Settings.java': 'package betterquesting.api.storage;public class BQ_Settings{public static '
                      'java.io.File curWorldDir;}',
  'SaveLoadHandler.java': 'package betterquesting.handlers;public class SaveLoadHandler{public '
@@ -22,11 +22,11 @@ BQ = {'BqAbsentCheck.java': 'public class BqAbsentCheck{public static void main(
                        'static java.util.ArrayList<net.minecraft.item.ItemStack> getOres(String '
                        's){return new java.util.ArrayList<>();}}',
  'NetSettingSync.java': 'package betterquesting.network.handlers;public class '
-                        'NetSettingSync{public static void sendSync(Object x){}}',
+                        'NetSettingSync{public static int sends;public static void sendSync(Object x){sends++;throw new AssertionError("Server-start injection must not broadcast");}}',
  'NetQuestSync.java': 'package betterquesting.network.handlers;public class NetQuestSync{public '
-                      'static void quickSync(Object x,boolean a,boolean b){}}',
+                      'static int sends;public static void quickSync(Object x,boolean a,boolean b){sends++;throw new AssertionError("Server-start injection must not broadcast");}}',
  'NetChapterSync.java': 'package betterquesting.network.handlers;public class '
-                        'NetChapterSync{public static void sendSync(Object x,Object y){}}'}
+                        'NetChapterSync{public static int sends;public static void sendSync(Object x,Object y){sends++;throw new AssertionError("Server-start injection must not broadcast");}}'}
 
 RECIPE = {'GTSteamReborn.java': 'package com.miaokatze.gtsr.main;public class GTSteamReborn{public static '
                        'final org.apache.logging.log4j.Logger '
