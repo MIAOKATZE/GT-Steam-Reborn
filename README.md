@@ -67,9 +67,9 @@ Both options are disabled by default and require a restart. The enhancement pres
 
 ## 临界机器 / Critical Machines
 
-**临界机器需要通过 [拟态织机] 分阶段完成建设。** 下图由正式 v2.0.43 源码离线渲染；使用实际构型与材质，不是游戏实景截图。
+**临界机器需要通过 [拟态织机] 分阶段完成建设。** 下图由 v2.1.6 源码离线渲染；使用实际构型与材质，不是游戏实景截图。
 
-**Critical machines are built in stages through a [Mimetic Loom].** These offline renders use the published v2.0.43 geometry and materials; they are not in-game photographs.
+**Critical machines are built in stages through a [Mimetic Loom].** These offline renders use v2.1.6 geometry and materials; they are not in-game photographs.
 
 <table>
 <tr><td align="center"><img width="360" src="README/renders/critical-solar.png" alt="维度辐照耦合锅炉 / Dimensional Irradiation Coupled Boiler"><br>维度辐照耦合锅炉 / Dimensional Boiler</td><td align="center"><img width="360" src="README/renders/critical-turbine.png" alt="超临界蒸汽脉冲动力核心 / Supercritical Steam Pulse Power Core"><br>脉冲动力核心 / Pulse Power Core</td></tr>
@@ -87,9 +87,9 @@ Both options are disabled by default and require a restart. The enhancement pres
 
 </details>
 
-透明背景结构图采用 [GTSR Transparent v1 专属渲染策略](README/renders/strategy.json)：固定相机，保持几何比例；高结构使用竖幅及合法展示高度，同类仓室在同一三维场景中叠放。右下角分别标明 Mod 与实际材质来源，未使用材质包时标为 Original assets。
+透明背景结构图采用 [GTSR Transparent v1 专属渲染策略](README/renders/strategy.json)，基于 v2.1.6 与 GT5U 5.09.54.265：固定相机，保持几何比例；高结构使用竖幅及合法展示高度，同类仓室在同一三维场景中叠放。右下角分别标明 Mod 与实际材质来源，未使用材质包时标为 Original assets。
 
-Structure renders use the [GTSR Transparent v1 strategy](README/renders/strategy.json): transparent backgrounds, consistent cameras, proportional geometry, portrait framing for tall builds, and compact stacks of related hatches. The lower-right label names the mod and the textures actually used.
+Structure renders use the [GTSR Transparent v1 strategy](README/renders/strategy.json), based on v2.1.6 and GT5U 5.09.54.265: transparent backgrounds, consistent cameras, proportional geometry, portrait framing for tall builds, and compact stacks of related hatches. The lower-right label names the mod and the textures actually used.
 
 ## Multiblock Machines / 多方块机器
 
