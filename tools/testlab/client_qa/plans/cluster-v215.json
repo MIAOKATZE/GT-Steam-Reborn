@@ -1,0 +1,515 @@
+[
+  {
+    "op": "group",
+    "name": "cluster215-owned-real-ui-actions-explicit-topology-fixture"
+  },
+  {
+    "op": "record",
+    "name": "cluster215.scope",
+    "value": "Owned real GT tiles with explicitly injected topology/tier/formed model signals only. No physical multiblock structure is built. Controller stays OFF with no recipe input. All tested mode/select/save actions use actual widgets, production sessions and authoritative server readback. Statistics are 64 explicit registered vanilla fixture identities per ledger, not mined output."
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "ref": "serverPlayer"
+    },
+    "method": "closeScreen|func_71053_j",
+    "args": [],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 5
+  },
+  {
+    "op": "galleryCleanup",
+    "side": "server",
+    "name": "cleanup-initial-gallery-controller-before-dimension-unload"
+  },
+  {
+    "op": "invoke",
+    "target": {
+      "target": {
+        "ref": "server"
+      },
+      "call": "getCommandManager|func_71187_D",
+      "args": []
+    },
+    "method": "executeCommand|func_71556_a",
+    "args": [
+      {
+        "ref": "serverPlayer"
+      },
+      "gtsrtest enter"
+    ],
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 50
+  },
+  {
+    "op": "assert",
+    "name": "cluster215.owned-TestLab-server",
+    "actual": {
+      "target": {
+        "ref": "serverPlayer"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "server"
+  },
+  {
+    "op": "assert",
+    "name": "cluster215.owned-TestLab-client",
+    "actual": {
+      "target": {
+        "ref": "player"
+      },
+      "field": "dimension|field_71093_bK"
+    },
+    "expected": 1048577,
+    "side": "client"
+  },
+  {
+    "op": "resize",
+    "width": 1280,
+    "height": 720,
+    "scale": 2
+  },
+  {
+    "op": "cluster215Seed",
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 30
+  },
+  {
+    "op": "cluster215Open",
+    "side": "server"
+  },
+  {
+    "op": "expectScreen",
+    "name": "cluster215.real-formal-terminal",
+    "panel": "cluster_terminal",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "cluster215Bind",
+    "side": "client"
+  },
+  {
+    "op": "cluster215Bind",
+    "side": "server"
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_tab_1"
+  },
+  {
+    "op": "wait",
+    "ticks": 3
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_logistics_dropdown"
+  },
+  {
+    "op": "wait",
+    "ticks": 3
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_dropdown_unit_2"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "cluster215ServerProof",
+    "name": "cluster215.selected-slot2-server",
+    "mode": false,
+    "sequence": 1,
+    "ordinals": [
+      9
+    ],
+    "side": "server"
+  },
+  {
+    "op": "cluster215ClientProof",
+    "name": "cluster215.selected-slot2-client",
+    "mode": false,
+    "sequence": 1,
+    "ordinals": [
+      9
+    ],
+    "dirty": false
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_batch_toggle"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "cluster215ServerProof",
+    "name": "cluster215.batch-toggle-server",
+    "mode": true,
+    "sequence": 2,
+    "ordinals": [
+      9
+    ],
+    "side": "server"
+  },
+  {
+    "op": "cluster215ClientProof",
+    "name": "cluster215.batch-toggle-client",
+    "mode": true,
+    "sequence": 2,
+    "ordinals": [
+      9
+    ],
+    "dirty": false,
+    "receipt": "gtsr.cluster.mui2.applied"
+  },
+  {
+    "op": "cluster215NbtProof",
+    "side": "server"
+  },
+  {
+    "op": "galleryClose"
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "cluster215Open",
+    "side": "server"
+  },
+  {
+    "op": "expectScreen",
+    "name": "cluster215.real-formal-terminal",
+    "panel": "cluster_terminal",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "cluster215Bind",
+    "side": "client"
+  },
+  {
+    "op": "cluster215Bind",
+    "side": "server"
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_tab_1"
+  },
+  {
+    "op": "wait",
+    "ticks": 3
+  },
+  {
+    "op": "cluster215ClientProof",
+    "name": "cluster215.batch-reopen-client",
+    "mode": true,
+    "sequence": 0,
+    "ordinals": [
+      9
+    ],
+    "dirty": false
+  },
+  {
+    "op": "cluster215ServerProof",
+    "name": "cluster215.batch-reopen-server",
+    "mode": true,
+    "sequence": 0,
+    "ordinals": [
+      9
+    ],
+    "side": "server"
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_chain_clear"
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_append_0"
+  },
+  {
+    "op": "scroll",
+    "widget": "cluster_available_links",
+    "direction": "DOWN",
+    "notches": 100
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_append_10",
+    "afterScroll": "cluster_available_links"
+  },
+  {
+    "op": "cluster215ClientProof",
+    "name": "cluster215.append-two-steps",
+    "sequence": 0,
+    "ordinals": [
+      0,
+      10
+    ],
+    "dirty": true,
+    "valid": true
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_move_up_1"
+  },
+  {
+    "op": "cluster215ClientProof",
+    "name": "cluster215.move-up",
+    "sequence": 0,
+    "ordinals": [
+      10,
+      0
+    ],
+    "dirty": true,
+    "valid": false
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_move_down_0"
+  },
+  {
+    "op": "cluster215ClientProof",
+    "name": "cluster215.move-down",
+    "sequence": 0,
+    "ordinals": [
+      0,
+      10
+    ],
+    "dirty": true,
+    "valid": true
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_remove_0"
+  },
+  {
+    "op": "cluster215ClientProof",
+    "name": "cluster215.remove-step",
+    "sequence": 0,
+    "ordinals": [
+      10
+    ],
+    "dirty": true,
+    "valid": true
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_peak_0"
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_chain_save"
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "cluster215ServerProof",
+    "name": "cluster215.saved-authority",
+    "mode": true,
+    "sequence": 1,
+    "ordinals": [
+      10
+    ],
+    "side": "server"
+  },
+  {
+    "op": "cluster215ClientProof",
+    "name": "cluster215.saved-roundtrip",
+    "mode": true,
+    "sequence": 1,
+    "ordinals": [
+      10
+    ],
+    "dirty": false,
+    "valid": true,
+    "receipt": "gtsr.cluster.mui2.applied"
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_append_10",
+    "afterScroll": "cluster_available_links"
+  },
+  {
+    "op": "cluster215ClientProof",
+    "name": "cluster215.unsaved-second-terminal",
+    "sequence": 1,
+    "ordinals": [
+      10,
+      10
+    ],
+    "dirty": true,
+    "valid": false
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_chain_revert"
+  },
+  {
+    "op": "cluster215ClientProof",
+    "name": "cluster215.revert-to-authority",
+    "sequence": 1,
+    "ordinals": [
+      10
+    ],
+    "dirty": false,
+    "valid": true
+  },
+  {
+    "op": "cluster215InventoryProof",
+    "side": "server",
+    "baseline": true
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_tab_3"
+  },
+  {
+    "op": "wait",
+    "ticks": 5
+  },
+  {
+    "op": "scroll",
+    "widget": "cluster_stats_list_0",
+    "direction": "DOWN",
+    "notches": 100
+  },
+  {
+    "op": "scroll",
+    "widget": "cluster_stats_list_1",
+    "direction": "DOWN",
+    "notches": 100
+  },
+  {
+    "op": "scroll",
+    "widget": "cluster_stats_list_2",
+    "direction": "DOWN",
+    "notches": 100
+  },
+  {
+    "op": "wait",
+    "ticks": 15
+  },
+  {
+    "op": "cluster215StatsPreview"
+  },
+  {
+    "op": "wait",
+    "ticks": 5
+  },
+  {
+    "op": "cluster215InventoryProof",
+    "side": "server"
+  },
+  {
+    "op": "galleryClose"
+  },
+  {
+    "op": "wait",
+    "ticks": 10
+  },
+  {
+    "op": "cluster215Open",
+    "side": "server"
+  },
+  {
+    "op": "expectScreen",
+    "name": "cluster215.real-formal-terminal",
+    "panel": "cluster_terminal",
+    "slots": 36
+  },
+  {
+    "op": "wait",
+    "ticks": 20
+  },
+  {
+    "op": "cluster215Bind",
+    "side": "client"
+  },
+  {
+    "op": "cluster215Bind",
+    "side": "server"
+  },
+  {
+    "op": "cluster215Hit",
+    "widget": "cluster_tab_1"
+  },
+  {
+    "op": "wait",
+    "ticks": 3
+  },
+  {
+    "op": "cluster215ClientProof",
+    "name": "cluster215.saved-chain-and-mode-reopen",
+    "mode": true,
+    "sequence": 0,
+    "ordinals": [
+      10
+    ],
+    "dirty": false,
+    "valid": true
+  },
+  {
+    "op": "cluster215ServerProof",
+    "name": "cluster215.saved-chain-and-mode-authority",
+    "mode": true,
+    "sequence": 0,
+    "ordinals": [
+      10
+    ],
+    "side": "server"
+  },
+  {
+    "op": "group",
+    "name": "cluster215-owned-final-cleanup-even-after-action-group-failure"
+  },
+  {
+    "op": "galleryClose"
+  },
+  {
+    "op": "wait",
+    "ticks": 5
+  },
+  {
+    "op": "cluster215Cleanup",
+    "side": "server"
+  },
+  {
+    "op": "wait",
+    "ticks": 5
+  },
+  {
+    "op": "record",
+    "name": "cluster215.final-scope",
+    "value": "Real integrated-server formal GUI actions and owned explicit model fixtures only. No physical OS input/IME, dedicated-server/TCP, complete physical structure, ore recipe, booster charging or world-restart claim. No screenshot is used as the pass criterion for action assertions."
+  }
+]

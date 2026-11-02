@@ -121,7 +121,11 @@ public final class ClusterTerminalFactory implements UIFactory<ClusterTerminalFa
     @SideOnly(Side.CLIENT)
     @Override
     public ModularScreen createScreen(ClusterGuiData data, ModularPanel panel) {
-        return new com.miaokatze.gtsr.common.gui.mui2.BoundedTerminalScreen("gtsr", panel, 620, 340);
+        return new com.miaokatze.gtsr.common.gui.mui2.BoundedTerminalScreen(
+            "gtsr",
+            panel,
+            ClusterTerminalPanel.WIDTH,
+            ClusterTerminalPanel.HEIGHT);
     }
 
     @Override

@@ -381,8 +381,9 @@ public final class TestLabClusterTask implements TestLabTask {
                     return result(TestLabReport.Status.FAIL, "已见产物但未观测到真实蒸汽/润滑消耗");
                 if (!energyFeeds.isEmpty() && totalUncappedEnergy() >= initialEnergy)
                     return result(TestLabReport.Status.FAIL, "需持续供电链步未观察到能源仓真实EU扣除");
-                if (booster != null && (booster.isLastBatchPrecheckFailed()
-                    || boosterInitial - boosterHatch.getFluidAmount() != booster.batchCost(input.stackSize)))
+                if (booster != null
+                    && (booster.isLastBatchPrecheckFailed() || boosterInitial - boosterHatch.getFluidAmount()
+                        != booster.batchCost(logistics.getLastBatchChargedRounds())))
                     return result(TestLabReport.Status.FAIL, "增幅液未按原生批单价真实扣除");
                 if (link == ChainLink.ORE_WASH && !batchRegression.isEmpty()) {
                     String fluidSummary = logistics.getLastBatchFluidSummary()

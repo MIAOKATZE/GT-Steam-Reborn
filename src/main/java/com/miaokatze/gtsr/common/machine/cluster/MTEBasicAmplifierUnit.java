@@ -29,10 +29,10 @@ import gregtech.api.util.GTUtility;
  * 增幅模块基类：集群五类增幅（并行/速度/主产物/副产物/蒸汽效率）的公共骨架。
  * <p>
  * 正面 {@code (0,3,0)} 为输入仓位（'A' 元素先尝试 InputHatch，再回退 tiered 外壳——输入仓可置
- * 任意 A 位，至少一个否则不成型），开批经济结算（v1.20.16 L/矿口径）经 {@link #tryConsumeForBatch}
- * 按批预检实扣（提交点一次扣 batch×单价），预检失败零扣、该模块本批无增益无惩罚。
+ * 任意 A 位，至少一个否则不成型），开批经济结算经 {@link #tryConsumeForBatch}
+ * 按计费轮数×单价一次扣除；首轮预检失败零扣、该模块本批无增益无惩罚。
  * <p>
- * 锁定流体直接从 H 输入仓读取，开批（executeBatch 提交点）按实际矿数一次扣除；不再启用内部流体槽，
+ * 锁定流体直接从 H 输入仓读取，开批按实际计费轮数一次扣除；不再启用内部流体槽，
  * 管道直灌面随之关闭。
  * 手工容器交互（桶/胶囊）沿承 {@link MTEClusterUnitBase} 家族语义（关闭），流体出入一律走管道/ME。
  * <p>
@@ -60,7 +60,7 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
 
     /**
      * 最近一次开批预检失效标记（瞬态，v1.20.16）：true = 最近一次开批预检未通过（缺流体或存量
-     * 不足整批单价 batch×单价）——本模块该批无增益、不计蒸汽惩罚乘子；从未参与预检时为 false。
+     * 不足首轮单价）——本模块该批无增益、不计蒸汽惩罚乘子；从未参与预检时为 false。
      * 由 {@code ClusterChainExecutor} 开批预检段经 {@link #markBatchPrecheckResult} 登记，
      * {@code BoosterState.aggregate} 与主控一次性播报锁存共用（V3 最小侵入接线）。
      */
@@ -130,7 +130,7 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     public abstract IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity);
 
     /**
-     * 本模块增幅液单价（L/矿，v1.20.16 消耗模型；历史名 PerSec 保留——消费点含协议编码
+     * 本模块增幅液单价（L/计费轮，v2.1.5；历史名 PerSec 保留——消费点含协议编码
      * ClusterTerminalData KEY_BO_COST/KEY_F_DETAIL）：联动加成后的精确值（可为小数，显示与公式串
      * 共用）——
      *
@@ -140,7 +140,7 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
      * </pre>
      *
      * 加成明细见 {@link #amplifierSurchargeSources()}；无施加方且无同种模块时退化为基础表值。
-     * 开批一次扣 = {@link #batchCost}(batch) = 单价 × batch（预检与实扣同一 helper，禁止二次 ceil）。
+     * 开批一次扣 = {@link #batchCost}(计费轮数)；64 份并行计一轮，合并 10 轮计十轮，尾轮向上取整。
      */
     public double amplifierFluidPerSecExact() {
         int tier = getUnitStructureTier();
@@ -208,37 +208,37 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     }
 
     /**
-     * 本批增幅液消耗（L，v1.20.16 开批一次扣口径）：{@code 单价 × batch}，单一 helper 一次取整
-     * （batch 非正或单价非正返回 0）；开批支付预检（{@link #canPayForBatch}）与提交实扣
+     * 本批增幅液消耗（L）：{@code 单价 × 计费轮数}，单一 helper 一次取整
+     * （轮数非正或单价非正返回 0）；开批支付预检（{@link #canPayForBatch}）与提交实扣
      * （{@link #tryConsumeForBatch}）共用本值，保证「预检的量 = 实扣的量」（禁止二次 ceil）。
      *
-     * @param batch 本批实际矿数
-     * @return 本批应扣增幅液量（L；单价×batch 一次向上取整）
+     * @param rounds 本次计费轮数（并行不乘矿数，尾轮向上取整；空批为 0）
+     * @return 本批应扣增幅液量（L；单价×轮数一次向上取整）
      */
-    public int batchCost(int batch) {
-        if (batch <= 0) return 0;
-        double exact = amplifierFluidPerSecExact() * batch;
+    public int batchCost(int rounds) {
+        if (rounds <= 0) return 0;
+        double exact = amplifierFluidPerSecExact() * rounds;
         return exact <= 0 ? 0 : (int) Math.ceil(exact - 1e-9);
     }
 
     /**
-     * 开批支付预检（只读、零副作用）：本模块输入仓合计存量 ≥ {@link #batchCost(batch)}。
+     * 开批支付预检（只读、零副作用）：本模块输入仓合计存量 ≥ {@link #batchCost(int)}。
      * 仅判定，不写「最近开批预检失效」标记（标记由 {@code ClusterChainExecutor} 预检段统一登记）。
      */
-    public boolean canPayForBatch(int batch) {
-        int cost = batchCost(batch);
+    public boolean canPayForBatch(int rounds) {
+        int cost = batchCost(rounds);
         Fluid locked = getLockedFluidOrNull();
         if (cost <= 0 || locked == null) return false;
         return GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, new FluidStack(locked, cost));
     }
 
     /**
-     * 开批批量实扣（v1.20.16 提交点一次扣）：按 {@link #batchCost(batch)} 经
-     * {@link #tryConsumeAmplifierFluid} 先预检后整扣；不足（或 batch 非正/锁定流体缺失）返回 false
+     * 开批批量实扣：按 {@link #batchCost(int)} 经
+     * {@link #tryConsumeAmplifierFluid} 先预检后整扣；不足（或轮数非正/锁定流体缺失）返回 false
      * 且零扣——调用方已在开批预检段将不足模块从本批增益/蒸汽惩罚中剔除（批照常执行、输入照常收取）。
      */
-    public boolean tryConsumeForBatch(int batch) {
-        return tryConsumeAmplifierFluid(batchCost(batch));
+    public boolean tryConsumeForBatch(int rounds) {
+        return tryConsumeAmplifierFluid(batchCost(rounds));
     }
 
     /**

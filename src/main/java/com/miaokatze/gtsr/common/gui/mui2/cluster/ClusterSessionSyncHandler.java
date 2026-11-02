@@ -183,38 +183,49 @@ public final class ClusterSessionSyncHandler extends SyncHandler<ClusterSessionS
         ClusterTerminalActions action = actions[ordinal];
         if (action == ClusterTerminalActions.TOGGLE_POWER || action == ClusterTerminalActions.CLEAR_STATS) {
             if (payload.length != 0) return 1;
-        } else if (action == ClusterTerminalActions.SELECT_LOGISTICS || action == ClusterTerminalActions.SAVE_CHAIN) {
-            if (slot < 0 || slot >= 60
-                || expectedGeneration != serverGeneration
-                || !(members[slot] instanceof MTEBasicLogisticsUnit unit)
-                || !machine.getTopology()
-                    .getLogisticsUnits()
-                    .contains(unit))
-                return 3;
-            if (action == ClusterTerminalActions.SELECT_LOGISTICS) {
-                if (payload.length != 0) return 1;
-                PacketBuffer select = new PacketBuffer(Unpooled.buffer(4));
-                select.writeInt(
-                    machine.getTopology()
+        } else if (action == ClusterTerminalActions.SELECT_LOGISTICS || action == ClusterTerminalActions.SAVE_CHAIN
+            || action == ClusterTerminalActions.TOGGLE_BATCH_MODE) {
+                if (slot < 0 || slot >= 60
+                    || expectedGeneration != serverGeneration
+                    || !(members[slot] instanceof MTEBasicLogisticsUnit unit)
+                    || !machine.getTopology()
                         .getLogisticsUnits()
-                        .indexOf(unit));
-                payload = new byte[4];
-                select.readBytes(payload);
-            } else {
-                if (machine.getSelectedLogisticsUnit() != unit || machine.getStructureTierIndex() < 0) return 3;
-                if (payload.length < 12) return 1;
-                PacketBuffer chain = new PacketBuffer(Unpooled.wrappedBuffer(payload));
-                int length = chain.readInt();
-                if (length < 1 || length > 16 || chain.readableBytes() != length * 4 + 4) return 1;
-                int[] ordinals = new int[length];
-                for (int i = 0; i < length; i++) {
-                    ordinals[i] = chain.readInt();
-                    if (ordinals[i] < 0 || ordinals[i] >= ChainLink.values().length) return 1;
+                        .contains(unit))
+                    return 3;
+                if (action == ClusterTerminalActions.SELECT_LOGISTICS) {
+                    if (payload.length != 0) return 1;
+                    PacketBuffer select = new PacketBuffer(Unpooled.buffer(4));
+                    select.writeInt(
+                        machine.getTopology()
+                            .getLogisticsUnits()
+                            .indexOf(unit));
+                    payload = new byte[4];
+                    select.readBytes(payload);
+                } else if (action == ClusterTerminalActions.TOGGLE_BATCH_MODE) {
+                    if (payload.length != 0) return 1;
+                    if (machine.getSelectedLogisticsUnit() != unit || machine.getStructureTierIndex() < 0) return 3;
+                    if (!unit.supportsBatchMode() || !machine.isAccessAllowed(data.getPlayer())
+                        || !unit.isAccessAllowed(data.getPlayer())) return 2;
+                    unit.setBatchMode(!unit.isBatchModeEnabled());
+                    ClusterTerminalData.invalidateLogisticsSample(
+                        data.getPlayer()
+                            .getUniqueID());
+                    return 0;
+                } else {
+                    if (machine.getSelectedLogisticsUnit() != unit || machine.getStructureTierIndex() < 0) return 3;
+                    if (payload.length < 12) return 1;
+                    PacketBuffer chain = new PacketBuffer(Unpooled.wrappedBuffer(payload));
+                    int length = chain.readInt();
+                    if (length < 1 || length > 16 || chain.readableBytes() != length * 4 + 4) return 1;
+                    int[] ordinals = new int[length];
+                    for (int i = 0; i < length; i++) {
+                        ordinals[i] = chain.readInt();
+                        if (ordinals[i] < 0 || ordinals[i] >= ChainLink.values().length) return 1;
+                    }
+                    if (!LogisticsChain.fromOrdinalArray(ordinals)
+                        .isValidStructure()) return 1;
                 }
-                if (!LogisticsChain.fromOrdinalArray(ordinals)
-                    .isValidStructure()) return 1;
-            }
-        } else return 1; // All frozen placeholder actions remain unavailable.
+            } else return 1; // All frozen placeholder actions remain unavailable.
         ClusterTerminalData.executeAction(machine, ordinal, payload);
         return 0;
     }
@@ -325,6 +336,10 @@ public final class ClusterSessionSyncHandler extends SyncHandler<ClusterSessionS
 
     public void select(int slot) {
         submit(ClusterTerminalActions.SELECT_LOGISTICS, slot, new byte[0]);
+    }
+
+    public void toggleBatchMode() {
+        if (selectedSlot() >= 0) submit(ClusterTerminalActions.TOGGLE_BATCH_MODE, selectedSlot(), new byte[0]);
     }
 
     public void discardDraft() {

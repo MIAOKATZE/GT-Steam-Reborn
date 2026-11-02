@@ -12,7 +12,7 @@ import java.util.List;
  * 聚合规则：仅统计 {@code cluster != null} 且 {@link MTEBasicAmplifierUnit#isFluidAvailable()}
  * 且最近一次开批预检通过（非 {@link MTEBasicAmplifierUnit#isLastBatchPrecheckFailed()}）的
  * 「生效」模块；失效模块双重豁免——增益与蒸汽惩罚倍率同时不计，但计入失效数（失效语义
- * v1.20.16 起 = 缺流体或存量不足整批单价，见 {@link #getFailedCount()}）。「在场」= 已接入
+ * 缺流体或存量不足首轮单价，见 {@link #getFailedCount()}）。「在场」= 已接入
  * 集群（{@code getCluster() != null}），未接入集群的 STANDBY 模块既不计生效也不计失效。
  *
  * <p>
@@ -25,8 +25,8 @@ import java.util.List;
  * <li>蒸汽惩罚（T13 分组、S1-T4 起结构惩罚不再乘协同因子）：速度/并行/主产物/副产物模块按
  * （种类×档位）分组——组实际 = 组内逐台档位乘子连乘，总惩罚 = 各组实际连乘；
  * 节汽模块不惩罚（协同率常量仅剩增幅流体联动加成路径 {@code amplifierFluidPerSecExact} 使用）；</li>
- * <li>增幅液支付（v1.20.16 L/矿口径）不在本聚合内判定或实扣：开批预检 存量 ≥ batch×单价 与
- * 提交点一次扣共用 {@code MTEBasicAmplifierUnit.batchCost/tryConsumeForBatch} 同一 helper
+ * <li>增幅液支付（L/计费轮）不在本聚合内判定或实扣：首轮预检与扩批支付预检、提交点实扣
+ * 共用 {@code MTEBasicAmplifierUnit.batchCost/tryConsumeForBatch} 同一 helper
  * （预检 = 实扣同一口径，禁止二次 ceil）；失效标记由 {@code ClusterChainExecutor} 开批预检段
  * 统一登记后重聚合生效；</li>
  * <li>空列表（含 null）直接返回 {@link #EMPTY} 单例，与全零快照语义等价。</li>
@@ -89,13 +89,13 @@ public final class BoosterState {
      * <p>
      * 生效 = 已接入集群 && 锁定流体可用（{@link MTEBasicAmplifierUnit#isFluidAvailable()}）
      * && 最近一次开批预检通过（非 {@link MTEBasicAmplifierUnit#isLastBatchPrecheckFailed()}，
-     * V3：标记由 {@code ClusterChainExecutor} 开批预检段按 存量 ≥ batch×单价 统一登记，未参与过
+     * 标记由 {@code ClusterChainExecutor} 开批预检段按首轮基础量统一登记，未参与过
      * 预检的模块默认通过）。不满足者不入快照：<b>无增益也无蒸汽惩罚</b>，计失效数；未接入集群
      * （STANDBY）的模块与 null 元素直接跳过。无生效且无失效模块时返回 {@link #EMPTY} 单例
      * （空列表/null 入参同此，语义等价）。
      *
      * <p>
-     * 增幅液支付（v1.20.16 L/矿口径）不在本聚合内判定或实扣：开批预检与提交点一次扣共用
+     * 增幅液支付（L/计费轮）不在本聚合内判定或实扣：开批预检与提交点一次扣共用
      * {@code MTEBasicAmplifierUnit.batchCost/tryConsumeForBatch} 同一 helper（预检 = 实扣同一口径）。
      *
      * <p>
@@ -209,7 +209,7 @@ public final class BoosterState {
 
     /**
      * @return 失效模块数（v1.20.16 起 = 最近开批预检失效计数：在场=已接入集群但锁定流体缺失，
-     *         或最近一次开批预检 存量不足 batch×单价；STANDBY 模块与未参与过预检的模块不计）。
+     *         或最近一次开批预检存量不足首轮基础量；STANDBY 模块与未参与过预检的模块不计）。
      */
     public int getFailedCount() {
         return failedCount;

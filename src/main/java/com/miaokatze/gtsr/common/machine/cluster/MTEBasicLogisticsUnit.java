@@ -115,13 +115,6 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     /** 本模块的有序链（永非 null；setChain(null) 亦只置空链）。 */
     private LogisticsChain chain = new LogisticsChain();
 
-    /**
-     * 处理窗口闩（SR-Cluster-r5 决策 5，瞬态无 NBT）：最近一次成功批提交后的"工作中"显示窗，
-     * 窗口 = 提交时计时器 + 本批配方时间；{@link #isUnitRunning()} 与 {@link #getUnitStatus()}
-     * 据此区分"就绪待机"与"正在加工"。重载后从零开始（仅显示语义，非玩家资产）。
-     */
-    private long processingDisplayUntilTick;
-
     /** 链脏标记（瞬态）：置位表示链需在下次执行前重校验（重校验由 E4/主控执行）。 */
     private boolean chainDirty;
 
@@ -143,6 +136,54 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
      * 返 0（静默，状态机保持 STANDBY 口径）。螺丝刀右击切换。
      */
     private boolean queueMode;
+
+    /** 最近一次已提交批的实际并行宽度与总份数，供终端展示。 */
+    private int lastBatchParallel;
+    private int lastBatchSize;
+
+    public int getLastBatchParallel() {
+        return lastBatchParallel;
+    }
+
+    public int getLastBatchSize() {
+        return lastBatchSize;
+    }
+
+    public double getLastBatchDurationMultiplier() {
+        return lastBatchParallel > 0 ? (double) lastBatchSize / lastBatchParallel : 0D;
+    }
+
+    public int getLastBatchChargedRounds() {
+        return lastBatchParallel > 0 && lastBatchSize > 0 ? 1 + (lastBatchSize - 1) / lastBatchParallel : 0;
+    }
+
+    void recordBatchSize(int parallel, int size) {
+        lastBatchParallel = parallel;
+        lastBatchSize = size;
+    }
+
+    @Override
+    public boolean supportsBatchMode() {
+        return true;
+    }
+
+    /** 新物流模块默认保持单轮处理，由玩家开启 GT 原生批处理。 */
+    @Override
+    public boolean getDefaultBatchMode() {
+        return false;
+    }
+
+    @Override
+    public void setBatchMode(boolean enabled) {
+        super.setBatchMode(enabled);
+        markDirty();
+    }
+
+    /** 执行器复用 GT 父类的最大合批倍率。 */
+    @Override
+    public int getMaxBatchSize() {
+        return super.getMaxBatchSize();
+    }
 
     /** @return 最近一次成功批的生效主产物峰步（链步下标；-1 = 无命中/尚无批）。 */
     public int getLastEffectivePeak() {
@@ -170,12 +211,11 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     /**
-     * 暂存产出（配方运行绑定，瞬态不落 NBT；读档/区块卸载即弃，与批进度瞬态同口径）：
+     * 暂存产出（NBT 键 clusterPendingOutputs，进度沿用 GT 父类保存）：
      * 开批时执行器经输出预检证明整批放得下后扣料吞入，整批产出并不当场发放，而是暂存于此——
      * 待虚拟配方进度读零（{@link #onPostTick} 检测 {@code mMaxProgresstime <= 0}）后经
      * {@link ClusterChainExecutor#emitPendingOutputs} 排空，输出总线满则逐 t 空转重试
-     * （零消耗零丢料）。列表由执行器新建并独占写入，本类只持引用；重载后丢失
-     * （在飞批次的产出与已扣输入一同湮灭，等价断供中止的吞料语义）。
+     * （零消耗零丢料）。重载只恢复已付批次的产出与剩余进度，不重新扣料、扣液或记吞吐。
      */
     private List<ItemStack> pendingOutputs;
 
@@ -434,26 +474,22 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
      * <li>mMaxProgresstime = 本批配方时间（tick）、mProgresstime = 0：GT 基类 runMachine 以 mEUt=0
      * 逐 t 推进真实进度条（输入开批已扣、产出已暂存 {@link #pendingOutputs}），完成时自行归零，
      * 随后 {@link #onPostTick} 排空暂存产出；</li>
-     * <li>窗口 = 当前计时器 + 本批配方时间：窗口内
+     * <li>窗口 = 本批真实配方尚未完成的进度区间：窗口内
      * {@link #isUnitRunning()} 为 true（正面运行叠层与 active 贯穿整批时长）、
      * {@link #getUnitStatus()} 显示 WORKING，批结束回 STANDBY。</li>
      * </ul>
-     * 瞬态无 NBT：重载后窗口与进度归零（仅显示/节拍语义）。batch ≤ 0 忽略。
+     * 配方进度由 GT 父类持久化，显示与冷却从真实进度推导。batch ≤ 0 忽略。
      */
     public void onBatchProcessed(int batch) {
         if (batch <= 0) return;
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        long now = base == null ? 0L : base.getTimer();
         long recipeTicks = Math.max(0L, chainCooldownTicks);
         mMaxProgresstime = (int) Math.min(Integer.MAX_VALUE, recipeTicks);
         mProgresstime = 0;
-        processingDisplayUntilTick = now + recipeTicks;
     }
 
-    /** 处理窗口判据：当前计时器仍在最近一次成功批的显示窗口内。 */
+    /** 处理窗口跟随真实配方进度，含读档启动检查期间暂停的进度。 */
     private boolean isInProcessingWindow() {
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        return base != null && base.getTimer() < processingDisplayUntilTick;
+        return mMaxProgresstime > 0 && mProgresstime < mMaxProgresstime;
     }
 
     /**
@@ -491,17 +527,15 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         mProgresstime = 0;
         mMaxProgresstime = 0;
         chainCooldownTicks = 0;
-        processingDisplayUntilTick = 0;
         pendingOutputs = null;
         drainRetryDelayTicks = 0;
+        markDirty();
     }
 
     /**
-     * 配方运行绑定排空 + 批冷却逐刻递减（r-logi-power-bind；v1.20.17 方案 C）：先 super（基类做
-     * setActive 与 runMachine 配方推进），服务端每刻将 {@link #chainCooldownTicks} 在 &gt;0 时 -1
-     * ——与虚拟配方进度同速递减，恰于"批提交后第 R 刻"=配方完成刻归零（主控 20t 结算递减退役，
-     * 单元侧自驱与主控解耦，关电收尾/断供边沿照减），随后持有暂存产出且进度已读零
-     * （{@code mMaxProgresstime <= 0}，含关电/断供后基类 runMachine 不再推进的边界）时
+     * 配方运行绑定排空与冷却同步：先 super（基类推进真实配方），持有暂存产出时每刻从
+     * {@code mMaxProgresstime - mProgresstime} 更新冷却，使读档启动检查暂停期间不会提前归零。
+     * 空闲时只递减失败退避。持有暂存产出且进度已读零（{@code mMaxProgresstime <= 0}）时
      * 经 {@link ClusterChainExecutor#emitPendingOutputs} 排空——探测-实放-失败回滚整组原子；
      * 输出总线满则保留暂存，按排空失败退避（T2④，
      * {@link ClusterParams#DRAIN_RETRY_BACKOFF_TICKS} tick）重试（零消耗零丢料）。
@@ -510,14 +544,17 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (aBaseMetaTileEntity.isServerSide()) {
-            // 批冷却逐刻递减（v1.20.17 方案 C，瞬态字段幂等口径：仅 >0 时 -1）
-            if (chainCooldownTicks > 0) chainCooldownTicks--;
+            // 有已付产出时跟随真实进度；空闲失败退避保持逐刻递减。
+            if (pendingOutputs != null) {
+                chainCooldownTicks = Math.max(0, mMaxProgresstime - mProgresstime);
+            } else if (chainCooldownTicks > 0) chainCooldownTicks--;
             if (pendingOutputs != null && mMaxProgresstime <= 0) {
                 // 排空失败退避（T2④）：退避期内递减跳过；成功清暂存语义不变、失败保留暂存零丢料
                 if (drainRetryDelayTicks > 0) {
                     drainRetryDelayTicks--;
                 } else if (ClusterChainExecutor.emitPendingOutputs(this, pendingOutputs)) {
                     pendingOutputs = null;
+                    markDirty();
                 } else {
                     drainRetryDelayTicks = ClusterParams.DRAIN_RETRY_BACKOFF_TICKS;
                 }
@@ -706,7 +743,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
      * 链持久化：链存 "clusterChain" int 数组（ChainLink.ordinal，空链空数组）+ 峰步下标
      * "clusterChainPeak"（S1-T9，缺省 0）+ 队列模式 "clusterQueueMode"（S1，缺省 false）。
      * 批流体无自持缓存不落 NBT（SR-Cluster-r6 S2）；旧档 "clusterWaterTank"/"clusterChemTank" 键在
-     * {@link #loadNBTData} 静默容忍忽略。处理窗口闩、配方进度与暂存产出均为瞬态不落 NBT。
+     * {@link #loadNBTData} 静默容忍忽略。暂存产出独立持久化，真实进度由 GT 父类保存。
      */
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
@@ -720,14 +757,21 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         aNBT.setIntArray("clusterChain", ordinals);
         aNBT.setInteger("clusterChainPeak", chain.getPeakIndex());
         aNBT.setBoolean("clusterQueueMode", queueMode);
+        aNBT.setInteger("clusterBatchParallel", lastBatchParallel);
+        aNBT.setInteger("clusterBatchSize", lastBatchSize);
+        if (pendingOutputs != null) {
+            aNBT.setTag("clusterPendingOutputs", GTUtility.saveItemList(pendingOutputs));
+        } else {
+            aNBT.removeTag("clusterPendingOutputs");
+        }
     }
 
     /**
      * 回读对称：按 ordinal 反解链整链重建（越界 ordinal 静默丢弃）；峰步 "clusterChainPeak"
      * hasKey 缺省 0、越界（&lt;0 或 ≥ 链长）回落 0（S1-T9）；队列模式 "clusterQueueMode" 缺省 false。
      * 旧档 tank 键（"clusterWaterTank"/"clusterChemTank"）不再读取——缺失/残留均静默忽略，不迁移
-     * 不崩溃；配方进度归零（批进度瞬态，重载后从零开始，杜绝不可见幽灵炉）；暂存产出为瞬态字段
-     * 不读不写——读档/区块卸载即弃，在飞批次的已扣输入与暂存产出一同湮灭（吞料同口径）。
+     * 不崩溃；存在暂存产出键时沿 GT 已保存进度续跑，完成待排空的批次保持进度零，仅重试输出。
+     * 旧档缺暂存键仍按原规则清零进度，不从输入或配方重新生成产物。
      */
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
@@ -743,8 +787,16 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         rebuilt.setPeakIndex(storedPeak >= 0 && storedPeak < rebuilt.length() ? storedPeak : 0);
         chain = rebuilt;
         queueMode = aNBT.hasKey("clusterQueueMode") && aNBT.getBoolean("clusterQueueMode");
-        mProgresstime = 0;
-        mMaxProgresstime = 0;
+        lastBatchParallel = aNBT.getInteger("clusterBatchParallel");
+        lastBatchSize = aNBT.getInteger("clusterBatchSize");
+        if (aNBT.hasKey("clusterPendingOutputs", 9)) {
+            pendingOutputs = GTUtility.loadItemList(aNBT.getTagList("clusterPendingOutputs", 10));
+            chainCooldownTicks = Math.max(0, mMaxProgresstime - mProgresstime);
+        } else {
+            // 旧档未保存暂存产出，仍按原来的空闲恢复规则处理。
+            abortPendingRun();
+            mRunningOnLoad = false;
+        }
     }
 
     // ------------------------------------------------------------------
@@ -752,15 +804,9 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     // ------------------------------------------------------------------
 
     /**
-     * 下次可尝试开批剩余 tick：成功开批时由 ClusterChainExecutor 覆写为本批"配方时间"（tick，
-     * ExecutionPlan 时间口径向上取整且至少 1 tick，覆写点不变）；流体/输出批预检失败时武装为
-     * 固定短退避（ClusterParams.BATCH_FAIL_BACKOFF_TICKS，T2②）。递减/清零机制不变：服务端
-     * {@link #onPostTick} 每刻 &gt;0 时
-     * -1（v1.20.17 方案 C：与虚拟配方进度同速，恰于"批提交后第 R 刻"=配方完成刻归零——主控
-     * 每刻 runChains 资格检查即可无缝衔接下一批，批周期 = 配方时间整、批间零空转；主控 20t
-     * 结算递减退役，关电收尾/断供边沿照减）。该值同时是 {@link #onBatchProcessed(int)} 虚拟
-     * 空配方的总时长与处理窗口基准（该方法仅在成功覆写之后被调，不会读到退避值）。瞬态不
-     * 持久化——重载/重摆后从零开始（节拍器语义，非玩家资产）。
+     * 下次可尝试开批剩余 tick：成功开批由执行器写入整批配方时间，随后用于启动真实进度。
+     * 持有已付暂存产出期间，{@link #onPostTick} 与读档路径都从 GT 剩余进度重建此值，
+     * 保持批间零空转。流体/输出预检失败则写入固定短退避；空闲退避为瞬态，逐刻递减。
      */
     private long chainCooldownTicks;
 
@@ -769,7 +815,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         return chainCooldownTicks;
     }
 
-    /** 设置本批配方时间（ClusterChainExecutor 批执行后写入；不持久化，重载后从零开始）。 */
+    /** 设置本批配方时间，成功开批后由真实配方剩余进度保持同步。 */
     public void setChainCooldownTicks(long ticks) {
         this.chainCooldownTicks = ticks;
     }

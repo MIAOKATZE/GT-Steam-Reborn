@@ -1611,11 +1611,11 @@ gtsr.terminal.perf.group.steam=蒸汽口径
 gtsr.terminal.perf.group.detail=集群详情
 gtsr.terminal.perf.group.chains=链路概览
 gtsr.terminal.perf.group.boost=增幅汇总
-gtsr.terminal.perf.group.boostcost=增幅实耗
+gtsr.terminal.perf.group.boostcost=参考批耗（按当前单价）
 gtsr.terminal.perf.caliber.formula=公式加权口径
 gtsr.terminal.perf.caliber.settle=结算口径
 gtsr.terminal.perf.caliber.weighted=加权全链口径
-gtsr.terminal.perf.time=单批耗时
+gtsr.terminal.perf.time=单轮耗时
 gtsr.terminal.perf.deriv.head=推导：
 gtsr.terminal.perf.deriv.table=档位表：
 gtsr.terminal.perf.lube.dual=润滑（集群 + 物流）
@@ -1634,8 +1634,8 @@ gtsr.terminal.perf.formula.tick_unit=刻
 gtsr.terminal.perf.formula.rate_unit=L/秒
 gtsr.terminal.perf.exp.fluid.head=最近成功批实际记账
 gtsr.terminal.perf.exp.fluid.total=批记账合计 %s L · %s 项
-gtsr.terminal.perf.tip.time=单批耗时\n处理一个矿的完整时间。悬浮看机制；点 ▶ 看本值的逐步推导。
-gtsr.terminal.perf.tip.parallel=并行数\n每批处理的矿数。点 ▶ 看推导。
+gtsr.terminal.perf.tip.time=单轮耗时\n一次并行轮次的预测耗时。批处理实际时间倍率单列显示；点 ▶ 查看推导。
+gtsr.terminal.perf.tip.parallel=并行宽度\n同一轮同时处理的份数。64 份并行仍只计一轮增幅费用。点 ▶ 查看推导。
 gtsr.terminal.perf.tip.thru=吞吐\n理论处理速度。点 ▶ 看推导。
 gtsr.terminal.perf.tip.formula=实际加权公式\n当前链的时间加权蒸汽构成（通式见链蒸汽耗 ▶ 推导）。
 gtsr.terminal.perf.tip.fmod=逐段摘要\n每个物流段一行概览。
@@ -1647,21 +1647,21 @@ gtsr.terminal.perf.tip.steam_total=总蒸汽耗（加权全链口径）\nΣ全�
 gtsr.terminal.perf.tip.steam_chain=链蒸汽耗（公式加权口径）\n选中单元那条链的理论蒸汽功率。\n点 ▶ 看完整的逐步推导。
 gtsr.terminal.perf.tip.steam_settle=蒸汽（结算口径）\n每秒实际扣量。点 ▶ 看推导。
 gtsr.terminal.perf.tip.lube_split=润滑两段\n机制见运行汇总「润滑油」。点 ▶ 看分量。
-gtsr.terminal.perf.tip.boost.0=硝酸（并行增幅）\n作用：每批矿数 +8。\n消耗体积/单位：开批时按实际矿数一次扣除。\n点 ▶ 看单价与本批消耗的逐步推导。
-gtsr.terminal.perf.tip.boost.1=氢氯酸（速度增幅）\n作用：工作段耗时 ÷(1+速度总和)。\n未安装；安装后单价 = 基础表÷10，点 ▶ 看四档单价表。
-gtsr.terminal.perf.tip.boost.2=硫酸（主产物增幅）\n同类取最高仅一台生效；单峰：峰位链步满额、其余加工步 ×0.1。\n单价 = 基础表÷10（青铜 80 → 8 L/矿），开批按实际矿数扣。\n不产生蒸汽乘子。
-gtsr.terminal.perf.tip.boost.3=氯化铵（副产物增幅）\n副产物概率加算叠加，可超 100%；粉碎链步受集群档削弱 ×0.1/×0.5/无。\n单价 = 基础表÷10（青铜 20 → 2 L/矿）。\n不产生蒸汽乘子。
-gtsr.terminal.perf.tip.boost.4=冷却液（效率增幅）\n节汽：加权全链×(1-节汽率)，加算封顶 48%；固定项与润滑不受影响。\n单价 = 基础表÷10（青铜 10 → 1 L/矿）。\n不产生蒸汽乘子。
+gtsr.terminal.perf.tip.boost.0=硝酸（并行增幅）\n增加每轮并行宽度。\n费用按计费轮数收取，与本轮并行份数无关。点 ▶ 查看单价推导。
+gtsr.terminal.perf.tip.boost.1=氢氯酸（速度增幅）\n工作段耗时 ÷(1+速度总和)。\n每轮单价 = 基础表 ÷10，保留施压与协同规则。点 ▶ 查看单价推导。
+gtsr.terminal.perf.tip.boost.2=硫酸（主产物增幅）\n同类取最高仅一台生效；峰位链步满额，其余加工步 ×0.1。\n每轮单价 = 基础表 ÷10，按计费轮数扣除，不产生蒸汽乘子。
+gtsr.terminal.perf.tip.boost.3=氯化铵（副产物增幅）\n副产物概率加算叠加，可超 100%；粉碎削弱仍由集群等级决定。\n每轮单价 = 基础表 ÷10，按计费轮数扣除，不产生蒸汽乘子。
+gtsr.terminal.perf.tip.boost.4=冷却液（效率增幅）\n加权全链 ×(1-节汽率)，加算封顶 48%；固定项与润滑不受影响。\n每轮单价 = 基础表 ÷10，按计费轮数扣除，不产生蒸汽乘子。
 gtsr.terminal.perf.tip.chains_count=链数\n识别到的物流链条数；链 = 一台物流单元的加工顺序。
 gtsr.terminal.perf.tip.chains_steps=总链步 / 最长链 / 平均链长\n链步 = 链上的一道加工工序。
-gtsr.terminal.perf.tip.boost_state=生效 / 失效\n付不起整批用量 → 本批失效：加成与乘子撤除，批继续。\n失效时聊天播报一次（结钙式锁存，下次成功运行前不重复），终端与物流模块同步显示。
+gtsr.terminal.perf.tip.boost_state=生效 / 失效\n批处理在可支付的增幅轮数内合并运行。连首轮费用也不足时，本批该增幅失效。\n失效通知仍沿用原锁存规则，终端与物流模块同步显示。
 gtsr.terminal.perf.tip.sum_speed=速度增幅合计\n速度模块求和 Σ。
 gtsr.terminal.perf.tip.sum_parallel=并行增幅合计\n并行模块求和 Σ，加到物流基数。
 gtsr.terminal.perf.tip.sum_primary=主产物增幅\n同类取最高 max。
 gtsr.terminal.perf.tip.sum_secondary=副产物增幅\n加算叠加 Σ。
 gtsr.terminal.perf.tip.sum_saver=节汽率\n加算叠加 Σ，封顶 48%。
 gtsr.terminal.perf.tip.sum_mult=蒸汽乘子\n速度/并行模块按档逐台连乘。点 ▶ 看推导。
-gtsr.terminal.perf.tip.cost=增幅实耗（每批口径）\n开批一次扣除，随批大小浮动。点 ▶ 看推导。
+gtsr.terminal.perf.tip.cost=参考批耗\n当前每轮单价 × 最近成功批的计费轮数，仅为估算，不是历史实际扣料账本。\n无成功批记录时显示 --；尾批不足一轮按一轮计费。
 gtsr.terminal.le.chains.title=全部物流链
 gtsr.terminal.le.chains.peak=峰位：第 %s 步
 gtsr.cluster.logistics.queue.on=队列模式：开启
@@ -4866,3 +4866,52 @@ gtsr.critical.me.output_bus.desc=兼容普通机器的ME输出总线\n真实长�
 gtsr.gui.critical_me.slot=标记槽位（1–16）
 gtsr.gui.critical_me.limit=每槽上限
 gtsr.gui.critical_me.available=当前可用：%s
+
+# v2.1.5 cluster processing and terminal layouts
+gtsr.critical.ui.terminal.tab.progress=施工概览
+gtsr.critical.ui.terminal.tab.materials=物料账本
+gtsr.critical.ui.terminal.tab.engineering=工程配置
+gtsr.critical.ui.terminal.tab.overview=运行概览
+gtsr.critical.ui.terminal.tab.runtime=运行参数
+gtsr.critical.ui.terminal.access.edit=可操作
+gtsr.critical.ui.terminal.access.view=只读
+gtsr.critical.ui.terminal.access.edit_hint=已获得此机器的操作权限。
+gtsr.critical.ui.terminal.engineering.connections=供料与连接
+gtsr.critical.ui.terminal.runtime_hint=运行参数页查看完整数据；配方按钮查看生产规则。
+gtsr.critical.ui.terminal.player_inventory=玩家背包
+gtsr.critical.ui.terminal.inventory_hint=上方显示真实仓室与 ME 网络库存。生产物料通过机器仓室供给。
+gtsr.critical.ui.terminal.confirm_hint=再次点击同一按钮确认；切换页面可取消
+gtsr.critical.ui.terminal.feedback.idle=操作结果在此显示
+gtsr.critical.ui.terminal.action.kind=切换目标
+gtsr.critical.ui.terminal.action.build=开始施工
+gtsr.critical.ui.terminal.action.repair=修复结构
+gtsr.critical.ui.terminal.action.dismantle=拆除目标
+gtsr.critical.ui.terminal.action.recipe=配方与规则
+gtsr.critical.ui.terminal.action.confirm=确认执行
+gtsr.critical.ui.terminal.power.construction.true=施工：启用
+gtsr.critical.ui.terminal.power.construction.false=施工：暂停
+gtsr.critical.ui.terminal.power.production.true=生产：开启
+gtsr.critical.ui.terminal.power.production.false=生产：关闭
+gtsr.cluster.mui2.topology_summary=延伸 %s · 加工 %s · 增幅 %s · 物流 %s · 可运行链 %s
+gtsr.cluster.mui2.move_up=上移链步
+gtsr.cluster.mui2.add_step=点击添加此链步
+gtsr.cluster.mui2.move_down=下移链步
+gtsr.cluster.mui2.remove_step=删除链步
+gtsr.cluster.mui2.performance_preview=耗时 %s s · 并行 %s · 吞吐 %s/s
+gtsr.cluster.mui2.save_tip=保存所选物流模块的整条草稿，服务端验证后生效。
+gtsr.cluster.mui2.stats_empty=暂无统计
+gtsr.cluster.mui2.liters_per_round=L/计费轮
+gtsr.cluster.mui2.batch.unselected=批处理：未选择物流
+gtsr.cluster.mui2.batch.on=批处理：开启
+gtsr.cluster.mui2.batch.off=批处理：关闭
+gtsr.cluster.mui2.batch.tip=批处理合并多个并行轮次运行，增幅费用按轮收取，与每轮并行份数无关。\n64 并行处理 96 份：时间 ×1.50，计费 2 轮；处理 640 份：时间 ×10，计费 10 轮。\n尾批不足一轮仍按一轮计费。点击切换所选物流模块的批处理模式。
+gtsr.cluster.mui2.batch.no_sample=尚无成功开批记录
+gtsr.cluster.mui2.batch.last=上次开批：总量 %s 矿 · 每轮并行 %s\n时间倍率 ×%.2f · 计费 %s 轮
+gtsr.cluster.mui2.batch.amount=上次总量 / 并行宽度
+gtsr.cluster.mui2.batch.time_multiplier=时间倍率
+gtsr.cluster.mui2.batch.charged_rounds=计费轮数
+gtsr.cluster.mui2.batch.estimate=参考批耗
+gtsr.cluster.mui2.batch.estimate_formula=按当前单价估算 = 单价 × 最近批次计费轮数
+gtsr.cluster.mui2.batch.rounds_unit=轮
+gtsr.cluster.mui2.batch.rounds_rule=并行算一轮 · 批量合并按轮收费 · 尾批不足一轮仍算一轮
+gtsr.tooltip.cluster.unit.booster.cost_unit=L/计费轮

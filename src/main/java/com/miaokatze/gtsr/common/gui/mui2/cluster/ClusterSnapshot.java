@@ -107,6 +107,20 @@ public final class ClusterSnapshot {
         return getStr(ClusterTerminalData.KEY_STATS, fallback);
     }
 
+    /** Selected index and CSV row order both follow the server topology's logistics list. */
+    int selectedUnitField(int field, int fallback) {
+        int selected = getInt(ClusterTerminalData.KEY_SEL_LOGI, -1);
+        String[] units = getStr(ClusterTerminalData.KEY_LE_UNITS, "").split(",");
+        if (selected < 0 || selected >= units.length) return fallback;
+        String[] fields = units[selected].split(":");
+        if (field >= fields.length) return fallback;
+        try {
+            return Integer.parseInt(fields[field]);
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
     private static Object[] decode(byte[] payload) {
         if (payload == null || payload.length == 0) return null;
         try {

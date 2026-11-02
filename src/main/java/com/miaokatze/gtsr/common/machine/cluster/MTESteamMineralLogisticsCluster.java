@@ -79,7 +79,7 @@ import io.netty.buffer.Unpooled;
  * （吞料）、主控断电并一次性通知物主（gtsr.chat.cluster.supply_abort）；增幅液短缺不再中止
  * ——开批预检不足仅该模块本批失效（无加成不计乘子）+ 一次性播报
  * （gtsr.chat.booster_shortage，见 {@link #reportBoosterShortageIfNeeded}），消耗在开批提交点
- * 按 batch×单价一次扣（ClusterChainExecutor）。主控不再持有总线/集中供电模型（plan §3.3.2）：
+ * 按计费轮数×单价一次扣（ClusterChainExecutor）。主控不再持有总线/集中供电模型（plan §3.3.2）：
  * 输入/输出总线归物流模块，热离/磁选能源仓由单元自身扣减。
  *
  * <p>
@@ -200,7 +200,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /** 供给正常锁存（充足→短缺 WARN 边沿用）。 */
     private boolean wasSupplyOk = false;
 
-    /** 最近一次成功批实际命中的链步集合（瞬态，r6-S8 EU 实扣参与闸；不持久化）。 */
+    /** 最近一次成功批实际命中的链步集合；ClusterPersistence 保存以恢复在飞批次扣电窗口。 */
     private EnumSet<ChainLink> lastBatchLinks = EnumSet.noneOf(ChainLink.class);
 
     // 四族 tier 字段（0-3，对应 ClusterParams.ClusterTier 下标）：ofBlocksTiered 挂接点，
@@ -910,7 +910,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * <li><b>预热结算（未满热且无在飞批次）</b>：2000+10 原口径；</li>
      * <li><b>运行结算（满热，或无在飞批次之外的一切在飞收尾态）</b>：固定项 + 加权链路段 C——
      * C 聚合按 powerOn 选 {@link #enabledLogisticsUnits()}（开机=全量可执行链需量）或
-     * 在飞 WIP 单元列表（关电收尾只对在飞配方计费）；增幅液由链批执行器在开批提交点按 batch×单价
+     * 在飞 WIP 单元列表（关电收尾只对在飞配方计费）；增幅液由链批执行器在开批提交点按计费轮数×单价
      * 一次扣（短缺仅本批该模块失效 + {@link #reportBoosterShortageIfNeeded} 一次性播报）。</li>
      * </ul>
      * 断供中止（v1.20.16 收窄为蒸汽与润滑：wip&gt;0 时结算 r.ok=false）：
@@ -1000,7 +1000,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     /**
      * 增幅液短缺一次性播报（v1.20.16，20t 结算内运行结算 ok 分支调用；仅服务器主线程）：
-     * 任一在场增幅模块最近开批预检失效（缺流体或存量不足整批单价 batch×单价——标记由
+     * 任一在场增幅模块最近开批预检失效（缺流体或存量不足首轮单价——标记由
      * {@code ClusterChainExecutor} 开批预检段经 {@code markBatchPrecheckResult} 登记）且未播报 →
      * 向物主发一次 gtsr.chat.booster_shortage（lang 值由 lang 切片落地）；此后全部参与模块
      * （已接入集群 && 结构 tier 有效）的开批预检重新全部通过（成功运行）时复位锁存
@@ -1674,12 +1674,12 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         return preheat.isReady();
     }
 
-    /** 记录最近一次成功批实际命中的链步（执行器批次提交点调用，瞬态；空批合法——纯物流批）。 */
+    /** 记录最近一次成功批实际命中的链步；空集合合法，表示纯物流批。 */
     void recordBatchLinks(Set<ChainLink> links) {
         lastBatchLinks = links.isEmpty() ? EnumSet.noneOf(ChainLink.class) : EnumSet.copyOf(links);
     }
 
-    /** @return 最近一次成功批的链步集合（供电类单元 EU 实扣参与闸用，瞬态）。 */
+    /** @return 最近一次成功批的链步集合（供电类单元 EU 实扣参与闸用）。 */
     Set<ChainLink> getLastBatchLinks() {
         return lastBatchLinks;
     }

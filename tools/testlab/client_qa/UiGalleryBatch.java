@@ -48,7 +48,7 @@ public final class UiGalleryBatch {
     int inertClientWindowBefore,inertCollectorWindowBefore;
     long inertPacketsBefore;
     volatile boolean done,cleaned,serverStopped;
-    boolean jobRunning,stoppedByControl,localTabClick;
+    boolean jobRunning,stoppedByControl,localTabClick,worldUnloadRequested;
     long launchMillis=Long.getLong("gtsr.uiqa.launchEpochMillis",System.currentTimeMillis()),worldReadyMillis,jobStartNanos,caseStartNanos,requestStartNanos,syncStartNanos,renderStartNanos,pngNanos,clientHandlerNanos;
     long fixtureWaitNanos,syncWaitNanos,renderWaitNanos;
     UiGalleryBatch(Mui2ClientQa owner)throws Exception {
@@ -99,7 +99,14 @@ public final class UiGalleryBatch {
                 dispatch(1);stage=2;return;}
             if(stage==2){if(request!=0||player()==null||q.serverPlayer==null)return;if(q.number(field(player(),"dimension|field_71093_bK"))!=1048577||q.number(field(q.serverPlayer,"dimension|field_71093_bK"))!=1048577)return;
                 if(q.wire==null)q.wire=UiQaWireCounter.install(q,player());worldReadyMillis=System.currentTimeMillis();q.receipt.addProperty("startupToTestLabReadyMillis",worldReadyMillis-launchMillis);stage=10;return;}
-            if(stage==90){if(request==0){closeClient();call(q.mc,"displayGuiScreen|func_147108_a",construct("net.minecraft.client.gui.GuiMainMenu"));done=true;q.receipt.addProperty("batchCleanupVerified",cleaned);q.finish(stoppedByControl?new java.util.concurrent.CancellationException("Explicit owned batch stop"):null);}return;}
+            if(stage==90){
+                if(request!=0)return;
+                if(!worldUnloadRequested){closeClient();worldUnloadRequested=true;call(q.mc,"displayGuiScreen|func_147108_a",construct("net.minecraft.client.gui.GuiMainMenu"));call(q.mc,"loadWorld|func_71403_a",(Object)null);return;}
+                if(!serverStopped)return;
+                call(q.mc,"displayGuiScreen|func_147108_a",construct("net.minecraft.client.gui.GuiMainMenu"));done=true;
+                q.receipt.addProperty("batchCleanupVerified",cleaned);q.receipt.addProperty("batchServerStoppedBeforeShutdown",true);
+                q.finish(stoppedByControl?new java.util.concurrent.CancellationException("Explicit owned batch stop"):null);return;
+            }
             if(v209.client())return;
             if(stage==80){pollControl();return;}
             if(stage==10){next();return;}
@@ -229,6 +236,7 @@ public final class UiGalleryBatch {
         }
         if(row.has("page")){
             int page=row.get("page").getAsInt();String prefix=isEntanglement(row)?"entanglement_":str(row,"kind","").equals("CLUSTER_CONTROLLER")?"cluster_tab_":"critical_tab_";
+            Object mainTab=q.find(q.panel,"critical_main_tab_"+page);if(mainTab!=null&&Boolean.TRUE.equals(call(mainTab,"isEnabled")))prefix="critical_main_tab_";
             Object pages=q.find(q.panel,isEntanglement(row)?"entanglement_pages":prefix.startsWith("cluster")?"cluster_pages":"critical_pages");
             if(pages!=null){reveal(pages);Object tab=q.find(q.panel,isEntanglement(row)?(page==0?"entanglement_overview_tab":"entanglement_rules_tab"):prefix+page);if(tab!=null){reveal(tab);lastNavigationProof=hitEvidence(tab);q.check("navigation.actual-tab-hit."+row.get("name").getAsString(),flag(lastNavigationProof,"targetInHoveredChain"),String.valueOf(lastNavigationProof));q.click(tab);localTabClick=true;}else call(pages,"setPage",page);}
         }
@@ -248,7 +256,7 @@ public final class UiGalleryBatch {
     }
     Object findList(Object w)throws Exception {if(type("com.cleanroommc.modularui.widgets.ListWidget").isInstance(w))return w;for(Object c:(List<?>)call(w,"getChildren")){Object found=findList(c);if(found!=null)return found;}return null;}
     void reveal(Object widget)throws Exception {
-        Object viewport=q.find(q.panel,"critical_terminal_viewport");if(viewport==null)return;
+        Object viewport=q.find(q.panel,"critical_terminal_viewport");if(viewport==null)viewport=q.find(q.panel,"cluster_viewport");if(viewport==null)return;
         // Public local scroll data reveals the real target before actual hit-test input.
         Object scroll=call(viewport,"getScrollArea"),area=call(viewport,"getArea");call(q.screen,"onFrameUpdate");
         for(String axis:new String[]{"X","Y"}){Object data=call(scroll,"getScroll"+axis);if(data==null)continue;int[] point=q.screenPoint(widget);int n=axis.equals("X")?0:1,start=q.number(field(area,n==0?"x":"y")),visible=q.number(call(data,"getFullVisibleSize",scroll)),size=q.number(field(call(widget,"getArea"),n==0?"width":"height")),low=point[n]-size/2,high=point[n]+size/2,delta=low<start?low-start:high>start+visible?high-start-visible:0;if(delta!=0)call(data,"scrollTo",scroll,q.number(call(data,"getScroll"))+delta);call(q.screen,"onFrameUpdate");}
@@ -273,7 +281,7 @@ public final class UiGalleryBatch {
     }
     void capture()throws Exception {
         v2010.beforeCapture();v2011.beforeCapture();v2013.beforeCapture();v2014.beforeCapture();
-        String name=row.get("name").getAsString();int gl=q.number(call(type("com.gtnewhorizons.angelica.glsm.GLStateManager"),"glGetError"));q.check("GL."+name,gl==0,"Actual RenderTick.END GL error="+gl);
+        String name=row.get("name").getAsString();int gl=org.lwjgl.opengl.GL11.glGetError();q.check("GL."+name,gl==0,"Actual RenderTick.END GL error="+gl);
         Object framebuffer=call(q.mc,"getFramebuffer|func_147110_a");long before=System.nanoTime();call(type("net.minecraft.util.ScreenShotHelper"),"saveScreenshot|func_148259_a",directory.toFile(),name+".png",q.number(field(q.mc,"displayWidth|field_71443_c")),q.number(field(q.mc,"displayHeight|field_71440_d")),framebuffer);long png=System.nanoTime()-before;pngNanos+=png;call(framebuffer,"unbindFramebuffer|func_147609_e");
         Path image=directory.resolve("screenshots").resolve(name+".png");if(!Files.isRegularFile(image))throw new AssertionError("PNG not written");
         JsonObject event=new JsonObject();event.addProperty("galleryCapture",name);event.addProperty("group",row.get("id").getAsString());event.addProperty("job",job);event.addProperty("guiClass",q.gui.getClass().getName());event.addProperty("screenClass",q.screen==null?q.gui.getClass().getName():q.screen.getClass().getName());event.addProperty("panel",UiGalleryBatchV208.isNei(row)?"NEI.ACTUAL_RECIPE_SCREEN":flag(row,"legacy")?"LEGACY_PRODUCTION_GUISCREEN_VISUAL_FIXTURE":q.screen==null?"MUI1.mainWindow":String.valueOf(call(q.panel,"getName")));event.addProperty("windowId",windowId);event.addProperty("syncStatus",UiGalleryBatchV208.isNei(row)?"PUBLIC_NEI_ENTRY_REGISTERED_HANDLER_LOCAL_SCREEN_NO_SERVER_CONTAINER_CLAIM":flag(row,"legacy")?"SERVER_PRODUCTION_ASSEMBLED_SNAPSHOT_ACCEPTED_LOCAL_VISUAL_FIXTURE_NO_ROUTE_AUTH_CLAIM":q.screen==null?"MUI1_MATCHED_WINDOW_AND_INITIALIZED_MAIN_WINDOW":isVisual(row)?"LOCAL_PRODUCTION_BUILDER_VISUAL_FIXTURE":"MATCHED_WINDOW_PSM_INITIALIZED_CUSTOM_SNAPSHOT_READY_PRIMITIVES_OBSERVATION_ONLY");if(q.screen!=null&&!isVisual(row)){event.add("primitiveObservation",new Gson().toJsonTree(primitives(call(call(q.screen,"getSyncManager"),"getMainPSM"))));event.add("initialServerPrimitiveObservation",new Gson().toJsonTree(expectedValues));}event.addProperty("stableRenderFrames",stableFrames);event.addProperty("displayWidth",q.number(field(q.mc,"displayWidth|field_71443_c")));event.addProperty("displayHeight",q.number(field(q.mc,"displayHeight|field_71440_d")));event.addProperty("sha256",hex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(image))));

@@ -1616,11 +1616,11 @@ gtsr.terminal.perf.group.steam=Steam
 gtsr.terminal.perf.group.detail=Cluster Details
 gtsr.terminal.perf.group.chains=Chain Overview
 gtsr.terminal.perf.group.boost=Booster Summary
-gtsr.terminal.perf.group.boostcost=Booster Cost
+gtsr.terminal.perf.group.boostcost=Batch estimate at current prices
 gtsr.terminal.perf.caliber.formula=Weighted-formula
 gtsr.terminal.perf.caliber.settle=Settled
 gtsr.terminal.perf.caliber.weighted=Weighted all-chain
-gtsr.terminal.perf.time=Time per Batch
+gtsr.terminal.perf.time=Time per round
 gtsr.terminal.perf.deriv.head=Derivation:
 gtsr.terminal.perf.deriv.table=Tier table:
 gtsr.terminal.perf.lube.dual=Lubricant (cluster + logistics)
@@ -1639,8 +1639,8 @@ gtsr.terminal.perf.formula.tick_unit=ticks
 gtsr.terminal.perf.formula.rate_unit=L/s
 gtsr.terminal.perf.exp.fluid.head=Recorded in last successful batch
 gtsr.terminal.perf.exp.fluid.total=Batch charge total %s L · %s entries
-gtsr.terminal.perf.tip.time=Time per Batch\nComplete time to process one ore. Hover for mechanics; click ▶ for the step-by-step derivation.
-gtsr.terminal.perf.tip.parallel=Parallel\nOres processed per batch. Click ▶ for the derivation.
+gtsr.terminal.perf.tip.time=Time per round\nPredicted time for one parallel round. The actual batch time multiplier is shown separately. Click ▶ for the derivation.
+gtsr.terminal.perf.tip.parallel=Parallel width\nOres processed together in one round. A width of 64 still incurs one round of booster fees. Click ▶ for the derivation.
 gtsr.terminal.perf.tip.thru=Throughput\nTheoretical processing speed. Click ▶ for the derivation.
 gtsr.terminal.perf.tip.formula=Actual weighted formula\nTime-weighted steam composition of the current chain (general formula in the chain steam ▶ derivation).
 gtsr.terminal.perf.tip.fmod=Per-segment summary\nOne overview line per logistics module.
@@ -1652,21 +1652,21 @@ gtsr.terminal.perf.tip.steam_total=Total steam (weighted all-chain)\nΣ executab
 gtsr.terminal.perf.tip.steam_chain=Chain steam (formula-weighted)\nTheoretical steam power of the selected unit's chain.\nClick ▶ for the full step-by-step derivation.
 gtsr.terminal.perf.tip.steam_settle=Steam (settled)\nActual deduction per second. Click ▶ for the derivation.
 gtsr.terminal.perf.tip.lube_split=Lubricant segments\nMechanics under Runtime Summary "Lubricant". Click ▶ for the breakdown.
-gtsr.terminal.perf.tip.boost.0=Nitric acid (parallel booster)\nEffect: +8 ores per batch.\nConsumption per unit: deducted once per batch by the actual ore count.\nClick ▶ for the unit-price and per-batch derivation.
-gtsr.terminal.perf.tip.boost.1=Hydrochloric acid (speed booster)\nEffect: working-segment time ÷(1+speed total).\nNot installed; once installed the unit price = base table ÷ 10 — click ▶ for the four-tier price table.
-gtsr.terminal.perf.tip.boost.2=Sulfuric acid (primary-output booster)\nSame kind takes the max with only one active; single peak: the peak step is full, other processing steps ×0.1.\nUnit price = base table ÷ 10 (bronze 80 → 8 L/ore), deducted by actual ore count per batch.\nNo steam multiplier.
-gtsr.terminal.perf.tip.boost.3=Ammonium chloride (secondary-output booster)\nSecondary-output chance stacks additively, can exceed 100%; crush steps weakened by cluster tier ×0.1/×0.5/none.\nUnit price = base table ÷ 10 (bronze 20 → 2 L/ore).\nNo steam multiplier.
-gtsr.terminal.perf.tip.boost.4=Coolant (steam-saver booster)\nSteam saving: weighted all-chain ×(1-saver rate), additive capped at 48%; fixed terms and lubricant unaffected.\nUnit price = base table ÷ 10 (bronze 10 → 1 L/ore).\nNo steam multiplier.
+gtsr.terminal.perf.tip.boost.0=Nitric acid (parallel booster)\nIncreases the parallel width of each round.\nFees scale with charged rounds, independently of the parallel width. Click ▶ for the price derivation.
+gtsr.terminal.perf.tip.boost.1=Hydrochloric acid (speed booster)\nWorking time ÷(1+total speed bonus).\nPrice per round = base table ÷10, retaining pressure and synergy. Click ▶ for the derivation.
+gtsr.terminal.perf.tip.boost.2=Sulfuric acid (primary booster)\nOnly the strongest same-type module applies. The peak step receives the full bonus; other processing steps receive ×0.1.\nPrice per round = base table ÷10, charged by rounds. No steam multiplier.
+gtsr.terminal.perf.tip.boost.3=Ammonium chloride (secondary booster)\nSecondary chance stacks additively beyond 100%. Crushing penalties still follow the cluster tier.\nPrice per round = base table ÷10, charged by rounds. No steam multiplier.
+gtsr.terminal.perf.tip.boost.4=Coolant (steam saver)\nWeighted chain steam ×(1-saver rate), capped at 48%. Fixed steam and lubricant are unaffected.\nPrice per round = base table ÷10, charged by rounds. No steam multiplier.
 gtsr.terminal.perf.tip.chains_count=Chains\nNumber of logistics chains identified; a chain = one logistics unit's processing order.
 gtsr.terminal.perf.tip.chains_steps=Total steps / longest / avg length\nA chain step = one processing operation on the chain.
-gtsr.terminal.perf.tip.boost_state=Active / failed\nCannot afford a full batch → failed for this batch: bonus and multiplier removed, the batch continues.\nOn failure a chat notice is sent once (latched, not repeated before the next successful run); terminal and logistics modules stay in sync.
+gtsr.terminal.perf.tip.boost_state=Active / failed\nBatch mode combines only as many rounds as the available booster fluid can afford. A booster fails for this batch if even its first-round fee cannot be paid.\nExisting notification latching and terminal status synchronization are retained.
 gtsr.terminal.perf.tip.sum_speed=Speed booster total\nΣ of speed modules.
 gtsr.terminal.perf.tip.sum_parallel=Parallel booster total\nΣ of parallel modules, added to the logistics base.
 gtsr.terminal.perf.tip.sum_primary=Primary-output booster\nSame kind takes the max.
 gtsr.terminal.perf.tip.sum_secondary=Secondary-output booster\nAdditive stack Σ.
 gtsr.terminal.perf.tip.sum_saver=Steam-saver rate\nAdditive stack Σ, capped at 48%.
 gtsr.terminal.perf.tip.sum_mult=Steam multiplier\nSpeed/parallel modules multiplied per unit by tier. Click ▶ for the derivation.
-gtsr.terminal.perf.tip.cost=Booster cost (per-batch basis)\nDeducted once per batch, scaling with batch size. Click ▶ for the derivation.
+gtsr.terminal.perf.tip.cost=Estimated batch cost\nCurrent price per round × the last successful batch's charged rounds. This is an estimate, not a historical debit ledger.\nShown as -- without a successful batch. An incomplete final round is charged in full.
 gtsr.terminal.le.chains.title=All logistics chains
 gtsr.terminal.le.chains.peak=Peak: step %s
 gtsr.cluster.logistics.queue.on=Queue mode: ON
@@ -4870,3 +4870,52 @@ gtsr.critical.me.output_bus.desc=ME output bus compatible with ordinary machines
 gtsr.gui.critical_me.slot=Marked slot (1–16)
 gtsr.gui.critical_me.limit=Per-slot limit
 gtsr.gui.critical_me.available=Available: %s
+
+# v2.1.5 cluster processing and terminal layouts
+gtsr.critical.ui.terminal.tab.progress=Construction
+gtsr.critical.ui.terminal.tab.materials=Materials
+gtsr.critical.ui.terminal.tab.engineering=Engineering
+gtsr.critical.ui.terminal.tab.overview=Overview
+gtsr.critical.ui.terminal.tab.runtime=Runtime data
+gtsr.critical.ui.terminal.access.edit=Authorized
+gtsr.critical.ui.terminal.access.view=Read only
+gtsr.critical.ui.terminal.access.edit_hint=You may operate this machine.
+gtsr.critical.ui.terminal.engineering.connections=Supply and connections
+gtsr.critical.ui.terminal.runtime_hint=Runtime data shows all measurements. Recipes opens the operating rules.
+gtsr.critical.ui.terminal.player_inventory=Player inventory
+gtsr.critical.ui.terminal.inventory_hint=Chamber and ME stocks are shown above. Feed production materials through the machine chambers.
+gtsr.critical.ui.terminal.confirm_hint=Click the same button again to confirm; change page to cancel
+gtsr.critical.ui.terminal.feedback.idle=Action results appear here
+gtsr.critical.ui.terminal.action.kind=Next target
+gtsr.critical.ui.terminal.action.build=Build
+gtsr.critical.ui.terminal.action.repair=Repair
+gtsr.critical.ui.terminal.action.dismantle=Dismantle
+gtsr.critical.ui.terminal.action.recipe=Recipes
+gtsr.critical.ui.terminal.action.confirm=Confirm
+gtsr.critical.ui.terminal.power.construction.true=Build: enabled
+gtsr.critical.ui.terminal.power.construction.false=Build: paused
+gtsr.critical.ui.terminal.power.production.true=Power: on
+gtsr.critical.ui.terminal.power.production.false=Power: off
+gtsr.cluster.mui2.topology_summary=Extensions %s · Work %s · Boost %s · Logistics %s · Runnable %s
+gtsr.cluster.mui2.move_up=Move step up
+gtsr.cluster.mui2.add_step=Click to append this step
+gtsr.cluster.mui2.move_down=Move step down
+gtsr.cluster.mui2.remove_step=Remove step
+gtsr.cluster.mui2.performance_preview=Time %s s · Parallel %s · Throughput %s/s
+gtsr.cluster.mui2.save_tip=Save the selected logistics module's entire draft after server validation.
+gtsr.cluster.mui2.stats_empty=No statistics yet
+gtsr.cluster.mui2.liters_per_round=L/charged round
+gtsr.cluster.mui2.batch.unselected=Batch mode: no logistics selected
+gtsr.cluster.mui2.batch.on=Batch mode: on
+gtsr.cluster.mui2.batch.off=Batch mode: off
+gtsr.cluster.mui2.batch.tip=Batch mode combines several parallel rounds. Booster fees are charged per round, independently of the parallel width.\nAt width 64, 96 ores take ×1.50 time and 2 charged rounds; 640 ores take ×10 time and 10 charged rounds.\nAn incomplete final round is charged as a whole round. Click to toggle the selected logistics module.
+gtsr.cluster.mui2.batch.no_sample=No successful batch recorded yet
+gtsr.cluster.mui2.batch.last=Last batch: %s ores · parallel width %s\nTime multiplier ×%.2f · charged rounds %s
+gtsr.cluster.mui2.batch.amount=Last amount / parallel width
+gtsr.cluster.mui2.batch.time_multiplier=Time multiplier
+gtsr.cluster.mui2.batch.charged_rounds=Charged rounds
+gtsr.cluster.mui2.batch.estimate=Batch estimate
+gtsr.cluster.mui2.batch.estimate_formula=Estimate at current prices = price × last charged rounds
+gtsr.cluster.mui2.batch.rounds_unit=rounds
+gtsr.cluster.mui2.batch.rounds_rule=Parallel width is one round; combined rounds incur their own fee; a partial final round is charged in full
+gtsr.tooltip.cluster.unit.booster.cost_unit=L/billed round

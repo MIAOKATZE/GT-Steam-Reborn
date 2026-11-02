@@ -1090,8 +1090,8 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     }
 
     /**
-     * 增幅液四档单价段（{@link ClusterParams#amplifierFluidLps}，v1.20.16 L/矿 开批一次扣口径）：
-     * {@code 5/20/100/200 L/矿}（并行增幅示例）。
+     * 增幅液四档单价段（{@link ClusterParams#amplifierFluidLps}，v2.1.5 L/计费轮 开批一次扣口径）：
+     * {@code 5/20/100/200 L/计费轮}（并行增幅示例）。
      */
     protected static String boosterTierLps(ClusterParams.BoosterType type) {
         StringBuilder values = new StringBuilder();
@@ -1099,7 +1099,7 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
             if (i > 0) values.append('/');
             values.append(ClusterParams.amplifierFluidLps(type, i));
         }
-        return values + " L/矿";
+        return values + " " + StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.cost_unit");
     }
 
     protected static String joinSurchargeTierValues() {

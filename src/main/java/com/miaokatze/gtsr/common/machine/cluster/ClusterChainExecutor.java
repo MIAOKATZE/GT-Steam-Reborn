@@ -107,6 +107,9 @@ public final class ClusterChainExecutor {
     /** 概率副产物的正态近似随机源（IOF :145 同款 XSTR；静态单例，仅主线程使用）。 */
     private static final XSTR RANDOM = new XSTR();
 
+    /** GT5U 5.09.54.265 ParallelHelper 的批处理总时长上限。 */
+    private static final int MAX_BATCH_MODE_TICKS = 128;
+
     private ClusterChainExecutor() {}
 
     /**
@@ -114,13 +117,9 @@ public final class ClusterChainExecutor {
      *
      * <p>
      * 事务流程：门控（主控+单元启用+物理电源/链可执行/tier/暂存产出未排空/配方时间）→ 低温门控
-     * （热量不足取料前零副作用返 0）→ 取料登记（不扣料）→ 队列模式闸（S1：queueMode 开启且收集
-     * 输入无任一单种 item+meta ≥ 有效并行时零副作用返 0）→ 增幅开批预检（v1.20.16：逐模块
-     * 存量 ≥ batch×单价，失效模块本批从聚合剔除——无增益不计乘子、批照常执行、输入照常收取）
-     * → 链加工（副本单遍执行 + 逐物品真实配方
-     * 流体需求累计 + processedLinks 跟踪 + 主产物单峰解析 S1-T9）→ 批流体预检（不足整批零副作用）→ 输出预检
-     * （probe-place-undo：整批逐组实放再按台账立即回滚，放不下整批零副作用）→ 扣料（吞入）→
-     * 配方流体实扣 + 增幅液提交点一次扣（batch×单价，预检通过模块）→ 配方时间/记账/吞吐/处理窗口开窗 →
+     * （热量不足取料前零副作用返 0）→ 增幅首轮支付预检与并行聚合 → 取料登记（不扣料）→ 队列模式闸
+     * → 在副本上规划首轮，再按 GT 批处理时长/倍率、流体与输出容量追加份数 → 扣料（吞入）→
+     * 配方流体按总份数实扣 + 增幅液按 ceil(总份数/首轮宽度) 提交点一次扣 → 配方时间/记账/吞吐/处理窗口开窗 →
      * 整批产出暂存（不再当场发放，进度读零后由单元 onPostTick 排空）。
      *
      * @param cluster   集群总控（拓扑、tier 与累计记账入口）
@@ -160,17 +159,19 @@ public final class ClusterChainExecutor {
 
         // 5) 并行与输入：从物流单元自己的输入总线收集全部非 OTHER 形态的物品（决策 3：
         // ORE 与粉碎矿/污浊粉等全部中间态均收），只登记台账不扣料。
-        // v1.20.16：增幅聚合不再乘短批反比倍率（按秒口径退役）；增幅液支付预检延后到 5c
-        // （本批矿数已知后逐模块按 存量 ≥ batch×单价 执行，与提交点实扣同一 helper）
-        BoosterState booster = BoosterState.aggregate(topology.getBoosterUnits());
+        // v2.1.5：先预检一轮基础量，再决定真实并行；恢复供液的增幅不受上一批失败标记限制。
+        BoosterState booster = precheckBoosterForBatch(topology, 1);
         int parallel = ExecutionPlan.effectiveParallel(tier, booster);
+        int inputLimit = unit.isBatchModeEnabled()
+            ? (int) Math.min(Integer.MAX_VALUE, (long) parallel * unit.getMaxBatchSize())
+            : parallel;
         List<InputTake> takes = new ArrayList<>();
         // T2③ ME 空批握手节流：节流期内不开窗（meOpened=false，普通总线取料照常、来料即时不受影响）；
         // 开过窗且空批 → finally 关窗并武装节流（有消耗的窗口不武装，纯 ME 供料恢复延迟 ≤ 节流间隔）
         boolean meOpened = unit.beginMEBusProcessingIfDue();
         int batch;
         try {
-            batch = collectOreBatch(unit, parallel, takes);
+            batch = collectOreBatch(unit, inputLimit, takes);
         } finally {
             if (meOpened && takes.isEmpty()) {
                 unit.endMEBusProcessing(cluster);
@@ -183,64 +184,44 @@ public final class ClusterChainExecutor {
         // 5b) 队列模式闸（S1 新增）：queueMode 开启时要求收集输入中存在单种 item+meta 数量
         // ≥ 本批有效并行（上一步 ExecutionPlan.effectiveParallel 现算值），否则零副作用返 0
         // （静默；状态机保持 STANDBY 口径；ME 窗口对称关闭，未扣料零残留）
-        if (unit.isQueueMode() && !hasSingleItemStackOf(takes, parallel)) {
+        if (unit.isQueueMode() && !hasSingleItemStackOf(limitTakes(takes, Math.min(batch, parallel)), parallel)) {
             if (meWindow) unit.endMEBusProcessing(cluster);
             return 0;
         }
 
-        // 5c) 增幅开批预检（v1.20.16 L/矿口径）：本批矿数已定，逐在场增幅模块预检
-        // 存量 ≥ batch×单价（canPayForBatch 与提交点实扣 tryConsumeForBatch 同一 helper 同一数值），
-        // 结果登记为各模块「最近开批预检失效」标记；随后按标记重聚合——失效模块本批从聚合输入
-        // 剔除（无增益、不计蒸汽惩罚乘子），批照常执行、输入照常收取（不重取料、不缩批）；
-        // 通过者本处不实扣，整批提交点（步骤 10）一次扣除。主控一次性播报锁存读同一标记。
-        BatchFluidLedger fluids;
-        EnumSet<ChainLink> processedLinks;
-        Map<Long, Long> bonusSink;
-        List<ItemStack> outputs;
-        int originalPeak = unit.getLastEffectivePeak();
-        // An ordinary chain can run a smaller batch when its actual washing fluids cannot fund full parallelism.
-        // Trials only touch copies. Halving bounds total planning work; queue mode deliberately waits for a full batch.
-        while (true) {
-            booster = precheckBoosterForBatch(topology, batch);
-            List<ItemStack> mid = new ArrayList<>(batch);
-            for (InputTake take : takes) for (int i = 0; i < take.amount; i++) {
-                mid.add(GTUtility.copyAmountUnsafe(1, take.live));
-            }
-            fluids = new BatchFluidLedger();
-            processedLinks = EnumSet.noneOf(ChainLink.class);
-            bonusSink = new HashMap<>();
-            outputs = runChain(
-                chain,
-                mid,
-                unit,
-                fluids,
-                booster,
-                processedLinks,
-                tier,
-                bonusSink,
-                new BatchFluidSignalCache());
-            if (fluids.isSatisfiable(unit)) break;
-            unit.setLastEffectivePeak(originalPeak);
-            if (unit.isQueueMode() || batch <= 1) {
-                if (meWindow) unit.endMEBusProcessing(cluster);
-                unit.setChainCooldownTicks(ClusterParams.BATCH_FAIL_BACKOFF_TICKS);
-                return 0;
-            }
-            batch = Math.max(1, batch / 2);
-            takes = limitTakes(takes, batch);
+        // 队列模式的合并轮仍只处理首轮选中的同一种物品。
+        if (unit.isQueueMode()) {
+            int queuedItem = GTUtility.stackToInt(takes.get(0).live);
+            takes.removeIf(take -> GTUtility.stackToInt(take.live) != queuedItem);
+            batch = takes.stream()
+                .mapToInt(take -> take.amount)
+                .sum();
         }
 
-        // 8) 输出预检（r-logi-power-bind，probe-place-undo）：整批逐组证明放得下后立即按台账
-        // 回滚——最终发放推迟到配方进度读零，若此刻放不下则后续排空必卡死，故开批前整批证明；
-        // ME 条目只模拟不落地（realPlaceMe=false），回滚精确；
-        // 失败（任一组无处可放，实放部分已内部回滚）→ 整批零副作用（输入未扣、流体未扣）
-        List<OutputLedger> probeLedger = tryEmitOutputs(unit, outputs, false);
-        if (probeLedger == null) {
+        // 先确定真实首轮宽度，再按 GT 128t / 最大批量倍率追加；所有试算只用副本与可回滚输出探测。
+        int firstRound = Math.min(parallel, batch);
+        BatchPlan plan = findBatchPlan(
+            unit,
+            topology,
+            booster,
+            tier,
+            takes,
+            unit.isQueueMode() ? firstRound : 1,
+            firstRound,
+            0,
+            null);
+        if (plan != null && unit.isBatchModeEnabled()) {
+            int limit = Math.min(batch, batchLimit(plan.parallel, plan.roundTicks, unit.getMaxBatchSize()));
+            plan = findBatchPlan(unit, topology, booster, tier, takes, plan.size + 1, limit, plan.parallel, plan);
+        }
+        // 容量规划不掷随机。确定份数后只生成一次真实产物；若最终账本不合则整批退避，不缩量重掷。
+        if (plan == null || !prepareBatchPlan(unit, topology, booster, tier, plan, false)) {
             if (meWindow) unit.endMEBusProcessing(cluster);
             unit.setChainCooldownTicks(ClusterParams.BATCH_FAIL_BACKOFF_TICKS);
             return 0;
         }
-        rollbackOutputs(probeLedger);
+        batch = plan.size;
+        takes = plan.takes;
 
         // 9) 扣料（IOF :317 口径：live 引用 stackSize -= take；0-size 槽由总线自身 tick 收口）
         // ——此后输入已吞入，在飞批次仅能经 MTEBasicLogisticsUnit.abortPendingRun 中止（吞料）
@@ -256,34 +237,152 @@ public final class ClusterChainExecutor {
         }
         // 10) 提交：预检已证明输出可接收，实扣配方流体（§3.6.5-4，r6 S2：直接对物流单元输入仓
         // 跨仓结算）；此点之后不再回滚。
-        // 增幅液开批一次扣（v1.20.16 L/矿口径）：5c 预检通过的本批参与模块按 batch×单价（同一
-        // helper）跨各自输入仓一次扣除。ME 库存模拟不保证有 AE 能量完成实扣，因此必须检查收据。
-        // 普通预检短缺仍只剔除增幅；提交时意外支付失败则按已吞入批次中止，不发放未支付产物。
-        if (!fluids.consume(unit)) return abortUnpaidBatch(cluster, unit);
+        // 增幅液按计费轮数×单价一次扣，预检与提交共用 batchCost；ME 实扣必须检查支付收据。
+        // 首轮付不起才剔除增幅，扩批付不起则缩小合并量；意外支付失败按已吞入批次中止。
+        if (!plan.fluids.consume(unit)) return abortUnpaidBatch(cluster, unit);
         for (MTEBasicAmplifierUnit amplifier : booster.getActiveUnits()) {
-            if (!amplifier.tryConsumeForBatch(batch)) return abortUnpaidBatch(cluster, unit);
+            if (!amplifier.tryConsumeForBatch(plan.chargedRounds)) return abortUnpaidBatch(cluster, unit);
         }
         unit.markDirty();
         // S1-T9/T10 提交后记账：批流体摘要供终端 FLUID 行；增幅额外产出（bonusSink）回填主控
         // per-item 增幅产出统计（失败/中止路径不回填，与零副作用口径一致）
-        unit.setLastBatchFluidSummary(fluids.summaryEntries());
-        cluster.addStatBonusEntries(bonusSink);
+        unit.setLastBatchFluidSummary(plan.fluids.summaryEntries());
+        unit.setLastEffectivePeak(plan.effectivePeak);
+        unit.recordBatchSize(plan.parallel, batch);
+        cluster.addStatBonusEntries(plan.bonusSink);
 
-        // 11) 配方时间与记账：整链时间按 1 tick=0.05s 向上取整，余数计 1 tick，最低 1 tick。
-        List<ChainLink> processedLinksList = new ArrayList<>(processedLinks);
-        long recipeTicks = Math.max(
-            1L,
-            (long) Math.ceil(ExecutionPlan.itemTimeSec(processedLinksList, tier, topology, booster) * 20D - 1e-9));
+        // 11) 配方时间与记账：单轮沿用整链向上取整、最低 1 tick 的规则。
+        // 与 GT ProcessingLogic 相同：基础整数 tick × 实际合并倍率，最后截成整数 tick。
+        long recipeTicks = Math.max(1L, plan.roundTicks * batch / plan.parallel);
         unit.setChainCooldownTicks(recipeTicks);
         unit.onBatchProcessed(batch);
 
         // 12) 产出暂存（r-logi-power-bind）：不再当场发放——整批产出移交单元，进度读零后由单元
         // onPostTick 经 emitPendingOutputs 排空（放不下时空转重试，零消耗零丢料）
-        unit.stashPendingOutputs(outputs);
-        cluster.recordBatchLinks(processedLinks);
+        unit.stashPendingOutputs(plan.outputs);
+        cluster.recordBatchLinks(plan.processedLinks);
         cluster.addProcessedOre(batch);
         batchHost.addRealBatchThroughput(batch);
         return batch;
+    }
+
+    /** 一次只读试算留下的完整提交台账；成功后不再重掷产物或重算费用。 */
+    private static final class BatchPlan {
+
+        final int size;
+        final int parallel;
+        final int chargedRounds;
+        final List<InputTake> takes;
+        BatchFluidLedger fluids;
+        final EnumSet<ChainLink> processedLinks = EnumSet.noneOf(ChainLink.class);
+        final Map<Long, Long> bonusSink = new HashMap<>();
+        List<ItemStack> outputs;
+        long roundTicks;
+        int effectivePeak;
+        boolean outputBlocked;
+
+        BatchPlan(int size, int parallel, List<InputTake> takes) {
+            this.size = size;
+            this.parallel = parallel;
+            this.chargedRounds = 1 + (size - 1) / parallel;
+            this.takes = limitTakes(takes, size);
+        }
+    }
+
+    /** 首试上界，容量受限时二分缩批；首轮 parallel=0 表示实际宽度随库存/容量一起收缩。 */
+    private static BatchPlan findBatchPlan(MTEBasicLogisticsUnit unit, ClusterTopology topology, BoosterState booster,
+        int tier, List<InputTake> takes, int low, int high, int parallel, BatchPlan best) {
+        int candidate = high;
+        while (low <= high) {
+            BatchPlan trial = new BatchPlan(candidate, parallel == 0 ? candidate : parallel, takes);
+            if (prepareBatchPlan(unit, topology, booster, tier, trial, true)) {
+                best = trial;
+                low = candidate + 1;
+            } else {
+                // 关闭批处理时保留原来的整批输出保护和缺配方液折半规则。
+                if (!unit.isBatchModeEnabled() && parallel == 0) {
+                    if (trial.outputBlocked || candidate <= 1) return best;
+                    high = Math.max(1, candidate / 2);
+                    candidate = high;
+                    continue;
+                }
+                high = candidate - 1;
+            }
+            candidate = low + (high - low) / 2;
+        }
+        return best;
+    }
+
+    private static boolean prepareBatchPlan(MTEBasicLogisticsUnit unit, ClusterTopology topology, BoosterState booster,
+        int tier, BatchPlan plan, boolean planning) {
+        for (MTEBasicAmplifierUnit amplifier : booster.getActiveUnits()) {
+            if (!amplifier.canPayForBatch(plan.chargedRounds)) return false;
+        }
+        List<ItemStack> mid = new ArrayList<>(planning ? plan.takes.size() : plan.size);
+        for (InputTake take : plan.takes) {
+            if (planning) mid.add(GTUtility.copyAmountUnsafe(take.amount, take.live));
+            else for (int i = 0; i < take.amount; i++) mid.add(GTUtility.copyAmountUnsafe(1, take.live));
+        }
+        plan.fluids = new BatchFluidLedger();
+        plan.processedLinks.clear();
+        plan.bonusSink.clear();
+        plan.outputBlocked = false;
+        int originalPeak = unit.getLastEffectivePeak();
+        BatchFluidSignalCache signals = new BatchFluidSignalCache();
+        if (planning) {
+            LogisticsChain chain = unit.getChain();
+            boolean trackPrimary = chain.getLinks()
+                .contains(ChainLink.FURNACE_PRIMARY);
+            plan.effectivePeak = resolveEffectivePeak(chain, mid, unit, signals, trackPrimary);
+            plan.outputs = runChainPass(
+                chain,
+                mid,
+                unit,
+                plan.fluids,
+                booster,
+                plan.processedLinks,
+                tier,
+                null,
+                plan.effectivePeak,
+                signals,
+                trackPrimary,
+                true);
+        } else {
+            plan.outputs = runChain(
+                unit.getChain(),
+                mid,
+                unit,
+                plan.fluids,
+                booster,
+                plan.processedLinks,
+                tier,
+                plan.bonusSink,
+                signals);
+            plan.effectivePeak = unit.getLastEffectivePeak();
+        }
+        unit.setLastEffectivePeak(originalPeak);
+        plan.roundTicks = Math.max(
+            1L,
+            (long) Math.ceil(
+                ExecutionPlan.itemTimeSec(new ArrayList<>(plan.processedLinks), tier, topology, booster) * 20D - 1e-9));
+        if (plan.size > plan.parallel && plan.size > batchLimit(plan.parallel, plan.roundTicks, unit.getMaxBatchSize()))
+            return false;
+        if (!plan.fluids.isSatisfiable(unit)) return false;
+        List<OutputLedger> probe = tryEmitOutputs(unit, plan.outputs, false);
+        if (probe == null) {
+            plan.outputBlocked = true;
+            return false;
+        }
+        rollbackOutputs(probe);
+        return true;
+    }
+
+    /** 对应 GT ParallelHelper 的 maxExtraParallels；不足整轮的尾份同样可以合并。 */
+    private static int batchLimit(int parallel, long roundTicks, int modifier) {
+        if (roundTicks >= MAX_BATCH_MODE_TICKS) return parallel;
+        long extra = (long) Math
+            .floor(parallel * Math.min((double) MAX_BATCH_MODE_TICKS / roundTicks - 1D, modifier - 1D));
+        return (int) Math.min(Integer.MAX_VALUE, parallel + extra);
     }
 
     /** A commit-time native payment failure cannot grant a recipe or boosted products. */
@@ -297,8 +396,8 @@ public final class ClusterChainExecutor {
     // ==================== 取料（IOF :306-319，I/O 经物流单元输入总线） ====================
 
     /**
-     * 增幅开批预检（v1.20.16 L/矿口径）：对全部在场增幅模块（已接入集群 && 结构 tier 有效）按
-     * 本批矿数逐台预检 {@code 存量 ≥ batch×单价}（{@link MTEBasicAmplifierUnit#canPayForBatch}，
+     * 增幅开批预检：对全部在场增幅模块（已接入集群 && 结构 tier 有效）按
+     * 首轮基础量逐台预检（{@link MTEBasicAmplifierUnit#canPayForBatch}，
      * 与提交点实扣 {@link MTEBasicAmplifierUnit#tryConsumeForBatch} 同一 helper 同一数值），
      * 结果写入各模块「最近开批预检失效」标记（缺流体/存量不足 → 失效），随后按标记重聚合并返回
      * 本批参与快照（失效模块剔除：无增益、不计蒸汽惩罚乘子）。
@@ -588,7 +687,8 @@ public final class ClusterChainExecutor {
             bonusSink,
             effectivePeak,
             fluidSignals,
-            trackPrimary);
+            trackPrimary,
+            false);
     }
 
     /**
@@ -601,7 +701,7 @@ public final class ClusterChainExecutor {
         BatchFluidSignalCache fluidSignals, boolean trackPrimary) {
         List<ChainLink> links = chain.getLinks();
         boolean[] linkHit = new boolean[links.size()];
-        traverseChain(links, mid, unit, null, null, null, 0, null, -1, fluidSignals, trackPrimary, linkHit);
+        traverseChain(links, mid, unit, null, null, null, 0, null, -1, fluidSignals, trackPrimary, linkHit, false);
         int configuredPeak = Math.max(0, Math.min(links.size() - 1, chain.getPeakIndex()));
         for (int i = configuredPeak; i < linkHit.length; i++) {
             if (linkHit[i]) return i;
@@ -616,7 +716,8 @@ public final class ClusterChainExecutor {
     /** 正式遍历与只读峰探针共用来源流；不含 PRIMARY 的链不分配来源台账。 */
     private static List<ItemStack> runChainPass(LogisticsChain chain, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
         BatchFluidLedger fluids, BoosterState booster, EnumSet<ChainLink> processedLinks, int tier,
-        Map<Long, Long> bonusSink, int effectivePeak, BatchFluidSignalCache fluidSignals, boolean trackPrimary) {
+        Map<Long, Long> bonusSink, int effectivePeak, BatchFluidSignalCache fluidSignals, boolean trackPrimary,
+        boolean planning) {
         return traverseChain(
             chain.getLinks(),
             mid,
@@ -629,7 +730,8 @@ public final class ClusterChainExecutor {
             effectivePeak,
             fluidSignals,
             trackPrimary,
-            null);
+            null,
+            planning);
     }
 
     /**
@@ -640,7 +742,7 @@ public final class ClusterChainExecutor {
     private static List<ItemStack> traverseChain(List<ChainLink> links, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
         BatchFluidLedger fluids, BoosterState booster, EnumSet<ChainLink> processedLinks, int tier,
         Map<Long, Long> bonusSink, int effectivePeak, BatchFluidSignalCache fluidSignals, boolean trackPrimary,
-        boolean[] linkHit) {
+        boolean[] linkHit, boolean planning) {
         boolean probe = linkHit != null;
         Map<Integer, Integer> primary = trackPrimary ? new HashMap<>() : null;
         if (trackPrimary) {
@@ -715,7 +817,8 @@ public final class ClusterChainExecutor {
                                 i == effectivePeak,
                                 bonusSink,
                                 nextPrimary,
-                                primaryAmount));
+                                primaryAmount,
+                                planning));
                         output.addAll(
                             rollOutputs(
                                 recipe,
@@ -724,7 +827,8 @@ public final class ClusterChainExecutor {
                                 link,
                                 tier,
                                 i == effectivePeak,
-                                bonusSink));
+                                bonusSink,
+                                planning));
                     } else {
                         output.addAll(
                             rollOutputs(
@@ -736,7 +840,8 @@ public final class ClusterChainExecutor {
                                 i == effectivePeak,
                                 bonusSink,
                                 nextPrimary,
-                                primaryAmount));
+                                primaryAmount,
+                                planning));
                     }
                 }
             }
@@ -910,14 +1015,15 @@ public final class ClusterChainExecutor {
      * </ul>
      */
     private static List<ItemStack> rollOutputs(GTRecipe recipe, int aTime, BoosterState booster, ChainLink link,
-        int tier, boolean peakStep, Map<Long, Long> bonusSink) {
+        int tier, boolean peakStep, Map<Long, Long> bonusSink, boolean planning) {
         // T3 D5：两条熔炼链（FURNACE/FURNACE_PRIMARY）豁免主/副产物增幅（增益清零；峰步缩放、CRUSH
         // 乘率、roll 机制、bonusSink、增幅液扣费均零触碰——0 增益对峰步 ×0.1 仍为 0）
-        return rollOutputs(recipe, aTime, booster, link, tier, peakStep, bonusSink, null, 0);
+        return rollOutputs(recipe, aTime, booster, link, tier, peakStep, bonusSink, null, 0, planning);
     }
 
     private static List<ItemStack> rollOutputs(GTRecipe recipe, int aTime, BoosterState booster, ChainLink link,
-        int tier, boolean peakStep, Map<Long, Long> bonusSink, Map<Integer, Integer> primary, int primaryInput) {
+        int tier, boolean peakStep, Map<Long, Long> bonusSink, Map<Integer, Integer> primary, int primaryInput,
+        boolean planning) {
         boolean furnaceChain = link == ChainLink.FURNACE || link == ChainLink.FURNACE_PRIMARY;
         double primaryBonusRaw = (booster == null || furnaceChain) ? 0.0 : booster.getPrimaryBonus();
         // S1-T9 主产物单峰：峰步拿满主产物增益，非峰步缩至 10%（副产物增益不缩）
@@ -939,7 +1045,9 @@ public final class ClusterChainExecutor {
                 if (i > 0 && crushStep) p *= crushByproductMult;
                 // T2/T6：增幅后概率可超过 100%（主/副产物皆然）——floor(p) 份整份输出保底复制
                 // （原输出几件就多几件），余数再按概率 roll 一份；p<1 保持原正态近似口径。
-                if (p >= 1.0D) {
+                if (planning) {
+                    quantity = aTime * template.stackSize * (int) Math.ceil(Math.max(0D, p));
+                } else if (p >= 1.0D) {
                     int guaranteed = (int) Math.floor(p);
                     double remainder = p - guaranteed;
                     quantity = aTime * template.stackSize * guaranteed;
