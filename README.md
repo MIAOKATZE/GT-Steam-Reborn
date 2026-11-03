@@ -98,6 +98,20 @@ Structure renders use the [GTSR Transparent v1 strategy](README/renders/strategy
 
 ## Multiblock Machines / 多方块机器
 
+### 外形升级与改建 / Appearance Upgrades & Rebuilding
+
+**空气压缩机与大气离心机需要按新结构改建，才能使用新版外形和运行动画；旧结构仍能生产。已采用新结构的机器无需再次重建。**
+
+**Air Compressors and Atmospheric Centrifuges need the new layouts for the new appearance and motion. Legacy layouts remain operable; machines already using the new layouts need no further rebuilding.**
+
+| 机器 / Machine | 改建要求 / Rebuilding |
+| --- | --- |
+| 空气压缩机 / Air Compressor | 新侧窗结构显示往复运动；旧结构可继续生产。 / Rebuild for windowed motion; legacy remains operable. |
+| 大气离心机 / Atmospheric Centrifuge | 从 7×4×7 改为 9×5×9 显示双层转子；旧结构可继续生产。 / Rebuild to 9×5×9 for the twin rotor; legacy remains operable. |
+| 自驱式机械蒸汽压缩机 / Gear Steam Compressor | 无需重建。 / No rebuilding required. |
+| 蒸汽流体钻井 / Steam Fluid Drill | 无需重建。 / No rebuilding required. |
+| 地壳蒸汽掘进机 / Crust Steam Borer | 无需重建。 / No rebuilding required. |
+
 ### Storage Hub Machines / 存储枢纽机器
 
 > [!NOTE]
