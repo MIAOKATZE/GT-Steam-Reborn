@@ -43,7 +43,7 @@ final class MachineVisualClearance {
             int bit = 1 << index;
             if ((wanted & bit) == 0) continue;
             GroupGeometry geometry = entry.geometry.groups[index];
-            MachineVisualDefinition.Group group = entry.host.visualDefinition().groups.get(index);
+            MachineVisualDefinition.Group group = entry.definition.groups.get(index);
             boolean valid = true;
             for (int i = 0; i < geometry.members.length; i += 3) {
                 int x = entry.originX + geometry.members[i], y = entry.originY + geometry.members[i + 1],
@@ -106,6 +106,23 @@ final class MachineVisualClearance {
                     if (dx * dx + dz * dz >= radius2 - EPS) continue;
                     for (int y = first(minY); y <= last(maxY); y++) sweep.add(key(x, y, z));
                 }
+        } else if (group.kind.equals("rotate_z")) {
+            // The turbine tapers along Z. A global maximum radius would falsely intersect its narrower rear shells.
+            Map<Integer, Double> slices = new java.util.LinkedHashMap<>();
+            for (MachineVisualDefinition.Cell cell : group.members) {
+                double x = Math.abs(cell.x - group.pivotX) + .5;
+                double y = Math.abs(cell.y - group.pivotY) + .5;
+                slices.merge(cell.z, x * x + y * y, Math::max);
+            }
+            for (Map.Entry<Integer, Double> slice : slices.entrySet()) {
+                double radius2 = slice.getValue(), radius = Math.sqrt(radius2);
+                for (int x = first(group.pivotX - radius); x <= last(group.pivotX + radius); x++)
+                    for (int y = first(group.pivotY - radius); y <= last(group.pivotY + radius); y++) {
+                        double dx = Math.max(0, Math.abs(x - group.pivotX) - .5);
+                        double dy = Math.max(0, Math.abs(y - group.pivotY) - .5);
+                        if (dx * dx + dy * dy < radius2 - EPS) sweep.add(key(x, y, slice.getKey()));
+                    }
+            }
         } else {
             double dx = group.axis.equals("x") ? group.travel : 0;
             double dy = group.axis.equals("y") ? group.travel : 0;

@@ -633,6 +633,16 @@ gtsr.recipe.siemens_martin_furnace=Siemens-Martin Furnace
 
 # Mega Steam Turbine Array
 gt.blockmachines.gtsr.mega.steam.turbine.array.name=Mega Steam Turbine Array
+gt.blockmachines.gtsr.heavy.steam.turbine.name=Heavy Steam Turbine
+gtsr.gui.heavy_turbine.efficiency=Steam efficiency:
+gtsr.gui.heavy_turbine.rated_output=Rated output:
+gtsr.gui.heavy_turbine.steam_rate=Average steam consumption:
+gtsr.tooltip.heavy_turbine.description=Converts ordinary steam to EU and distilled water. Use one complete bronze or steel structure; materials cannot be mixed. Does not stack.
+gtsr.tooltip.heavy_turbine.bronze=Bronze: %s EU/t, %s%% steam efficiency.
+gtsr.tooltip.heavy_turbine.steel=Steel: %s EU/t, %s%% steam efficiency.
+gtsr.tooltip.heavy_turbine.output=Accepts any dynamo tier. Combined throughput must cover output; stops when energy buffers or water output are full. 160 L steam condenses into 1 L distilled water.
+gtsr.tooltip.heavy_turbine.controller=Front of the right-hand steam distributor
+gtsr.tooltip.heavy_turbine.ports=Replace casings on the front steam distributor
 gtsr.recipe.mega_steam_turbine_array=Mega Steam Turbine
 
 # Siemens-Martin Furnace GUI/Info

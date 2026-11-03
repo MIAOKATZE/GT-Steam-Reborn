@@ -108,6 +108,28 @@ def outputs():
                         "fireboxToken": fire_token, "fireboxesABC": [list(c[:3]) for c in fireboxes],
                         "nativeMaterial": "gregtech:sBlockCasings3 meta 13/14, horizontal faces only" if fire_token else None,
                         "emitters": emitter_records})
+    # Approved R10 apertures, after preview X reflection and the R11 controller move to [-2, 2, 0].
+    # Display XYZ is [-(modelX + 2), modelY - 2, modelZ]; StructureLib ABC reverses display Y.
+    kinetic_sources = [("front-left", (-5, -3, -4.6), "impact"),
+                       ("front-right", (-3, -3, -4.6), "impact"),
+                       ("chimney", (0, -6.6, 2), "working")]
+    imports.append("import com.miaokatze.gtsr.common.machine.MTEKineticProcessingArray;")
+    constants.append("\n".join([
+        "    public static final WorkEffectDefinition KINETIC_PROCESSING_ARRAY = new WorkEffectDefinition(",
+        '        "KineticProcessingArray",', "        ImmutableList.of(),", "        ImmutableList.of(" +
+        ", ".join(f'new Emitter("KineticProcessingArray:{name}", {a}D, {b}D, {c}D)'
+                  for name, (a, b, c), _ in kinetic_sources) + "));"]))
+    choices.append("        if (host.getClass() == MTEKineticProcessingArray.class) return KINETIC_PROCESSING_ARRAY;")
+    records.append({"machine": "KineticProcessingArray",
+                    "source": "tools/workvisual/export_rebuilt_turbines.js (approved R10 preview + R11 controller move)",
+                    "fireboxToken": None, "fireboxesABC": [], "nativeMaterial": None,
+                    "emitters": [{"id": f"KineticProcessingArray:{name}", "preciseABC": list(point),
+                                  "origin": "approved-preview-aperture", "schedule": schedule}
+                                 for name, point, schedule in kinetic_sources],
+                    "periodMs": 3000, "impactPhaseMsInclusive": [1695, 2070],
+                    "impactClientTickInterval": 2, "impactParticlesPerRequest": 2,
+                    "chimneyClientTickInterval": 10, "worldXZJitterWidth": .12,
+                    "airPolicy": "actual jittered spawn cell must be loaded air; no block hiding bypass"})
     text = "\n".join([
         "package com.miaokatze.gtsr.common.workeffects;", "", "import com.google.common.collect.ImmutableList;", "",
         "import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;", *imports,
@@ -166,7 +188,7 @@ def main():
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(content)
-    print(f"{'PASS' if args.check else 'EXPORTED'}: {len(result)} outputs; 194 firebox cells; 18 existing thermal anchors + 3 selected outlets; game=NOT_RUN")
+    print(f"{'PASS' if args.check else 'EXPORTED'}: {len(result)} outputs; 194 firebox cells; 18 existing thermal anchors + 3 selected outlets + 3 KPA apertures; game=NOT_RUN")
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.common.workeffects;
 
 import com.google.common.collect.ImmutableList;
 import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
+import com.miaokatze.gtsr.common.machine.MTEKineticProcessingArray;
 import com.miaokatze.gtsr.common.machine.MTELargeCokeOven;
 import com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler;
 import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
@@ -269,6 +270,13 @@ public final class WorkEffectDefinitions {
             new Emitter("LargeSolarOverpressureArray:source-F:2:2:4", new Cell(-1, -2, 3), null, 0D, true),
             new Emitter("LargeSolarOverpressureArray:source-F:3:2:4", new Cell(0, -2, 3), null, 0D, true),
             new Emitter("LargeSolarOverpressureArray:source-F:4:2:4", new Cell(1, -2, 3), null, 0D, true)));
+    public static final WorkEffectDefinition KINETIC_PROCESSING_ARRAY = new WorkEffectDefinition(
+        "KineticProcessingArray",
+        ImmutableList.of(),
+        ImmutableList.of(
+            new Emitter("KineticProcessingArray:front-left", -5D, -3D, -4.6D),
+            new Emitter("KineticProcessingArray:front-right", -3D, -3D, -4.6D),
+            new Emitter("KineticProcessingArray:chimney", 0D, -6.6D, 2D)));
 
     private WorkEffectDefinitions() {}
 
@@ -281,6 +289,7 @@ public final class WorkEffectDefinitions {
         if (host.getClass() == MTEReinforcedBrickBlastFurnace.class) return REINFORCED_BRICK_BLAST_FURNACE;
         if (host.getClass() == MTELargeGeothermalSteamBoiler.class) return LARGE_GEOTHERMAL_STEAM_BOILER;
         if (host.getClass() == MTELargeSolarOverpressureArray.class) return LARGE_SOLAR_OVERPRESSURE_ARRAY;
+        if (host.getClass() == MTEKineticProcessingArray.class) return KINETIC_PROCESSING_ARRAY;
         return null;
     }
 }

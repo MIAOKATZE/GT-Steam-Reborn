@@ -526,6 +526,12 @@ public final class MultiblockMachineRecipes {
             new Object[] { "ABA", "CDC", "CEC", 'A', copperPlatedBrick, 'B', "pipeLargeBronze", 'C', piston, 'D',
                 roseGoldFrame, 'E', "pipeHugeBronze" });
 
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.HeavySteamTurbine.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "AEA", 'A', "plateDoubleBronze", 'B', "pipeLargeBronze", 'C', "gearGtBronze",
+                'D', "frameGtBronze", 'E', "rotorBronze" });
+
         // 点2修复：RC 焦炉在 GTNH 2.9.0 已禁用，改用 GT5U 新添加的 CokeOvenController（焦炉控制器）
         GTModHandler.addCraftingRecipe(
             GTSRItemList.LargeCokeOven.get(1),

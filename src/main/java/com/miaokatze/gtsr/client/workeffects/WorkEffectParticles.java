@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.client.workeffects;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.client.machinevisual.MachineVisualClient;
+import com.miaokatze.gtsr.common.machine.MTEKineticProcessingArray;
 import com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler;
 import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
@@ -30,6 +31,29 @@ public final class WorkEffectParticles {
         WorkEffectDefinition definition = WorkEffectDefinitions.forHost(host);
         if (definition == null || definition.emitters()
             .isEmpty()) return;
+        if (host instanceof MTEKineticProcessingArray) {
+            if (!MachineVisualClient.isWorking(host) || !MachineVisualClient.isAnimating(host)) return;
+            long phaseMs = Math.floorMod(MachineVisualClient.decorativeTime(host), 3000L);
+            boolean impact = phaseMs >= 1695L && phaseMs <= 2070L;
+            if (impact && tick % 2 == 0 && (MachineVisualClient.uploadedGroupMask(host) & 1) != 0) {
+                CloudParticleQueue.submit(
+                    host,
+                    host.getExtendedFacing(),
+                    definition.emitters()
+                        .subList(0, 2),
+                    2,
+                    1F);
+            } else if (tick % 10 == 0) {
+                CloudParticleQueue.submit(
+                    host,
+                    host.getExtendedFacing(),
+                    definition.emitters()
+                        .subList(2, 3),
+                    1,
+                    1F);
+            }
+            return;
+        }
         World world = host.getBaseMetaTileEntity()
             .getWorld();
         double heat;

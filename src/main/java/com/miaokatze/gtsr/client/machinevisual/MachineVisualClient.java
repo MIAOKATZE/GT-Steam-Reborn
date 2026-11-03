@@ -209,11 +209,11 @@ public final class MachineVisualClient {
             } else entry.previousDecorativeMs = entry.decorativeMs = entry.sampledDecorativeMs = 0;
             entry.lastClock = now;
             entry.candidateMask = fresh && entry.snapshot.motionShape() && entry.snapshot.working()
-                ? (1 << entry.host.visualDefinition().groups.size()) - 1 & ~entry.restoringMask
+                ? (1 << entry.definition.groups.size()) - 1 & ~entry.restoringMask
                 : 0;
             // Already-published groups always see current obstacles, even while a native upload is pending.
             entry.eligibleMask = MachineVisualClearance.safeGroups(entry, entry.mask & entry.candidateMask);
-            if (!entry.host.visualDefinition().groups.isEmpty()) motion.add(entry);
+            if (!entry.definition.groups.isEmpty()) motion.add(entry);
             if (fresh) com.miaokatze.gtsr.client.workeffects.WorkEffectParticles.tick(entry.host, tick);
         }
         admitMotion(motion);
@@ -252,7 +252,8 @@ public final class MachineVisualClient {
         while (iterator.hasNext()) {
             Entry entry = iterator.next();
             IGregTechTileEntity tile = entry.tile;
-            if (entry.retired || entry.facing != entry.host.getExtendedFacing()
+            if (entry.retired || entry.definition != entry.host.visualDefinition()
+                || entry.facing != entry.host.getExtendedFacing()
                 || ((net.minecraft.tileentity.TileEntity) tile).isInvalid()
                 || tile.getMetaTileEntity() != entry.host
                 || entry.world != world
@@ -320,6 +321,12 @@ public final class MachineVisualClient {
             admitted++;
             hostAdmissions++;
         }
+    }
+
+    /** Read-only shared animation clock for phase-aligned decorative emitters. */
+    public static long decorativeTime(MachineVisualHost host) {
+        Entry entry = ENTRIES.get(host);
+        return entry == null ? 0 : entry.decorativeMs;
     }
 
     static long decorativeTime(Entry entry, float partialTick) {
@@ -392,14 +399,14 @@ public final class MachineVisualClient {
 
     static int memberCost(Entry entry, int mask) {
         int cost = 0;
-        for (int i = 0; i < entry.host.visualDefinition().groups.size(); i++)
-            if ((mask & 1 << i) != 0) cost += entry.host.visualDefinition().groups.get(i).members.size();
+        for (int i = 0; i < entry.definition.groups.size(); i++)
+            if ((mask & 1 << i) != 0) cost += entry.definition.groups.get(i).members.size();
         return cost;
     }
 
     // Pure policy methods are exercised directly by tools/workvisual/probe_budget.py.
     static int memberLimit(int quality) {
-        return quality == 0 ? 0 : quality == 1 ? 128 : quality == 2 ? 512 : 1024;
+        return quality == 0 ? 0 : quality == 1 ? 128 : quality == 2 ? 2048 : 4096;
     }
 
     static int groupLimit(int quality) {
@@ -462,7 +469,7 @@ public final class MachineVisualClient {
         Entry entry = ENTRIES.get(host);
         if (entry == null || entry.nonce != frame.nonce
             || gt.getMetaTileID() != frame.registryId
-            || host.visualDefinition().revision != frame.revision
+            || entry.definition.revision != frame.revision
             || host.getExtendedFacing()
                 .getIndex() != frame.orientation
             || entry.snapshot != null
@@ -500,6 +507,7 @@ public final class MachineVisualClient {
     static final class Entry {
 
         final MachineVisualHost host;
+        final com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition definition;
         final IGregTechTileEntity tile;
         final World world;
         final com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing facing;
@@ -523,13 +531,14 @@ public final class MachineVisualClient {
 
         Entry(MachineVisualHost host) {
             this.host = host;
+            definition = host.visualDefinition();
             tile = host.getBaseMetaTileEntity();
             world = tile.getWorld();
             facing = host.getExtendedFacing();
             originX = tile.getXCoord();
             originY = tile.getYCoord();
             originZ = tile.getZCoord();
-            geometry = MachineVisualClearance.plan(host.visualDefinition(), facing);
+            geometry = MachineVisualClearance.plan(definition, facing);
         }
 
         int[] at(int x, int y, int z) {
@@ -539,7 +548,8 @@ public final class MachineVisualClient {
         }
 
         boolean fresh(long now) {
-            return !retired && snapshot != null
+            return !retired && definition == host.visualDefinition()
+                && snapshot != null
                 && snapshot.formed()
                 && now - receivedAt <= 2000000000L
                 && snapshot.orientation == host.getExtendedFacing()

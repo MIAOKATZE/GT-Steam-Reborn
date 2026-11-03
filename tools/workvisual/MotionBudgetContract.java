@@ -16,9 +16,18 @@ public final class MotionBudgetContract {
     }
     public static void main(String[] args) {
         for (int q = 0; q < 4; q++) {
-            check(MotionBudgetUnderTest.memberLimit(q) == new int[] { 0, 128, 512, 1024 }[q], "member limit " + q);
+            check(MotionBudgetUnderTest.memberLimit(q) == new int[] { 0, 128, 2048, 4096 }[q], "member limit " + q);
             check(MotionBudgetUnderTest.groupLimit(q) == new int[] { 0, 16, 64, 128 }[q], "group limit " + q);
         }
+        int[] turbineMembers = { 1310 }, turbineGroups = { 2 };
+        boolean[] turbine = select(MotionBudgetUnderTest.memberLimit(2), MotionBudgetUnderTest.groupLimit(2),
+            0, 0, turbineMembers, turbineGroups, new long[] { Long.MIN_VALUE }, new long[] { 0 },
+            new boolean[] { false }, 0);
+        check(turbine[0], "largest real two-shaft turbine fits STANDARD without discounting members");
+        turbine = select(MotionBudgetUnderTest.memberLimit(1), MotionBudgetUnderTest.groupLimit(1),
+            0, 0, turbineMembers, turbineGroups, new long[] { Long.MIN_VALUE }, new long[] { 0 },
+            new boolean[] { false }, 0);
+        check(!turbine[0], "LOW preserves conservative static turbine display");
         int[] fiveMembers = { 4, 18, 30, 6, 11 }, fiveGroups = { 2, 1, 2, 1, 1 };
         long[] never = new long[5]; Arrays.fill(never, Long.MIN_VALUE);
         boolean[] five = select(128, 16, 0, 0, fiveMembers, fiveGroups, never, new long[5], new boolean[5], 0);

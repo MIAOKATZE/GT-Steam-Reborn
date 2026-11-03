@@ -48,6 +48,10 @@ import com.miaokatze.gtsr.common.machine.cluster.MTEBasicAmplifierUnit;
 import com.miaokatze.gtsr.common.machine.cluster.MTEBasicLogisticsUnit;
 import com.miaokatze.gtsr.common.machine.cluster.MTEClusterUnitBase;
 import com.miaokatze.gtsr.common.machine.cluster.MTEUnitSelfPoweredProcessingUnit;
+import com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualSpace;
 import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 import com.mojang.authlib.GameProfile;
@@ -129,6 +133,7 @@ final class TestLabStructureContractTask implements TestLabTask {
             all.add(new TestLabStructureContractTask(id, 1, 1, 2, 1, false));
         }
         // Turbine's height channel is a one-based layer selection; 5 creates the first extra four-layer stack.
+        all.add(new TestLabStructureContractTask(MetaTileEntityID.HEAVY_STEAM_TURBINE, 2, 1, 1, 1, false));
         all.add(new TestLabStructureContractTask(MetaTileEntityID.MEGA_STEAM_TURBINE_ARRAY, 1, 1, 1, 4, false));
         all.add(new TestLabStructureContractTask(MetaTileEntityID.MEGA_STEAM_TURBINE_ARRAY, 12, 3, 2, 5, false));
         all.add(new TestLabStructureContractTask(MetaTileEntityID.MEGA_STEAM_TURBINE_ARRAY, 12, 3, 2, 17, false));
@@ -203,6 +208,7 @@ final class TestLabStructureContractTask implements TestLabTask {
         machine = (MTEMultiBlockBase) tile.getMetaTileEntity();
         trigger = new ItemStack(Items.stick, 1);
         ChannelDataAccessor.setChannelData(trigger, "casing", casing);
+        if (rebuiltMachine()) ChannelDataAccessor.setChannelData(trigger, "glass", casing);
         ChannelDataAccessor.setChannelData(trigger, "pipe", pipe);
         ChannelDataAccessor.setChannelData(trigger, "gear", gear);
         ChannelDataAccessor.setChannelData(trigger, "height", height);
@@ -235,11 +241,12 @@ final class TestLabStructureContractTask implements TestLabTask {
                 (int) field(raw, "y"),
                 (int) field(raw, "z"));
             if (!world.blockExists(cell.x, cell.y, cell.z) || Math.abs((cell.x >> 4) - (stationX >> 4)) > 6
-                || Math.abs((cell.z >> 4) - (stationZ >> 4)) > 6)
+                || Math.abs((cell.z >> 4) - (stationZ >> 4)) > (machine instanceof MTEMegaSteamTurbineArray ? 8 : 6))
                 throw new IllegalStateException("FIXTURE_BLOCKED native position outside loaded station " + cell.key());
             if (positions.add(cell.key())) cells.add(cell);
         }
-        if (cells.size() < minimumShapeCells() || cells.size() > 16000)
+        if (cells.size() < minimumShapeCells()
+            || cells.size() > (machine instanceof MTEMegaSteamTurbineArray ? 50000 : 16000))
             throw new IllegalStateException("FIXTURE_BLOCKED native shape sanity rejected cells=" + cells.size());
         source = new CountingSource();
         environment = AutoPlaceEnvironment.fromLegacy(
@@ -283,15 +290,14 @@ final class TestLabStructureContractTask implements TestLabTask {
         ((Map<?, ?>) field(model, "elementGroups")).clear();
         ((List<?>) field(model, "elementOrder")).clear();
         if (machine instanceof MTEMegaSteamTurbineArray) {
-            int extra = Math.min(4, Math.max(0, (height - 1) / 4));
-            model.piece("base", 6, 5, 0);
-            plannedPieces.add("base");
-            for (int n = 0; n < extra; n++) {
-                model.piece("stack", 6, 9 + n * 4, 0);
-                plannedPieces.add("stack");
-            }
-            model.piece("cap", 6, 7 + extra * 4, 0);
-            plannedPieces.add("cap");
+            int extra = MegaSteamTurbineStructureDef.constructExtraStacks(trigger);
+            String piece = MegaSteamTurbineStructureDef.piece(extra);
+            model.piece(
+                piece,
+                MegaSteamTurbineStructureDef.HORIZONTAL_OFFSET,
+                MegaSteamTurbineStructureDef.VERTICAL_OFFSET,
+                MegaSteamTurbineStructureDef.DEPTH_OFFSET);
+            plannedPieces.add(piece);
             evidence.put("expectedExtraStacks", extra);
         } else {
             int a = (int) field(machine, "HORIZONTAL_OFF_SET");
@@ -319,8 +325,11 @@ final class TestLabStructureContractTask implements TestLabTask {
         try {
             if (phase == -1) {
                 // Same 169-chunk bound as the ordinary lab, centred around this separate station.
-                for (int budget = 0; budget < 16 && preloadCursor < 169; budget++, preloadCursor++)
-                    retain(world, stationX + (preloadCursor % 13 - 6) * 16, stationZ + (preloadCursor / 13 - 6) * 16);
+                for (int budget = 0; budget < 16 && preloadCursor < 169; budget++, preloadCursor++) retain(
+                    world,
+                    stationX + (preloadCursor % 13 - 6) * 16,
+                    stationZ
+                        + (preloadCursor / 13 - (machineId == MetaTileEntityID.MEGA_STEAM_TURBINE_ARRAY ? 4 : 6)) * 16);
                 if (preloadCursor < 169) return null;
                 initializeStation(world);
                 phase = 0;
@@ -366,6 +375,11 @@ final class TestLabStructureContractTask implements TestLabTask {
                 return null;
             }
             if (phase == 2) {
+                if (rebuiltMachine()) {
+                    evidence.put("candidatePredicateMatrix", "OUT_OF_SCOPE: native required-port installation below");
+                    phase = 3;
+                    return null;
+                }
                 for (int budget = 0; budget < 64 && cursor < cells.size(); budget++, cursor++) {
                     Cell cell = cells.get(cursor);
                     if (!candidates.containsKey(cell.element)) inspectCandidates(world, cell);
@@ -382,7 +396,8 @@ final class TestLabStructureContractTask implements TestLabTask {
                 boolean formed = TestLabStructure.checkStructure(machine, tile);
                 evidence.put("nativeCheckStructure", formed);
                 if (!formed) {
-                    if (representative(machineId) || machineId == MetaTileEntityID.ATMOSPHERIC_CENTRIFUGE)
+                    if (representative(machineId) || machineId == MetaTileEntityID.ATMOSPHERIC_CENTRIFUGE
+                        || machineId == MetaTileEntityID.HEAVY_STEAM_TURBINE)
                         require(false, "native constructed representative rejected: " + model.diagnoseFailure());
                     else notRun
                         .add("formation: native shape constructed; specialized port/topology fixture not supplied");
@@ -391,11 +406,14 @@ final class TestLabStructureContractTask implements TestLabTask {
                 ((IConstructable) machine).construct(trigger, true);
                 require(before.equals(fingerprint(world)), "formed hintsOnly modified world");
                 evidence.put("hintsOnlyPopulatedWorldFingerprint", before);
-                if (formed && extended) survivalProbe(world);
+                if (formed && (extended || machineId == MetaTileEntityID.HEAVY_STEAM_TURBINE)) survivalProbe(world);
                 if (formed && machineId == MetaTileEntityID.AIR_COMPRESSOR && extended) redstoneProbe(world);
-                if (formed && representative(machineId) && machineId != MetaTileEntityID.AIR_COMPRESSOR)
+                if (formed && !rebuiltMachine()
+                    && ((representative(machineId) && machineId != MetaTileEntityID.AIR_COMPRESSOR)
+                        || machineId == MetaTileEntityID.HEAVY_STEAM_TURBINE))
                     mixedTierProbe(world);
-                if (formed && extended) {
+                if (formed && rebuiltMachine()) rebuiltRestProbe(world);
+                if (formed && extended && !rebuiltMachine()) {
                     floor = GTSRStructureUtility.minimumCasings(shellSlots);
                     evidence.put("expectedMinimumCasings", floor);
                     evidence.put("initialMechanicalCasings", casingCount());
@@ -421,7 +439,8 @@ final class TestLabStructureContractTask implements TestLabTask {
             }
             if (phase == 5) {
                 if (representative(machineId)) checkTiers();
-                if (!extended) optionalNotRun.add("survival/minimum-boundary: representative matrix only");
+                if (!extended && machineId != MetaTileEntityID.HEAVY_STEAM_TURBINE)
+                    optionalNotRun.add("survival/minimum-boundary: representative matrix only");
                 if (!evidence.containsKey("redstone0to4and5")) {
                     evidence.put("redstone0to4and5", "NOT_RUN: air-compressor representative only");
                     optionalNotRun.add("redstone0to4and5: air-compressor representative only");
@@ -610,9 +629,9 @@ final class TestLabStructureContractTask implements TestLabTask {
             case AIR_COMPRESSOR:
                 return 23;
             case KINETIC_PROCESSING_ARRAY:
-                return 93;
+                return 376;
             case MEGA_STEAM_TURBINE_ARRAY:
-                return 641 + 249 * Math.min(4, Math.max(0, (height - 1) / 4));
+                return 16411 + 5144 * Math.min(4, Math.max(0, (height - 1) / 4));
             case STEAM_HUB_ARRAY:
                 return 70 + 25 * height;
             case WATER_HUB_ARRAY:
@@ -935,7 +954,8 @@ final class TestLabStructureContractTask implements TestLabTask {
 
     private void checkTiers() throws Exception {
         Map<String, Integer> observed = new LinkedHashMap<>();
-        for (String name : new String[] { "mCasingTier", "mFrameTier", "mPipeTier", "mGearTier", "mStackCount" }) {
+        for (String name : new String[] { "mCasingTier", "mFrameTier", "mPipeTier", "mGearTier", "mStackCount",
+            "mGlassTier" }) {
             try {
                 observed.put(name, (int) field(machine, name));
             } catch (NoSuchFieldException ignored) {}
@@ -943,14 +963,55 @@ final class TestLabStructureContractTask implements TestLabTask {
         evidence.put("nativeTiers", observed);
         if (observed.containsKey("mCasingTier"))
             require(observed.get("mCasingTier") == casing, "casing channel mismatch " + observed);
-        if (observed.containsKey("mFrameTier"))
+        if (observed.containsKey("mFrameTier") && !rebuiltMachine())
             require(observed.get("mFrameTier") == casing, "frame must share casing channel " + observed);
+        if (rebuiltMachine()) {
+            require(observed.get("mGlassTier") == casing, "glass channel mismatch " + observed);
+            evidence.put("frameMaterial", "fixed steel; independent of internal upgrade tier");
+            evidence.put(
+                "minimumCasingBoundary",
+                "OUT_OF_SCOPE: rebuilt fixed bodies use required blocks and explicit ports");
+        }
         if (observed.containsKey("mPipeTier"))
             require(observed.get("mPipeTier") == pipe, "pipe channel mismatch " + observed);
         if (observed.containsKey("mGearTier"))
             require(observed.get("mGearTier") == gear, "gear channel mismatch " + observed);
         if (machine instanceof MTEMegaSteamTurbineArray)
             require(observed.get("mStackCount") == (height - 1) / 4, "one-based turbine height mismatch " + observed);
+    }
+
+    private boolean rebuiltMachine() {
+        return machineId == MetaTileEntityID.KINETIC_PROCESSING_ARRAY
+            || machineId == MetaTileEntityID.MEGA_STEAM_TURBINE_ARRAY;
+    }
+
+    /** Use an actual moving rest block, then invoke the canonical complete checker before and after repair. */
+    private void rebuiltRestProbe(WorldServer world) throws Exception {
+        MachineVisualHost host = (MachineVisualHost) machine;
+        MachineVisualDefinition definition = host.visualDefinition();
+        MachineVisualDefinition.Cell member = definition.groups.get(0).members.get(0);
+        int[] position = MachineVisualSpace.transform(host.getExtendedFacing(), member.x, member.y, member.z);
+        int x = tile.getXCoord() + position[0], y = tile.getYCoord() + position[1], z = tile.getZCoord() + position[2];
+        Block block = world.getBlock(x, y, z);
+        int meta = world.getBlockMetadata(x, y, z);
+        require(!world.isAirBlock(x, y, z), "moving rest cube missing before probe");
+        world.setBlock(x, y, z, Blocks.air, 0, 2);
+        boolean rejected = !TestLabStructure.checkStructure(machine, tile);
+        require(rejected, "missing moving rest cube accepted by full native structure check");
+        world.setBlock(x, y, z, block, meta, 2);
+        boolean restored = TestLabStructure.checkStructure(machine, tile);
+        require(restored, "moving rest cube restoration did not restore native formation");
+        evidence.put("movingRestMissingRejected", rejected);
+        evidence.put("movingRestRestoreFormed", restored);
+        evidence.put("movingRestProbePosition", x + "," + y + "," + z);
+        if (machine instanceof MTEMegaSteamTurbineArray) {
+            MTEMegaSteamTurbineArray turbine = (MTEMegaSteamTurbineArray) machine;
+            int expected = MegaSteamTurbineStructureDef.constructExtraStacks(trigger);
+            require(turbine.mStackCount == expected, "native axial extra-group mismatch");
+            require(turbine.getGroupCount() == expected + 1, "native total group count mismatch");
+            evidence.put("nativeExtraGroups", turbine.mStackCount);
+            evidence.put("nativeTotalGroups", turbine.getGroupCount());
+        }
     }
 
     private int casingCount() throws Exception {

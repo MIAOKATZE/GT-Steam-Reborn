@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.machine.turbine;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -15,15 +17,19 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
+import net.minecraft.item.ItemStack;
 
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.common.machine.MTEMegaSteamTurbineArray;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureTurbineInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.structure.RebuiltMachineGlass;
 
 import bartworks.system.material.Werkstoff;
 import bartworks.system.material.WerkstoffLoader;
@@ -37,123 +43,100 @@ import gregtech.common.blocks.ItemMachines;
  * 巨型蒸汽轮机「结构定义与等级映射域」伴生类（O2-04/A01 段 2 自 MTEMegaSteamTurbineArray 外移）。
  *
  * <p>
- * 三件 shape（base/stack/cap）、惰性 casing 表与四套等级映射的单一事实来源。
- * 机器侧 checkMachine/construct/survivalConstruct 建造入口与偏移算式留机器类不搬。
+ * 五份完整轴向 shape、惰性 casing 表与等级映射的单一事实来源。
+ * 机器侧 checkMachine/construct/survivalConstruct 共用完整 piece 和固定控制器偏移。
  */
 public final class MegaSteamTurbineStructureDef {
 
     private MegaSteamTurbineStructureDef() {}
 
-    public static final String STRUCTURE_PIECE_BASE = "base";
-    public static final String STRUCTURE_PIECE_STACK = "stack";
-    public static final String STRUCTURE_PIECE_CAP = "cap";
-    public static final int BASE_TOTAL_HEIGHT = 9;
-    public static final int STACK_LAYER_HEIGHT = 4;
+    public static final int HORIZONTAL_OFFSET = 25;
+    public static final int VERTICAL_OFFSET = 26;
+    public static final int DEPTH_OFFSET = 0;
+    public static final int STACK_PITCH = 12;
     public static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+    private static IStructureDefinition<MTEMegaSteamTurbineArray> STRUCTURE_DEFINITION;
 
-    private static IStructureDefinition<MTEMegaSteamTurbineArray> STRUCTURE_DEFINITION = null;
+    public static String piece(int extraStacks) {
+        return "axial_" + extraStacks;
+    }
+
+    public static int constructExtraStacks(ItemStack trigger) {
+        int selection = trigger == null ? 1 : ChannelDataAccessor.getChannelData(trigger, "height");
+        return (int) Math.max(0L, Math.min(MTEMegaSteamTurbineArray.MAX_EXTRA_STACKS, ((long) selection - 1L) / 4L));
+    }
+
+    public static MachineVisualDefinition visual(int extraStacks) {
+        return MachineVisualDefinition.get("mega_steam_turbine_" + extraStacks);
+    }
 
     public static IStructureDefinition<MTEMegaSteamTurbineArray> definition() {
         if (STRUCTURE_DEFINITION == null) {
-            STRUCTURE_DEFINITION = StructureDefinition.<MTEMegaSteamTurbineArray>builder()
-                .addShape(
-                    STRUCTURE_PIECE_BASE,
-                    transpose(
-                        new String[][] {
-                            { "EEEEBBBBBEEEE", "E EBBBBBBBE E", "EEB       BEE", "EB BBBBBBB BE", "BB DCCCCCD BB",
-                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", "EB BBBBBBB BE",
-                                "EEB       BEE", "E EBBBBBBBE E", "EEEEBBBBBEEEE" },
-                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB DCCCCCD BB",
-                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", " B BBBBBBB B ",
-                                " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
-                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB BCCCCCB BB",
-                                "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCCCCCB BB", " B BBBBBBB B ",
-                                " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
-                            { "E           E", "  E  BBB  E  ", " E BBEEEBB E ", "  BBEEEEEBB  ", "  BEEEEEEEB  ",
-                                " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", "  BEEEEEEEB  ", "  BBEEEEEBB  ",
-                                " E BBEEEBB E ", "  E  BBB  E  ", "E           E" },
-                            { "EEEBBBBBBBEEE", "E BBBBBBBBB E", "EBB       BBE", "BB         BB", "BB         BB",
-                                "BB         BB", "BB    D    BB", "BB         BB", "BB         BB", "BB         BB",
-                                "EBB       BBE", "E BBBBBBBBB E", "EEEBBBBBBBEEE" },
-                            { "E  BBB~BBB  E", "  BBBBCBBBB  ", " BBBDBCBDBBB ", "BBBCDCDDCBBB", "BBBBCDCDCBBBB",
-                                "BBBBBCCCBBBBB", "BBCCCCDCCCCBB", "BBBBBCCCBBBBB", "BBBBCDCDCBBBB", "BBBCDCDDCBBB",
-                                " BBBDBCBDBBB ", "  BBBBBBBBB  ", "E  BBBBBBB  E" },
-                            { "E  BBBBBBB  E", "  BBBBBBBBB  ", " BBBBBBBBBBB ", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB",
-                                "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB",
-                                " BBBBBBBBBBB ", "  BBBBBBBBB  ", "E  BBBBBBB  E" } }))
-                .addShape(
-                    STRUCTURE_PIECE_STACK,
-                    transpose(
-                        new String[][] {
-                            { "EEEEBBBBBEEEE", "E EBBBBBBBE E", "EEB       BEE", "EB BBBBBBB BE", "BB DCCCCCD BB",
-                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", "EB BBBBBBB BE",
-                                "EEB       BEE", "E EBBBBBBBE E", "EEEEBBBBBEEEE" },
-                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB DCCCCCD BB",
-                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", " B BBBBBBB B ",
-                                " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
-                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB BCCCCCB BB",
-                                "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCCCCCB BB", " B BBBBBBB B ",
-                                " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
-                            { "E           E", "  E  BBB  E  ", " E BBEEEBB E ", "  BBEEEEEBB  ", "  BEEEEEEEB  ",
-                                " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", "  BEEEEEEEB  ", "  BBEEEEEBB  ",
-                                " E BBEEEBB E ", "  E  BBB  E  ", "E           E" } }))
-                .addShape(
-                    STRUCTURE_PIECE_CAP,
-                    transpose(
-                        new String[][] {
-                            { "             ", "             ", "    CCBCC    ", "    BBCBB    ", "  CBBBCBBBC  ",
-                                "  CBBBBBBBC  ", "  BCCBBBCCB  ", "  CBBBBBBBC  ", "  CBBBCBBBC  ", "    BBCBB    ",
-                                "    CCBCC    ", "             ", "             " },
-                            { "             ", "    BBBBB    ", "   BBEEEBB   ", "  BBEEEEEBB  ", " BBEEEEEEEBB ",
-                                " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", " BBEEEEEEEBB ", "  BBEEEEEBB  ",
-                                "   BBEEEBB   ", "    BBBBB    ", "             " } }))
+            StructureDefinition.Builder<MTEMegaSteamTurbineArray> builder = StructureDefinition.builder();
+            for (int count = 0; count <= MTEMegaSteamTurbineArray.MAX_EXTRA_STACKS; count++) {
+                builder.addShape(piece(count), transpose(visual(count).shapeLayers()));
+            }
+            STRUCTURE_DEFINITION = builder.addElement(
+                'B',
+                ofChain(
+                    buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                        .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.PressureSteamInput)
+                        .casingIndex(SOLID_STEEL_CASING_INDEX)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                        .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.OverpressureInput)
+                        .casingIndex(SOLID_STEEL_CASING_INDEX)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                        .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.CoolingHatch)
+                        .casingIndex(SOLID_STEEL_CASING_INDEX)
+                        .hint(2)
+                        .build(),
+                    buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(InputHatch, OutputHatch)
+                        .hatchItemFilterAnd(t -> stack -> {
+                            var hatch = ItemMachines.getMetaTileEntity(stack);
+                            return !(hatch instanceof MTEOverpressureTurbineInputHatch)
+                                && !(hatch instanceof MTESteamCoolingHatch);
+                        })
+                        .casingIndex(SOLID_STEEL_CASING_INDEX)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(SteamInputBus)
+                        .casingIndex(SOLID_STEEL_CASING_INDEX)
+                        .hint(1)
+                        .build(),
+                    buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                        .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.DynamoOutput)
+                        .casingIndex(SOLID_STEEL_CASING_INDEX)
+                        .hint(1)
+                        .build(),
+                    onElementPass(MTEMegaSteamTurbineArray::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 0))))
+                .addElement('H', ofBlock(GregTechAPI.sBlockCasings2, 0))
+                .addElement('R', ofBlock(GregTechAPI.sBlockCasings2, 0))
+                .addElement('S', ofBlock(GregTechAPI.sBlockCasings2, 13))
+                .addElement('A', isAir())
                 .addElement(
-                    'B',
-                    ofChain(
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.PressureSteamInput)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.OverpressureInput)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.CoolingHatch)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(2)
-                            .build(),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(InputHatch, OutputHatch)
-                            // These subclasses register in dedicated lists, not the generic IO counters.
-                            .hatchItemFilterAnd(t -> stack -> {
-                                var hatch = ItemMachines.getMetaTileEntity(stack);
-                                return !(hatch instanceof MTEOverpressureTurbineInputHatch)
-                                    && !(hatch instanceof MTESteamCoolingHatch);
-                            })
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(SteamInputBus)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.DynamoOutput)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(1)
-                            .build(),
-                        onElementPass(
-                            MTEMegaSteamTurbineArray::onCasingAdded,
-                            withChannel(
-                                "casing",
-                                ofBlocksTiered(
-                                    MegaSteamTurbineStructureDef::casingTier,
-                                    allowedCasings(),
-                                    -1,
-                                    (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
-                                    t -> t.mCasingTier)))))
+                    'U',
+                    withChannel(
+                        "casing",
+                        ofBlocksTiered(
+                            MegaSteamTurbineStructureDef::casingTier,
+                            allowedCasings(),
+                            -1,
+                            (t, tier) -> t.mCasingTier = tier,
+                            t -> t.mCasingTier)))
+                .addElement(
+                    'G',
+                    withChannel(
+                        "glass",
+                        ofBlocksTiered(
+                            RebuiltMachineGlass::tier,
+                            RebuiltMachineGlass.choices(),
+                            -1,
+                            (t, tier) -> t.mGlassTier = tier,
+                            t -> t.mGlassTier)))
                 .addElement(
                     'C',
                     withChannel(
@@ -174,16 +157,7 @@ public final class MegaSteamTurbineStructureDef {
                             -1,
                             (t, tier) -> t.mGearTier = tier,
                             t -> t.mGearTier)))
-                .addElement(
-                    'E',
-                    withChannel(
-                        "casing",
-                        ofBlocksTiered(
-                            MegaSteamTurbineStructureDef::frameTier,
-                            frameCasings(),
-                            -1,
-                            (t, tier) -> t.mFrameTier = tier,
-                            t -> t.mFrameTier)))
+                .addElement('E', gregtech.api.util.GTStructureUtility.ofFrame(Materials.Steel))
                 .build();
         }
         return STRUCTURE_DEFINITION;

@@ -67,6 +67,7 @@ final class TestLabMachineTask implements TestLabTask {
     private final java.util.Map<String, Object> thermalFixture = new java.util.LinkedHashMap<>();
     private final List<String> beforeThermalFixtureSnapshots = new ArrayList<>();
     private int directThermalWrites;
+    private TestLabHeavySteamTurbineProbe heavyTurbineProbe;
 
     TestLabMachineTask(MetaTileEntityID id, int variant) {
         this(id, id, variant);
@@ -335,6 +336,18 @@ final class TestLabMachineTask implements TestLabTask {
         }
         consumed |= energyConsumed;
         String output = observedOutput();
+        if (machineId == MetaTileEntityID.HEAVY_STEAM_TURBINE) {
+            if (heavyTurbineProbe == null) {
+                if (output.isEmpty() || !consumed) return null;
+                heavyTurbineProbe = new TestLabHeavySteamTurbineProbe(
+                    (com.miaokatze.gtsr.common.machine.MTEHeavySteamTurbine) multi,
+                    ports,
+                    elapsedTicks);
+            }
+            String evidence = heavyTurbineProbe.tick(elapsedTicks);
+            return evidence == null ? null
+                : result(TestLabReport.Status.PASS, "structure=PASS production=PASS " + evidence);
+        }
         if (!output.isEmpty() && consumed && focusedPortUsed()) return result(
             diagnosedProblem.isEmpty() ? TestLabReport.Status.PASS : TestLabReport.Status.FAIL,
             "structure=PASS production=PASS real_input_consumption=true diagnosedProblem=" + diagnosedProblem
@@ -467,6 +480,7 @@ final class TestLabMachineTask implements TestLabTask {
                 expect(Materials.Steam.getGas(1));
                 break;
             case MEGA_STEAM_TURBINE_ARRAY:
+            case HEAVY_STEAM_TURBINE:
                 add(nativeId(ItemList.Hatch_Dynamo_IV.get(1)), true, "real dynamo", null);
                 output(false);
                 expected = "EU in real dynamo";

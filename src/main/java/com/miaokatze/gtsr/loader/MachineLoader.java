@@ -13,6 +13,7 @@ import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
 import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.MTEDenseStateManipulator;
 import com.miaokatze.gtsr.common.machine.MTEGearSteamCompressor;
+import com.miaokatze.gtsr.common.machine.MTEHeavySteamTurbine;
 import com.miaokatze.gtsr.common.machine.MTEKineticProcessingArray;
 import com.miaokatze.gtsr.common.machine.MTELargeCokeOven;
 import com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler;
@@ -287,6 +288,11 @@ public class MachineLoader {
                 "Large Geothermal Steam Boiler"));
 
         // --- 多方块机器: 蒸汽产电 ---
+        GTSRItemList.HeavySteamTurbine.set(
+            new MTEHeavySteamTurbine(
+                MetaTileEntityID.HEAVY_STEAM_TURBINE.ID,
+                "gtsr.heavy.steam.turbine",
+                "Heavy Steam Turbine"));
         GTSRItemList.MegaSteamTurbineArray.set(
             new MTEMegaSteamTurbineArray(
                 MetaTileEntityID.MEGA_STEAM_TURBINE_ARRAY.ID,
@@ -547,6 +553,7 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.LargeGeothermalSteamBoiler.get(1));
         // --- 多方块机器: 蒸汽产电及特殊仓室 (17-18) ---
         CreativeTabManager.addItemToTab(GTSRItemList.MegaSteamTurbineArray.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.HeavySteamTurbine.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.OverpressureTurbineInputHatch.get(1));
         // --- 多方块机器: 工作机器 (19-26) ---
         CreativeTabManager.addItemToTab(GTSRItemList.SteamFluidDrill.get(1));

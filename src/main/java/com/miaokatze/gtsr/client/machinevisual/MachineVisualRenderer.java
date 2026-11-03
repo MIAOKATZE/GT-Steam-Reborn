@@ -54,10 +54,10 @@ public final class MachineVisualRenderer {
             GL11.glColor4f(1, 1, 1, 1);
             RenderBlocks blocks = new RenderBlocks(entry.world);
             blocks.renderAllFaces = true;
-            for (int index = 0; index < host.visualDefinition().groups.size(); index++) {
+            for (int index = 0; index < entry.definition.groups.size(); index++) {
                 int bit = 1 << index;
                 if ((draw & bit) == 0) continue;
-                MachineVisualDefinition.Group group = host.visualDefinition().groups.get(index);
+                MachineVisualDefinition.Group group = entry.definition.groups.get(index);
                 MachineVisualClearance.GroupGeometry geometry = entry.geometry.groups[index];
                 GL11.glPushMatrix();
                 Tessellator tessellator = Tessellator.instance;
@@ -65,7 +65,7 @@ public final class MachineVisualRenderer {
                 try {
                     if (animating && (ready & bit) != 0) {
                         double value = group.sample(decorativeTime);
-                        if (group.kind.equals("rotate_y")) {
+                        if (group.kind.startsWith("rotate_")) {
                             double[] pivot = geometry.pivot, axis = geometry.axis;
                             GL11.glTranslated(pivot[0], pivot[1], pivot[2]);
                             GL11.glRotated(
