@@ -12,9 +12,10 @@
   <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="GTSR 2.1.9" src="https://img.shields.io/badge/GTSR-2.1.9-green.svg"></a>
 </p>
 
-此版本客户端与服务端均必须安装前置库 [MIAOKATZE Core 0.2.3 ~ +](https://github.com/MIAOKATZE/MIAOKATZE-Core)（最低版本：0.2.3，无上限）。FalsePatternLib 可在缺失时补下载；已有旧版请手动更新。
-
-当前正式版为 v2.1.9，仅支持 GTNH 2.9.0 正式版。RC-2 最终版 v2.0.46 保留为历史版本。建议 GTIT、GTSWN、GTSR 三者一起更新。
+| 前置 / Requirement | 版本 / Version |
+| --- | --- |
+| GTNH | 2.9.0 |
+| [MIAOKATZE Core](https://github.com/MIAOKATZE/MIAOKATZE-Core) | 0.2.3+ |
 
 GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
 
@@ -43,21 +44,16 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 
 ## 下载与版本需求 / Downloads & Requirements
 
-公开下载以 [Release 列表](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases) 中的资产与版本说明为准，`latest` 可能仍指向旧 RC 发布。普通 `gtsr-*.jar` 放入客户端和服务器的 `mods` 文件夹；`dev` 与 `sources` 文件不是游玩版本。升级时请保留现有配置与存档备份。
-
-| GTNH         | GTSR 版本范围 / Version range | 已发布下载 / Status |
+| GTNH         | GTSR 版本范围 / Version range | 下载 / Download |
 | ------------ | -------------- | :--------------: |
 | 2.9.0 正式版 / final | 2.1.0 ~ + | [v2.1.9](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/tag/v2.1.9) |
-| 2.9.0 RC-1 / RC-2 | 2.0.0 ~ 2.0.46 | [v2.0.46](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/tag/v2.0.46)；RC 最终版已发布，随附 Core 0.1.28 |
+| 2.9.0 RC-1 / RC-2 | 2.0.0 ~ 2.0.46 | [v2.0.46](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/tag/v2.0.46) |
 
-本次 v2.1.9 修复 BQ 启动同步竞态：注入后只保存任务定义，单机保留共享任务进度，远程玩家由 BQ 原生登录同步接收完整任务与进度。
-
-This release removes pre-login quest broadcasts after injection. Definitions remain persistent, and remote players receive quests and progress through BetterQuesting's native login synchronization.
-
+客户端和服务端均安装运行 JAR 与相应前置，替换旧包。 / Install the runtime JAR and required dependencies on both client and server.
 
 ## GTNL / SNL 可选兼容 / Optional compatibility
 
-v2.1.1 面向 GTNL `0.2.7-rc2.1`，两个选项均默认关闭，修改后需要重启游戏或服务器。在 `config/gtsr/gtsr.cfg` 的 `general` 类别中按需启用：
+面向 GTNL `0.2.7-rc2.1`，两个选项均默认关闭，修改后需要重启游戏或服务器。在 `config/gtsr/gtsr.cfg` 的 `general` 类别中按需启用：
 
 | 配置 / Configuration | 作用 / Effect |
 | --- | --- |
@@ -72,9 +68,9 @@ Both options are disabled by default and require a restart. The enhancement pres
 
 ## 临界机器 / Critical Machines
 
-**临界机器需要通过 [拟态织机] 分阶段完成建设。** 下图由 v2.1.6 源码离线渲染；使用实际构型与材质，不是游戏实景截图。
+**临界机器需要通过 [拟态织机] 分阶段完成建设。** 下图为结构渲染图。
 
-**Critical machines are built in stages through a [Mimetic Loom].** These offline renders use v2.1.6 geometry and materials; they are not in-game photographs.
+**Critical machines are built in stages through a [Mimetic Loom].** The images below are structure renders.
 
 <table>
 <tr><td align="center"><img width="360" src="README/renders/critical-solar.png" alt="维度辐照耦合锅炉 / Dimensional Irradiation Coupled Boiler"><br>维度辐照耦合锅炉 / Dimensional Boiler</td><td align="center"><img width="360" src="README/renders/critical-turbine.png" alt="超临界蒸汽脉冲动力核心 / Supercritical Steam Pulse Power Core"><br>脉冲动力核心 / Pulse Power Core</td></tr>
@@ -85,16 +81,12 @@ Both options are disabled by default and require a restart. The enhancement pres
 <details>
 <summary>浇筑与施工终端 / Pouring and Construction Terminal</summary>
 
-原生游戏界面，采用受控施工状态展示布局；不作为实际工程验收。 / Native UI with controlled construction states for layout illustration.
+浇筑与主体施工界面。 / Pouring and construction interfaces.
 
 <p align="center"><img width="700" src=".github/release-images/v2.0.29/ui-construction-pouring.png" alt="地基浇筑进度与单格计时 / Foundation pouring and cell timer"></p>
 <p align="center"><img width="700" src=".github/release-images/v2.0.29/ui-construction-body.png" alt="主体分段施工 / Staged body construction"></p>
 
 </details>
-
-透明背景结构图采用 [GTSR Transparent v1 专属渲染策略](README/renders/strategy.json)，基于 v2.1.6 与 GT5U 5.09.54.265：固定相机，保持几何比例；高结构使用竖幅及合法展示高度，同类仓室在同一三维场景中叠放。右下角分别标明 Mod 与实际材质来源，未使用材质包时标为 Original assets。
-
-Structure renders use the [GTSR Transparent v1 strategy](README/renders/strategy.json), based on v2.1.6 and GT5U 5.09.54.265: transparent backgrounds, consistent cameras, proportional geometry, portrait framing for tall builds, and compact stacks of related hatches. The lower-right label names the mod and the textures actually used.
 
 ## Multiblock Machines / 多方块机器
 
