@@ -98,19 +98,7 @@ Structure renders use the [GTSR Transparent v1 strategy](README/renders/strategy
 
 ## Multiblock Machines / 多方块机器
 
-### 外形升级与改建 / Appearance Upgrades & Rebuilding
-
-**空气压缩机与大气离心机需要按新结构改建，才能使用新版外形和运行动画；旧结构仍能生产。已采用新结构的机器无需再次重建。**
-
-**Air Compressors and Atmospheric Centrifuges need the new layouts for the new appearance and motion. Legacy layouts remain operable; machines already using the new layouts need no further rebuilding.**
-
-| 机器 / Machine | 改建要求 / Rebuilding |
-| --- | --- |
-| 空气压缩机 / Air Compressor | 新侧窗结构显示往复运动；旧结构可继续生产。 / Rebuild for windowed motion; legacy remains operable. |
-| 大气离心机 / Atmospheric Centrifuge | 从 7×4×7 改为 9×5×9 显示双层转子；旧结构可继续生产。 / Rebuild to 9×5×9 for the twin rotor; legacy remains operable. |
-| 自驱式机械蒸汽压缩机 / Gear Steam Compressor | 无需重建。 / No rebuilding required. |
-| 蒸汽流体钻井 / Steam Fluid Drill | 无需重建。 / No rebuilding required. |
-| 地壳蒸汽掘进机 / Crust Steam Borer | 无需重建。 / No rebuilding required. |
+**新外形需改建：空气压缩机、大气离心机。 / New layouts require rebuilding: Air Compressor, Atmospheric Centrifuge.**
 
 ### Storage Hub Machines / 存储枢纽机器
 
@@ -182,7 +170,7 @@ Structure renders use the [GTSR Transparent v1 strategy](README/renders/strategy
 
 <p align="center"><img src="README/renders/MTELargeSteamFurnace-T1.png" width="260" alt="大型蒸汽熔炉 / Large Steam Furnace"> <img src="README/renders/MTELargeSteamFurnace-T2.png" width="260" alt="大型蒸汽熔炉 / Large Steam Furnace"><br><em>大型蒸汽熔炉 / Large Steam Furnace（青铜/钢）</em></p>
 
-<p align="center"><img src="README/renders/MTEAirCompressor-T1.png" width="260" alt="空气压缩机 / Air Compressor"> <img src="README/renders/MTEAirCompressor-T2.png" width="260" alt="空气压缩机 / Air Compressor"><br><em>空气压缩机 / Air Compressor（青铜/钢）</em></p>
+<p align="center"><img src="README/renders/MTEAirCompressor-T1.png" width="240" alt="空气压缩机 / Air Compressor"> <img src="README/renders/MTEAirCompressor-T2.png" width="240" alt="空气压缩机 / Air Compressor"><br><em>空气压缩机 / Air Compressor（青铜/钢）</em></p>
 
 **大型蒸汽熔炉 / Large Steam Furnace (LSF)**
 
@@ -192,7 +180,7 @@ Structure renders use the [GTSR Transparent v1 strategy](README/renders/strategy
 
 产出空气（下界维度产出下界空气），远优于普通压缩机的速度与便捷度。
 
-<p align="center"><img src="README/renders/MTEAtmosphericCentrifuge-T1.png" width="260" alt="大气离心机 / Atmospheric Centrifuge"> <img src="README/renders/MTEAtmosphericCentrifuge-T2.png" width="260" alt="大气离心机 / Atmospheric Centrifuge"><br><em>大气离心机 / Atmospheric Centrifuge（青铜/钢）</em></p>
+<p align="center"><img src="README/renders/MTEAtmosphericCentrifuge-T1.png" width="240" alt="大气离心机 / Atmospheric Centrifuge"> <img src="README/renders/MTEAtmosphericCentrifuge-T2.png" width="240" alt="大气离心机 / Atmospheric Centrifuge"><br><em>大气离心机 / Atmospheric Centrifuge（青铜/钢）</em></p>
 
 **大气离心机 / Atmospheric Centrifuge (ATC)**
 
