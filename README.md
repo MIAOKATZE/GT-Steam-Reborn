@@ -170,7 +170,7 @@ Structure renders use the [GTSR Transparent v1 strategy](README/renders/strategy
 
 <p align="center"><img src="README/renders/MTELargeSteamFurnace-T1.png" width="260" alt="大型蒸汽熔炉 / Large Steam Furnace"> <img src="README/renders/MTELargeSteamFurnace-T2.png" width="260" alt="大型蒸汽熔炉 / Large Steam Furnace"><br><em>大型蒸汽熔炉 / Large Steam Furnace（青铜/钢）</em></p>
 
-<p align="center"><img src="README/renders/MTEAirCompressor-T1.png" width="280" alt="空气压缩机 / Air Compressor"> <img src="README/renders/MTEAirCompressor-T2.png" width="280" alt="空气压缩机 / Air Compressor"><br><em>空气压缩机 / Air Compressor（青铜/钢）</em></p>
+<p align="center"><img src="README/renders/MTEAirCompressor-T1.png" width="240" alt="空气压缩机 / Air Compressor"> <img src="README/renders/MTEAirCompressor-T2.png" width="240" alt="空气压缩机 / Air Compressor"><br><em>空气压缩机 / Air Compressor（青铜/钢）</em></p>
 
 **大型蒸汽熔炉 / Large Steam Furnace (LSF)**
 
@@ -180,7 +180,7 @@ Structure renders use the [GTSR Transparent v1 strategy](README/renders/strategy
 
 产出空气（下界维度产出下界空气），远优于普通压缩机的速度与便捷度。
 
-<p align="center"><img src="README/renders/MTEAtmosphericCentrifuge-T1.png" width="280" alt="大气离心机 / Atmospheric Centrifuge"> <img src="README/renders/MTEAtmosphericCentrifuge-T2.png" width="280" alt="大气离心机 / Atmospheric Centrifuge"><br><em>大气离心机 / Atmospheric Centrifuge（青铜/钢）</em></p>
+<p align="center"><img src="README/renders/MTEAtmosphericCentrifuge-T1.png" width="240" alt="大气离心机 / Atmospheric Centrifuge"> <img src="README/renders/MTEAtmosphericCentrifuge-T2.png" width="240" alt="大气离心机 / Atmospheric Centrifuge"><br><em>大气离心机 / Atmospheric Centrifuge（青铜/钢）</em></p>
 
 **大气离心机 / Atmospheric Centrifuge (ATC)**
 
