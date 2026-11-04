@@ -350,14 +350,14 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
     @Override
     public CheckRecipeResult checkProcessing() {
         if (mMaterialTier < 1) return CheckRecipeResultRegistry.NO_FUEL_FOUND;
-        if (outputRoom() == 0 || !flushCoolant()) return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
         // GT checks the next cycle in the very tick that just emptied a bounded input hatch.
         // Keep a successfully fueled tick continuous; the next running tick still charges real fuel.
         if (workedThisTick) {
             mEfficiencyIncrease = 0;
-            mMaxProgresstime = 20;
+            mMaxProgresstime = 1;
             return CheckRecipeResultRegistry.GENERATING;
         }
+        if (outputRoom() == 0 || !flushCoolant()) return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
         SteamType type = selectSteam();
         if (type == SteamType.NONE && energyCredit < HeavySteamTurbineCycle.ENERGY_UNITS_PER_EU)
             return CheckRecipeResultRegistry.NO_FUEL_FOUND;
@@ -365,7 +365,7 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
         Settlement plan = settlement(type, availableSteam(type, rated), outputRoom());
         if (plan.steam() == 0 && plan.output() == 0) return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
         mEfficiencyIncrease = 0;
-        mMaxProgresstime = 20;
+        mMaxProgresstime = 1;
         return CheckRecipeResultRegistry.GENERATING;
     }
 

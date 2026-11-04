@@ -24,8 +24,8 @@ public final class HeavySteamTurbineCycleContract {
         require(HeavySteamTurbineCycle.warmUp(200, 150, true) == 200, "fuel changes preserve saved rotor efficiency");
         require(HeavySteamTurbineCycle.coolDown(125) == 115, "stopped decay is ten points per second");
         require(HeavySteamTurbineCycle.coolDown(5) == 0, "decay reaches zero");
-        var stopped = HeavySteamTurbineCycle.settle(2, true, 200, 123, 1024, 0, 1024);
-        require(stopped.steam() == 0 && stopped.credit() == 123, "full output preserves energy and fuel");
+        var stopped = HeavySteamTurbineCycle.settle(2, true, 200, 523, 1024, 0, 1024);
+        require(stopped.steam() == 0 && stopped.credit() == 400, "full output preserves prepaid whole EU and fuel");
         var coolantBlocked = HeavySteamTurbineCycle.settle(2, true, 100, 0, 1024, 2048, 0);
         require(coolantBlocked.steam() == 0, "blocked coolant prevents fuel withdrawal");
         var startup = HeavySteamTurbineCycle.settle(1, false, 0, 0, 16, 256, 512);
@@ -41,14 +41,14 @@ public final class HeavySteamTurbineCycleContract {
         int credit = 0;
         long energyUnits = 0, energy = 0, totalSteam = 0, coolant = 0;
         int waterRemainder = 0;
-        // One litre and fragmentary dynamo room exercise the old whole-rating gates and fractional carry.
+        // One litre and fragmentary dynamo room exercise partial flow and whole-EU prepaid balances.
         for (int tick = 0; tick < 2000; tick++) {
             int steam = tick % 2 == 0 ? 1 : rated;
             long room = tick % 3 == 0 ? 1 : 4096;
             var result = HeavySteamTurbineCycle.settle(tier, heated, limit, credit, steam, room, rated);
             require(result.steam() <= steam && result.steam() <= rated && result.output() <= room, "physical budgets");
             if (result.steam() < rated) require(result.efficiency() <= 100, "partial flow efficiency cap");
-            energyUnits += (long) result.steam() * result.efficiency() * (heated ? 2 : 1);
+            energyUnits += (long) result.steam() * result.efficiency() * (heated ? 2 : 1) / 200 * 200;
             energy += result.output();
             totalSteam += result.steam();
             credit = result.credit();
@@ -58,7 +58,7 @@ public final class HeavySteamTurbineCycleContract {
                 coolant += waterRemainder / 160;
                 waterRemainder %= 160;
             }
-            require(energyUnits == energy * 200 + credit, "weighted energy conservation");
+            require(energyUnits == energy * 200 + credit, "whole-EU generation and prepaid balance conservation");
             require(
                 heated ? coolant == totalSteam : coolant * 160 + waterRemainder == totalSteam,
                 "coolant conservation");

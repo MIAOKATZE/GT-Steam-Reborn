@@ -4978,9 +4978,9 @@ gtsr.gui.heavy_turbine.rotor_efficiency=升温效率：
 gtsr.gui.heavy_turbine.max_efficiency=效率上限：
 gtsr.gui.heavy_turbine.rated_steam=额定耗汽：
 gtsr.tooltip.heavy_turbine.startup=冷启动效率0%；每累计运行1秒提升2个百分点至100%，额定吞吐运行时再每秒提升1个百分点至上限。
-gtsr.tooltip.heavy_turbine.partial=少汽按实际消耗比例发电，也能累积升温；短暂断汽保留升温进度，欠供时生效效率不超过100%，已保存的升温效率保留。
+gtsr.tooltip.heavy_turbine.partial=少汽按实际消耗比例发电，每tick按整EU舍尾，也能累积升温；短暂断汽保留升温进度，欠供时生效效率不超过100%，已保存的升温效率保留。
 gtsr.tooltip.heavy_turbine.cooling=蒸汽利用率固定100%。普通蒸汽0.5 EU/L，160:1返蒸馏水；钢可用过热蒸汽1 EU/L，1:1返普通蒸汽。
-gtsr.tooltip.heavy_turbine.pause=停止每秒降低10个百分点；升温效率与结算余数随存档保存，堵塞解除后自动恢复。
+gtsr.tooltip.heavy_turbine.pause=停止每秒降低10个百分点；升温效率、已付费整EU余额及返流余数随存档保存，堵塞解除后自动恢复。
 gtsr.structurelib.channel.material.usage=material通道：1=钢、2=钛、3=钨钢，机壳/管道/齿轮/框架须同档；钨钢使用本模组齿轮箱。
 tile.TungstenSteelGearbox.name=钨钢齿轮箱
 gtsr.tooltip.siemens_martin.carbon_sources=煤粉配方也接受等量木炭或木炭粉，按1:1替代。

@@ -1,6 +1,6 @@
 package com.miaokatze.gtsr.common.machine.turbine;
 
-/** Exact per-tick accounting. One credit unit is 1/200 EU; ordinary steam carries 0.5 EU/L. */
+/** Per-tick generation truncates to whole EU. Prepaid whole EU retain the legacy 1/200 EU credit unit. */
 public final class HeavySteamTurbineCycle {
 
     public static final int BRONZE_OUTPUT_EUT = 256;
@@ -33,28 +33,29 @@ public final class HeavySteamTurbineCycle {
         return Math.max(0, efficiency - 10);
     }
 
-    /** Whole-litre rounding leaves prepaid EU in credit; changing fuel or saving never discards that energy. */
+    /** Discard sub-EU generation each tick; retain prepaid whole EU from litre rounding or refused output. */
     public static Settlement settle(int tier, boolean superheated, int efficiency, int credit, int availableSteam,
         long outputRoom, int coolantSteamRoom) {
         int rated = ratedSteam(tier, superheated);
-        if (rated == 0 || outputRoom <= 0) return new Settlement(0, 0, credit, 0, false);
+        int prepaidEU = credit / ENERGY_UNITS_PER_EU;
+        if (rated == 0 || outputRoom <= 0) return new Settlement(0, 0, prepaidEU * ENERGY_UNITS_PER_EU, 0, false);
         int flow = Math.min(rated, Math.min(availableSteam, coolantSteamRoom));
         int limitedEfficiency = Math.min(efficiency, efficiencyLimit(tier, superheated));
         int unitEnergy = limitedEfficiency * (superheated ? 2 : 1);
-        long fullFlowOutput = ((long) credit + (long) rated * unitEnergy) / ENERGY_UNITS_PER_EU;
+        long fullFlowOutput = prepaidEU + (long) rated * unitEnergy / ENERGY_UNITS_PER_EU;
         boolean fullFlow = flow == rated && outputRoom >= fullFlowOutput;
         int effectiveEfficiency = fullFlow ? limitedEfficiency : Math.min(100, limitedEfficiency);
         unitEnergy = effectiveEfficiency * (superheated ? 2 : 1);
         if (unitEnergy > 0 && !fullFlow) {
-            long demand = Math.max(0L, outputRoom * ENERGY_UNITS_PER_EU - credit);
+            long demand = Math.max(0L, outputRoom - prepaidEU) * ENERGY_UNITS_PER_EU;
             flow = (int) Math.min(flow, (demand + unitEnergy - 1) / unitEnergy);
         }
-        int energy = credit + flow * unitEnergy;
-        int output = (int) Math.min(outputRoom, energy / ENERGY_UNITS_PER_EU);
+        int energy = prepaidEU + flow * unitEnergy / ENERGY_UNITS_PER_EU;
+        int output = (int) Math.min(outputRoom, energy);
         return new Settlement(
             flow,
             output,
-            energy - output * ENERGY_UNITS_PER_EU,
+            (energy - output) * ENERGY_UNITS_PER_EU,
             effectiveEfficiency,
             fullFlow && flow == rated);
     }
