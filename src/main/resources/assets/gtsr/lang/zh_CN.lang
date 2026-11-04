@@ -783,7 +783,7 @@ gtsr.tooltip.crust_borer.output_bus=输出总线
 # 5. Kinetic Processing Array
 gtsr.tooltip.kinetic_array.type=动力加工阵列, KPA
 gtsr.tooltip.kinetic_array.desc=在控制器GUI中放入GT单方块机器，以电力+过热蒸汽辅助运行，执行该机器对应配方。
-gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×内置机器等级)+机器数量；8块标准机械外壳限制电压，能源仓等级不限。
+gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×内置机器等级)+机器数量；锤下3×3共9块标准机械外壳限制电压，能源仓等级不限。
 gtsr.tooltip.kinetic_array.desc3=过热蒸汽消耗按实际电力消耗计算：钢4 L/EU、钛2 L/EU、钨钢1 L/EU。
 gtsr.tooltip.kinetic_array.ctrl=侧舱前固定控制面板
 gtsr.tooltip.kinetic_array.steam_input=蒸汽仓/耐压蒸汽仓/输入仓
@@ -1317,7 +1317,12 @@ gtsr.tooltip.turbine_array.cycle_overlimit_chip_3=且仅提升输出侧转换倍
 gtsr.tooltip.turbine_array.hatches_1=蒸汽仓/耐压蒸汽仓/输入仓/巨型超压蒸汽输入仓
 gtsr.tooltip.turbine_array.hatches_2=动力仓
 gtsr.tooltip.turbine_array.hatches_3=输入总线（可选）
-gtsr.tooltip.turbine_array.hatches_4=输出仓/蒸汽冷却仓
+gtsr.tooltip.turbine_array.hatches_4=输出仓/蒸汽冷却仓/耐压蒸汽冷却仓
+gtsr.tooltip.turbine_array.structure_casings=基座162个等级机械壳位置可替换仓室；至少保留1块真实机械壳判级，其余真实壳同电压级。
+gtsr.tooltip.turbine_array.structure_glass=前窗与轴段玻璃封罩同档且不低于机械壳；控制器和仓室底纹随机械壳等级。
+gtsr.tooltip.turbine_array.structure_hatches=供汽输入、输入仓/总线、输出仓、发电仓
+gtsr.tooltip.turbine_array.structure_cooling_hatches=蒸汽冷却仓/耐压蒸汽冷却仓
+gtsr.tooltip.turbine_array.structure_hatch_location=基座等级机械壳位置
 
 gtsr.tooltip.solar_array.desc2_2=夜间及恶劣天气下温度降低，效率显著下降。
 gtsr.tooltip.solar_array.booster_content_2=叠加超压模式额外增幅（热量超出100%部分，最高+100%），

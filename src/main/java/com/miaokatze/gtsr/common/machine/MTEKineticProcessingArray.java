@@ -1166,8 +1166,8 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { "三档材料机身；后检修面板 8 块标准机械壳同电压级；前窗 9 块与侧窗 8 块玻璃等级不得低于机械壳。", "提示 1：侧舱下部固定机壳可替换能源仓、输入输出总线和流体仓。",
-            "提示 2：高压蒸汽输入；提示 3：压力冷却仓，均位于同一侧舱下部。", "至少一能源仓、一高压蒸汽输入、一个配方输入和一个输出；无需维护仓。",
+        return new String[] { "三档材料机身；锤下承压底座 3×3 共 9 块标准机械壳同电压级；前窗 9 块与侧窗 8 块玻璃等级不得低于机械壳。",
+            "提示 1：侧舱下部固定机壳可替换能源仓、输入输出总线和流体仓。", "提示 2：高压蒸汽输入；提示 3：压力冷却仓，均位于同一侧舱下部。", "至少一能源仓、一高压蒸汽输入、一个配方输入和一个输出；无需维护仓。",
             "casing 1..12 选 LV..UMV 标准机械壳电压级；glass 选玻璃；material 同步钢/钛/钨钢机壳、管道、齿轮和框架。旧结构不再成型。" };
     }
 
@@ -1257,7 +1257,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             .addInputBus("侧舱下部材料机壳（提示 1）", 1)
             .addOutputBus("侧舱下部材料机壳（提示 1）", 1)
             .addOutputHatch("侧舱下部材料机壳；压力冷却仓使用提示 3", 3)
-            .addStructureInfo("后检修面板 8 块标准机械壳同电压级；前窗 9 块与侧窗 8 块玻璃同档且等级不低于机械壳。")
+            .addStructureInfo("锤下承压底座 3×3 共 9 块标准机械壳同电压级；前窗 9 块与侧窗 8 块玻璃同档且等级不低于机械壳。")
             .addStructureInfo("material 统一三档材料机壳、管道、齿轮和框架；无需维护仓。")
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
             .addStructureHint("gtsr.structurelib.channel.material.usage")

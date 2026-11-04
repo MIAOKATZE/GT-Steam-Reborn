@@ -768,7 +768,7 @@ gtsr.tooltip.crust_borer.output_bus=Output Bus
 # Kinetic Processing Array (KPA)
 gtsr.tooltip.kinetic_array.type=Kinetic Processing Array, KPA
 gtsr.tooltip.kinetic_array.desc=Insert GT single-block machines into the controller GUI, powered by electricity + superheated steam, executes the machine's recipes.
-gtsr.tooltip.kinetic_array.desc2=Parallel = (1 + 2 x internal machine tier) + machine count. Eight standard machine casings limit voltage; energy hatch tier is unrestricted.
+gtsr.tooltip.kinetic_array.desc2=Parallel = (1 + 2 x internal machine tier) + machine count. Nine standard machine casings in the 3x3 base below the hammer limit voltage; energy hatch tier is unrestricted.
 gtsr.tooltip.kinetic_array.desc3=Superheated steam follows actual electrical use: steel 4 L/EU, titanium 2 L/EU, tungstensteel 1 L/EU.
 gtsr.tooltip.kinetic_array.ctrl=Fixed front control panel on the side bay
 gtsr.tooltip.kinetic_array.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
@@ -1321,7 +1321,12 @@ gtsr.tooltip.turbine_array.cycle_overlimit_chip_3=output conversion only; consum
 gtsr.tooltip.turbine_array.hatches_1=Steam Hatch / Pressure Steam Hatch / Input Hatch / Mega Overpressure Steam Input Hatch
 gtsr.tooltip.turbine_array.hatches_2=Dynamo Hatch
 gtsr.tooltip.turbine_array.hatches_3=Input Bus (optional)
-gtsr.tooltip.turbine_array.hatches_4=Output Hatch / Steam Cooling Hatch
+gtsr.tooltip.turbine_array.hatches_4=Output Hatch / Steam Cooling Hatch / Pressure Steam Cooling Hatch
+gtsr.tooltip.turbine_array.structure_casings=The base has 162 tiered casing positions that accept hatches. Keep at least one real casing to determine voltage tier; all remaining casings must match.
+gtsr.tooltip.turbine_array.structure_glass=Front windows and shaft glass enclosures must share a tier at least as high as the casings. Controller and hatch textures follow casing tier.
+gtsr.tooltip.turbine_array.structure_hatches=Steam inputs, input hatches/buses, output hatches and dynamos
+gtsr.tooltip.turbine_array.structure_cooling_hatches=Steam Cooling Hatch / Pressure Steam Cooling Hatch
+gtsr.tooltip.turbine_array.structure_hatch_location=Tiered machine casing positions on the base
 
 gtsr.tooltip.solar_array.desc2_2=temperature drops at night and in bad weather, sharply reducing output.
 gtsr.tooltip.solar_array.booster_content_2=plus overpressure bonus (heat above 100%, up to +100%),

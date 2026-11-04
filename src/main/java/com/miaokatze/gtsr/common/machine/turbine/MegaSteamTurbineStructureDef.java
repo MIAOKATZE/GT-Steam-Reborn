@@ -40,7 +40,7 @@ public final class MegaSteamTurbineStructureDef {
 
     public static final int HORIZONTAL_OFFSET = 25;
     public static final int VERTICAL_OFFSET = 26;
-    public static final int DEPTH_OFFSET = 0;
+    public static final int DEPTH_OFFSET = 1;
     public static final int STACK_PITCH = 12;
     public static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     private static IStructureDefinition<MTEMegaSteamTurbineArray> STRUCTURE_DEFINITION;
@@ -65,7 +65,7 @@ public final class MegaSteamTurbineStructureDef {
                 builder.addShape(piece(count), transpose(visual(count).shapeLayers()));
             }
             STRUCTURE_DEFINITION = builder.addElement(
-                'B',
+                'U',
                 ofChain(
                     buildHatchAdder(MTEMegaSteamTurbineArray.class)
                         .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.PressureSteamInput)
@@ -103,13 +103,13 @@ public final class MegaSteamTurbineStructureDef {
                     onElementPass(
                         MTEMegaSteamTurbineArray::onCasingAdded,
                         withChannel(
-                            "material",
+                            "casing",
                             ofBlocksTiered(
-                                RebuiltMachineMaterials::shellTier,
-                                RebuiltMachineMaterials.shellChoices(),
+                                RebuiltMachineMaterials::voltageTier,
+                                RebuiltMachineMaterials.voltageChoices(),
                                 -1,
-                                (t, tier) -> t.setMaterialTier(tier),
-                                t -> t.mMaterialTier)))))
+                                (t, tier) -> t.mCasingTier = tier,
+                                t -> t.mCasingTier)))))
                 .addElement(
                     'H',
                     withChannel(
@@ -142,15 +142,15 @@ public final class MegaSteamTurbineStructureDef {
                             t -> t.mMaterialTier)))
                 .addElement('A', isAir())
                 .addElement(
-                    'U',
+                    'B',
                     withChannel(
-                        "casing",
+                        "material",
                         ofBlocksTiered(
-                            RebuiltMachineMaterials::voltageTier,
-                            RebuiltMachineMaterials.voltageChoices(),
+                            RebuiltMachineMaterials::shellTier,
+                            RebuiltMachineMaterials.shellChoices(),
                             -1,
-                            (t, tier) -> t.mCasingTier = tier,
-                            t -> t.mCasingTier)))
+                            (t, tier) -> t.setMaterialTier(tier),
+                            t -> t.mMaterialTier)))
                 .addElement(
                     'G',
                     withChannel(

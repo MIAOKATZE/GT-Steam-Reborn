@@ -37,9 +37,9 @@ function compile(model,id){
     if(/gearbox/i.test(b.material))return 'D';
     if(/pipe|shaft/i.test(b.material))return b.g?'S':'C';
     if(b.g)return 'R';
-    // Only accessible solid body blocks accept hatches; tier blocks and moving blocks never do.
+    // KPA/Heavy hatches use accessible ordinary casing; Mega hatches use tier casing U.
     const hatch=id==='kinetic_processing_array'?b.y<=3&&b.z>=0:
-      id.startsWith('mega_')?b.y>=1&&b.y<=3&&b.z<=-29:
+      id.startsWith('mega_')?false:
       b.y>=1&&b.y<=3&&b.x<=-3&&b.z===-2;
     return hatch?'B':'H';
   }
@@ -96,7 +96,7 @@ const additions=[compile(api.buildArray(),'kinetic_processing_array')];
 for(let k=0;k<=4;k++){api.state.stacks=k;additions.push(compile(api.buildTurbine(),'mega_steam_turbine_'+k));}
 additions.push(compile(context.window.BUILD_MINI_TURBINE(api.makeModel,'bronze'),'heavy_steam_turbine'));
 const root=JSON.parse(fs.readFileSync(target,'utf8'));
-root.source='TASK03 final scope 2026-11-01; approved 2026-11-04 accessible voltage panels, unified frames, side glazing, continuous full-cube pipe bundles and GTSR tungstensteel gearbox';
+root.source='Approved r13 2026-11-04: KPA nine-cube tier anvil; Mega 162-cube tier plinth, no overhead network or front gear protrusions, enclosed shaft gaps; Mega hatches replace U, KPA/Heavy hatches replace B; unified material frames and GTSR tungstensteel gearbox';
 root.definitions=root.definitions.filter(d=>!additions.some(a=>a.id===d.id)).concat(additions);
 const output=JSON.stringify(root,null,2)+'\n';
 if(process.argv.includes('--check')){

@@ -51,6 +51,7 @@ import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
+import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
@@ -544,7 +545,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     }
 
     /**
-     * 结构元素计数回调（伴生类 builder 的 onElementPass 方法引用目标）。
+     * 只计数真实标准机械壳；替换仓室不参与等级判定。
      */
     public void onCasingAdded() {
         mCasingAmount++;
@@ -640,7 +641,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        if (mCasingTier <= 0 || mCasingTier > 12
+        if (mCasingAmount < 1 || mCasingTier <= 0
+            || mCasingTier > 12
             || mGlassTier < mCasingTier
             || mMaterialTier < 1
             || mMaterialTier > 3) {
@@ -1440,9 +1442,11 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { "三档材料双列轴向结构，51×29×(78+12k)，额外环组 k=0..4。",
-            "控制台后分段单层检修板共 256 块标准机械壳，全部必须同电压级；280 块前窗玻璃同档且不低于机械壳等级。", "提示 1：最前供汽控制台下部材料机壳，允许供汽仓、输入仓/总线、输出仓和发电仓。",
-            "提示 2：同一控制台的蒸汽冷却仓；至少一供汽输入、一输出及一发电仓，无需维护。", "height 通道 1 / 5 / 9 / 13 / 17 分别投影 0 / 1 / 2 / 3 / 4 个额外环组。",
+        return new String[] { "三档材料双列轴向结构，51×29×(79+12k)，额外环组 k=0..4。",
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"),
+            "提示 1：基座等级机械壳位置，允许供汽仓、输入仓/总线、输出仓和发电仓。", "提示 2：同一等级机械壳位置可放冷却仓；至少一供汽输入、一输出及一发电仓，无需维护。",
+            "height 通道 1 / 5 / 9 / 13 / 17 分别投影 0 / 1 / 2 / 3 / 4 个额外环组。",
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"),
             "casing 1..12 选 LV..UMV 标准机械壳电压级；glass 选玻璃；material 同步钢/钛/钨钢机壳、管道、齿轮和框架。" };
     }
 
@@ -1492,13 +1496,20 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .addInfo(
                 EnumChatFormatting.AQUA
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip_3"))
-            .beginVariableStructureBlock(51, 51, 29, 29, 78, 126, true)
+            .beginVariableStructureBlock(51, 51, 29, 29, 79, 127, true)
             .addController("前供汽控制台，正面朝外")
             .addStructureInfo("1 基础环组 + 0..4 额外环组；每组双列各一座 8 格环体 + 4 格间距。")
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_groups"))
-            .addStructureInfo("控制台后分段单层检修板共 256 块标准机械壳同电压级；280 块前窗玻璃等级不低于机械壳。")
-            .addOtherStructurePart("供汽输入、输入仓/总线、输出仓、发电仓", "最前供汽控制台下部材料机壳", 1)
-            .addOtherStructurePart("蒸汽冷却仓", "最前供汽控制台下部材料机壳", 2)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"))
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatches"),
+                StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatch_location"),
+                1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_cooling_hatches"),
+                StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatch_location"),
+                2)
             .addStructureInfo("material 统一三档材料机壳、管道、齿轮和框架；无需维护仓。")
             .addStructureInfo("height 通道 1 / 5 / 9 / 13 / 17 选择额外环组 0 / 1 / 2 / 3 / 4。")
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
@@ -1510,6 +1521,12 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     }
 
     private int getCasingTextureIndex() {
+        if (mCasingTier >= 1 && mCasingTier <= 9) {
+            return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, mCasingTier);
+        }
+        if (mCasingTier >= 10 && mCasingTier <= 12) {
+            return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasingsNH, mCasingTier);
+        }
         return SOLID_STEEL_CASING_INDEX;
     }
 

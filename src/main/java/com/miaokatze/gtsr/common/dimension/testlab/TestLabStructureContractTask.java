@@ -634,9 +634,9 @@ final class TestLabStructureContractTask implements TestLabTask {
             case AIR_COMPRESSOR:
                 return 23;
             case KINETIC_PROCESSING_ARRAY:
-                return 376;
+                return 396;
             case MEGA_STEAM_TURBINE_ARRAY:
-                return 16411 + 5144 * Math.min(4, Math.max(0, (height - 1) / 4));
+                return 20621 + 5498 * Math.min(4, Math.max(0, (height - 1) / 4));
             case STEAM_HUB_ARRAY:
                 return 70 + 25 * height;
             case WATER_HUB_ARRAY:
