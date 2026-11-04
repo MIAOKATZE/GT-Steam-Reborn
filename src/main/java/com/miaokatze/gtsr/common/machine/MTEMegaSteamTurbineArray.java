@@ -1442,66 +1442,77 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { "三档材料双列轴向结构，51×29×(79+12k)，额外环组 k=0..4。",
-            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"),
-            "提示 1：基座等级机械壳位置，允许供汽仓、输入仓/总线、输出仓和发电仓。", "提示 2：同一等级机械壳位置可放冷却仓；至少一供汽输入、一输出及一发电仓，无需维护。",
-            "height 通道 1 / 5 / 9 / 13 / 17 分别投影 0 / 1 / 2 / 3 / 4 个额外环组。",
-            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"),
-            "casing 1..12 选 LV..UMV 标准机械壳电压级；glass 选玻璃；material 同步钢/钛/钨钢机壳、管道、齿轮和框架。" };
+        return new String[] {
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_size"),
+            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatches"),
+            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_required"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_material"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_channels") };
     }
 
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.type"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc2"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc3"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc4"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc"))
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc2"))
+            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc3"))
+            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc4"))
             .addSeparator()
-            .addInfo(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.tier_system"))
             .addInfo(
-                EnumChatFormatting.GOLD
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.tier_system"))
+            .addInfo(
+                EnumChatFormatting.AQUA
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.steam_progression"))
             .addInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc"))
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc"))
             .addInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc_2"))
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc_2"))
             .addInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc_3"))
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc_3"))
+            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.hint_pipe"))
+            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.hint_gear"))
             .addSeparator()
             .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.formula"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.formula_2"))
             .addInfo(
-                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param"))
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param"))
             .addInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param_2"))
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param_2"))
             .addInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param_3"))
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param_3"))
+            .addSeparator()
             .addInfo(
                 EnumChatFormatting.LIGHT_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.singularity_mode"))
             .addInfo(
-                EnumChatFormatting.AQUA
+                EnumChatFormatting.LIGHT_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.singularity_mode_2"))
             .addInfo(
                 EnumChatFormatting.AQUA
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.singularity_mode_3"))
+            .addSeparator()
             .addInfo(
-                EnumChatFormatting.GOLD
+                EnumChatFormatting.LIGHT_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip"))
             .addInfo(
                 EnumChatFormatting.AQUA
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip_2"))
             .addInfo(
-                EnumChatFormatting.AQUA
+                EnumChatFormatting.GREEN
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip_3"))
             .beginVariableStructureBlock(51, 51, 29, 29, 79, 127, true)
-            .addController("前供汽控制台，正面朝外")
-            .addStructureInfo("1 基础环组 + 0..4 额外环组；每组双列各一座 8 格环体 + 4 格间距。")
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_groups"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"))
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.ctrl"))
+            .addStructureInfo(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_size"))
+            .addStructureInfo(
+                EnumChatFormatting.GREEN
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"))
+            .addStructureInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatches"),
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatch_location"),
@@ -1510,8 +1521,14 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_cooling_hatches"),
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatch_location"),
                 2)
-            .addStructureInfo("material 统一三档材料机壳、管道、齿轮和框架；无需维护仓。")
-            .addStructureInfo("height 通道 1 / 5 / 9 / 13 / 17 选择额外环组 0 / 1 / 2 / 3 / 4。")
+            .addStructureInfo(
+                EnumChatFormatting.RED
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_required"))
+            .addStructureInfo(
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_material"))
+            .addStructureInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel"))
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
             .addSubChannelUsage(GTStructureChannels.STRUCTURE_HEIGHT)
             .addStructureHint("gtsr.structurelib.channel.material.usage")

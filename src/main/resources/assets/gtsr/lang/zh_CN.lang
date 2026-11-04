@@ -637,12 +637,12 @@ gt.blockmachines.gtsr.heavy.steam.turbine.name=重型蒸汽轮机
 gtsr.gui.heavy_turbine.efficiency=当前发电效率：
 gtsr.gui.heavy_turbine.rated_output=100%基准发电：
 gtsr.gui.heavy_turbine.steam_rate=实际耗汽：
-gtsr.tooltip.heavy_turbine.description=紧凑型蒸汽发电机组。青铜、钢为两种统一建造材质；框架、齿轮及管道须同档，不可叠层。
-gtsr.tooltip.heavy_turbine.bronze=青铜：100%%效率基准%s EU/t；普通蒸汽额定512 L/t，效率上限125%%。
-gtsr.tooltip.heavy_turbine.steel=钢：100%%效率基准%s EU/t；普通蒸汽2048 L/t、上限150%%；过热蒸汽1024 L/t、上限200%%。
-gtsr.tooltip.heavy_turbine.output=兼容普通及TT多安动力仓；按真实吞吐、剩余电量空间和流体出口空间结算，吞吐不足时降低负载。
-gtsr.tooltip.heavy_turbine.controller=右前供汽控制舱正面
-gtsr.tooltip.heavy_turbine.ports=替换前部供汽控制舱外壳
+gtsr.tooltip.heavy_turbine.description=紧凑型独立蒸汽发电机组，青铜或钢统一材质，不可叠加。
+gtsr.tooltip.heavy_turbine.bronze=青铜：100%%效率时 %s EU/t；普通蒸汽额定512 L/t，效率上限125%%。
+gtsr.tooltip.heavy_turbine.steel=钢：100%%效率时 %s EU/t；普通蒸汽2048 L/t，上限150%%；过热蒸汽1024 L/t，上限200%%。
+gtsr.tooltip.heavy_turbine.output=支持普通及TT多安动力仓；负载受供汽、动力仓吞吐与剩余电量空间、流体出口空间共同限制，堵塞解除后自动恢复。
+gtsr.tooltip.heavy_turbine.controller=右前供汽控制舱正面，朝向见投影
+gtsr.tooltip.heavy_turbine.ports=前部供汽控制舱普通材料机壳位（提示1）
 gtsr.recipe.mega_steam_turbine_array=巨型蒸汽轮机
 
 # Siemens-Martin Furnace GUI/Info
@@ -782,16 +782,16 @@ gtsr.tooltip.crust_borer.output_bus=输出总线
 
 # 5. Kinetic Processing Array
 gtsr.tooltip.kinetic_array.type=动力加工阵列, KPA
-gtsr.tooltip.kinetic_array.desc=在控制器GUI中放入GT单方块机器，以电力+过热蒸汽辅助运行，执行该机器对应配方。
-gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×内置机器等级)+机器数量；锤下3×3共9块标准机械外壳限制电压，能源仓等级不限。
-gtsr.tooltip.kinetic_array.desc3=过热蒸汽消耗按实际电力消耗计算：钢4 L/EU、钛2 L/EU、钨钢1 L/EU。
-gtsr.tooltip.kinetic_array.ctrl=侧舱前固定控制面板
-gtsr.tooltip.kinetic_array.steam_input=蒸汽仓/耐压蒸汽仓/输入仓
-gtsr.tooltip.kinetic_array.input=输入总线
-gtsr.tooltip.kinetic_array.output=输出总线
-gtsr.tooltip.kinetic_array.output_hatch=输出仓/耐压蒸汽冷却仓
-gtsr.tooltip.kinetic_array.hint_pipe=material同步升级机壳、齿轮、管道和框架；钢/钛/钨钢速度为200%/250%/300%。
-gtsr.tooltip.kinetic_array.hint_gear=对应耗电系数0.6/0.4/0.3，过热蒸汽4/2/1 L/EU；钨钢档使用本模组钨钢齿轮箱。
+gtsr.tooltip.kinetic_array.desc=在控制器GUI放入GT单方块机器，以电力与过热蒸汽执行对应配方。
+gtsr.tooltip.kinetic_array.desc2=配方电压上限取内置机器与9块标准机械壳等级较低者；玻璃不得低于机械壳，能源仓等级不限。
+gtsr.tooltip.kinetic_array.desc3=【供汽】按实际电耗扣过热蒸汽：钢4 L/EU、钛2 L/EU、钨钢1 L/EU。
+gtsr.tooltip.kinetic_array.ctrl=侧舱前固定控制面板，正面朝外，见投影
+gtsr.tooltip.kinetic_array.steam_input=侧舱下部普通材料机壳位的高压蒸汽输入仓（提示2）
+gtsr.tooltip.kinetic_array.input=侧舱下部普通材料机壳位（提示1）
+gtsr.tooltip.kinetic_array.output=侧舱下部普通材料机壳位（提示1）
+gtsr.tooltip.kinetic_array.output_hatch=侧舱下部普通材料机壳位；普通输出仓提示1，压力冷却仓提示3
+gtsr.tooltip.kinetic_array.hint_pipe=钢／钛／钨钢：配方用时×0.5／0.4／(1/3)，运行速度200%／250%／300%。
+gtsr.tooltip.kinetic_array.hint_gear=钢／钛／钨钢：配方耗电倍率0.6／0.4／0.3；钨钢使用本模组钨钢齿轮箱。
 
 # 6. Large Coke Oven
 gtsr.tooltip.coke_oven.type=大型焦炉, LCO
@@ -812,13 +812,13 @@ gtsr.tooltip.steam_furnace.output_bus=熔炼产物
 
 # 10. Mega Steam Turbine Array
 gtsr.tooltip.turbine_array.type=巨型蒸汽轮机机组, MSTA
-gtsr.tooltip.turbine_array.desc=将蒸汽的动能转化为电能（EU）输出的巨型多方块涡轮机组。
-gtsr.tooltip.turbine_array.desc2=1个基础双列大环组，沿轴线追加0至4个独立大环组；每组增加12格长度。
-gtsr.tooltip.turbine_array.desc3=堆叠层数越多，机器功率越高。
-gtsr.tooltip.turbine_array.desc4=等级6+以上可处理致密/超临界蒸汽，更高效率
-gtsr.tooltip.turbine_array.ctrl=最前方供汽控制台正面
-gtsr.tooltip.turbine_array.hint_pipe=material统一三档：钢无额外加成；钛效率上限+15个百分点、节汽+5个百分点。
-gtsr.tooltip.turbine_array.hint_gear=钨钢效率上限+35个百分点、节汽+12.5个百分点；使用本模组钨钢齿轮箱，框架随材料升级。
+gtsr.tooltip.turbine_array.desc=将蒸汽转化为EU的双列轴向巨型轮机机组。
+gtsr.tooltip.turbine_array.desc2=【环组】1个基础环组 + k个额外环组（k=0..4）；每个额外环组增加12格长度。
+gtsr.tooltip.turbine_array.desc3=基础发电倍率×4，功率组数=k+2；实体环组数=k+1，不重复计入效率与节汽加成。
+gtsr.tooltip.turbine_array.desc4=普通及过热蒸汽各级可用；致密族与超临界蒸汽要求机械壳LuV（6级）及以上。
+gtsr.tooltip.turbine_array.ctrl=最前方供汽控制台正面，朝外，见投影
+gtsr.tooltip.turbine_array.hint_pipe=统一材料：钢无额外加成；钛效率上限+15个百分点、节汽+5个百分点。
+gtsr.tooltip.turbine_array.hint_gear=钨钢效率上限+35个百分点、节汽+12.5个百分点，使用本模组钨钢齿轮箱。
 
 # 11. Siemens-Martin Furnace
 gtsr.tooltip.siemens_martin.type=平炉, SMF
@@ -952,7 +952,7 @@ gtsr.gui.atmospheric_centrifuge.chip=稀有气体芯片:
 gtsr.gui.atmospheric_centrifuge.need_steel=需要钢级
 
 # 5. Kinetic Processing Array - missing energy key
-gtsr.tooltip.kinetic_array.energy=能源仓
+gtsr.tooltip.kinetic_array.energy=侧舱下部普通材料机壳位（提示1），能源仓等级不限
 
 # 6. Large Coke Oven - missing desc keys
 gtsr.tooltip.coke_oven.desc=将原木/煤炭在高温缺氧环境下干馏，
@@ -1004,16 +1004,16 @@ gtsr.tooltip.steam_furnace.steam_eff=等效蒸汽消耗: 60% (青铜级) / 40% (
 gtsr.tooltip.steam_furnace.recipe_based=依配方而定
 
 # 10. Mega Steam Turbine Array - missing keys
-gtsr.tooltip.turbine_array.height_channel=height channel：1-4 = BASE；5-8 = +1 STACK；9-12 = +2 STACK；13-16 = +3 STACK；17+ = +4 STACK
+gtsr.tooltip.turbine_array.height_channel=height通道1..4／5..8／9..12／13..16／17+分别选择0／1／2／3／4个额外环组。
 gtsr.gui.turbine_array.stack_layers=堆叠层: 
 gtsr.gui.turbine_array.extra_stack_layers=额外堆叠层: 
 gtsr.tooltip.turbine_array.multi_tier=多 等级
 gtsr.tooltip.turbine_array.each_tier=每层+1等级
 gtsr.gui.turbine_array.output_power=输出功率: 
-gtsr.tooltip.turbine_array.formula=EU/t = 4 × 电压 × 功率参数 × 功率组数 × 蒸汽转换因子 × 实际效率；耗汽同步提高。
-gtsr.tooltip.turbine_array.power_param=螺丝刀右击循环切换全局功率
-gtsr.tooltip.turbine_array.singularity_mode=输入总线中的蒸汽纠缠奇点触发奇点模式：功率×2、效率上限+100%、蒸汽节省率+15%；
-gtsr.tooltip.turbine_array.cycle_overlimit_chip=循环超限芯片（放入控制器槽）：完成全部4组额外叠加层后，
+gtsr.tooltip.turbine_array.formula=【发电】EU/t = 4 × 外壳电压 × P × (k+2) × 奇点倍率 × 蒸汽转换因子 × 实际效率。
+gtsr.tooltip.turbine_array.power_param=【功率设定】螺丝刀右击控制器循环切换：
+gtsr.tooltip.turbine_array.singularity_mode=【奇点模式】输入总线放蒸汽纠缠奇点：功率×2，效率上限+100个百分点，节汽+15个百分点。
+gtsr.tooltip.turbine_array.cycle_overlimit_chip=【循环超限】控制器槽放循环超限芯片，且建满4个额外环组时激活。
 gtsr.tooltip.turbine_array.input_hatch=蒸汽输入
 gtsr.tooltip.turbine_array.dynamo=能量输出
 
@@ -1193,8 +1193,8 @@ gtsr.tooltip.shared.screwdriver_overflow=螺丝刀右击：切换溢流输入
 gtsr.tooltip.shared.screwdriver_rightclick_overflow=螺丝刀右击：切换溢流输出
 gtsr.tooltip.hub_storage_unit.steam_water_hub=蒸汽枢纽
 gtsr.tooltip.turbine_array.tier_system=12级电压体系：LV→MV→HV→EV→IV→LuV→ZPM→UV→UHV→UEV→UIV→UMV
-gtsr.tooltip.turbine_array.steam_progression=蒸汽类型：普通→过热→致密→致密过热→超临界→致密超临界
-gtsr.tooltip.turbine_array.stacking_desc=每组4层Stack，最多4组额外Stack；
+gtsr.tooltip.turbine_array.steam_progression=蒸汽基础效率上限：普通150%、过热200%、致密200%、致密过热250%、超临界250%、致密超临界300%。
+gtsr.tooltip.turbine_array.stacking_desc=【效率与节汽】额外环组与统一材料收益按百分点加算：
 gtsr.tooltip.chip.geothermal_overheat=装载至大型地热蒸汽锅炉（仅钢级），提升蒸汽产出并增加副产物
 gtsr.tooltip.chip.hub_singularity=装载至蒸汽/蓄水枢纽阵列，解锁节点绑定，总容量×5
 gtsr.tooltip.chip.rare_gas=装载至大气离心机（仅钢级），解锁稀有气体分离配方
@@ -1305,34 +1305,34 @@ gtsr.tooltip.siemens_martin.steam_input_hatch=耐压蒸汽仓/输入仓
 gtsr.tooltip.geothermal_boiler.desc_2=利用热对流效应持续产出蒸汽。
 gtsr.tooltip.geothermal_boiler.calcification_2=（满垢后仅剩1%，每10分钟向所有者发送提醒）。
 gtsr.tooltip.geothermal_boiler.chip_info_2=切换为过热蒸汽输出。
-gtsr.tooltip.turbine_array.stacking_desc_2=每额外组+5%蒸汽节省+10%效率上限；
-gtsr.tooltip.turbine_array.stacking_desc_3=机器等级每提升1级+5%效率上限
-gtsr.tooltip.turbine_array.formula_2=外壳等级限制最高供电电压
-gtsr.tooltip.turbine_array.power_param_2=（100%→80%→60%→40%→20%）：
-gtsr.tooltip.turbine_array.power_param_3=影响基础输出与基础蒸汽节省率
-gtsr.tooltip.turbine_array.singularity_mode_2=临界蒸汽纠缠奇点触发临界奇点模式：功率×5、效率上限+200%、蒸汽节省率+20%；
-gtsr.tooltip.turbine_array.singularity_mode_3=每颗提供200s（临界优先消耗）
-gtsr.tooltip.turbine_array.cycle_overlimit_chip_2=过热/超临界/致密过热/致密超临界蒸汽的冷却产物直接变为蒸馏水，
-gtsr.tooltip.turbine_array.cycle_overlimit_chip_3=且仅提升输出侧转换倍率，消耗按同比倍率折算保持不变（致密族只叠致密族）
+gtsr.tooltip.turbine_array.stacking_desc_2=每个额外环组：效率上限+10个百分点，蒸汽节省率+5个百分点。
+gtsr.tooltip.turbine_array.stacking_desc_3=LV为电压基准，每提高一级机械壳，效率上限+5个百分点。
+gtsr.tooltip.turbine_array.formula_2=基础转换因子：普通／致密蒸汽0.5，其余1；耗汽随功率同比变化，效率上升不增加耗汽。
+gtsr.tooltip.turbine_array.power_param_2=100%／80%／60%／40%／20%，对应公式P=10／8／6／4／2。
+gtsr.tooltip.turbine_array.power_param_3=对应基础蒸汽节省率20%／15%／10%／5%／0%，再加环组、材料及奇点收益。
+gtsr.tooltip.turbine_array.singularity_mode_2=临界蒸汽纠缠奇点：功率×5，效率上限+200个百分点，节汽+20个百分点。
+gtsr.tooltip.turbine_array.singularity_mode_3=每颗持续200秒，临界优先；两种奇点模式不叠加。
+gtsr.tooltip.turbine_array.cycle_overlimit_chip_2=过热／超临界及其致密蒸汽直接返蒸馏水，按同族完整冷却链叠加输出转换因子。
+gtsr.tooltip.turbine_array.cycle_overlimit_chip_3=输出因子：过热族1→1.5、超临界族1→2.5；同种蒸汽耗量不变，普通与致密族分别计算。
 gtsr.tooltip.turbine_array.hatches_1=蒸汽仓/耐压蒸汽仓/输入仓/巨型超压蒸汽输入仓
 gtsr.tooltip.turbine_array.hatches_2=动力仓
 gtsr.tooltip.turbine_array.hatches_3=输入总线（可选）
 gtsr.tooltip.turbine_array.hatches_4=输出仓/蒸汽冷却仓/耐压蒸汽冷却仓
-gtsr.tooltip.turbine_array.structure_casings=基座162个等级机械壳位置可替换仓室；至少保留1块真实机械壳判级，其余真实壳同电压级。
-gtsr.tooltip.turbine_array.structure_glass=前窗与轴段玻璃封罩同档且不低于机械壳；控制器和仓室底纹随机械壳等级。
-gtsr.tooltip.turbine_array.structure_hatches=供汽输入、输入仓/总线、输出仓、发电仓
-gtsr.tooltip.turbine_array.structure_cooling_hatches=蒸汽冷却仓/耐压蒸汽冷却仓
-gtsr.tooltip.turbine_array.structure_hatch_location=基座等级机械壳位置
+gtsr.tooltip.turbine_array.structure_casings=基座162个等级机械壳位可替换仓室；至少保留1块真实机械壳判级，其余真实壳同电压级，最多替换161处。
+gtsr.tooltip.turbine_array.structure_glass=主前窗与轴段玻璃罩须同档且不低于机械壳；控制器和仓室底纹随机械壳等级。
+gtsr.tooltip.turbine_array.structure_hatches=提示1：供汽输入、输入仓／总线、输出仓、普通或TT多安动力仓
+gtsr.tooltip.turbine_array.structure_cooling_hatches=提示2：蒸汽冷却仓／耐压蒸汽冷却仓
+gtsr.tooltip.turbine_array.structure_hatch_location=仅基座等级机械壳位；普通材料机壳不可替换
 
 gtsr.tooltip.solar_array.desc2_2=夜间及恶劣天气下温度降低，效率显著下降。
 gtsr.tooltip.solar_array.booster_content_2=叠加超压模式额外增幅（热量超出100%部分，最高+100%），
 gtsr.tooltip.solar_array.booster_content_3=总产出最高 ×4.0（额外+300%）
 gtsr.tooltip.solar_array.calcification_2=（满垢后仅剩1%，每10分钟向所有者发送提醒）。
-gtsr.tooltip.kinetic_array.desc2_2=基础运行速度200%，能耗减免40%。
-gtsr.tooltip.kinetic_array.desc2_3=手持蒸汽纠缠节点右击控制器，可在1200秒内将配方电压上限提高一级。
-gtsr.tooltip.kinetic_array.desc3_2=ULV=8→LV=4→MV=2→HV=1→EV=0.5→IV=0.25→LuV+=0.1 L/t。
+gtsr.tooltip.kinetic_array.desc2_2=【材料收益】钢／钛／钨钢统一升级机壳、管道、齿轮和框架：
+gtsr.tooltip.kinetic_array.desc2_3=手持蒸汽纠缠奇点右击控制器，消耗1颗，1200秒内将内置机器配方电压上限提高一级，仍受机械壳限制。
+gtsr.tooltip.kinetic_array.desc3_2=按本次并行与运行效率结算实际电耗；每消耗1 L过热蒸汽返1 L普通蒸汽，需预留返流空间。
 gtsr.tooltip.kinetic_array.tier_system=12级外壳 (LV→UMV)
-gtsr.tooltip.kinetic_array.parallel_formula=并行: (1+2×机器等级)+机器数量
+gtsr.tooltip.kinetic_array.parallel_formula=【并行】上限 = (1 + 2×内置机器等级) + 内置机器数量。
 gtsr.tooltip.ammonia_plant.desc_line_2=强放热过程，蒸汽作为导热介质带走多余热量，
 gtsr.tooltip.ammonia_plant.desc_line_3=同时产生过热蒸汽作为副产物。
 gtsr.tooltip.ammonia_plant.preheat_line_2=温度不足时配方无法执行。
@@ -4982,12 +4982,29 @@ gtsr.gui.heavy_turbine.actual_output=当前发电：
 gtsr.gui.heavy_turbine.rotor_efficiency=升温效率：
 gtsr.gui.heavy_turbine.max_efficiency=效率上限：
 gtsr.gui.heavy_turbine.rated_steam=额定耗汽：
-gtsr.tooltip.heavy_turbine.startup=冷启动效率0%；每累计运行1秒提升2个百分点至100%，额定吞吐运行时再每秒提升1个百分点至上限。
-gtsr.tooltip.heavy_turbine.partial=少汽按实际消耗比例发电，每tick按整EU舍尾，也能累积升温；短暂断汽保留升温进度，欠供时生效效率不超过100%，已保存的升温效率保留。
-gtsr.tooltip.heavy_turbine.cooling=蒸汽利用率固定100%。普通蒸汽0.5 EU/L，160:1返蒸馏水；钢可用过热蒸汽1 EU/L，1:1返普通蒸汽。
-gtsr.tooltip.heavy_turbine.pause=停止每秒降低10个百分点；升温效率、已付费整EU余额及返流余数随存档保存，堵塞解除后自动恢复。
+gtsr.tooltip.heavy_turbine.startup=冷启动效率0%；每累计运行1秒增加2个百分点至100%，此后连续额定吞吐每秒再增加1个百分点至上限。
+gtsr.tooltip.heavy_turbine.partial=欠供仍可累积升温；实际负载不足额定时，生效效率最高100%，保留已积累的升温效率。
+gtsr.tooltip.heavy_turbine.cooling=蒸汽利用率固定100%。100%效率时普通蒸汽0.5 EU/L，160:1返蒸馏水；钢可用过热蒸汽1 EU/L，1:1返普通蒸汽。
+gtsr.tooltip.heavy_turbine.pause=停止每秒降低10个百分点；100%以下短暂断汽保留累计升温进度，升温效率、已付费整EU余额和返流余数随存档保存。
 gtsr.structurelib.channel.material.usage=material通道：1=钢、2=钛、3=钨钢，机壳/管道/齿轮/框架须同档；钨钢使用本模组齿轮箱。
 tile.TungstenSteelGearbox.name=钨钢齿轮箱
 gtsr.tooltip.siemens_martin.carbon_sources=煤粉配方也接受等量木炭或木炭粉，按1:1替代。
 gtsr.gui.turbine_array.group_summary=实体环 %s 组 / 功率 %s 组
-gtsr.tooltip.turbine_array.power_groups=基础发电倍率×4；基座按2个功率组计，每额外环+1；效率与节汽加成只按额外环数。
+gtsr.tooltip.turbine_array.structure_size=51×29×(79+12k)，k=0..4；1个基础双列环组，每个额外环组增加12格，最大深度127。
+gtsr.tooltip.heavy_turbine.structure_material=【建造】12×10×8；机壳、管道、齿轮和框架统一青铜或钢，玻璃使用普通玻璃。
+gtsr.tooltip.turbine_array.structure_material=material统一钢／钛／钨钢机壳、管道、齿轮和框架，不能分档混搭；与电压机械壳等级独立。
+gtsr.tooltip.turbine_array.structure_required=至少一供汽输入、一输出／冷却仓和一动力仓；仓室等级不参与机械壳判级，无需维护仓。
+gtsr.tooltip.heavy_turbine.rating=【额定功率与效率上限】
+gtsr.tooltip.kinetic_array.structure_pressure=提示2：高压蒸汽输入仓；提示3：压力冷却仓，均位于侧舱下部普通材料机壳位。
+gtsr.tooltip.kinetic_array.structure_casings=锤下3×3共9块标准机械壳须同电压级，不能替换为仓室。
+gtsr.tooltip.kinetic_array.structure_io=提示1：侧舱下部普通材料机壳可替换能源仓、输入输出总线及普通流体仓。
+gtsr.tooltip.heavy_turbine.structure_required=仅前部普通机壳位可替换仓室；至少一输入仓、一输出仓和一动力仓；无需维护仓，不可叠加。
+gtsr.tooltip.kinetic_array.structure_material=material统一钢／钛／钨钢机壳、管道、齿轮和框架；普通机壳位承载仓室，等级机械壳仅限制电压。
+gtsr.tooltip.heavy_turbine.rounding=每tick新生电量按整EU舍尾，小数不累计；欠供时输出随实际耗汽与生效效率降低。
+gtsr.tooltip.kinetic_array.structure_glass=前窗9块与侧窗8块玻璃须同档，等级不得低于标准机械壳。
+gtsr.tooltip.turbine_array.structure_channels=casing 1..12选择LV..UMV标准机械壳；glass选择玻璃；material统一三档材料；height选择额外环组。
+gtsr.tooltip.kinetic_array.structure_required=至少一能源仓、一高压蒸汽输入仓、一个配方输入和一个输出；无需维护仓。
+gtsr.tooltip.kinetic_array.structure_size=8×9×9；三档材料机身，锤下承压底座为等级机械壳。
+gtsr.tooltip.heavy_turbine.generation=【输出与返流】
+gtsr.tooltip.heavy_turbine.warmup=【供汽与升温】
+gtsr.tooltip.kinetic_array.structure_channels=casing 1..12选择LV..UMV标准机械壳；glass选择玻璃等级；material统一选择三档材料。

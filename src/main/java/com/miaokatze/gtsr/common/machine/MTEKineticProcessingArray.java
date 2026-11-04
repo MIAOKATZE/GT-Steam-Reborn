@@ -1166,9 +1166,15 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { "三档材料机身；锤下承压底座 3×3 共 9 块标准机械壳同电压级；前窗 9 块与侧窗 8 块玻璃等级不得低于机械壳。",
-            "提示 1：侧舱下部固定机壳可替换能源仓、输入输出总线和流体仓。", "提示 2：高压蒸汽输入；提示 3：压力冷却仓，均位于同一侧舱下部。", "至少一能源仓、一高压蒸汽输入、一个配方输入和一个输出；无需维护仓。",
-            "casing 1..12 选 LV..UMV 标准机械壳电压级；glass 选玻璃；material 同步钢/钛/钨钢机壳、管道、齿轮和框架。旧结构不再成型。" };
+        return new String[] {
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_size"),
+            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_casings"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_glass"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_io"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_pressure"),
+            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_required"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_material"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_channels") };
     }
 
     @Override
@@ -1242,23 +1248,38 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.type"))
-            .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_2"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_3"))
-            .addInfo(
-                EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3_2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc"))
             .addSeparator()
+            .addInfo(
+                EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.parallel_formula"))
+            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2"))
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_2"))
+            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.hint_pipe"))
+            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.hint_gear"))
+            .addSeparator()
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3_2"))
+            .addInfo(
+                EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_3"))
             .beginStructureBlock(8, 9, 9, true)
-            .addController("侧舱前方，正面朝外；见投影")
-            .addEnergyHatch("侧舱下部材料机壳（提示 1），不限制能源仓等级", 1)
-            .addInputHatch("高压蒸汽输入位于侧舱下部材料机壳（提示 2）", 2)
-            .addInputBus("侧舱下部材料机壳（提示 1）", 1)
-            .addOutputBus("侧舱下部材料机壳（提示 1）", 1)
-            .addOutputHatch("侧舱下部材料机壳；压力冷却仓使用提示 3", 3)
-            .addStructureInfo("锤下承压底座 3×3 共 9 块标准机械壳同电压级；前窗 9 块与侧窗 8 块玻璃同档且等级不低于机械壳。")
-            .addStructureInfo("material 统一三档材料机壳、管道、齿轮和框架；无需维护仓。")
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.ctrl"))
+            .addEnergyHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.energy"), 1)
+            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.steam_input"), 2)
+            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.input"), 1)
+            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.output"), 1)
+            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.output_hatch"), 3)
+            .addStructureInfo(
+                EnumChatFormatting.GREEN
+                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_casings"))
+            .addStructureInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_glass"))
+            .addStructureInfo(
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_material"))
+            .addStructureInfo(
+                EnumChatFormatting.RED
+                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_required"))
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
             .addStructureHint("gtsr.structurelib.channel.material.usage")
             .addInfo(GTSRUtils.getAddedByLine())

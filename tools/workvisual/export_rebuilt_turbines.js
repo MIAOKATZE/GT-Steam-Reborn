@@ -96,7 +96,7 @@ const additions=[compile(api.buildArray(),'kinetic_processing_array')];
 for(let k=0;k<=4;k++){api.state.stacks=k;additions.push(compile(api.buildTurbine(),'mega_steam_turbine_'+k));}
 additions.push(compile(context.window.BUILD_MINI_TURBINE(api.makeModel,'bronze'),'heavy_steam_turbine'));
 const root=JSON.parse(fs.readFileSync(target,'utf8'));
-root.source='Approved r13 2026-11-04: KPA nine-cube tier anvil; Mega 162-cube tier plinth, no overhead network or front gear protrusions, enclosed shaft gaps; Mega hatches replace U, KPA/Heavy hatches replace B; unified material frames and GTSR tungstensteel gearbox';
+root.source='Approved r14 2026-11-04: KPA nine-cube tier anvil; Mega 162-cube tier plinth, no overhead network or front gear protrusions, compact 7x7 cut-corner shaft sleeves with 5x5 clear bores and end-plate bearings; Mega hatches replace U, KPA/Heavy hatches replace B; unified material frames and GTSR tungstensteel gearbox';
 root.definitions=root.definitions.filter(d=>!additions.some(a=>a.id===d.id)).concat(additions);
 const output=JSON.stringify(root,null,2)+'\n';
 if(process.argv.includes('--check')){
