@@ -22,10 +22,10 @@ class RebuiltTurbineFixtures(unittest.TestCase):
         cls.definitions = {d['id']: d for d in json.loads(DOCUMENT.read_text(encoding='utf8'))['definitions']}
 
     def test_all_approved_dimensions_counts_and_controller_offsets(self):
-        expected = [('kinetic_processing_array', (8, 9, 9), 377, 32, 9, 17, [6, 6, 4]),
+        expected = [('kinetic_processing_array', (8, 9, 9), 380, 8, 9, 17, [6, 6, 4]),
                     ('heavy_steam_turbine', (12, 10, 8), 422, 0, 8, 13, [2, 7, 1])]
-        expected += [('mega_steam_turbine_'+str(k), (51, 29, 78+12*k), 16412+5144*k,
-                      2712+1872*k, 280, 606+176*k, [25, 26, 0]) for k in range(5)]
+        expected += [('mega_steam_turbine_'+str(k), (51, 29, 78+12*k), 16957+5144*k,
+                      256, 280, 606+176*k, [25, 26, 0]) for k in range(5)]
         for identifier, size, count, upgrades, glass, moving, offset in expected:
             with self.subTest(identifier=identifier):
                 d = self.definitions[identifier]
@@ -40,6 +40,49 @@ class RebuiltTurbineFixtures(unittest.TestCase):
                 self.assertEqual(moving, sum(len(g['members']) for g in d['groups']))
                 for token in set(fixture.values())-{'~', 'A'}:
                     self.assertTrue(d['tokenMaterials'][token]['blockChoices'])
+
+    def test_voltage_cabinets_are_small_concealed_standard_casings(self):
+        choices = [['GregTechAPI.sBlockCasings1', tier] for tier in range(1, 10)]
+        choices += [['GregTechAPI.sBlockCasingsNH', tier] for tier in range(10, 13)]
+        for identifier in ['kinetic_processing_array']+[f'mega_steam_turbine_{k}' for k in range(5)]:
+            d = self.definitions[identifier]
+            fixture = cells(d)
+            self.assertEqual(choices, d['tokenMaterials']['U']['blockChoices'])
+            # Cabinets are fully enclosed by real blocks rather than exposed as the main body skin.
+            for (x, y, z), token in fixture.items():
+                if token != 'U':
+                    continue
+                for dx, dy, dz in [(1,0,0),(-1,0,0),(0,1,0),(0,-1,0),(0,0,1),(0,0,-1)]:
+                    self.assertNotIn(fixture.get((x+dx,y+dy,z+dz), ' '), [' ', 'A'])
+            if identifier.startswith('mega_'):
+                self.assertTrue(all(abs(x) <= 4 and -1 <= y <= 2 and 3 <= z <= 10
+                                    for (x,y,z), token in fixture.items() if token == 'U'))
+
+    def test_material_choices_are_shared_by_shell_pipe_and_gear_roles(self):
+        for identifier in ['kinetic_processing_array']+[f'mega_steam_turbine_{k}' for k in range(5)]:
+            materials = self.definitions[identifier]['tokenMaterials']
+            for token in ['B', 'H', 'R']:
+                self.assertEqual([['GregTechAPI.sBlockCasings2', 0],
+                                  ['GregTechAPI.sBlockCasings4', 2],
+                                  ['GregTechAPI.sBlockCasings4', 0]], materials[token]['blockChoices'])
+            for token in ['C', 'S']:
+                self.assertEqual([['GregTechAPI.sBlockCasings2', meta] for meta in [13,14,15]],
+                                 materials[token]['blockChoices'])
+            self.assertEqual([['GregTechAPI.sBlockCasings2', meta] for meta in [3,4,5]],
+                             materials['D']['blockChoices'])
+            self.assertEqual([['GregTechAPI.sBlockFrames', 'Materials.Steel.mMetaItemSubID']],
+                             materials['E']['blockChoices'])
+
+    def test_kpa_chimney_has_a_two_by_two_required_air_bore_and_full_walls(self):
+        fixture = cells(self.definitions['kinetic_processing_array'])
+        for y in range(2, 7):
+            for x in [-1, 0]:
+                for z in [1, 2]:
+                    self.assertEqual('A', fixture[(x,y,z)])
+            for x in [-2,-1,0,1]:
+                for z in range(4):
+                    if x in [-2,1] or z in [0,3]:
+                        self.assertIn(fixture.get((x,y,z)), ['H','C','D'])
 
     def test_every_dynamic_rest_cube_is_a_real_required_block(self):
         for identifier, d in self.definitions.items():

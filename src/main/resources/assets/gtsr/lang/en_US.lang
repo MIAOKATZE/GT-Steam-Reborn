@@ -634,13 +634,13 @@ gtsr.recipe.siemens_martin_furnace=Siemens-Martin Furnace
 # Mega Steam Turbine Array
 gt.blockmachines.gtsr.mega.steam.turbine.array.name=Mega Steam Turbine Array
 gt.blockmachines.gtsr.heavy.steam.turbine.name=Heavy Steam Turbine
-gtsr.gui.heavy_turbine.efficiency=Steam efficiency:
-gtsr.gui.heavy_turbine.rated_output=Rated output:
-gtsr.gui.heavy_turbine.steam_rate=Average steam consumption:
-gtsr.tooltip.heavy_turbine.description=Converts ordinary steam to EU and distilled water. Use one complete bronze or steel structure; materials cannot be mixed. Does not stack.
-gtsr.tooltip.heavy_turbine.bronze=Bronze: %s EU/t, %s%% steam efficiency.
-gtsr.tooltip.heavy_turbine.steel=Steel: %s EU/t, %s%% steam efficiency.
-gtsr.tooltip.heavy_turbine.output=Accepts any dynamo tier. Combined throughput must cover output; stops when energy buffers or water output are full. 160 L steam condenses into 1 L distilled water.
+gtsr.gui.heavy_turbine.efficiency=Effective generating efficiency:
+gtsr.gui.heavy_turbine.rated_output=Output at 100%:
+gtsr.gui.heavy_turbine.steam_rate=Actual steam consumption:
+gtsr.tooltip.heavy_turbine.description=Compact steam generating station. Use matching bronze or steel casings, frames, gears and pipes. Not stackable.
+gtsr.tooltip.heavy_turbine.bronze=Bronze: %s EU/t at 100%%; 512 L/t ordinary steam, up to 125%% efficiency.
+gtsr.tooltip.heavy_turbine.steel=Steel: %s EU/t at 100%%; ordinary steam 2048 L/t, up to 150%%; superheated steam 1024 L/t, up to 200%%.
+gtsr.tooltip.heavy_turbine.output=Supports normal and TT multi-amp dynamos. Load follows actual throughput, remaining energy capacity and fluid output space.
 gtsr.tooltip.heavy_turbine.controller=Front of the right-hand steam distributor
 gtsr.tooltip.heavy_turbine.ports=Replace casings on the front steam distributor
 gtsr.recipe.mega_steam_turbine_array=Mega Steam Turbine
@@ -768,15 +768,15 @@ gtsr.tooltip.crust_borer.output_bus=Output Bus
 # Kinetic Processing Array (KPA)
 gtsr.tooltip.kinetic_array.type=Kinetic Processing Array, KPA
 gtsr.tooltip.kinetic_array.desc=Insert GT single-block machines into the controller GUI, powered by electricity + superheated steam, executes the machine's recipes.
-gtsr.tooltip.kinetic_array.desc2=Parallel = (1 + 2×machineTier) + machine count; energy hatch tier must not exceed casing tier.
+gtsr.tooltip.kinetic_array.desc2=Parallel = (1 + 2 x internal machine tier) + machine count. Eight standard machine casings limit voltage; energy hatch tier is unrestricted.
 gtsr.tooltip.kinetic_array.desc3=Steam consumption rate decreases with voltage tier:
-gtsr.tooltip.kinetic_array.ctrl=Front center
+gtsr.tooltip.kinetic_array.ctrl=Fixed front control panel on the side bay
 gtsr.tooltip.kinetic_array.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
 gtsr.tooltip.kinetic_array.input=Input Bus
 gtsr.tooltip.kinetic_array.output=Output Bus
 gtsr.tooltip.kinetic_array.output_hatch=Output Hatch/Pressure Steam Cooling Hatch
-gtsr.tooltip.kinetic_array.hint_pipe=Pipe Casing: Stainless Steel=250% speed, Titanium=300% speed
-gtsr.tooltip.kinetic_array.hint_gear=Gearbox Casing: Titanium=60% energy discount (base 40%)
+gtsr.tooltip.kinetic_array.hint_pipe=material upgrades casings, pipes and gears together: steel 200% speed, titanium 250%, tungstensteel 300%.
+gtsr.tooltip.kinetic_array.hint_gear=EU multipliers: steel 0.6, titanium 0.4, tungstensteel 0.3. Tungstensteel gear positions use assembly line casings.
 
 # Large Coke Oven (LCO)
 gtsr.tooltip.coke_oven.type=Large Coke Oven, LCO
@@ -802,10 +802,10 @@ gtsr.tooltip.siemens_martin.desc=A new-age high-throughput steel furnace:
 # Mega Steam Turbine Array (MSTA)
 gtsr.tooltip.turbine_array.type=Mega Steam Turbine Array, MSTA
 gtsr.tooltip.turbine_array.desc=A massive multiblock turbine assembly that converts the kinetic energy of steam into electrical (EU) output.
-gtsr.tooltip.turbine_array.desc2=Steam engine structures can be stacked vertically for higher output performance.
+gtsr.tooltip.turbine_array.desc2=One base pair of large rings plus 0-4 independent axial ring groups. Each extra group adds 12 blocks of length.
 gtsr.tooltip.turbine_array.desc3=The more stack layers, the higher the machine's power output.
 gtsr.tooltip.turbine_array.desc4=Tier 6+ can process Dense/Supercritical steam with higher efficiency
-gtsr.tooltip.turbine_array.ctrl=Front center of the CAP layer
+gtsr.tooltip.turbine_array.ctrl=Front face of the foremost steam control platform
 
 # Singularity Drilling Hub (SDH)
 gtsr.tooltip.singularity_hub.type=Singularity Drilling Hub, SDH
@@ -1194,8 +1194,8 @@ gtsr.tooltip.fluid_drill.nei_efficiency_lava=Efficiency: 0.5% (5% in Nether, Req
 gtsr.tooltip.shared.screwdriver_overflow=Screwdriver Right-Click: Toggle Overflow Input
 gtsr.tooltip.shared.screwdriver_rightclick_overflow=Screwdriver Right-Click: Toggle Overflow Output
 gtsr.tooltip.hub_storage_unit.steam_water_hub=Steam Hub
-gtsr.tooltip.turbine_array.hint_pipe=Pipe block: Titanium +10% max eff +2.5% steam savings; Tungstensteel +25% max eff +7.5% steam savings
-gtsr.tooltip.turbine_array.hint_gear=Gear box block: Titanium +2.5% steam savings +5% max eff
+gtsr.tooltip.turbine_array.hint_pipe=material sets all three component families: steel has no bonus; titanium adds 15 efficiency-ceiling points and 5 steam-saving points.
+gtsr.tooltip.turbine_array.hint_gear=Tungstensteel adds 35 efficiency-ceiling points and 12.5 steam-saving points; gear positions use assembly line casings. Material does not set voltage.
 gtsr.tooltip.turbine_array.tier_system=12-tier voltage system: LV→MV→HV→EV→IV→LuV→ZPM→UV→UHV→UEV→UIV→UMV
 gtsr.tooltip.turbine_array.steam_progression=Steam types: Normal→Superheated→Dense→Dense Superheated→Supercritical→Dense Supercritical
 gtsr.tooltip.turbine_array.stacking_desc=4 layers per STACK, up to 4 extra STACKs;
@@ -4977,3 +4977,12 @@ gtsr.critical.ui.highlight.scanning=Bounded scan in progress; the known damage c
 gtsr.critical.ui.highlight.scanned=This damage scan has finished.
 gtsr.critical.ui.highlight.truncated=Limit reached: repair marked positions, then mark again.
 gtsr.critical.ui.highlight.clear_occupancy=Clear marked positions, then use Repair structure at the loom. Manual replacement does not restore ownership.
+gtsr.gui.heavy_turbine.actual_output=Current output:
+gtsr.gui.heavy_turbine.rotor_efficiency=Stored warm-up efficiency:
+gtsr.gui.heavy_turbine.max_efficiency=Efficiency ceiling:
+gtsr.gui.heavy_turbine.rated_steam=Rated steam consumption:
+gtsr.tooltip.heavy_turbine.startup=Starts at 0%. While operating: +2 percentage points/second to 100%, then +1/second at rated throughput up to the ceiling.
+gtsr.tooltip.heavy_turbine.partial=Partial steam produces proportional power and still warms up. Effective efficiency is capped at 100% below rated flow; stored warm-up is retained.
+gtsr.tooltip.heavy_turbine.cooling=Steam utilization is always 100%. Ordinary steam: 0.5 EU/L, 160:1 distilled water. Steel supports superheated steam: 1 EU/L, 1:1 ordinary steam exhaust.
+gtsr.tooltip.heavy_turbine.pause=While stopped: -10 percentage points/second. Warm-up and accounting remainders are saved; operation resumes after backpressure clears.
+gtsr.structurelib.channel.material.usage=material channel: 1=steel, 2=titanium, 3=tungstensteel; casings/pipes/gears must match. Tungstensteel gear positions use assembly line casings.

@@ -93,6 +93,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     private int mCasingAmount = 0;
     public int mStackCount = 0;
     public int mCasingTier = -1;
+    public int mMaterialTier = -1;
     public int mPipeTier = -1;
     public int mGearTier = -1;
     public int mFrameTier = -1;
@@ -331,6 +332,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
      */
     private void addMachineStateSyncers(DynamicPositionedColumn screenElements) {
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mCasingTier, val -> mCasingTier = val));
+        screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mMaterialTier, this::setMaterialTier));
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mStackCount, val -> mStackCount = val));
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mTheoreticalEUt, val -> mTheoreticalEUt = val));
         screenElements
@@ -521,6 +523,13 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .setEnabled(w -> mMachine));
     }
 
+    /** One material channel validates shell, pipe and gear together; legacy fields remain derived mirrors. */
+    public void setMaterialTier(int tier) {
+        mMaterialTier = tier;
+        mPipeTier = tier;
+        mGearTier = tier;
+    }
+
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEMegaSteamTurbineArray(mName);
@@ -592,6 +601,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         mCasingAmount = 0;
         mStackCount = 0;
         mCasingTier = -1;
+        mMaterialTier = -1;
         mPipeTier = -1;
         mGearTier = -1;
         mFrameTier = -1;
@@ -627,7 +637,10 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        if (mCasingTier <= 0 || mCasingTier > 12 || mGlassTier < mCasingTier) {
+        if (mCasingTier <= 0 || mCasingTier > 12
+            || mGlassTier < mCasingTier
+            || mMaterialTier < 1
+            || mMaterialTier > 3) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -666,16 +679,16 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
      * 最大效率上限 (含所有加成，加算).
      * 基准: 10000 = 100%效率，1% = 100
      * - 每额外组+10%效率上限 = +1000
-     * - 高级Gear额外+5%效率上限 = +500
+     * - 钛齿轮额外+5%、装配线方块额外+10%效率上限 = +500/+1000
      * - 钛管+10%效率上限 = +1000，钨钢管+25%效率上限 = +2500
      * - 机器等级每提高一级(等级-1)，增加5%效率上限 = +500
      * - 奇点模式：蒸汽纠缠+100% = +10000，临界+200% = +20000
      */
     public int getMaxEfficiencyLimit(SteamType type) {
         int base = type.maxEfficiency;
-        // 效率上限加成（加算）：每额外组+1000，高级Gear+500，钛管+1000，钨钢管+2500，机器等级每级+500
-        int bonus = 1000 * mStackCount + (mGearTier > 1 ? 500 : 0)
-            + (mPipeTier == 2 ? 1000 : mPipeTier == 3 ? 2500 : 0)
+        // 效率上限加成（加算）：每额外组+1000，钛齿轮+500/装配线+1000，钛管+1000/钨钢管+2500，机器等级每级+500
+        int bonus = 1000 * mStackCount + (mMaterialTier == 3 ? 1000 : mMaterialTier == 2 ? 500 : 0)
+            + (mMaterialTier == 2 ? 1000 : mMaterialTier == 3 ? 2500 : 0)
             + 500 * (mCasingTier - 1);
         // 奇点模式效率上限加成：蒸汽纠缠+100%、临界+200%（三态 helper 统一取用）
         bonus += getSingularityEfficiencyBonus();
@@ -692,8 +705,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         float baseSavings = 0.20f - ((10 - mPowerParameter) / 2) * 0.05f;
         if (baseSavings < 0) baseSavings = 0;
         // 结构加成
-        float bonus = 0.05f * mStackCount + (mGearTier > 1 ? 0.025f : 0f)
-            + (mPipeTier == 2 ? 0.025f : mPipeTier == 3 ? 0.075f : 0f);
+        float bonus = 0.05f * mStackCount + (mMaterialTier == 3 ? 0.05f : mMaterialTier == 2 ? 0.025f : 0f)
+            + (mMaterialTier == 2 ? 0.025f : mMaterialTier == 3 ? 0.075f : 0f);
         // 奇点模式蒸汽节省加成：蒸汽纠缠+15%、临界+20%（三态 helper 统一取用）
         bonus += getSingularitySavingsBonus();
         return Math.min(1.0f, baseSavings + bonus);
@@ -1172,21 +1185,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             return info.toArray(new String[0]);
         }
 
-        String tierText = switch (mCasingTier) {
-            case 1 -> "LV (Steel)";
-            case 2 -> "MV (Stainless Steel)";
-            case 3 -> "HV (Titanium)";
-            case 4 -> "EV (Tungstensteel)";
-            case 5 -> "IV (Chrome)";
-            case 6 -> "LuV (Rhodium Palladium)";
-            case 7 -> "ZPM (Iridium)";
-            case 8 -> "UV (Osmiridium)";
-            case 9 -> "UHV (Neutronium)";
-            case 10 -> "UEV";
-            case 11 -> "UIV (Naquadah Alloy)";
-            case 12 -> "UMV";
-            default -> "Unknown";
-        };
+        String tierText = mCasingTier >= 1 && mCasingTier < GTValues.VN.length ? GTValues.VN[mCasingTier] : "Unknown";
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
                 + EnumChatFormatting.GOLD
@@ -1233,6 +1232,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         super.saveNBTData(aNBT);
         aNBT.setInteger("excessWater", excessWater);
         aNBT.setInteger("mCasingTier", mCasingTier);
+        aNBT.setInteger("mMaterialTier", mMaterialTier);
         aNBT.setInteger("mTheoreticalEUt", mTheoreticalEUt);
         aNBT.setInteger("mSteamConsumption", mSteamConsumption);
         // v1.10.86：持久化全精度基数——父类持久化 mEUt（钳制值），若 mFullBaseEUt 缺失，
@@ -1251,6 +1251,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         super.loadNBTData(aNBT);
         excessWater = aNBT.getInteger("excessWater");
         mCasingTier = aNBT.getInteger("mCasingTier");
+        setMaterialTier(aNBT.hasKey("mMaterialTier") ? aNBT.getInteger("mMaterialTier") : -1);
         mTheoreticalEUt = aNBT.getInteger("mTheoreticalEUt");
         mSteamConsumption = aNBT.getInteger("mSteamConsumption");
         mFullBaseEUt = aNBT.getLong("mFullBaseEUt");
@@ -1422,10 +1423,10 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { "全钢双列轴向结构，51×29×(78+12k)，额外环组 k=0..4。", "内部等级块总数 2712+1872k，全部必须同档；280 块前窗玻璃同档且不低于内部等级。",
-            "提示 1：最前供汽控制台下部钢壳，允许供汽仓、输入仓/总线、输出仓和发电仓。", "提示 2：同一控制台的蒸汽冷却仓；至少一供汽输入、一输出及一发电仓，无需维护。",
-            "height 通道 1 / 5 / 9 / 13 / 17 分别投影 0 / 1 / 2 / 3 / 4 个额外环组。",
-            "casing 选内部等级；glass 选玻璃；pipe / gear 保留原升级，旧竖向结构不再成型。" };
+        return new String[] { "三档材料双列轴向结构，51×29×(78+12k)，额外环组 k=0..4。",
+            "控制台后方 256 块标准机械外壳，全部必须同电压级；280 块前窗玻璃同档且不低于内部等级。", "提示 1：最前供汽控制台下部材料机壳，允许供汽仓、输入仓/总线、输出仓和发电仓。",
+            "提示 2：同一控制台的蒸汽冷却仓；至少一供汽输入、一输出及一发电仓，无需维护。", "height 通道 1 / 5 / 9 / 13 / 17 分别投影 0 / 1 / 2 / 3 / 4 个额外环组。",
+            "casing 1..12 选 LV..UMV 标准机械壳电压级；glass 选玻璃；material 同步钢/钛/钨钢机壳、管道和齿轮。" };
     }
 
     @Override
@@ -1477,15 +1478,14 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .beginVariableStructureBlock(51, 51, 29, 29, 78, 126, true)
             .addController("前供汽控制台，正面朝外")
             .addStructureInfo("1 基础环组 + 0..4 额外环组；每组双列各一座 8 格环体 + 4 格间距。")
-            .addStructureInfo("内部等级块 2712+1872k 块同档；前窗玻璃 280 块，等级不低于内部等级。")
-            .addOtherStructurePart("供汽输入、输入仓/总线、输出仓、发电仓", "最前供汽控制台下部钢壳", 1)
-            .addOtherStructurePart("蒸汽冷却仓", "最前供汽控制台下部钢壳", 2)
-            .addStructureInfo("固定外壳和框架为钢；无需维护仓；旧竖向结构不再成型。")
+            .addStructureInfo("控制台后方 256 块标准机械外壳同电压级；280 块前窗玻璃等级不低于机械外壳。")
+            .addOtherStructurePart("供汽输入、输入仓/总线、输出仓、发电仓", "最前供汽控制台下部材料机壳", 1)
+            .addOtherStructurePart("蒸汽冷却仓", "最前供汽控制台下部材料机壳", 2)
+            .addStructureInfo("material 统一三档材料机壳、管道和齿轮；框架为钢；无需维护仓。")
             .addStructureInfo("height 通道 1 / 5 / 9 / 13 / 17 选择额外环组 0 / 1 / 2 / 3 / 4。")
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
-            .addSubChannelUsage(GTStructureChannels.PIPE_CASING)
             .addSubChannelUsage(GTStructureChannels.STRUCTURE_HEIGHT)
-            .addStructureHint("gtsr.structurelib.channel.gear.usage")
+            .addStructureHint("gtsr.structurelib.channel.material.usage")
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();
         return tt;

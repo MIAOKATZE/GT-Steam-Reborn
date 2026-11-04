@@ -276,7 +276,10 @@ public final class WorkEffectDefinitions {
         ImmutableList.of(
             new Emitter("KineticProcessingArray:front-left", -5D, -3D, -4.6D),
             new Emitter("KineticProcessingArray:front-right", -3D, -3D, -4.6D),
-            new Emitter("KineticProcessingArray:chimney", 0D, -6.6D, 2D)));
+            new Emitter("KineticProcessingArray:chimney-00", -1D, -6.6D, 1D),
+            new Emitter("KineticProcessingArray:chimney-01", -1D, -6.6D, 2D),
+            new Emitter("KineticProcessingArray:chimney-10", 0D, -6.6D, 1D),
+            new Emitter("KineticProcessingArray:chimney-11", 0D, -6.6D, 2D)));
 
     private WorkEffectDefinitions() {}
 

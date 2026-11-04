@@ -126,11 +126,10 @@ final class TestLabStructureContractTask implements TestLabTask {
         }
         for (MetaTileEntityID id : new MetaTileEntityID[] { MetaTileEntityID.KINETIC_PROCESSING_ARRAY,
             MetaTileEntityID.MEGA_STEAM_TURBINE_ARRAY }) {
-            // One factor at a time: all casing/frame selections, independent pipe and gear channels.
+            // One factor at a time: voltage casing levels and the shared shell/pipe/gear material channel.
             for (int tier = 2; tier <= 12; tier++) all.add(new TestLabStructureContractTask(id, tier, 1, 1, 1, false));
-            all.add(new TestLabStructureContractTask(id, 1, 2, 1, 1, false));
-            all.add(new TestLabStructureContractTask(id, 1, 3, 1, 1, false));
-            all.add(new TestLabStructureContractTask(id, 1, 1, 2, 1, false));
+            all.add(new TestLabStructureContractTask(id, 1, 2, 2, 1, false));
+            all.add(new TestLabStructureContractTask(id, 1, 3, 3, 1, false));
         }
         // Turbine's height channel is a one-based layer selection; 5 creates the first extra four-layer stack.
         all.add(new TestLabStructureContractTask(MetaTileEntityID.HEAVY_STEAM_TURBINE, 2, 1, 1, 1, false));
@@ -208,7 +207,10 @@ final class TestLabStructureContractTask implements TestLabTask {
         machine = (MTEMultiBlockBase) tile.getMetaTileEntity();
         trigger = new ItemStack(Items.stick, 1);
         ChannelDataAccessor.setChannelData(trigger, "casing", casing);
-        if (rebuiltMachine()) ChannelDataAccessor.setChannelData(trigger, "glass", casing);
+        if (rebuiltMachine()) {
+            ChannelDataAccessor.setChannelData(trigger, "glass", casing);
+            ChannelDataAccessor.setChannelData(trigger, "material", pipe);
+        }
         ChannelDataAccessor.setChannelData(trigger, "pipe", pipe);
         ChannelDataAccessor.setChannelData(trigger, "gear", gear);
         ChannelDataAccessor.setChannelData(trigger, "height", height);
@@ -255,7 +257,10 @@ final class TestLabStructureContractTask implements TestLabTask {
             msg -> {});
         evidence.put("origin", stationX + "," + STATION_Y + "," + stationZ);
         evidence.put("nativeCells", cells.size());
-        evidence.put("channels", "casing=" + casing + ",pipe=" + pipe + ",gear=" + gear + ",height=" + height);
+        evidence.put(
+            "channels",
+            rebuiltMachine() ? "casing=" + casing + ",material=" + pipe + ",glass=" + casing + ",height=" + height
+                : "casing=" + casing + ",pipe=" + pipe + ",gear=" + gear + ",height=" + height);
         evidence.put("legacyStationsTouched", false);
         evidence.put("loadedStationChunks", chunks.size());
         evidence.put("clientDescriptionRendering", "NOT_RUN: dedicated-server resource validation only");
@@ -955,7 +960,7 @@ final class TestLabStructureContractTask implements TestLabTask {
     private void checkTiers() throws Exception {
         Map<String, Integer> observed = new LinkedHashMap<>();
         for (String name : new String[] { "mCasingTier", "mFrameTier", "mPipeTier", "mGearTier", "mStackCount",
-            "mGlassTier" }) {
+            "mGlassTier", "mMaterialTier" }) {
             try {
                 observed.put(name, (int) field(machine, name));
             } catch (NoSuchFieldException ignored) {}
@@ -967,15 +972,17 @@ final class TestLabStructureContractTask implements TestLabTask {
             require(observed.get("mFrameTier") == casing, "frame must share casing channel " + observed);
         if (rebuiltMachine()) {
             require(observed.get("mGlassTier") == casing, "glass channel mismatch " + observed);
-            evidence.put("frameMaterial", "fixed steel; independent of internal upgrade tier");
+            require(observed.get("mMaterialTier") == pipe, "material channel mismatch " + observed);
+            evidence.put("frameMaterial", "fixed steel; independent of voltage and material tiers");
             evidence.put(
                 "minimumCasingBoundary",
                 "OUT_OF_SCOPE: rebuilt fixed bodies use required blocks and explicit ports");
         }
         if (observed.containsKey("mPipeTier"))
             require(observed.get("mPipeTier") == pipe, "pipe channel mismatch " + observed);
-        if (observed.containsKey("mGearTier"))
-            require(observed.get("mGearTier") == gear, "gear channel mismatch " + observed);
+        if (observed.containsKey("mGearTier")) require(
+            observed.get("mGearTier") == (rebuiltMachine() ? pipe : gear),
+            "gear/material channel mismatch " + observed);
         if (machine instanceof MTEMegaSteamTurbineArray)
             require(observed.get("mStackCount") == (height - 1) / 4, "one-based turbine height mismatch " + observed);
     }
@@ -1028,7 +1035,8 @@ final class TestLabStructureContractTask implements TestLabTask {
 
     private void mixedTierProbe(WorldServer world) throws Exception {
         int checked = 0;
-        for (String channel : new String[] { "casing", "pipe", "gear" }) {
+        for (String channel : rebuiltMachine() ? new String[] { "casing", "material", "glass" }
+            : new String[] { "casing", "pipe", "gear" }) {
             ItemStack mixed = trigger.copy();
             int current = ChannelDataAccessor.getChannelData(mixed, channel);
             ChannelDataAccessor.setChannelData(mixed, channel, current == 1 ? 2 : 1);

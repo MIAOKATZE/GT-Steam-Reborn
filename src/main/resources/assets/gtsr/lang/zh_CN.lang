@@ -634,13 +634,13 @@ gtsr.recipe.siemens_martin_furnace=平炉
 # Mega Steam Turbine Array (巨型蒸汽轮机机组)
 gt.blockmachines.gtsr.mega.steam.turbine.array.name=巨型蒸汽轮机机组
 gt.blockmachines.gtsr.heavy.steam.turbine.name=重型蒸汽轮机
-gtsr.gui.heavy_turbine.efficiency=蒸汽效率：
-gtsr.gui.heavy_turbine.rated_output=额定功率：
-gtsr.gui.heavy_turbine.steam_rate=平均耗汽：
-gtsr.tooltip.heavy_turbine.description=将普通蒸汽转化为电能与蒸馏水。全结构须统一使用青铜或钢，禁止混材，不支持堆叠。
-gtsr.tooltip.heavy_turbine.bronze=青铜：%s EU/t，蒸汽效率%s%%。
-gtsr.tooltip.heavy_turbine.steel=钢：%s EU/t，蒸汽效率%s%%。
-gtsr.tooltip.heavy_turbine.output=动力仓不限等级，总吞吐须满足功率；动力仓或排水满时停机。每160 L蒸汽冷凝为1 L蒸馏水。
+gtsr.gui.heavy_turbine.efficiency=当前发电效率：
+gtsr.gui.heavy_turbine.rated_output=100%基准发电：
+gtsr.gui.heavy_turbine.steam_rate=实际耗汽：
+gtsr.tooltip.heavy_turbine.description=紧凑型蒸汽发电机组。青铜、钢为两种统一建造材质；框架、齿轮及管道须同档，不可叠层。
+gtsr.tooltip.heavy_turbine.bronze=青铜：100%%效率基准%s EU/t；普通蒸汽额定512 L/t，效率上限125%%。
+gtsr.tooltip.heavy_turbine.steel=钢：100%%效率基准%s EU/t；普通蒸汽2048 L/t、上限150%%；过热蒸汽1024 L/t、上限200%%。
+gtsr.tooltip.heavy_turbine.output=兼容普通及TT多安动力仓；按真实吞吐、剩余电量空间和流体出口空间结算，吞吐不足时降低负载。
 gtsr.tooltip.heavy_turbine.controller=右前供汽控制舱正面
 gtsr.tooltip.heavy_turbine.ports=替换前部供汽控制舱外壳
 gtsr.recipe.mega_steam_turbine_array=巨型蒸汽轮机
@@ -783,15 +783,15 @@ gtsr.tooltip.crust_borer.output_bus=输出总线
 # 5. Kinetic Processing Array
 gtsr.tooltip.kinetic_array.type=动力加工阵列, KPA
 gtsr.tooltip.kinetic_array.desc=在控制器GUI中放入GT单方块机器，以电力+过热蒸汽辅助运行，执行该机器对应配方。
-gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×机器等级)+机器数量，电力仓等级不得高于外壳等级。
+gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×内置机器等级)+机器数量；8块标准机械外壳限制电压，能源仓等级不限。
 gtsr.tooltip.kinetic_array.desc3=蒸汽消耗率随电压等级递减：
-gtsr.tooltip.kinetic_array.ctrl=正面中央
+gtsr.tooltip.kinetic_array.ctrl=侧舱前固定控制面板
 gtsr.tooltip.kinetic_array.steam_input=蒸汽仓/耐压蒸汽仓/输入仓
 gtsr.tooltip.kinetic_array.input=输入总线
 gtsr.tooltip.kinetic_array.output=输出总线
 gtsr.tooltip.kinetic_array.output_hatch=输出仓/耐压蒸汽冷却仓
-gtsr.tooltip.kinetic_array.hint_pipe=管道方块: 不锈钢=250%速度，钛=300%速度
-gtsr.tooltip.kinetic_array.hint_gear=齿轮箱机械方块: 钛制能耗减免60%（基础40%）
+gtsr.tooltip.kinetic_array.hint_pipe=material统一升级机壳、管道和齿轮：钢200%速度，钛250%，钨钢300%。
+gtsr.tooltip.kinetic_array.hint_gear=对应耗电系数：钢0.6、钛0.4、钨钢0.3；钨钢档齿轮位使用装配线方块。
 
 # 6. Large Coke Oven
 gtsr.tooltip.coke_oven.type=大型焦炉, LCO
@@ -813,12 +813,12 @@ gtsr.tooltip.steam_furnace.output_bus=熔炼产物
 # 10. Mega Steam Turbine Array
 gtsr.tooltip.turbine_array.type=巨型蒸汽轮机机组, MSTA
 gtsr.tooltip.turbine_array.desc=将蒸汽的动能转化为电能（EU）输出的巨型多方块涡轮机组。
-gtsr.tooltip.turbine_array.desc2=蒸汽机结构可以垂直堆叠，获取更高的输出性能。
+gtsr.tooltip.turbine_array.desc2=1个基础双列大环组，沿轴线追加0至4个独立大环组；每组增加12格长度。
 gtsr.tooltip.turbine_array.desc3=堆叠层数越多，机器功率越高。
 gtsr.tooltip.turbine_array.desc4=等级6+以上可处理致密/超临界蒸汽，更高效率
-gtsr.tooltip.turbine_array.ctrl=CAP层正面中央
-gtsr.tooltip.turbine_array.hint_pipe=管道方块: 钛制提升最大效率10%+蒸汽节省2.5%；钨钢制提升最大效率25%+蒸汽节省7.5%
-gtsr.tooltip.turbine_array.hint_gear=齿轮箱机械方块: 钛制蒸汽额外节约2.5%+最大效率5%
+gtsr.tooltip.turbine_array.ctrl=最前方供汽控制台正面
+gtsr.tooltip.turbine_array.hint_pipe=material统一三档：钢无额外加成；钛效率上限+15个百分点、节汽+5个百分点。
+gtsr.tooltip.turbine_array.hint_gear=钨钢效率上限+35个百分点、节汽+12.5个百分点；其齿轮位为装配线方块。材料档不限制电压。
 
 # 11. Siemens-Martin Furnace
 gtsr.tooltip.siemens_martin.type=平炉, SMF
@@ -4973,3 +4973,12 @@ gtsr.critical.ui.highlight.scanning=有界扫描中，已知缺损数量可能�
 gtsr.critical.ui.highlight.scanned=本次缺损扫描已结束。
 gtsr.critical.ui.highlight.truncated=已达显示上限：修复本批后再次标记。
 gtsr.critical.ui.highlight.clear_occupancy=先清空框内占位 → 在织机点击“修复结构”；手放同型号无效。
+gtsr.gui.heavy_turbine.actual_output=当前发电：
+gtsr.gui.heavy_turbine.rotor_efficiency=升温效率：
+gtsr.gui.heavy_turbine.max_efficiency=效率上限：
+gtsr.gui.heavy_turbine.rated_steam=额定耗汽：
+gtsr.tooltip.heavy_turbine.startup=冷启动效率0%；运行每秒提升2个百分点至100%，额定吞吐运行时再每秒提升1个百分点至上限。
+gtsr.tooltip.heavy_turbine.partial=少汽按实际消耗比例发电，也能升温；欠供时生效效率不超过100%，已保存的升温效率保留。
+gtsr.tooltip.heavy_turbine.cooling=蒸汽利用率固定100%。普通蒸汽0.5 EU/L，160:1返蒸馏水；钢可用过热蒸汽1 EU/L，1:1返普通蒸汽。
+gtsr.tooltip.heavy_turbine.pause=停止每秒降低10个百分点；升温效率与结算余数随存档保存，堵塞解除后自动恢复。
+gtsr.structurelib.channel.material.usage=material通道：1=钢、2=钛、3=钨钢，机壳/管道/齿轮须同档；钨钢齿轮位为装配线方块。

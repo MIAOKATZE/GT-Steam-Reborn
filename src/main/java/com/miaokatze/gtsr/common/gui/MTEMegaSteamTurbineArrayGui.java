@@ -30,6 +30,7 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
     private IntSyncValue mPipeTierSync;
     private IntSyncValue mSingularityModeSync;
     private IntSyncValue mSingularityModeTicksSync;
+    private IntSyncValue mMaterialTierSync;
 
     public MTEMegaSteamTurbineArrayGui(MTEEnhancedMultiBlockBase<?> multiblock) {
         super(multiblock);
@@ -68,6 +69,8 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
         syncManager.syncValue("turbinePipeTier", mPipeTierSync);
         syncManager.syncValue("turbineSingularityMode", mSingularityModeSync);
         syncManager.syncValue("turbineSingularityModeTicks", mSingularityModeTicksSync);
+        mMaterialTierSync = new IntSyncValue(() -> turbineArray.mMaterialTier, turbineArray::setMaterialTier);
+        syncManager.syncValue("turbineMaterialTier", mMaterialTierSync);
     }
 
     @Override

@@ -1,14 +1,13 @@
 package com.miaokatze.gtsr.common.machine.turbine;
 
-/** Integer accounting: ordinary steam carries 0.5 EU/L before the material efficiency. */
+/** Exact per-tick accounting. One credit unit is 1/200 EU; ordinary steam carries 0.5 EU/L. */
 public final class HeavySteamTurbineCycle {
 
-    public static final int BRONZE_OUTPUT_EUT = 128;
-    public static final int STEEL_OUTPUT_EUT = 512;
-    public static final int BRONZE_EFFICIENCY_PERCENT = 95;
-    public static final int STEEL_EFFICIENCY_PERCENT = 90;
+    public static final int BRONZE_OUTPUT_EUT = 256;
+    public static final int STEEL_OUTPUT_EUT = 1024;
     public static final int ENERGY_UNITS_PER_EU = 200;
     public static final int STEAM_PER_WATER = 160;
+    public static final int TICKS_PER_SECOND = 20;
 
     private HeavySteamTurbineCycle() {}
 
@@ -16,22 +15,85 @@ public final class HeavySteamTurbineCycle {
         return tier == 1 ? BRONZE_OUTPUT_EUT : tier == 2 ? STEEL_OUTPUT_EUT : 0;
     }
 
-    public static int efficiency(int tier) {
-        return tier == 1 ? BRONZE_EFFICIENCY_PERCENT : tier == 2 ? STEEL_EFFICIENCY_PERCENT : 0;
+    public static int ratedSteam(int tier, boolean superheated) {
+        if (superheated && tier != 2) return 0;
+        return output(tier) * (superheated ? 1 : 2);
     }
 
-    /** Credit is prepaid energy in 1/200 EU, so it remains valid across material changes and reloads. */
-    public static int steamRequired(int tier, int credit) {
-        int efficiency = efficiency(tier);
-        int demand = output(tier) * ENERGY_UNITS_PER_EU - credit;
-        return (demand + efficiency - 1) / efficiency;
+    public static int efficiencyLimit(int tier, boolean superheated) {
+        return tier == 1 ? (superheated ? 0 : 125) : tier == 2 ? (superheated ? 200 : 150) : 0;
     }
 
-    public static int nextCredit(int tier, int credit, int steam) {
-        return credit + steam * efficiency(tier) - output(tier) * ENERGY_UNITS_PER_EU;
+    public static int warmUp(int efficiency, int limit, boolean fullFlowSecond) {
+        if (efficiency < 100) return Math.min(100, efficiency + 2);
+        return fullFlowSecond && efficiency < limit ? efficiency + 1 : efficiency;
+    }
+
+    public static int coolDown(int efficiency) {
+        return Math.max(0, efficiency - 10);
+    }
+
+    /** Whole-litre rounding leaves prepaid EU in credit; changing fuel or saving never discards that energy. */
+    public static Settlement settle(int tier, boolean superheated, int efficiency, int credit, int availableSteam,
+        long outputRoom, int coolantSteamRoom) {
+        int rated = ratedSteam(tier, superheated);
+        if (rated == 0 || outputRoom <= 0) return new Settlement(0, 0, credit, 0, false);
+        int flow = Math.min(rated, Math.min(availableSteam, coolantSteamRoom));
+        int limitedEfficiency = Math.min(efficiency, efficiencyLimit(tier, superheated));
+        int unitEnergy = limitedEfficiency * (superheated ? 2 : 1);
+        long fullFlowOutput = ((long) credit + (long) rated * unitEnergy) / ENERGY_UNITS_PER_EU;
+        boolean fullFlow = flow == rated && outputRoom >= fullFlowOutput;
+        int effectiveEfficiency = fullFlow ? limitedEfficiency : Math.min(100, limitedEfficiency);
+        unitEnergy = effectiveEfficiency * (superheated ? 2 : 1);
+        if (unitEnergy > 0 && !fullFlow) {
+            long demand = Math.max(0L, outputRoom * ENERGY_UNITS_PER_EU - credit);
+            flow = (int) Math.min(flow, (demand + unitEnergy - 1) / unitEnergy);
+        }
+        int energy = credit + flow * unitEnergy;
+        int output = (int) Math.min(outputRoom, energy / ENERGY_UNITS_PER_EU);
+        return new Settlement(
+            flow,
+            output,
+            energy - output * ENERGY_UNITS_PER_EU,
+            effectiveEfficiency,
+            fullFlow && flow == rated);
     }
 
     public static long usableDynamoCapacity(long voltage, long amperes, long capacity, long stored) {
         return Math.min(voltage * amperes, Math.max(0, capacity - stored));
+    }
+
+    public static final class Settlement {
+
+        private final int steam, output, credit, efficiency;
+        private final boolean fullFlow;
+
+        private Settlement(int steam, int output, int credit, int efficiency, boolean fullFlow) {
+            this.steam = steam;
+            this.output = output;
+            this.credit = credit;
+            this.efficiency = efficiency;
+            this.fullFlow = fullFlow;
+        }
+
+        public int steam() {
+            return steam;
+        }
+
+        public int output() {
+            return output;
+        }
+
+        public int credit() {
+            return credit;
+        }
+
+        public int efficiency() {
+            return efficiency;
+        }
+
+        public boolean fullFlow() {
+            return fullFlow;
+        }
     }
 }

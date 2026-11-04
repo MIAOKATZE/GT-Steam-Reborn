@@ -44,12 +44,11 @@ public final class WorkEffectParticles {
                     2,
                     1F);
             } else if (tick % 10 == 0) {
-                CloudParticleQueue.submit(
+                CloudParticleQueue.submitEach(
                     host,
                     host.getExtendedFacing(),
                     definition.emitters()
-                        .subList(2, 3),
-                    1,
+                        .subList(2, 6),
                     1F);
             }
             return;

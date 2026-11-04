@@ -109,8 +109,9 @@ public final class MachineVisualDefinition {
                 case "gear" -> block == GregTechAPI.sBlockCasings2 && (meta == 2 || meta == 3);
                 case "pipe" -> block == GregTechAPI.sBlockCasings2 && (meta == 12 || meta == 13);
                 case "shell" -> (block == GregTechAPI.sBlockCasings1 && meta == 10)
-                    || (block == GregTechAPI.sBlockCasings2 && meta == 0);
-                case "shaft" -> block == GregTechAPI.sBlockCasings2 && (meta == 12 || meta == 13);
+                    || (block == GregTechAPI.sBlockCasings2 && meta == 0)
+                    || (block == GregTechAPI.sBlockCasings4 && (meta == 0 || meta == 2));
+                case "shaft" -> block == GregTechAPI.sBlockCasings2 && meta >= 12 && meta <= 15;
                 case "frame" -> block == GregTechAPI.sBlockFrames
                     && (meta == Materials.Bronze.mMetaItemSubID || meta == Materials.Steel.mMetaItemSubID);
                 default -> false;

@@ -112,7 +112,10 @@ def outputs():
     # Display XYZ is [-(modelX + 2), modelY - 2, modelZ]; StructureLib ABC reverses display Y.
     kinetic_sources = [("front-left", (-5, -3, -4.6), "impact"),
                        ("front-right", (-3, -3, -4.6), "impact"),
-                       ("chimney", (0, -6.6, 2), "working")]
+                       ("chimney-00", (-1, -6.6, 1), "working"),
+                       ("chimney-01", (-1, -6.6, 2), "working"),
+                       ("chimney-10", (0, -6.6, 1), "working"),
+                       ("chimney-11", (0, -6.6, 2), "working")]
     imports.append("import com.miaokatze.gtsr.common.machine.MTEKineticProcessingArray;")
     constants.append("\n".join([
         "    public static final WorkEffectDefinition KINETIC_PROCESSING_ARRAY = new WorkEffectDefinition(",
@@ -128,7 +131,8 @@ def outputs():
                                  for name, point, schedule in kinetic_sources],
                     "periodMs": 3000, "impactPhaseMsInclusive": [1695, 2070],
                     "impactClientTickInterval": 2, "impactParticlesPerRequest": 2,
-                    "chimneyClientTickInterval": 10, "worldXZJitterWidth": .12,
+                    "chimneyClientTickInterval": 10, "chimneyParticlesPerRequest": 4,
+                    "chimneyLayout": [2, 2], "worldXZJitterWidth": .12,
                     "airPolicy": "actual jittered spawn cell must be loaded air; no block hiding bypass"})
     text = "\n".join([
         "package com.miaokatze.gtsr.common.workeffects;", "", "import com.google.common.collect.ImmutableList;", "",
@@ -188,7 +192,7 @@ def main():
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(content)
-    print(f"{'PASS' if args.check else 'EXPORTED'}: {len(result)} outputs; 194 firebox cells; 18 existing thermal anchors + 3 selected outlets + 3 KPA apertures; game=NOT_RUN")
+    print(f"{'PASS' if args.check else 'EXPORTED'}: {len(result)} outputs; 194 firebox cells; 18 existing thermal anchors + 3 selected outlets + 6 KPA apertures; game=NOT_RUN")
 
 
 if __name__ == "__main__":
