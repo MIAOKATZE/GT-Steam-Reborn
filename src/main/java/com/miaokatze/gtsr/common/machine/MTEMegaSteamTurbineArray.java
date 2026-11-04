@@ -7,7 +7,9 @@ import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructur
 
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 
@@ -780,7 +782,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public CheckRecipeResult checkProcessing() {
-        ArrayList<FluidStack> tFluids = getStoredFluids();
+        List<FluidStack> tFluids = workingSteamInputs();
         if (tFluids.isEmpty() && mPressureSteamInputs.isEmpty() && mOverpressureInputs.isEmpty()) {
             mEUt = 0;
             mFullBaseEUt = 0;
@@ -849,7 +851,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 / getEffectiveSteamEuPerL(type));
             // v1.10.61：门控 long 化——UIV/UMV 级（V[11]=33.6M、V[12]=134M）+ 3 组/临界模式时
             // 蒸汽消耗 > int max，int 求和溢出为负导致永久假 NO_FUEL（见 getTotalSteamAmount）
-            long totalAvailable = getTotalSteamAmount(type, tFluids);
+            long totalAvailable = getTotalSteamAmount(type, tFluids, consumption);
             if (totalAvailable >= consumption) {
                 selectedType = type;
                 baseEUt = base;
@@ -1034,26 +1036,44 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         return SteamTurbineSteamTypes.classifyFluid(fs);
     }
 
-    // v1.10.61：求和 long 化——跨仓同型蒸汽累加可超 int max（2.147B L）溢出为负，
-    // 与 checkProcessing 门控（consumption 为 long）配套，避免永久假 NO_FUEL。
-    private long getTotalSteamAmount(SteamType type, List<FluidStack> stored) {
-        return SteamTurbineSteamTypes.totalSteamAmount(type, stored, mPressureSteamInputs, mOverpressureInputs);
+    private List<FluidStack> workingSteamInputs() {
+        List<FluidStack> fluids = getStoredFluids();
+        fluids.addAll(GTSRHatchFluidAccess.getDualFluidIdentities(mDualInputHatches));
+        return fluids;
     }
 
-    // v1.10.88-r2：形参与 remaining 升 long——STEAM/SH_STEAM（euPerL=1）tier11+ 临界档实扣可越 int max；
-    // Math.min(fs.amount, remaining) 结果恒 <= fs.amount，(int) 回收无损失
+    // Stocking stacks identify a fluid; their int quantity cannot bound a long network request.
+    private long getTotalSteamAmount(SteamType type, List<FluidStack> stored, long required) {
+        long total = 0;
+        Set<GTUtility.FluidId> seen = new HashSet<>();
+        for (FluidStack fluid : stored) {
+            if (classifyFluid(fluid) != type || !seen.add(GTUtility.FluidId.create(fluid))) continue;
+            total += GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, fluid, required - total);
+            total += GTSRHatchFluidAccess.probeFluidAmountFromDuals(mDualInputHatches, fluid, required - total);
+            if (total >= required) return total;
+        }
+        for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
+            FluidStack fluid = hatch.getFluid();
+            if (classifyFluid(fluid) == type) total += Math.min(required - total, fluid.amount);
+            if (total >= required) return total;
+        }
+        for (MTEOverpressureTurbineInputHatch hatch : mOverpressureInputs) {
+            FluidStack fluid = hatch.getFluid();
+            if (classifyFluid(fluid) == type) total += Math.min(required - total, fluid.amount);
+            if (total >= required) return total;
+        }
+        return total;
+    }
+
+    // Native ME uses one bounded long payment; physical steam hatches keep their int tank API.
     private boolean depleteSteamByType(SteamType type, long amount) {
         long remaining = amount;
-        // v1.10.8：mInputHatches 段改用 GTSRHatchFluidAccess.depleteFluidAcross 跨仓按需取流
-        // （原 getStoredFluids 聚合对 ME 仓按流体去重，多 ME 仓供汽欠计）
-        for (FluidStack fs : getStoredFluids()) {
-            if (classifyFluid(fs) == type) {
-                int canDrain = (int) Math.min(fs.amount, remaining);
-                if (canDrain > 0) {
-                    remaining -= GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(fs, canDrain));
-                }
-                if (remaining <= 0) return true;
-            }
+        Set<GTUtility.FluidId> seen = new HashSet<>();
+        for (FluidStack fluid : workingSteamInputs()) {
+            if (classifyFluid(fluid) != type || !seen.add(GTUtility.FluidId.create(fluid))) continue;
+            remaining -= GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, fluid, remaining);
+            remaining -= GTSRHatchFluidAccess.depleteFluidFromDuals(mDualInputHatches, fluid, remaining);
+            if (remaining <= 0) return true;
         }
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();

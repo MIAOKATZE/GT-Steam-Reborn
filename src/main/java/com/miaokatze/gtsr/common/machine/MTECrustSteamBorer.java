@@ -34,6 +34,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
@@ -370,7 +371,8 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
 
         // 取消双注册后，蒸汽输出总线只在 mSteamOutputs 中，需要合并计数
         // v1.9.40 修复：输出数量 ==1 → >=1（蒸汽输入仓数量由结构 shouldReject 保证，此处仅要求存在）
-        if ((this.mSteamInputFluids.size() < 1 && this.mInputHatches.size() < 1)
+        if ((this.mSteamInputFluids.size() < 1 && this.mInputHatches.size() < 1
+            && !GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches))
             || (this.mOutputBusses.size() + this.mSteamOutputs.size()) < 1) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             mSetTier = -1;

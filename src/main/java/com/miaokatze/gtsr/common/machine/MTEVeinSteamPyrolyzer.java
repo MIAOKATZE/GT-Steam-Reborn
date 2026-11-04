@@ -38,6 +38,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.common.api.enums.GTSRHatchElement;
@@ -359,7 +360,8 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
             mSetTier = -1;
             return;
         }
-        if (mSteamInputFluids.size() < 1 && mInputHatches.size() < 1) {
+        if (mSteamInputFluids.size() < 1 && mInputHatches.size() < 1
+            && !GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             mSetTier = -1;
             return;

@@ -771,7 +771,7 @@ gtsr.tooltip.kinetic_array.desc=Insert GT single-block machines into the control
 gtsr.tooltip.kinetic_array.desc2=Recipe voltage is capped by the lower of the installed machine and nine standard casing tiers. Glass must meet casing tier; energy hatch tier is unrestricted.
 gtsr.tooltip.kinetic_array.desc3=[Steam supply] Superheated steam per actual EU consumed: steel 4 L/EU, titanium 2 L/EU, tungstensteel 1 L/EU.
 gtsr.tooltip.kinetic_array.ctrl=Fixed front control panel on the side bay; face outward as projected
-gtsr.tooltip.kinetic_array.steam_input=Pressure steam input hatch in lower side-bay ordinary material casing positions (hint 2)
+gtsr.tooltip.kinetic_array.steam_input=Lower side-bay ordinary casing positions: pressure steam input (hint 2), or normal/ME fluid input and ME crafting buffer (hint 1) supplying superheated steam
 gtsr.tooltip.kinetic_array.input=Lower side-bay ordinary material casing positions (hint 1)
 gtsr.tooltip.kinetic_array.output=Lower side-bay ordinary material casing positions (hint 1)
 gtsr.tooltip.kinetic_array.output_hatch=Lower side-bay ordinary material casing positions; normal output hint 1, pressure cooling hint 3
@@ -951,7 +951,7 @@ gtsr.gui.atmospheric_centrifuge.chip=Rare Gas Chip:
 gtsr.gui.atmospheric_centrifuge.need_steel=Requires Steel Tier
 
 # 5. Kinetic Processing Array - missing energy key
-gtsr.tooltip.kinetic_array.energy=Lower side-bay ordinary material casing positions (hint 1); energy hatch tier unrestricted
+gtsr.tooltip.kinetic_array.energy=Lower side-bay ordinary material casing positions (hint 1); normal, multi-amp and laser energy hatches; tier unrestricted
 
 # 6. Large Coke Oven - missing desc keys
 gtsr.tooltip.coke_oven.desc=Distills logs/coal in high-temperature, oxygen-free conditions,
@@ -1275,24 +1275,24 @@ gtsr.tooltip.water_hub.counts=Base layer: 25 hatch slots, 8 pipes, 3 frames; sta
 gtsr.tooltip.water_hub.height=Total height 2~31 layers (BASE + 1~30 STACK), 9 storage units per layer; STACK layers controlled via hologram height channel
 gtsr.tooltip.singularity_hub.desc_2=to extract every resource needed.
 gtsr.tooltip.singularity_hub.desc2_2=steam consumption scales with bound node count.
-gtsr.tooltip.singularity_hub.steam_input_hatch=Pressure Steam Hatch / Input Hatch
+gtsr.tooltip.singularity_hub.steam_input_hatch=Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 gtsr.tooltip.singularity_hub.optional_cooling=Optional: Steam Cooling Hatch
 gtsr.tooltip.steam_furnace.desc_2=processing many furnace recipes at once.
-gtsr.tooltip.steam_furnace.steam_input=Steam Hatch / Pressure Steam Hatch
+gtsr.tooltip.steam_furnace.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 gtsr.tooltip.steam_furnace.optional_cooling=Optional: Steam Cooling Hatch
 gtsr.tooltip.air_compressor.desc_2=far faster and more convenient than ordinary compressors.
 gtsr.tooltip.air_compressor.desc_3=Produces Nether Air automatically in the Nether.
-gtsr.tooltip.air_compressor.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
+gtsr.tooltip.air_compressor.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 gtsr.tooltip.air_compressor.optional_cooling=Optional: Steam Cooling Hatch
 gtsr.tooltip.atmospheric_centrifuge.desc_2=that separates high-pressure air into oxygen and nitrogen.
-gtsr.tooltip.atmospheric_centrifuge.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
+gtsr.tooltip.atmospheric_centrifuge.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 gtsr.tooltip.atmospheric_centrifuge.optional_cooling=Optional: Steam Cooling Hatch
 gtsr.tooltip.fluid_drill.desc2_2=Distilled water mode outputs 20%, brine mode 10%,
 gtsr.tooltip.fluid_drill.desc2_3=lava mode 5% in the Nether, 0.5% elsewhere.
-gtsr.tooltip.fluid_drill.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
+gtsr.tooltip.fluid_drill.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 
 gtsr.tooltip.crust_borer.desc_2=extracting void ores from the Overworld and Nether.
-gtsr.tooltip.crust_borer.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
+gtsr.tooltip.crust_borer.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 gtsr.tooltip.crust_matter_agg.desc4_2=fractional accumulation
 gtsr.tooltip.crust_matter_agg.desc5_2=runaway singularity animation always shown
 gtsr.tooltip.crust_matter_agg.desc8_2=steam +200% +20%/extra dimension slot (all slots active), multiplier = 2500% ÷ sum of 3 lowest directional weights (all if fewer),
@@ -1300,7 +1300,7 @@ gtsr.tooltip.crust_matter_agg.desc8_3=additionally consumes UU-Matter
 gtsr.tooltip.crust_matter_agg.desc9_2=filter and directional configs persist independently with the machine; mode switch does not reset them
 gtsr.tooltip.crust_matter_agg.steam_input_hatch=Steam Hatch / Pressure Steam Hatch / Input Hatch
 gtsr.tooltip.vein_pyrolyzer.desc_2=solving long-save fluid depletion.
-gtsr.tooltip.vein_pyrolyzer.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
+gtsr.tooltip.vein_pyrolyzer.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 gtsr.tooltip.coke_oven.desc_2=producing charcoal/coke and creosote byproducts.
 gtsr.tooltip.siemens_martin.desc_2=reforming coal with superheated steam, smelting steel via the resulting reducing gases,
 gtsr.tooltip.siemens_martin.desc_3=with higher efficiency and no pollution!
@@ -4069,7 +4069,7 @@ GTSR.HatchElement.SteamInputHatch=Fluid Input Hatch (including ME)
 GTSR.HatchElement.SteamOutputHatch=Fluid Output Hatch
 GTSR.HatchElement.SteamCoolingHatch=Steam Cooling Hatch (also accepts Pressure Steam Cooling Hatch)
 GTSR.HatchElement.PressureSteamCoolingHatch=Pressure Steam Cooling Hatch
-GTSR.HatchElement.PressureSteamInputHatch=Pressure Steam Input Hatch or Fluid Input Hatch (including ME)
+GTSR.HatchElement.PressureSteamInputHatch=Pressure Steam Input Hatch, Fluid Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 GTSR.HatchElement.PressureSteamInput=Pressure Steam Input Hatch
 GTSR.HatchElement.PressureSteamCooling=Pressure Steam Cooling Hatch
 GTSR.HatchElement.OverpressureInput=Overpressure Turbine Steam Input Hatch

@@ -45,6 +45,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
@@ -382,7 +383,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             return;
         }
 
-        if (this.mSteamInputFluids.isEmpty() && this.mInputHatches.isEmpty()) {
+        if (this.mSteamInputFluids.isEmpty() && this.mInputHatches.isEmpty()
+            && !GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

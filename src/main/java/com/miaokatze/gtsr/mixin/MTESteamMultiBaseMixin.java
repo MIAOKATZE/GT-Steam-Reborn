@@ -798,6 +798,15 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
                 }
             }
         }
+        int dualSteam = GTSRHatchFluidAccess
+            .probeFluidAmountFromDuals(multiBlockSelf.mDualInputHatches, new FluidStack(aSteam, probeAmount));
+        if (dualSteam > 0) aFluids.add(new FluidStack(aSteam, dualSteam));
+        if (aSuperheatedSteam != null) {
+            int dualSuperheated = GTSRHatchFluidAccess.probeFluidAmountFromDuals(
+                multiBlockSelf.mDualInputHatches,
+                new FluidStack(aSuperheatedSteam, probeAmount));
+            if (dualSuperheated > 0) aFluids.add(new FluidStack(aSuperheatedSteam, dualSuperheated));
+        }
         if (this instanceof IAdditionalSteamSourceHolder holder) {
             for (MTEHatch hatch : holder.gtsr$getAdditionalSteamSources()) {
                 if (!hatch.isValid()) continue;
@@ -880,6 +889,23 @@ public abstract class MTESteamMultiBaseMixin extends MTEExtendedPowerMultiBlockB
                     cir.setReturnValue(drained >= aLiquid.amount);
                     return;
                 }
+            }
+        }
+        if (GTSRHatchFluidAccess.probeFluidAmountFromDuals(multiBlockSelf.mDualInputHatches, aLiquid)
+            >= aLiquid.amount) {
+            cir.setReturnValue(
+                GTSRHatchFluidAccess.depleteFluidFromDuals(multiBlockSelf.mDualInputHatches, aLiquid)
+                    >= aLiquid.amount);
+            return;
+        }
+        if (aSuperheatedSteam != null) {
+            FluidStack superRequest = new FluidStack(aSuperheatedSteam, aLiquid.amount);
+            if (GTSRHatchFluidAccess.probeFluidAmountFromDuals(multiBlockSelf.mDualInputHatches, superRequest)
+                >= aLiquid.amount) {
+                cir.setReturnValue(
+                    GTSRHatchFluidAccess.depleteFluidFromDuals(multiBlockSelf.mDualInputHatches, superRequest)
+                        >= aLiquid.amount);
+                return;
             }
         }
         if (this instanceof IAdditionalSteamSourceHolder holder) {

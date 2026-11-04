@@ -218,7 +218,8 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
         mMaterialTier = -1;
         multiDynamos.clear();
         if (!checkPiece("main", HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) return;
-        if (mMaterialTier < 1 || mInputHatches.isEmpty()
+        if (mMaterialTier < 1
+            || (mInputHatches.isEmpty() && !GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches))
             || mOutputHatches.isEmpty()
             || (mDynamoHatches.isEmpty() && multiDynamos.isEmpty())) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
@@ -226,6 +227,7 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
         }
         for (MTEHatch hatch : dynamos()) hatch.updateTexture(casingIndex());
         for (MTEHatch hatch : mInputHatches) hatch.updateTexture(casingIndex());
+        for (var hatch : mDualInputHatches) hatch.updateTexture(casingIndex());
         for (MTEHatch hatch : mOutputHatches) hatch.updateTexture(casingIndex());
         // Dynamo capacity changes do not emit recipe events; reuse GT's idle recheck schedule.
         doPeriodicChecks = true;
@@ -270,7 +272,9 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
 
     private List<FluidStack> steamInputs(SteamType type) {
         List<FluidStack> inputs = new ArrayList<>();
-        for (FluidStack fluid : getStoredFluids()) {
+        List<FluidStack> stored = getStoredFluids();
+        stored.addAll(GTSRHatchFluidAccess.getDualFluidIdentities(mDualInputHatches));
+        for (FluidStack fluid : stored) {
             if (SteamTurbineSteamTypes.classifyFluid(fluid) != type) continue;
             boolean duplicate = false;
             for (FluidStack input : inputs) if (input.isFluidEqual(fluid)) {
@@ -291,6 +295,8 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
             if (available >= limit) break;
             available += (int) GTSRHatchFluidAccess
                 .probeFluidAmountAcross(mInputHatches, new FluidStack(fluid, limit - available));
+            available += GTSRHatchFluidAccess
+                .probeFluidAmountFromDuals(mDualInputHatches, new FluidStack(fluid, limit - available));
         }
         return available;
     }
@@ -310,6 +316,8 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
             if (consumed >= required) break;
             consumed += GTSRHatchFluidAccess
                 .depleteFluidAcross(mInputHatches, new FluidStack(fluid, required - consumed));
+            consumed += GTSRHatchFluidAccess
+                .depleteFluidFromDuals(mDualInputHatches, new FluidStack(fluid, required - consumed));
         }
         return consumed;
     }

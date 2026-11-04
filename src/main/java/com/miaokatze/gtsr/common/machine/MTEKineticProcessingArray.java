@@ -9,6 +9,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.withChann
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.enums.HatchElement.Energy;
+import static gregtech.api.enums.HatchElement.ExoticEnergy;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL;
@@ -83,6 +84,7 @@ import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.ExoticEnergyInputHelper;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
@@ -133,7 +135,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     private static HatchElementBuilder<MTEKineticProcessingArray> ioConstructionHatches() {
         HatchElementBuilder<MTEKineticProcessingArray> builder = buildHatchAdder(MTEKineticProcessingArray.class)
-            .atLeast(SteamInputBus, InputHatch, SteamOutputBus, OutputHatch, Energy)
+            .atLeast(SteamInputBus, InputHatch, SteamOutputBus, OutputHatch, Energy.or(ExoticEnergy))
             // Pressure cooling belongs to the earlier B branch's dedicated counter.
             .hatchItemFilterAnd(
                 t -> stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof MTEPressureSteamCoolingHatch))
@@ -484,8 +486,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             return;
         }
 
-        boolean hasEnergy = !mEnergyHatches.isEmpty();
-        boolean hasSteamInput = !mPressureSteamInputs.isEmpty();
+        boolean hasEnergy = !mEnergyHatches.isEmpty() || !mExoticEnergyHatches.isEmpty();
+        boolean hasSteamInput = !mPressureSteamInputs.isEmpty() || !mInputHatches.isEmpty()
+            || GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches);
         // 兼容 Crafting Input Bus/Buffer/Proxy (ME) 等 DualInputHatch：GT5U 父类 addInputBusToMachineList
         // 会将 IDualInputHatch 实例（MTEHatchCraftingInputME/Slave extends MTEHatchInputBus）自动重定向到
         // mDualInputHatches（supportsCraftingMEBuffer() 默认 true），此处需一并计入有效输入判断，
@@ -681,6 +684,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         if (superheatedProbe != null) {
             total = GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, superheatedProbe, required);
             if (total >= required) return true;
+            total += GTSRHatchFluidAccess
+                .probeFluidAmountFromDuals(mDualInputHatches, superheatedProbe, required - total);
+            if (total >= required) return true;
         }
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();
@@ -697,6 +703,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         FluidStack superheatedProbe = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
         if (superheatedProbe != null) {
             remaining -= GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, superheatedProbe, remaining);
+            remaining -= GTSRHatchFluidAccess.depleteFluidFromDuals(mDualInputHatches, superheatedProbe, remaining);
         }
         if (remaining <= 0) return true;
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
@@ -1064,6 +1071,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         return addInputToMachineList(tTileEntity, aBaseCasingIndex)
             || addOutputToMachineList(tTileEntity, aBaseCasingIndex)
             || addEnergyInputToMachineList(tTileEntity, aBaseCasingIndex)
+            || addExoticEnergyInputToMachineList(tTileEntity, aBaseCasingIndex)
             || addPressureSteamToMachineList(tTileEntity, aBaseCasingIndex)
             || addPressureCoolingToMachineList(tTileEntity, aBaseCasingIndex);
     }
@@ -1098,9 +1106,45 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         for (var outputBus : GTUtility.validMTEList(mOutputBusses)) {
             outputBus.updateTexture(textureIndex);
         }
-        for (var energyHatch : GTUtility.validMTEList(mEnergyHatches)) {
+        for (var energyHatch : GTUtility.validMTEList(getExoticAndNormalEnergyHatchList())) {
             energyHatch.updateTexture(textureIndex);
         }
+    }
+
+    @Override
+    public void clearHatches() {
+        super.clearHatches();
+        mExoticEnergyHatches.clear();
+    }
+
+    @Override
+    public long getMaxInputVoltage() {
+        return ExoticEnergyInputHelper.getMaxInputVoltageMulti(getExoticAndNormalEnergyHatchList());
+    }
+
+    @Override
+    public long getAverageInputVoltage() {
+        return ExoticEnergyInputHelper.getAverageInputVoltageMulti(getExoticAndNormalEnergyHatchList());
+    }
+
+    @Override
+    public long getMaxInputAmps() {
+        return ExoticEnergyInputHelper.getMaxWorkingInputAmpsMulti(getExoticAndNormalEnergyHatchList());
+    }
+
+    @Override
+    public long getMaxInputPower() {
+        return ExoticEnergyInputHelper.getTotalEuMulti(getExoticAndNormalEnergyHatchList());
+    }
+
+    @Override
+    public long getMaxInputEu() {
+        return getMaxInputPower();
+    }
+
+    @Override
+    public boolean drainEnergyInput(long eu) {
+        return eu <= 0 || ExoticEnergyInputHelper.drainEnergy(eu, getExoticAndNormalEnergyHatchList());
     }
 
     private int getCasingTextureIndex() {

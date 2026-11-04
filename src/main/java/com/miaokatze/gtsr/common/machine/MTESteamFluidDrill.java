@@ -36,6 +36,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
@@ -330,7 +331,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         }
 
         // v1.9.40 修复：输出仓数量 ==1 → >=1（蒸汽输入仓数量由结构 shouldReject 保证，此处仅要求存在）
-        if (this.mOutputHatches.size() < 1 || (this.mSteamInputFluids.size() < 1 && this.mInputHatches.size() < 1)) {
+        if (this.mOutputHatches.size() < 1 || (this.mSteamInputFluids.size() < 1 && this.mInputHatches.size() < 1
+            && !GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches))) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             mSetTier = -1;
             return;

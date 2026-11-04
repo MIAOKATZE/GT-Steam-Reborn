@@ -13,6 +13,9 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
 
+import com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.LongFluidSource;
+import com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalInputME;
+
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.MachineSource;
@@ -54,6 +57,9 @@ public final class GTSRHatchFluidAccess {
     }
 
     private static long probeMeFluidAmount(MTEHatchInputME me, FluidStack identity, long amount) {
+        if (me.getClass() == MTEHatchCriticalInputME.class) {
+            return accessCriticalFluid((MTEHatchCriticalInputME) me, identity, amount, false);
+        }
         if (me.getClass() != MTEHatchInputME.class || !me.isAllowedToWork()) return 0;
         boolean configured = false;
         for (FluidStack fluid : me.getStoredFluids()) if (fluid != null && fluid.isFluidEqual(identity)) {
@@ -77,6 +83,23 @@ public final class GTSRHatchFluidAccess {
         }
     }
 
+    private static long accessCriticalFluid(MTEHatchCriticalInputME hatch, FluidStack identity, long amount,
+        boolean consume) {
+        LongFluidSource best = null;
+        long available = 0;
+        for (int slot = 0; slot < MTEHatchInputME.SLOT_COUNT; slot++) {
+            LongFluidSource source = hatch.getLongInputSource(slot);
+            if (source == null || !source.prototype()
+                .isFluidEqual(identity)) continue;
+            long offered = source.extract(Math.min(amount, hatch.getLongSlotLimit(slot)), false);
+            if (offered > available) {
+                best = source;
+                available = offered;
+            }
+        }
+        return consume && best != null ? best.extract(available, true) : available;
+    }
+
     private static long probeOrdinaryFluidAmount(MTEHatch hatch, FluidStack identity, long amount) {
         FluidTankInfo[] tanks = hatch.getTankInfo(ForgeDirection.UNKNOWN);
         if (tanks == null) return 0;
@@ -96,6 +119,8 @@ public final class GTSRHatchFluidAccess {
         FluidStack real;
         if (hatch instanceof MTEHatchInputME me) {
             // 不修改 extracted，父 endRecipeProcessing 不会再次收费。
+            if (me.getClass() == MTEHatchCriticalInputME.class)
+                return (int) accessCriticalFluid((MTEHatchCriticalInputME) me, want, request.amount, true);
             if (me.getClass() != MTEHatchInputME.class) return 0;
             try {
                 AENetworkProxy proxy = me.getProxy();
@@ -122,11 +147,15 @@ public final class GTSRHatchFluidAccess {
 
     /** 每个 ME 网络只计一次；同网多个过滤仓选择可见量最多的一仓。 */
     private static List<MTEHatch> distinctSources(List<? extends MTEHatch> hatches, FluidStack want) {
+        return distinctSources(hatches, want, want.amount);
+    }
+
+    private static List<MTEHatch> distinctSources(List<? extends MTEHatch> hatches, FluidStack want, long amount) {
         IdentityHashMap<Object, MTEHatch> sources = new IdentityHashMap<>();
         for (MTEHatch hatch : GTUtility.validMTEList(hatches)) {
             Object identity = hatch;
             if (hatch instanceof MTEHatchInputME me) {
-                if (me.getClass() != MTEHatchInputME.class) continue;
+                if (me.getClass() != MTEHatchInputME.class && me.getClass() != MTEHatchCriticalInputME.class) continue;
                 try {
                     identity = me.getProxy()
                         .getStorage()
@@ -136,9 +165,12 @@ public final class GTSRHatchFluidAccess {
                 }
             }
             MTEHatch previous = sources.get(identity);
-            FluidStack current = probeFluidAmount(hatch, want);
-            FluidStack old = previous == null ? null : probeFluidAmount(previous, want);
-            if (previous == null || (current != null && (old == null || current.amount > old.amount))) {
+            long current = hatch instanceof MTEHatchInputME me ? probeMeFluidAmount(me, want, amount)
+                : probeOrdinaryFluidAmount(hatch, want, amount);
+            long old = previous == null ? 0
+                : previous instanceof MTEHatchInputME me ? probeMeFluidAmount(me, want, amount)
+                    : probeOrdinaryFluidAmount(previous, want, amount);
+            if (previous == null || current > old) {
                 sources.put(identity, hatch);
             }
         }
@@ -176,7 +208,7 @@ public final class GTSRHatchFluidAccess {
     public static long probeFluidAmountAcross(List<? extends MTEHatch> hatches, FluidStack identity, long amount) {
         if (hatches == null || identity == null || amount <= 0) return 0;
         long remaining = amount;
-        for (MTEHatch hatch : distinctSources(hatches, new FluidStack(identity, 1))) {
+        for (MTEHatch hatch : distinctSources(hatches, identity, amount)) {
             remaining -= hatch instanceof MTEHatchInputME me ? probeMeFluidAmount(me, identity, remaining)
                 : probeOrdinaryFluidAmount(hatch, identity, remaining);
             if (remaining == 0) break;
@@ -188,8 +220,13 @@ public final class GTSRHatchFluidAccess {
     public static long depleteFluidAcross(List<? extends MTEHatch> hatches, FluidStack identity, long amount) {
         if (hatches == null || identity == null || amount <= 0) return 0;
         long remaining = amount;
-        for (MTEHatch hatch : distinctSources(hatches, new FluidStack(identity, 1))) {
+        for (MTEHatch hatch : distinctSources(hatches, identity, amount)) {
             if (hatch instanceof MTEHatchInputME me) {
+                if (me.getClass() == MTEHatchCriticalInputME.class) {
+                    remaining -= accessCriticalFluid((MTEHatchCriticalInputME) me, identity, remaining, true);
+                    if (remaining == 0) break;
+                    continue;
+                }
                 long available = probeMeFluidAmount(me, identity, remaining);
                 if (available == 0) continue;
                 IAEFluidStack request = AEFluidStack.create(new FluidStack(identity, 1));
@@ -231,6 +268,16 @@ public final class GTSRHatchFluidAccess {
         return null;
     }
 
+    public static boolean isWorkingFluidDualInput(IDualInputHatch dual) {
+        MTEHatchCraftingInputME owner = nativeOwner(dual);
+        return owner != null && owner.supportsFluids();
+    }
+
+    public static boolean hasWorkingFluidDualInput(List<? extends IDualInputHatch> duals) {
+        for (IDualInputHatch dual : duals) if (isWorkingFluidDualInput(dual)) return true;
+        return false;
+    }
+
     public static boolean hasUnsupportedDuals(List<? extends IDualInputHatch> duals) {
         if (duals == null) return false;
         for (IDualInputHatch dual : duals) {
@@ -245,7 +292,8 @@ public final class GTSRHatchFluidAccess {
         if (hasUnsupportedDuals(duals)) return true;
         if (hatches != null) {
             for (MTEHatch hatch : hatches) {
-                if (hatch instanceof MTEHatchInputME && hatch.getClass() != MTEHatchInputME.class) return true;
+                if (hatch instanceof MTEHatchInputME && hatch.getClass() != MTEHatchInputME.class
+                    && hatch.getClass() != MTEHatchCriticalInputME.class) return true;
             }
         }
         if (duals != null) {
@@ -259,12 +307,12 @@ public final class GTSRHatchFluidAccess {
         return false;
     }
 
-    private static int accessDuals(List<? extends IDualInputHatch> duals, FluidStack want, boolean consume,
-        IntConsumer paid) {
-        if (duals == null || want == null || want.amount <= 0) return 0;
+    private static long accessDuals(List<? extends IDualInputHatch> duals, FluidStack want, long amount,
+        boolean consume, IntConsumer paid) {
+        if (duals == null || want == null || amount <= 0) return 0;
         Set<IDualInputInventory> inventories = Collections.newSetFromMap(new IdentityHashMap<>());
         Set<FluidStack> stacks = Collections.newSetFromMap(new IdentityHashMap<>());
-        int remaining = want.amount;
+        long remaining = amount;
         for (IDualInputHatch dual : duals) {
             MTEHatchCraftingInputME owner = nativeOwner(dual);
             if (owner == null) continue;
@@ -275,7 +323,7 @@ public final class GTSRHatchFluidAccess {
                     continue;
                 for (FluidStack stack : inventory.getFluidInputs()) {
                     if (stack == null || !stacks.add(stack) || stack.amount <= 0 || !stack.isFluidEqual(want)) continue;
-                    int take = Math.min(remaining, stack.amount);
+                    int take = (int) Math.min(remaining, stack.amount);
                     if (consume) {
                         stack.amount -= take;
                         changed |= take > 0;
@@ -290,15 +338,46 @@ public final class GTSRHatchFluidAccess {
                 .markDirty();
             if (remaining <= 0) break;
         }
-        return want.amount - remaining;
+        return amount - remaining;
+    }
+
+    /** Type discovery only: quantities must be probed against the real paid pattern inventories. */
+    public static List<FluidStack> getDualFluidIdentities(List<? extends IDualInputHatch> duals) {
+        List<FluidStack> fluids = new ArrayList<>();
+        for (IDualInputHatch dual : duals) {
+            if (nativeOwner(dual) == null) continue;
+            for (Iterator<? extends IDualInputInventory> it = dual.inventories(); it.hasNext();) {
+                IDualInputInventory inventory = it.next();
+                if (!(inventory instanceof MTEHatchCraftingInputME.PatternSlot<?>)) continue;
+                for (FluidStack fluid : inventory.getFluidInputs()) {
+                    if (fluid == null || fluid.amount <= 0) continue;
+                    boolean duplicate = false;
+                    for (FluidStack known : fluids) if (known.isFluidEqual(fluid)) {
+                        duplicate = true;
+                        break;
+                    }
+                    if (!duplicate) fluids.add(new FluidStack(fluid, 1));
+                }
+            }
+        }
+        return fluids;
     }
 
     public static int depleteFluidFromDuals(List<? extends IDualInputHatch> duals, FluidStack want) {
-        return accessDuals(duals, want, true, null);
+        return want == null ? 0 : (int) accessDuals(duals, want, want.amount, true, null);
     }
 
     public static int probeFluidAmountFromDuals(List<? extends IDualInputHatch> duals, FluidStack want) {
-        return accessDuals(duals, want, false, null);
+        return want == null ? 0 : (int) accessDuals(duals, want, want.amount, false, null);
+    }
+
+    public static long depleteFluidFromDuals(List<? extends IDualInputHatch> duals, FluidStack identity, long amount) {
+        return accessDuals(duals, identity, amount, true, null);
+    }
+
+    public static long probeFluidAmountFromDuals(List<? extends IDualInputHatch> duals, FluidStack identity,
+        long amount) {
+        return accessDuals(duals, identity, amount, false, null);
     }
 
     public static int probeWorkingFluid(List<? extends MTEHatch> hatches, List<? extends IDualInputHatch> duals,
@@ -329,7 +408,7 @@ public final class GTSRHatchFluidAccess {
             if (taken > 0) paid.accept(taken);
             remaining.amount -= taken;
         }
-        if (remaining.amount > 0) accessDuals(duals, remaining, true, paid);
+        if (remaining.amount > 0) accessDuals(duals, remaining, remaining.amount, true, paid);
     }
 
     public static void updateDualHatchTextures(List<? extends IDualInputHatch> duals, int textureID) {
