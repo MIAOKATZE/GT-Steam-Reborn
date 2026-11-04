@@ -106,13 +106,17 @@ public final class MachineVisualDefinition {
 
         public boolean matches(Block block, int meta) {
             return switch (material) {
-                case "gear" -> block == GregTechAPI.sBlockCasings2 && (meta == 2 || meta == 3);
+                case "gear" -> (block == GregTechAPI.sBlockCasings2 && meta == 2)
+                    || com.miaokatze.gtsr.common.structure.RebuiltMachineMaterials.gearTier(block, meta) != null;
                 case "pipe" -> block == GregTechAPI.sBlockCasings2 && (meta == 12 || meta == 13);
                 case "shell" -> (block == GregTechAPI.sBlockCasings1 && meta == 10)
-                    || (block == GregTechAPI.sBlockCasings2 && meta == 0);
-                case "shaft" -> block == GregTechAPI.sBlockCasings2 && (meta == 12 || meta == 13);
+                    || (block == GregTechAPI.sBlockCasings2 && meta == 0)
+                    || (block == GregTechAPI.sBlockCasings4 && (meta == 0 || meta == 2));
+                case "shaft" -> block == GregTechAPI.sBlockCasings2 && meta >= 12 && meta <= 15;
                 case "frame" -> block == GregTechAPI.sBlockFrames
-                    && (meta == Materials.Bronze.mMetaItemSubID || meta == Materials.Steel.mMetaItemSubID);
+                    && (meta == Materials.Bronze.mMetaItemSubID || meta == Materials.Steel.mMetaItemSubID
+                        || meta == Materials.Titanium.mMetaItemSubID
+                        || meta == Materials.TungstenSteel.mMetaItemSubID);
                 default -> false;
             };
         }

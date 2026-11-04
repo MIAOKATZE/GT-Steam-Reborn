@@ -106,6 +106,7 @@ final class TestLabMachineTask implements TestLabTask {
 
     @Override
     public String id() {
+        if (targetId == MetaTileEntityID.HEAVY_STEAM_TURBINE && variant == 3) return "heavy_steam_turbine_superheated";
         return targetId.name()
             .toLowerCase(Locale.ROOT) + (variant == 1 ? "" : "_tier" + variant);
     }
@@ -129,7 +130,8 @@ final class TestLabMachineTask implements TestLabTask {
         prepareSolarEnvironment(world);
         if (controller.getMetaTileEntity() instanceof MTEMultiBlockBase) {
             multi = (MTEMultiBlockBase) controller.getMetaTileEntity();
-            ItemStack trigger = new ItemStack(net.minecraft.init.Items.stick, variant);
+            int construction = machineId == MetaTileEntityID.HEAVY_STEAM_TURBINE && variant == 3 ? 2 : variant;
+            ItemStack trigger = new ItemStack(net.minecraft.init.Items.stick, construction);
             structure = new TestLabStructure(world, multi, trigger);
         }
     }
@@ -338,11 +340,11 @@ final class TestLabMachineTask implements TestLabTask {
         String output = observedOutput();
         if (machineId == MetaTileEntityID.HEAVY_STEAM_TURBINE) {
             if (heavyTurbineProbe == null) {
-                if (output.isEmpty() || !consumed) return null;
                 heavyTurbineProbe = new TestLabHeavySteamTurbineProbe(
                     (com.miaokatze.gtsr.common.machine.MTEHeavySteamTurbine) multi,
                     ports,
-                    elapsedTicks);
+                    elapsedTicks,
+                    variant == 3);
             }
             String evidence = heavyTurbineProbe.tick(elapsedTicks);
             return evidence == null ? null
@@ -393,6 +395,8 @@ final class TestLabMachineTask implements TestLabTask {
             && machineId != MetaTileEntityID.SPACETIME_CALIBRATION;
         if (steam) {
             FluidStack fuel = Materials.Steam.getGas(1);
+            if (machineId == MetaTileEntityID.HEAVY_STEAM_TURBINE && variant == 3)
+                fuel = gregtech.api.util.GTModHandler.getSuperHeatedSteam(1);
             if (machineId == MetaTileEntityID.SIEMENS_MARTIN_FURNACE
                 || machineId == MetaTileEntityID.KINETIC_PROCESSING_ARRAY
                 || machineId == MetaTileEntityID.SINGULARITY_DRILLING_HUB) fuel = fluid("ic2superheatedsteam");

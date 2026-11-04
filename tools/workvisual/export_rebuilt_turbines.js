@@ -37,9 +37,9 @@ function compile(model,id){
     if(/gearbox/i.test(b.material))return 'D';
     if(/pipe|shaft/i.test(b.material))return b.g?'S':'C';
     if(b.g)return 'R';
-    // Only accessible solid body blocks accept hatches; tier blocks and moving blocks never do.
+    // KPA/Heavy hatches use accessible ordinary casing; Mega hatches use tier casing U.
     const hatch=id==='kinetic_processing_array'?b.y<=3&&b.z>=0:
-      id.startsWith('mega_')?b.y>=1&&b.y<=3&&b.z<=-29:
+      id.startsWith('mega_')?false:
       b.y>=1&&b.y<=3&&b.x<=-3&&b.z===-2;
     return hatch?'B':'H';
   }
@@ -54,6 +54,7 @@ function compile(model,id){
   // Required air is the exact conservative continuous sweep, not the whole exterior bounding box.
   let air=0;
   function addAir(x,y,z){const k=[x,y,z].join(',');if(!cells.has(k)){cells.set(k,'A');air++;}}
+  for(const [x,y,z] of model.requiredAir||[]){if(cells.has([-x,y,z].join(',')))throw Error('Required bore occupied '+id);addAir(-x,y,z);}
   for(const g of groups){
     if(g.kind==='translate'){
       for(const c of g.members)for(let dy=-1;dy<=0;dy++)addAir(c.x+controller[0],c.y+controller[1]+dy,c.z+controller[2]);
@@ -75,23 +76,18 @@ function compile(model,id){
   const shapeLayers=[];
   for(let y=max[1];y>=min[1];y--){const rows=[];for(let z=min[2];z<=max[2];z++){let row='';for(let x=min[0];x<=max[0];x++)row+=cells.get([x,y,z].join(','))||' ';rows.push(row);}shapeLayers.push(rows);}
   const steel=[['GregTechAPI.sBlockCasings2',0]], bronzeSteel=[['GregTechAPI.sBlockCasings1',10],...steel];
-  const shell=id==='heavy_steam_turbine'?bronzeSteel:steel;
+  const shell=id==='heavy_steam_turbine'?bronzeSteel:[...steel,['GregTechAPI.sBlockCasings4',2],['GregTechAPI.sBlockCasings4',0]];
   const binding=(role,blockChoices)=>({role,blockChoices});
   const tokenMaterials={
     B:binding('casing',shell),H:binding('casing',shell),R:binding('casing',shell),
     C:binding('pipe',id==='heavy_steam_turbine'?[['GregTechAPI.sBlockCasings2',12],['GregTechAPI.sBlockCasings2',13]]:[13,14,15].map(meta=>['GregTechAPI.sBlockCasings2',meta])),
-    S:binding('pipe',id==='heavy_steam_turbine'?[['GregTechAPI.sBlockCasings2',12],['GregTechAPI.sBlockCasings2',13]]:[['GregTechAPI.sBlockCasings2',13]]),
-    D:binding('gearbox',(id==='heavy_steam_turbine'?[2,3]:[3,4]).map(meta=>['GregTechAPI.sBlockCasings2',meta])),
-    E:binding('frame',(id==='heavy_steam_turbine'?['Bronze','Steel']:['Steel']).map(material=>['GregTechAPI.sBlockFrames','Materials.'+material+'.mMetaItemSubID'])),
+    S:binding('pipe',id==='heavy_steam_turbine'?[['GregTechAPI.sBlockCasings2',12],['GregTechAPI.sBlockCasings2',13]]:[13,14,15].map(meta=>['GregTechAPI.sBlockCasings2',meta])),
+    D:binding('gearbox',id==='heavy_steam_turbine'?[2,3].map(meta=>['GregTechAPI.sBlockCasings2',meta]):[['GregTechAPI.sBlockCasings2',3],['GregTechAPI.sBlockCasings2',4],['BlocksGTSR.tungstenSteelGearbox',0]]),
+    E:binding('frame',(id==='heavy_steam_turbine'?['Bronze','Steel']:['Steel','Titanium','TungstenSteel']).map(material=>['GregTechAPI.sBlockFrames','Materials.'+material+'.mMetaItemSubID'])),
     G:binding('reinforced_glass',id==='heavy_steam_turbine'?[['Blocks.glass',0]]:[['Blocks.glass',0],['GregTechAPI.sBlockGlass1',10],...Array.from({length:10},(_,meta)=>['BorosilicateGlass.getGlassBlock()',meta])])
   };
   if(id==='heavy_steam_turbine')tokenMaterials.F=binding('casing',bronzeSteel);
-  else tokenMaterials.U=binding('upgrade_casing',[
-    ['GregTechAPI.sBlockCasings2',0],['GregTechAPI.sBlockCasings1',2],
-    ['GregTechAPI.sBlockCasings4',1],['GregTechAPI.sBlockCasings4',2],['GregTechAPI.sBlockCasings4',0],
-    ['GregTechAPI.sBlockCasings8',6],['GregTechAPI.sBlockCasings8',7],['GregTechAPI.sBlockCasings4',14],
-    ['GregTechAPI.sBlockCasings1',9],['GregTechAPI.sBlockCasingsNH',10],['GregTechAPI.sBlockCasings8',3],['GregTechAPI.sBlockCasings8',10]
-  ]);
+  else tokenMaterials.U=binding('voltage_casing',[...Array.from({length:9},(_,i)=>['GregTechAPI.sBlockCasings1',i+1]),...[10,11,12].map(meta=>['GregTechAPI.sBlockCasingsNH',meta])]);
   const definition={id,controller:id==='heavy_steam_turbine'?'HeavySteamTurbine':id==='kinetic_processing_array'?'KineticProcessingArray':'MegaSteamTurbineArray',schema:1,shapeLayers,offset,tokenMaterials,groups,skipTokens:[' '],requiredAirTokens:['A']};
   console.log(JSON.stringify({id,offset,size:max.map((v,i)=>v-min[i]+1),blocks:blocks.length,upgrades:blocks.filter(b=>b.category===3).length,glass:blocks.filter(b=>b.material==='glass').length,moving:groups.reduce((s,g)=>s+g.members.length,0),requiredAir:air}));
   return definition;
@@ -100,7 +96,7 @@ const additions=[compile(api.buildArray(),'kinetic_processing_array')];
 for(let k=0;k<=4;k++){api.state.stacks=k;additions.push(compile(api.buildTurbine(),'mega_steam_turbine_'+k));}
 additions.push(compile(context.window.BUILD_MINI_TURBINE(api.makeModel,'bronze'),'heavy_steam_turbine'));
 const root=JSON.parse(fs.readFileSync(target,'utf8'));
-root.source='TASK03 final scope 2026-11-01; approved voxel R10 plus 2026-11-04 controller/overlay follow-up';
+root.source='Approved r13 2026-11-04: KPA nine-cube tier anvil; Mega 162-cube tier plinth, no overhead network or front gear protrusions, enclosed shaft gaps; Mega hatches replace U, KPA/Heavy hatches replace B; unified material frames and GTSR tungstensteel gearbox';
 root.definitions=root.definitions.filter(d=>!additions.some(a=>a.id===d.id)).concat(additions);
 const output=JSON.stringify(root,null,2)+'\n';
 if(process.argv.includes('--check')){

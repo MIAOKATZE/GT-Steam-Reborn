@@ -46,13 +46,16 @@ public final class CloudParticleQueue {
         private final List<Emitter> emitters;
         private final int count;
         private final float scale;
+        private final boolean eachEmitter;
 
-        private Request(IMetaTileEntity owner, ExtendedFacing facing, List<Emitter> emitters, int count, float scale) {
+        private Request(IMetaTileEntity owner, ExtendedFacing facing, List<Emitter> emitters, int count, float scale,
+            boolean eachEmitter) {
             this.owner = owner;
             this.facing = facing;
             this.emitters = emitters;
             this.count = count;
             this.scale = scale;
+            this.eachEmitter = eachEmitter;
         }
 
         private IMetaTileEntity owner() {
@@ -79,6 +82,16 @@ public final class CloudParticleQueue {
     /** Repeated submissions by the same owner replace that tick's request; they never append another emission pool. */
     public static void submit(IMetaTileEntity owner, ExtendedFacing facing, List<Emitter> emitters, int count,
         float scale) {
+        submit(owner, facing, emitters, count, scale, false);
+    }
+
+    /** One particle per outlet, subject to the same owner and global budgets. */
+    public static void submitEach(IMetaTileEntity owner, ExtendedFacing facing, List<Emitter> emitters, float scale) {
+        submit(owner, facing, emitters, emitters.size(), scale, true);
+    }
+
+    private static void submit(IMetaTileEntity owner, ExtendedFacing facing, List<Emitter> emitters, int count,
+        float scale, boolean eachEmitter) {
         Minecraft mc = Minecraft.getMinecraft();
         World world = mc.theWorld;
         if (world != requestWorld) {
@@ -99,7 +112,7 @@ public final class CloudParticleQueue {
             dropped += count;
             return;
         }
-        REQUESTS.put(owner, new Request(owner, facing, emitters, Math.min(MAX_PER_OWNER, count), scale));
+        REQUESTS.put(owner, new Request(owner, facing, emitters, Math.min(MAX_PER_OWNER, count), scale, eachEmitter));
     }
 
     public static boolean isLive(IMetaTileEntity owner, World world) {
@@ -141,20 +154,21 @@ public final class CloudParticleQueue {
                 if (round >= request.count()) continue;
                 visited = index + 1;
                 budget--;
-                if (spawn(request, world)) emitted++;
+                if (spawn(request, world, round)) emitted++;
                 else dropped++;
             }
         }
         nextOwner = (start + Math.max(1, visited)) % size;
     }
 
-    private static boolean spawn(Request request, World world) {
+    private static boolean spawn(Request request, World world, int round) {
         if (!isLive(request.owner(), world)) return false;
         Emitter emitter = request.emitters()
             .get(
-                world.rand.nextInt(
-                    request.emitters()
-                        .size()));
+                request.eachEmitter ? round
+                    : world.rand.nextInt(
+                        request.emitters()
+                            .size()));
         IGregTechTileEntity base = request.owner()
             .getBaseMetaTileEntity();
         double px, py, pz;

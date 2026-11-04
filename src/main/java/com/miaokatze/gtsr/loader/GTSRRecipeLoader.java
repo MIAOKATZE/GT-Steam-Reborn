@@ -38,6 +38,7 @@ public class GTSRRecipeLoader implements Runnable {
 
     @Override
     public void run() {
+        registerGroup("TungstenSteelGearbox", MiscRecipes::registerTungstenSteelGearboxRecipes);
         registerGroup("CokeOven", ProcessingMachineRecipes::registerCokeOvenRecipes);
         registerGroup("SiemensMartin", ProcessingMachineRecipes::registerSiemensMartinRecipes);
         registerGroup("Ammonia", ProcessingMachineRecipes::registerAmmoniaRecipes);

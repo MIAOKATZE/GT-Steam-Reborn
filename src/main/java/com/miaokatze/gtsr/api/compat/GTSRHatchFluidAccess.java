@@ -13,6 +13,7 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
 
+import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.MachineSource;
 import appeng.api.storage.data.IAEFluidStack;
@@ -29,7 +30,7 @@ import gregtech.common.tileentities.machines.MTEHatchCraftingInputSlave;
 import gregtech.common.tileentities.machines.MTEHatchInputME;
 
 /**
- * GT205 工作流体访问。扣除方法返回实际支付量，部分支付由调用方持久化托管。
+ * GT265 工作流体访问。扣除方法返回实际支付量，部分支付由调用方持久化托管。
  * 原生 ME 使用公开网络代理实扣，避免配方窗口内 drain 仅修改虚拟 extracted。
  * 原生 PatternSlot 是 AE 已投料的持久引用；Slave 归并到真实 master。
  * 未知第三方 dual 必须另行适配，不能假设其数组可写且持久。
@@ -44,19 +45,48 @@ public final class GTSRHatchFluidAccess {
 
     public static FluidStack probeFluidAmount(MTEHatch hatch, FluidStack want) {
         if (hatch == null || want == null || want.amount <= 0) return null;
+        long available = hatch instanceof MTEHatchInputME me ? probeMeFluidAmount(me, want, want.amount)
+            : probeOrdinaryFluidAmount(hatch, want, want.amount);
+        if (available <= 0) return null;
+        FluidStack result = want.copy();
+        result.amount = (int) available;
+        return result;
+    }
+
+    private static long probeMeFluidAmount(MTEHatchInputME me, FluidStack identity, long amount) {
+        if (me.getClass() != MTEHatchInputME.class || !me.isAllowedToWork()) return 0;
+        boolean configured = false;
+        for (FluidStack fluid : me.getStoredFluids()) if (fluid != null && fluid.isFluidEqual(identity)) {
+            configured = true;
+            break;
+        }
+        if (!configured) return 0;
+        IAEFluidStack request = AEFluidStack.create(new FluidStack(identity, 1));
+        request.setStackSize(amount);
+        try {
+            IAEFluidStack available = me.getProxy()
+                .getStorage()
+                .getFluidInventory()
+                .extractItems(
+                    request,
+                    Actionable.SIMULATE,
+                    new MachineSource((IActionHost) me.getBaseMetaTileEntity()));
+            return available == null ? 0 : Math.min(amount, available.getStackSize());
+        } catch (GridAccessException unavailable) {
+            return 0;
+        }
+    }
+
+    private static long probeOrdinaryFluidAmount(MTEHatch hatch, FluidStack identity, long amount) {
         FluidTankInfo[] tanks = hatch.getTankInfo(ForgeDirection.UNKNOWN);
-        if (tanks == null) return null;
+        if (tanks == null) return 0;
         long available = 0;
         for (FluidTankInfo tank : tanks) {
-            if (tank == null || tank.fluid == null || !tank.fluid.isFluidEqual(want)) continue;
-            // ME 多个过滤槽会各自报告同一网络存量。
-            if (hatch instanceof MTEHatchInputME) available = Math.max(available, tank.fluid.amount);
-            else available += Math.max(0, tank.fluid.amount);
+            if (tank == null || tank.fluid == null || !tank.fluid.isFluidEqual(identity)) continue;
+            available += Math.min(amount - available, Math.max(0, tank.fluid.amount));
+            if (available == amount) break;
         }
-        if (available <= 0) return null;
-        FluidStack copy = want.copy();
-        copy.amount = (int) Math.min(available, want.amount);
-        return copy;
+        return available;
     }
 
     /** 返回实际扣除量；请求的 NBT 始终保留。 */
@@ -140,6 +170,54 @@ public final class GTSRHatchFluidAccess {
             if (available >= want.amount) break;
         }
         return Math.min(available, want.amount);
+    }
+
+    /** Long 请求保留完整 AE 数量；普通仓每个真实罐只探测一次，同一 ME 网络只计一次。 */
+    public static long probeFluidAmountAcross(List<? extends MTEHatch> hatches, FluidStack identity, long amount) {
+        if (hatches == null || identity == null || amount <= 0) return 0;
+        long remaining = amount;
+        for (MTEHatch hatch : distinctSources(hatches, new FluidStack(identity, 1))) {
+            remaining -= hatch instanceof MTEHatchInputME me ? probeMeFluidAmount(me, identity, remaining)
+                : probeOrdinaryFluidAmount(hatch, identity, remaining);
+            if (remaining == 0) break;
+        }
+        return amount - remaining;
+    }
+
+    /** 返回实际 long 支付量；AE 单次有界提取，普通仓按 int 块实扣后才继续下一块。 */
+    public static long depleteFluidAcross(List<? extends MTEHatch> hatches, FluidStack identity, long amount) {
+        if (hatches == null || identity == null || amount <= 0) return 0;
+        long remaining = amount;
+        for (MTEHatch hatch : distinctSources(hatches, new FluidStack(identity, 1))) {
+            if (hatch instanceof MTEHatchInputME me) {
+                long available = probeMeFluidAmount(me, identity, remaining);
+                if (available == 0) continue;
+                IAEFluidStack request = AEFluidStack.create(new FluidStack(identity, 1));
+                request.setStackSize(available);
+                try {
+                    AENetworkProxy proxy = me.getProxy();
+                    IAEFluidStack extracted = Platform.poweredExtraction(
+                        proxy.getEnergy(),
+                        proxy.getStorage()
+                            .getFluidInventory(),
+                        request,
+                        new MachineSource((IActionHost) me.getBaseMetaTileEntity()));
+                    if (extracted != null) remaining -= Math.min(available, extracted.getStackSize());
+                } catch (GridAccessException unavailable) {
+                    continue;
+                }
+            } else {
+                while (remaining > 0) {
+                    int taken = drainFluidExact(
+                        hatch,
+                        new FluidStack(identity, (int) Math.min(remaining, Integer.MAX_VALUE)));
+                    if (taken == 0) break;
+                    remaining -= taken;
+                }
+            }
+            if (remaining == 0) break;
+        }
+        return amount - remaining;
     }
 
     private static MTEHatchCraftingInputME nativeOwner(IDualInputHatch dual) {

@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-/** In-memory source-method fixture; these local resource types are not Minecraft resource packs. */
+/** Historical SHA-policy fixture retained for evidence. The active probe now delegates to firebox_resource_contract.py. */
 public final class ForegroundGuardContract {
 
     private static boolean flag(String name) throws Exception {

@@ -61,7 +61,7 @@ public final class SpacetimeAuditCommand extends CommandBase {
             }
             require(
                 ProsperityIndustrialRecipes.getRegisteredRecipeCount() == stages + distilleryAlternatives,
-                "Industrial recipe count");
+                "Industrial recipe registration count");
             for (String id : new String[] { "gtsr:fiction_witness_pedestal", "gtsr:fiction_starter" }) {
                 Block block = RemasterBlocks.get(id);
                 require(
@@ -97,13 +97,14 @@ public final class SpacetimeAuditCommand extends CommandBase {
                 "Empty beacon cannot reserve a trip");
             sender.addChatMessage(
                 new ChatComponentText(
-                    "[GTSR-SPACETIME-AUDIT] PASS materials=64 dust=15 gas=10 fluid=39 recipes="
+                    "[GTSR-SPACETIME-AUDIT] PASS materials=64 dust=15 gas=10 fluid=39 recipeRegistrations="
                         + ProsperityIndustrialRecipes.getRegisteredRecipeCount()
                         + " stages="
                         + stages
                         + " distillery="
                         + distilleryAlternatives
-                        + " colors=true unbreakable=true crafts=2 controller=true ic2=true trips=5"));
+                        + " colors=true unbreakable=true craftRegistration=complete liveRecipes=unchecked"
+                        + " controller=true ic2=true trips=5"));
             if (args.length > 0 && "portal".equals(args[0])) verifyPortal(sender);
             if (args.length > 0 && "production".equals(args[0])) {
                 WorldServer world = DimensionManager.getWorld(Config.prosperityDimId);

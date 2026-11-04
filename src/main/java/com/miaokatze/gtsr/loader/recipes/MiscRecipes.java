@@ -9,6 +9,7 @@ import static gregtech.api.recipe.RecipeMaps.implosionRecipes;
 import net.minecraft.item.ItemStack;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
@@ -24,6 +25,16 @@ import gregtech.api.util.GTModHandler;
 public final class MiscRecipes {
 
     private MiscRecipes() {}
+
+    /** Reversible appearance conversion; the original GT gearbox still pays the entire material cost. */
+    public static void registerTungstenSteelGearboxRecipes() {
+        GTModHandler.addShapelessCraftingRecipe(
+            new ItemStack(BlocksGTSR.tungstenSteelGearbox),
+            new Object[] { ItemList.Casing_Gearbox_TungstenSteel.get(1) });
+        GTModHandler.addShapelessCraftingRecipe(
+            ItemList.Casing_Gearbox_TungstenSteel.get(1),
+            new Object[] { new ItemStack(BlocksGTSR.tungstenSteelGearbox) });
+    }
 
     // 聚爆压缩机配方：2 临界蒸汽纠缠奇点 → 8 普通蒸汽纠缠奇点（duration 20、eut 30，不需要爆炸物）。
     // 使用 2 个 itemInput 使 GT5U implosionRecipes 的 recipeEmitter 走"原样注册"路径，不派生 ITNT/炸药变体；

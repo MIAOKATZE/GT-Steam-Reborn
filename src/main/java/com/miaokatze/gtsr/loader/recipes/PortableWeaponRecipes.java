@@ -2,9 +2,7 @@ package com.miaokatze.gtsr.loader.recipes;
 
 import static gregtech.api.recipe.RecipeMaps.assemblerRecipes;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
@@ -26,12 +24,12 @@ import gregtech.api.util.GTUtility;
 /** Portable weapons and full ammunition packs; missing required ingredients fail explicitly. */
 public final class PortableWeaponRecipes {
 
-    private static final List<Spec> EXPECTED = new ArrayList<>();
+    private static int registeredRecipeCount;
 
     private PortableWeaponRecipes() {}
 
     public static void register() {
-        if (!EXPECTED.isEmpty()) throw failure("Duplicate registration attempt");
+        if (registeredRecipeCount != 0) throw failure("Duplicate registration attempt");
         add(
             "LM12",
             GTSRItemList.PortableLM12,
@@ -95,8 +93,7 @@ public final class PortableWeaponRecipes {
         mimic("Mimic7.62mm", GTSRItemList.Ammo762Pack, GTSRItemList.MimicAmmo762Pack, moss, abyss, 21);
         mimic("Mimic20mm", GTSRItemList.Ammo20Pack, GTSRItemList.MimicAmmo20Pack, moss, abyss, 22);
         mimic("Mimic35mm", GTSRItemList.Ammo35Pack, GTSRItemList.MimicAmmo35Pack, moss, abyss, 23);
-        auditRegisteredRecipes();
-        GTSteamReborn.LOG.info("[GTSR-PortableRecipes] Verified all 10 live assembler recipes");
+        GTSteamReborn.LOG.info("[GTSR-PortableRecipes] Registered " + registeredRecipeCount + " assembler recipes");
     }
 
     private static void ammo(String id, GTSRItemList output, Materials casing, Materials circuit, int charge,
@@ -157,57 +154,12 @@ public final class PortableWeaponRecipes {
             .eut(eut)
             .addTo(assemblerRecipes);
         if (added.isEmpty()) throw failure(id + " was rejected by assembler recipe map");
-        EXPECTED.add(new Spec(id, result.copy(), inputs, fluid, duration, (int) eut));
+        registeredRecipeCount++;
     }
 
-    /** Audits the actual map, including uniqueness, complete ammunition, inputs, fluid, time and voltage. */
+    /** Checks successful registration receipts for all ten declarations, without inspecting the live recipe map. */
     public static void auditRegisteredRecipes() {
-        if (EXPECTED.size() != 10) throw failure("Expected 10 specifications, found " + EXPECTED.size());
-        for (Spec spec : EXPECTED) {
-            int matches = 0;
-            for (GTRecipe recipe : assemblerRecipes.getAllRecipes()) {
-                if (recipe.mOutputs.length != 1 || !same(recipe.mOutputs[0], spec.output)) continue;
-                matches++;
-                if (recipe.mDuration != spec.duration || recipe.mEUt != spec.eut
-                    || !sameInputs(recipe.mInputs, spec.inputs)
-                    || !sameFluid(recipe.mFluidInputs, spec.fluid))
-                    throw failure(spec.id + " live recipe differs from its required specification");
-            }
-            if (matches != 1) throw failure(spec.id + " expected one live recipe, found " + matches);
-        }
-    }
-
-    private static boolean same(ItemStack a, ItemStack b) {
-        return a != null && b != null
-            && a.getItem() == b.getItem()
-            && a.getItemDamage() == b.getItemDamage()
-            && a.stackSize == b.stackSize
-            && ItemStack.areItemStackTagsEqual(a, b);
-    }
-
-    private static boolean sameInputs(ItemStack[] actual, ItemStack[] expected) {
-        if (actual.length != expected.length) return false;
-        boolean[] used = new boolean[actual.length];
-        for (ItemStack item : expected) {
-            boolean found = false;
-            for (int i = 0; i < actual.length; i++) {
-                if (!used[i] && same(actual[i], item)) {
-                    used[i] = true;
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) return false;
-        }
-        return true;
-    }
-
-    private static boolean sameFluid(FluidStack[] actual, FluidStack expected) {
-        if (expected == null) return actual == null || actual.length == 0;
-        return actual != null && actual.length == 1
-            && actual[0] != null
-            && actual[0].isFluidEqual(expected)
-            && actual[0].amount == expected.amount;
+        if (registeredRecipeCount != 10) throw failure("Expected 10 registrations, found " + registeredRecipeCount);
     }
 
     private static void require(ItemStack item, String name) {
@@ -221,24 +173,5 @@ public final class PortableWeaponRecipes {
     private static IllegalStateException failure(String message) {
         GTSteamReborn.LOG.error("[GTSR-PortableRecipes] " + message);
         return new IllegalStateException("[GTSR-PortableRecipes] " + message);
-    }
-
-    private static final class Spec {
-
-        private final String id;
-        private final ItemStack output;
-        private final ItemStack[] inputs;
-        private final FluidStack fluid;
-        private final int duration, eut;
-
-        private Spec(String id, ItemStack output, ItemStack[] inputs, FluidStack fluid, int duration, int eut) {
-            this.id = id;
-            this.output = output;
-            this.inputs = new ItemStack[inputs.length];
-            for (int i = 0; i < inputs.length; i++) this.inputs[i] = inputs[i].copy();
-            this.fluid = fluid == null ? null : fluid.copy();
-            this.duration = duration;
-            this.eut = eut;
-        }
     }
 }

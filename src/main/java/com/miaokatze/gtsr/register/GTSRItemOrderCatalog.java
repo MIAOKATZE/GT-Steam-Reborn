@@ -100,6 +100,7 @@ public final class GTSRItemOrderCatalog {
         }
         List<ItemStack> result = new ArrayList<>();
         for (GTSRItemList[] domain : DOMAINS) appendEntries(result, ordinary, domain);
+        appendRegistryPath(result, ordinary, "TungstenSteelGearbox");
         // 奇点方块四个 meta 仍按 0/1/2/3 的自然等级排列；其后为 canonical 临界建筑材料。
         appendRegistryPath(result, ordinary, "RunawaySingularity");
         appendRegistryPath(result, ordinary, "SpacetimeSingularity");

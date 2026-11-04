@@ -1,7 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -35,8 +34,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
@@ -60,6 +57,7 @@ import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.structure.RebuiltMachineGlass;
+import com.miaokatze.gtsr.common.structure.RebuiltMachineMaterials;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import bartworks.system.material.Werkstoff;
@@ -77,7 +75,6 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEBasicMachine;
 import gregtech.api.metatileentity.implementations.MTEBasicMachineWithRecipe;
-import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.recipe.check.CheckRecipeResult;
@@ -117,11 +114,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     private static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     private static IStructureDefinition<MTEKineticProcessingArray> STRUCTURE_DEFINITION;
 
-    private static final double[] STEAM_CONSUMPTION_RATES = { 8.0, 4.0, 2.0, 1.0, 0.5, 0.25, 0.1, 0.1, 0.1, 0.1, 0.1,
-        0.1, 0.1, 0.1, 0.1, 0.1 };
-
     private int mCasingAmount = 0;
     public int mCasingTier = -1;
+    public int mMaterialTier = -1;
     public int mPipeTier = -1;
     public int mGearTier = -1;
     private int mSyncedCasingTier = -1;
@@ -260,6 +255,13 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                 + NumberFormatUtil.formatNumber(maxParallel));
     }
 
+    /** One material channel validates shell, pipe and gear together; legacy fields remain derived mirrors. */
+    public void setMaterialTier(int tier) {
+        mMaterialTier = tier;
+        mPipeTier = tier;
+        mGearTier = tier;
+    }
+
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEKineticProcessingArray(mName);
@@ -286,18 +288,52 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                         ioConstructionHatches().build(),
                         onElementPass(
                             MTEKineticProcessingArray::onCasingAdded,
-                            ofBlock(GregTechAPI.sBlockCasings2, 0))))
-                .addElement('H', ofBlock(GregTechAPI.sBlockCasings2, 0))
-                .addElement('R', ofBlock(GregTechAPI.sBlockCasings2, 0))
-                .addElement('S', ofBlock(GregTechAPI.sBlockCasings2, 13))
+                            withChannel(
+                                "material",
+                                ofBlocksTiered(
+                                    RebuiltMachineMaterials::shellTier,
+                                    RebuiltMachineMaterials.shellChoices(),
+                                    -1,
+                                    (t, tier) -> t.setMaterialTier(tier),
+                                    t -> t.mMaterialTier)))))
+                .addElement(
+                    'H',
+                    withChannel(
+                        "material",
+                        ofBlocksTiered(
+                            RebuiltMachineMaterials::shellTier,
+                            RebuiltMachineMaterials.shellChoices(),
+                            -1,
+                            (t, tier) -> t.setMaterialTier(tier),
+                            t -> t.mMaterialTier)))
+                .addElement(
+                    'R',
+                    withChannel(
+                        "material",
+                        ofBlocksTiered(
+                            RebuiltMachineMaterials::shellTier,
+                            RebuiltMachineMaterials.shellChoices(),
+                            -1,
+                            (t, tier) -> t.setMaterialTier(tier),
+                            t -> t.mMaterialTier)))
+                .addElement(
+                    'S',
+                    withChannel(
+                        "material",
+                        ofBlocksTiered(
+                            RebuiltMachineMaterials::pipeTier,
+                            RebuiltMachineMaterials.pipeChoices(),
+                            -1,
+                            (t, tier) -> t.setMaterialTier(tier),
+                            t -> t.mMaterialTier)))
                 .addElement('A', isAir())
                 .addElement(
                     'U',
                     withChannel(
                         "casing",
                         ofBlocksTiered(
-                            MTEKineticProcessingArray::getCasingTier,
-                            getAllowedCasings(),
+                            RebuiltMachineMaterials::voltageTier,
+                            RebuiltMachineMaterials.voltageChoices(),
                             -1,
                             (t, tier) -> t.mCasingTier = tier,
                             t -> t.mCasingTier)))
@@ -314,90 +350,36 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                 .addElement(
                     'C',
                     withChannel(
-                        "pipe",
+                        "material",
                         ofBlocksTiered(
-                            MTEKineticProcessingArray::getPipeTier,
-                            PIPE_CASINGS,
+                            RebuiltMachineMaterials::pipeTier,
+                            RebuiltMachineMaterials.pipeChoices(),
                             -1,
-                            (t, tier) -> t.mPipeTier = tier,
-                            t -> t.mPipeTier)))
+                            (t, tier) -> t.setMaterialTier(tier),
+                            t -> t.mMaterialTier)))
                 .addElement(
                     'D',
                     withChannel(
-                        "gear",
+                        "material",
                         ofBlocksTiered(
-                            MTEKineticProcessingArray::getGearTier,
-                            GEAR_CASINGS,
+                            RebuiltMachineMaterials::gearTier,
+                            RebuiltMachineMaterials.gearChoices(),
                             -1,
-                            (t, tier) -> t.mGearTier = tier,
-                            t -> t.mGearTier)))
-                .addElement('E', gregtech.api.util.GTStructureUtility.ofFrame(Materials.Steel))
+                            (t, tier) -> t.setMaterialTier(tier),
+                            t -> t.mMaterialTier)))
+                .addElement(
+                    'E',
+                    withChannel(
+                        "material",
+                        ofBlocksTiered(
+                            RebuiltMachineMaterials::frameTier,
+                            RebuiltMachineMaterials.frameChoices(),
+                            -1,
+                            (t, tier) -> t.setMaterialTier(tier),
+                            t -> t.mMaterialTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
-    }
-
-    // 延迟初始化：避免在 MTE 构造时（sAfterGTPreload 遍历期间）触发 WerkstoffLoader 类加载，
-    // 否则 Werkstoff 构造函数会向正在遍历的 sAfterGTPreload 列表添加 Runnable，导致
-    // ConcurrentModificationException。WerkstoffLoader 在 bartworks preInit 中完成初始化后，
-    // getStructureDefinition() 首次调用时才安全地引用 WerkstoffLoader.BWBlockCasings。
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static List<Pair<Block, Integer>> ALLOWED_CASINGS = null;
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static List<Pair<Block, Integer>> getAllowedCasings() {
-        if (ALLOWED_CASINGS == null) {
-            ALLOWED_CASINGS = ImmutableList.of(
-                Pair.of(GregTechAPI.sBlockCasings2, 0), // Tier 1 - Steel
-                Pair.of(GregTechAPI.sBlockCasings1, 2), // Tier 2 - Stainless Steel
-                Pair.of(GregTechAPI.sBlockCasings4, 1), // Tier 3 - Titanium
-                Pair.of(GregTechAPI.sBlockCasings4, 2), // Tier 4 - Tungstensteel
-                Pair.of(GregTechAPI.sBlockCasings4, 0), // Tier 5 - Chrome
-                Pair.of(GregTechAPI.sBlockCasings8, 6), // Tier 6 - Advanced Rhodium Palladium
-                Pair.of(GregTechAPI.sBlockCasings8, 7), // Tier 7 - Advanced Iridium
-                Pair.of(GregTechAPI.sBlockCasings4, 14), // Tier 8 - Mining Osmiridium (UV)
-                Pair.of(GregTechAPI.sBlockCasings1, 9), // Tier 9 - UHV Machine Casing
-                Pair.of(GregTechAPI.sBlockCasingsNH, 10), // Tier 10 - UEV Machine Casing
-                Pair.of(GregTechAPI.sBlockCasings8, 3), // Tier 11 - Mining Black Plutonium (UIV)
-                Pair.of(GregTechAPI.sBlockCasings8, 10)); // Tier 12 - Radiant Naquadah Alloy (UMV)
-        }
-        return ALLOWED_CASINGS;
-    }
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static final List<Pair<Block, Integer>> PIPE_CASINGS = ImmutableList.of(
-        Pair.of(GregTechAPI.sBlockCasings2, 13),
-        Pair.of(GregTechAPI.sBlockCasings2, 14),
-        Pair.of(GregTechAPI.sBlockCasings2, 15));
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static final List<Pair<Block, Integer>> GEAR_CASINGS = ImmutableList
-        .of(Pair.of(GregTechAPI.sBlockCasings2, 3), Pair.of(GregTechAPI.sBlockCasings2, 4));
-
-    // FRAME_CASINGS 与 ALLOWED_CASINGS 一样延迟初始化：等级 6 框架需要解析
-    // WerkstoffLoader.RhodiumPlatedPalladium 材质并使用 BW 框架方块 bw.frames，
-    // 不能在 MTE 类加载时触发 WerkstoffLoader 类加载。
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static List<Pair<Block, Integer>> FRAME_CASINGS = null;
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static List<Pair<Block, Integer>> getFrameCasings() {
-        if (FRAME_CASINGS == null) {
-            FRAME_CASINGS = ImmutableList.of(
-                Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID), // 1
-                Pair.of(GregTechAPI.sBlockFrames, Materials.Aluminium.mMetaItemSubID), // 2
-                Pair.of(GregTechAPI.sBlockFrames, Materials.StainlessSteel.mMetaItemSubID), // 3
-                Pair.of(GregTechAPI.sBlockFrames, Materials.Titanium.mMetaItemSubID), // 4
-                Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID), // 5
-                Pair.of(getTier6FrameBlock(), getTier6FrameMeta()), // 6
-                Pair.of(GregTechAPI.sBlockFrames, Materials.Iridium.mMetaItemSubID), // 7
-                Pair.of(GregTechAPI.sBlockFrames, Materials.Osmium.mMetaItemSubID), // 8 - UV
-                Pair.of(GregTechAPI.sBlockFrames, Materials.Neutronium.mMetaItemSubID), // 9 - UHV
-                Pair.of(GregTechAPI.sBlockFrames, Materials.Bedrockium.mMetaItemSubID), // 10 - UEV
-                Pair.of(GregTechAPI.sBlockFrames, 397), // 11 - Infinity (UIV)
-                Pair.of(GregTechAPI.sBlockFrames, 588)); // 12 - UMV (SpaceTime)
-        }
-        return FRAME_CASINGS;
     }
 
     private static Block TIER6_FRAME_BLOCK;
@@ -421,38 +403,17 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     @Nullable
     public static Integer getCasingTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 1;
-        if (block == GregTechAPI.sBlockCasings1 && meta == 2) return 2;
-        if (block == GregTechAPI.sBlockCasings4) {
-            if (meta == 1) return 3;
-            if (meta == 2) return 4;
-            if (meta == 0) return 5;
-            if (meta == 14) return 8;
-        }
-        if (block == GregTechAPI.sBlockCasings8) {
-            if (meta == 3) return 11; // Mining Black Plutonium (UIV)
-            if (meta == 6) return 6;
-            if (meta == 7) return 7;
-            if (meta == 10) return 12; // Radiant Naquadah Alloy (UMV)
-        }
-        if (block == GregTechAPI.sBlockCasings1 && meta == 9) return 9;
-        if (block == GregTechAPI.sBlockCasingsNH && meta == 10) return 10;
-        return null;
+        return RebuiltMachineMaterials.voltageTier(block, meta);
     }
 
     @Nullable
     public static Integer getPipeTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 1;
-        if (block == GregTechAPI.sBlockCasings2 && meta == 14) return 2;
-        if (block == GregTechAPI.sBlockCasings2 && meta == 15) return 3;
-        return null;
+        return RebuiltMachineMaterials.pipeTier(block, meta);
     }
 
     @Nullable
     public static Integer getGearTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 1;
-        if (block == GregTechAPI.sBlockCasings2 && meta == 4) return 2;
-        return null;
+        return RebuiltMachineMaterials.gearTier(block, meta);
     }
 
     @Nullable
@@ -504,6 +465,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCasingAmount = 0;
         mCasingTier = -1;
+        mMaterialTier = -1;
         mPipeTier = -1;
         mGearTier = -1;
         mSyncedCasingTier = -1;
@@ -514,7 +476,10 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
             return;
         }
-        if (mCasingTier <= 0 || mCasingTier > 12 || mGlassTier < mCasingTier) {
+        if (mCasingTier <= 0 || mCasingTier > 12
+            || mGlassTier < mCasingTier
+            || mMaterialTier < 1
+            || mMaterialTier > 3) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -689,17 +654,22 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         mMaxRecipeVoltage = getMaxRecipeVoltage();
     }
 
-    private double getSteamConsumptionRate() {
-        int tier = mMachineTier;
-        if (tier < 0) tier = 0;
-        if (tier >= STEAM_CONSUMPTION_RATES.length) tier = STEAM_CONSUMPTION_RATES.length - 1;
-        return STEAM_CONSUMPTION_RATES[tier];
+    public int getSteamConsumptionRate() {
+        return mMaterialTier >= 3 ? 1 : mMaterialTier == 2 ? 2 : 4;
+    }
+
+    /** The same final EU drain used by the GT running tick, with the int negation performed as long. */
+    @Override
+    protected long getActualEnergyUsage() {
+        return Math.abs((long) mEUt) * 10000L / Math.max(1000, mEfficiency);
+    }
+
+    public long steamCostForEUt(long actualEUt) {
+        return actualEUt * getSteamConsumptionRate();
     }
 
     private long calculateSteamCostPerTick() {
-        if (mEUt >= 0) return 0;
-        double rate = getSteamConsumptionRate();
-        return (long) (rate * Math.abs(mEUt));
+        return mEUt < 0 ? steamCostForEUt(getActualEnergyUsage()) : 0;
     }
 
     private boolean hasSufficientSuperheatedSteam(long required) {
@@ -709,14 +679,8 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         // v1.10.6：统一走 GTSRHatchFluidAccess 探测（按需量）
         FluidStack superheatedProbe = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
         if (superheatedProbe != null) {
-            for (MTEHatchInput hatch : GTUtility.validMTEList(mInputHatches)) {
-                FluidStack result = GTSRHatchFluidAccess
-                    .probeFluidAmount(hatch, superheatedProbe.getFluid(), (int) Math.max(1, required));
-                if (result != null && result.amount > 0 && result.isFluidEqual(superheatedProbe)) {
-                    total += result.amount;
-                    if (total >= required) return true;
-                }
-            }
+            total = GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, superheatedProbe, required);
+            if (total >= required) return true;
         }
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();
@@ -732,10 +696,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         long remaining = required;
         FluidStack superheatedProbe = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
         if (superheatedProbe != null) {
-            remaining -= GTSRHatchFluidAccess.depleteFluidAcross(
-                mInputHatches,
-                new FluidStack(superheatedProbe.getFluid(), (int) Math.min(remaining, Integer.MAX_VALUE)));
+            remaining -= GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, superheatedProbe, remaining);
         }
+        if (remaining <= 0) return true;
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();
             if (fs != null && GTModHandler.isSuperHeatedSteam(fs) && fs.amount > 0) {
@@ -752,9 +715,10 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         if (steamAmount <= 0) return;
         // 无耐压蒸汽冷却仓：冷凝蒸汽回退到常规输出仓（原行为）。
         if (mPressureCoolingHatches.isEmpty()) {
-            int toOutput = (int) Math.min(steamAmount, Integer.MAX_VALUE);
-            if (toOutput > 0) {
+            while (steamAmount > 0) {
+                int toOutput = (int) Math.min(steamAmount, Integer.MAX_VALUE);
                 addOutput(Materials.Steam.getGas(toOutput));
+                steamAmount -= toOutput;
             }
             return;
         }
@@ -769,6 +733,17 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             }
             if (steamAmount <= 0) return;
         }
+    }
+
+    private boolean hasCoolingSteamSpace(long required) {
+        if (mPressureCoolingHatches.isEmpty()) return true;
+        long capacity = 0;
+        for (MTEPressureSteamCoolingHatch hatch : GTUtility.validMTEList(mPressureCoolingHatches)) {
+            FluidStack fluid = hatch.getFluid();
+            capacity += hatch.getCapacity() - (fluid != null ? fluid.amount : 0);
+            if (capacity >= required) return true;
+        }
+        return required <= 0;
     }
 
     @Override
@@ -801,18 +776,21 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     @Override
     public boolean onRunningTick(ItemStack aStack) {
-        if (mEUt < 0) {
-            long steamPerTick = calculateSteamCostPerTick();
-            if (steamPerTick > 0) {
-                if (!depleteSuperheatedSteam(steamPerTick)) {
-                    stopMachine();
-                    return false;
-                }
-                outputCoolingSteam(steamPerTick);
-                mRealtimeSteamCost = steamPerTick;
-            }
+        long steamPerTick = calculateSteamCostPerTick();
+        if (!hasSufficientSuperheatedSteam(steamPerTick) || !hasCoolingSteamSpace(steamPerTick)) {
+            stopMachine();
+            return false;
         }
-        return super.onRunningTick(aStack);
+        if (!super.onRunningTick(aStack)) return false;
+        if (steamPerTick > 0) {
+            if (!depleteSuperheatedSteam(steamPerTick)) {
+                stopMachine();
+                return false;
+            }
+            outputCoolingSteam(steamPerTick);
+        }
+        mRealtimeSteamCost = steamPerTick;
+        return true;
     }
 
     @Nonnull
@@ -845,15 +823,16 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     }
 
     private double getEUtDiscount() {
-        // Base: 0.6 (40% discount); Gear tier 2: 0.4 (60% discount)
-        if (mGearTier >= 2) return 0.4;
+        // Material tier: steel 0.6, titanium 0.4, tungstensteel 0.3.
+        if (mMaterialTier >= 3) return 0.3;
+        if (mMaterialTier >= 2) return 0.4;
         return 0.6;
     }
 
     private double getDurationModifier() {
         // Pipe tier 1 (or none): 0.5 (2x speed); tier 2: 0.4 (2.5x); tier 3: 1/3 (3x)
-        if (mPipeTier >= 3) return 1.0 / 3.0;
-        if (mPipeTier >= 2) return 0.4;
+        if (mMaterialTier >= 3) return 1.0 / 3.0;
+        if (mMaterialTier >= 2) return 0.4;
         return 0.5;
     }
 
@@ -864,25 +843,31 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             @Nonnull
             @Override
             protected CheckRecipeResult validateRecipe(@Nonnull GTRecipe recipe) {
-                double rate = getSteamConsumptionRate();
-                long estimatedParallel = Math
-                    .min(getMaxParallelRecipes(), Math.max(1, getMaxInputPower() / Math.max(1, recipe.mEUt)));
-                long neededSteam = (long) (rate * recipe.mEUt * estimatedParallel * getEUtDiscount());
+                // ParallelHelper copies inputs with consumption disabled. Its calculator supplies the exact
+                // discounted, rounded EU/t and actual input/output-limited parallels before any real input is spent.
+                OverclockCalculator calculator = createOverclockCalculator(recipe);
+                ParallelHelper preview = createParallelHelper(recipe).setConsumption(false)
+                    .setOutputCalculation(false)
+                    .setRecipeLocked(
+                        recipeLockableMachine,
+                        isRecipeLocked && recipeLockableMachine != null
+                            && recipeLockableMachine.getSingleRecipeCheck() != null)
+                    .setCalculator(calculator)
+                    .build();
+                if (!preview.getResult()
+                    .wasSuccessful()) return preview.getResult();
+                long calculatedEUt = calculator.getConsumption();
+                if (calculatedEUt > Integer.MAX_VALUE) return CheckRecipeResultRegistry.POWER_OVERFLOW;
+                int startingEfficiency = 10000 - (getIdealStatus() - getRepairStatus()) * 1000;
+                long actualEUt = calculatedEUt * 10000L / Math.max(1000, startingEfficiency);
+                long neededSteam = steamCostForEUt(actualEUt);
                 if (neededSteam > 0 && !hasSufficientSuperheatedSteam(neededSteam)) {
                     return SimpleCheckRecipeResult.ofFailure("insufficient_steam");
                 }
                 // 冷却仓余量预检：有耐压蒸汽冷却仓时冷凝蒸汽全量进仓，余量不足则待机等空间。
                 // 输入蒸汽不足优先（已在上方返回），输出空间不足其次。
-                if (neededSteam > 0 && !mPressureCoolingHatches.isEmpty()) {
-                    long coolingCapacity = 0;
-                    for (MTEPressureSteamCoolingHatch hatch : GTUtility.validMTEList(mPressureCoolingHatches)) {
-                        FluidStack fluid = hatch.getFluid();
-                        coolingCapacity += hatch.getCapacity() - (fluid != null ? fluid.amount : 0);
-                        if (coolingCapacity >= neededSteam) break;
-                    }
-                    if (coolingCapacity < neededSteam) {
-                        return SimpleCheckRecipeResult.ofFailure("gtsr.gui.kinetic_array.cooling_full");
-                    }
+                if (!hasCoolingSteamSpace(neededSteam)) {
+                    return SimpleCheckRecipeResult.ofFailure("gtsr.gui.kinetic_array.cooling_full");
                 }
                 return CheckRecipeResultRegistry.SUCCESSFUL;
             }
@@ -943,6 +928,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         screenElements
             .widget(new FakeSyncWidget.LongSyncer(() -> mBoostRemainingSeconds, val -> mBoostRemainingSeconds = val));
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mCasingTier, val -> mCasingTier = val));
+        screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mMaterialTier, this::setMaterialTier));
         screenElements.widget(new FakeSyncWidget.DoubleSyncer(() -> mSteamRate, val -> mSteamRate = val));
         screenElements.widget(new FakeSyncWidget.LongSyncer(() -> mSteamPerAmp, val -> mSteamPerAmp = val));
         screenElements.widget(new FakeSyncWidget.LongSyncer(() -> mRealtimeSteamCost, val -> mRealtimeSteamCost = val));
@@ -1033,6 +1019,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setInteger("mCasingTier", mCasingTier);
+        aNBT.setInteger("mMaterialTier", mMaterialTier);
         aNBT.setInteger("mSyncedCasingTier", mSyncedCasingTier);
         aNBT.setInteger("mMachineTier", mMachineTier);
         aNBT.setLong("boostModeUntil", boostModeUntil);
@@ -1056,6 +1043,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         mCasingTier = aNBT.getInteger("mCasingTier");
+        setMaterialTier(aNBT.hasKey("mMaterialTier") ? aNBT.getInteger("mMaterialTier") : -1);
         mSyncedCasingTier = aNBT.getInteger("mSyncedCasingTier");
         mMachineTier = aNBT.getInteger("mMachineTier");
         boostModeUntil = aNBT.getLong("boostModeUntil");
@@ -1178,9 +1166,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { "全钢固定机身；32 块内部等级机械方块必须同档，9 块前窗玻璃等级不得低于内部等级。", "提示 1：侧舱下部固定钢壳可替换能源仓、输入输出总线和流体仓。",
-            "提示 2：高压蒸汽输入；提示 3：压力冷却仓，均位于同一侧舱下部。", "至少一能源仓、一高压蒸汽输入、一个配方输入和一个输出；无需维护仓。",
-            "casing 选内部等级；glass 选玻璃；pipe / gear 保留原管道和齿轮升级。旧结构不再成型。" };
+        return new String[] { "三档材料机身；锤下承压底座 3×3 共 9 块标准机械壳同电压级；前窗 9 块与侧窗 8 块玻璃等级不得低于机械壳。",
+            "提示 1：侧舱下部固定机壳可替换能源仓、输入输出总线和流体仓。", "提示 2：高压蒸汽输入；提示 3：压力冷却仓，均位于同一侧舱下部。", "至少一能源仓、一高压蒸汽输入、一个配方输入和一个输出；无需维护仓。",
+            "casing 1..12 选 LV..UMV 标准机械壳电压级；glass 选玻璃；material 同步钢/钛/钨钢机壳、管道、齿轮和框架。旧结构不再成型。" };
     }
 
     @Override
@@ -1264,16 +1252,15 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             .addSeparator()
             .beginStructureBlock(8, 9, 9, true)
             .addController("侧舱前方，正面朝外；见投影")
-            .addEnergyHatch("侧舱下部钢壳（提示 1），不限制能源仓等级", 1)
-            .addInputHatch("高压蒸汽输入位于侧舱下部钢壳（提示 2）", 2)
-            .addInputBus("侧舱下部钢壳（提示 1）", 1)
-            .addOutputBus("侧舱下部钢壳（提示 1）", 1)
-            .addOutputHatch("侧舱下部钢壳；压力冷却仓使用提示 3", 3)
-            .addStructureInfo("32 块内部等级块同档；9 块前窗玻璃同档且等级不低于内部等级。")
-            .addStructureInfo("固定外壳与框架为钢；pipe / gear 保留原升级通道；无需维护仓。")
+            .addEnergyHatch("侧舱下部材料机壳（提示 1），不限制能源仓等级", 1)
+            .addInputHatch("高压蒸汽输入位于侧舱下部材料机壳（提示 2）", 2)
+            .addInputBus("侧舱下部材料机壳（提示 1）", 1)
+            .addOutputBus("侧舱下部材料机壳（提示 1）", 1)
+            .addOutputHatch("侧舱下部材料机壳；压力冷却仓使用提示 3", 3)
+            .addStructureInfo("锤下承压底座 3×3 共 9 块标准机械壳同电压级；前窗 9 块与侧窗 8 块玻璃同档且等级不低于机械壳。")
+            .addStructureInfo("material 统一三档材料机壳、管道、齿轮和框架；无需维护仓。")
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
-            .addSubChannelUsage(GTStructureChannels.PIPE_CASING)
-            .addStructureHint("gtsr.structurelib.channel.gear.usage")
+            .addStructureHint("gtsr.structurelib.channel.material.usage")
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();
         return tt;

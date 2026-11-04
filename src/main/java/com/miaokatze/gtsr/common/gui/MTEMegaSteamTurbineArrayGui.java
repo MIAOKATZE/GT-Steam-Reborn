@@ -30,6 +30,7 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
     private IntSyncValue mPipeTierSync;
     private IntSyncValue mSingularityModeSync;
     private IntSyncValue mSingularityModeTicksSync;
+    private IntSyncValue mMaterialTierSync;
 
     public MTEMegaSteamTurbineArrayGui(MTEEnhancedMultiBlockBase<?> multiblock) {
         super(multiblock);
@@ -68,6 +69,8 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
         syncManager.syncValue("turbinePipeTier", mPipeTierSync);
         syncManager.syncValue("turbineSingularityMode", mSingularityModeSync);
         syncManager.syncValue("turbineSingularityModeTicks", mSingularityModeTicksSync);
+        mMaterialTierSync = new IntSyncValue(() -> turbineArray.mMaterialTier, turbineArray::setMaterialTier);
+        syncManager.syncValue("turbineMaterialTier", mMaterialTierSync);
     }
 
     @Override
@@ -88,10 +91,9 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
         GTSRProgressBarGuiHelper.appendEntryRows(widget, syncManager, turbineArray);
         return widget.child(IKey.dynamic(() -> {
             int stackCount = mStackCountSync.getValue();
-            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.stacks")
-                + EnumChatFormatting.AQUA
-                + (1 + stackCount)
-                + StatCollector.translateToLocal("gtsr.gui.turbine_array.groups")
+            return EnumChatFormatting.AQUA
+                + StatCollector
+                    .translateToLocalFormatted("gtsr.gui.turbine_array.group_summary", 1 + stackCount, 2 + stackCount)
                 + EnumChatFormatting.WHITE
                 + " ("
                 + (stackCount == 0 ? StatCollector.translateToLocal("gtsr.gui.turbine_array.baseline")

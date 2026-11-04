@@ -8,6 +8,7 @@ import com.miaokatze.gtsr.common.blocks.BlockProsperityFalling;
 import com.miaokatze.gtsr.common.blocks.BlockProsperityStone;
 import com.miaokatze.gtsr.common.blocks.BlockRunawaySingularity;
 import com.miaokatze.gtsr.common.blocks.BlockSpacetimeSingularity;
+import com.miaokatze.gtsr.common.blocks.BlockTungstenSteelGearbox;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.blocks.ItemBlockRunawaySingularity;
 import com.miaokatze.gtsr.common.blocks.ItemBlockSpacetimeSingularity;
@@ -38,6 +39,9 @@ import cpw.mods.fml.common.registry.GameRegistry;
 public class BlockLoader {
 
     public static void initBlocks() {
+        BlocksGTSR.tungstenSteelGearbox = new BlockTungstenSteelGearbox();
+        GameRegistry.registerBlock(BlocksGTSR.tungstenSteelGearbox, "TungstenSteelGearbox");
+        CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.tungstenSteelGearbox));
         com.miaokatze.gtsr.common.critical.CriticalMaterials.register();
         com.miaokatze.gtsr.common.dimension.prosperity.altar.SpacetimeAltarBlocks.register();
         com.miaokatze.gtsr.common.dimension.prosperity.architecture.RuinsArchitecture.registerBlocks();

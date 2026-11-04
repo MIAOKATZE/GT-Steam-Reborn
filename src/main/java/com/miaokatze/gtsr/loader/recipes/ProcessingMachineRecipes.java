@@ -66,19 +66,17 @@ public final class ProcessingMachineRecipes {
             .eut(0)
             .addTo(siemensMartinRecipes);
 
-        GTValues.RA.stdBuilder()
-            .itemInputs(Materials.Iron.getIngots(2), Materials.Coal.getDust(2))
-            .itemOutputs(Materials.Steel.getIngots(2), Materials.Ash.getDust(1))
-            .duration(1600 * SECONDS)
-            .eut(0)
-            .addTo(siemensMartinRecipes);
-
-        GTValues.RA.stdBuilder()
-            .itemInputs(Materials.Iron.getDust(2), Materials.Coal.getDust(2))
-            .itemOutputs(Materials.Steel.getIngots(2), Materials.Ash.getDust(1))
-            .duration(1600 * SECONDS)
-            .eut(0)
-            .addTo(siemensMartinRecipes);
+        for (ItemStack reducingAgent : new ItemStack[] { Materials.Coal.getDust(2), Materials.Charcoal.getGems(2),
+            Materials.Charcoal.getDust(2) }) {
+            for (ItemStack iron : new ItemStack[] { Materials.Iron.getIngots(2), Materials.Iron.getDust(2) }) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(iron, reducingAgent.copy())
+                    .itemOutputs(Materials.Steel.getIngots(2), Materials.Ash.getDust(1))
+                    .duration(1600 * SECONDS)
+                    .eut(0)
+                    .addTo(siemensMartinRecipes);
+            }
+        }
 
         GTValues.RA.stdBuilder()
             .itemInputs(

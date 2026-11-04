@@ -58,8 +58,11 @@ public final class TestLabCatalog {
                 case LARGE_GEOTHERMAL_STEAM_BOILER:
                 case LARGE_SOLAR_OVERPRESSURE_ARRAY:
                 case GEAR_STEAM_COMPRESSOR:
+                    tasks.add(new TestLabMachineTask(id, 2));
+                    break;
                 case HEAVY_STEAM_TURBINE:
                     tasks.add(new TestLabMachineTask(id, 2));
+                    tasks.add(new TestLabMachineTask(id, 3));
                     break;
                 default:
                     break;
