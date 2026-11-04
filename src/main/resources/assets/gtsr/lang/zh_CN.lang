@@ -784,14 +784,14 @@ gtsr.tooltip.crust_borer.output_bus=输出总线
 gtsr.tooltip.kinetic_array.type=动力加工阵列, KPA
 gtsr.tooltip.kinetic_array.desc=在控制器GUI中放入GT单方块机器，以电力+过热蒸汽辅助运行，执行该机器对应配方。
 gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×内置机器等级)+机器数量；8块标准机械外壳限制电压，能源仓等级不限。
-gtsr.tooltip.kinetic_array.desc3=蒸汽消耗率随电压等级递减：
+gtsr.tooltip.kinetic_array.desc3=过热蒸汽消耗按实际电力消耗计算：钢4 L/EU、钛2 L/EU、钨钢1 L/EU。
 gtsr.tooltip.kinetic_array.ctrl=侧舱前固定控制面板
 gtsr.tooltip.kinetic_array.steam_input=蒸汽仓/耐压蒸汽仓/输入仓
 gtsr.tooltip.kinetic_array.input=输入总线
 gtsr.tooltip.kinetic_array.output=输出总线
 gtsr.tooltip.kinetic_array.output_hatch=输出仓/耐压蒸汽冷却仓
-gtsr.tooltip.kinetic_array.hint_pipe=material统一升级机壳、管道和齿轮：钢200%速度，钛250%，钨钢300%。
-gtsr.tooltip.kinetic_array.hint_gear=对应耗电系数：钢0.6、钛0.4、钨钢0.3；钨钢档齿轮位使用装配线方块。
+gtsr.tooltip.kinetic_array.hint_pipe=material同步升级机壳、齿轮、管道和框架；钢/钛/钨钢速度为200%/250%/300%。
+gtsr.tooltip.kinetic_array.hint_gear=对应耗电系数0.6/0.4/0.3，过热蒸汽4/2/1 L/EU；钨钢档使用本模组钨钢齿轮箱。
 
 # 6. Large Coke Oven
 gtsr.tooltip.coke_oven.type=大型焦炉, LCO
@@ -818,7 +818,7 @@ gtsr.tooltip.turbine_array.desc3=堆叠层数越多，机器功率越高。
 gtsr.tooltip.turbine_array.desc4=等级6+以上可处理致密/超临界蒸汽，更高效率
 gtsr.tooltip.turbine_array.ctrl=最前方供汽控制台正面
 gtsr.tooltip.turbine_array.hint_pipe=material统一三档：钢无额外加成；钛效率上限+15个百分点、节汽+5个百分点。
-gtsr.tooltip.turbine_array.hint_gear=钨钢效率上限+35个百分点、节汽+12.5个百分点；其齿轮位为装配线方块。材料档不限制电压。
+gtsr.tooltip.turbine_array.hint_gear=钨钢效率上限+35个百分点、节汽+12.5个百分点；使用本模组钨钢齿轮箱，框架随材料升级。
 
 # 11. Siemens-Martin Furnace
 gtsr.tooltip.siemens_martin.type=平炉, SMF
@@ -1010,7 +1010,7 @@ gtsr.gui.turbine_array.extra_stack_layers=额外堆叠层:
 gtsr.tooltip.turbine_array.multi_tier=多 等级
 gtsr.tooltip.turbine_array.each_tier=每层+1等级
 gtsr.gui.turbine_array.output_power=输出功率: 
-gtsr.tooltip.turbine_array.formula=EU/t = V[tier] × 全局功率参数 × 蒸汽效率因子 × 组数 × 效率%，
+gtsr.tooltip.turbine_array.formula=EU/t = 4 × 电压 × 功率参数 × 功率组数 × 蒸汽转换因子 × 实际效率；耗汽同步提高。
 gtsr.tooltip.turbine_array.power_param=螺丝刀右击循环切换全局功率
 gtsr.tooltip.turbine_array.singularity_mode=输入总线中的蒸汽纠缠奇点触发奇点模式：功率×2、效率上限+100%、蒸汽节省率+15%；
 gtsr.tooltip.turbine_array.cycle_overlimit_chip=循环超限芯片（放入控制器槽）：完成全部4组额外叠加层后，
@@ -1037,7 +1037,7 @@ gtsr.gui.siemens_martin.overheat_reduction=配方时间削减:
 gtsr.tooltip.siemens_martin.input_bus=输入总线
 gtsr.tooltip.siemens_martin.output_bus=输出总线
 gtsr.tooltip.siemens_martin.superheated_only=仅过热蒸汽
-gtsr.tooltip.siemens_martin.recipe_time_reduce=配方基础时间缩减：所有配方时间缩短至75%（过热削减前应用）
+gtsr.tooltip.siemens_martin.recipe_time_reduce=配方基础时间缩短至37.5%（在过热时间削减之前应用）。
 gtsr.tooltip.siemens_martin.air_cost=运行配方时消耗1,000 L/s空气（输入仓需有空气）
 gtsr.tooltip.siemens_martin.air_preheat=预热阶段不消耗空气
 gtsr.tooltip.siemens_martin.air_input_hatch=空气输入仓（空气/下界空气）
@@ -4981,4 +4981,8 @@ gtsr.tooltip.heavy_turbine.startup=冷启动效率0%；每累计运行1秒提升
 gtsr.tooltip.heavy_turbine.partial=少汽按实际消耗比例发电，也能累积升温；短暂断汽保留升温进度，欠供时生效效率不超过100%，已保存的升温效率保留。
 gtsr.tooltip.heavy_turbine.cooling=蒸汽利用率固定100%。普通蒸汽0.5 EU/L，160:1返蒸馏水；钢可用过热蒸汽1 EU/L，1:1返普通蒸汽。
 gtsr.tooltip.heavy_turbine.pause=停止每秒降低10个百分点；升温效率与结算余数随存档保存，堵塞解除后自动恢复。
-gtsr.structurelib.channel.material.usage=material通道：1=钢、2=钛、3=钨钢，机壳/管道/齿轮须同档；钨钢齿轮位为装配线方块。
+gtsr.structurelib.channel.material.usage=material通道：1=钢、2=钛、3=钨钢，机壳/管道/齿轮/框架须同档；钨钢使用本模组齿轮箱。
+tile.TungstenSteelGearbox.name=钨钢齿轮箱
+gtsr.tooltip.siemens_martin.carbon_sources=煤粉配方也接受等量木炭或木炭粉，按1:1替代。
+gtsr.gui.turbine_array.group_summary=实体环 %s 组 / 功率 %s 组
+gtsr.tooltip.turbine_array.power_groups=基础发电倍率×4；基座按2个功率组计，每额外环+1；效率与节汽加成只按额外环数。

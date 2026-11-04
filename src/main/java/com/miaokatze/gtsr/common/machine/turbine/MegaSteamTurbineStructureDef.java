@@ -24,7 +24,6 @@ import com.miaokatze.gtsr.common.structure.RebuiltMachineGlass;
 import com.miaokatze.gtsr.common.structure.RebuiltMachineMaterials;
 
 import gregtech.api.GregTechAPI;
-import gregtech.api.enums.Materials;
 import gregtech.api.util.GTUtility;
 import gregtech.common.blocks.ItemMachines;
 
@@ -182,7 +181,16 @@ public final class MegaSteamTurbineStructureDef {
                             -1,
                             (t, tier) -> t.setMaterialTier(tier),
                             t -> t.mMaterialTier)))
-                .addElement('E', gregtech.api.util.GTStructureUtility.ofFrame(Materials.Steel))
+                .addElement(
+                    'E',
+                    withChannel(
+                        "material",
+                        ofBlocksTiered(
+                            RebuiltMachineMaterials::frameTier,
+                            RebuiltMachineMaterials.frameChoices(),
+                            -1,
+                            (t, tier) -> t.setMaterialTier(tier),
+                            t -> t.mMaterialTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;

@@ -121,11 +121,11 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
     private static final double MAX_OVERHEAT = 2.0d; // 200%
     private static final double RECIPE_TIME_REDUCTION_PER_PERCENT = 0.005d; // 0.5% per 1% above 100%
     private static final double MAX_RECIPE_TIME_REDUCTION = 0.5d; // 50% max reduction
-    // 基础配方时间倍率：配方时间缩小到现有的75%（在过热削减之前应用）
-    private static final double RECIPE_TIME_BASE_FACTOR = 0.75d;
-    // 并行：100%炉温 = 64并行，200%炉温线性提升至128并行
-    private static final int BASE_PARALLEL = 64;
-    private static final int MAX_PARALLEL = 128;
+    // 基础配方时间倍率：配方时间缩小到配方表的37.5%（在过热削减之前应用）
+    private static final double RECIPE_TIME_BASE_FACTOR = 0.375d;
+    // 并行：100%炉温 = 128并行，200%炉温线性提升至256并行
+    private static final int BASE_PARALLEL = 128;
+    private static final int MAX_PARALLEL = 256;
     // 运行配方时空气消耗：1000 L/s = 50 L/tick（预热不消耗空气）
     private static final int AIR_COST_PER_TICK = 50;
     private static final int AIR_COST_PER_SECOND = 1_000;
@@ -775,7 +775,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
     @Override
     public int getMaxParallelRecipes() {
         if (mFurnaceTemperature < 1.0d) return 0;
-        // 100%炉温 = 64并行（BASE_PARALLEL），200%炉温线性提升至128并行（MAX_PARALLEL）
+        // 100%炉温 = BASE_PARALLEL，200%炉温线性提升至 MAX_PARALLEL
         if (mFurnaceTemperature <= 1.0d) return BASE_PARALLEL;
         double tempRatio = Math.min(1.0d, (mFurnaceTemperature - 1.0d) / (MAX_OVERHEAT - 1.0d));
         return (int) (BASE_PARALLEL + (MAX_PARALLEL - BASE_PARALLEL) * tempRatio);
@@ -1056,6 +1056,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
             .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc_2"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc_3"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.carbon_sources"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc2"))
             .addSeparator()
             .addInfo(

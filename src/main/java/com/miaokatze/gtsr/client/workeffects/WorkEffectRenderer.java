@@ -1,9 +1,12 @@
 package com.miaokatze.gtsr.client.workeffects;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
+import java.util.List;
+
+import javax.imageio.ImageIO;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -36,12 +39,9 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 public final class WorkEffectRenderer implements IResourceManagerReloadListener {
 
     private static final ResourceLocation FOREGROUND = new ResourceLocation("gtsr", "workeffects/firebox_grate.png");
-    private static final String FOREGROUND_SHA = "bf46e1b766edd4562d85371d875c5606953d2eb90a02c3ead9e4f2b8968078f9";
-    private static final String BRONZE_SHA = "9da8c4276feb8d1acc4e2a20be0cd4101da04f6faaf63c4675b56a9976e081cf";
-    private static final String STEEL_SHA = "37a904e7c4f6a78c35a70e003557f332b499cf000b282d59841fca19ff799016";
     private static final int[][] NORMALS = { { 0, 0, -1 }, { 0, 0, 1 }, { -1, 0, 0 }, { 1, 0, 0 } };
-    private static boolean bronzeCompatible;
-    private static boolean steelCompatible;
+    private static List<double[]> bronzeOpenings = Collections.emptyList();
+    private static List<double[]> steelOpenings = Collections.emptyList();
     private static boolean foregroundAvailable;
     private static long renderedFrames;
     private static long renderedFaces;
@@ -53,32 +53,26 @@ public final class WorkEffectRenderer implements IResourceManagerReloadListener 
 
     @Override
     public void onResourceManagerReload(IResourceManager manager) {
-        bronzeCompatible = matches(manager, "MACHINE_CASING_FIREBOX_BRONZE", BRONZE_SHA);
-        steelCompatible = matches(manager, "MACHINE_CASING_FIREBOX_STEEL", STEEL_SHA);
-        foregroundAvailable = matches(manager, FOREGROUND, FOREGROUND_SHA);
+        BufferedImage foreground = image(manager, FOREGROUND);
+        bronzeOpenings = openings(manager, "MACHINE_CASING_FIREBOX_BRONZE", foreground);
+        steelOpenings = openings(manager, "MACHINE_CASING_FIREBOX_STEEL", foreground);
+        foregroundAvailable = true;
     }
 
-    private static boolean matches(IResourceManager manager, String name, String expected) {
-        return matches(
-            manager,
-            new ResourceLocation("gregtech", "textures/blocks/iconsets/" + name + ".png"),
-            expected);
+    private static List<double[]> openings(IResourceManager manager, String name, BufferedImage foreground) {
+        return FireboxGrateMask.openings(
+            image(manager, new ResourceLocation("gregtech", "textures/blocks/iconsets/" + name + ".png")),
+            foreground);
     }
 
-    private static boolean matches(IResourceManager manager, ResourceLocation location, String expected) {
+    private static BufferedImage image(IResourceManager manager, ResourceLocation location) {
         try (InputStream stream = manager.getResource(location)
             .getInputStream()) {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] buffer = new byte[1024];
-            for (int size; (size = stream.read(buffer)) != -1;) digest.update(buffer, 0, size);
-            StringBuilder hash = new StringBuilder(64);
-            for (byte value : digest.digest()) hash.append(String.format("%02x", value & 255));
-            return hash.toString()
-                .equals(expected);
-        } catch (IOException missing) {
-            return false;
-        } catch (NoSuchAlgorithmException impossible) {
-            throw new IllegalStateException(impossible);
+            BufferedImage image = ImageIO.read(stream);
+            if (image == null) throw new IllegalStateException("Invalid firebox image: " + location);
+            return image;
+        } catch (IOException failure) {
+            throw new IllegalStateException("Cannot load firebox image: " + location, failure);
         }
     }
 
@@ -120,13 +114,17 @@ public final class WorkEffectRenderer implements IResourceManagerReloadListener 
                 int z = base.getZCoord() + offset.get2();
                 if (!world.blockExists(x, y, z) || world.getBlock(x, y, z) != block) continue;
                 int meta = world.getBlockMetadata(x, y, z);
-                if (meta == 13 ? steelOnly || !bronzeCompatible : meta != 14 || !steelCompatible) continue;
+                if (meta == 13 ? steelOnly : meta != 14) continue;
+                List<double[]> openings = meta == 13 ? bronzeOpenings : steelOpenings;
+                if (openings.isEmpty()) continue;
                 for (int side = 2; side < 6; side++) {
                     int[] normal = NORMALS[side - 2];
                     int nx = x + normal[0], ny = y + normal[1], nz = z + normal[2];
                     if (world.blockExists(nx, ny, nz) && block.shouldSideBeRendered(world, nx, ny, nz, side)) {
                         tess.setNormal(normal[0], normal[1], normal[2]);
-                        face(tess, offset.get0(), offset.get1(), offset.get2(), side);
+                        for (double[] opening : openings) {
+                            face(tess, offset.get0(), offset.get1(), offset.get2(), side, opening);
+                        }
                         renderedFaces++;
                     }
                 }
@@ -137,31 +135,32 @@ public final class WorkEffectRenderer implements IResourceManagerReloadListener 
         }
     }
 
-    private static void face(Tessellator t, double x, double y, double z, int side) {
+    private static void face(Tessellator t, double x, double y, double z, int side, double[] opening) {
+        double u0 = opening[0], v0 = opening[1], u1 = opening[2], v1 = opening[3];
         switch (side) {
             case 2 -> {
-                t.addVertexWithUV(x + 1, y, z, 0, 1);
-                t.addVertexWithUV(x, y, z, 1, 1);
-                t.addVertexWithUV(x, y + 1, z, 1, 0);
-                t.addVertexWithUV(x + 1, y + 1, z, 0, 0);
+                t.addVertexWithUV(x + 1 - u0, y + 1 - v1, z, u0, v1);
+                t.addVertexWithUV(x + 1 - u1, y + 1 - v1, z, u1, v1);
+                t.addVertexWithUV(x + 1 - u1, y + 1 - v0, z, u1, v0);
+                t.addVertexWithUV(x + 1 - u0, y + 1 - v0, z, u0, v0);
             }
             case 3 -> {
-                t.addVertexWithUV(x, y, z + 1, 0, 1);
-                t.addVertexWithUV(x + 1, y, z + 1, 1, 1);
-                t.addVertexWithUV(x + 1, y + 1, z + 1, 1, 0);
-                t.addVertexWithUV(x, y + 1, z + 1, 0, 0);
+                t.addVertexWithUV(x + u0, y + 1 - v1, z + 1, u0, v1);
+                t.addVertexWithUV(x + u1, y + 1 - v1, z + 1, u1, v1);
+                t.addVertexWithUV(x + u1, y + 1 - v0, z + 1, u1, v0);
+                t.addVertexWithUV(x + u0, y + 1 - v0, z + 1, u0, v0);
             }
             case 4 -> {
-                t.addVertexWithUV(x, y, z, 0, 1);
-                t.addVertexWithUV(x, y, z + 1, 1, 1);
-                t.addVertexWithUV(x, y + 1, z + 1, 1, 0);
-                t.addVertexWithUV(x, y + 1, z, 0, 0);
+                t.addVertexWithUV(x, y + 1 - v1, z + u0, u0, v1);
+                t.addVertexWithUV(x, y + 1 - v1, z + u1, u1, v1);
+                t.addVertexWithUV(x, y + 1 - v0, z + u1, u1, v0);
+                t.addVertexWithUV(x, y + 1 - v0, z + u0, u0, v0);
             }
             default -> {
-                t.addVertexWithUV(x + 1, y, z + 1, 0, 1);
-                t.addVertexWithUV(x + 1, y, z, 1, 1);
-                t.addVertexWithUV(x + 1, y + 1, z, 1, 0);
-                t.addVertexWithUV(x + 1, y + 1, z + 1, 0, 0);
+                t.addVertexWithUV(x + 1, y + 1 - v1, z + 1 - u0, u0, v1);
+                t.addVertexWithUV(x + 1, y + 1 - v1, z + 1 - u1, u1, v1);
+                t.addVertexWithUV(x + 1, y + 1 - v0, z + 1 - u1, u1, v0);
+                t.addVertexWithUV(x + 1, y + 1 - v0, z + 1 - u0, u0, v0);
             }
         }
     }
@@ -169,9 +168,13 @@ public final class WorkEffectRenderer implements IResourceManagerReloadListener 
     public static String diagnostics() {
         return "foreground=" + foregroundAvailable
             + ",bronze="
-            + bronzeCompatible
+            + !bronzeOpenings.isEmpty()
             + ",steel="
-            + steelCompatible
+            + !steelOpenings.isEmpty()
+            + ",bronzeOpenings="
+            + bronzeOpenings.size()
+            + ",steelOpenings="
+            + steelOpenings.size()
             + ",frames="
             + renderedFrames
             + ",faces="

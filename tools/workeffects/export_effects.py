@@ -157,13 +157,12 @@ def outputs():
                 "foreground": {"resource": "assets/gtsr/workeffects/firebox_grate.png",
                                "sha256": hashlib.sha256(foreground).hexdigest(), "maskedPixels": 48,
                                "apertures": {"x": [4, 5, 7, 8, 10, 11], "yInclusive": [4, 11],
-                                             "nativeApertureMaxRGBRange": [0, 17],
+                                             "nativeApertureMaxRGBRange": [0, 20],
                                              "same48PixelsInBronzeAndSteel": True},
                                "source": "TASK03 visual-reference/runtime/app.js proposal:firebox_heat_foreground",
                                "baseTextures": ["gregtech:iconsets/MACHINE_CASING_FIREBOX_BRONZE", "gregtech:iconsets/MACHINE_CASING_FIREBOX_STEEL"],
-                               "baseTextureSHA256": ["9da8c4276feb8d1acc4e2a20be0cd4101da04f6faaf63c4675b56a9976e081cf",
-                                                     "37a904e7c4f6a78c35a70e003557f332b499cf000b282d59841fca19ff799016"],
-                               "resourcePackPolicy": "reload-time exact base PNG hash; incompatible material keeps native static base",
+                               "resourcePackPolicy": "reload-time current base PNG openings intersect existing foreground alpha; opaque near-neutral RGB <=20, channel spread <=1, in every square animation frame; base icon unchanged",
+                               "modernityApertures": {"x": [4, 5, 7, 8, 10, 11], "yInclusive": [5, 10], "maskedPixels": 36},
                                "nativeActive": False},
                 "gameValidation": "NOT_RUN"}
     return {JAVA / "common/workeffects/WorkEffectDefinitions.java": text.encode(),
@@ -176,9 +175,6 @@ def main():
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     result = outputs()
-    renderer = (JAVA / "client/workeffects/WorkEffectRenderer.java").read_text(encoding="utf-8")
-    foreground_hash = re.search(r'FOREGROUND_SHA\s*=\s*"([a-f0-9]{64})"', renderer)
-    assert foreground_hash and foreground_hash.group(1) == hashlib.sha256(result[RES / "firebox_grate.png"]).hexdigest(), "runtime foreground SHA gate is stale"
     for path, content in result.items():
         if args.check:
             actual = path.read_bytes() if path.is_file() else b""

@@ -82,8 +82,8 @@ function compile(model,id){
     B:binding('casing',shell),H:binding('casing',shell),R:binding('casing',shell),
     C:binding('pipe',id==='heavy_steam_turbine'?[['GregTechAPI.sBlockCasings2',12],['GregTechAPI.sBlockCasings2',13]]:[13,14,15].map(meta=>['GregTechAPI.sBlockCasings2',meta])),
     S:binding('pipe',id==='heavy_steam_turbine'?[['GregTechAPI.sBlockCasings2',12],['GregTechAPI.sBlockCasings2',13]]:[13,14,15].map(meta=>['GregTechAPI.sBlockCasings2',meta])),
-    D:binding('gearbox',(id==='heavy_steam_turbine'?[2,3]:[3,4,5]).map(meta=>['GregTechAPI.sBlockCasings2',meta])),
-    E:binding('frame',(id==='heavy_steam_turbine'?['Bronze','Steel']:['Steel']).map(material=>['GregTechAPI.sBlockFrames','Materials.'+material+'.mMetaItemSubID'])),
+    D:binding('gearbox',id==='heavy_steam_turbine'?[2,3].map(meta=>['GregTechAPI.sBlockCasings2',meta]):[['GregTechAPI.sBlockCasings2',3],['GregTechAPI.sBlockCasings2',4],['BlocksGTSR.tungstenSteelGearbox',0]]),
+    E:binding('frame',(id==='heavy_steam_turbine'?['Bronze','Steel']:['Steel','Titanium','TungstenSteel']).map(material=>['GregTechAPI.sBlockFrames','Materials.'+material+'.mMetaItemSubID'])),
     G:binding('reinforced_glass',id==='heavy_steam_turbine'?[['Blocks.glass',0]]:[['Blocks.glass',0],['GregTechAPI.sBlockGlass1',10],...Array.from({length:10},(_,meta)=>['BorosilicateGlass.getGlassBlock()',meta])])
   };
   if(id==='heavy_steam_turbine')tokenMaterials.F=binding('casing',bronzeSteel);
@@ -96,7 +96,7 @@ const additions=[compile(api.buildArray(),'kinetic_processing_array')];
 for(let k=0;k<=4;k++){api.state.stacks=k;additions.push(compile(api.buildTurbine(),'mega_steam_turbine_'+k));}
 additions.push(compile(context.window.BUILD_MINI_TURBINE(api.makeModel,'bronze'),'heavy_steam_turbine'));
 const root=JSON.parse(fs.readFileSync(target,'utf8'));
-root.source='TASK03 final scope 2026-11-01; approved 2026-11-04 voltage cabinets, unified materials and 2x2 chimney bore';
+root.source='TASK03 final scope 2026-11-01; approved 2026-11-04 accessible voltage panels, unified frames, side glazing, continuous full-cube pipe bundles and GTSR tungstensteel gearbox';
 root.definitions=root.definitions.filter(d=>!additions.some(a=>a.id===d.id)).concat(additions);
 const output=JSON.stringify(root,null,2)+'\n';
 if(process.argv.includes('--check')){

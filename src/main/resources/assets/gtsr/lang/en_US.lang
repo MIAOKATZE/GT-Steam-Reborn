@@ -769,14 +769,14 @@ gtsr.tooltip.crust_borer.output_bus=Output Bus
 gtsr.tooltip.kinetic_array.type=Kinetic Processing Array, KPA
 gtsr.tooltip.kinetic_array.desc=Insert GT single-block machines into the controller GUI, powered by electricity + superheated steam, executes the machine's recipes.
 gtsr.tooltip.kinetic_array.desc2=Parallel = (1 + 2 x internal machine tier) + machine count. Eight standard machine casings limit voltage; energy hatch tier is unrestricted.
-gtsr.tooltip.kinetic_array.desc3=Steam consumption rate decreases with voltage tier:
+gtsr.tooltip.kinetic_array.desc3=Superheated steam follows actual electrical use: steel 4 L/EU, titanium 2 L/EU, tungstensteel 1 L/EU.
 gtsr.tooltip.kinetic_array.ctrl=Fixed front control panel on the side bay
 gtsr.tooltip.kinetic_array.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
 gtsr.tooltip.kinetic_array.input=Input Bus
 gtsr.tooltip.kinetic_array.output=Output Bus
 gtsr.tooltip.kinetic_array.output_hatch=Output Hatch/Pressure Steam Cooling Hatch
-gtsr.tooltip.kinetic_array.hint_pipe=material upgrades casings, pipes and gears together: steel 200% speed, titanium 250%, tungstensteel 300%.
-gtsr.tooltip.kinetic_array.hint_gear=EU multipliers: steel 0.6, titanium 0.4, tungstensteel 0.3. Tungstensteel gear positions use assembly line casings.
+gtsr.tooltip.kinetic_array.hint_pipe=material upgrades casings, gears, pipes and frames together: steel/titanium/tungstensteel run at 200%/250%/300% speed.
+gtsr.tooltip.kinetic_array.hint_gear=EU multipliers 0.6/0.4/0.3; superheated steam 4/2/1 L/EU. Tungstensteel uses this mod's dedicated gearbox.
 
 # Large Coke Oven (LCO)
 gtsr.tooltip.coke_oven.type=Large Coke Oven, LCO
@@ -1009,7 +1009,7 @@ gtsr.tooltip.turbine_array.height_channel=height channel: 1-4 = BASE; 5-8 = +1 S
 gtsr.tooltip.turbine_array.multi_tier=Multi Tier
 gtsr.tooltip.turbine_array.each_tier=Each +1 Tier
 gtsr.gui.turbine_array.output_power=Output Power: 
-gtsr.tooltip.turbine_array.formula=EU/t = V[tier] × global power × steam efficiency factor × groups × efficiency%,
+gtsr.tooltip.turbine_array.formula=EU/t = 4 x voltage x power parameter x power groups x steam conversion factor x operating efficiency; steam consumption scales with power.
 gtsr.tooltip.turbine_array.power_param=Screwdriver cycles global power
 gtsr.tooltip.turbine_array.singularity_mode=Steam Entangled Singularity in input bus triggers singularity mode: ×2 power, +100% efficiency cap, +15% steam savings;
 gtsr.tooltip.turbine_array.cycle_overlimit_chip=Cycle Overlimit Chip (controller slot): after all 4 extra stack groups,
@@ -1036,7 +1036,7 @@ gtsr.gui.siemens_martin.overheat_reduction=Time Reduction:
 gtsr.tooltip.siemens_martin.input_bus=Input Bus
 gtsr.tooltip.siemens_martin.output_bus=Output Bus
 gtsr.tooltip.siemens_martin.superheated_only=Superheated Steam Only
-gtsr.tooltip.siemens_martin.recipe_time_reduce=Base recipe time reduction: All recipe times reduced to 75% (before overheat reduction)
+gtsr.tooltip.siemens_martin.recipe_time_reduce=Base recipe duration is 37.5% of the listed duration, before the overheat reduction.
 gtsr.tooltip.siemens_martin.air_cost=Consumes 1,000 L/s air while running recipes (air required in input hatch)
 gtsr.tooltip.siemens_martin.air_preheat=No air consumption during preheating
 gtsr.tooltip.siemens_martin.air_input_hatch=Air Input Hatch (Air/Nether Air)
@@ -1195,7 +1195,7 @@ gtsr.tooltip.shared.screwdriver_overflow=Screwdriver Right-Click: Toggle Overflo
 gtsr.tooltip.shared.screwdriver_rightclick_overflow=Screwdriver Right-Click: Toggle Overflow Output
 gtsr.tooltip.hub_storage_unit.steam_water_hub=Steam Hub
 gtsr.tooltip.turbine_array.hint_pipe=material sets all three component families: steel has no bonus; titanium adds 15 efficiency-ceiling points and 5 steam-saving points.
-gtsr.tooltip.turbine_array.hint_gear=Tungstensteel adds 35 efficiency-ceiling points and 12.5 steam-saving points; gear positions use assembly line casings. Material does not set voltage.
+gtsr.tooltip.turbine_array.hint_gear=Tungstensteel adds 35 efficiency-ceiling points and 12.5 steam-saving points; use this mod's gearbox and matching upgraded frames.
 gtsr.tooltip.turbine_array.tier_system=12-tier voltage system: LV→MV→HV→EV→IV→LuV→ZPM→UV→UHV→UEV→UIV→UMV
 gtsr.tooltip.turbine_array.steam_progression=Steam types: Normal→Superheated→Dense→Dense Superheated→Supercritical→Dense Supercritical
 gtsr.tooltip.turbine_array.stacking_desc=4 layers per STACK, up to 4 extra STACKs;
@@ -4985,4 +4985,8 @@ gtsr.tooltip.heavy_turbine.startup=Starts at 0%. Each accumulated second of oper
 gtsr.tooltip.heavy_turbine.partial=Partial steam produces proportional power and accumulates warm-up across short fuel gaps. Effective efficiency is capped at 100% below rated flow; stored warm-up is retained.
 gtsr.tooltip.heavy_turbine.cooling=Steam utilization is always 100%. Ordinary steam: 0.5 EU/L, 160:1 distilled water. Steel supports superheated steam: 1 EU/L, 1:1 ordinary steam exhaust.
 gtsr.tooltip.heavy_turbine.pause=While stopped: -10 percentage points/second. Warm-up and accounting remainders are saved; operation resumes after backpressure clears.
-gtsr.structurelib.channel.material.usage=material channel: 1=steel, 2=titanium, 3=tungstensteel; casings/pipes/gears must match. Tungstensteel gear positions use assembly line casings.
+gtsr.structurelib.channel.material.usage=material channel: 1=steel, 2=titanium, 3=tungstensteel. Casings/pipes/gears/frames must match; tungstensteel uses this mod's gearbox.
+tile.TungstenSteelGearbox.name=Tungstensteel Gearbox
+gtsr.tooltip.siemens_martin.carbon_sources=Coal dust recipes also accept the same amount of charcoal or charcoal dust (1:1).
+gtsr.gui.turbine_array.group_summary=Physical rings: %s / Power groups: %s
+gtsr.tooltip.turbine_array.power_groups=Base output multiplier x4; the base counts as 2 power groups, +1 per extra ring. Efficiency and savings bonuses count extra rings only.

@@ -268,13 +268,31 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
         return room;
     }
 
+    private List<FluidStack> steamInputs(SteamType type) {
+        List<FluidStack> inputs = new ArrayList<>();
+        for (FluidStack fluid : getStoredFluids()) {
+            if (SteamTurbineSteamTypes.classifyFluid(fluid) != type) continue;
+            boolean duplicate = false;
+            for (FluidStack input : inputs) if (input.isFluidEqual(fluid)) {
+                duplicate = true;
+                break;
+            }
+            if (!duplicate) inputs.add(fluid);
+        }
+        return inputs;
+    }
+
     private int availableSteam(SteamType type, int limit) {
         if (type == SteamType.NONE) return 0;
-        long available = type == SteamType.STEAM ? paidSteam : 0;
-        for (FluidStack fluid : getStoredFluids()) {
-            if (SteamTurbineSteamTypes.classifyFluid(fluid) == type) available += fluid.amount;
+        int available = type == SteamType.STEAM ? Math.min(limit, paidSteam) : 0;
+        // Outside recipe processing, ME stored stacks carry only a 1 L configuration sentinel.
+        // Use them for fluid identity, then probe only the remaining demand through the hatch API.
+        for (FluidStack fluid : steamInputs(type)) {
+            if (available >= limit) break;
+            available += (int) GTSRHatchFluidAccess
+                .probeFluidAmountAcross(mInputHatches, new FluidStack(fluid, limit - available));
         }
-        return (int) Math.min(limit, available);
+        return available;
     }
 
     private SteamType selectSteam() {
@@ -288,12 +306,10 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
         if (type == SteamType.NONE) return 0;
         int consumed = type == SteamType.STEAM ? Math.min(required, paidSteam) : 0;
         paidSteam -= consumed;
-        for (FluidStack fluid : getStoredFluids()) {
+        for (FluidStack fluid : steamInputs(type)) {
             if (consumed >= required) break;
-            if (SteamTurbineSteamTypes.classifyFluid(fluid) == type) {
-                consumed += GTSRHatchFluidAccess
-                    .depleteFluidAcross(mInputHatches, new FluidStack(fluid, required - consumed));
-            }
+            consumed += GTSRHatchFluidAccess
+                .depleteFluidAcross(mInputHatches, new FluidStack(fluid, required - consumed));
         }
         return consumed;
     }
@@ -345,7 +361,8 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
         SteamType type = selectSteam();
         if (type == SteamType.NONE && energyCredit < HeavySteamTurbineCycle.ENERGY_UNITS_PER_EU)
             return CheckRecipeResultRegistry.NO_FUEL_FOUND;
-        Settlement plan = settlement(type, availableSteam(type, 4096), outputRoom());
+        int rated = HeavySteamTurbineCycle.ratedSteam(mMaterialTier, type == SteamType.SH_STEAM);
+        Settlement plan = settlement(type, availableSteam(type, rated), outputRoom());
         if (plan.steam() == 0 && plan.output() == 0) return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
         mEfficiencyIncrease = 0;
         mMaxProgresstime = 20;
@@ -357,7 +374,8 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
         if (!getBaseMetaTileEntity().isAllowedToWork() || outputRoom() == 0 || !flushCoolant()) return pauseCycle();
         SteamType type = selectSteam();
         long room = outputRoom();
-        Settlement plan = settlement(type, availableSteam(type, 4096), room);
+        int rated = HeavySteamTurbineCycle.ratedSteam(mMaterialTier, type == SteamType.SH_STEAM);
+        Settlement plan = settlement(type, availableSteam(type, rated), room);
         int consumed = consumeSteam(type, plan.steam());
         // Network withdrawals may return less than simulation. Charge and cool exactly the actual quantity.
         plan = settlement(type, consumed, room);

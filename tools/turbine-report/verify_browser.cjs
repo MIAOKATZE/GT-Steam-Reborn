@@ -67,9 +67,9 @@ async function main() {
   }
   assert.equal(await evaluate("document.querySelectorAll('#mega-table tbody tr').length"), 12);
   assert.equal(await evaluate("document.querySelectorAll('#kpa-tier-table tbody tr').length"), 13);
-  assert.match(await evaluate("document.getElementById('mega-cards').textContent"), /240 EU\/t/);
+  assert.match(await evaluate("document.getElementById('mega-cards').textContent"), /1,920 EU\/t/);
   const baseline = await evaluate("document.getElementById('mega-cards').textContent");
-  assert.match(baseline, /7\.5 A/);
+  assert.match(baseline, /60 A/);
   const heavyBaseline = await evaluate("JSON.parse(document.getElementById('report-data').textContent).heavy");
   assert.deepEqual(heavyBaseline.filter(row => row[5] === 100).map(row => [row[7], row[8], row[4]]), [[320, 125, 75], [1536, 150, 100], [2048, 200, 150]]);
   assert.deepEqual(heavyBaseline.filter(row => row[5] === 25).map(row => [row[7], row[8]]), [[64, 100], [256, 100], [256, 100]]);
@@ -91,16 +91,26 @@ async function main() {
   assert.equal(await evaluate("document.querySelectorAll('#mega-table tbody tr.unavailable').length"), 0);
   const sourceSample = await evaluate(`JSON.parse(document.getElementById('report-data').textContent).mega.find(r=>r.slice(0,7).join('/')==='12/3/4/5/10/2/1')`);
   assert(BigInt(sourceSample[10]) > 2147483647n, 'High-tier output must preserve the long path');
+  assert.equal(sourceSample[10], '2536715059200');
+  assert.equal(sourceSample[11], '44291852');
   assert.match(maximum, new RegExp(BigInt(sourceSample[10]).toLocaleString('en-US')));
   await evaluate("document.getElementById('kpa-tier').value='3';document.getElementById('kpa-machine').value='2';document.getElementById('kpa-boost').value='1';document.getElementById('kpa-controls').dispatchEvent(new Event('change',{bubbles:true}));");
   const boosted = await evaluate("document.getElementById('kpa-cards').textContent");
-  assert.match(boosted, /512 EU\/t/); assert.match(boosted, /2 L\/EU/); assert.match(boosted, /69/);
+  assert.match(boosted, /512 EU\/t/); assert.match(boosted, /4 L\/EU/); assert.match(boosted, /69/);
   await evaluate("document.getElementById('kpa-tier').value='1';document.getElementById('kpa-controls').dispatchEvent(new Event('change',{bubbles:true}));");
   assert.match(await evaluate("document.getElementById('kpa-cards').textContent"), /32 EU\/t/);
   for (const [input, expected] of [['0', '1'], ['99', '64'], ['1.7', '2']]) {
     await evaluate(`document.getElementById('kpa-count').value='${input}';document.getElementById('kpa-count').dispatchEvent(new Event('change',{bubbles:true}));`);
     assert.equal(await evaluate("document.getElementById('kpa-count').value"), expected);
   }
+  await evaluate("document.getElementById('kpa-material').value='3';document.getElementById('kpa-load').value='8';document.getElementById('kpa-controls').dispatchEvent(new Event('change'));");
+  const boundary = await evaluate("document.getElementById('kpa-cards').textContent");
+  assert.match(boundary, /21,474,836,480 EU\/t/);
+  assert.match(boundary, /21,474,836,480 L\/t/);
+  await evaluate("document.getElementById('kpa-material').value='1';document.getElementById('kpa-controls').dispatchEvent(new Event('change'));");
+  assert.match(await evaluate("document.getElementById('kpa-cards').textContent"), /85,899,345,920 L\/t/);
+  assert.equal(sourceSample[15], 5);
+  assert.equal(sourceSample[16], 6);
   const screenshot = async name => {
     const {data} = await tab('Page.captureScreenshot', {format: 'png'});
     fs.writeFileSync(path.join(artifactDirectory, name), Buffer.from(data, 'base64'));
@@ -114,9 +124,9 @@ async function main() {
   assert.deepEqual(externalRequests, []);
   const evidence = {status: 'PASS', browser: await send('Browser.getVersion'),
     checks: ['file:// load', 'all seven comparison axes', 'LV unavailable high-tier steam', 'chip group gate',
-      'UMV long output', 'BigInt amp conversion', 'KPA boost and casing cap', 'KPA quantity bounds',
+      'UMV long output', 'BigInt amp conversion', 'physical vs power groups', 'KPA native actual EU int boundary', 'KPA material steam ratios', 'KPA boost and casing cap', 'KPA quantity bounds',
       '9 Heavy source samples', '390px mobile layout', 'zero runtime exceptions', 'zero HTTP(S) page requests'],
-    baseline, maximum, boosted, sourceSample, screenshots: ['desktop-max.png', 'mobile-base.png']};
+    baseline, maximum, boosted, boundary, sourceSample, screenshots: ['desktop-max.png', 'mobile-base.png']};
   fs.writeFileSync(path.join(artifactDirectory, 'evidence.json'), JSON.stringify(evidence, null, 2));
   console.log(`PASS: real headless Chrome file:// interactions; evidence: ${artifactDirectory}`);
   await send('Browser.close');

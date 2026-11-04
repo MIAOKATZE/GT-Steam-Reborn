@@ -75,7 +75,6 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEBasicMachine;
 import gregtech.api.metatileentity.implementations.MTEBasicMachineWithRecipe;
-import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.recipe.check.CheckRecipeResult;
@@ -114,9 +113,6 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     private static final long BOOST_DURATION_TICKS = 1200L * 20L;
     private static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     private static IStructureDefinition<MTEKineticProcessingArray> STRUCTURE_DEFINITION;
-
-    private static final double[] STEAM_CONSUMPTION_RATES = { 8.0, 4.0, 2.0, 1.0, 0.5, 0.25, 0.1, 0.1, 0.1, 0.1, 0.1,
-        0.1, 0.1, 0.1, 0.1, 0.1 };
 
     private int mCasingAmount = 0;
     public int mCasingTier = -1;
@@ -371,7 +367,16 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                             -1,
                             (t, tier) -> t.setMaterialTier(tier),
                             t -> t.mMaterialTier)))
-                .addElement('E', gregtech.api.util.GTStructureUtility.ofFrame(Materials.Steel))
+                .addElement(
+                    'E',
+                    withChannel(
+                        "material",
+                        ofBlocksTiered(
+                            RebuiltMachineMaterials::frameTier,
+                            RebuiltMachineMaterials.frameChoices(),
+                            -1,
+                            (t, tier) -> t.setMaterialTier(tier),
+                            t -> t.mMaterialTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -649,17 +654,22 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         mMaxRecipeVoltage = getMaxRecipeVoltage();
     }
 
-    private double getSteamConsumptionRate() {
-        int tier = mMachineTier;
-        if (tier < 0) tier = 0;
-        if (tier >= STEAM_CONSUMPTION_RATES.length) tier = STEAM_CONSUMPTION_RATES.length - 1;
-        return STEAM_CONSUMPTION_RATES[tier];
+    public int getSteamConsumptionRate() {
+        return mMaterialTier >= 3 ? 1 : mMaterialTier == 2 ? 2 : 4;
+    }
+
+    /** The same final EU drain used by the GT running tick, with the int negation performed as long. */
+    @Override
+    protected long getActualEnergyUsage() {
+        return Math.abs((long) mEUt) * 10000L / Math.max(1000, mEfficiency);
+    }
+
+    public long steamCostForEUt(long actualEUt) {
+        return actualEUt * getSteamConsumptionRate();
     }
 
     private long calculateSteamCostPerTick() {
-        if (mEUt >= 0) return 0;
-        double rate = getSteamConsumptionRate();
-        return (long) (rate * Math.abs(mEUt));
+        return mEUt < 0 ? steamCostForEUt(getActualEnergyUsage()) : 0;
     }
 
     private boolean hasSufficientSuperheatedSteam(long required) {
@@ -669,14 +679,8 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         // v1.10.6：统一走 GTSRHatchFluidAccess 探测（按需量）
         FluidStack superheatedProbe = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
         if (superheatedProbe != null) {
-            for (MTEHatchInput hatch : GTUtility.validMTEList(mInputHatches)) {
-                FluidStack result = GTSRHatchFluidAccess
-                    .probeFluidAmount(hatch, superheatedProbe.getFluid(), (int) Math.max(1, required));
-                if (result != null && result.amount > 0 && result.isFluidEqual(superheatedProbe)) {
-                    total += result.amount;
-                    if (total >= required) return true;
-                }
-            }
+            total = GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, superheatedProbe, required);
+            if (total >= required) return true;
         }
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();
@@ -692,10 +696,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         long remaining = required;
         FluidStack superheatedProbe = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
         if (superheatedProbe != null) {
-            remaining -= GTSRHatchFluidAccess.depleteFluidAcross(
-                mInputHatches,
-                new FluidStack(superheatedProbe.getFluid(), (int) Math.min(remaining, Integer.MAX_VALUE)));
+            remaining -= GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, superheatedProbe, remaining);
         }
+        if (remaining <= 0) return true;
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();
             if (fs != null && GTModHandler.isSuperHeatedSteam(fs) && fs.amount > 0) {
@@ -712,9 +715,10 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         if (steamAmount <= 0) return;
         // 无耐压蒸汽冷却仓：冷凝蒸汽回退到常规输出仓（原行为）。
         if (mPressureCoolingHatches.isEmpty()) {
-            int toOutput = (int) Math.min(steamAmount, Integer.MAX_VALUE);
-            if (toOutput > 0) {
+            while (steamAmount > 0) {
+                int toOutput = (int) Math.min(steamAmount, Integer.MAX_VALUE);
                 addOutput(Materials.Steam.getGas(toOutput));
+                steamAmount -= toOutput;
             }
             return;
         }
@@ -729,6 +733,17 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             }
             if (steamAmount <= 0) return;
         }
+    }
+
+    private boolean hasCoolingSteamSpace(long required) {
+        if (mPressureCoolingHatches.isEmpty()) return true;
+        long capacity = 0;
+        for (MTEPressureSteamCoolingHatch hatch : GTUtility.validMTEList(mPressureCoolingHatches)) {
+            FluidStack fluid = hatch.getFluid();
+            capacity += hatch.getCapacity() - (fluid != null ? fluid.amount : 0);
+            if (capacity >= required) return true;
+        }
+        return required <= 0;
     }
 
     @Override
@@ -761,18 +776,21 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     @Override
     public boolean onRunningTick(ItemStack aStack) {
-        if (mEUt < 0) {
-            long steamPerTick = calculateSteamCostPerTick();
-            if (steamPerTick > 0) {
-                if (!depleteSuperheatedSteam(steamPerTick)) {
-                    stopMachine();
-                    return false;
-                }
-                outputCoolingSteam(steamPerTick);
-                mRealtimeSteamCost = steamPerTick;
-            }
+        long steamPerTick = calculateSteamCostPerTick();
+        if (!hasSufficientSuperheatedSteam(steamPerTick) || !hasCoolingSteamSpace(steamPerTick)) {
+            stopMachine();
+            return false;
         }
-        return super.onRunningTick(aStack);
+        if (!super.onRunningTick(aStack)) return false;
+        if (steamPerTick > 0) {
+            if (!depleteSuperheatedSteam(steamPerTick)) {
+                stopMachine();
+                return false;
+            }
+            outputCoolingSteam(steamPerTick);
+        }
+        mRealtimeSteamCost = steamPerTick;
+        return true;
     }
 
     @Nonnull
@@ -825,25 +843,31 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             @Nonnull
             @Override
             protected CheckRecipeResult validateRecipe(@Nonnull GTRecipe recipe) {
-                double rate = getSteamConsumptionRate();
-                long estimatedParallel = Math
-                    .min(getMaxParallelRecipes(), Math.max(1, getMaxInputPower() / Math.max(1, recipe.mEUt)));
-                long neededSteam = (long) (rate * recipe.mEUt * estimatedParallel * getEUtDiscount());
+                // ParallelHelper copies inputs with consumption disabled. Its calculator supplies the exact
+                // discounted, rounded EU/t and actual input/output-limited parallels before any real input is spent.
+                OverclockCalculator calculator = createOverclockCalculator(recipe);
+                ParallelHelper preview = createParallelHelper(recipe).setConsumption(false)
+                    .setOutputCalculation(false)
+                    .setRecipeLocked(
+                        recipeLockableMachine,
+                        isRecipeLocked && recipeLockableMachine != null
+                            && recipeLockableMachine.getSingleRecipeCheck() != null)
+                    .setCalculator(calculator)
+                    .build();
+                if (!preview.getResult()
+                    .wasSuccessful()) return preview.getResult();
+                long calculatedEUt = calculator.getConsumption();
+                if (calculatedEUt > Integer.MAX_VALUE) return CheckRecipeResultRegistry.POWER_OVERFLOW;
+                int startingEfficiency = 10000 - (getIdealStatus() - getRepairStatus()) * 1000;
+                long actualEUt = calculatedEUt * 10000L / Math.max(1000, startingEfficiency);
+                long neededSteam = steamCostForEUt(actualEUt);
                 if (neededSteam > 0 && !hasSufficientSuperheatedSteam(neededSteam)) {
                     return SimpleCheckRecipeResult.ofFailure("insufficient_steam");
                 }
                 // 冷却仓余量预检：有耐压蒸汽冷却仓时冷凝蒸汽全量进仓，余量不足则待机等空间。
                 // 输入蒸汽不足优先（已在上方返回），输出空间不足其次。
-                if (neededSteam > 0 && !mPressureCoolingHatches.isEmpty()) {
-                    long coolingCapacity = 0;
-                    for (MTEPressureSteamCoolingHatch hatch : GTUtility.validMTEList(mPressureCoolingHatches)) {
-                        FluidStack fluid = hatch.getFluid();
-                        coolingCapacity += hatch.getCapacity() - (fluid != null ? fluid.amount : 0);
-                        if (coolingCapacity >= neededSteam) break;
-                    }
-                    if (coolingCapacity < neededSteam) {
-                        return SimpleCheckRecipeResult.ofFailure("gtsr.gui.kinetic_array.cooling_full");
-                    }
+                if (!hasCoolingSteamSpace(neededSteam)) {
+                    return SimpleCheckRecipeResult.ofFailure("gtsr.gui.kinetic_array.cooling_full");
                 }
                 return CheckRecipeResultRegistry.SUCCESSFUL;
             }
@@ -1142,9 +1166,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { "三档材料机身；8 块内部标准机械外壳必须同电压级，9 块前窗玻璃等级不得低于内部等级。", "提示 1：侧舱下部固定机壳可替换能源仓、输入输出总线和流体仓。",
+        return new String[] { "三档材料机身；后检修面板 8 块标准机械壳同电压级；前窗 9 块与侧窗 8 块玻璃等级不得低于机械壳。", "提示 1：侧舱下部固定机壳可替换能源仓、输入输出总线和流体仓。",
             "提示 2：高压蒸汽输入；提示 3：压力冷却仓，均位于同一侧舱下部。", "至少一能源仓、一高压蒸汽输入、一个配方输入和一个输出；无需维护仓。",
-            "casing 1..12 选 LV..UMV 标准机械壳电压级；glass 选玻璃；material 同步钢/钛/钨钢机壳、管道和齿轮。旧结构不再成型。" };
+            "casing 1..12 选 LV..UMV 标准机械壳电压级；glass 选玻璃；material 同步钢/钛/钨钢机壳、管道、齿轮和框架。旧结构不再成型。" };
     }
 
     @Override
@@ -1233,8 +1257,8 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             .addInputBus("侧舱下部材料机壳（提示 1）", 1)
             .addOutputBus("侧舱下部材料机壳（提示 1）", 1)
             .addOutputHatch("侧舱下部材料机壳；压力冷却仓使用提示 3", 3)
-            .addStructureInfo("8 块内部标准机械外壳同电压级；9 块前窗玻璃同档且等级不低于机械外壳。")
-            .addStructureInfo("material 统一三档材料机壳、管道和齿轮；框架为钢；无需维护仓。")
+            .addStructureInfo("后检修面板 8 块标准机械壳同电压级；前窗 9 块与侧窗 8 块玻璃同档且等级不低于机械壳。")
+            .addStructureInfo("material 统一三档材料机壳、管道、齿轮和框架；无需维护仓。")
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
             .addStructureHint("gtsr.structurelib.channel.material.usage")
             .addInfo(GTSRUtils.getAddedByLine())

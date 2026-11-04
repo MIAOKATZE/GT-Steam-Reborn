@@ -76,7 +76,7 @@ def generate():
         return value
 
     constants = "\n".join(constant(mega, n) for n in [
-        "MAX_EXTRA_STACKS", "SINGULARITY_EFFICIENCY_BONUS", "SINGULARITY_SAVINGS_BONUS",
+        "MAX_EXTRA_STACKS", "BASE_POWER_MULTIPLIER", "SINGULARITY_EFFICIENCY_BONUS", "SINGULARITY_SAVINGS_BONUS",
         "SINGULARITY_POWER_MULTIPLIER", "CRITICAL_POWER_MULTIPLIER", "CRITICAL_EFFICIENCY_BONUS", "CRITICAL_SAVINGS_BONUS",
     ])
     power_parameters = constant(mega, "POWER_PARAMETERS")
@@ -84,7 +84,7 @@ def generate():
     steam_methods = "\n".join(take(steam, "SteamTypes", n) for n in ["effectiveSteamEffFactor", "effectiveSteamEuPerL"])
     mega_methods = "\n".join(take(mega, "Mega", n) for n in [
         "getSingularityPowerMult", "getSingularityEfficiencyBonus", "getSingularitySavingsBonus",
-        "setMaterialTier", "getGroupCount", "getMaxEfficiencyLimit", "getSteamSavings", "getVoltage",
+        "setMaterialTier", "getGroupCount", "getPowerGroupCount", "getMaxEfficiencyLimit", "getSteamSavings", "getVoltage",
         "isCycleOverlimitActive", "getEffectiveSteamEffFactor", "getEffectiveSteamEuPerL", "calcSteamConsumption",
     ])
     base = expression(mega, r"long base = (.*?);")
@@ -95,6 +95,7 @@ def generate():
     snippets["Mega.canUseHighTier"] = high_tier
     kpa_methods = "\n".join(take(kpa, "KPA", n) for n in [
         "setMaterialTier", "getEUtDiscount", "getDurationModifier", "getMaxRecipeVoltage", "getSteamConsumptionRate",
+        "getActualEnergyUsage", "steamCostForEUt",
     ])
     parallel = expression(method(kpa, "checkInternalMachine"), r"maxParallel = (.*?);")
     per_amp = expression(method(kpa, "checkProcessing"), r"mSteamPerAmp = (.*?);")
@@ -102,8 +103,6 @@ def generate():
     snippets["KPA.steamPerAmp"] = per_amp
     snippets["Mega.constants"] = constants + power_parameters
     snippets["SteamTypes.SteamType"] = steam_enum
-    rates = constant(kpa, "STEAM_CONSUMPTION_RATES")
-    snippets["KPA.STEAM_CONSUMPTION_RATES"] = rates
     heavy_class = block(heavy, r"public final class HeavySteamTurbineCycle\b").replace(
         "public final class HeavySteamTurbineCycle", "static final class HeavySteamTurbineCycle", 1)
     snippets["HeavySteamTurbineCycle"] = heavy_class
@@ -118,20 +117,20 @@ public class ReportProbe {{
   boolean hasCycleOverlimitChip() {{ return chip; }}
   {mega_methods}
   void row(SteamTurbineSteamTypes.SteamType type) {{
-   long voltage=getVoltage(); int groupCount=getGroupCount(), powerMult=getSingularityPowerMult();
+   long voltage=getVoltage(); int groupCount=getPowerGroupCount(), powerMult=getSingularityPowerMult();
    long mFullBaseEUt={base}; int mEfficiency=getMaxEfficiencyLimit(type);
    long output={output};
-   System.out.println("M,"+mCasingTier+","+mMaterialTier+","+mStackCount+","+(type.ordinal()-1)+","+mPowerParameter+","+mSingularityMode+","+(chip?1:0)+","+mEfficiency+","+getSteamSavings()+","+mFullBaseEUt+","+output+","+calcSteamConsumption(type)+","+isCycleOverlimitActive()+","+getEffectiveSteamEffFactor(type)+","+(!type.requiresHighTier() || ({high_tier})));
+   System.out.println("M,"+mCasingTier+","+mMaterialTier+","+mStackCount+","+(type.ordinal()-1)+","+mPowerParameter+","+mSingularityMode+","+(chip?1:0)+","+mEfficiency+","+getSteamSavings()+","+mFullBaseEUt+","+output+","+calcSteamConsumption(type)+","+isCycleOverlimitActive()+","+getEffectiveSteamEffFactor(type)+","+(!type.requiresHighTier() || ({high_tier}))+","+getGroupCount()+","+getPowerGroupCount());
   }}
  }}
  static class KPA {{
-  int mCasingTier, mMachineTier, mGlassTier=99, mMaterialTier, mPipeTier, mGearTier;
+  int mCasingTier, mMachineTier, mGlassTier=99, mMaterialTier, mPipeTier, mGearTier, mEUt, mEfficiency;
   Object internalMachineStack=new Object(); boolean boost;
   boolean isBoostModeActive() {{return boost;}}
-  {rates} {kpa_methods}
+  {kpa_methods}
   int parallel(int mStackSize) {{ return {parallel}; }}
   void row() {{long effectiveV=getMaxRecipeVoltage(); double rate=getSteamConsumptionRate();
-   System.out.println("K,"+mCasingTier+","+mMachineTier+","+(boost?1:0)+","+effectiveV+","+rate+","+({per_amp})+","+parallel(1)+","+parallel(64));
+   System.out.println("K,"+mCasingTier+","+mMachineTier+","+(boost?1:0)+","+mMaterialTier+","+effectiveV+","+rate+","+({per_amp})+","+parallel(1)+","+parallel(64));
   }}
  }}
  {heavy_class}
@@ -144,8 +143,12 @@ public class ReportProbe {{
     }}
    }}
   KPA a=new KPA();
-  for(int c=1;c<=12;c++) for(int t=0;t<=12;t++) for(int b=0;b<=1;b++) {{a.mCasingTier=c;a.mMachineTier=t;a.boost=b==1;a.row();}}
+  for(int c=1;c<=12;c++) for(int t=0;t<=12;t++) for(int b=0;b<=1;b++) for(int mat=1;mat<=3;mat++) {{a.setMaterialTier(mat);a.mCasingTier=c;a.mMachineTier=t;a.boost=b==1;a.row();}}
   for(int mat=1;mat<=3;mat++) {{a.setMaterialTier(mat);System.out.println("D,"+mat+","+a.getEUtDiscount()+","+a.getDurationModifier());}}
+  for(int mat=1;mat<=3;mat++) for(int load:new int[]{{-32,-Integer.MAX_VALUE,Integer.MIN_VALUE}}) for(int efficiency:new int[]{{10000,5000,1000}}) {{
+   a.setMaterialTier(mat);a.mEUt=load;a.mEfficiency=efficiency;
+   System.out.println("U,"+mat+","+load+","+efficiency+","+a.getActualEnergyUsage()+","+a.steamCostForEUt(a.getActualEnergyUsage()));
+  }}
   for(int profile=0;profile<3;profile++) {{
    int tier=profile==0?1:2; boolean heated=profile==2;
    int limit=HeavySteamTurbineCycle.efficiencyLimit(tier,heated), rated=HeavySteamTurbineCycle.ratedSteam(tier,heated);
@@ -168,19 +171,21 @@ public class ReportProbe {{
         source.write_text(java, encoding="utf-8")
         subprocess.run(["javac", "-encoding", "UTF-8", str(source)], check=True)
         raw = subprocess.check_output(["java", "-cp", directory, "ReportProbe"], text=True, encoding="utf-8")
-    rows, kpa_rows, modifiers, heavy_rows = [], [], [], []
+    rows, kpa_rows, modifiers, heavy_rows, usage_rows = [], [], [], [], []
     for line in raw.splitlines():
         kind, *fields = line.split(",")
         if kind == "M":
             # Long values stay decimal strings: the browser must not round through JS Number.
-            rows.append([*map(int, fields[:8]), float(fields[8]), *fields[9:12], fields[12] == "true", float(fields[13]), fields[14] == "true"])
+            rows.append([*map(int, fields[:8]), float(fields[8]), *fields[9:12], fields[12] == "true", float(fields[13]), fields[14] == "true", *map(int, fields[15:])])
         elif kind == "K":
-            kpa_rows.append([*map(int, fields[:4]), float(fields[4]), *map(int, fields[5:])])
+            kpa_rows.append([*map(int, fields[:5]), float(fields[5]), *map(int, fields[6:])])
         elif kind == "D":
             modifiers.append([int(fields[0]), *map(float, fields[1:])])
         elif kind == "H":
             heavy_rows.append(list(map(int, fields)))
-    assert len(rows) == 32400 and len(kpa_rows) == 312 and len(modifiers) == 3
+        elif kind == "U":
+            usage_rows.append([*map(int, fields[:3]), *fields[3:]])
+    assert len(rows) == 32400 and len(kpa_rows) == 936 and len(modifiers) == 3 and len(usage_rows) == 27
     assert all(int(row[11]) >= 0 and int(row[10]) > 0 for row in rows)
     for row in rows:
         assert row[12] == (row[2] == 4 and row[6] == 1)
@@ -189,9 +194,9 @@ public class ReportProbe {{
     assert len(heavy_rows) == 9
     source_paths = [MACHINE / "MTEMegaSteamTurbineArray.java", MACHINE / "MTEKineticProcessingArray.java", MACHINE / "turbine/SteamTurbineSteamTypes.java", MACHINE / "turbine/HeavySteamTurbineCycle.java"]
     data = {
-        "schema": 1, "gtVersion": GT_VERSION, "voltages": list(map(str, values)), "voltageNames": names,
-        "megaColumns": ["tier", "material", "extra", "steam", "power", "mode", "chip", "efficiency", "savings", "baseEUt", "outputEUt", "steamLt", "chipActive", "steamFactor", "allowed"],
-        "mega": rows, "kpa": kpa_rows, "modifiers": modifiers, "heavy": heavy_rows,
+        "schema": 2, "gtVersion": GT_VERSION, "voltages": list(map(str, values)), "voltageNames": names,
+        "megaColumns": ["tier", "material", "extra", "steam", "power", "mode", "chip", "efficiency", "savings", "baseEUt", "outputEUt", "steamLt", "chipActive", "steamFactor", "allowed", "physicalGroups", "powerGroups"],
+        "mega": rows, "kpa": kpa_rows, "modifiers": modifiers, "heavy": heavy_rows, "usage": usage_rows,
         "sources": [{"path": p.relative_to(ROOT).as_posix(), "sha256": hashlib.sha256(p.read_bytes()).hexdigest()} for p in source_paths],
         "snippetSha256": hashlib.sha256(json.dumps(snippets, sort_keys=True).encode()).hexdigest(),
         "gtJarSha256": hashlib.sha256(jar.read_bytes()).hexdigest(),
@@ -208,10 +213,10 @@ def main():
     expected = generate()
     if args.check:
         assert OUT.read_text(encoding="utf-8") == expected, "Report is stale: run this script without --check"
-        print("PASS: 32,400 Mega rows + 312 KPA rows + 9 Heavy rows; source methods, Java numeric behavior and offline snapshot agree.")
+        print("PASS: 32,400 Mega + 936 KPA + 27 native EU/steam + 9 Heavy rows; Java numeric behavior and snapshot agree.")
     else:
         OUT.write_text(expected, encoding="utf-8")
-        print(f"Exported 32,400 Mega rows + 312 KPA rows to {OUT}")
+        print(f"Exported 32,400 Mega + 936 KPA + 27 native EU/steam + 9 Heavy rows to {OUT}")
 
 
 if __name__ == "__main__":

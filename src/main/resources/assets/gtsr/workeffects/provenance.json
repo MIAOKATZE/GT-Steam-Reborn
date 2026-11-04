@@ -1398,7 +1398,7 @@
       ],
       "nativeApertureMaxRGBRange": [
         0,
-        17
+        20
       ],
       "same48PixelsInBronzeAndSteel": true
     },
@@ -1407,11 +1407,22 @@
       "gregtech:iconsets/MACHINE_CASING_FIREBOX_BRONZE",
       "gregtech:iconsets/MACHINE_CASING_FIREBOX_STEEL"
     ],
-    "baseTextureSHA256": [
-      "9da8c4276feb8d1acc4e2a20be0cd4101da04f6faaf63c4675b56a9976e081cf",
-      "37a904e7c4f6a78c35a70e003557f332b499cf000b282d59841fca19ff799016"
-    ],
-    "resourcePackPolicy": "reload-time exact base PNG hash; incompatible material keeps native static base",
+    "resourcePackPolicy": "reload-time current base PNG openings intersect existing foreground alpha; opaque near-neutral RGB <=20, channel spread <=1, in every square animation frame; base icon unchanged",
+    "modernityApertures": {
+      "x": [
+        4,
+        5,
+        7,
+        8,
+        10,
+        11
+      ],
+      "yInclusive": [
+        5,
+        10
+      ],
+      "maskedPixels": 36
+    },
     "nativeActive": false
   },
   "gameValidation": "NOT_RUN"

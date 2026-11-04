@@ -9,6 +9,8 @@ import net.minecraft.block.Block;
  */
 public final class BlocksGTSR {
 
+    public static Block tungstenSteelGearbox;
+
     /** 失控奇点方块（BlockLoader.initBlocks 注册期写入）。 */
     public static Block runawaySingularity;
 

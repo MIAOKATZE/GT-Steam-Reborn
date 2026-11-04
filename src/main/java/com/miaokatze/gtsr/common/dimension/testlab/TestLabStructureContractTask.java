@@ -973,7 +973,7 @@ final class TestLabStructureContractTask implements TestLabTask {
         if (rebuiltMachine()) {
             require(observed.get("mGlassTier") == casing, "glass channel mismatch " + observed);
             require(observed.get("mMaterialTier") == pipe, "material channel mismatch " + observed);
-            evidence.put("frameMaterial", "fixed steel; independent of voltage and material tiers");
+            evidence.put("frameMaterial", "steel/titanium/tungstensteel follows material channel " + pipe);
             evidence.put(
                 "minimumCasingBoundary",
                 "OUT_OF_SCOPE: rebuilt fixed bodies use required blocks and explicit ports");
@@ -1011,13 +1011,39 @@ final class TestLabStructureContractTask implements TestLabTask {
         evidence.put("movingRestMissingRejected", rejected);
         evidence.put("movingRestRestoreFormed", restored);
         evidence.put("movingRestProbePosition", x + "," + y + "," + z);
+        String[][] layers = definition.shapeLayers();
+        frameProbe: for (int ly = 0; ly < layers.length; ly++) {
+            for (int lz = 0; lz < layers[ly].length; lz++) {
+                int lx = layers[ly][lz].indexOf('E');
+                if (lx < 0) continue;
+                int[] framePosition = MachineVisualSpace.transform(
+                    host.getExtendedFacing(),
+                    lx - definition.offset(0),
+                    definition.offset(1) - ly,
+                    lz - definition.offset(2));
+                int fx = tile.getXCoord() + framePosition[0], fy = tile.getYCoord() + framePosition[1],
+                    fz = tile.getZCoord() + framePosition[2];
+                Block frameBlock = world.getBlock(fx, fy, fz);
+                int frameMeta = world.getBlockMetadata(fx, fy, fz);
+                int wrongMeta = pipe == 1 ? gregtech.api.enums.Materials.Titanium.mMetaItemSubID
+                    : gregtech.api.enums.Materials.Steel.mMetaItemSubID;
+                world.setBlock(fx, fy, fz, GregTechAPI.sBlockFrames, wrongMeta, 2);
+                require(!TestLabStructure.checkStructure(machine, tile), "mixed material frame accepted");
+                world.setBlock(fx, fy, fz, frameBlock, frameMeta, 2);
+                require(TestLabStructure.checkStructure(machine, tile), "material frame restoration rejected");
+                evidence.put("mixedFrameRejectedAndRestored", true);
+                break frameProbe;
+            }
+        }
         if (machine instanceof MTEMegaSteamTurbineArray) {
             MTEMegaSteamTurbineArray turbine = (MTEMegaSteamTurbineArray) machine;
             int expected = MegaSteamTurbineStructureDef.constructExtraStacks(trigger);
             require(turbine.mStackCount == expected, "native axial extra-group mismatch");
             require(turbine.getGroupCount() == expected + 1, "native total group count mismatch");
+            require(turbine.getPowerGroupCount() == expected + 2, "native power group count mismatch");
             evidence.put("nativeExtraGroups", turbine.mStackCount);
             evidence.put("nativeTotalGroups", turbine.getGroupCount());
+            evidence.put("nativePowerGroups", turbine.getPowerGroupCount());
         }
     }
 
