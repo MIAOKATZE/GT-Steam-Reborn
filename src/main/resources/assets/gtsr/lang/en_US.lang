@@ -4981,8 +4981,8 @@ gtsr.gui.heavy_turbine.actual_output=Current output:
 gtsr.gui.heavy_turbine.rotor_efficiency=Stored warm-up efficiency:
 gtsr.gui.heavy_turbine.max_efficiency=Efficiency ceiling:
 gtsr.gui.heavy_turbine.rated_steam=Rated steam consumption:
-gtsr.tooltip.heavy_turbine.startup=Starts at 0%. While operating: +2 percentage points/second to 100%, then +1/second at rated throughput up to the ceiling.
-gtsr.tooltip.heavy_turbine.partial=Partial steam produces proportional power and still warms up. Effective efficiency is capped at 100% below rated flow; stored warm-up is retained.
+gtsr.tooltip.heavy_turbine.startup=Starts at 0%. Each accumulated second of operation adds 2 percentage points up to 100%, then +1/second at rated throughput up to the ceiling.
+gtsr.tooltip.heavy_turbine.partial=Partial steam produces proportional power and accumulates warm-up across short fuel gaps. Effective efficiency is capped at 100% below rated flow; stored warm-up is retained.
 gtsr.tooltip.heavy_turbine.cooling=Steam utilization is always 100%. Ordinary steam: 0.5 EU/L, 160:1 distilled water. Steel supports superheated steam: 1 EU/L, 1:1 ordinary steam exhaust.
 gtsr.tooltip.heavy_turbine.pause=While stopped: -10 percentage points/second. Warm-up and accounting remainders are saved; operation resumes after backpressure clears.
 gtsr.structurelib.channel.material.usage=material channel: 1=steel, 2=titanium, 3=tungstensteel; casings/pipes/gears must match. Tungstensteel gear positions use assembly line casings.

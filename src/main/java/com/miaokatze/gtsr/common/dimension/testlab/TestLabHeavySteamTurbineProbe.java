@@ -29,9 +29,10 @@ final class TestLabHeavySteamTurbineProbe {
     private final boolean heated;
     private final int rated, limit;
     private int phase, started, samples, atLimitTicks, stoppedEfficiency;
+    private int pulseTicks, pulseWorkTicks;
     private long energyBefore, steamBefore, coolantBefore, measuredEnergy, consumedSteam;
     private NBTTagCompound before;
-    private boolean partialOutputSeen, lowFlowStarted;
+    private boolean partialOutputSeen, lowFlowStarted, pulseComplete;
 
     TestLabHeavySteamTurbineProbe(MTEHeavySteamTurbine machine, List<IGregTechTileEntity> ports, int tick,
         boolean heated) {
@@ -41,6 +42,7 @@ final class TestLabHeavySteamTurbineProbe {
             TestLabSupply.remove(port);
         }
         this.heated = heated;
+        pulseComplete = machine.mMaterialTier != 1;
         rated = HeavySteamTurbineCycle.ratedSteam(machine.mMaterialTier, heated);
         limit = HeavySteamTurbineCycle.efficiencyLimit(machine.mMaterialTier, heated);
         started = tick;
@@ -85,7 +87,16 @@ final class TestLabHeavySteamTurbineProbe {
                     lowFlowStarted = true;
                 }
                 require(elapsed <= 150 || lowFlowStarted, "low feed never started after native initialization");
-                if (lowFlowStarted) require(
+                if (lowFlowStarted && !pulseComplete) {
+                    pulseTicks++;
+                    if (consumed > 0) pulseWorkTicks++;
+                    require(pulseTicks <= 200, "five-tick pulse feed did not accumulate 20 actual working ticks");
+                    require(
+                        rotor == (pulseWorkTicks < 20 ? 0 : 2),
+                        "pulse feed lost cumulative warm-up: workTicks=" + pulseWorkTicks + " rotor=" + rotor);
+                    if (pulseWorkTicks == 20) pulseComplete = true;
+                }
+                if (lowFlowStarted && pulseComplete) require(
                     machine.getBaseMetaTileEntity()
                         .isActive(),
                     "low feed interrupted native running");
@@ -175,6 +186,8 @@ final class TestLabHeavySteamTurbineProbe {
                         + samples
                         + " steam="
                         + (heated ? "superheated" : "ordinary")
+                        + " pulsedWarmup="
+                        + (machine.mMaterialTier == 1 ? "5tick_period_20_actual_workticks_0to2_PASS" : "not_applicable")
                         + " fixture=real_input_hatch_fill_and_output_drain_real_dynamo_buffer_only manualMachineTicks=0";
                 }
             }
@@ -191,9 +204,14 @@ final class TestLabHeavySteamTurbineProbe {
     }
 
     private void prepareNextTick() {
-        for (IGregTechTileEntity port : ports)
-            if (port.getMetaTileEntity() instanceof MTEHatchInput hatch) hatch.drain(Integer.MAX_VALUE, true);
+        boolean pulseWindow = phase == 0 && lowFlowStarted && !pulseComplete;
+        if (!pulseWindow) {
+            for (IGregTechTileEntity port : ports)
+                if (port.getMetaTileEntity() instanceof MTEHatchInput hatch) hatch.drain(Integer.MAX_VALUE, true);
+        }
         int remaining = phase == 0 ? 16 : phase == 2 ? rated / 2 : phase == 7 ? 0 : rated;
+        // Keep a delivered pulse in the real hatch until GT consumes it; only empty hatches receive the next batch.
+        if (pulseWindow) remaining = pulseTicks % 5 == 0 && inputSteam() == 0 ? 16 : 0;
         for (IGregTechTileEntity port : ports)
             if (remaining > 0 && port.getMetaTileEntity() instanceof MTEHatchInput hatch) {
                 FluidStack fluid = heated ? GTModHandler.getSuperHeatedSteam(remaining)

@@ -576,7 +576,6 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
                     }
                 }
             } else {
-                workingTicks = 0;
                 fullFlowTicks = 0;
                 if (++idleTicks == HeavySteamTurbineCycle.TICKS_PER_SECOND) {
                     turbineEfficiency = HeavySteamTurbineCycle.coolDown(turbineEfficiency);
