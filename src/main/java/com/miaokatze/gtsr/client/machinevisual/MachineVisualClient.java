@@ -116,11 +116,10 @@ public final class MachineVisualClient {
         return isFresh(host) && entry.snapshot.working();
     }
 
-    /** A one-tick generator may coast decoratively between observations; this is never recipe progress. */
+    /** One-tick generators share the authority freshness lease; their decorative clock is never recipe progress. */
     public static boolean isAnimating(MachineVisualHost host) {
         Entry entry = ENTRIES.get(host);
-        return isWorking(host)
-            && (now() <= entry.advanceUntil || entry.snapshot.duration <= 1 && now() - entry.receivedAt <= 1000000000L);
+        return isWorking(host) && (entry.snapshot.duration <= 1 || now() <= entry.advanceUntil);
     }
 
     public static void setQuality(Quality next) {
@@ -406,7 +405,8 @@ public final class MachineVisualClient {
 
     // Pure policy methods are exercised directly by tools/workvisual/probe_budget.py.
     static int memberLimit(int quality) {
-        return quality == 0 ? 0 : quality == 1 ? 128 : quality == 2 ? 2048 : 4096;
+        // STANDARD must fit one maximum-stack Mega turbine (2814 members) as a complete host.
+        return quality == 0 ? 0 : quality == 1 ? 128 : 4096;
     }
 
     static int groupLimit(int quality) {

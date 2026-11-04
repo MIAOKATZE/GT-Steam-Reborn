@@ -4990,7 +4990,7 @@ gtsr.structurelib.channel.material.usage=material通道：1=钢、2=钛、3=钨�
 tile.TungstenSteelGearbox.name=钨钢齿轮箱
 gtsr.tooltip.siemens_martin.carbon_sources=煤粉配方也接受等量木炭或木炭粉，按1:1替代。
 gtsr.gui.turbine_array.group_summary=实体环 %s 组 / 功率 %s 组
-gtsr.tooltip.turbine_array.structure_size=51×29×(79+12k)，k=0..4；1个基础双列环组，每个额外环组增加12格，最大深度127。
+gtsr.tooltip.turbine_array.structure_size=51×25×(79+12k)，k=0..4；1个基础双列环组，每个额外环组增加12格，最大深度127。
 gtsr.tooltip.heavy_turbine.structure_material=【建造】12×10×8；机壳、管道、齿轮和框架统一青铜或钢，玻璃使用普通玻璃。
 gtsr.tooltip.turbine_array.structure_material=material统一钢／钛／钨钢机壳、管道、齿轮和框架，不能分档混搭；与电压机械壳等级独立。
 gtsr.tooltip.turbine_array.structure_required=至少一供汽输入、一输出／冷却仓和一动力仓；仓室等级不参与机械壳判级，无需维护仓。

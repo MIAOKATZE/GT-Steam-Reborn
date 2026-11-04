@@ -6,6 +6,7 @@ import com.miaokatze.gtsr.client.machinevisual.MachineVisualClient;
 import com.miaokatze.gtsr.common.machine.MTEKineticProcessingArray;
 import com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler;
 import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
+import com.miaokatze.gtsr.common.machine.MTEMegaSteamTurbineArray;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.workeffects.WorkEffectDefinition;
 import com.miaokatze.gtsr.common.workeffects.WorkEffectDefinitions;
@@ -31,6 +32,19 @@ public final class WorkEffectParticles {
         WorkEffectDefinition definition = WorkEffectDefinitions.forHost(host);
         if (definition == null || definition.emitters()
             .isEmpty()) return;
+        if (host instanceof MTEMegaSteamTurbineArray) {
+            if (!MachineVisualClient.isWorking(host) || !MachineVisualClient.isAnimating(host) || tick % 10 != 0)
+                return;
+            // Two wisps alternate between the front chambers and the common first short glass sleeves.
+            boolean front = Math.floorMod(MachineVisualClient.decorativeTime(host), 4000L) < 2000L;
+            CloudParticleQueue.submitEach(
+                host,
+                host.getExtendedFacing(),
+                definition.emitters()
+                    .subList(front ? 0 : 2, front ? 2 : 4),
+                front ? .35F : .15F);
+            return;
+        }
         if (host instanceof MTEKineticProcessingArray) {
             if (!MachineVisualClient.isWorking(host) || !MachineVisualClient.isAnimating(host)) return;
             long phaseMs = Math.floorMod(MachineVisualClient.decorativeTime(host), 3000L);

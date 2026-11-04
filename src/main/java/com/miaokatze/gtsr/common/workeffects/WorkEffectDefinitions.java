@@ -7,6 +7,7 @@ import com.miaokatze.gtsr.common.machine.MTELargeCokeOven;
 import com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler;
 import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
 import com.miaokatze.gtsr.common.machine.MTELargeSteamFurnace;
+import com.miaokatze.gtsr.common.machine.MTEMegaSteamTurbineArray;
 import com.miaokatze.gtsr.common.machine.MTEReinforcedBrickBlastFurnace;
 import com.miaokatze.gtsr.common.machine.MTESiemensMartinFurnace;
 import com.miaokatze.gtsr.common.machine.MTEVeinSteamPyrolyzer;
@@ -280,6 +281,14 @@ public final class WorkEffectDefinitions {
             new Emitter("KineticProcessingArray:chimney-01", -1D, -6.6D, 2D),
             new Emitter("KineticProcessingArray:chimney-10", 0D, -6.6D, 1D),
             new Emitter("KineticProcessingArray:chimney-11", 0D, -6.6D, 2D)));
+    public static final WorkEffectDefinition MEGA_STEAM_TURBINE_ARRAY = new WorkEffectDefinition(
+        "MegaSteamTurbineArray",
+        ImmutableList.of(),
+        ImmutableList.of(
+            new Emitter("MegaSteamTurbineArray:front-left", 11D, -11.8D, 5D),
+            new Emitter("MegaSteamTurbineArray:front-right", -11D, -11.8D, 5D),
+            new Emitter("MegaSteamTurbineArray:sleeve-left", 11D, -10.3D, 30D),
+            new Emitter("MegaSteamTurbineArray:sleeve-right", -11D, -10.3D, 30D)));
 
     private WorkEffectDefinitions() {}
 
@@ -293,6 +302,7 @@ public final class WorkEffectDefinitions {
         if (host.getClass() == MTELargeGeothermalSteamBoiler.class) return LARGE_GEOTHERMAL_STEAM_BOILER;
         if (host.getClass() == MTELargeSolarOverpressureArray.class) return LARGE_SOLAR_OVERPRESSURE_ARRAY;
         if (host.getClass() == MTEKineticProcessingArray.class) return KINETIC_PROCESSING_ARRAY;
+        if (host.getClass() == MTEMegaSteamTurbineArray.class) return MEGA_STEAM_TURBINE_ARRAY;
         return null;
     }
 }

@@ -119,8 +119,8 @@ public final class ClientReviewContract {
         MachineVisualRenderer.render(h,0,0,0,.9f);check(group.samples==samples,"ordinary cycle endpoint stops render sampling");
         e.snapshot.duration=1;e.receivedAt=System.nanoTime()-500000000L;
         MachineVisualRenderer.render(h,0,0,0,.9f);check(group.samples>samples,"one-tick generator retains its existing decorative coast");
-        samples=group.samples;e.receivedAt=System.nanoTime()-1100000000L;
-        MachineVisualRenderer.render(h,0,0,0,.9f);check(group.samples==samples,"one-tick generator stops at its coast bound");
+        samples=group.samples;e.receivedAt=System.nanoTime()-2100000000L;
+        MachineVisualRenderer.render(h,0,0,0,.9f);check(group.samples==samples,"one-tick generator stops at the shared authority freshness bound");
         e.receivedAt=System.nanoTime()-3000000000L;e.advanceUntil=System.nanoTime()+1000000000L;
         MachineVisualRenderer.render(h,0,0,0,.9f);check(group.samples==samples,"stale authority stops render sampling");
         e.receivedAt=System.nanoTime();MachineVisualClient.setQuality(MachineVisualClient.Quality.OFF);

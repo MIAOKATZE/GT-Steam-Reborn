@@ -39,7 +39,7 @@ public final class MegaSteamTurbineStructureDef {
     private MegaSteamTurbineStructureDef() {}
 
     public static final int HORIZONTAL_OFFSET = 25;
-    public static final int VERTICAL_OFFSET = 26;
+    public static final int VERTICAL_OFFSET = 22;
     public static final int DEPTH_OFFSET = 1;
     public static final int STACK_PITCH = 12;
     public static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);

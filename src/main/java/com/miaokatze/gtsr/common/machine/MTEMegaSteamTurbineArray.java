@@ -1504,7 +1504,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .addInfo(
                 EnumChatFormatting.GREEN
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip_3"))
-            .beginVariableStructureBlock(51, 51, 29, 29, 79, 127, true)
+            .beginVariableStructureBlock(51, 51, 25, 25, 79, 127, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.ctrl"))
             .addStructureInfo(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_size"))

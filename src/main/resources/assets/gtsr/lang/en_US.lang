@@ -4994,7 +4994,7 @@ gtsr.structurelib.channel.material.usage=material channel: 1=steel, 2=titanium, 
 tile.TungstenSteelGearbox.name=Tungstensteel Gearbox
 gtsr.tooltip.siemens_martin.carbon_sources=Coal dust recipes also accept the same amount of charcoal or charcoal dust (1:1).
 gtsr.gui.turbine_array.group_summary=Physical rings: %s / Power groups: %s
-gtsr.tooltip.turbine_array.structure_size=51x29x(79+12k), k=0..4; one base twin-ring group, +12 blocks per extra group, maximum depth 127.
+gtsr.tooltip.turbine_array.structure_size=51x25x(79+12k), k=0..4; one base twin-ring group, +12 blocks per extra group, maximum depth 127.
 gtsr.tooltip.heavy_turbine.structure_material=[Construction] 12x10x8; casings, pipes, gears and frames must all match bronze or steel. Use ordinary glass.
 gtsr.tooltip.turbine_array.structure_material=material selects matching steel / titanium / tungstensteel casings, pipes, gears and frames; no mixed materials. Independent of voltage casing tier.
 gtsr.tooltip.turbine_array.structure_required=Requires at least one steam input, one output/cooling hatch and one dynamo; hatch tiers do not determine casing tier. No maintenance hatch.
