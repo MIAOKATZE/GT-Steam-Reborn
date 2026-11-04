@@ -306,7 +306,7 @@ public final class MachineVisualVisibility {
         java.util.List<Map<String, Object>> entries = new java.util.ArrayList<>();
         for (MachineVisualClient.Entry entry : owners.keySet()) {
             Map<String, Object> row = new java.util.LinkedHashMap<>();
-            row.put("definition", entry.host.visualDefinition().id);
+            row.put("definition", entry.definition.id);
             row.put("nonce", entry.nonce);
             row.put("origin", java.util.Arrays.asList(entry.originX, entry.originY, entry.originZ));
             row.put("worldIdentity", System.identityHashCode(entry.world));
@@ -315,8 +315,8 @@ public final class MachineVisualVisibility {
             row.put("restoringMask", entry.restoringMask);
             row.put("retired", entry.retired);
             java.util.List<Map<String, Object>> cells = new java.util.ArrayList<>();
-            for (int group = 0; group < entry.host.visualDefinition().groups.size(); group++) {
-                for (MachineVisualDefinition.Cell member : entry.host.visualDefinition().groups.get(group).members) {
+            for (int group = 0; group < entry.definition.groups.size(); group++) {
+                for (MachineVisualDefinition.Cell member : entry.definition.groups.get(group).members) {
                     int[] position = entry.at(member.x, member.y, member.z);
                     CellEntry cell = CELLS.get(key(position[0], position[1], position[2]));
                     Map<String, Object> item = new java.util.LinkedHashMap<>();
@@ -398,7 +398,7 @@ public final class MachineVisualVisibility {
         if (old == mask) return;
         entry.mask = mask;
         entry.restoringMask |= old & ~mask;
-        MachineVisualDefinition definition = entry.host.visualDefinition();
+        MachineVisualDefinition definition = entry.definition;
         for (int i = 0; i < definition.groups.size(); i++) {
             int bit = 1 << i;
             if (((mask ^ old) & bit) == 0) continue;
@@ -439,7 +439,7 @@ public final class MachineVisualVisibility {
 
     private static void enqueueRestoration(MachineVisualClient.Entry entry, int group) {
         int bit = 1 << group;
-        for (MachineVisualDefinition.Cell member : entry.host.visualDefinition().groups.get(group).members) {
+        for (MachineVisualDefinition.Cell member : entry.definition.groups.get(group).members) {
             int[] p = entry.at(member.x, member.y, member.z);
             CellEntry cell = CELLS.get(key(p[0], p[1], p[2]));
             if (cell == null || cell.owner != entry) continue;
@@ -488,10 +488,10 @@ public final class MachineVisualVisibility {
     private static void releaseRestoredGroups() {
         for (MachineVisualClient.Entry entry : heldOwners().keySet()) {
             int restored = entry.restoringMask;
-            for (int i = 0; i < entry.host.visualDefinition().groups.size(); i++) {
+            for (int i = 0; i < entry.definition.groups.size(); i++) {
                 int bit = 1 << i;
                 if ((restored & bit) == 0) continue;
-                for (MachineVisualDefinition.Cell member : entry.host.visualDefinition().groups.get(i).members) {
+                for (MachineVisualDefinition.Cell member : entry.definition.groups.get(i).members) {
                     int[] p = entry.at(member.x, member.y, member.z);
                     CellEntry cell = CELLS.get(key(p[0], p[1], p[2]));
                     if (cell == null || cell.owner != entry
@@ -510,10 +510,10 @@ public final class MachineVisualVisibility {
 
     static int ready(MachineVisualClient.Entry entry) {
         int ready = entry.mask;
-        for (int i = 0; i < entry.host.visualDefinition().groups.size(); i++) {
+        for (int i = 0; i < entry.definition.groups.size(); i++) {
             int bit = 1 << i;
             if ((ready & bit) == 0) continue;
-            for (MachineVisualDefinition.Cell member : entry.host.visualDefinition().groups.get(i).members) {
+            for (MachineVisualDefinition.Cell member : entry.definition.groups.get(i).members) {
                 int[] p = entry.at(member.x, member.y, member.z);
                 if (!uploadedHidden(entry, p[0], p[1], p[2])) {
                     ready &= ~bit;
@@ -639,13 +639,13 @@ public final class MachineVisualVisibility {
 
     private static void planNeighbourSections(MachineVisualClient.Entry entry, int groupIndex) {
         java.util.Set<String> moving = new java.util.HashSet<>();
-        for (MachineVisualDefinition.Group group : entry.host.visualDefinition().groups)
+        for (MachineVisualDefinition.Group group : entry.definition.groups)
             for (MachineVisualDefinition.Cell member : group.members) {
                 int[] p = entry.at(member.x, member.y, member.z);
                 moving.add(key(p[0], p[1], p[2]));
             }
         java.util.Set<Long> required = new java.util.HashSet<>();
-        for (MachineVisualDefinition.Cell member : entry.host.visualDefinition().groups.get(groupIndex).members) {
+        for (MachineVisualDefinition.Cell member : entry.definition.groups.get(groupIndex).members) {
             int[] p = entry.at(member.x, member.y, member.z);
             for (net.minecraftforge.common.util.ForgeDirection direction : net.minecraftforge.common.util.ForgeDirection.VALID_DIRECTIONS) {
                 int x = p[0] + direction.offsetX, y = p[1] + direction.offsetY, z = p[2] + direction.offsetZ;

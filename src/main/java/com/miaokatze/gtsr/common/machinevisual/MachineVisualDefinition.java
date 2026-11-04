@@ -108,6 +108,9 @@ public final class MachineVisualDefinition {
             return switch (material) {
                 case "gear" -> block == GregTechAPI.sBlockCasings2 && (meta == 2 || meta == 3);
                 case "pipe" -> block == GregTechAPI.sBlockCasings2 && (meta == 12 || meta == 13);
+                case "shell" -> (block == GregTechAPI.sBlockCasings1 && meta == 10)
+                    || (block == GregTechAPI.sBlockCasings2 && meta == 0);
+                case "shaft" -> block == GregTechAPI.sBlockCasings2 && (meta == 12 || meta == 13);
                 case "frame" -> block == GregTechAPI.sBlockFrames
                     && (meta == Materials.Bronze.mMetaItemSubID || meta == Materials.Steel.mMetaItemSubID);
                 default -> false;
@@ -130,7 +133,7 @@ public final class MachineVisualDefinition {
                 .getAsString();
             axis = json.get("axis")
                 .getAsString();
-            if (!(kind.equals("translate") || kind.equals("rotate_y"))
+            if (!(kind.equals("translate") || kind.equals("rotate_y") || kind.equals("rotate_z"))
                 || !(axis.equals("x") || axis.equals("y") || axis.equals("z")))
                 throw new IllegalArgumentException("Unsupported machine motion " + id);
             travel = json.get("travel")
@@ -161,17 +164,18 @@ public final class MachineVisualDefinition {
                         .getAsInt(),
                     cell.get("material")
                         .getAsString());
-                if (Math.abs(c.x) > 16 || Math.abs(c.y) > 16
-                    || Math.abs(c.z) > 16
-                    || !Arrays.asList("gear", "pipe", "frame")
+                if (Math.abs(c.x) > 128 || Math.abs(c.y) > 128
+                    || Math.abs(c.z) > 128
+                    || !Arrays.asList("gear", "pipe", "frame", "shell", "shaft")
                         .contains(c.material)
                     || !unique.add(c.x + ":" + c.y + ":" + c.z))
                     throw new IllegalArgumentException("Machine member " + id);
                 cells.add(c);
             }
-            if (cells.isEmpty() || cells.size() > 64) throw new IllegalArgumentException("Machine member count " + id);
+            if (cells.isEmpty() || cells.size() > 2048)
+                throw new IllegalArgumentException("Machine member count " + id);
             members = Collections.unmodifiableList(cells);
-            boolean rotate = kind.equals("rotate_y");
+            boolean rotate = kind.startsWith("rotate_");
             List<AnimationV1.Key> keys = rotate
                 ? Arrays.asList(
                     new AnimationV1.Key(0, 0, AnimationV1.Interpolation.LINEAR),
@@ -180,6 +184,32 @@ public final class MachineVisualDefinition {
                     new AnimationV1.Key(0, 0, AnimationV1.Interpolation.SMOOTHSTEP),
                     new AnimationV1.Key(periodMs / 2, travel, AnimationV1.Interpolation.SMOOTHSTEP),
                     new AnimationV1.Key(periodMs, 0, AnimationV1.Interpolation.LINEAR));
+            if (json.has("keyframes")) {
+                if (rotate) throw new IllegalArgumentException("Rotation cannot override linear wrap " + id);
+                keys = new ArrayList<>();
+                long previous = -1;
+                for (JsonElement element : json.getAsJsonArray("keyframes")) {
+                    JsonArray pair = element.getAsJsonArray();
+                    long time = pair.get(0)
+                        .getAsLong();
+                    double value = pair.get(1)
+                        .getAsDouble();
+                    if (time <= previous || time < 0
+                        || time > periodMs
+                        || !Double.isFinite(value)
+                        || value < Math.min(0, travel)
+                        || value > Math.max(0, travel)) throw new IllegalArgumentException("Machine keyframe " + id);
+                    keys.add(new AnimationV1.Key(time, value, AnimationV1.Interpolation.SMOOTHSTEP));
+                    previous = time;
+                }
+                if (keys.size() < 2 || previous != periodMs
+                    || json.getAsJsonArray("keyframes")
+                        .get(0)
+                        .getAsJsonArray()
+                        .get(0)
+                        .getAsLong() != 0)
+                    throw new IllegalArgumentException("Machine keyframe period " + id);
+            }
             curve = new AnimationV1.Document(
                 "gtsr:" + id,
                 0,
@@ -201,7 +231,7 @@ public final class MachineVisualDefinition {
         public double sample(long decorativeMs) {
             double scalar = Sampler.sample(curve, Math.floorMod(decorativeMs, periodMs))
                 .value("motion");
-            return kind.equals("rotate_y") ? Math.toRadians(scalar) : scalar;
+            return kind.startsWith("rotate_") ? Math.toRadians(scalar) : scalar;
         }
     }
 
@@ -210,10 +240,6 @@ public final class MachineVisualDefinition {
             .getResourceAsStream("/assets/gtsr/machinevisual/motions.json")) {
             if (stream == null) throw new IllegalStateException("Missing packaged machine motions");
             byte[] bytes = com.google.common.io.ByteStreams.toByteArray(stream);
-            byte[] digest = MessageDigest.getInstance("SHA-256")
-                .digest(bytes);
-            long revision = java.nio.ByteBuffer.wrap(digest)
-                .getLong();
             JsonObject root = new JsonParser()
                 .parse(new InputStreamReader(new java.io.ByteArrayInputStream(bytes), StandardCharsets.UTF_8))
                 .getAsJsonObject();
@@ -222,6 +248,12 @@ public final class MachineVisualDefinition {
             Map<String, MachineVisualDefinition> result = new LinkedHashMap<>();
             for (JsonElement item : root.getAsJsonArray("definitions")) {
                 JsonObject json = item.getAsJsonObject();
+                long revision = java.nio.ByteBuffer.wrap(
+                    MessageDigest.getInstance("SHA-256")
+                        .digest(
+                            json.toString()
+                                .getBytes(StandardCharsets.UTF_8)))
+                    .getLong();
                 String id = json.get("id")
                     .getAsString();
                 JsonArray layers = json.getAsJsonArray("shapeLayers"), offsets = json.getAsJsonArray("offset");

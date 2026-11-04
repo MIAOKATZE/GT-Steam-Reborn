@@ -1,13 +1,9 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.BASE_TOTAL_HEIGHT;
+import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.DEPTH_OFFSET;
+import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.HORIZONTAL_OFFSET;
 import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.SOLID_STEEL_CASING_INDEX;
-import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.STACK_LAYER_HEIGHT;
-import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.STRUCTURE_PIECE_BASE;
-import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.STRUCTURE_PIECE_CAP;
-import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.STRUCTURE_PIECE_STACK;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hasMinimumCasings;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
+import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.VERTICAL_OFFSET;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -30,7 +26,6 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
-import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -41,7 +36,6 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
-import com.miaokatze.gtsr.api.util.CasingTierTextureHelper;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEMegaSteamTurbineArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
@@ -52,6 +46,9 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef;
 import com.miaokatze.gtsr.common.machine.turbine.SteamTurbineSteamTypes;
 import com.miaokatze.gtsr.common.machine.turbine.SteamTurbineSteamTypes.SteamType;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.enums.GTValues;
@@ -72,7 +69,6 @@ import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
-import gregtech.api.util.GTUtilityClient;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReason;
@@ -83,11 +79,14 @@ import tectech.thing.metaTileEntity.hatch.MTEHatchDynamoMulti;
 
 @IMetaTileEntity.SkipGenerateDescription
 public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEMegaSteamTurbineArray>
-    implements IConstructable, ISurvivalConstructable {
+    implements IConstructable, ISurvivalConstructable, MachineVisualHost {
+
+    private final MachineVisualState machineVisualState = new MachineVisualState();
+    public int mGlassTier = -1;
 
     public static final int MAX_EXTRA_STACKS = 4;
 
-    // 结构定义与等级映射域（三件 shape、惰性 casing 表、casingTier/pipeTier/gearTier/frameTier、
+    // 结构定义与等级映射域（完整轴向 shape、惰性 casing 表、casingTier/pipeTier/gearTier/frameTier、
     // 结构 piece/高度/底材常量）已单源至 common/machine/turbine/MegaSteamTurbineStructureDef
     // （O2-04/A01 段 2 外移；建造入口与偏移算式留本类）。
 
@@ -596,6 +595,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         mPipeTier = -1;
         mGearTier = -1;
         mFrameTier = -1;
+        mGlassTier = -1;
         mPressureSteamInputs.clear();
         mOverpressureInputs.clear();
         mSteamCoolingHatches.clear();
@@ -603,46 +603,31 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         eDynamoMulti.clear();
     }
 
-    /** GT205 MultiLathe uses the same reset-and-recheck pattern to discard failed-piece adders. */
-    private boolean recheckAcceptedStacks(int acceptedStacks, List<StructureError> errors) {
-        resetStructureRegistration();
-        if (!checkPiece(STRUCTURE_PIECE_BASE, 6, 5, 0, errors)) return false;
-        for (int i = 0; i < acceptedStacks; i++) {
-            if (!checkPiece(STRUCTURE_PIECE_STACK, 6, BASE_TOTAL_HEIGHT + i * STACK_LAYER_HEIGHT, 0, errors)) {
-                return false;
-            }
-            mStackCount++;
-        }
-        return true;
-    }
-
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
-        resetStructureRegistration();
-        if (!checkPiece(STRUCTURE_PIECE_BASE, 6, 5, 0, errors)) {
-            return;
-        }
-
-        for (int i = 0; i < 4; i++) {
-            int bOffset = 9 + i * 4;
-            if (!checkPiece(STRUCTURE_PIECE_STACK, 6, bOffset, 0, null)) {
-                if (!recheckAcceptedStacks(mStackCount, errors)) return;
+        boolean accepted = false;
+        // Each candidate is the complete approved axial model, including its own relocated rear equipment.
+        // Reset the hatch lifecycle between probes so a rejected longer candidate cannot leave registrations.
+        for (int count = MAX_EXTRA_STACKS; count >= 0; count--) {
+            resetStructureRegistration();
+            if (checkPiece(
+                MegaSteamTurbineStructureDef.piece(count),
+                HORIZONTAL_OFFSET,
+                VERTICAL_OFFSET,
+                DEPTH_OFFSET,
+                null)) {
+                mStackCount = count;
+                accepted = true;
                 break;
             }
-            mStackCount++;
         }
-
-        if (mCasingTier <= 0 || mCasingTier > 12 || mFrameTier != mCasingTier) {
+        if (!accepted) {
+            resetStructureRegistration();
+            checkPiece(MegaSteamTurbineStructureDef.piece(0), HORIZONTAL_OFFSET, VERTICAL_OFFSET, DEPTH_OFFSET, errors);
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-
-        int capB = 7 + mStackCount * 4;
-        if (!checkPiece(STRUCTURE_PIECE_CAP, 6, capB, 0, errors)) {
-            return;
-        }
-
-        if (!hasMinimumCasings(mCasingAmount, 641 + 249 * mStackCount)) {
+        if (mCasingTier <= 0 || mCasingTier > 12 || mGlassTier < mCasingTier) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -663,19 +648,9 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         updateAllHatchTextures();
     }
 
-    /**
-     * 追加叠加层数 (用于发电公式中的 n).
-     * mStackCount = 追加叠加组数 (不含 BASE 内嵌的 1 组基线);
-     * 每组 = 4 层 (L5~L2).
-     * n = getStackLayers() + 1 = mStackCount * 4 + 1
-     *
-     * 例: 0 个追加组 → stackLayers=0, n=1, savings=0%
-     * 1 个追加组 → stackLayers=4, n=5, savings=20%
-     *
-     * @see checkProcessing() 公式: EU/t = voltage × multiplier × n × efficiency
-     */
+    /** Extra axial length in blocks. Production uses getGroupCount(), independently of this display value. */
     private int getStackLayers() {
-        return mStackCount * 4;
+        return mStackCount * MegaSteamTurbineStructureDef.STACK_PITCH;
     }
 
     /**
@@ -946,7 +921,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        // 奇点模式计时/消耗已由 MTESingularityModeMachineBase.onPostTick 统一处理
+        machineVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
     }
 
     /**
@@ -1377,45 +1352,33 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
-        buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, 6, 5, 0);
-        int extraStacks = getConstructExtraStackCount(stackSize);
-        for (int i = 0; i < extraStacks; i++) {
-            int bOffset = BASE_TOTAL_HEIGHT + i * STACK_LAYER_HEIGHT;
-            buildPiece(STRUCTURE_PIECE_STACK, stackSize, hintsOnly, 6, bOffset, 0);
-        }
-        int capB = BASE_TOTAL_HEIGHT - 2 + extraStacks * STACK_LAYER_HEIGHT;
-        buildPiece(STRUCTURE_PIECE_CAP, stackSize, hintsOnly, 6, capB, 0);
+        buildPiece(
+            MegaSteamTurbineStructureDef.piece(getConstructExtraStackCount(stackSize)),
+            stackSize,
+            hintsOnly,
+            HORIZONTAL_OFFSET,
+            VERTICAL_OFFSET,
+            DEPTH_OFFSET);
     }
 
     private static int getConstructExtraStackCount(ItemStack stackSize) {
-        // Keep the native one-based height selection and old unconfigured trigger fallback.
-        int selection = stackSize == null ? 1 : ChannelDataAccessor.getChannelData(stackSize, "height");
-        int totalHeight = (int) Math.max(BASE_TOTAL_HEIGHT, Math.min(25L, (long) selection + BASE_TOTAL_HEIGHT - 1));
-        return Math.min(MAX_EXTRA_STACKS, (totalHeight - BASE_TOTAL_HEIGHT) / STACK_LAYER_HEIGHT);
+        // Preserve the native one-based height channel: selections 1,5,9,13,17 select k=0..4.
+        return MegaSteamTurbineStructureDef.constructExtraStacks(stackSize);
     }
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        int built = survivalBuildPiece(STRUCTURE_PIECE_BASE, stackSize, 6, 5, 0, elementBudget, env, false, true);
-        if (built >= 0) return built;
-        int extraStacks = getConstructExtraStackCount(stackSize);
-        for (int i = 0; i < extraStacks; i++) {
-            int bOffset = BASE_TOTAL_HEIGHT + i * STACK_LAYER_HEIGHT;
-            built = survivalBuildPiece(
-                STRUCTURE_PIECE_STACK,
-                stackSize,
-                6,
-                bOffset,
-                0,
-                elementBudget,
-                env,
-                false,
-                true);
-            if (built >= 0) return built;
-        }
-        int capB = BASE_TOTAL_HEIGHT - 2 + extraStacks * STACK_LAYER_HEIGHT;
-        return survivalBuildPiece(STRUCTURE_PIECE_CAP, stackSize, 6, capB, 0, elementBudget, env, false, true);
+        return survivalBuildPiece(
+            MegaSteamTurbineStructureDef.piece(getConstructExtraStackCount(stackSize)),
+            stackSize,
+            HORIZONTAL_OFFSET,
+            VERTICAL_OFFSET,
+            DEPTH_OFFSET,
+            elementBudget,
+            env,
+            false,
+            true);
     }
 
     @Override
@@ -1459,11 +1422,10 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { EnumChatFormatting.GRAY + "BASE (7 layers, L8~L2): Controller + 1 baseline stack",
-            EnumChatFormatting.GRAY + "STACK (4 layers, L5~L2): Repeatable, each +4 layers",
-            EnumChatFormatting.GRAY + "CAP (2 layers, L1~L0): Top cover",
-            EnumChatFormatting.GRAY + "Extra Stacks: 0 ~ 4 (9~25 total height)",
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel") };
+        return new String[] { "全钢双列轴向结构，51×29×(78+12k)，额外环组 k=0..4。", "内部等级块总数 2712+1872k，全部必须同档；280 块前窗玻璃同档且不低于内部等级。",
+            "提示 1：最前供汽控制台下部钢壳，允许供汽仓、输入仓/总线、输出仓和发电仓。", "提示 2：同一控制台的蒸汽冷却仓；至少一供汽输入、一输出及一发电仓，无需维护。",
+            "height 通道 1 / 5 / 9 / 13 / 17 分别投影 0 / 1 / 2 / 3 / 4 个额外环组。",
+            "casing 选内部等级；glass 选玻璃；pipe / gear 保留原升级，旧竖向结构不再成型。" };
     }
 
     @Override
@@ -1512,114 +1474,77 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .addInfo(
                 EnumChatFormatting.AQUA
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip_3"))
-            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列。
-            // 六参序 (wmin,wmax,hmin,hmax,lmin,lmax)=(13,13,9,25,13,13)：h 为堆叠可变维 [9,25]（BASE=9+4×4 层）；
-            // 截面 13×13（三件套 shape 13 行×13 字符，buildPiece 中心锚 6），旧参首位 5 为 beta-2 时代误值，本次一并修正。
-            .beginVariableStructureBlock(13, 13, 9, 25, 13, 13, true)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.ctrl"))
-            .addCasingInfoMin(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), minimumCasings(641), true)
+            .beginVariableStructureBlock(51, 51, 29, 29, 78, 126, true)
+            .addController("前供汽控制台，正面朝外")
+            .addStructureInfo("1 基础环组 + 0..4 额外环组；每组双列各一座 8 格环体 + 4 格间距。")
+            .addStructureInfo("内部等级块 2712+1872k 块同档；前窗玻璃 280 块，等级不低于内部等级。")
+            .addOtherStructurePart("供汽输入、输入仓/总线、输出仓、发电仓", "最前供汽控制台下部钢壳", 1)
+            .addOtherStructurePart("蒸汽冷却仓", "最前供汽控制台下部钢壳", 2)
+            .addStructureInfo("固定外壳和框架为钢；无需维护仓；旧竖向结构不再成型。")
+            .addStructureInfo("height 通道 1 / 5 / 9 / 13 / 17 选择额外环组 0 / 1 / 2 / 3 / 4。")
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
             .addSubChannelUsage(GTStructureChannels.PIPE_CASING)
             .addSubChannelUsage(GTStructureChannels.STRUCTURE_HEIGHT)
             .addStructureHint("gtsr.structurelib.channel.gear.usage")
-            .addStructureHint("gtsr.structurelib.channel.turbine_height.usage")
-            .addStructureInfo("")
-            .addStructureInfo(
-                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.multi_tier"))
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.turbine_array.hatches_1"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
-                1)
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.turbine_array.hatches_2"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
-                1)
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.turbine_array.hatches_3"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
-                1)
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.turbine_array.hatches_4"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
-                1)
-            .addStructureInfo(
-                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.turbine_array.extra_stack_layers")
-                    + EnumChatFormatting.GOLD
-                    + "1-4"
-                    + EnumChatFormatting.GRAY
-                    + " ("
-                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.each_tier")
-                    + ")")
-            .addStructureHint("gtsr.tooltip.turbine_array.hint_pipe")
-            .addStructureHint("gtsr.tooltip.turbine_array.hint_gear")
-            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();
         return tt;
     }
 
     private int getCasingTextureIndex() {
-        return CasingTierTextureHelper.getTextureIndex(mCasingTier, SOLID_STEEL_CASING_INDEX);
+        return SOLID_STEEL_CASING_INDEX;
     }
 
     @Override
-    public void onValueUpdate(byte aValue) {
-        // 通道仅 7 位（&0x7F）：0=未成形（归一回 -1 保持语义），1..12=等级
-        mCasingTier = aValue > 0 ? aValue : -1;
+    public void onValueUpdate(byte value) {
+        int tier = value & 15;
+        mCasingTier = tier > 0 ? tier : -1;
+        mStackCount = Math.min(MAX_EXTRA_STACKS, (value & 0x70) >>> 4);
     }
 
     @Override
     public byte getUpdateData() {
-        // 未成形 -1 经 7 位通道会被掩成 127 反噬客户端（getVoltage 越界）：必须钳非负
-        return (byte) Math.max(0, mCasingTier);
+        return (byte) (Math.max(0, mCasingTier) | mStackCount << 4);
     }
 
     @Override
-    public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
-        super.onFirstTick(aBaseMetaTileEntity);
-        setTurbineOverlay();
+    public MachineVisualState visualState() {
+        return machineVisualState;
     }
 
-    protected void setTurbineOverlay() {
-        IGregTechTileEntity tile = getBaseMetaTileEntity();
-        if (tile.isServerSide()) return;
-
-        IIconContainer[] tTextures;
-        if (tile.isActive()) tTextures = getTurbineTextureActive();
-        else if (mMachine) tTextures = getTurbineTextureFull();
-        else tTextures = getTurbineTextureEmpty();
-
-        GTUtilityClient.setTurbineOverlay(
-            tile.getWorld(),
-            tile.getXCoord(),
-            tile.getYCoord(),
-            tile.getZCoord(),
-            getExtendedFacing(),
-            tTextures,
-            overlayTickets);
+    @Override
+    public MachineVisualDefinition visualDefinition() {
+        return MegaSteamTurbineStructureDef.visual(mStackCount);
     }
 
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
+
+    @Override
+    protected void incrementProgressTime() {
+        super.incrementProgressTime();
+        machineVisualState.advanced(getBaseMetaTileEntity().getTimer());
+    }
+
+    /** Retained for integrations; the rebuilt machine renders its controller on one block. */
+    @Deprecated
+    protected void setTurbineOverlay() {}
+
+    @Deprecated
     public IIconContainer[] getTurbineTextureActive() {
         return Textures.BlockIcons.TURBINE_NEW_ACTIVE;
     }
 
+    @Deprecated
     public IIconContainer[] getTurbineTextureFull() {
         return Textures.BlockIcons.TURBINE_NEW;
     }
 
+    @Deprecated
     public IIconContainer[] getTurbineTextureEmpty() {
         return Textures.BlockIcons.TURBINE_NEW_EMPTY;
-    }
-
-    @Override
-    public void onTextureUpdate() {
-        setTurbineOverlay();
-    }
-
-    @Override
-    public void onRemoval() {
-        super.onRemoval();
-        if (getBaseMetaTileEntity().isClientSide()) GTUtilityClient.clearTurbineOverlay(overlayTickets);
     }
 
     @Override
@@ -1628,8 +1553,16 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         int casingIndex = getCasingTextureIndex();
         if (side == facing) {
             return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex),
-                aActive ? TextureFactory.of(Textures.BlockIcons.LARGETURBINE_NEW_ACTIVE5)
-                    : TextureFactory.of(Textures.BlockIcons.LARGETURBINE_NEW5) };
+                TextureFactory.of(
+                    aActive ? Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE
+                        : Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL),
+                TextureFactory.builder()
+                    .addIcon(
+                        aActive ? Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE_GLOW
+                            : Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_GLOW)
+                    .extFacing()
+                    .glow()
+                    .build() };
         }
         return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex) };
     }

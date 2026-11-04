@@ -633,6 +633,16 @@ gtsr.recipe.siemens_martin_furnace=平炉
 
 # Mega Steam Turbine Array (巨型蒸汽轮机机组)
 gt.blockmachines.gtsr.mega.steam.turbine.array.name=巨型蒸汽轮机机组
+gt.blockmachines.gtsr.heavy.steam.turbine.name=重型蒸汽轮机
+gtsr.gui.heavy_turbine.efficiency=蒸汽效率：
+gtsr.gui.heavy_turbine.rated_output=额定功率：
+gtsr.gui.heavy_turbine.steam_rate=平均耗汽：
+gtsr.tooltip.heavy_turbine.description=将普通蒸汽转化为电能与蒸馏水。全结构须统一使用青铜或钢，禁止混材，不支持堆叠。
+gtsr.tooltip.heavy_turbine.bronze=青铜：%s EU/t，蒸汽效率%s%%。
+gtsr.tooltip.heavy_turbine.steel=钢：%s EU/t，蒸汽效率%s%%。
+gtsr.tooltip.heavy_turbine.output=动力仓不限等级，总吞吐须满足功率；动力仓或排水满时停机。每160 L蒸汽冷凝为1 L蒸馏水。
+gtsr.tooltip.heavy_turbine.controller=右前供汽控制舱正面
+gtsr.tooltip.heavy_turbine.ports=替换前部供汽控制舱外壳
 gtsr.recipe.mega_steam_turbine_array=巨型蒸汽轮机
 
 # Siemens-Martin Furnace GUI/Info

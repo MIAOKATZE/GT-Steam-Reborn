@@ -1272,6 +1272,55 @@
           "centerYOffset": 0
         }
       ]
+    },
+    {
+      "machine": "KineticProcessingArray",
+      "source": "tools/workvisual/export_rebuilt_turbines.js (approved R10 preview + R11 controller move)",
+      "fireboxToken": null,
+      "fireboxesABC": [],
+      "nativeMaterial": null,
+      "emitters": [
+        {
+          "id": "KineticProcessingArray:front-left",
+          "preciseABC": [
+            -5,
+            -3,
+            -4.6
+          ],
+          "origin": "approved-preview-aperture",
+          "schedule": "impact"
+        },
+        {
+          "id": "KineticProcessingArray:front-right",
+          "preciseABC": [
+            -3,
+            -3,
+            -4.6
+          ],
+          "origin": "approved-preview-aperture",
+          "schedule": "impact"
+        },
+        {
+          "id": "KineticProcessingArray:chimney",
+          "preciseABC": [
+            0,
+            -6.6,
+            2
+          ],
+          "origin": "approved-preview-aperture",
+          "schedule": "working"
+        }
+      ],
+      "periodMs": 3000,
+      "impactPhaseMsInclusive": [
+        1695,
+        2070
+      ],
+      "impactClientTickInterval": 2,
+      "impactParticlesPerRequest": 2,
+      "chimneyClientTickInterval": 10,
+      "worldXZJitterWidth": 0.12,
+      "airPolicy": "actual jittered spawn cell must be loaded air; no block hiding bypass"
     }
   ],
   "tcds": {

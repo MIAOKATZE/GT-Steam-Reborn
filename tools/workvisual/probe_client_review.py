@@ -70,6 +70,11 @@ def definition_source():
     definitions = json.loads((ROOT / "src/main/resources/assets/gtsr/machinevisual/motions.json").read_text(encoding="utf-8"))["definitions"]
     entries = []
     for definition in definitions:
+        # This historical feedback contract exercises the original five-machine profile.
+        # Rebuilt turbines have separate full-cube fixture and native TestLab contracts.
+        if definition["id"] not in {"air_compressor", "atmospheric_centrifuge", "steam_fluid_drill",
+                                    "crust_steam_borer", "gear_steam_compressor"}:
+            continue
         groups = []
         for g in definition["groups"]:
             cells = ",".join("new Cell(%d,%d,%d)" % (c["x"], c["y"], c["z"]) for c in g["members"])

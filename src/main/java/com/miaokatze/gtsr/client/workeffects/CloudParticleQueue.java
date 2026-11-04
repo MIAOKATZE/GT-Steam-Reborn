@@ -157,23 +157,36 @@ public final class CloudParticleQueue {
                         .size()));
         IGregTechTileEntity base = request.owner()
             .getBaseMetaTileEntity();
-        Vec3Impl offset = offset(request.facing(), emitter.cell());
-        int x = base.getXCoord() + offset.get0();
-        int y = base.getYCoord() + offset.get1();
-        int z = base.getZCoord() + offset.get2();
-        if (!isAir(world, x, y, z)) return false;
-        if (emitter.above() != null) {
-            Vec3Impl above = offset(request.facing(), emitter.above());
-            if (!isAir(
-                world,
-                base.getXCoord() + above.get0(),
-                base.getYCoord() + above.get1(),
-                base.getZCoord() + above.get2())) return false;
+        double px, py, pz;
+        double[] precise = emitter.preciseABC();
+        if (precise != null) {
+            double[] transformed = new double[3];
+            request.facing()
+                .getWorldOffset(precise, transformed);
+            // The front apertures are only .1 blocks outside the beam: keep their jitter outside its face.
+            px = base.getXCoord() + .5D + transformed[0] + (world.rand.nextDouble() - .5D) * .12D;
+            py = base.getYCoord() + .5D + transformed[1];
+            pz = base.getZCoord() + .5D + transformed[2] + (world.rand.nextDouble() - .5D) * .12D;
+            if (!isAir(world, (int) Math.floor(px), (int) Math.floor(py), (int) Math.floor(pz))) return false;
+        } else {
+            Vec3Impl offset = offset(request.facing(), emitter.cell());
+            int x = base.getXCoord() + offset.get0();
+            int y = base.getYCoord() + offset.get1();
+            int z = base.getZCoord() + offset.get2();
+            if (!isAir(world, x, y, z)) return false;
+            if (emitter.above() != null) {
+                Vec3Impl above = offset(request.facing(), emitter.above());
+                if (!isAir(
+                    world,
+                    base.getXCoord() + above.get0(),
+                    base.getYCoord() + above.get1(),
+                    base.getZCoord() + above.get2())) return false;
+            }
+            // Jitter and upward velocity remain in world space, after the StructureLib ABC transform.
+            px = x + .5D + (world.rand.nextDouble() - .5D) * .8D;
+            py = y + .5D + emitter.centerYOffset();
+            pz = z + .5D + (world.rand.nextDouble() - .5D) * .8D;
         }
-        // Jitter and upward velocity remain in world space, after the StructureLib ABC transform.
-        double px = x + .5D + (world.rand.nextDouble() - .5D) * .8D;
-        double py = y + .5D + emitter.centerYOffset();
-        double pz = z + .5D + (world.rand.nextDouble() - .5D) * .8D;
         if (request.scale() == 1F) {
             world.spawnParticle("cloud", px, py, pz, 0D, .3D, 0D);
         } else {

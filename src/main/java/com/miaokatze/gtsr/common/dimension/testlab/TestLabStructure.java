@@ -92,13 +92,11 @@ final class TestLabStructure {
                 invokeInt(controller, "getStructureOffsetB"),
                 invokeInt(controller, "getStructureOffsetC"));
         } else if (controller instanceof MTEMegaSteamTurbineArray) {
-            // Native construct has no exported offset constants; these are piece origins, not copied geometry.
-            piece(MegaSteamTurbineStructureDef.STRUCTURE_PIECE_BASE, 6, 5, 0);
             piece(
-                MegaSteamTurbineStructureDef.STRUCTURE_PIECE_CAP,
-                6,
-                MegaSteamTurbineStructureDef.BASE_TOTAL_HEIGHT - 2,
-                0);
+                MegaSteamTurbineStructureDef.piece(MegaSteamTurbineStructureDef.constructExtraStacks(trigger)),
+                MegaSteamTurbineStructureDef.HORIZONTAL_OFFSET,
+                MegaSteamTurbineStructureDef.VERTICAL_OFFSET,
+                MegaSteamTurbineStructureDef.DEPTH_OFFSET);
         } else if (motionShape && controller instanceof com.miaokatze.gtsr.common.machinevisual.MachineVisualHost visual
             && (visual.visualDefinition().id.equals("air_compressor")
                 || visual.visualDefinition().id.equals("atmospheric_centrifuge"))) {

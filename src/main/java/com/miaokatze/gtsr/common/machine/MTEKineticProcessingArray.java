@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.machine;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -7,8 +9,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.withChannel;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.hasMinimumCasings;
-import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.enums.HatchElement.Energy;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
@@ -39,7 +39,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
-import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -52,12 +51,15 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
-import com.miaokatze.gtsr.api.util.CasingTierTextureHelper;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEKineticProcessingArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
+import com.miaokatze.gtsr.common.structure.RebuiltMachineGlass;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import bartworks.system.material.Werkstoff;
@@ -75,7 +77,6 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEBasicMachine;
 import gregtech.api.metatileentity.implementations.MTEBasicMachineWithRecipe;
-import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
@@ -103,12 +104,15 @@ import gregtech.common.tileentities.machines.basic.MTERockBreaker;
 
 @IMetaTileEntity.SkipGenerateDescription
 public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticProcessingArray>
-    implements IConstructable, ISurvivalConstructable {
+    implements IConstructable, ISurvivalConstructable, MachineVisualHost {
+
+    private final MachineVisualState machineVisualState = new MachineVisualState();
+    public int mGlassTier = -1;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 3;
-    private static final int VERTICAL_OFF_SET = 2;
-    private static final int DEPTH_OFF_SET = 2;
+    private static final int HORIZONTAL_OFF_SET = 6;
+    private static final int VERTICAL_OFF_SET = 6;
+    private static final int DEPTH_OFF_SET = 4;
     private static final long BOOST_DURATION_TICKS = 1200L * 20L;
     private static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     private static IStructureDefinition<MTEKineticProcessingArray> STRUCTURE_DEFINITION;
@@ -140,14 +144,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                 t -> stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof MTEPressureSteamCoolingHatch))
             .casingIndex(SOLID_STEEL_CASING_INDEX)
             .hint(1);
-        return builder.hatchItemFilterAnd((controller, trigger) -> {
-            int selectedTier = trigger == null ? 1 : ChannelDataAccessor.getChannelData(trigger, "casing");
-            int casingTier = Math.max(1, Math.min(12, selectedTier));
-            return stack -> {
-                IMetaTileEntity mte = ItemMachines.getMetaTileEntity(stack);
-                return !(mte instanceof MTEHatchEnergy energy) || energy.getInputTier() <= casingTier;
-            };
-        });
+        return builder;
     }
 
     /**
@@ -272,15 +269,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     public IStructureDefinition<MTEKineticProcessingArray> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
             STRUCTURE_DEFINITION = StructureDefinition.<MTEKineticProcessingArray>builder()
-                .addShape(
-                    STRUCTURE_PIECE_MAIN,
-                    transpose(
-                        new String[][] {
-                            { "  BBB  ", " BDDDB ", "BDCBCDB", "BDBBBDB", "BDCBCDB", " BDDDB ", "  BBB  " },
-                            { "       ", " EB BE ", " BCBCB ", "  BDB  ", " BCBCB ", " EB BE ", "       " },
-                            { "       ", " E   E ", "  B~B  ", "  BDB  ", "  BBB  ", " E   E ", "       " },
-                            { "       ", " EB BE ", " BBBBB ", "  BDB  ", " BBBBB ", " EB BE ", "       " },
-                            { "  BBB  ", " BBBBB ", "BBBBBBB", "BBBBBBB", "BBBBBBB", " BBBBB ", "  BBB  " } }))
+                .addShape(STRUCTURE_PIECE_MAIN, transpose(visualDefinition().shapeLayers()))
                 .addElement(
                     'B',
                     ofChain(
@@ -297,14 +286,31 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                         ioConstructionHatches().build(),
                         onElementPass(
                             MTEKineticProcessingArray::onCasingAdded,
-                            withChannel(
-                                "casing",
-                                ofBlocksTiered(
-                                    MTEKineticProcessingArray::getCasingTier,
-                                    getAllowedCasings(),
-                                    -1,
-                                    (t, tier) -> t.mCasingTier = tier,
-                                    t -> t.mCasingTier)))))
+                            ofBlock(GregTechAPI.sBlockCasings2, 0))))
+                .addElement('H', ofBlock(GregTechAPI.sBlockCasings2, 0))
+                .addElement('R', ofBlock(GregTechAPI.sBlockCasings2, 0))
+                .addElement('S', ofBlock(GregTechAPI.sBlockCasings2, 13))
+                .addElement('A', isAir())
+                .addElement(
+                    'U',
+                    withChannel(
+                        "casing",
+                        ofBlocksTiered(
+                            MTEKineticProcessingArray::getCasingTier,
+                            getAllowedCasings(),
+                            -1,
+                            (t, tier) -> t.mCasingTier = tier,
+                            t -> t.mCasingTier)))
+                .addElement(
+                    'G',
+                    withChannel(
+                        "glass",
+                        ofBlocksTiered(
+                            RebuiltMachineGlass::tier,
+                            RebuiltMachineGlass.choices(),
+                            -1,
+                            (t, tier) -> t.mGlassTier = tier,
+                            t -> t.mGlassTier)))
                 .addElement(
                     'C',
                     withChannel(
@@ -313,7 +319,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                             MTEKineticProcessingArray::getPipeTier,
                             PIPE_CASINGS,
                             -1,
-                            (t, tier) -> { t.mPipeTier = tier; },
+                            (t, tier) -> t.mPipeTier = tier,
                             t -> t.mPipeTier)))
                 .addElement(
                     'D',
@@ -323,18 +329,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                             MTEKineticProcessingArray::getGearTier,
                             GEAR_CASINGS,
                             -1,
-                            (t, tier) -> { t.mGearTier = tier; },
+                            (t, tier) -> t.mGearTier = tier,
                             t -> t.mGearTier)))
-                .addElement(
-                    'E',
-                    withChannel(
-                        "casing",
-                        ofBlocksTiered(
-                            MTEKineticProcessingArray::getFrameTier,
-                            getFrameCasings(),
-                            -1,
-                            (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
-                            t -> t.mCasingTier)))
+                .addElement('E', gregtech.api.util.GTStructureUtility.ofFrame(Materials.Steel))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -510,33 +507,27 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         mPipeTier = -1;
         mGearTier = -1;
         mSyncedCasingTier = -1;
+        mGlassTier = -1;
         mPressureSteamInputs.clear();
         mPressureCoolingHatches.clear();
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
             return;
         }
-        if (mCasingTier <= 0 || mCasingTier > 12 || !hasMinimumCasings(mCasingAmount, 93)) {
+        if (mCasingTier <= 0 || mCasingTier > 12 || mGlassTier < mCasingTier) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
 
         boolean hasEnergy = !mEnergyHatches.isEmpty();
         boolean hasSteamInput = !mPressureSteamInputs.isEmpty();
-        boolean energyTierValid = true;
-        for (var energyHatch : GTUtility.validMTEList(mEnergyHatches)) {
-            if (energyHatch.getInputTier() > mCasingTier) {
-                energyTierValid = false;
-                break;
-            }
-        }
         // 兼容 Crafting Input Bus/Buffer/Proxy (ME) 等 DualInputHatch：GT5U 父类 addInputBusToMachineList
         // 会将 IDualInputHatch 实例（MTEHatchCraftingInputME/Slave extends MTEHatchInputBus）自动重定向到
         // mDualInputHatches（supportsCraftingMEBuffer() 默认 true），此处需一并计入有效输入判断，
         // 否则玩家只放样板输入总成时 hasInput=false 导致结构检测失败。仿照 GT5U MTEEnhancedMultiBlockBase.checkHasAnyInput。
         boolean hasInput = !mInputBusses.isEmpty() || !mInputHatches.isEmpty() || !mDualInputHatches.isEmpty();
         boolean hasOutput = !mOutputBusses.isEmpty() || !mOutputHatches.isEmpty() || !mPressureCoolingHatches.isEmpty();
-        if (!hasEnergy || !energyTierValid || !hasSteamInput || !hasInput || !hasOutput) {
+        if (!hasEnergy || !hasSteamInput || !hasInput || !hasOutput) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -684,8 +675,12 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     }
 
     private long getMaxRecipeVoltage() {
-        if (internalMachineStack == null || mMachineTier < 0 || mMachineTier >= GTValues.V.length) return 0L;
-        int voltageTier = Math.min(mMachineTier + (isBoostModeActive() ? 1 : 0), GTValues.V.length - 1);
+        if (internalMachineStack == null || mMachineTier < 0
+            || mMachineTier >= GTValues.V.length
+            || mCasingTier < 1
+            || mGlassTier < mCasingTier) return 0L;
+        int voltageTier = Math
+            .min(mCasingTier, Math.min(mMachineTier + (isBoostModeActive() ? 1 : 0), GTValues.V.length - 1));
         return GTValues.V[voltageTier];
     }
 
@@ -782,6 +777,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         if (aBaseMetaTileEntity.isServerSide()) {
             updateBoostDisplay();
         }
+        machineVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
     }
 
     @Override
@@ -1103,8 +1099,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         }
         // Crafting Input Bus/Buffer/Proxy (ME) 等 DualInputHatch 仓室：GT5U 父类 addInputBusToMachineList
         // 在结构检测时将它们重定向到 mDualInputHatches（supportsCraftingMEBuffer 默认 true），纹理被设为
-        // hatch adder 传入的 SOLID_STEEL_CASING_INDEX（钢外壳固定）。此处需用基于 tier 的 textureIndex
-        // 重刷，否则样板仓会一直显示钢外壳、不随机械外壳 tier 改变。
+        // 与其它真实仓口共用固定钢机身纹理；内部等级块不改变仓口外观。
         // 注意：IDualInputHatch 是接口（extends IMetaTileEntity），不满足 GTUtility.validMTEList 的
         // <E extends MetaTileEntity> 泛型约束，故用普通遍历 + null 检查；接口已声明 updateTexture(int)。
         for (IDualInputHatch dualHatch : mDualInputHatches) {
@@ -1121,8 +1116,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     }
 
     private int getCasingTextureIndex() {
-        int tier = mSyncedCasingTier > 0 ? mSyncedCasingTier : mCasingTier;
-        return CasingTierTextureHelper.getTextureIndex(tier, SOLID_STEEL_CASING_INDEX);
+        return SOLID_STEEL_CASING_INDEX;
     }
 
     @Override
@@ -1184,7 +1178,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[0];
+        return new String[] { "全钢固定机身；32 块内部等级机械方块必须同档，9 块前窗玻璃等级不得低于内部等级。", "提示 1：侧舱下部固定钢壳可替换能源仓、输入输出总线和流体仓。",
+            "提示 2：高压蒸汽输入；提示 3：压力冷却仓，均位于同一侧舱下部。", "至少一能源仓、一高压蒸汽输入、一个配方输入和一个输出；无需维护仓。",
+            "casing 选内部等级；glass 选玻璃；pipe / gear 保留原管道和齿轮升级。旧结构不再成型。" };
     }
 
     @Override
@@ -1266,32 +1262,42 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                 EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3_2"))
             .addSeparator()
-            .beginStructureBlock(7, 5, 7, true)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.ctrl"))
-            .addEnergyHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.energy"), 1)
-            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.steam_input"), 2)
-            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.input"), 1)
-            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.output"), 1)
-            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.output_hatch"), 1)
-            .addStructureInfo("")
-            .addStructureInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.tier_system"))
-            .addCasingInfoMin(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), minimumCasings(93), true)
+            .beginStructureBlock(8, 9, 9, true)
+            .addController("侧舱前方，正面朝外；见投影")
+            .addEnergyHatch("侧舱下部钢壳（提示 1），不限制能源仓等级", 1)
+            .addInputHatch("高压蒸汽输入位于侧舱下部钢壳（提示 2）", 2)
+            .addInputBus("侧舱下部钢壳（提示 1）", 1)
+            .addOutputBus("侧舱下部钢壳（提示 1）", 1)
+            .addOutputHatch("侧舱下部钢壳；压力冷却仓使用提示 3", 3)
+            .addStructureInfo("32 块内部等级块同档；9 块前窗玻璃同档且等级不低于内部等级。")
+            .addStructureInfo("固定外壳与框架为钢；pipe / gear 保留原升级通道；无需维护仓。")
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
             .addSubChannelUsage(GTStructureChannels.PIPE_CASING)
             .addStructureHint("gtsr.structurelib.channel.gear.usage")
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 15, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 8, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 12, false)
-            .addStructureInfo(
-                EnumChatFormatting.YELLOW
-                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.parallel_formula"))
-            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
-            .addStructureHint("gtsr.tooltip.kinetic_array.hint_pipe")
-            .addStructureHint("gtsr.tooltip.kinetic_array.hint_gear")
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();
         return tt;
+    }
+
+    @Override
+    public MachineVisualState visualState() {
+        return machineVisualState;
+    }
+
+    @Override
+    public MachineVisualDefinition visualDefinition() {
+        return MachineVisualDefinition.get("kinetic_processing_array");
+    }
+
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
+
+    @Override
+    protected void incrementProgressTime() {
+        super.incrementProgressTime();
+        machineVisualState.advanced(getBaseMetaTileEntity().getTimer());
     }
 
     /**

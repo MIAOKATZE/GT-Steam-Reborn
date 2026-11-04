@@ -42,10 +42,10 @@ public final class GTSRItemOrderCatalog {
     /** 顺序也是创造页中的领域顺序；同族内普通、强化、超压按等级递进。 */
     private static final GTSRItemList[][] DOMAINS = {
         { LargeCokeOven, ReinforcedBrickBlastFurnace, SiemensMartinFurnace, LargeSteamFurnace,
-            LargeSolarOverpressureArray, LargeGeothermalSteamBoiler, TcdsController, MegaSteamTurbineArray,
-            SteamFluidDrill, CrustSteamBorer, CrustMatterAggregator, VeinSteamPyrolyzer, AirCompressor,
-            AtmosphericCentrifuge, KineticProcessingArray, AmmoniaPlant, GearSteamCompressor, SteamHubArray,
-            WaterHubArray, SingularityDrillingHub, SteamSingularityEntangler, DenseStateManipulator,
+            LargeSolarOverpressureArray, LargeGeothermalSteamBoiler, TcdsController, HeavySteamTurbine,
+            MegaSteamTurbineArray, SteamFluidDrill, CrustSteamBorer, CrustMatterAggregator, VeinSteamPyrolyzer,
+            AirCompressor, AtmosphericCentrifuge, KineticProcessingArray, AmmoniaPlant, GearSteamCompressor,
+            SteamHubArray, WaterHubArray, SingularityDrillingHub, SteamSingularityEntangler, DenseStateManipulator,
             CriticalSingularityCompressor, CriticalLoom, CriticalSolar, CriticalTurbine, CriticalSun, CriticalBattery,
             ClusterController, ClusterUnitCrusher, ClusterUnitOreWasher, ClusterUnitCentrifuge,
             ClusterUnitThermalCentrifuge, ClusterUnitSifter, ClusterUnitMagneticSeparator, ClusterUnitFurnace,

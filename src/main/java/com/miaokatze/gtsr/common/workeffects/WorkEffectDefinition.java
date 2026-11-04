@@ -59,6 +59,7 @@ public final class WorkEffectDefinition {
         private final Cell cell, above;
         private final double centerYOffset;
         private final boolean residualHeat;
+        private final double[] preciseABC;
 
         public Emitter(String id, Cell cell, Cell above, double centerYOffset, boolean residualHeat) {
             this.id = id;
@@ -66,6 +67,21 @@ public final class WorkEffectDefinition {
             this.above = above;
             this.centerYOffset = centerYOffset;
             this.residualHeat = residualHeat;
+            this.preciseABC = null;
+        }
+
+        /** Controller-relative aperture point; the queue checks the actual jittered world position for air. */
+        public Emitter(String id, double a, double b, double c) {
+            this.id = id;
+            this.cell = new Cell((int) Math.round(a), (int) Math.round(b), (int) Math.round(c));
+            this.above = null;
+            this.centerYOffset = 0D;
+            this.residualHeat = false;
+            this.preciseABC = new double[] { a, b, c };
+        }
+
+        public double[] preciseABC() {
+            return preciseABC == null ? null : preciseABC.clone();
         }
 
         public String id() {

@@ -24,6 +24,11 @@ class PipelineTests(unittest.TestCase):
     def setUpClass(cls):
         cls.profile = read_json(Path(__file__).with_name("profile.json"))
         cls.definitions = read_json(ROOT / "src/main/resources/assets/gtsr/machinevisual/motions.json")
+        # This historical TASK03 contract covers exactly the five controllers in its approved profile.
+        # Rebuilt KPA/turbines have separate packaged-fixture and native construction contracts.
+        selected = {machine['id'] for machine in cls.profile['machines'].values()}
+        cls.definitions['definitions'] = [definition for definition in cls.definitions['definitions']
+                                          if definition['id'] in selected]
 
     def test_current_continuous_paths_keep_new_crust_travel_and_required_world_gates(self):
         result = continuous_sweep(self.definitions, self.profile)
