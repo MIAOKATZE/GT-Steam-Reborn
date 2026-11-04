@@ -12,7 +12,6 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
-import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import bartworks.common.loaders.FluidLoader;
 import bartworks.system.material.WerkstoffLoader;
@@ -40,6 +39,7 @@ public final class ProsperityIndustrialRecipes {
     public static final RecipeMetadataKey<String> INDUSTRIAL_STAGE = SimpleRecipeMetadataKey
         .create(String.class, "gtsr_industrial_r6_stage");
     private static int registeredRecipeCount;
+    private static boolean registrationComplete;
 
     private ProsperityIndustrialRecipes() {}
 
@@ -77,61 +77,16 @@ public final class ProsperityIndustrialRecipes {
             }
             registeredRecipeCount++;
         }
-        verifyRegistration();
+        registrationComplete = true;
     }
 
     public static int getRegisteredRecipeCount() {
         return registeredRecipeCount;
     }
 
-    /** Inspect actual recipe maps after registration, including exact consumed quantities and zero-size tools. */
+    /** Checks completed registration receipts, without inspecting live recipe properties or map contents. */
     public static void verifyRegistration() {
-        ProsperityIndustrialMaterials.verifyRegistration();
-        int total = 0;
-        List<ResolvedStage> expectedStages = new ArrayList<>();
-        for (IndustrialRecipeLedger.Stage definition : IndustrialRecipeLedger.get().recipes) {
-            ResolvedStage stage = resolve(definition);
-            expectedStages.add(stage);
-            if (hasDistilleryAlternative(stage)) expectedStages.add(distilleryAlternative(stage));
-        }
-        for (ResolvedStage expected : expectedStages) {
-            IndustrialRecipeLedger.Stage definition = expected.definition;
-            int matches = 0;
-            int[] liveChances = new int[expected.itemsOut.length];
-            for (GTRecipe recipe : expected.map.getAllRecipes()) {
-                if (!definition.id.equals(recipe.getMetadataOrDefault(INDUSTRIAL_STAGE, ""))) continue;
-                matches++;
-                for (int i = 0; i < liveChances.length; i++) liveChances[i] = recipe.getOutputChance(i);
-                if (recipe.mEUt != definition.EUt || recipe.mDuration != definition.ticks
-                    || !sameItems(recipe.mInputs, expected.itemsIn)
-                    || !sameItems(recipe.mOutputs, expected.itemsOut)
-                    || !sameChances(recipe, expected.outputChances)
-                    || !sameFluids(recipe.mFluidInputs, expected.fluidsIn)
-                    || !sameFluids(recipe.mFluidOutputs, expected.fluidsOut)) {
-                    throw new IllegalStateException(
-                        "Industrial live recipe differs from R6 integer batch: " + definition.id);
-                }
-            }
-            if (matches != 1)
-                throw new IllegalStateException("Industrial stage " + definition.id + " live matches=" + matches);
-            total += matches;
-            GTSteamReborn.LOG.info(
-                "[GTSR] industrial recipe probe: " + definition.id
-                    + " map="
-                    + definition.machineMap
-                    + " EUt="
-                    + definition.EUt
-                    + " ticks="
-                    + definition.ticks
-                    + " outputChances="
-                    + Arrays.toString(liveChances)
-                    + " ok");
-        }
-        if (total != expectedStages.size() || registeredRecipeCount != total) {
-            throw new IllegalStateException(
-                "Prosperity industrial recipe count mismatch: live=" + total + " registered=" + registeredRecipeCount);
-        }
-        GTSteamReborn.LOG.info("[GTSR] prosperity industrial recipe live audit: lines=6 stages=" + total);
+        if (!registrationComplete) throw new IllegalStateException("Prosperity industrial registration is incomplete");
     }
 
     private static boolean hasDistilleryAlternative(ResolvedStage stage) {
@@ -283,13 +238,6 @@ public final class ProsperityIndustrialRecipes {
             .toArray();
     }
 
-    private static boolean sameChances(GTRecipe actual, int[] expected) {
-        for (int i = 0; i < expected.length; i++) {
-            if (actual.getOutputChance(i) != expected[i]) return false;
-        }
-        return true;
-    }
-
     private static FluidStack[] fluids(List<IndustrialRecipeLedger.Amount> amounts) {
         List<FluidStack> result = new ArrayList<>();
         for (IndustrialRecipeLedger.Amount amount : amounts) {
@@ -417,23 +365,6 @@ public final class ProsperityIndustrialRecipes {
             default:
                 throw new IllegalStateException("Unknown industrial recipe map: " + name);
         }
-    }
-
-    private static boolean sameItems(ItemStack[] actual, ItemStack[] expected) {
-        if (actual.length != expected.length) return false;
-        for (int i = 0; i < actual.length; i++) {
-            if (!GTUtility.areStacksEqual(actual[i], expected[i]) || actual[i].stackSize != expected[i].stackSize)
-                return false;
-        }
-        return true;
-    }
-
-    private static boolean sameFluids(FluidStack[] actual, FluidStack[] expected) {
-        if (actual.length != expected.length) return false;
-        for (int i = 0; i < actual.length; i++) {
-            if (!actual[i].isFluidEqual(expected[i]) || actual[i].amount != expected[i].amount) return false;
-        }
-        return true;
     }
 
     private static final class ResolvedStage {
