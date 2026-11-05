@@ -253,7 +253,7 @@ The v2.1.18 Kinetic Processing Array and Mega Steam Turbine Array require rebuil
 
 机械壳决定电压等级，玻璃等级不得低于机械壳；仓室位于前部机械壳基座，控制器与仓室底纹随等级变化。普通与过热蒸汽各级可用，致密族和超临界蒸汽需 LuV（6级）及以上机械壳。支持 ME 及原生流体型合成缓存供汽，以及普通、多安和激光动力仓。
 
-<p align="center"><img src="README/renders/MTEHeavySteamTurbine.png" width="500" alt="重型蒸汽轮机 / Heavy Steam Turbine"><br><em>重型蒸汽轮机 / Heavy Steam Turbine</em></p>
+<p align="center"><img src="README/renders/MTEHeavySteamTurbine.png" width="600" alt="重型蒸汽轮机：左青铜级，右钢级 / Heavy Steam Turbine: bronze tier on the left, steel tier on the right"><br><em>重型蒸汽轮机：左青铜级，右钢级 / Heavy Steam Turbine: bronze tier on the left, steel tier on the right</em></p>
 
 **重型蒸汽轮机 / Heavy Steam Turbine (HST)**
 
