@@ -637,12 +637,12 @@ gt.blockmachines.gtsr.heavy.steam.turbine.name=Heavy Steam Turbine
 gtsr.gui.heavy_turbine.efficiency=Effective generating efficiency:
 gtsr.gui.heavy_turbine.rated_output=Output at 100%:
 gtsr.gui.heavy_turbine.steam_rate=Actual steam consumption:
-gtsr.tooltip.heavy_turbine.description=Compact steam generating station. Use matching bronze or steel casings, frames, gears and pipes. Not stackable.
-gtsr.tooltip.heavy_turbine.bronze=Bronze: %s EU/t at 100%%; 512 L/t ordinary steam, up to 125%% efficiency.
-gtsr.tooltip.heavy_turbine.steel=Steel: %s EU/t at 100%%; ordinary steam 2048 L/t, up to 150%%; superheated steam 1024 L/t, up to 200%%.
-gtsr.tooltip.heavy_turbine.output=Supports normal and TT multi-amp dynamos. Load follows actual throughput, remaining energy capacity and fluid output space.
-gtsr.tooltip.heavy_turbine.controller=Front of the right-hand steam distributor
-gtsr.tooltip.heavy_turbine.ports=Replace casings on the front steam distributor
+gtsr.tooltip.heavy_turbine.description=Compact independent steam generator. Build entirely in bronze or steel; no stacking.
+gtsr.tooltip.heavy_turbine.bronze=Bronze: %s EU/t at 100%% efficiency; rated ordinary steam 512 L/t, ceiling 125%%.
+gtsr.tooltip.heavy_turbine.steel=Steel: %s EU/t at 100%% efficiency; ordinary steam 2048 L/t, ceiling 150%%; superheated steam 1024 L/t, ceiling 200%%.
+gtsr.tooltip.heavy_turbine.output=Supports normal and TT multi-amp dynamos. Load is limited by steam supply, dynamo throughput and remaining energy capacity, and exhaust space; resumes after blockage clears.
+gtsr.tooltip.heavy_turbine.controller=Front of the right-hand steam distributor; follow the projection
+gtsr.tooltip.heavy_turbine.ports=Ordinary material casing positions on the front steam distributor (hint 1)
 gtsr.recipe.mega_steam_turbine_array=Mega Steam Turbine
 
 # Siemens-Martin Furnace GUI/Info
@@ -767,16 +767,16 @@ gtsr.tooltip.crust_borer.output_bus=Output Bus
 
 # Kinetic Processing Array (KPA)
 gtsr.tooltip.kinetic_array.type=Kinetic Processing Array, KPA
-gtsr.tooltip.kinetic_array.desc=Insert GT single-block machines into the controller GUI, powered by electricity + superheated steam, executes the machine's recipes.
-gtsr.tooltip.kinetic_array.desc2=Parallel = (1 + 2 x internal machine tier) + machine count. Nine standard machine casings in the 3x3 base below the hammer limit voltage; energy hatch tier is unrestricted.
-gtsr.tooltip.kinetic_array.desc3=Superheated steam follows actual electrical use: steel 4 L/EU, titanium 2 L/EU, tungstensteel 1 L/EU.
-gtsr.tooltip.kinetic_array.ctrl=Fixed front control panel on the side bay
-gtsr.tooltip.kinetic_array.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
-gtsr.tooltip.kinetic_array.input=Input Bus
-gtsr.tooltip.kinetic_array.output=Output Bus
-gtsr.tooltip.kinetic_array.output_hatch=Output Hatch/Pressure Steam Cooling Hatch
-gtsr.tooltip.kinetic_array.hint_pipe=material upgrades casings, gears, pipes and frames together: steel/titanium/tungstensteel run at 200%/250%/300% speed.
-gtsr.tooltip.kinetic_array.hint_gear=EU multipliers 0.6/0.4/0.3; superheated steam 4/2/1 L/EU. Tungstensteel uses this mod's dedicated gearbox.
+gtsr.tooltip.kinetic_array.desc=Insert GT single-block machines into the controller GUI; run their recipes using electricity and superheated steam.
+gtsr.tooltip.kinetic_array.desc2=Recipe voltage is capped by the lower of the installed machine and nine standard casing tiers. Glass must meet casing tier; energy hatch tier is unrestricted.
+gtsr.tooltip.kinetic_array.desc3=[Steam supply] Superheated steam per actual EU consumed: steel 4 L/EU, titanium 2 L/EU, tungstensteel 1 L/EU.
+gtsr.tooltip.kinetic_array.ctrl=Fixed front control panel on the side bay; face outward as projected
+gtsr.tooltip.kinetic_array.steam_input=Lower side-bay ordinary casing positions: pressure steam input (hint 2), or normal/ME fluid input and ME crafting buffer (hint 1) supplying superheated steam
+gtsr.tooltip.kinetic_array.input=Lower side-bay ordinary material casing positions (hint 1)
+gtsr.tooltip.kinetic_array.output=Lower side-bay ordinary material casing positions (hint 1)
+gtsr.tooltip.kinetic_array.output_hatch=Lower side-bay ordinary material casing positions; normal output hint 1, pressure cooling hint 3
+gtsr.tooltip.kinetic_array.hint_pipe=Steel / titanium / tungstensteel: recipe time x0.5 / 0.4 / (1/3), speed 200% / 250% / 300%.
+gtsr.tooltip.kinetic_array.hint_gear=Steel / titanium / tungstensteel: recipe EU multipliers 0.6 / 0.4 / 0.3; tungstensteel uses this mod's gearbox.
 
 # Large Coke Oven (LCO)
 gtsr.tooltip.coke_oven.type=Large Coke Oven, LCO
@@ -801,11 +801,11 @@ gtsr.tooltip.siemens_martin.desc=A new-age high-throughput steel furnace:
 
 # Mega Steam Turbine Array (MSTA)
 gtsr.tooltip.turbine_array.type=Mega Steam Turbine Array, MSTA
-gtsr.tooltip.turbine_array.desc=A massive multiblock turbine assembly that converts the kinetic energy of steam into electrical (EU) output.
-gtsr.tooltip.turbine_array.desc2=One base pair of large rings plus 0-4 independent axial ring groups. Each extra group adds 12 blocks of length.
-gtsr.tooltip.turbine_array.desc3=The more stack layers, the higher the machine's power output.
-gtsr.tooltip.turbine_array.desc4=Tier 6+ can process Dense/Supercritical steam with higher efficiency
-gtsr.tooltip.turbine_array.ctrl=Front face of the foremost steam control platform
+gtsr.tooltip.turbine_array.desc=A twin-shaft mega turbine array that converts steam into EU.
+gtsr.tooltip.turbine_array.desc2=[Ring groups] One base group + k extra groups (k=0..4); each extra group adds 12 blocks of length.
+gtsr.tooltip.turbine_array.desc3=Base generation multiplier x4; power groups = k+2, physical ring groups = k+1. Base groups add no extra efficiency or savings bonuses.
+gtsr.tooltip.turbine_array.desc4=Ordinary and superheated steam work at every tier; dense variants and supercritical steam require LuV (tier 6) casings or above.
+gtsr.tooltip.turbine_array.ctrl=Front face of the foremost steam control platform; face outward as projected
 
 # Singularity Drilling Hub (SDH)
 gtsr.tooltip.singularity_hub.type=Singularity Drilling Hub, SDH
@@ -951,7 +951,7 @@ gtsr.gui.atmospheric_centrifuge.chip=Rare Gas Chip:
 gtsr.gui.atmospheric_centrifuge.need_steel=Requires Steel Tier
 
 # 5. Kinetic Processing Array - missing energy key
-gtsr.tooltip.kinetic_array.energy=Energy Hatch
+gtsr.tooltip.kinetic_array.energy=Lower side-bay ordinary material casing positions (hint 1); normal, multi-amp and laser energy hatches; tier unrestricted
 
 # 6. Large Coke Oven - missing desc keys
 gtsr.tooltip.coke_oven.desc=Distills logs/coal in high-temperature, oxygen-free conditions,
@@ -1005,14 +1005,14 @@ gtsr.tooltip.steam_furnace.recipe_based=Recipe-dependent
 # 10. Mega Steam Turbine Array - missing keys
 gtsr.gui.turbine_array.stack_layers=Stack Layers: 
 gtsr.gui.turbine_array.extra_stack_layers=Extra Stack Layers: 
-gtsr.tooltip.turbine_array.height_channel=height channel: 1-4 = BASE; 5-8 = +1 STACK; 9-12 = +2 STACK; 13-16 = +3 STACK; 17+ = +4 STACK
+gtsr.tooltip.turbine_array.height_channel=height channel 1..4 / 5..8 / 9..12 / 13..16 / 17+ selects 0 / 1 / 2 / 3 / 4 extra ring groups.
 gtsr.tooltip.turbine_array.multi_tier=Multi Tier
 gtsr.tooltip.turbine_array.each_tier=Each +1 Tier
 gtsr.gui.turbine_array.output_power=Output Power: 
-gtsr.tooltip.turbine_array.formula=EU/t = 4 x voltage x power parameter x power groups x steam conversion factor x operating efficiency; steam consumption scales with power.
-gtsr.tooltip.turbine_array.power_param=Screwdriver cycles global power
-gtsr.tooltip.turbine_array.singularity_mode=Steam Entangled Singularity in input bus triggers singularity mode: ×2 power, +100% efficiency cap, +15% steam savings;
-gtsr.tooltip.turbine_array.cycle_overlimit_chip=Cycle Overlimit Chip (controller slot): after all 4 extra stack groups,
+gtsr.tooltip.turbine_array.formula=[Generation] EU/t = 4 x casing voltage x P x (k+2) x singularity multiplier x steam factor x operating efficiency.
+gtsr.tooltip.turbine_array.power_param=[Power setting] Right-click the controller with a screwdriver to cycle:
+gtsr.tooltip.turbine_array.singularity_mode=[Singularity mode] Steam Entangled Singularity in an input bus: x2 power, +100 efficiency-ceiling points, +15 steam-saving points.
+gtsr.tooltip.turbine_array.cycle_overlimit_chip=[Cycle overlimit] Install a Cycle Overlimit Chip in the controller slot and build all four extra ring groups to activate.
 gtsr.tooltip.turbine_array.input_hatch=Steam Input
 gtsr.tooltip.turbine_array.dynamo=Energy Output
 
@@ -1194,11 +1194,11 @@ gtsr.tooltip.fluid_drill.nei_efficiency_lava=Efficiency: 0.5% (5% in Nether, Req
 gtsr.tooltip.shared.screwdriver_overflow=Screwdriver Right-Click: Toggle Overflow Input
 gtsr.tooltip.shared.screwdriver_rightclick_overflow=Screwdriver Right-Click: Toggle Overflow Output
 gtsr.tooltip.hub_storage_unit.steam_water_hub=Steam Hub
-gtsr.tooltip.turbine_array.hint_pipe=material sets all three component families: steel has no bonus; titanium adds 15 efficiency-ceiling points and 5 steam-saving points.
-gtsr.tooltip.turbine_array.hint_gear=Tungstensteel adds 35 efficiency-ceiling points and 12.5 steam-saving points; use this mod's gearbox and matching upgraded frames.
+gtsr.tooltip.turbine_array.hint_pipe=Matching material: steel has no bonus; titanium adds 15 efficiency-ceiling points and 5 steam-saving points.
+gtsr.tooltip.turbine_array.hint_gear=Tungstensteel adds 35 efficiency-ceiling points and 12.5 steam-saving points; use this mod's gearbox.
 gtsr.tooltip.turbine_array.tier_system=12-tier voltage system: LV→MV→HV→EV→IV→LuV→ZPM→UV→UHV→UEV→UIV→UMV
-gtsr.tooltip.turbine_array.steam_progression=Steam types: Normal→Superheated→Dense→Dense Superheated→Supercritical→Dense Supercritical
-gtsr.tooltip.turbine_array.stacking_desc=4 layers per STACK, up to 4 extra STACKs;
+gtsr.tooltip.turbine_array.steam_progression=Base efficiency ceilings: ordinary 150%, superheated 200%, dense 200%, dense superheated 250%, supercritical 250%, dense supercritical 300%.
+gtsr.tooltip.turbine_array.stacking_desc=[Efficiency and steam savings] Extra ring and matching material bonuses add percentage points:
 gtsr.tooltip.chip.geothermal_overheat=Install in Large Geothermal Steam Boiler (Steel tier only) to boost steam output and add byproducts
 gtsr.tooltip.chip.hub_singularity=Install in Steam/Water Hub Array to unlock node binding, x5 total capacity
 gtsr.tooltip.chip.rare_gas=Install in Atmospheric Centrifuge (Steel tier only) to unlock rare gas separation recipes
@@ -1275,24 +1275,24 @@ gtsr.tooltip.water_hub.counts=Base layer: 25 hatch slots, 8 pipes, 3 frames; sta
 gtsr.tooltip.water_hub.height=Total height 2~31 layers (BASE + 1~30 STACK), 9 storage units per layer; STACK layers controlled via hologram height channel
 gtsr.tooltip.singularity_hub.desc_2=to extract every resource needed.
 gtsr.tooltip.singularity_hub.desc2_2=steam consumption scales with bound node count.
-gtsr.tooltip.singularity_hub.steam_input_hatch=Pressure Steam Hatch / Input Hatch
+gtsr.tooltip.singularity_hub.steam_input_hatch=Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 gtsr.tooltip.singularity_hub.optional_cooling=Optional: Steam Cooling Hatch
 gtsr.tooltip.steam_furnace.desc_2=processing many furnace recipes at once.
-gtsr.tooltip.steam_furnace.steam_input=Steam Hatch / Pressure Steam Hatch
+gtsr.tooltip.steam_furnace.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 gtsr.tooltip.steam_furnace.optional_cooling=Optional: Steam Cooling Hatch
 gtsr.tooltip.air_compressor.desc_2=far faster and more convenient than ordinary compressors.
 gtsr.tooltip.air_compressor.desc_3=Produces Nether Air automatically in the Nether.
-gtsr.tooltip.air_compressor.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
+gtsr.tooltip.air_compressor.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 gtsr.tooltip.air_compressor.optional_cooling=Optional: Steam Cooling Hatch
 gtsr.tooltip.atmospheric_centrifuge.desc_2=that separates high-pressure air into oxygen and nitrogen.
-gtsr.tooltip.atmospheric_centrifuge.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
+gtsr.tooltip.atmospheric_centrifuge.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 gtsr.tooltip.atmospheric_centrifuge.optional_cooling=Optional: Steam Cooling Hatch
 gtsr.tooltip.fluid_drill.desc2_2=Distilled water mode outputs 20%, brine mode 10%,
 gtsr.tooltip.fluid_drill.desc2_3=lava mode 5% in the Nether, 0.5% elsewhere.
-gtsr.tooltip.fluid_drill.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
+gtsr.tooltip.fluid_drill.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 
 gtsr.tooltip.crust_borer.desc_2=extracting void ores from the Overworld and Nether.
-gtsr.tooltip.crust_borer.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
+gtsr.tooltip.crust_borer.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 gtsr.tooltip.crust_matter_agg.desc4_2=fractional accumulation
 gtsr.tooltip.crust_matter_agg.desc5_2=runaway singularity animation always shown
 gtsr.tooltip.crust_matter_agg.desc8_2=steam +200% +20%/extra dimension slot (all slots active), multiplier = 2500% ÷ sum of 3 lowest directional weights (all if fewer),
@@ -1300,7 +1300,7 @@ gtsr.tooltip.crust_matter_agg.desc8_3=additionally consumes UU-Matter
 gtsr.tooltip.crust_matter_agg.desc9_2=filter and directional configs persist independently with the machine; mode switch does not reset them
 gtsr.tooltip.crust_matter_agg.steam_input_hatch=Steam Hatch / Pressure Steam Hatch / Input Hatch
 gtsr.tooltip.vein_pyrolyzer.desc_2=solving long-save fluid depletion.
-gtsr.tooltip.vein_pyrolyzer.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
+gtsr.tooltip.vein_pyrolyzer.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 gtsr.tooltip.coke_oven.desc_2=producing charcoal/coke and creosote byproducts.
 gtsr.tooltip.siemens_martin.desc_2=reforming coal with superheated steam, smelting steel via the resulting reducing gases,
 gtsr.tooltip.siemens_martin.desc_3=with higher efficiency and no pollution!
@@ -1309,34 +1309,34 @@ gtsr.tooltip.siemens_martin.steam_input_hatch=Pressure Steam Hatch / Input Hatch
 gtsr.tooltip.geothermal_boiler.desc_2=producing steam continuously via thermal convection.
 gtsr.tooltip.geothermal_boiler.calcification_2=(output drops to 1% when fully scaled; owner reminded every 10 minutes).
 gtsr.tooltip.geothermal_boiler.chip_info_2=switching output to superheated steam.
-gtsr.tooltip.turbine_array.stacking_desc_2=each extra group: +5% steam savings, +10% efficiency cap;
-gtsr.tooltip.turbine_array.stacking_desc_3=each machine tier: +5% efficiency cap
-gtsr.tooltip.turbine_array.formula_2=casing tier caps maximum output voltage
-gtsr.tooltip.turbine_array.power_param_2=(100%→80%→60%→40%→20%):
-gtsr.tooltip.turbine_array.power_param_3=affects base output and base steam savings
-gtsr.tooltip.turbine_array.singularity_mode_2=Critical Steam Entangled Singularity triggers critical mode: ×5 power, +200% efficiency cap, +20% steam savings;
-gtsr.tooltip.turbine_array.singularity_mode_3=200s per singularity (critical consumed first)
-gtsr.tooltip.turbine_array.cycle_overlimit_chip_2=cooling of superheated/supercritical (incl. dense) steam becomes distilled water directly,
-gtsr.tooltip.turbine_array.cycle_overlimit_chip_3=output conversion only; consumption is offset by the same multiplier (dense stacks with dense only)
+gtsr.tooltip.turbine_array.stacking_desc_2=Each extra ring group: +10 points to efficiency ceiling, +5 points to steam savings.
+gtsr.tooltip.turbine_array.stacking_desc_3=LV is the casing baseline; each higher voltage tier adds 5 points to the efficiency ceiling.
+gtsr.tooltip.turbine_array.formula_2=Base steam factor: ordinary / dense 0.5, all others 1. Steam consumption scales with power; rising efficiency does not increase consumption.
+gtsr.tooltip.turbine_array.power_param_2=100% / 80% / 60% / 40% / 20%, corresponding to formula P=10 / 8 / 6 / 4 / 2.
+gtsr.tooltip.turbine_array.power_param_3=Base steam savings respectively 20% / 15% / 10% / 5% / 0%, plus ring, material and singularity bonuses.
+gtsr.tooltip.turbine_array.singularity_mode_2=Critical Steam Entangled Singularity: x5 power, +200 efficiency-ceiling points, +20 steam-saving points.
+gtsr.tooltip.turbine_array.singularity_mode_3=Each lasts 200s; critical takes priority. The two singularity modes do not stack.
+gtsr.tooltip.turbine_array.cycle_overlimit_chip_2=Superheated / supercritical steam and their dense variants return distilled water directly; output factors add along the complete cooling chain within the same family.
+gtsr.tooltip.turbine_array.cycle_overlimit_chip_3=Output factors: superheated variants 1 to 1.5, supercritical variants 1 to 2.5. Same-type consumption is unchanged; ordinary and dense families remain separate.
 gtsr.tooltip.turbine_array.hatches_1=Steam Hatch / Pressure Steam Hatch / Input Hatch / Mega Overpressure Steam Input Hatch
 gtsr.tooltip.turbine_array.hatches_2=Dynamo Hatch
 gtsr.tooltip.turbine_array.hatches_3=Input Bus (optional)
 gtsr.tooltip.turbine_array.hatches_4=Output Hatch / Steam Cooling Hatch / Pressure Steam Cooling Hatch
-gtsr.tooltip.turbine_array.structure_casings=The base has 162 tiered casing positions that accept hatches. Keep at least one real casing to determine voltage tier; all remaining casings must match.
-gtsr.tooltip.turbine_array.structure_glass=Front windows and shaft glass enclosures must share a tier at least as high as the casings. Controller and hatch textures follow casing tier.
-gtsr.tooltip.turbine_array.structure_hatches=Steam inputs, input hatches/buses, output hatches and dynamos
-gtsr.tooltip.turbine_array.structure_cooling_hatches=Steam Cooling Hatch / Pressure Steam Cooling Hatch
-gtsr.tooltip.turbine_array.structure_hatch_location=Tiered machine casing positions on the base
+gtsr.tooltip.turbine_array.structure_casings=The 162 tiered base casing positions accept hatches. Keep at least one real casing to set voltage tier; all real casings must match, allowing at most 161 replacements.
+gtsr.tooltip.turbine_array.structure_glass=Main front windows and shaft glass covers must share a tier at least as high as the casings. Controller and hatch textures follow casing tier.
+gtsr.tooltip.turbine_array.structure_hatches=Hint 1: steam inputs, input hatches/buses, output hatches, normal or TT multi-amp dynamos
+gtsr.tooltip.turbine_array.structure_cooling_hatches=Hint 2: steam cooling / pressure steam cooling hatches
+gtsr.tooltip.turbine_array.structure_hatch_location=Only tiered base casing positions; ordinary material casings cannot be replaced
 
 gtsr.tooltip.solar_array.desc2_2=temperature drops at night and in bad weather, sharply reducing output.
 gtsr.tooltip.solar_array.booster_content_2=plus overpressure bonus (heat above 100%, up to +100%),
 gtsr.tooltip.solar_array.booster_content_3=total output up to ×4.0 (+300% extra)
 gtsr.tooltip.solar_array.calcification_2=(output drops to 1% when fully scaled; owner reminded every 10 minutes).
-gtsr.tooltip.kinetic_array.desc2_2=Base speed 200%, 40% energy discount.
-gtsr.tooltip.kinetic_array.desc2_3=Right-click the controller with a Steam Entanglement Node to raise recipe voltage cap by one tier for 1200s.
-gtsr.tooltip.kinetic_array.desc3_2=ULV=8→LV=4→MV=2→HV=1→EV=0.5→IV=0.25→LuV+=0.1 L/t.
+gtsr.tooltip.kinetic_array.desc2_2=[Material bonuses] Upgrade casings, pipes, gears and frames together: steel / titanium / tungstensteel.
+gtsr.tooltip.kinetic_array.desc2_3=Right-click the controller with a Steam Entangled Singularity to consume one and raise the installed machine's recipe voltage cap by one tier for 1200s; casing tier still applies.
+gtsr.tooltip.kinetic_array.desc3_2=Actual EU use follows this run's parallel processing and operating efficiency. Each litre consumed returns 1 L ordinary steam; reserve exhaust space.
 gtsr.tooltip.kinetic_array.tier_system=12-Tier Casing (LV→UMV)
-gtsr.tooltip.kinetic_array.parallel_formula=Parallel: (1+2×Tier)+Machine Count
+gtsr.tooltip.kinetic_array.parallel_formula=[Parallel processing] Limit = (1 + 2 x installed machine tier) + installed machine count.
 gtsr.tooltip.ammonia_plant.desc_line_2=strongly exothermic; steam carries away excess heat as a heat-transfer medium,
 gtsr.tooltip.ammonia_plant.desc_line_3=while producing superheated steam as a byproduct.
 gtsr.tooltip.ammonia_plant.preheat_line_2=recipes cannot run below working temperature.
@@ -4069,7 +4069,7 @@ GTSR.HatchElement.SteamInputHatch=Fluid Input Hatch (including ME)
 GTSR.HatchElement.SteamOutputHatch=Fluid Output Hatch
 GTSR.HatchElement.SteamCoolingHatch=Steam Cooling Hatch (also accepts Pressure Steam Cooling Hatch)
 GTSR.HatchElement.PressureSteamCoolingHatch=Pressure Steam Cooling Hatch
-GTSR.HatchElement.PressureSteamInputHatch=Pressure Steam Input Hatch or Fluid Input Hatch (including ME)
+GTSR.HatchElement.PressureSteamInputHatch=Pressure Steam Input Hatch, Fluid Input Hatch (including ME), fluid-capable native ME crafting buffer or bound Slave
 GTSR.HatchElement.PressureSteamInput=Pressure Steam Input Hatch
 GTSR.HatchElement.PressureSteamCooling=Pressure Steam Cooling Hatch
 GTSR.HatchElement.OverpressureInput=Overpressure Turbine Steam Input Hatch
@@ -4986,12 +4986,29 @@ gtsr.gui.heavy_turbine.actual_output=Current output:
 gtsr.gui.heavy_turbine.rotor_efficiency=Stored warm-up efficiency:
 gtsr.gui.heavy_turbine.max_efficiency=Efficiency ceiling:
 gtsr.gui.heavy_turbine.rated_steam=Rated steam consumption:
-gtsr.tooltip.heavy_turbine.startup=Starts at 0%. Each accumulated second of operation adds 2 percentage points up to 100%, then +1/second at rated throughput up to the ceiling.
-gtsr.tooltip.heavy_turbine.partial=Partial steam produces proportional power, truncated to whole EU each tick, and accumulates warm-up across short fuel gaps. Effective efficiency is capped at 100% below rated flow; stored warm-up is retained.
-gtsr.tooltip.heavy_turbine.cooling=Steam utilization is always 100%. Ordinary steam: 0.5 EU/L, 160:1 distilled water. Steel supports superheated steam: 1 EU/L, 1:1 ordinary steam exhaust.
-gtsr.tooltip.heavy_turbine.pause=While stopped: -10 percentage points/second. Warm-up, prepaid whole EU and coolant remainders are saved; operation resumes after backpressure clears.
+gtsr.tooltip.heavy_turbine.startup=Starts at 0%; each accumulated operating second adds 2 percentage points up to 100%, then each continuous second at rated flow adds 1 point up to the ceiling.
+gtsr.tooltip.heavy_turbine.partial=Partial supply still warms up. Below rated load, effective efficiency is capped at 100%; stored warm-up efficiency is retained.
+gtsr.tooltip.heavy_turbine.cooling=Steam utilization is fixed at 100%. At 100% efficiency: ordinary steam 0.5 EU/L, 160:1 distilled water; steel also accepts superheated steam at 1 EU/L, 1:1 ordinary steam exhaust.
+gtsr.tooltip.heavy_turbine.pause=While stopped: -10 percentage points/second. Below 100%, short fuel gaps retain warm-up progress; efficiency, prepaid whole EU and exhaust remainders are saved.
 gtsr.structurelib.channel.material.usage=material channel: 1=steel, 2=titanium, 3=tungstensteel. Casings/pipes/gears/frames must match; tungstensteel uses this mod's gearbox.
 tile.TungstenSteelGearbox.name=Tungstensteel Gearbox
 gtsr.tooltip.siemens_martin.carbon_sources=Coal dust recipes also accept the same amount of charcoal or charcoal dust (1:1).
 gtsr.gui.turbine_array.group_summary=Physical rings: %s / Power groups: %s
-gtsr.tooltip.turbine_array.power_groups=Base output multiplier x4; the base counts as 2 power groups, +1 per extra ring. Efficiency and savings bonuses count extra rings only.
+gtsr.tooltip.turbine_array.structure_size=51x25x(79+12k), k=0..4; one base twin-ring group, +12 blocks per extra group, maximum depth 127.
+gtsr.tooltip.heavy_turbine.structure_material=[Construction] 12x10x8; casings, pipes, gears and frames must all match bronze or steel. Use ordinary glass.
+gtsr.tooltip.turbine_array.structure_material=material selects matching steel / titanium / tungstensteel casings, pipes, gears and frames; no mixed materials. Independent of voltage casing tier.
+gtsr.tooltip.turbine_array.structure_required=Requires at least one steam input, one output/cooling hatch and one dynamo; hatch tiers do not determine casing tier. No maintenance hatch.
+gtsr.tooltip.heavy_turbine.rating=[Rated output and efficiency ceilings]
+gtsr.tooltip.kinetic_array.structure_pressure=Hint 2: pressure steam input; hint 3: pressure cooling hatch. Both replace lower side-bay ordinary material casings.
+gtsr.tooltip.kinetic_array.structure_casings=All nine standard machine casings in the 3x3 base below the hammer must share a voltage tier; hatches cannot replace them.
+gtsr.tooltip.kinetic_array.structure_io=Hint 1: lower side-bay ordinary material casings accept energy hatches, input/output buses and ordinary fluid hatches.
+gtsr.tooltip.heavy_turbine.structure_required=Only front ordinary casing positions accept hatches. Requires at least one input, one output and one dynamo hatch; no maintenance hatch or stacking.
+gtsr.tooltip.kinetic_array.structure_material=material selects matching steel / titanium / tungstensteel casings, pipes, gears and frames. Ordinary casings accept hatches; tiered casings set the voltage cap.
+gtsr.tooltip.heavy_turbine.rounding=Newly generated energy is truncated to whole EU each tick; fractions do not accumulate. Partial supply reduces output with actual steam use and effective efficiency.
+gtsr.tooltip.kinetic_array.structure_glass=The nine front and eight side glass blocks must share a tier at least as high as the standard casings.
+gtsr.tooltip.turbine_array.structure_channels=casing 1..12 selects LV..UMV standard casings; glass selects glass; material selects one matching set; height selects extra ring groups.
+gtsr.tooltip.kinetic_array.structure_required=Requires at least one energy hatch, one pressure steam input, one recipe input and one output; no maintenance hatch.
+gtsr.tooltip.kinetic_array.structure_size=8x9x9; three material choices for the body, with tiered machine casings below the hammer.
+gtsr.tooltip.heavy_turbine.generation=[Generation and exhaust]
+gtsr.tooltip.heavy_turbine.warmup=[Steam supply and warm-up]
+gtsr.tooltip.kinetic_array.structure_channels=casing 1..12 selects LV..UMV standard casings; glass selects glass tier; material selects one matching material set.

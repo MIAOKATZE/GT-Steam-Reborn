@@ -9,6 +9,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.withChann
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.enums.HatchElement.Energy;
+import static gregtech.api.enums.HatchElement.ExoticEnergy;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL;
@@ -83,6 +84,7 @@ import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.ExoticEnergyInputHelper;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
@@ -133,7 +135,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     private static HatchElementBuilder<MTEKineticProcessingArray> ioConstructionHatches() {
         HatchElementBuilder<MTEKineticProcessingArray> builder = buildHatchAdder(MTEKineticProcessingArray.class)
-            .atLeast(SteamInputBus, InputHatch, SteamOutputBus, OutputHatch, Energy)
+            .atLeast(SteamInputBus, InputHatch, SteamOutputBus, OutputHatch, Energy.or(ExoticEnergy))
             // Pressure cooling belongs to the earlier B branch's dedicated counter.
             .hatchItemFilterAnd(
                 t -> stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof MTEPressureSteamCoolingHatch))
@@ -484,8 +486,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             return;
         }
 
-        boolean hasEnergy = !mEnergyHatches.isEmpty();
-        boolean hasSteamInput = !mPressureSteamInputs.isEmpty();
+        boolean hasEnergy = !mEnergyHatches.isEmpty() || !mExoticEnergyHatches.isEmpty();
+        boolean hasSteamInput = !mPressureSteamInputs.isEmpty() || !mInputHatches.isEmpty()
+            || GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches);
         // 兼容 Crafting Input Bus/Buffer/Proxy (ME) 等 DualInputHatch：GT5U 父类 addInputBusToMachineList
         // 会将 IDualInputHatch 实例（MTEHatchCraftingInputME/Slave extends MTEHatchInputBus）自动重定向到
         // mDualInputHatches（supportsCraftingMEBuffer() 默认 true），此处需一并计入有效输入判断，
@@ -681,6 +684,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         if (superheatedProbe != null) {
             total = GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, superheatedProbe, required);
             if (total >= required) return true;
+            total += GTSRHatchFluidAccess
+                .probeFluidAmountFromDuals(mDualInputHatches, superheatedProbe, required - total);
+            if (total >= required) return true;
         }
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();
@@ -697,6 +703,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         FluidStack superheatedProbe = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
         if (superheatedProbe != null) {
             remaining -= GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, superheatedProbe, remaining);
+            remaining -= GTSRHatchFluidAccess.depleteFluidFromDuals(mDualInputHatches, superheatedProbe, remaining);
         }
         if (remaining <= 0) return true;
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
@@ -1064,6 +1071,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         return addInputToMachineList(tTileEntity, aBaseCasingIndex)
             || addOutputToMachineList(tTileEntity, aBaseCasingIndex)
             || addEnergyInputToMachineList(tTileEntity, aBaseCasingIndex)
+            || addExoticEnergyInputToMachineList(tTileEntity, aBaseCasingIndex)
             || addPressureSteamToMachineList(tTileEntity, aBaseCasingIndex)
             || addPressureCoolingToMachineList(tTileEntity, aBaseCasingIndex);
     }
@@ -1098,9 +1106,45 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         for (var outputBus : GTUtility.validMTEList(mOutputBusses)) {
             outputBus.updateTexture(textureIndex);
         }
-        for (var energyHatch : GTUtility.validMTEList(mEnergyHatches)) {
+        for (var energyHatch : GTUtility.validMTEList(getExoticAndNormalEnergyHatchList())) {
             energyHatch.updateTexture(textureIndex);
         }
+    }
+
+    @Override
+    public void clearHatches() {
+        super.clearHatches();
+        mExoticEnergyHatches.clear();
+    }
+
+    @Override
+    public long getMaxInputVoltage() {
+        return ExoticEnergyInputHelper.getMaxInputVoltageMulti(getExoticAndNormalEnergyHatchList());
+    }
+
+    @Override
+    public long getAverageInputVoltage() {
+        return ExoticEnergyInputHelper.getAverageInputVoltageMulti(getExoticAndNormalEnergyHatchList());
+    }
+
+    @Override
+    public long getMaxInputAmps() {
+        return ExoticEnergyInputHelper.getMaxWorkingInputAmpsMulti(getExoticAndNormalEnergyHatchList());
+    }
+
+    @Override
+    public long getMaxInputPower() {
+        return ExoticEnergyInputHelper.getTotalEuMulti(getExoticAndNormalEnergyHatchList());
+    }
+
+    @Override
+    public long getMaxInputEu() {
+        return getMaxInputPower();
+    }
+
+    @Override
+    public boolean drainEnergyInput(long eu) {
+        return eu <= 0 || ExoticEnergyInputHelper.drainEnergy(eu, getExoticAndNormalEnergyHatchList());
     }
 
     private int getCasingTextureIndex() {
@@ -1166,9 +1210,15 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { "三档材料机身；锤下承压底座 3×3 共 9 块标准机械壳同电压级；前窗 9 块与侧窗 8 块玻璃等级不得低于机械壳。",
-            "提示 1：侧舱下部固定机壳可替换能源仓、输入输出总线和流体仓。", "提示 2：高压蒸汽输入；提示 3：压力冷却仓，均位于同一侧舱下部。", "至少一能源仓、一高压蒸汽输入、一个配方输入和一个输出；无需维护仓。",
-            "casing 1..12 选 LV..UMV 标准机械壳电压级；glass 选玻璃；material 同步钢/钛/钨钢机壳、管道、齿轮和框架。旧结构不再成型。" };
+        return new String[] {
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_size"),
+            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_casings"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_glass"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_io"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_pressure"),
+            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_required"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_material"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_channels") };
     }
 
     @Override
@@ -1242,23 +1292,38 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.type"))
-            .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_2"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_3"))
-            .addInfo(
-                EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3_2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc"))
             .addSeparator()
+            .addInfo(
+                EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.parallel_formula"))
+            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2"))
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_2"))
+            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.hint_pipe"))
+            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.hint_gear"))
+            .addSeparator()
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3_2"))
+            .addInfo(
+                EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_3"))
             .beginStructureBlock(8, 9, 9, true)
-            .addController("侧舱前方，正面朝外；见投影")
-            .addEnergyHatch("侧舱下部材料机壳（提示 1），不限制能源仓等级", 1)
-            .addInputHatch("高压蒸汽输入位于侧舱下部材料机壳（提示 2）", 2)
-            .addInputBus("侧舱下部材料机壳（提示 1）", 1)
-            .addOutputBus("侧舱下部材料机壳（提示 1）", 1)
-            .addOutputHatch("侧舱下部材料机壳；压力冷却仓使用提示 3", 3)
-            .addStructureInfo("锤下承压底座 3×3 共 9 块标准机械壳同电压级；前窗 9 块与侧窗 8 块玻璃同档且等级不低于机械壳。")
-            .addStructureInfo("material 统一三档材料机壳、管道、齿轮和框架；无需维护仓。")
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.ctrl"))
+            .addEnergyHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.energy"), 1)
+            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.steam_input"), 2)
+            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.input"), 1)
+            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.output"), 1)
+            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.output_hatch"), 3)
+            .addStructureInfo(
+                EnumChatFormatting.GREEN
+                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_casings"))
+            .addStructureInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_glass"))
+            .addStructureInfo(
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_material"))
+            .addStructureInfo(
+                EnumChatFormatting.RED
+                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_required"))
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
             .addStructureHint("gtsr.structurelib.channel.material.usage")
             .addInfo(GTSRUtils.getAddedByLine())

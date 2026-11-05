@@ -15,6 +15,8 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.api.progress.IGTSRProgressProvider;
+import com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.LongItemSource;
+import com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalInputBusME;
 
 import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.MachineSource;
@@ -185,6 +187,15 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
     private ItemStack consumeSingularityStack(MTEHatchInputBus bus, int slot, ItemStack stack, int amount) {
         if (amount <= 0) return null;
         if (bus instanceof MTEHatchInputBusME me && slot < MTEHatchInputBusME.SLOT_COUNT) {
+            if (me.getClass() == MTEHatchCriticalInputBusME.class) {
+                LongItemSource source = ((MTEHatchCriticalInputBusME) me).getLongInputSource(slot);
+                if (source == null || !GTUtility.areUnificationsEqual(source.prototype(), stack, true)) return null;
+                int paid = (int) source.extract(amount, true);
+                if (paid <= 0) return null;
+                ItemStack removed = stack.copy();
+                removed.stackSize = paid;
+                return removed;
+            }
             // Unknown stocking subclasses may impose their own access or accounting policy.
             if (me.getClass() != MTEHatchInputBusME.class || !me.isAllowedToWork()) return null;
             try {

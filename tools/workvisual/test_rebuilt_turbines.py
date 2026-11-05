@@ -23,10 +23,10 @@ class RebuiltTurbineFixtures(unittest.TestCase):
         cls.definitions = {d['id']: d for d in json.loads(DOCUMENT.read_text(encoding='utf8'))['definitions']}
 
     def test_all_approved_dimensions_counts_and_controller_offsets(self):
-        expected = [('kinetic_processing_array', (8, 9, 9), 397, 9, 17, 17, [6, 6, 4]),
+        expected = [('kinetic_processing_array', (8, 9, 9), 400, 9, 17, 17, [6, 6, 4]),
                     ('heavy_steam_turbine', (12, 10, 8), 422, 0, 8, 13, [2, 7, 1])]
-        expected += [('mega_steam_turbine_'+str(k), (51, 29, 79+12*k), 20622+5498*k,
-                      162, 2480+384*k, 1566+312*k, [25, 26, 1]) for k in range(5)]
+        expected += [('mega_steam_turbine_'+str(k), (51, 25, 79+12*k), 19401+5170*k,
+                      162, 560+80*k, 1566+312*k, [25, 22, 1]) for k in range(5)]
         for identifier, size, count, upgrades, glass, moving, offset in expected:
             with self.subTest(identifier=identifier):
                 d = self.definitions[identifier]

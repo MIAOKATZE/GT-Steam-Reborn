@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 import net.minecraft.util.StatCollector;
 
 import com.google.common.collect.ImmutableList;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 
 import gregtech.api.interfaces.IHatchElement;
@@ -17,6 +18,8 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.common.tileentities.machines.IDualInputHatch;
+import gregtech.common.tileentities.machines.MTEHatchCraftingInputME;
+import gregtech.common.tileentities.machines.MTEHatchCraftingInputSlave;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
@@ -142,15 +145,30 @@ public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
     },
 
     PressureSteamInputHatch("GTSR.HatchElement.PressureSteamInputHatch", (t, te, idx) -> {
+        if (te.getMetaTileEntity() instanceof IDualInputHatch dual) {
+            return GTSRHatchFluidAccess.isWorkingFluidDualInput(dual) && t.addInputBusToMachineList(te, idx);
+        }
         if (t instanceof MTESteamMultiBlockBase<?>steamBase) {
             return steamBase.addToMachineList(te, idx);
         }
         return false;
-    }, () -> ImmutableList.of(pressureSteamInputHatchClass(), MTEHatchInput.class)) {
+    }, () -> ImmutableList.of(
+        pressureSteamInputHatchClass(),
+        MTEHatchInput.class,
+        MTEHatchCraftingInputME.class,
+        MTEHatchCraftingInputSlave.class)) {
+
+        @Override
+        public boolean matchesHatch(IMetaTileEntity mte) {
+            if (mte instanceof IDualInputHatch dual) return GTSRHatchFluidAccess.isWorkingFluidDualInput(dual);
+            return mte instanceof MTEHatchInput || pressureSteamInputHatchClass().isInstance(mte);
+        }
 
         @Override
         public long count(MTEMultiBlockBase t) {
-            long count = t.mInputHatches.size();
+            long count = t.mInputHatches.size() + t.mDualInputHatches.stream()
+                .filter(GTSRHatchFluidAccess::isWorkingFluidDualInput)
+                .count();
             if (t instanceof MTESteamMultiBlockBase<?>steamBase) {
                 count += steamBase.mSteamInputFluids.stream()
                     .filter(pressureSteamInputHatchClass()::isInstance)

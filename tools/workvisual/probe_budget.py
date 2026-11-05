@@ -42,7 +42,7 @@ def main():
     policy.write_text('final class MotionBudgetUnderTest {\n' + '\n'.join(method(source, name) for name in names) + '\n}\n', encoding='utf-8')
     receipt = {'status': 'FAIL', 'boundary': 'Exact production source methods only; candidate JAR/FML/GL/100-machine performance NOT_RUN',
                'sourceSha256': sha(SOURCE), 'methodWrapperSha256': sha(policy), 'harnessSha256': sha(HARNESS), 'methods': names,
-               'limits': {'LOW': [128, 16], 'STANDARD': [2048, 64], 'HIGH': [4096, 128]}, 'commands': []}
+               'limits': {'LOW': [128, 16], 'STANDARD': [4096, 64], 'HIGH': [4096, 128]}, 'commands': []}
     commands = [('compile', [args.javac, '--release', '8', '-encoding', 'UTF-8', '-d', str(out), str(policy), str(HARNESS)]),
                 ('test', [args.java, '-cp', str(out), 'MotionBudgetContract'])]
     for name, command in commands:

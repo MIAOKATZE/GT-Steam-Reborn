@@ -16,10 +16,10 @@ public final class MotionBudgetContract {
     }
     public static void main(String[] args) {
         for (int q = 0; q < 4; q++) {
-            check(MotionBudgetUnderTest.memberLimit(q) == new int[] { 0, 128, 2048, 4096 }[q], "member limit " + q);
+            check(MotionBudgetUnderTest.memberLimit(q) == new int[] { 0, 128, 4096, 4096 }[q], "member limit " + q);
             check(MotionBudgetUnderTest.groupLimit(q) == new int[] { 0, 16, 64, 128 }[q], "group limit " + q);
         }
-        int[] turbineMembers = { 1310 }, turbineGroups = { 2 };
+        int[] turbineMembers = { 2814 }, turbineGroups = { 2 };
         boolean[] turbine = select(MotionBudgetUnderTest.memberLimit(2), MotionBudgetUnderTest.groupLimit(2),
             0, 0, turbineMembers, turbineGroups, new long[] { Long.MIN_VALUE }, new long[] { 0 },
             new boolean[] { false }, 0);

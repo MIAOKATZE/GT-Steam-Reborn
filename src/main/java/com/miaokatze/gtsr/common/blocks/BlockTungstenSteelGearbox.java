@@ -8,10 +8,10 @@ import net.minecraft.world.IBlockAccess;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import gregtech.api.enums.Materials;
+import gregtech.api.enums.Dyes;
 import gregtech.api.enums.Textures;
 
-/** A full gearbox cube using the existing titanium gear pattern with tungstensteel's material tint. */
+/** A full gearbox cube using the existing titanium gear pattern and native machine-metal color. */
 public final class BlockTungstenSteelGearbox extends Block {
 
     public BlockTungstenSteelGearbox() {
@@ -36,8 +36,7 @@ public final class BlockTungstenSteelGearbox extends Block {
     @Override
     @SideOnly(Side.CLIENT)
     public int getRenderColor(int meta) {
-        short[] rgba = Materials.TungstenSteel.mRGBa;
-        return (rgba[0] & 255) << 16 | (rgba[1] & 255) << 8 | rgba[2] & 255;
+        return Dyes.MACHINE_METAL.toInt();
     }
 
     @Override

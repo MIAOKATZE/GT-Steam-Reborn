@@ -26,7 +26,10 @@ import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
+import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.util.GTUtility;
+import gregtech.common.tileentities.machines.MTEHatchCraftingInputME;
+import gregtech.common.tileentities.machines.MTEHatchCraftingInputSlave;
 
 /** Every structural material shares one tier accumulator; mixed bronze/steel cannot form. */
 public final class HeavySteamTurbineStructureDef {
@@ -69,7 +72,13 @@ public final class HeavySteamTurbineStructureDef {
                     'B',
                     ofChain(
                         buildHatchAdder(MTEHeavySteamTurbine.class)
-                            .atLeast(InputHatch, OutputHatch, MTEHeavySteamTurbine.DynamoElement.OUTPUT)
+                            .atLeast(
+                                InputHatch.withMteClasses(
+                                    MTEHatchInput.class,
+                                    MTEHatchCraftingInputME.class,
+                                    MTEHatchCraftingInputSlave.class),
+                                OutputHatch,
+                                MTEHeavySteamTurbine.DynamoElement.OUTPUT)
                             .casingIndex(BRONZE_CASING_INDEX)
                             .hint(1)
                             .build(),

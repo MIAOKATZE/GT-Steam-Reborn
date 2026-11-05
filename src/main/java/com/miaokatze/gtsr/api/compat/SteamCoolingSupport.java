@@ -125,6 +125,7 @@ public final class SteamCoolingSupport {
                 return true;
             }
         }
+        if (GTSRHatchFluidAccess.probeFluidAmountFromDuals(self.mDualInputHatches, superheated) > 0) return true;
         if (self instanceof IAdditionalSteamSourceHolder holder) {
             for (MTEHatch hatch : holder.gtsr$getAdditionalSteamSources()) {
                 FluidStack probe = hatch.drain(1, false);

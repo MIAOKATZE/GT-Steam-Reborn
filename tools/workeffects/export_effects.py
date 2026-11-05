@@ -134,6 +134,30 @@ def outputs():
                     "chimneyClientTickInterval": 10, "chimneyParticlesPerRequest": 4,
                     "chimneyLayout": [2, 2], "worldXZJitterWidth": .12,
                     "airPolicy": "actual jittered spawn cell must be loaded air; no block hiding bypass"})
+    # R16 controller [0, 2, -31]: ABC = [-previewX, 2-previewY, previewZ+31].
+    # Front sources precede the first rotor; z=-1 is a short glass sleeve shared by every legal stack count.
+    mega_sources = [("front-left", (11, -11.8, 5), "front"),
+                    ("front-right", (-11, -11.8, 5), "front"),
+                    ("sleeve-left", (11, -10.3, 30), "sleeve"),
+                    ("sleeve-right", (-11, -10.3, 30), "sleeve")]
+    imports.append("import com.miaokatze.gtsr.common.machine.MTEMegaSteamTurbineArray;")
+    constants.append("\n".join([
+        "    public static final WorkEffectDefinition MEGA_STEAM_TURBINE_ARRAY = new WorkEffectDefinition(",
+        '        "MegaSteamTurbineArray",', "        ImmutableList.of(),", "        ImmutableList.of(" +
+        ", ".join(f'new Emitter("MegaSteamTurbineArray:{name}", {a}D, {b}D, {c}D)'
+                  for name, (a, b, c), _ in mega_sources) + "));"]))
+    choices.append("        if (host.getClass() == MTEMegaSteamTurbineArray.class) return MEGA_STEAM_TURBINE_ARRAY;")
+    records.append({"machine": "MegaSteamTurbineArray",
+                    "source": "tools/workvisual/export_rebuilt_turbines.js (approved R16 preview)",
+                    "fireboxToken": None, "fireboxesABC": [], "nativeMaterial": None,
+                    "emitters": [{"id": f"MegaSteamTurbineArray:{name}", "preciseABC": list(point),
+                                  "origin": "approved-preview-internal-steam", "schedule": schedule}
+                                 for name, point, schedule in mega_sources],
+                    "periodMs": 4000, "frontPhaseMsExclusiveEnd": 2000,
+                    "clientTickInterval": 10, "particlesPerRequest": 2,
+                    "frontParticleScale": .35, "sleeveParticleScale": .15,
+                    "worldXZJitterWidth": .12,
+                    "airPolicy": "actual jittered spawn cell must be loaded air; no block hiding bypass"})
     text = "\n".join([
         "package com.miaokatze.gtsr.common.workeffects;", "", "import com.google.common.collect.ImmutableList;", "",
         "import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;", *imports,
@@ -188,7 +212,7 @@ def main():
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(content)
-    print(f"{'PASS' if args.check else 'EXPORTED'}: {len(result)} outputs; 194 firebox cells; 18 existing thermal anchors + 3 selected outlets + 6 KPA apertures; game=NOT_RUN")
+    print(f"{'PASS' if args.check else 'EXPORTED'}: {len(result)} outputs; 194 firebox cells; 18 existing thermal anchors + 3 selected outlets + 6 KPA apertures + 4 Mega internal sources; game=NOT_RUN")
 
 
 if __name__ == "__main__":

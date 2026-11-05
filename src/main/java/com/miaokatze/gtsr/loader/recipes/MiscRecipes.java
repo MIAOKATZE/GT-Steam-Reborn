@@ -4,7 +4,10 @@ import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.get;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.hasNull;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.log;
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.warn;
+import static gregtech.api.recipe.RecipeMaps.assemblerRecipes;
 import static gregtech.api.recipe.RecipeMaps.implosionRecipes;
+
+import java.util.Collection;
 
 import net.minecraft.item.ItemStack;
 
@@ -15,7 +18,10 @@ import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
+import gregtech.api.enums.TierEU;
 import gregtech.api.util.GTModHandler;
+import gregtech.api.util.GTOreDictUnificator;
+import gregtech.api.util.GTRecipe;
 
 /**
  * 杂项配方（SR-A03 组六，自 GTSRRecipeLoader 门面原样迁出）：聚爆压缩机（2 临界奇点 →
@@ -26,14 +32,32 @@ public final class MiscRecipes {
 
     private MiscRecipes() {}
 
-    /** Reversible appearance conversion; the original GT gearbox still pays the entire material cost. */
+    /** Gear-based crafting and assembly, plus one-way conversion of existing native GT gearboxes. */
     public static void registerTungstenSteelGearboxRecipes() {
-        GTModHandler.addShapelessCraftingRecipe(
+        boolean crafted = GTModHandler.addCraftingRecipe(
+            new ItemStack(BlocksGTSR.tungstenSteelGearbox),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "PhP", "GFG", "PwP", 'P', GTOreDictUnificator.get(OrePrefixes.plate, Materials.Steel, 1),
+                'G', GTOreDictUnificator.get(OrePrefixes.gearGt, Materials.TungstenSteel, 1), 'F',
+                GTOreDictUnificator.get(OrePrefixes.frameGt, Materials.TungstenSteel, 1) });
+        if (!crafted) throw new IllegalStateException("Failed to register tungstensteel gearbox crafting recipe");
+
+        Collection<GTRecipe> assembled = GTValues.RA.stdBuilder()
+            .itemInputs(
+                GTOreDictUnificator.get(OrePrefixes.plate, Materials.Steel, 4),
+                GTOreDictUnificator.get(OrePrefixes.frameGt, Materials.TungstenSteel, 1),
+                GTOreDictUnificator.get(OrePrefixes.gearGt, Materials.TungstenSteel, 2))
+            .circuit(3)
+            .itemOutputs(new ItemStack(BlocksGTSR.tungstenSteelGearbox))
+            .duration(200)
+            .eut(TierEU.RECIPE_LV)
+            .addTo(assemblerRecipes);
+        if (assembled.isEmpty()) throw new IllegalStateException("Failed to register tungstensteel gearbox assembly");
+
+        boolean converted = GTModHandler.addShapelessCraftingRecipe(
             new ItemStack(BlocksGTSR.tungstenSteelGearbox),
             new Object[] { ItemList.Casing_Gearbox_TungstenSteel.get(1) });
-        GTModHandler.addShapelessCraftingRecipe(
-            ItemList.Casing_Gearbox_TungstenSteel.get(1),
-            new Object[] { new ItemStack(BlocksGTSR.tungstenSteelGearbox) });
+        if (!converted) throw new IllegalStateException("Failed to register native tungstensteel gearbox conversion");
     }
 
     // 聚爆压缩机配方：2 临界蒸汽纠缠奇点 → 8 普通蒸汽纠缠奇点（duration 20、eut 30，不需要爆炸物）。

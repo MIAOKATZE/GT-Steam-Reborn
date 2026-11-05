@@ -9,7 +9,7 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0" src="https://img.shields.io/badge/GTNH-2.9.0-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="GTSR 2.1.9" src="https://img.shields.io/badge/GTSR-2.1.9-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="GTSR 2.1.18" src="https://img.shields.io/badge/GTSR-2.1.18-green.svg"></a>
 </p>
 
 | 前置 / Requirement | 版本 / Version |
@@ -91,6 +91,10 @@ Both options are disabled by default and require a restart. The enhancement pres
 ## Multiblock Machines / 多方块机器
 
 **新外形需改建：空气压缩机、大气离心机。 / New layouts require rebuilding: Air Compressor, Atmospheric Centrifuge.**
+
+v2.1.18 的动力加工阵列与巨型蒸汽轮机机组采用新结构，旧布局不能直接成型，请按当前结构投影改建；重型蒸汽轮机为独立、不可叠加的新机组。
+
+The v2.1.18 Kinetic Processing Array and Mega Steam Turbine Array require rebuilding to the current structure projection. The Heavy Steam Turbine is a separate, non-stacking generator.
 
 ### Storage Hub Machines / 存储枢纽机器
 
@@ -241,11 +245,21 @@ Both options are disabled by default and require a restart. The enhancement pres
 
 消耗岩浆产蒸汽；结垢与超压机制并存。
 
-<p align="center"><img src="README/renders/MTEMegaSteamTurbineArray-T1.png" width="240" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"> <img src="README/renders/MTEMegaSteamTurbineArray-T3.png" width="240" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"> <img src="README/renders/MTEMegaSteamTurbineArray-T6.png" width="240" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"><br><em>巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）</em></p>
+<p align="center"><img src="README/renders/MTEMegaSteamTurbineArray.png" width="700" alt="巨型蒸汽轮机机组新结构 / Rebuilt Mega Steam Turbine Array"><br><em>巨型蒸汽轮机机组 / Mega Steam Turbine Array</em></p>
 
 **巨型蒸汽轮机机组 / Mega Steam Turbine Array (MSTA)**
 
-12级蒸汽发电机组；堆叠层数越多效率上限越高，支持全蒸汽类型。
+双列轴向蒸汽发电机组，采用统一的钢、钛或钨钢材料。1 个基础环组可沿轴增加 0～4 个独立环组，每组增加 12 格长度；基础发电倍率为 4，功率组数为 k+2，实体环组数为 k+1。材料与额外环组提供效率上限和节汽加成，具体数值见机器说明。
+
+机械壳决定电压等级，玻璃等级不得低于机械壳；仓室位于前部机械壳基座，控制器与仓室底纹随等级变化。普通与过热蒸汽各级可用，致密族和超临界蒸汽需 LuV（6级）及以上机械壳。支持 ME 及原生流体型合成缓存供汽，以及普通、多安和激光动力仓。
+
+<p align="center"><img src="README/renders/MTEHeavySteamTurbine.png" width="500" alt="重型蒸汽轮机 / Heavy Steam Turbine"><br><em>重型蒸汽轮机 / Heavy Steam Turbine</em></p>
+
+**重型蒸汽轮机 / Heavy Steam Turbine (HST)**
+
+紧凑、不可叠加的独立蒸汽发电机组，统一使用青铜或钢材料。100% 效率基准发电为青铜 256 EU/t、钢 1024 EU/t；青铜普通蒸汽额定 512 L/t、效率上限 125%，钢普通蒸汽额定 2048 L/t、上限 150%，或过热蒸汽额定 1024 L/t、上限 200%。
+
+少量供汽仍按实际吞吐发电，并可累计升温至 100%；超过 100% 的增益要求连续额定供汽及足够输出空间。普通蒸汽冷却为蒸馏水，过热蒸汽等量返还普通蒸汽；每 tick 发电舍去不足 1 EU 的部分。支持 ME、原生流体型合成缓存及普通、多安和激光动力仓，仓口与朝向以结构投影为准。
 
 <p align="center"><img src="README/renders/MTELargeSolarOverpressureArray-T1.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/renders/MTELargeSolarOverpressureArray-T2.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/renders/MTELargeSolarOverpressureArray-T3.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"><br><em>大型太阳能超压阵列 / Large Solar Overpressure Array（青铜/钢/银）</em></p>
 
@@ -253,11 +267,13 @@ Both options are disabled by default and require a restart. The enhancement pres
 
 3级（青铜/钢/银）太阳能产蒸汽阵列；银级产出过热蒸汽。
 
-<p align="center"><img src="README/renders/MTEKineticProcessingArray-T1.png" width="260" alt="动力加工阵列 / Kinetic Processing Array（等级 1/5）"> <img src="README/renders/MTEKineticProcessingArray-T5.png" width="260" alt="动力加工阵列 / Kinetic Processing Array（等级 1/5）"><br><em>动力加工阵列 / Kinetic Processing Array（等级 1/5）</em></p>
+<p align="center"><img src="README/renders/MTEKineticProcessingArray.png" width="500" alt="动力加工阵列新结构 / Rebuilt Kinetic Processing Array"><br><em>动力加工阵列 / Kinetic Processing Array</em></p>
 
 **动力加工阵列 / Kinetic Processing Array (KPA)**
 
-仅过热蒸汽，12级；处理放入的任意单方块机器配方。
+在控制器 GUI 放入受支持的 GT 单方块机器，以电力和过热蒸汽执行对应配方。9 块标准机械壳与内置机器共同限制配方电压，玻璃等级不得低于机械壳；钢、钛或钨钢材料必须统一，分别提供 2／2.5／3 倍速度与 0.6／0.4／0.3 倍配方耗电。
+
+过热蒸汽按实际电耗结算，钢／钛／钨钢分别消耗 4／2／1 L/EU，并等量返还普通蒸汽。可由耐压蒸汽仓、普通／ME 流体输入仓或原生流体型合成缓存供汽，能源输入支持普通、多安和激光能源仓。
 
 <p align="center"><img src="README/renders/MTEGearSteamCompressor-T1.png" width="260" alt="自驱式机械蒸汽压缩机 / Gear Steam Compressor"> <img src="README/renders/MTEGearSteamCompressor-T2.png" width="260" alt="自驱式机械蒸汽压缩机 / Gear Steam Compressor"><br><em>自驱式机械蒸汽压缩机 / Gear Steam Compressor（青铜/钢）</em></p>
 
@@ -516,4 +532,4 @@ The four interfaces retain native ME compatibility. Critical inputs use per-slot
 
 采用 AGPL-3.0 许可证，详见 LICENSE 文件。
 
-文档更新：2026-10-21 · 当前版本：2.0.1
+文档更新：2026-11-05 · 当前源码版本：2.1.18

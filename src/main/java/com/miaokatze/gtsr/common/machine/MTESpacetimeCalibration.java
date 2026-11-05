@@ -8,6 +8,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -46,6 +47,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
@@ -55,6 +57,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.ExoticEnergyInputHelper;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReason;
@@ -158,9 +161,9 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
         if (!legalFacing() || !chunksLoaded()
             || !checkPiece("main", OFFSET_X, OFFSET_Y, OFFSET_Z, errors)
             || mCasingCount < MIN_CASINGS
-            || mEnergyHatches.isEmpty()
+            || (mEnergyHatches.isEmpty() && mExoticEnergyHatches.isEmpty())
             || mMaintenanceHatches.isEmpty()
-            || mEnergyHatches.stream()
+            || getExoticAndNormalEnergyHatchList().stream()
                 .anyMatch(hatch -> hatch.maxEUInput() < 32768)) {
             if (errors.isEmpty()) errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
         }
@@ -302,7 +305,8 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
     }
 
     private boolean addUtilityHatch(IGregTechTileEntity tile, int casingIndex) {
-        return addEnergyInputToMachineList(tile, casingIndex) || addMaintenanceToMachineList(tile, casingIndex)
+        return addEnergyInputToMachineList(tile, casingIndex) || addExoticEnergyInputToMachineList(tile, casingIndex)
+            || addMaintenanceToMachineList(tile, casingIndex)
             || addInputBusToMachineList(tile, casingIndex)
             || addOutputBusToMachineList(tile, casingIndex)
             || addInputHatchToMachineList(tile, casingIndex)
@@ -333,7 +337,12 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
         @Override
         public List<Class<? extends IMetaTileEntity>> mteClasses() {
             return switch (this) {
-                case Energy -> java.util.Arrays.asList(MTEHatchEnergy.class);
+                case Energy -> {
+                    List<Class<? extends IMetaTileEntity>> classes = new ArrayList<>();
+                    classes.add(MTEHatchEnergy.class);
+                    classes.addAll(ExoticEnergyInputHelper.getAllClasses());
+                    yield classes;
+                }
                 case Maintenance -> java.util.Arrays.asList(MTEHatchMaintenance.class);
                 case InputBus -> java.util.Arrays.asList(MTEHatchInputBus.class, IDualInputHatch.class);
                 case OutputBus -> java.util.Arrays.asList(MTEHatchOutputBus.class);
@@ -344,7 +353,9 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
 
         @Override
         public boolean matchesHatch(IMetaTileEntity mte) {
-            if (mte instanceof MTEHatchEnergy energy) return this == Energy && energy.maxEUInput() >= 32768;
+            if (mte instanceof MTEHatch energy
+                && (energy instanceof MTEHatchEnergy || ExoticEnergyInputHelper.isExoticEnergyInput(mte)))
+                return this == Energy && energy.maxEUInput() >= 32768;
             if (mte instanceof MTEHatchMaintenance) return this == Maintenance;
             if (mte instanceof MTEHatchSteamBusInput || mte instanceof MTEHatchSteamBusOutput) return false;
             if (mte instanceof IDualInputHatch || mte instanceof MTEHatchInputBus) return this == InputBus;
@@ -356,7 +367,7 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
         @Override
         public long count(MTESpacetimeCalibration machine) {
             return switch (this) {
-                case Energy -> machine.mEnergyHatches.size();
+                case Energy -> machine.mEnergyHatches.size() + machine.mExoticEnergyHatches.size();
                 case Maintenance -> machine.mMaintenanceHatches.size();
                 case InputBus -> machine.mInputBusses.size() + machine.mDualInputHatches.size();
                 case OutputBus -> machine.mOutputBusses.size();
@@ -511,23 +522,33 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
 
     public long getInputVoltageForGui() {
         long voltage = 0;
-        for (MTEHatchEnergy hatch : mEnergyHatches)
-            if (hatch.isValid()) voltage = Math.max(voltage, hatch.maxEUInput());
+        for (MTEHatch hatch : getExoticAndNormalEnergyHatchList()) voltage = Math.max(voltage, hatch.maxEUInput());
         return voltage;
     }
 
     public long getStoredEnergyForGui() {
         long stored = 0;
-        for (MTEHatchEnergy hatch : mEnergyHatches) if (hatch.isValid()) stored += hatch.getBaseMetaTileEntity()
+        for (MTEHatch hatch : getExoticAndNormalEnergyHatchList()) stored += hatch.getBaseMetaTileEntity()
             .getStoredEU();
         return stored;
     }
 
     public long getEnergyCapacityForGui() {
         long capacity = 0;
-        for (MTEHatchEnergy hatch : mEnergyHatches) if (hatch.isValid()) capacity += hatch.getBaseMetaTileEntity()
+        for (MTEHatch hatch : getExoticAndNormalEnergyHatchList()) capacity += hatch.getBaseMetaTileEntity()
             .getEUCapacity();
         return capacity;
+    }
+
+    @Override
+    public boolean drainEnergyInput(long energy) {
+        return energy <= 0 || ExoticEnergyInputHelper.drainEnergy(energy, getExoticAndNormalEnergyHatchList());
+    }
+
+    @Override
+    public void clearHatches() {
+        super.clearHatches();
+        mExoticEnergyHatches.clear();
     }
 
     @Override

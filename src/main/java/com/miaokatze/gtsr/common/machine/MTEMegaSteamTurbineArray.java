@@ -7,7 +7,9 @@ import static com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructur
 
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 
@@ -780,7 +782,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public CheckRecipeResult checkProcessing() {
-        ArrayList<FluidStack> tFluids = getStoredFluids();
+        List<FluidStack> tFluids = workingSteamInputs();
         if (tFluids.isEmpty() && mPressureSteamInputs.isEmpty() && mOverpressureInputs.isEmpty()) {
             mEUt = 0;
             mFullBaseEUt = 0;
@@ -849,7 +851,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 / getEffectiveSteamEuPerL(type));
             // v1.10.61：门控 long 化——UIV/UMV 级（V[11]=33.6M、V[12]=134M）+ 3 组/临界模式时
             // 蒸汽消耗 > int max，int 求和溢出为负导致永久假 NO_FUEL（见 getTotalSteamAmount）
-            long totalAvailable = getTotalSteamAmount(type, tFluids);
+            long totalAvailable = getTotalSteamAmount(type, tFluids, consumption);
             if (totalAvailable >= consumption) {
                 selectedType = type;
                 baseEUt = base;
@@ -1034,26 +1036,44 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         return SteamTurbineSteamTypes.classifyFluid(fs);
     }
 
-    // v1.10.61：求和 long 化——跨仓同型蒸汽累加可超 int max（2.147B L）溢出为负，
-    // 与 checkProcessing 门控（consumption 为 long）配套，避免永久假 NO_FUEL。
-    private long getTotalSteamAmount(SteamType type, List<FluidStack> stored) {
-        return SteamTurbineSteamTypes.totalSteamAmount(type, stored, mPressureSteamInputs, mOverpressureInputs);
+    private List<FluidStack> workingSteamInputs() {
+        List<FluidStack> fluids = getStoredFluids();
+        fluids.addAll(GTSRHatchFluidAccess.getDualFluidIdentities(mDualInputHatches));
+        return fluids;
     }
 
-    // v1.10.88-r2：形参与 remaining 升 long——STEAM/SH_STEAM（euPerL=1）tier11+ 临界档实扣可越 int max；
-    // Math.min(fs.amount, remaining) 结果恒 <= fs.amount，(int) 回收无损失
+    // Stocking stacks identify a fluid; their int quantity cannot bound a long network request.
+    private long getTotalSteamAmount(SteamType type, List<FluidStack> stored, long required) {
+        long total = 0;
+        Set<GTUtility.FluidId> seen = new HashSet<>();
+        for (FluidStack fluid : stored) {
+            if (classifyFluid(fluid) != type || !seen.add(GTUtility.FluidId.create(fluid))) continue;
+            total += GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, fluid, required - total);
+            total += GTSRHatchFluidAccess.probeFluidAmountFromDuals(mDualInputHatches, fluid, required - total);
+            if (total >= required) return total;
+        }
+        for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
+            FluidStack fluid = hatch.getFluid();
+            if (classifyFluid(fluid) == type) total += Math.min(required - total, fluid.amount);
+            if (total >= required) return total;
+        }
+        for (MTEOverpressureTurbineInputHatch hatch : mOverpressureInputs) {
+            FluidStack fluid = hatch.getFluid();
+            if (classifyFluid(fluid) == type) total += Math.min(required - total, fluid.amount);
+            if (total >= required) return total;
+        }
+        return total;
+    }
+
+    // Native ME uses one bounded long payment; physical steam hatches keep their int tank API.
     private boolean depleteSteamByType(SteamType type, long amount) {
         long remaining = amount;
-        // v1.10.8：mInputHatches 段改用 GTSRHatchFluidAccess.depleteFluidAcross 跨仓按需取流
-        // （原 getStoredFluids 聚合对 ME 仓按流体去重，多 ME 仓供汽欠计）
-        for (FluidStack fs : getStoredFluids()) {
-            if (classifyFluid(fs) == type) {
-                int canDrain = (int) Math.min(fs.amount, remaining);
-                if (canDrain > 0) {
-                    remaining -= GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(fs, canDrain));
-                }
-                if (remaining <= 0) return true;
-            }
+        Set<GTUtility.FluidId> seen = new HashSet<>();
+        for (FluidStack fluid : workingSteamInputs()) {
+            if (classifyFluid(fluid) != type || !seen.add(GTUtility.FluidId.create(fluid))) continue;
+            remaining -= GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, fluid, remaining);
+            remaining -= GTSRHatchFluidAccess.depleteFluidFromDuals(mDualInputHatches, fluid, remaining);
+            if (remaining <= 0) return true;
         }
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();
@@ -1442,66 +1462,77 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { "三档材料双列轴向结构，51×29×(79+12k)，额外环组 k=0..4。",
-            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"),
-            "提示 1：基座等级机械壳位置，允许供汽仓、输入仓/总线、输出仓和发电仓。", "提示 2：同一等级机械壳位置可放冷却仓；至少一供汽输入、一输出及一发电仓，无需维护。",
-            "height 通道 1 / 5 / 9 / 13 / 17 分别投影 0 / 1 / 2 / 3 / 4 个额外环组。",
-            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"),
-            "casing 1..12 选 LV..UMV 标准机械壳电压级；glass 选玻璃；material 同步钢/钛/钨钢机壳、管道、齿轮和框架。" };
+        return new String[] {
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_size"),
+            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatches"),
+            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_required"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_material"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_channels") };
     }
 
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.type"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc2"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc3"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc4"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc"))
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc2"))
+            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc3"))
+            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc4"))
             .addSeparator()
-            .addInfo(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.tier_system"))
             .addInfo(
-                EnumChatFormatting.GOLD
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.tier_system"))
+            .addInfo(
+                EnumChatFormatting.AQUA
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.steam_progression"))
             .addInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc"))
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc"))
             .addInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc_2"))
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc_2"))
             .addInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc_3"))
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc_3"))
+            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.hint_pipe"))
+            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.hint_gear"))
             .addSeparator()
             .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.formula"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.formula_2"))
             .addInfo(
-                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param"))
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param"))
             .addInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param_2"))
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param_2"))
             .addInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param_3"))
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param_3"))
+            .addSeparator()
             .addInfo(
                 EnumChatFormatting.LIGHT_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.singularity_mode"))
             .addInfo(
-                EnumChatFormatting.AQUA
+                EnumChatFormatting.LIGHT_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.singularity_mode_2"))
             .addInfo(
                 EnumChatFormatting.AQUA
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.singularity_mode_3"))
+            .addSeparator()
             .addInfo(
-                EnumChatFormatting.GOLD
+                EnumChatFormatting.LIGHT_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip"))
             .addInfo(
                 EnumChatFormatting.AQUA
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip_2"))
             .addInfo(
-                EnumChatFormatting.AQUA
+                EnumChatFormatting.GREEN
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip_3"))
-            .beginVariableStructureBlock(51, 51, 29, 29, 79, 127, true)
-            .addController("前供汽控制台，正面朝外")
-            .addStructureInfo("1 基础环组 + 0..4 额外环组；每组双列各一座 8 格环体 + 4 格间距。")
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_groups"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"))
+            .beginVariableStructureBlock(51, 51, 25, 25, 79, 127, true)
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.ctrl"))
+            .addStructureInfo(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_size"))
+            .addStructureInfo(
+                EnumChatFormatting.GREEN
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"))
+            .addStructureInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatches"),
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatch_location"),
@@ -1510,8 +1541,14 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_cooling_hatches"),
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatch_location"),
                 2)
-            .addStructureInfo("material 统一三档材料机壳、管道、齿轮和框架；无需维护仓。")
-            .addStructureInfo("height 通道 1 / 5 / 9 / 13 / 17 选择额外环组 0 / 1 / 2 / 3 / 4。")
+            .addStructureInfo(
+                EnumChatFormatting.RED
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_required"))
+            .addStructureInfo(
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_material"))
+            .addStructureInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel"))
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
             .addSubChannelUsage(GTStructureChannels.STRUCTURE_HEIGHT)
             .addStructureHint("gtsr.structurelib.channel.material.usage")

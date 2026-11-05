@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.common.machine.cluster;
 
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static gregtech.api.enums.HatchElement.Energy;
+import static gregtech.api.enums.HatchElement.ExoticEnergy;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.Collections;
@@ -16,8 +17,9 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.structure.error.StructureError;
+import gregtech.api.util.ExoticEnergyInputHelper;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.HatchElementBuilder;
 
@@ -28,8 +30,8 @@ import gregtech.api.util.HatchElementBuilder;
  * 在 {@link MTEBasicProcessingUnit} 的能力闸门之上叠加「自持能源」语义：背面中心能源位
  * {@code 'P'}=自身能源位（标准能源 hatch 添加器，各子类矩阵字面定位，保留为兼容额外能源位）；
  * A 机壳位放宽（T15）：任意 A 位可为对应机壳或能源 hatch 二态（{@link #tieredCasingElement()}），
- * 能源仓统一写入 mEnergyHatches、不计入 casingFamilyTier，上限=本单元 A 位数量（每 A 位至多
- * 一枚）+P 位；checkMachine 校验 {@code mEnergyHatches >= 1}（P 或 A 位满足均可）；运行判据=
+ * 普通与多安培能源仓写入各自原生列表、不计入 casingFamilyTier，上限=本单元 A 位数量（每 A 位至多
+ * 一枚）+P 位；checkMachine 校验两类能源仓合计至少一枚（P 或 A 位满足均可）；运行判据=
  * 全部能源仓合计存量足额（共享 EU 池，跨仓扣减，总控不集中扣 EU，需求不随仓数量放大）。
  * EU 实扣（r6-S6，取代旧「真扣 1 EU 后返还」净零探测）：本环节按链步表实扣运行 EU/t——磁选
  * {@code MAGNETIC_EU_PER_TICK × MAGNETIC_AMPERAGE}=32、热离
@@ -66,7 +68,7 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
     }
 
     /**
-     * P 能源位元素（r9：矩阵由子类各自持有，本类只注入能源位——标准 addEnergyInputToMachineList
+     * P 能源位元素（r9：矩阵由子类各自持有，本类只注入能源位——标准普通与多安培能源仓
      * 添加器；buildHatchAdder(具体类.class) 的类型令牌仅作编译期推断用，此处 getClass() 运行期等价）。
      */
     @Override
@@ -79,8 +81,8 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private HatchElementBuilder energyHatchBuilder(boolean casingFallback) {
         HatchElementBuilder builder = buildHatchAdder(this.getClass());
-        if (casingFallback) builder.atLeast(Energy);
-        else builder.anyOf(Energy);
+        if (casingFallback) builder.atLeast(Energy.or(ExoticEnergy));
+        else builder.anyOf(Energy.or(ExoticEnergy));
         return builder.descriptions(() -> Collections.singletonList("gtsr.structure.cluster.processing.energy"))
             .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10))
             .hint(1);
@@ -89,7 +91,7 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
     /**
      * A 外壳位放宽（T15）：tiered 外壳（默认形态，基类四族 casing 元素原样保留——能源仓分支不写
      * casingFamilyTier）或 {@link #energyHatchBuilder(boolean)}——任意 A 机壳位可替换为能源 hatch（入
-     * mEnergyHatches，成型末尾统一刷新贴图；每 A 位至多一枚，天然上限=本单元 A 位数量；重复注册
+     * 各自原生能源列表，成型末尾统一刷新贴图；每 A 位至多一枚，天然上限=本单元 A 位数量；重复注册
      * 由 GT5U checkStructure→clearHatches 每轮清表防双计）。A 位自动建造默认放一个能源仓后回退外壳，
      * 世界校验仍接受多仓；基类只计真实 A 外壳，P 专用位保持 anyOf 且无外壳回退。
      */
@@ -187,10 +189,8 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
     /** @return 全部有效能源仓存量合计（EU）。 */
     private long storedEuAcrossHatches() {
         long stored = 0L;
-        for (MTEHatchEnergy hatch : mEnergyHatches) {
-            if (hatch != null && hatch.isValid()) stored += hatch.getBaseMetaTileEntity()
-                .getStoredEU();
-        }
+        for (MTEHatch hatch : getExoticAndNormalEnergyHatchList()) stored += hatch.getBaseMetaTileEntity()
+            .getStoredEU();
         return stored;
     }
 
@@ -203,17 +203,7 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
         if (need <= 0L) return;
         if (!isInPoweredRunPhase()) return;
         if (storedEuAcrossHatches() < need) return;
-        long remaining = need;
-        for (MTEHatchEnergy hatch : mEnergyHatches) {
-            if (remaining <= 0L) break;
-            if (hatch == null || !hatch.isValid()) continue;
-            IGregTechTileEntity hatchTe = hatch.getBaseMetaTileEntity();
-            long take = Math.min(hatchTe.getStoredEU(), remaining);
-            if (take > 0L) {
-                hatchTe.decreaseStoredEnergyUnits(take, false);
-                remaining -= take;
-            }
-        }
+        ExoticEnergyInputHelper.drainEnergy(need, getExoticAndNormalEnergyHatchList());
     }
 
     /**
@@ -258,13 +248,20 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         runEuPerTick = -1L;
         super.checkMachine(aBaseMetaTileEntity, aStack, errors);
-        if (errors.isEmpty() && mEnergyHatches.isEmpty()) {
+        if (errors.isEmpty() && mEnergyHatches.isEmpty() && mExoticEnergyHatches.isEmpty()) {
             errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.energy_hatch_missing"));
             return;
         }
         if (errors.isEmpty()) {
             refreshHatchTextures(mEnergyHatches);
+            refreshHatchTextures(mExoticEnergyHatches);
         }
+    }
+
+    @Override
+    public void clearHatches() {
+        super.clearHatches();
+        mExoticEnergyHatches.clear();
     }
 
     /** 状态细化：已入集群但断电（能源不可支付）→ NO_POWER_OR_INVALID；其余沿基类判定。 */
