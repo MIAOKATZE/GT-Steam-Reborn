@@ -1462,15 +1462,14 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] {
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_size"),
-            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatches"),
-            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_required"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_material"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_channels") };
+        return new String[] { StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_size"),
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"),
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatches"),
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_required"),
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel"),
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"),
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_material"),
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_channels") };
     }
 
     @Override
@@ -1526,13 +1525,9 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip_3"))
             .beginVariableStructureBlock(51, 51, 25, 25, 79, 127, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.ctrl"))
-            .addStructureInfo(
-                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_size"))
-            .addStructureInfo(
-                EnumChatFormatting.GREEN
-                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"))
-            .addStructureInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_size"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatches"),
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatch_location"),
@@ -1541,14 +1536,11 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_cooling_hatches"),
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatch_location"),
                 1)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_required"))
             .addStructureInfo(
-                EnumChatFormatting.RED
-                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_required"))
-            .addStructureInfo(
-                EnumChatFormatting.AQUA
+                EnumChatFormatting.BLUE
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_material"))
-            .addStructureInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel"))
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
             .addStructureHint("gtsr.structurelib.channel.material.usage")
             .addInfo(GTSRUtils.getAddedByLine())
