@@ -290,6 +290,12 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
+        // A failed legacy-shape fallback clears the motion piece's hatch quotas between build passes.
+        clearHatches();
+        mMechanicalCasingCount = 0;
+        mSetTier = -1;
+        mCasingCount = 0;
+        checkPiece("motion", 4, 3, 0, new ArrayList<>());
         return survivalBuildPiece("motion", stackSize, 4, 3, 0, elementBudget, env, false, true);
     }
 

@@ -62,29 +62,28 @@ public final class HeavySteamTurbineStructureDef {
                 12,
                 GregTechAPI.sBlockCasings2,
                 13);
+            IStructureElement<MTEHeavySteamTurbine> casingWithHatches = ofChain(
+                buildHatchAdder(MTEHeavySteamTurbine.class)
+                    .atLeast(
+                        InputHatch.withMteClasses(
+                            MTEHatchInput.class,
+                            MTEHatchCraftingInputME.class,
+                            MTEHatchCraftingInputSlave.class),
+                        OutputHatch,
+                        MTEHeavySteamTurbine.DynamoElement.OUTPUT)
+                    .casingIndex(BRONZE_CASING_INDEX)
+                    .hint(1)
+                    .build(),
+                casing);
             definition = StructureDefinition.<MTEHeavySteamTurbine>builder()
                 .addShape(
                     "main",
                     transpose(
                         MachineVisualDefinition.get("heavy_steam_turbine")
                             .shapeLayers()))
-                .addElement(
-                    'B',
-                    ofChain(
-                        buildHatchAdder(MTEHeavySteamTurbine.class)
-                            .atLeast(
-                                InputHatch.withMteClasses(
-                                    MTEHatchInput.class,
-                                    MTEHatchCraftingInputME.class,
-                                    MTEHatchCraftingInputSlave.class),
-                                OutputHatch,
-                                MTEHeavySteamTurbine.DynamoElement.OUTPUT)
-                            .casingIndex(BRONZE_CASING_INDEX)
-                            .hint(1)
-                            .build(),
-                        casing))
-                .addElement('F', casing)
-                .addElement('H', casing)
+                .addElement('B', casingWithHatches)
+                .addElement('F', casingWithHatches)
+                .addElement('H', casingWithHatches)
                 .addElement('R', casing)
                 .addElement('C', pipe)
                 .addElement('S', pipe)

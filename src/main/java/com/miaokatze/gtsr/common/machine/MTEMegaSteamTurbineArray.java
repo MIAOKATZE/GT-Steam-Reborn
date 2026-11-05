@@ -1402,7 +1402,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     }
 
     private static int getConstructExtraStackCount(ItemStack stackSize) {
-        // Preserve the native one-based height channel: selections 1,5,9,13,17 select k=0..4.
+        // The one-based lenght channel selects k=0..4 with values 1..5.
         return MegaSteamTurbineStructureDef.constructExtraStacks(stackSize);
     }
 
@@ -1540,7 +1540,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_cooling_hatches"),
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatch_location"),
-                2)
+                1)
             .addStructureInfo(
                 EnumChatFormatting.RED
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_required"))
@@ -1550,7 +1550,6 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .addStructureInfo(
                 EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel"))
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
-            .addSubChannelUsage(GTStructureChannels.STRUCTURE_HEIGHT)
             .addStructureHint("gtsr.structurelib.channel.material.usage")
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();

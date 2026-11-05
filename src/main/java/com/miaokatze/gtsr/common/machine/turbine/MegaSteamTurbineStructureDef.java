@@ -50,8 +50,8 @@ public final class MegaSteamTurbineStructureDef {
     }
 
     public static int constructExtraStacks(ItemStack trigger) {
-        int selection = trigger == null ? 1 : ChannelDataAccessor.getChannelData(trigger, "height");
-        return (int) Math.max(0L, Math.min(MTEMegaSteamTurbineArray.MAX_EXTRA_STACKS, ((long) selection - 1L) / 4L));
+        int selection = trigger == null ? 1 : ChannelDataAccessor.getChannelData(trigger, "lenght");
+        return (int) Math.max(0L, Math.min(MTEMegaSteamTurbineArray.MAX_EXTRA_STACKS, (long) selection - 1L));
     }
 
     public static MachineVisualDefinition visual(int extraStacks) {
@@ -60,7 +60,9 @@ public final class MegaSteamTurbineStructureDef {
 
     public static IStructureDefinition<MTEMegaSteamTurbineArray> definition() {
         if (STRUCTURE_DEFINITION == null) {
-            StructureDefinition.Builder<MTEMegaSteamTurbineArray> builder = StructureDefinition.builder();
+            StructureDefinition.Builder<MTEMegaSteamTurbineArray> builder = StructureDefinition
+                .<MTEMegaSteamTurbineArray>builder()
+                .addChannel("lenght", 1, MTEMegaSteamTurbineArray.MAX_EXTRA_STACKS + 1);
             for (int count = 0; count <= MTEMegaSteamTurbineArray.MAX_EXTRA_STACKS; count++) {
                 builder.addShape(piece(count), transpose(visual(count).shapeLayers()));
             }
@@ -80,7 +82,7 @@ public final class MegaSteamTurbineStructureDef {
                     buildHatchAdder(MTEMegaSteamTurbineArray.class)
                         .atLeast(MTEMegaSteamTurbineArray.MegaSteamTurbineArrayHatchElement.CoolingHatch)
                         .casingIndex(SOLID_STEEL_CASING_INDEX)
-                        .hint(2)
+                        .hint(1)
                         .build(),
                     buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(InputHatch, OutputHatch)
                         .hatchItemFilterAnd(t -> stack -> {
