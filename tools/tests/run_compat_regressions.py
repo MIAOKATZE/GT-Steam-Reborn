@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--work-dir', type=Path, help='Output directory; defaults to a new temporary directory')
     parser.add_argument('--suite', choices=['all', 'bq', 'inputs', 'recipes', 'frontend', 'overlay'], default='all')
     parser.add_argument('--timeout', type=int, default=60, help='Per subprocess timeout in seconds')
+    parser.add_argument('--core-source-root', type=Path, default=Path(__file__).resolve().parents[3] / 'MIAOKATZE-Core')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[2]
     source = (args.source_root or repo).resolve()
@@ -51,7 +52,7 @@ def main():
 
     def run(name, command):
         try:
-            result = subprocess.run(command, capture_output=True, text=True, timeout=args.timeout)
+            result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=args.timeout)
             log = result.stdout + result.stderr
             passed = result.returncode == 0
         except subprocess.TimeoutExpired as exc:
@@ -71,6 +72,8 @@ def main():
         for filename, content in fixtures.items():
             (fixture_dir / filename).write_text(content)
         inputs = [*sorted(fixture_dir.glob('*.java')), *sources]
+        if name == 'bq':
+            inputs.append(args.core_source_root / 'src/main/java/com/miaokatze/miaokatzecore/api/bq/QuestProgressRecovery.java')
         source_manifest[name] = [{'path': str(p), 'sha256': hashlib.sha256(p.read_bytes()).hexdigest()} for p in inputs]
         (work / 'source-manifest.json').write_text(json.dumps(source_manifest, indent=2))
         passed = run(name + '-compile', [javac, '-encoding', 'UTF-8', '-proc:none', '-sourcepath', str(empty),
