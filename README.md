@@ -9,7 +9,7 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0" src="https://img.shields.io/badge/GTNH-2.9.0-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="GTSR 2.1.18" src="https://img.shields.io/badge/GTSR-2.1.18-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="GTSR 2.1.24" src="https://img.shields.io/badge/GTSR-2.1.24-green.svg"></a>
 </p>
 
 | 前置 / Requirement | 版本 / Version |
@@ -29,6 +29,7 @@ GTSR expands GTNH's steam progression with industrial machines, cross-dimensiona
 |---|---|
 | 扩建青铜基地 | 大型焦炉与加固砖高炉建立材料基础，大型蒸汽熔炉承接批量熔炼。空气压缩机、大气离心机补足气体供应。 |
 | 让加工持续运转 | 蒸汽流体钻井解决水源，地热锅炉和太阳能阵列提供蒸汽；机械压缩机将普通蒸汽转为过热蒸汽。先留足水和输出空间，再提高负荷。 |
+| 用普通蒸汽起步发电 | 青铜级重型蒸汽轮机以普通蒸汽发电，100% 效率时为 256 EU/t；先接好蒸馏水回收与动力输出，再逐步提高供汽。 |
 | 把远方工坊接回主基地 | 建设蒸汽枢纽与蓄水枢纽，携带节点到矿场、加工间或其他维度；用枢纽终端检查方向、容量与传输速率。 |
 | 整合矿物加工 | 奇点钻井枢纽收集远方资源，矿物处理集群编排加工链；物流单元接好输入与输出后，再添加增幅模块。 |
 | 把蒸汽推进到更高阶段 | 热化学致密蒸汽发生系统拓展燃料供应，致密态操控与奇点设备支撑储运、发电和高级加工。 |
@@ -251,6 +252,8 @@ The v2.1.18 Kinetic Processing Array and Mega Steam Turbine Array require rebuil
 
 双列轴向蒸汽发电机组，采用统一的钢、钛或钨钢材料。1 个基础环组可沿轴增加 0～4 个独立环组，每组增加 12 格长度；基础发电倍率为 4，功率组数为 k+2，实体环组数为 k+1。材料与额外环组提供效率上限和节汽加成，具体数值见机器说明。
 
+结构投影使用 `lenght` 子信道，值 1～5 分别对应额外叠加 0～4 层。Set the `lenght` structure subchannel to 1–5 for zero to four additional layers.
+
 机械壳决定电压等级，玻璃等级不得低于机械壳；仓室可替换任意标准机械方块，控制器与仓室底纹随等级变化。普通与过热蒸汽各级可用，致密族和超临界蒸汽需 LuV（6级）及以上机械壳。支持 ME 及原生流体型合成缓存供汽，以及普通、多安和激光动力仓。
 
 <p align="center"><img src="README/renders/MTEHeavySteamTurbine-T1.png" width="320" alt="重型蒸汽轮机：青铜级 / Heavy Steam Turbine: Bronze tier"> <img src="README/renders/MTEHeavySteamTurbine-T2.png" width="320" alt="重型蒸汽轮机：钢级 / Heavy Steam Turbine: Steel tier"><br><em>重型蒸汽轮机 / Heavy Steam Turbine（青铜／钢）</em></p>
@@ -274,6 +277,8 @@ The v2.1.18 Kinetic Processing Array and Mega Steam Turbine Array require rebuil
 在控制器 GUI 放入受支持的 GT 单方块机器，以电力和过热蒸汽执行对应配方。9 块标准机械壳与内置机器共同限制配方电压，玻璃等级不得低于机械壳；钢、钛或钨钢材料必须统一，分别提供 2／2.5／3 倍速度与 0.6／0.4／0.3 倍配方耗电。
 
 过热蒸汽按实际电耗结算，钢／钛／钨钢分别消耗 4／2／1 L/EU，并等量返还普通蒸汽。可由耐压蒸汽仓、普通／ME 流体输入仓或原生流体型合成缓存供汽，能源输入支持普通、多安和激光能源仓，仓室可替换任意材料外壳。
+
+GUI 显示当前配方的进度及物品、流体产物。The GUI shows current recipe progress and item/fluid outputs.
 
 <p align="center"><img src="README/renders/MTEGearSteamCompressor-T1.png" width="260" alt="自驱式机械蒸汽压缩机 / Gear Steam Compressor"> <img src="README/renders/MTEGearSteamCompressor-T2.png" width="260" alt="自驱式机械蒸汽压缩机 / Gear Steam Compressor"><br><em>自驱式机械蒸汽压缩机 / Gear Steam Compressor（青铜/钢）</em></p>
 
@@ -532,4 +537,4 @@ The four interfaces retain native ME compatibility. Critical inputs use per-slot
 
 采用 AGPL-3.0 许可证，详见 LICENSE 文件。
 
-文档更新：2026-11-05 · 当前源码版本：2.1.18
+文档更新：2026-11-06 · 当前源码版本：2.1.24
