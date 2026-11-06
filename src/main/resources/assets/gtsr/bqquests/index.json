@@ -263,10 +263,6 @@
           "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/DrillingHubandIt-R1RTUgAAAAAAAAAAAAAAQQ==.json"
         },
         {
-          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SteamRebornProgr-R1RTUgAAAAAAAAAAAAAAQg==.json",
-          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SteamRebornProgr-R1RTUgAAAAAAAAAAAAAAQg==.json"
-        },
-        {
           "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ThermoChemicalDe-R1RTUgAAAAAAAAAAAAAAQw==.json",
           "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ThermoChemicalDe-R1RTUgAAAAAAAAAAAAAAQw==.json"
         },
@@ -337,6 +333,70 @@
         {
           "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ObtainingAbyssal-R1RTUgAAAAAAAAAAAAAAVA==.json",
           "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ObtainingAbyssal-R1RTUgAAAAAAAAAAAAAAVA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CriticalMachines-R1RTUgAAAAAAAAAAAAAAVQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CriticalMachines-R1RTUgAAAAAAAAAAAAAAVQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/MimeticLoomContr-R1RTUgAAAAAAAAAAAAAAVg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/MimeticLoomContr-R1RTUgAAAAAAAAAAAAAAVg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ConstructionSupp-R1RTUgAAAAAAAAAAAAAAVw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ConstructionSupp-R1RTUgAAAAAAAAAAAAAAVw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/FoundationPourin-R1RTUgAAAAAAAAAAAAAAWA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/FoundationPourin-R1RTUgAAAAAAAAAAAAAAWA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/StagedBodyandEqu-R1RTUgAAAAAAAAAAAAAAWQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/StagedBodyandEqu-R1RTUgAAAAAAAAAAAAAAWQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/MainMachineWorki-R1RTUgAAAAAAAAAAAAAAWg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/MainMachineWorki-R1RTUgAAAAAAAAAAAAAAWg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/DimensionalBoile-R1RTUgAAAAAAAAAAAAAAWw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/DimensionalBoile-R1RTUgAAAAAAAAAAAAAAWw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/BoilerStockandOu-R1RTUgAAAAAAAAAAAAAAXA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/BoilerStockandOu-R1RTUgAAAAAAAAAAAAAAXA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/PulsePowerCoreCo-R1RTUgAAAAAAAAAAAAAAXQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/PulsePowerCoreCo-R1RTUgAAAAAAAAAAAAAAXQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SteamLoadWarmupa-R1RTUgAAAAAAAAAAAAAAXg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SteamLoadWarmupa-R1RTUgAAAAAAAAAAAAAAXg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ThermochemicalCo-R1RTUgAAAAAAAAAAAAAAXw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ThermochemicalCo-R1RTUgAAAAAAAAAAAAAAXw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ProportioningCom-R1RTUgAAAAAAAAAAAAAAYA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ProportioningCom-R1RTUgAAAAAAAAAAAAAAYA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ArtificialStella-R1RTUgAAAAAAAAAAAAAAYQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ArtificialStella-R1RTUgAAAAAAAAAAAAAAYQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/IgnitionSustaina-R1RTUgAAAAAAAAAAAAAAYg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/IgnitionSustaina-R1RTUgAAAAAAAAAAAAAAYg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/MEStockandBatchF-R1RTUgAAAAAAAAAAAAAAYw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/MEStockandBatchF-R1RTUgAAAAAAAAAAAAAAYw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HeavyBronzeSteam-R1RTUgAAAAAAAAAAAAAAZA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HeavyBronzeSteam-R1RTUgAAAAAAAAAAAAAAZA==.json"
         }
       ],
       "idHigh": 5139824686389002240,

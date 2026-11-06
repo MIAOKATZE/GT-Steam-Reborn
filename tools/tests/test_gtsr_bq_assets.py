@@ -44,8 +44,8 @@ class ReviewedPackTests(unittest.TestCase):
     def quest(self, seq):
         return json.loads(self.paths[seq].read_text(encoding="utf-8"))
 
-    def test_all_84_roundtrip_and_reviewed_edges(self):
-        self.assertEqual(set(range(1, 85)), set(self.paths))
+    def test_all_99_roundtrip_and_reviewed_edges(self):
+        self.assertEqual(set(range(1, 101)) - {66}, set(self.paths))
         self.assertEqual(adapter.LINE_HIGH, self.line["idHigh"])
         self.assertEqual(1, self.line["idLow"])
         self.assertEqual(900, self.line["orderIndex"])
@@ -83,13 +83,31 @@ class ReviewedPackTests(unittest.TestCase):
         self.assertEqual([70], [p["questIDLow:4"] for p in self.quest(84)["preRequisites:9"].values()])
         for seq, prereq in ((83, 40), (68, 83), (77, 83), (67, 33)):
             self.assertIn(prereq, [p["questIDLow:4"] for p in self.quest(seq)["preRequisites:9"].values()])
+        foundry = self.quest(68)
+        self.assertEqual("OR", foundry["properties:10"]["betterquesting:10"]["taskLogic:8"])
+        self.assertEqual(["bq_standard:retrieval", "bq_standard:checkbox"],
+                         [task["taskID:8"] for task in foundry["tasks:9"].values()])
+        critical = self.quest(85)
+        self.assertEqual([64, 83], [p["questIDLow:4"] for p in critical["preRequisites:9"].values()])
+        self.assertNotIn("UHV", critical["properties:10"]["betterquesting:10"]["name:8"])
+        bronze = self.quest(100)
+        bronze_task = bronze["tasks:9"]["0:10"]
+        bronze_stack = bronze_task["requiredItems:9"]["0:10"]
+        self.assertEqual(("gregtech:gt.blockmachines", 14857, 1, 0),
+                         (bronze_stack["id:8"], bronze_stack["Damage:2"],
+                          bronze_stack["Count:3"], bronze_task["consume:1"]))
+        self.assertEqual([3], [p["questIDLow:4"] for p in bronze["preRequisites:9"].values()])
+        bronze_reward = bronze["rewards:9"]["0:10"]["rewards:9"]["0:10"]
+        self.assertEqual(("minecraft:glass", 4), (bronze_reward["id:8"], bronze_reward["Count:3"]))
         for entry in self.line["entries"]:
             data = json.loads((self.repo / "src/main/resources" / entry["entryFile"]).read_text(encoding="utf-8"))
             ws = self.by_seq[data["questIDLow:4"]]
             self.assertEqual([ws["x"], ws["y"], ws["size"], ws["size"]],
                              [data["x:3"], data["y:3"], data["sizeX:3"], data["sizeY:3"]])
         for lang in ("en_US", "zh_CN"):
-            self.assertTrue((self.lang_dir / (lang + ".lang")).read_text(encoding="utf-8").startswith("outside.block=preserve\n"))
+            text = (self.lang_dir / (lang + ".lang")).read_text(encoding="utf-8")
+            self.assertTrue(text.startswith("outside.block=preserve\n"))
+            self.assertNotIn("betterquesting.quest.R1RTUgAAAAAAAAAAAAAAQg.", text)
 
     def test_audit_detects_missing_and_wrong_fluid_nbt(self):
         # Preserve typed-NBT tamper coverage with a dedicated temporary source fixture.

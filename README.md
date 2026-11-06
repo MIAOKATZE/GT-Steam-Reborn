@@ -9,7 +9,7 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0" src="https://img.shields.io/badge/GTNH-2.9.0-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="GTSR 2.1.24" src="https://img.shields.io/badge/GTSR-2.1.24-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="GTSR 2.1.26" src="https://img.shields.io/badge/GTSR-2.1.26-green.svg"></a>
 </p>
 
 | 前置 / Requirement | 版本 / Version |
@@ -525,9 +525,9 @@ The four interfaces retain native ME compatibility. Critical inputs use per-slot
 
 ## BetterQuesting Questline Integration / BetterQuesting 任务线整合
 
-<p align="center"><img src="README/BQ.png" width="1000" alt="任务线「GT 蒸汽重生」任务总览 / Quest line GT Steam Reborn overview: guided quests"><br><em>任务线「GT 蒸汽重生」：84 个引导任务，连线为任务依赖 / Quest line "GT Steam Reborn": 84 guided quests; lines are quest dependencies</em></p>
+<p align="center"><img src="README/BQ.png" width="1000" alt="任务线「GT 蒸汽重生」旧版布局示意 / Earlier GT Steam Reborn quest layout"><br><em>旧版 84 题布局示意，连线为任务依赖 / Earlier 84-quest layout; lines are quest dependencies</em></p>
 
-- **内置引导任务线**：任务覆盖青铜基地建设、蒸汽经济学、枢纽网络到奇点账户的完整进度线，任务标题与描述随游戏语言自动切换（中/英）。/ **Built-in guided questline**: guided quests covering the full progression from bronze-base acceptance and steam economics to hub networks and the singularity account; quest titles and descriptions follow the game language (CN/EN).
+- **内置引导任务线**：99 个任务覆盖青铜基地建设、供汽与发电、枢纽物流、奇点及临界机器，包括重型青铜蒸汽轮机；任务标题与描述随游戏语言自动切换（中/英）。/ **Built-in guided questline**: 99 quests cover bronze-base construction, steam supply and generation, hub logistics, singularities and critical machines, including the Heavy Bronze Steam Turbine; titles and descriptions follow the game language (CN/EN).
 - **自动更新**：进入世界自动加载引导任务，模组升级会刷新任务内容并保留完成与领取进度。/ **Automatic updates**: quest definitions refresh on world entry while keeping completion and claim progress.
 - **可选依赖**：BetterQuesting 未安装时本整合静默停用，其余功能不受影响。/ **Optional dependency**: with BetterQuesting absent, this integration silently disables and nothing else is affected.
 
@@ -537,4 +537,4 @@ The four interfaces retain native ME compatibility. Critical inputs use per-slot
 
 采用 AGPL-3.0 许可证，详见 LICENSE 文件。
 
-文档更新：2026-11-06 · 当前源码版本：2.1.24
+文档更新：2026-11-06 · 当前源码版本：2.1.26
