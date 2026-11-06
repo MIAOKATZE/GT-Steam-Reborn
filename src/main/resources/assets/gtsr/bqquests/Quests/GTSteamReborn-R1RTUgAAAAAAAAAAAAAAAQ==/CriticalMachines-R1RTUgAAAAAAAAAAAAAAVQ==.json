@@ -13,7 +13,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nThe completed critical machines are the Dimensional Irradiation Coupled Boiler, Supercritical Steam Pulse Power Core, Multiphase Thermochemical Reaction Core and Artificial Stellar Confinement Core. Prepare UHV equipment and sustained supplies. §e§lThese machines must be built through a [Mimetic Loom].§r Placing a controller or copying the visible shell does not complete construction.\n\n§3§lPreparation and operation§r\nRead the loom, foundation and working-hatch guides before choosing a machine branch. Controller manufacturing and staged construction have separate critical-singularity costs; NEI lists the materials. Complete this introduction manually; it does not detect a completed structure.",
+      "desc:8": "§3§lPurpose and mechanism§r\nThe completed critical machines are the Dimensional Irradiation Coupled Boiler, Supercritical Steam Pulse Power Core, Multiphase Thermochemical Reaction Core and Artificial Stellar Confinement Core. Prepare UHV equipment and sustained supplies. §6§lThese machines must be built through a [Mimetic Loom].§r Placing a controller or copying the visible shell does not complete construction.\n\n§3§lPreparation and operation§r\nRead the loom, foundation and working-hatch guides before choosing a machine branch. Controller manufacturing and staged construction have separate critical-singularity costs; NEI lists the materials. Complete this introduction manually; it does not detect a completed structure.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

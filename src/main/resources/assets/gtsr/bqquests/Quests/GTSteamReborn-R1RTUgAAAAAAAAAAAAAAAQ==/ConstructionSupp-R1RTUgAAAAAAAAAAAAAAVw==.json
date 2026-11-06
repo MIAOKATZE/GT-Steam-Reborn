@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\n§eConstruction supplies go to the loom; production supplies go to the main machine.§r Put construction items in the loom input bus, fluids in its input hatch, and power in its energy hatch. The future main-machine working hatches do not fund construction.\n\n§3§lPreparation and operation§r\nUse the hologram to locate eligible shell-ring ports at loom-controller height. Never replace its controller or internal rails. Open Construction in the Machine Terminal, inspect the current stage, next materials and missing materials, then start or resume. Higher voltage accelerates supported construction steps but still requires sufficient power.",
+      "desc:8": "§3§lPurpose and mechanism§r\n§6Construction supplies go to the loom; production supplies go to the main machine.§r Put construction items in the loom input bus, fluids in its input hatch, and power in its energy hatch. The future main-machine working hatches do not fund construction.\n\n§3§lPreparation and operation§r\nUse the hologram to locate eligible shell-ring ports at loom-controller height. Never replace its controller or internal rails. Open Construction in the Machine Terminal, inspect the current stage, next materials and missing materials, then start or resume. Higher voltage accelerates supported construction steps but still requires sufficient power.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

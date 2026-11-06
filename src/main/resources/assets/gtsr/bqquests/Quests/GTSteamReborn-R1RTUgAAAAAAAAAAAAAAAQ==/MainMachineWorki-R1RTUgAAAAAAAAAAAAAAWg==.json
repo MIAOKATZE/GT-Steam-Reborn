@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nProduction hatches occupy the reserved row §enext to the main controller§r: one block behind it and one block above it, centered on the controller and extending six blocks to either side, for 13 positions. The row immediately below is fixed casing. These positions rotate with the machine.\n\n§3§lPreparation and operation§r\nInstall the needed item/fluid inputs, outputs and energy hatches, then check the hologram and structure status. No maintenance hatch is required; unused optional working positions may stay empty. Construction still uses loom supplies. Connect the boiler working fluids and outlets, turbine steam and condensate, chemical fuels and circuit, or stellar energy, helium-3 and fusion IO to the main machine.",
+      "desc:8": "§3§lPurpose and mechanism§r\nProduction hatches occupy the reserved row §6next to the main controller§r: one block behind it and one block above it, centered on the controller and extending six blocks to either side, for 13 positions. The row immediately below is fixed casing. These positions rotate with the machine.\n\n§3§lPreparation and operation§r\nInstall the needed item/fluid inputs, outputs and energy hatches, then check the hologram and structure status. No maintenance hatch is required; unused optional working positions may stay empty. Construction still uses loom supplies. Connect the boiler working fluids and outlets, turbine steam and condensate, chemical fuels and circuit, or stellar energy, helium-3 and fusion IO to the main machine.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

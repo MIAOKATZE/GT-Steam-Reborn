@@ -9,7 +9,7 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0" src="https://img.shields.io/badge/GTNH-2.9.0-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="GTSR 2.1.25" src="https://img.shields.io/badge/GTSR-2.1.25-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="GTSR 2.1.26" src="https://img.shields.io/badge/GTSR-2.1.26-green.svg"></a>
 </p>
 
 | 前置 / Requirement | 版本 / Version |
@@ -537,4 +537,4 @@ The four interfaces retain native ME compatibility. Critical inputs use per-slot
 
 采用 AGPL-3.0 许可证，详见 LICENSE 文件。
 
-文档更新：2026-11-06 · 当前源码版本：2.1.25
+文档更新：2026-11-06 · 当前源码版本：2.1.26
