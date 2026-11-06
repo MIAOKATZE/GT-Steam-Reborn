@@ -1,0 +1,42 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 88
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "§3§lPurpose and mechanism§r\nConstruction NEI has three pages: base, body and equipment, with three rows per page. Body work covers supports, distribution and shell/stabilization; equipment covers mechanical supports, working components and sensors/wiring. Shown material amounts are per small step, repeated for the listed step count.\n\n§3§lPreparation and operation§r\nSupply the next step continuously rather than delivering the entire project at once. Body and equipment steps support lossless overclocking; the four main machines still operate in fixed 20-second batches. Gold follows the active region and completed regions stay filled. Resolve material, power or chunk-loading blockers and resume; a pause does not require rebuilding.",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 14904,
+        "OreDict:8": "",
+        "id:8": "gregtech:gt.blockmachines"
+      },
+      "isMain:1": 0,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "§d§lStaged Body and Equipment Assembly§r",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 89,
+  "rewards:9": {},
+  "tasks:9": {
+    "0:10": {
+      "index:3": 0,
+      "taskID:8": "bq_standard:checkbox"
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 93
+    },
+    "1:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 99
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "§3§lPurpose and mechanism§r\nOrdinary, superheated and supercritical steam carry 0.5, 1.5 and 2.5 EU/L of base heat; dense forms multiply these by 1,000. Batch EU equals total base heat × starting efficiency ÷ 100. Efficiency rises from 100% to at most 2,000%; a sufficient base heat load reaches full warmup in 20 continuous seconds. Lower loads reduce the target and idle operation cools down.\n\n§3§lPreparation and operation§r\nEvery 160 L of non-dense steam returns 1 L of distilled water; dense steam counts 1,000-fold. Connect the boiler, power core and ME storage into a steam/condensate loop, but keep the initial working stock: the boiler still debits an entire batch at startup. Stable load is measured by base heat, so changing volume alone does not preserve high efficiency.",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 14906,
+        "OreDict:8": "",
+        "id:8": "gregtech:gt.blockmachines"
+      },
+      "isMain:1": 0,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "§d§lSteam Load, Warmup and Water Return§r",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 94,
+  "rewards:9": {},
+  "tasks:9": {
+    "0:10": {
+      "index:3": 0,
+      "taskID:8": "bq_standard:checkbox"
+    }
+  }
+}
