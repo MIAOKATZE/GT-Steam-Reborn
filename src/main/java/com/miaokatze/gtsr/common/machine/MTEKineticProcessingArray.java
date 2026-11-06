@@ -437,6 +437,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte instanceof MTEHatchPressureSteamInput hatch) {
             hatch.updateTexture(aBaseCasingIndex);
+            addIfSmartInput(hatch);
             mPressureSteamInputs.add(hatch);
             return true;
         }

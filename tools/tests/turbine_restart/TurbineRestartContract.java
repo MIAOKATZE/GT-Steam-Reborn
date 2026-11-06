@@ -118,20 +118,35 @@ class TurbineRestartRuntime {
         check(mega.mEfficiency==0,"Mega real player stop still clears GT efficiency");
         var paid=machine(MegaProbe.class);paid.loadNBTData(mn);paid.mStartUpCheck=0;paid.mMachine=true;
         paid.onPostTick(paid.getBaseMetaTileEntity(),1);
+        paid.mPowerParameter=2;paid.mSingularityMode=0;
         net.minecraftforge.fluids.FluidRegistry.registerFluid(new net.minecraftforge.fluids.Fluid("supercriticalsteam"));
         var source=(com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput)unsafe.allocateInstance(com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput.class);
-        source.setBaseMetaTileEntity(paid.getBaseMetaTileEntity());
-        var stock=new net.minecraftforge.fluids.FluidStack(net.minecraftforge.fluids.FluidRegistry.getFluid("supercriticalsteam"),100_000_000);
-        set(source,"mFluid",stock);
-        ((List)field(paid.getClass(),"mPressureSteamInputs").get(paid)).add(source);
-        check(paid.checkProcessing().wasSuccessful(),"fresh real pressure-hatch fuel payment succeeds after temporary no fuel");
-        check(stock.amount<100_000_000&&number(paid,"mLoadRecoveryTicks")==0,"only paid success immediately consumes the one-time load recovery");
-        System.out.println("PAYMENT actualNativeDrain="+(100_000_000-stock.amount)+" recovery="+number(paid,"mLoadRecoveryTicks"));
-        stock.amount=0;
+        set(source,"watchers",new ArrayList<>());set(source,"mInventory",new net.minecraft.item.ItemStack[3]);set(source,"mFluidCapacity",512000);
+        final boolean[] modified={false};
+        var sourceTile=(gregtech.api.interfaces.tileentity.IGregTechTileEntity)Proxy.newProxyInstance(source.getClass().getClassLoader(),new Class<?>[]{gregtech.api.interfaces.tileentity.IGregTechTileEntity.class},(p,method,args)->{
+            switch(method.getName()) {
+                case "getMetaTileEntity":return source;
+                case "isServerSide":case "isAllowedToWork":return true;
+                case "hasInventoryBeenModified":return modified[0];
+                // Same boundary flag as GT CommonBaseMetaTileEntity.markDirty(), without a live world.
+                case "markDirty":modified[0]=true;return null;
+            }
+            Class<?> r=method.getReturnType();if(r==boolean.class)return false;if(r==int.class)return 0;if(r==long.class)return 0L;return null;
+        });
+        source.setBaseMetaTileEntity(sourceTile);
+        check(paid.addToMachineList(sourceTile,0),"production pressure-hatch registration accepts the source");
+        check(source.fill(new net.minecraftforge.fluids.FluidStack(net.minecraftforge.fluids.FluidRegistry.getFluid("supercriticalsteam"),500_000),true)==500_000,"real pressure-hatch fill marks the tank modified within its native capacity");
+        var stock=source.getFluid();
+        source.onPostTick(sourceTile,1);
         paid.onPostTick(paid.getBaseMetaTileEntity(),2);
+        check(stock.amount<500_000,"native hatch change push triggers real controller payment after temporary no fuel");
+        check(number(paid,"mLoadRecoveryTicks")==0,"only scheduled paid success immediately consumes the one-time load recovery");
+        System.out.println("PAYMENT actualNativeDrain="+(500_000-stock.amount)+" recovery="+number(paid,"mLoadRecoveryTicks"));
+        stock.amount=0;
+        paid.onPostTick(paid.getBaseMetaTileEntity(),3);
         System.out.println("PAID RECHECK eff="+paid.mEfficiency+" recovery="+number(paid,"mLoadRecoveryTicks")+" max="+paid.mMaxProgresstime+" stock="+source.getFluidAmount());
         check(paid.mEfficiency<25000,"subsequent no fuel after paid recovery uses original 500 decay");
-        int afterPaid=paid.mEfficiency;paid.onPostTick(paid.getBaseMetaTileEntity(),3);
+        int afterPaid=paid.mEfficiency;paid.onPostTick(paid.getBaseMetaTileEntity(),4);
         check(paid.mEfficiency==afterPaid-1000,"subsequent native idle decay is unchanged after paid recovery");
         var stopped=machine(MegaProbe.class);stopped.loadNBTData(mn);stopped.mStartUpCheck=0;stopped.mMachine=true;
         stopped.stopMachine(gregtech.api.util.shutdown.ShutDownReasonRegistry.NONE);

@@ -1,4 +1,4 @@
-"""Run the existing 26 detached turbine restart assertions, without invoking Gradle.
+"""Run the detached turbine restart assertions, without invoking Gradle.
 
 Uses real GT265, StructureLib 1.4.47, Core 0.2.5, Minecraft NBT and native fuel drain.
 Structure results, energy insertion, pollution, FML side and observer networking are

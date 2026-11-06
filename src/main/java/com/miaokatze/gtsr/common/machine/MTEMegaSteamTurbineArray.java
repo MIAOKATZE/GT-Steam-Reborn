@@ -560,6 +560,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte instanceof MTEHatchPressureSteamInput hatch) {
             hatch.updateTexture(aBaseCasingIndex);
+            addIfSmartInput(hatch);
             mPressureSteamInputs.add(hatch);
             return true;
         }
@@ -571,6 +572,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte instanceof MTEOverpressureTurbineInputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
+            addIfSmartInput(hatch);
             mOverpressureInputs.add(hatch);
             return true;
         }
