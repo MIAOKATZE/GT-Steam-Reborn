@@ -1191,11 +1191,6 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     }
 
     @Override
-    public boolean showRecipeTextInGUI() {
-        return false;
-    }
-
-    @Override
     public boolean supportsPowerPanel() {
         return true;
     }
