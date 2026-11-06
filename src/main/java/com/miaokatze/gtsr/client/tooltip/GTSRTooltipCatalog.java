@@ -167,6 +167,7 @@ public final class GTSRTooltipCatalog {
             result = switch (name) {
                 // Existing ItemBlocks own all four runaway variants and the separate spacetime identity.
                 case "RunawaySingularity", "SpacetimeSingularity" -> new ArrayList<>();
+                case "TungstenSteelGearbox" -> new ArrayList<>();
                 case "AbyssalFluid" -> keys("abyssal_block", "abyssal_fallback");
                 case "SealedChest" -> keys("sealed_chest");
                 case "UnsealedChest" -> keys("unsealed_chest");

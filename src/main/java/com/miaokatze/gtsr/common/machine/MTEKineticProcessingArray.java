@@ -40,6 +40,7 @@ import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
+import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizons.modularui.api.math.Alignment;
@@ -136,7 +137,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     private static HatchElementBuilder<MTEKineticProcessingArray> ioConstructionHatches() {
         HatchElementBuilder<MTEKineticProcessingArray> builder = buildHatchAdder(MTEKineticProcessingArray.class)
             .atLeast(SteamInputBus, InputHatch, SteamOutputBus, OutputHatch, Energy.or(ExoticEnergy))
-            // Pressure cooling belongs to the earlier B branch's dedicated counter.
+            // Pressure cooling uses the earlier dedicated hatch counter.
             .hatchItemFilterAnd(
                 t -> stack -> !(ItemMachines.getMetaTileEntity(stack) instanceof MTEPressureSteamCoolingHatch))
             .casingIndex(SOLID_STEEL_CASING_INDEX)
@@ -272,34 +273,20 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     @Override
     public IStructureDefinition<MTEKineticProcessingArray> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
-            STRUCTURE_DEFINITION = StructureDefinition.<MTEKineticProcessingArray>builder()
-                .addShape(STRUCTURE_PIECE_MAIN, transpose(visualDefinition().shapeLayers()))
-                .addElement(
-                    'B',
-                    ofChain(
-                        buildHatchAdder(MTEKineticProcessingArray.class)
-                            .atLeast(KineticProcessingArrayHatchElement.PressureSteamInput)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(2)
-                            .build(),
-                        buildHatchAdder(MTEKineticProcessingArray.class)
-                            .atLeast(KineticProcessingArrayHatchElement.PressureSteamCooling)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(3)
-                            .build(),
-                        ioConstructionHatches().build(),
-                        onElementPass(
-                            MTEKineticProcessingArray::onCasingAdded,
-                            withChannel(
-                                "material",
-                                ofBlocksTiered(
-                                    RebuiltMachineMaterials::shellTier,
-                                    RebuiltMachineMaterials.shellChoices(),
-                                    -1,
-                                    (t, tier) -> t.setMaterialTier(tier),
-                                    t -> t.mMaterialTier)))))
-                .addElement(
-                    'H',
+            IStructureElement<MTEKineticProcessingArray> casing = ofChain(
+                buildHatchAdder(MTEKineticProcessingArray.class)
+                    .atLeast(KineticProcessingArrayHatchElement.PressureSteamInput)
+                    .casingIndex(SOLID_STEEL_CASING_INDEX)
+                    .hint(1)
+                    .build(),
+                buildHatchAdder(MTEKineticProcessingArray.class)
+                    .atLeast(KineticProcessingArrayHatchElement.PressureSteamCooling)
+                    .casingIndex(SOLID_STEEL_CASING_INDEX)
+                    .hint(1)
+                    .build(),
+                ioConstructionHatches().build(),
+                onElementPass(
+                    MTEKineticProcessingArray::onCasingAdded,
                     withChannel(
                         "material",
                         ofBlocksTiered(
@@ -307,7 +294,11 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                             RebuiltMachineMaterials.shellChoices(),
                             -1,
                             (t, tier) -> t.setMaterialTier(tier),
-                            t -> t.mMaterialTier)))
+                            t -> t.mMaterialTier))));
+            STRUCTURE_DEFINITION = StructureDefinition.<MTEKineticProcessingArray>builder()
+                .addShape(STRUCTURE_PIECE_MAIN, transpose(visualDefinition().shapeLayers()))
+                .addElement('B', casing)
+                .addElement('H', casing)
                 .addElement(
                     'R',
                     withChannel(
@@ -446,6 +437,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte instanceof MTEHatchPressureSteamInput hatch) {
             hatch.updateTexture(aBaseCasingIndex);
+            addIfSmartInput(hatch);
             mPressureSteamInputs.add(hatch);
             return true;
         }
@@ -1199,26 +1191,20 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     }
 
     @Override
-    public boolean showRecipeTextInGUI() {
-        return false;
-    }
-
-    @Override
     public boolean supportsPowerPanel() {
         return true;
     }
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] {
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_size"),
-            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_casings"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_glass"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_io"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_pressure"),
-            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_required"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_material"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_channels") };
+        return new String[] { StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_size"),
+            StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_casings"),
+            StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_glass"),
+            StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_io"),
+            StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_pressure"),
+            StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_required"),
+            StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_material"),
+            StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_channels") };
     }
 
     @Override
@@ -1292,38 +1278,28 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.type"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc"))
             .addSeparator()
-            .addInfo(
-                EnumChatFormatting.YELLOW
-                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.parallel_formula"))
-            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2"))
-            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_2"))
-            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.hint_pipe"))
-            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.hint_gear"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.parallel_formula"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_2"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.hint_pipe"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.hint_gear"))
             .addSeparator()
-            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3_2"))
-            .addInfo(
-                EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_3"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3_2"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_3"))
             .beginStructureBlock(8, 9, 9, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.ctrl"))
             .addEnergyHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.energy"), 1)
-            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.steam_input"), 2)
+            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.steam_input"), 1)
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.input"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.output"), 1)
-            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.output_hatch"), 3)
-            .addStructureInfo(
-                EnumChatFormatting.GREEN
-                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_casings"))
-            .addStructureInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_glass"))
-            .addStructureInfo(
-                EnumChatFormatting.AQUA
-                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_material"))
-            .addStructureInfo(
-                EnumChatFormatting.RED
-                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_required"))
+            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.output_hatch"), 1)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_casings"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_glass"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_material"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.structure_required"))
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
             .addStructureHint("gtsr.structurelib.channel.material.usage")
             .addInfo(GTSRUtils.getAddedByLine())

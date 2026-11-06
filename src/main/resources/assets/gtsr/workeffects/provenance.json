@@ -1356,63 +1356,6 @@
       ],
       "worldXZJitterWidth": 0.12,
       "airPolicy": "actual jittered spawn cell must be loaded air; no block hiding bypass"
-    },
-    {
-      "machine": "MegaSteamTurbineArray",
-      "source": "tools/workvisual/export_rebuilt_turbines.js (approved R16 preview)",
-      "fireboxToken": null,
-      "fireboxesABC": [],
-      "nativeMaterial": null,
-      "emitters": [
-        {
-          "id": "MegaSteamTurbineArray:front-left",
-          "preciseABC": [
-            11,
-            -11.8,
-            5
-          ],
-          "origin": "approved-preview-internal-steam",
-          "schedule": "front"
-        },
-        {
-          "id": "MegaSteamTurbineArray:front-right",
-          "preciseABC": [
-            -11,
-            -11.8,
-            5
-          ],
-          "origin": "approved-preview-internal-steam",
-          "schedule": "front"
-        },
-        {
-          "id": "MegaSteamTurbineArray:sleeve-left",
-          "preciseABC": [
-            11,
-            -10.3,
-            30
-          ],
-          "origin": "approved-preview-internal-steam",
-          "schedule": "sleeve"
-        },
-        {
-          "id": "MegaSteamTurbineArray:sleeve-right",
-          "preciseABC": [
-            -11,
-            -10.3,
-            30
-          ],
-          "origin": "approved-preview-internal-steam",
-          "schedule": "sleeve"
-        }
-      ],
-      "periodMs": 4000,
-      "frontPhaseMsExclusiveEnd": 2000,
-      "clientTickInterval": 10,
-      "particlesPerRequest": 2,
-      "frontParticleScale": 0.35,
-      "sleeveParticleScale": 0.15,
-      "worldXZJitterWidth": 0.12,
-      "airPolicy": "actual jittered spawn cell must be loaded air; no block hiding bypass"
     }
   ],
   "tcds": {

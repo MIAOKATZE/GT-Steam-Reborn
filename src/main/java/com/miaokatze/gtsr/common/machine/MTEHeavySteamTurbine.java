@@ -491,45 +491,36 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
     protected MultiblockTooltipBuilder createTooltip() {
         return new MultiblockTooltipBuilder()
             .addMachineType(StatCollector.translateToLocal("gt.blockmachines.gtsr.heavy.steam.turbine.name"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.description"))
-            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.rating"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.description"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.rating"))
             .addInfo(
-                EnumChatFormatting.GREEN + StatCollector.translateToLocalFormatted(
+                StatCollector.translateToLocalFormatted(
                     "gtsr.tooltip.heavy_turbine.bronze",
                     HeavySteamTurbineCycle.BRONZE_OUTPUT_EUT))
             .addInfo(
-                EnumChatFormatting.GREEN + StatCollector.translateToLocalFormatted(
+                StatCollector.translateToLocalFormatted(
                     "gtsr.tooltip.heavy_turbine.steel",
                     HeavySteamTurbineCycle.STEEL_OUTPUT_EUT))
             .addSeparator()
-            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.warmup"))
-            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.startup"))
-            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.partial"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.pause"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.warmup"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.startup"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.partial"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.pause"))
             .addSeparator()
-            .addInfo(
-                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.generation"))
-            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.cooling"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.output"))
-            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.rounding"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.generation"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.cooling"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.output"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.rounding"))
             .addSeparator()
-            .addInfo(
-                EnumChatFormatting.YELLOW
-                    + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.structure_material"))
-            .addInfo(
-                EnumChatFormatting.RED
-                    + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.structure_required"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.structure_material"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.structure_required"))
             .beginStructureBlock(12, 10, 8, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.controller"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.ports"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.ports"), 1)
             .addDynamoHatch(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.ports"), 1)
-            .addStructureInfo(
-                EnumChatFormatting.YELLOW
-                    + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.structure_material"))
-            .addStructureInfo(
-                EnumChatFormatting.RED
-                    + StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.structure_required"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.structure_material"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.heavy_turbine.structure_required"))
             .toolTipFinisher();
     }
 
@@ -595,7 +586,9 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
         actualSteam = 0;
         effectiveEfficiency = 0;
         super.onPostTick(tile, tick);
-        if (tile.isServerSide()) {
+        // GT has not run the loaded cycle while its existing startup structure check is pending.
+        // Keep saved rotor heat and partial-second counters frozen through the check tick (zero).
+        if (tile.isServerSide() && mStartUpCheck < 0) {
             int previousEfficiency = turbineEfficiency;
             if (workedThisTick) {
                 idleTicks = 0;

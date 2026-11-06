@@ -101,6 +101,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     public int mGearTier = -1;
     public int mFrameTier = -1;
     private int excessWater = 0;
+    /** Loaded rotor heat may wait one native startup interval for its first fresh fuel payment. */
+    private int mLoadRecoveryTicks;
 
     public int mTheoreticalEUt = 0;
     public int mSteamConsumption = 0;
@@ -558,6 +560,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte instanceof MTEHatchPressureSteamInput hatch) {
             hatch.updateTexture(aBaseCasingIndex);
+            addIfSmartInput(hatch);
             mPressureSteamInputs.add(hatch);
             return true;
         }
@@ -569,6 +572,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte instanceof MTEOverpressureTurbineInputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
+            addIfSmartInput(hatch);
             mOverpressureInputs.add(hatch);
             return true;
         }
@@ -918,6 +922,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             mEfficiencyIncrease = 0;
         }
 
+        mLoadRecoveryTicks = 0;
         return CheckRecipeResultRegistry.GENERATING;
     }
 
@@ -944,12 +949,19 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 + "%");
     }
 
-    /**
-     * 奇点模式倒计时与续杯检查已上移父类统一处理，此处仅转发 super。
-     */
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        if (aBaseMetaTileEntity.isServerSide() && !aBaseMetaTileEntity.isAllowedToWork()) {
+            mLoadRecoveryTicks = 0;
+        }
+        int savedEfficiency = mEfficiency;
         super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (aBaseMetaTileEntity.isServerSide() && mLoadRecoveryTicks > 0) {
+            // Freeze only heat: GT still validates the structure and requires a real fuel receipt.
+            // A successful check or an explicit stop revokes recovery before this restoration.
+            mEfficiency = Math.max(mEfficiency, savedEfficiency);
+            if (mStartUpCheck < 0) mLoadRecoveryTicks--;
+        }
         machineVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
     }
 
@@ -1295,6 +1307,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         mSteamConsumption = aNBT.getInteger("mSteamConsumption");
         mFullBaseEUt = aNBT.getLong("mFullBaseEUt");
         mEfficiency = aNBT.getInteger("mEfficiency");
+        mLoadRecoveryTicks = mEfficiency > 0 ? Math.max(0, mStartUpCheck) : 0;
         mPowerParameter = aNBT.hasKey("mPowerParameter") ? aNBT.getInteger("mPowerParameter") : 10;
         // 整数键 mSingularityMode（0/1/2）与旧整数键 mSingularityModeLevel（无 mSingularityMode 键时）
         // 由父类 loadNBTData 兼容读取；此处仅迁移 v1.10.39 及以前的 boolean 键 mSingularityMode
@@ -1310,6 +1323,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public void stopMachine(@Nonnull ShutDownReason reason) {
+        if (reason != ShutDownReasonRegistry.STRUCTURE_INCOMPLETE) mLoadRecoveryTicks = 0;
         int savedEfficiency = mEfficiency;
         super.stopMachine(reason);
         if (reason == ShutDownReasonRegistry.STRUCTURE_INCOMPLETE) {
@@ -1402,7 +1416,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     }
 
     private static int getConstructExtraStackCount(ItemStack stackSize) {
-        // Preserve the native one-based height channel: selections 1,5,9,13,17 select k=0..4.
+        // The one-based lenght channel selects k=0..4 with values 1..5.
         return MegaSteamTurbineStructureDef.constructExtraStacks(stackSize);
     }
 
@@ -1462,15 +1476,14 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] {
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_size"),
-            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatches"),
-            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_required"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_material"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_channels") };
+        return new String[] { StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_size"),
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"),
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatches"),
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_required"),
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel"),
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"),
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_material"),
+            StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_channels") };
     }
 
     @Override
@@ -1526,13 +1539,9 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip_3"))
             .beginVariableStructureBlock(51, 51, 25, 25, 79, 127, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.ctrl"))
-            .addStructureInfo(
-                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_size"))
-            .addStructureInfo(
-                EnumChatFormatting.GREEN
-                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"))
-            .addStructureInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_size"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_casings"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_glass"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatches"),
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatch_location"),
@@ -1540,17 +1549,13 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_cooling_hatches"),
                 StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_hatch_location"),
-                2)
+                1)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_required"))
             .addStructureInfo(
-                EnumChatFormatting.RED
-                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_required"))
-            .addStructureInfo(
-                EnumChatFormatting.AQUA
+                EnumChatFormatting.BLUE
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.structure_material"))
-            .addStructureInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel"))
             .addSubChannelUsage(GTStructureChannels.TIER_CASING)
-            .addSubChannelUsage(GTStructureChannels.STRUCTURE_HEIGHT)
             .addStructureHint("gtsr.structurelib.channel.material.usage")
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();
