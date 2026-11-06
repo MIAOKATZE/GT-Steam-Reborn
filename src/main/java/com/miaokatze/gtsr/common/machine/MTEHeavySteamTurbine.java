@@ -586,7 +586,9 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
         actualSteam = 0;
         effectiveEfficiency = 0;
         super.onPostTick(tile, tick);
-        if (tile.isServerSide()) {
+        // GT has not run the loaded cycle while its existing startup structure check is pending.
+        // Keep saved rotor heat and partial-second counters frozen through the check tick (zero).
+        if (tile.isServerSide() && mStartUpCheck < 0) {
             int previousEfficiency = turbineEfficiency;
             if (workedThisTick) {
                 idleTicks = 0;

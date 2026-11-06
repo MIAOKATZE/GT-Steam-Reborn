@@ -101,6 +101,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     public int mGearTier = -1;
     public int mFrameTier = -1;
     private int excessWater = 0;
+    /** Loaded rotor heat may wait one native startup interval for its first fresh fuel payment. */
+    private int mLoadRecoveryTicks;
 
     public int mTheoreticalEUt = 0;
     public int mSteamConsumption = 0;
@@ -918,6 +920,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             mEfficiencyIncrease = 0;
         }
 
+        mLoadRecoveryTicks = 0;
         return CheckRecipeResultRegistry.GENERATING;
     }
 
@@ -944,12 +947,19 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 + "%");
     }
 
-    /**
-     * 奇点模式倒计时与续杯检查已上移父类统一处理，此处仅转发 super。
-     */
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        if (aBaseMetaTileEntity.isServerSide() && !aBaseMetaTileEntity.isAllowedToWork()) {
+            mLoadRecoveryTicks = 0;
+        }
+        int savedEfficiency = mEfficiency;
         super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (aBaseMetaTileEntity.isServerSide() && mLoadRecoveryTicks > 0) {
+            // Freeze only heat: GT still validates the structure and requires a real fuel receipt.
+            // A successful check or an explicit stop revokes recovery before this restoration.
+            mEfficiency = Math.max(mEfficiency, savedEfficiency);
+            if (mStartUpCheck < 0) mLoadRecoveryTicks--;
+        }
         machineVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
     }
 
@@ -1295,6 +1305,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         mSteamConsumption = aNBT.getInteger("mSteamConsumption");
         mFullBaseEUt = aNBT.getLong("mFullBaseEUt");
         mEfficiency = aNBT.getInteger("mEfficiency");
+        mLoadRecoveryTicks = mEfficiency > 0 ? Math.max(0, mStartUpCheck) : 0;
         mPowerParameter = aNBT.hasKey("mPowerParameter") ? aNBT.getInteger("mPowerParameter") : 10;
         // 整数键 mSingularityMode（0/1/2）与旧整数键 mSingularityModeLevel（无 mSingularityMode 键时）
         // 由父类 loadNBTData 兼容读取；此处仅迁移 v1.10.39 及以前的 boolean 键 mSingularityMode
@@ -1310,6 +1321,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public void stopMachine(@Nonnull ShutDownReason reason) {
+        if (reason != ShutDownReasonRegistry.STRUCTURE_INCOMPLETE) mLoadRecoveryTicks = 0;
         int savedEfficiency = mEfficiency;
         super.stopMachine(reason);
         if (reason == ShutDownReasonRegistry.STRUCTURE_INCOMPLETE) {
