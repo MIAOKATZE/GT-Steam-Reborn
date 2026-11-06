@@ -10,7 +10,6 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -36,11 +35,11 @@ import com.google.gson.JsonParser;
 import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.main.GTSteamReborn;
+import com.miaokatze.miaokatzecore.api.bq.QuestProgressRecovery;
 
 import betterquesting.api.questing.IQuest;
 import betterquesting.api.questing.IQuestLine;
 import betterquesting.api.storage.BQ_Settings;
-import betterquesting.api.utils.JsonHelper;
 import betterquesting.api.utils.NBTConverter;
 import betterquesting.handlers.SaveLoadHandler;
 import betterquesting.questing.QuestDatabase;
@@ -168,7 +167,9 @@ public final class BqQuestInjector {
                     .anyMatch(line -> line.get(id) != null);
                 if (!referenced) QuestDatabase.INSTANCE.remove(id);
             }
-            restoreProgress(progressTargets);
+            QuestProgressRecovery.Summary recovery = QuestProgressRecovery
+                .restore(BQ_Settings.curWorldDir, progressTargets);
+            GTSteamReborn.LOG.info("[BQ] Progress recovery: {}", recovery);
             if (refresh) {
                 writeStamp(Tags.VERSION);
             }
@@ -362,7 +363,7 @@ public final class BqQuestInjector {
                 // Existing quests already have authoritative in-memory progress (including
                 // resets/claims made by earlier startup handlers). Never replay older disk
                 // records over that state, even when the UUID belongs to this pack.
-                progressTargets.add(questId);
+                if (questId.getMostSignificantBits() == MANAGED_QUEST_HIGH) progressTargets.add(questId);
                 IQuest quest = new QuestInstance();
                 quest.readFromNBT(questTag);
                 QuestDatabase.INSTANCE.put(questId, quest);
@@ -491,59 +492,6 @@ public final class BqQuestInjector {
             new Gson().toJson(o, w);
         } catch (Exception e) {
             GTSteamReborn.LOG.warn("[BQ] 版本戳写入失败（下次启动可能重复刷新一次定义）", e);
-        }
-    }
-
-    /**
-     * 进度回填。
-     * <p>
-     * default load 的进度快照恢复只对"库内存在"的任务生效，本 mod 任务
-     * 在其 clear→重载窗口内不在库中，进度被静默丢弃；此处注册完成后
-     * （早于任何玩家登录）先从旧版 QuestProgress.json，再从 QuestProgress 目录逐玩家
-     * merge=true 重放，仅限本次补建的任务；已存任务以内存为准，不以旧磁盘记录撤销领取/重置。
-     * 补建任务没有内存进度；已存任务的定义刷新通过快照回填保留其当前状态。
-     * 不调用 savePlayerProgress/markDirtyPlayers，也不再 quickSync（无在线玩家）。
-     */
-    private static void restoreProgress(Set<UUID> progressTargets) {
-        if (progressTargets.isEmpty()) return;
-        // BQ 3.8.87 loads the legacy aggregate first, then newer per-player files. The aggregate
-        // may still be the only copy of progress for quests absent during BQ's default reload.
-        restoreProgressFile(new File(BQ_Settings.curWorldDir, "QuestProgress.json"), progressTargets);
-        File dir = new File(BQ_Settings.curWorldDir, "QuestProgress");
-        File[] files = dir.listFiles();
-        if (files == null) return;
-        for (File f : files) {
-            if (f.getName()
-                .endsWith(".json")) restoreProgressFile(f, progressTargets);
-        }
-    }
-
-    private static void restoreProgressFile(File file, Set<UUID> progressTargets) {
-        if (!file.isFile()) return;
-        try {
-            JsonObject json = JsonHelper.ReadFromFile(file);
-            // Validate before the converter can silently truncate fractional/overflowing UUIDs.
-            validateResourceIds(json);
-            NBTTagCompound nbt = NBTConverter.JSONtoNBT_Object(json, new NBTTagCompound(), true);
-            if (!nbt.hasKey("questProgress", Constants.NBT.TAG_LIST)) {
-                throw new IllegalStateException("Missing BQ questProgress list");
-            }
-            NBTTagList entries = nbt.getTagList("questProgress", Constants.NBT.TAG_COMPOUND);
-            List<NBTTagCompound> selected = new ArrayList<>();
-            for (int i = 0; i < entries.tagCount(); i++) {
-                NBTTagCompound entry = entries.getCompoundTagAt(i);
-                // Old integer-ID quests belong to the upstream book, not this UUID-based pack.
-                if (!entry.hasKey("questIDHigh") && !entry.hasKey("questIDLow")) continue;
-                UUID id = requireId(entry, "questID");
-                if (progressTargets.contains(id)) selected.add(entry);
-            }
-            // Validate the complete file's identities before replaying any selected record.
-            for (NBTTagCompound entry : selected) {
-                IQuest quest = QuestDatabase.INSTANCE.get(requireId(entry, "questID"));
-                if (quest != null) quest.readProgressFromNBT(entry, true);
-            }
-        } catch (Throwable t) {
-            GTSteamReborn.LOG.warn("[BQ] 进度回填跳过无法解析的文件: {}", file.getName(), t);
         }
     }
 

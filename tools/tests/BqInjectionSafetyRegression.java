@@ -261,6 +261,8 @@ public final class BqInjectionSafetyRegression {
             && live.getRequirements().contains(betterquesting.api.utils.UuidConverter.convertLegacyId(42)));
 
         checkNativeParserFamilies();
+        migrationPersistence(null);
+        for (String family : new String[] { "checkbox", "retrieval", "crafting", "location" }) migrationPersistence(family);
 
         check("server-start injection never broadcasts, including skip, refresh and prune passes",
             betterquesting.network.handlers.NetSettingSync.sends == 0
@@ -269,6 +271,65 @@ public final class BqInjectionSafetyRegression {
 
         System.out.println("BQ native checks="+checks+" failures="+failures);
         if(failures!=0)throw new AssertionError(failures+" BQ safety regressions");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void migrationPersistence(String family) throws Exception {
+        reset();
+        QuestInstance quest = new QuestInstance();
+        boolean partial = family != null;
+        betterquesting.api.questing.tasks.ITask task;
+        if ("retrieval".equals(family)) {
+            bq_standard.tasks.TaskRetrieval retrieval = new bq_standard.tasks.TaskRetrieval();
+            retrieval.requiredItems.add(new betterquesting.api.utils.BigItemStack(net.minecraft.init.Items.apple, 2)); task = retrieval;
+        } else if ("crafting".equals(family)) {
+            bq_standard.tasks.TaskCrafting crafting = new bq_standard.tasks.TaskCrafting();
+            crafting.requiredItems.add(new betterquesting.api.utils.BigItemStack(net.minecraft.init.Items.apple, 2)); task = crafting;
+        } else if ("location".equals(family)) task = new bq_standard.tasks.TaskLocation();
+        else task = new bq_standard.tasks.TaskCheckbox();
+        quest.getTasks().add(0, task); quest.getTasks().add(1, new bq_standard.tasks.TaskCheckbox());
+        NBTTagCompound definition = quest.writeToNBT(new NBTTagCompound());
+        NBTConverter.UuidValueType.QUEST.writeId(QUEST, definition);
+        write("quest.json", NBTConverter.NBTtoJSON_Compound(definition, new JsonObject(), true));
+        if ("retrieval".equals(family) || "crafting".equals(family)) {
+            NBTTagCompound user = new NBTTagCompound(); user.setString("uuid", PLAYER.toString()); user.setIntArray("data", new int[] { 1 });
+            NBTTagList users = new NBTTagList(); users.appendTag(user);
+            NBTTagCompound progress = new NBTTagCompound(); progress.setTag("userProgress", users); task.readProgressFromNBT(progress, false);
+        } else task.setComplete(PLAYER);
+        if (!partial) { quest.setComplete(PLAYER, 123); quest.setClaimed(PLAYER, 124); }
+        QuestDatabase.INSTANCE.put(QUEST, quest);
+        NBTTagCompound root = new NBTTagCompound(); root.setTag("questProgress", QuestDatabase.INSTANCE.writeProgressToNBT(new NBTTagList(), null));
+        writeProgressFile("QuestProgress.json", root);
+        QuestDatabase.INSTANCE.clear();
+        betterquesting.handlers.SaveLoadHandler handler = nativeHandler();
+        java.lang.reflect.Method load = handler.getClass().getDeclaredMethod("loadProgress"); load.setAccessible(true); load.invoke(handler);
+        BqQuestInjector.inject();
+        java.lang.reflect.Field dirty = handler.getClass().getDeclaredField("dirtyPlayers"); dirty.setAccessible(true);
+        check("legacy " + family + " restored offline player is dirty", ((Set<UUID>) dirty.get(handler)).contains(PLAYER));
+        java.lang.reflect.Method save = handler.getClass().getDeclaredMethod("saveProgress"); save.setAccessible(true);
+        for (java.util.concurrent.Future<Void> f : (List<java.util.concurrent.Future<Void>>) save.invoke(handler)) f.get();
+        check("legacy " + family + " native save creates per-player file", Files.isRegularFile(BQ_Settings.curWorldDir.toPath().resolve("QuestProgress/" + PLAYER + ".json")));
+        QuestDatabase.INSTANCE.clear(); QuestInstance next = new QuestInstance(); next.readFromNBT(definition); QuestDatabase.INSTANCE.put(QUEST, next);
+        handler = nativeHandler(); load.invoke(handler);
+        check("legacy " + family + " next restart retains task and claim state", taskProgressMatches(next, family)
+            && (partial ? !next.isComplete(PLAYER) : next.isComplete(PLAYER) && claimed(next)));
+    }
+
+    private static boolean taskProgressMatches(QuestInstance quest, String family) {
+        betterquesting.api.questing.tasks.ITask task = quest.getTasks().getValue(0);
+        if ("retrieval".equals(family)) return ((bq_standard.tasks.TaskRetrieval) task).getUsersProgress(PLAYER)[0] == 1;
+        if ("crafting".equals(family)) return ((bq_standard.tasks.TaskCrafting) task).getUsersProgress(PLAYER)[0] == 1;
+        return task.isComplete(PLAYER);
+    }
+
+    private static betterquesting.handlers.SaveLoadHandler nativeHandler() throws Exception {
+        betterquesting.handlers.SaveLoadHandler handler = new betterquesting.handlers.SaveLoadHandler();
+        betterquesting.handlers.SaveLoadHandler.INSTANCE = handler;
+        for (String name : new String[] { "fileProgress", "dirProgress" }) {
+            java.lang.reflect.Field field = handler.getClass().getDeclaredField(name); field.setAccessible(true);
+            field.set(handler, new java.io.File(BQ_Settings.curWorldDir, name.equals("fileProgress") ? "QuestProgress.json" : "QuestProgress"));
+        }
+        return handler;
     }
 
     private static void completionReward(JsonObject quest, String target) {

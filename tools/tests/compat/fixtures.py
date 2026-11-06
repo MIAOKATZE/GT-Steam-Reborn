@@ -15,9 +15,7 @@ BQ = {'BqAbsentCheck.java': 'public class BqAbsentCheck{public static void main(
                 'isModLoaded(String name){return true;}public static Loader instance(){return new Loader();}public ModContainer activeModContainer(){return null;}}',
  'BQ_Settings.java': 'package betterquesting.api.storage;public class BQ_Settings{public static '
                      'java.io.File curWorldDir;}',
- 'SaveLoadHandler.java': 'package betterquesting.handlers;public class SaveLoadHandler{public '
-                         'static final SaveLoadHandler INSTANCE=new SaveLoadHandler();public void '
-                         'markDirty(){}}',
+ 'BetterQuesting.java': 'package betterquesting.core;public class BetterQuesting{public static final org.apache.logging.log4j.Logger logger=org.apache.logging.log4j.LogManager.getLogger("BQ-native-progress");}',
  'OreDictionary.java': 'package net.minecraftforge.oredict;public class OreDictionary{public '
                        'static java.util.ArrayList<net.minecraft.item.ItemStack> getOres(String '
                        's){return new java.util.ArrayList<>();}}',
