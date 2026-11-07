@@ -33,9 +33,11 @@ public final class RemoteWorkerNodePanel {
         manager.syncValue(WorkerUiSession.SYNC_KEY, session);
         settings.canInteractWith(player -> session.canUse());
         com.cleanroommc.modularui.value.sync.GenericSyncValue<ItemStack, ?> upgradeItem = com.cleanroommc.modularui.value.sync.GenericSyncValue
-            .forItem(
-                () -> manager.isClient() ? null : machine.getWorkerUpgradeItem(machine.getWorkerUiSnapshot().tier + 1),
-                null);
+            .builder(ItemStack.class)
+            .getter(
+                () -> manager.isClient() ? null : machine.getWorkerUpgradeItem(machine.getWorkerUiSnapshot().tier + 1))
+            .adapter(com.cleanroommc.modularui.utils.serialization.ByteBufAdapters.ITEM_STACK)
+            .build();
         com.cleanroommc.modularui.value.sync.IntSyncValue upgradeCost = new com.cleanroommc.modularui.value.sync.IntSyncValue(
             () -> manager.isClient() ? 0 : machine.getWorkerUpgradeCost(machine.getWorkerUiSnapshot().tier + 1));
         manager.syncValue("worker_upgrade_item", upgradeItem);
