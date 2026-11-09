@@ -19,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.miaokatze.gtsr.api.IAutoInputHatch;
+import com.miaokatze.gtsr.common.util.AutoInputItemTransfer;
 
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -164,53 +165,7 @@ public abstract class MTEHatchInputBusMixin extends MTEHatch implements IAutoInp
             aBaseMetaTileEntity.getZCoord() + front.offsetZ);
         if (!(tTileEntity instanceof IInventory)) return;
 
-        IInventory sourceInv = (IInventory) tTileEntity;
-
-        // 修复Bug1：按"格"计数，每5秒只处理1格（参考GT5U CoverConveyor.stacksPerTransfer=1）
-        final int MAX_STACKS_PER_TRANSFER = 1;
-        int stacksProcessed = 0;
-        boolean changed = false; // 标记是否实际发生转移，控制updateSlots调用
-
-        for (int i = 0; i < sourceInv.getSizeInventory() && stacksProcessed < MAX_STACKS_PER_TRANSFER; i++) {
-            ItemStack stack = sourceInv.getStackInSlot(i);
-            if (stack == null) continue;
-
-            ItemStack moved = stack.copy();
-            stacksProcessed++; // 这一格就算处理过（参考CoverConveyor语义）
-
-            // 单趟遍历目标槽位（参考MTEHatchOutputBus.storePartial第182-204行）
-            for (int j = 0; j < self.getSizeInventory() && moved.stackSize > 0; j++) {
-                if (!self.allowPutStack(aBaseMetaTileEntity, j, front, moved)) continue;
-
-                ItemStack existing = self.getStackInSlot(j);
-
-                // 修复Bug2：异种跳过（参考MTEHatchOutputBus.storePartial第188行 areStacksEqual检查）
-                if (existing != null && !GTUtility.areStacksEqual(existing, moved)) continue;
-
-                // 修复Bug3：用existing的maxStackSize（existing!=null时与moved同种，二者相等；用existing更安全）
-                int maxStack = Math.min(
-                    self.getInventoryStackLimit(),
-                    existing != null ? existing.getMaxStackSize() : moved.getMaxStackSize());
-                int space = existing == null ? maxStack : maxStack - existing.stackSize;
-                if (space <= 0) continue;
-
-                int toMove = Math.min(moved.stackSize, space);
-                if (existing == null) {
-                    ItemStack newStack = moved.copy();
-                    newStack.stackSize = toMove;
-                    self.setInventorySlotContents(j, newStack);
-                } else {
-                    existing.stackSize += toMove; // 此时existing必与moved同种，安全
-                }
-
-                sourceInv.decrStackSize(i, toMove);
-                moved.stackSize -= toMove;
-                changed = true;
-            }
-        }
-
-        // 修复Bug4：仅在实际发生转移时调用updateSlots
-        if (changed) {
+        if (AutoInputItemTransfer.pull((IInventory) tTileEntity, self, aBaseMetaTileEntity, front)) {
             self.updateSlots();
         }
     }

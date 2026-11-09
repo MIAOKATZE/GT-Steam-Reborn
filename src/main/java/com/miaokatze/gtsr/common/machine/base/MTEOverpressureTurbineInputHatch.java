@@ -1,13 +1,12 @@
 package com.miaokatze.gtsr.common.machine.base;
 
-import java.lang.reflect.Field;
-
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.common.util.HatchTextureDefaults;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -43,17 +42,7 @@ public class MTEOverpressureTurbineInputHatch extends MTEHatchInput {
     }
 
     private void setDefaultTextureIndex() {
-        try {
-            Field texturePageField = gregtech.api.metatileentity.implementations.MTEHatch.class
-                .getDeclaredField("texturePage");
-            texturePageField.setAccessible(true);
-            texturePageField.setInt(this, DEFAULT_TEXTURE_INDEX >> 7);
-
-            Field textureIndexField = gregtech.api.metatileentity.implementations.MTEHatch.class
-                .getDeclaredField("textureIndex");
-            textureIndexField.setAccessible(true);
-            textureIndexField.setInt(this, DEFAULT_TEXTURE_INDEX & 127);
-        } catch (Exception ignored) {}
+        HatchTextureDefaults.set(this, DEFAULT_TEXTURE_INDEX >> 7, DEFAULT_TEXTURE_INDEX & 127);
     }
 
     @Override

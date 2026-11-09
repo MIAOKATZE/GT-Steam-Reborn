@@ -21,6 +21,10 @@ public final class SpacetimeEffects {
     public interface Receiver {
 
         void receive(Signal s);
+
+        default void receive(Signal s, Object connection) {
+            receive(s);
+        }
     }
 
     public static Receiver receiver;
@@ -115,7 +119,7 @@ public final class SpacetimeEffects {
     public static final class Handler implements IMessageHandler<Signal, IMessage> {
 
         public IMessage onMessage(Signal s, MessageContext c) {
-            if (s.valid && receiver != null) receiver.receive(s);
+            if (s.valid && receiver != null) receiver.receive(s, c.netHandler);
             return null;
         }
     }

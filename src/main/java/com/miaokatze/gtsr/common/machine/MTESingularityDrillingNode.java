@@ -285,6 +285,9 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
 
                 for (int dx = 0; dx < range; dx++) {
                     for (int dz = 0; dz < range; dz++) {
+                        Fluid available = com.miaokatze.gtsr.common.util.UndergroundOilHelper
+                            .getFluidType(world, baseChunkX + dx, baseChunkZ + dz);
+                        if (available == null || mLockedFluid != null && available != mLockedFluid) continue;
                         FluidStack extracted = UndergroundOil
                             .undergroundOil(world, baseChunkX + dx, baseChunkZ + dz, getExtractionCoefficient());
                         if (extracted != null && extracted.amount > 0) {
@@ -330,18 +333,17 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
             return;
         }
 
-        if (mTipDepth < 0) {
-            int prevTipY = y + mTipDepth;
-            if (world.getBlock(x, prevTipY, z) == MINING_PIPE_TIP_BLOCK) {
-                Block pipeBlock = GTUtility.getBlockFromItem(consumed.getItem());
-                if (pipeBlock != null && pipeBlock != Blocks.air) {
-                    world.setBlock(x, prevTipY, z, pipeBlock);
-                }
-            }
+        if (!advanceMiningPipe(
+            getFakePlayer(aBaseMetaTileEntity),
+            x,
+            targetY,
+            z,
+            mTipDepth,
+            MINING_PIPE_TIP_BLOCK,
+            consumed)) {
+            mIsWorking = false;
+            return;
         }
-
-        GTUtility
-            .setBlockByFakePlayer(getFakePlayer(aBaseMetaTileEntity), x, targetY, z, MINING_PIPE_TIP_BLOCK, 0, false);
 
         mTipDepth--;
 

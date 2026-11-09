@@ -83,6 +83,7 @@ public final class WeaponVisuals {
         ProjectileTrailFx.reset();
         PortableTrailFX.reset();
         QlzImpactFx.reset();
+        SingularityWeaponFx.clear();
         reloadTicks = 0;
         overheated = false;
     }

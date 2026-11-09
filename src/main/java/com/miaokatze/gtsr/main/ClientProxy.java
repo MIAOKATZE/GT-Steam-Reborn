@@ -27,6 +27,12 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 public class ClientProxy extends CommonProxy {
 
     @Override
+    public net.minecraft.entity.Entity getRenderCamera(World world) {
+        net.minecraft.entity.Entity camera = net.minecraft.client.Minecraft.getMinecraft().renderViewEntity;
+        return camera != null && camera.worldObj == world ? camera : null;
+    }
+
+    @Override
     public void renderMachineVisual(com.miaokatze.gtsr.common.machinevisual.MachineVisualHost host, double x, double y,
         double z, float partialTick) {
         com.miaokatze.gtsr.client.machinevisual.MachineVisualRenderer.render(host, x, y, z, partialTick);

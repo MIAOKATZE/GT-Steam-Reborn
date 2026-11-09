@@ -1,7 +1,5 @@
 package com.miaokatze.gtsr.common.machine.base;
 
-import java.lang.reflect.Field;
-
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -9,13 +7,13 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.common.util.HatchTextureDefaults;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.util.GTModHandler;
 import gregtech.common.blocks.BlockCasings2;
 
@@ -46,15 +44,7 @@ public class MTEPressureSteamOutputHatch extends MTESteamOutputHatch {
     }
 
     private void setPressureDefaultTextureIndex() {
-        try {
-            Field texturePageField = MTEHatch.class.getDeclaredField("texturePage");
-            texturePageField.setAccessible(true);
-            texturePageField.setInt(this, DEFAULT_TEXTURE_INDEX >> 7);
-
-            Field textureIndexField = MTEHatch.class.getDeclaredField("textureIndex");
-            textureIndexField.setAccessible(true);
-            textureIndexField.setInt(this, DEFAULT_TEXTURE_INDEX & 127);
-        } catch (Exception ignored) {}
+        HatchTextureDefaults.set(this, DEFAULT_TEXTURE_INDEX >> 7, DEFAULT_TEXTURE_INDEX & 127);
     }
 
     @Override

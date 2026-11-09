@@ -28,12 +28,24 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 /** Client tick drains the network; this registry owns only spacetime visuals. */
 public final class SpacetimeClient {
 
-    private static final ConcurrentLinkedQueue<SpacetimeEffects.Signal> QUEUE = new ConcurrentLinkedQueue<>();
+    private static final ConcurrentLinkedQueue<Inbound> QUEUE = new ConcurrentLinkedQueue<>();
     private static final AtomicInteger QUEUED = new AtomicInteger();
     private static final Map<String, Visual> PORTALS = new LinkedHashMap<>();
     private static final List<Visual> BURSTS = new ArrayList<>();
     private static Object owner;
     private static long clock;
+
+    private static final class Inbound {
+
+        final SpacetimeEffects.Signal signal;
+        final Object world, connection;
+
+        Inbound(SpacetimeEffects.Signal signal, Object world, Object connection) {
+            this.signal = signal;
+            this.world = world;
+            this.connection = connection;
+        }
+    }
 
     private static final class Visual {
 
@@ -57,12 +69,27 @@ public final class SpacetimeClient {
         FMLCommonHandler.instance()
             .bus()
             .register(client);
-        SpacetimeEffects.receiver = s -> {
-            if (QUEUED.incrementAndGet() > 128) {
-                QUEUED.decrementAndGet();
-                return;
+        SpacetimeEffects.receiver = new SpacetimeEffects.Receiver() {
+
+            @Override
+            public void receive(SpacetimeEffects.Signal signal) {
+                receive(
+                    signal,
+                    Minecraft.getMinecraft()
+                        .getNetHandler());
             }
-            QUEUE.add(s);
+
+            @Override
+            public void receive(SpacetimeEffects.Signal signal, Object connection) {
+                Minecraft mc = Minecraft.getMinecraft();
+                Object world = mc.theWorld;
+                if (world == null || connection == null || connection != mc.getNetHandler()) return;
+                if (QUEUED.incrementAndGet() > 128) {
+                    QUEUED.decrementAndGet();
+                    return;
+                }
+                QUEUE.add(new Inbound(signal, world, connection));
+            }
         };
     }
 
@@ -82,10 +109,13 @@ public final class SpacetimeClient {
             PORTALS.clear();
             BURSTS.clear();
         }
-        SpacetimeEffects.Signal s;
-        while ((s = QUEUE.poll()) != null) {
+        Inbound inbound;
+        while ((inbound = QUEUE.poll()) != null) {
             QUEUED.decrementAndGet();
-            if (mc.theWorld == null || mc.thePlayer == null
+            SpacetimeEffects.Signal s = inbound.signal;
+            if (inbound.world != mc.theWorld || inbound.connection != mc.getNetHandler()
+                || mc.theWorld == null
+                || mc.thePlayer == null
                 || s.dimension != mc.thePlayer.dimension
                 || mc.thePlayer.getDistanceSq(s.x, s.y, s.z) > 128 * 128) continue;
             if (s.kind == 2) {

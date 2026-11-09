@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.common.machine;
 
-import java.lang.reflect.Field;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -15,6 +14,7 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.common.util.HatchTextureDefaults;
 import com.miaokatze.gtsr.register.TextureManager;
 
 import gregtech.GTMod;
@@ -23,7 +23,6 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.implementations.MTEHatch;
 import io.netty.buffer.ByteBuf;
 
 /**
@@ -66,15 +65,7 @@ public class MTESingularitySteamOutputCompartment extends MTEPressureSteamOutput
      * setPressureDefaultTextureIndex（字段私有且无版本安全 setter，仅构造期一次性复位）。
      */
     private void resetKinCasingTextureToUnset() {
-        try {
-            Field texturePageField = MTEHatch.class.getDeclaredField("texturePage");
-            texturePageField.setAccessible(true);
-            texturePageField.setInt(this, 0);
-
-            Field textureIndexField = MTEHatch.class.getDeclaredField("textureIndex");
-            textureIndexField.setAccessible(true);
-            textureIndexField.setInt(this, 0);
-        } catch (Exception ignored) {}
+        HatchTextureDefaults.set(this, 0, 0);
     }
 
     @Override

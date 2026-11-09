@@ -21,6 +21,13 @@ public final class FictionSky {
 
     public FictionSky() {}
 
+    private static void reset() {
+        bound = null;
+        phase = 0;
+        serial = -1;
+        expires = 0;
+    }
+
     public static boolean restored(World world) {
         return world == bound && phase == 4;
     }
@@ -76,6 +83,7 @@ public final class FictionSky {
     public void tick(cpw.mods.fml.common.gameevent.TickEvent.ClientTickEvent event) {
         if (event.phase != cpw.mods.fml.common.gameevent.TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getMinecraft();
+        if (bound != mc.theWorld) reset();
         boolean current = purple(mc.theWorld);
         if (tinted != current) {
             tinted = current;

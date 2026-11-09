@@ -5,7 +5,9 @@ import static net.minecraft.util.StatCollector.translateToLocal;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -15,6 +17,7 @@ import net.minecraft.util.StatCollector;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
+import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
@@ -34,11 +37,13 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
+import gregtech.api.util.GTUtility;
 import io.netty.buffer.ByteBuf;
 
 public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAddUIWidgets {
 
     private static Item sMiningPipeItem = null;
+    private ItemStack mPendingMiningPipe;
 
     protected static Item getMiningPipeItem() {
         if (sMiningPipeItem == null) {
@@ -149,6 +154,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
 
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
+        savePendingMiningPipe(aNBT);
         if (isBound()) {
             aNBT.setTag(
                 "gtsr.hubPos",
@@ -172,6 +178,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     @Override
     public void setItemNBT(NBTTagCompound aNBT) {
         super.setItemNBT(aNBT);
+        savePendingMiningPipe(aNBT);
         if (isBound()) {
             // 与 saveNBTData 一致：output 直接存储 mIsOutputMode，无反转
             aNBT.setTag(
@@ -191,6 +198,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
+        mPendingMiningPipe = ItemStack.loadItemStackFromNBT(aNBT.getCompoundTag("gtsr.pendingMiningPipe"));
         if (aNBT.hasKey("gtsr.hubPos")) {
             NBTTagCompound hubTag = aNBT.getCompoundTag("gtsr.hubPos");
             mHubX = hubTag.getInteger("x");
@@ -762,6 +770,11 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     }
 
     protected ItemStack consumeMiningPipeFromInputs() {
+        if (mPendingMiningPipe != null) {
+            ItemStack pending = mPendingMiningPipe;
+            mPendingMiningPipe = null;
+            return pending;
+        }
         int inputCount = getInputSlotCount();
         for (int i = 0; i < inputCount; i++) {
             ItemStack stack = mInventory[i];
@@ -776,6 +789,32 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
             }
         }
         return null;
+    }
+
+    /** A rejected placement retains the reserved pipe with this node, including removal and reload. */
+    protected void retainMiningPipe(ItemStack pipe) {
+        mPendingMiningPipe = pipe;
+        getBaseMetaTileEntity().markDirty();
+    }
+
+    protected boolean advanceMiningPipe(FakePlayer player, int x, int targetY, int z, int tipDepth, Block tip,
+        ItemStack pipe) {
+        if (!GTUtility.setBlockByFakePlayer(player, x, targetY, z, tip, 0, false)) {
+            retainMiningPipe(pipe);
+            return false;
+        }
+        // Only retire the previous tip after the new pipe really exists in the world.
+        if (tipDepth < 0 && player.worldObj.getBlock(x, targetY + 1, z) == tip) {
+            Block shaft = GTUtility.getBlockFromItem(pipe.getItem());
+            if (shaft != null && shaft != Blocks.air) player.worldObj.setBlock(x, targetY + 1, z, shaft);
+        }
+        getBaseMetaTileEntity().markDirty();
+        return true;
+    }
+
+    private void savePendingMiningPipe(NBTTagCompound tag) {
+        if (mPendingMiningPipe == null) tag.removeTag("gtsr.pendingMiningPipe");
+        else tag.setTag("gtsr.pendingMiningPipe", mPendingMiningPipe.writeToNBT(new NBTTagCompound()));
     }
 
     protected int getInputSlotCount() {

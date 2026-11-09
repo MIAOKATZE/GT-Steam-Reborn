@@ -621,16 +621,6 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             return false;
         }
 
-        if (mTipDepth < 0) {
-            int prevTipY = y + mTipDepth;
-            if (world.getBlock(x, prevTipY, z) == MINING_PIPE_TIP_BLOCK) {
-                Block pipeBlock = GTUtility.getBlockFromItem(consumed.getItem());
-                if (pipeBlock != null && pipeBlock != Blocks.air) {
-                    world.setBlock(x, prevTipY, z, pipeBlock);
-                }
-            }
-        }
-
         // 时运统一取高值（贫瘠矿与普通矿等同）
         int fortune = FORTUNE[mMinerTier];
         if (targetBlock != null && targetBlock != Blocks.air && targetBlock != Blocks.bedrock) {
@@ -644,6 +634,12 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                 x,
                 targetY,
                 z);
+            // Read drops while the tile still exists, but deliver only after the actual break succeeds.
+            if (!GTUtility.eraseBlockByFakePlayer(getFakePlayer(aBaseMetaTileEntity), x, targetY, z, false)) {
+                retainMiningPipe(consumed);
+                setStatus(STATUS_UNMINABLE);
+                return false;
+            }
             IHubArray bound = getBoundHub();
             MTESingularityDrillingHub hub = bound instanceof MTESingularityDrillingHub drilling ? drilling : null;
             // 粉碎矿模式：将矿石掉落物替换为对应粉碎矿（数量 = 原数量 × 配方主产物数 × 1.5）
@@ -659,9 +655,17 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             }
         }
 
-        GTUtility.eraseBlockByFakePlayer(getFakePlayer(aBaseMetaTileEntity), x, targetY, z, false);
-        GTUtility
-            .setBlockByFakePlayer(getFakePlayer(aBaseMetaTileEntity), x, targetY, z, MINING_PIPE_TIP_BLOCK, 0, false);
+        if (!advanceMiningPipe(
+            getFakePlayer(aBaseMetaTileEntity),
+            x,
+            targetY,
+            z,
+            mTipDepth,
+            MINING_PIPE_TIP_BLOCK,
+            consumed)) {
+            setStatus(STATUS_UNMINABLE);
+            return false;
+        }
 
         mTipDepth--;
         clearEmptyScanRetry();

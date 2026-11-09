@@ -1,7 +1,5 @@
 package com.miaokatze.gtsr.common.machine.base;
 
-import java.lang.reflect.Field;
-
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -12,13 +10,13 @@ import net.minecraftforge.fluids.IFluidHandler;
 
 import com.miaokatze.gtsr.api.compat.ICoolingHatch;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.common.util.HatchTextureDefaults;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.util.GTModHandler;
 import gregtech.common.blocks.BlockCasings1;
@@ -55,15 +53,7 @@ public class MTESteamCoolingHatch extends MTEHatchOutput implements ICoolingHatc
     }
 
     private void setDefaultTextureIndex() {
-        try {
-            Field texturePageField = MTEHatch.class.getDeclaredField("texturePage");
-            texturePageField.setAccessible(true);
-            texturePageField.setInt(this, 0);
-
-            Field textureIndexField = MTEHatch.class.getDeclaredField("textureIndex");
-            textureIndexField.setAccessible(true);
-            textureIndexField.setInt(this, DEFAULT_TEXTURE_INDEX & 127);
-        } catch (Exception ignored) {}
+        HatchTextureDefaults.set(this, 0, DEFAULT_TEXTURE_INDEX & 127);
     }
 
     @Override

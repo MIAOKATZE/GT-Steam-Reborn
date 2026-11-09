@@ -107,7 +107,10 @@ public final class LoreRegistry {
         ItemStack gift = new ItemStack(journal);
         if (!player.inventory.addItemStackToInventory(gift)) {
             EntityItem drop = player.dropPlayerItemWithRandomChoice(gift, false);
-            if (drop == null || drop.isDead) return false;
+            if (drop == null || drop.isDead
+                || !(player.worldObj.loadedEntityList.contains(drop)
+                    || player.captureDrops && player.capturedDrops.contains(drop)))
+                return false;
             drop.func_145797_a(player.getCommandSenderName());
         }
         persisted.setBoolean(GIFT_KEY, true);
