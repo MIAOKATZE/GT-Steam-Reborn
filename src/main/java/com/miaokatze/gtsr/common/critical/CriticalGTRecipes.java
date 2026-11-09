@@ -76,7 +76,7 @@ public final class CriticalGTRecipes {
 
     /** RC2 MkV capability with independent stellar pricing, real power and worst-case output gates. */
     public static RecipeMatch matchFusion(CriticalMachineState state, MTECriticalMachine host) {
-        if (host == null || !CriticalStellarRuntime.ready(state.getStellarRuntimeData())) return null;
+        if (host == null || !CriticalStellarRuntime.ready(state.stellarRuntimeData())) return null;
         ItemStack[] items = host.criticalRecipeItemsSnapshot();
         FluidStack[] fluids = concat(host.criticalPhysicalFluidsSnapshot(), host.criticalMEFluidsSnapshot());
         for (GTRecipe recipe : RecipeMaps.fusionRecipes.getAllRecipes()) {
@@ -90,7 +90,7 @@ public final class CriticalGTRecipes {
                 CriticalStellarPolicy.processingPowerBudget(
                     host.criticalRecipePower(),
                     MTECriticalMachine.criticalEnergyTickCap(),
-                    state.getStellarRuntimeData()
+                    state.stellarRuntimeData()
                         .getBoolean("sustainPaidThisTick")),
                 recipe.mEUt,
                 recipe.mDuration,

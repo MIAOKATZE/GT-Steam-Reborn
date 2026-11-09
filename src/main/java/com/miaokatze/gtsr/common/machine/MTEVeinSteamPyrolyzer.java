@@ -48,6 +48,7 @@ import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.UndergroundOilHelper;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -220,6 +221,7 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
             }
         }
         SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
+        PipelessSteamSupport.updateTextures(this, getCasingTextureID());
     }
 
     @Override
@@ -360,7 +362,7 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
             mSetTier = -1;
             return;
         }
-        if (mSteamInputFluids.size() < 1 && mInputHatches.size() < 1
+        if ((mSteamInputFluids.size() + PipelessSteamSupport.count(this)) < 1 && mInputHatches.size() < 1
             && !GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             mSetTier = -1;

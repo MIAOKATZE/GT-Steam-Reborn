@@ -25,6 +25,7 @@ import net.minecraftforge.fluids.FluidTankInfo;
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.api.compat.IAdditionalSteamSourceHolder;
 import com.miaokatze.gtsr.common.api.compat.IGTSRHatchCasingProvider;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
@@ -34,6 +35,7 @@ import com.miaokatze.gtsr.common.gui.MTESingularityMachineGui;
 import com.miaokatze.gtsr.common.terminal.entanglement.EntanglementInputs;
 import com.miaokatze.gtsr.common.terminal.entanglement.EntanglementMath;
 import com.miaokatze.gtsr.common.terminal.entanglement.EntanglementSnapshot;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -61,7 +63,27 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteam
 
 /** Shared processing logic and steam plumbing for the singularity machines. */
 public abstract class MTESingularityMachineBase extends MTESingularityModeMachineBase<MTESingularityMachineBase>
-    implements IGTSRHatchCasingProvider {
+    implements IGTSRHatchCasingProvider, IAdditionalSteamSourceHolder {
+
+    private final List<MTEHatch> additionalSteamSources = new ArrayList<>();
+
+    @Override
+    public List<MTEHatch> gtsr$getAdditionalSteamSources() {
+        return additionalSteamSources;
+    }
+
+    @Override
+    public void clearHatches() {
+        super.clearHatches();
+        additionalSteamSources.clear();
+    }
+
+    @Override
+    public ArrayList<FluidStack> getStoredFluids() {
+        ArrayList<FluidStack> fluids = super.getStoredFluids();
+        fluids.addAll(PipelessSteamSupport.getStored(this));
+        return fluids;
+    }
 
     protected static final int CYCLE_LENGTH = 20;
     protected static final double HEAT_DECAY_PER_SECOND = 0.01d;
@@ -185,6 +207,7 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
                 if (h != null) h.updateTexture(textureID);
             }
         }
+        PipelessSteamSupport.updateTextures(this, getGTSRHatchCasingTextureIndex());
     }
 
     @Override
@@ -204,7 +227,7 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
 
             @Override
             public long count(MTESingularityMachineBase t) {
-                return t.mInputHatches.size() + t.mPressureSteamInputs.size();
+                return t.mInputHatches.size() + t.mPressureSteamInputs.size() + PipelessSteamSupport.count(t);
             }
         },
 
@@ -277,8 +300,13 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
         }
 
         @Override
+        public boolean matchesHatch(IMetaTileEntity tile) {
+            return PipelessSteamSupport.matches(tile, mteClasses());
+        }
+
+        @Override
         public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
-            return mteClasses;
+            return PipelessSteamSupport.candidates(mteClasses, this == SteamInput);
         }
 
         @Override
@@ -299,6 +327,7 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
     }
 
     public boolean addSteamInputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (PipelessSteamSupport.add(this, aTileEntity, aBaseCasingIndex)) return true;
         if (aTileEntity == null) return false;
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte == null) return false;
@@ -381,6 +410,7 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
         List<MTEHatch> all = new ArrayList<>(mInputHatches.size() + mPressureSteamInputs.size());
         all.addAll(mInputHatches);
         all.addAll(mPressureSteamInputs);
+        all.addAll(additionalSteamSources);
         return all;
     }
 

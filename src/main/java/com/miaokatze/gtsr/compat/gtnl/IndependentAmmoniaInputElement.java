@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.compat.gtnl;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.miaokatze.gtsr.common.machine.MTEAmmoniaPlant;
@@ -29,9 +28,7 @@ public final class IndependentAmmoniaInputElement implements IHatchElement<MTEAm
 
     @Override
     public List<Class<? extends IMetaTileEntity>> mteClasses() {
-        List<Class<? extends IMetaTileEntity>> classes = new ArrayList<>(HatchElement.InputHatch.mteClasses());
-        classes.add(PipelessSteamSupport.hatchClass());
-        return classes;
+        return PipelessSteamSupport.candidates(HatchElement.InputHatch.mteClasses(), true);
     }
 
     @Override

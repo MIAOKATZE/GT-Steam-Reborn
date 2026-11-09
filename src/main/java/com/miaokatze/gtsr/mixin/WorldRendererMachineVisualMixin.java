@@ -6,10 +6,9 @@ import net.minecraft.world.World;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.miaokatze.gtsr.client.machinevisual.MachineVisualVisibility;
 
 /** Vanilla display lists become visible synchronously when updateRenderer returns. */
@@ -22,22 +21,24 @@ public abstract class WorldRendererMachineVisualMixin {
     public int posX, posY, posZ;
     @Shadow
     public boolean needsUpdate;
-    private boolean gtsr$buildingMachineMasks;
 
-    @Inject(method = "updateRenderer", at = @At("HEAD"))
-    private void gtsr$beginMachineMasks(EntityLivingBase viewer, CallbackInfo callback) {
-        gtsr$buildingMachineMasks = needsUpdate;
-        if (gtsr$buildingMachineMasks) {
+    @WrapMethod(method = "updateRenderer")
+    private void gtsr$compileMachineMasks(EntityLivingBase viewer, Operation<Void> original) {
+        if (!needsUpdate) {
+            original.call(viewer);
+            return;
+        }
+        boolean complete = false;
+        try {
             MachineVisualVisibility.beginSection(this, worldObj, posX, posY, posZ);
             MachineVisualVisibility.beginBuild(this, worldObj);
+            original.call(viewer);
+            MachineVisualVisibility.finishBuild(this, this);
+            MachineVisualVisibility.uploaded(this);
+            complete = true;
+        } finally {
+            MachineVisualVisibility.endBuild();
+            if (!complete) MachineVisualVisibility.finishBuild(this, null);
         }
-    }
-
-    @Inject(method = "updateRenderer", at = @At("RETURN"))
-    private void gtsr$commitMachineMasks(EntityLivingBase viewer, CallbackInfo callback) {
-        if (!gtsr$buildingMachineMasks) return;
-        MachineVisualVisibility.finishBuild(this, this);
-        MachineVisualVisibility.endBuild();
-        MachineVisualVisibility.uploaded(this);
     }
 }

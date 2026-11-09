@@ -61,6 +61,8 @@ import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.structure.RebuiltMachineGlass;
 import com.miaokatze.gtsr.common.structure.RebuiltMachineMaterials;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.compat.gtnl.IndependentSteamSupport;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import bartworks.system.material.Werkstoff;
 import bartworks.system.material.WerkstoffLoader;
@@ -158,7 +160,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
             @Override
             public long count(MTEKineticProcessingArray t) {
-                return t.mPressureSteamInputs.size();
+                return t.mPressureSteamInputs.size() + PipelessSteamSupport.count(t);
             }
         },
 
@@ -184,8 +186,13 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         }
 
         @Override
+        public boolean matchesHatch(IMetaTileEntity tile) {
+            return PipelessSteamSupport.matches(tile, mteClasses());
+        }
+
+        @Override
         public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
-            return mteClasses;
+            return PipelessSteamSupport.candidates(mteClasses, this == PressureSteamInput);
         }
 
         @Override
@@ -433,6 +440,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     }
 
     private boolean addPressureSteamToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (PipelessSteamSupport.add(this, aTileEntity, aBaseCasingIndex)) return true;
         if (aTileEntity == null) return false;
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte instanceof MTEHatchPressureSteamInput hatch) {
@@ -457,6 +465,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        PipelessSteamSupport.clear(this);
         mCasingAmount = 0;
         mCasingTier = -1;
         mMaterialTier = -1;
@@ -479,7 +488,8 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         }
 
         boolean hasEnergy = !mEnergyHatches.isEmpty() || !mExoticEnergyHatches.isEmpty();
-        boolean hasSteamInput = !mPressureSteamInputs.isEmpty() || !mInputHatches.isEmpty()
+        boolean hasSteamInput = !(mPressureSteamInputs.isEmpty() && PipelessSteamSupport.count(this) == 0)
+            || !mInputHatches.isEmpty()
             || GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches);
         // 兼容 Crafting Input Bus/Buffer/Proxy (ME) 等 DualInputHatch：GT5U 父类 addInputBusToMachineList
         // 会将 IDualInputHatch 实例（MTEHatchCraftingInputME/Slave extends MTEHatchInputBus）自动重定向到
@@ -668,6 +678,12 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     }
 
     private boolean hasSufficientSuperheatedSteam(long required) {
+        if (PipelessSteamSupport.count(this) > 0) {
+            FluidStack steam = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
+            return required <= 0
+                || IndependentSteamSupport.available(this, mInputHatches, mPressureSteamInputs, steam, required)
+                    >= required;
+        }
         if (required <= 0) return true;
         long total = 0;
         // v1.10.4：ME 输入仓兼容——3 参 drain(UNKNOWN,...) 模拟（本地罐/网络均有效）
@@ -691,6 +707,14 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     }
 
     private boolean depleteSuperheatedSteam(long required) {
+        if (PipelessSteamSupport.count(this) > 0) {
+            if (required <= 0) return true;
+            FluidStack steam = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
+            if (IndependentSteamSupport.available(this, mInputHatches, mPressureSteamInputs, steam, required)
+                < required) return false;
+            return IndependentSteamSupport.drain(this, mInputHatches, mPressureSteamInputs, steam, required)
+                == required;
+        }
         long remaining = required;
         FluidStack superheatedProbe = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
         if (superheatedProbe != null) {
@@ -1101,6 +1125,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         for (var energyHatch : GTUtility.validMTEList(getExoticAndNormalEnergyHatchList())) {
             energyHatch.updateTexture(textureIndex);
         }
+        PipelessSteamSupport.updateTextures(this, getCasingTextureIndex());
     }
 
     @Override

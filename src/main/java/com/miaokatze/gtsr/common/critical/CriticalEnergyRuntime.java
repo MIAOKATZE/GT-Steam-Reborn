@@ -51,7 +51,7 @@ public final class CriticalEnergyRuntime {
     /** Warmth tracks paid work ticks; idle ticks remove the same amount of warmth. */
     public static void idleTick(CriticalMachineState state) {
         if (!adaptive(state)) return;
-        NBTTagCompound data = state.energyRuntimeData();
+        NBTTagCompound data = state.mutableEnergyRuntimeData();
         migrateTurbineWarmth(state, data);
         long now = state.worldObj.getTotalWorldTime();
         if (data.hasKey("lastIdleTick") && data.getLong("lastIdleTick") == now) return;
@@ -138,7 +138,7 @@ public final class CriticalEnergyRuntime {
             state.failRuntime("runtime.night_conflict", "本维度已有先启动的辐照锅炉");
             return;
         }
-        NBTTagCompound data = state.energyRuntimeData();
+        NBTTagCompound data = state.mutableEnergyRuntimeData();
         if (state.getMachineKind() == CriticalMachineKind.BATTERY
             && (data.getInteger("chemicalSchema") > CHEMICAL_COMPOUND_SCHEMA
                 || data.getInteger("chemicalSchema") < 0)) {
@@ -543,7 +543,7 @@ public final class CriticalEnergyRuntime {
 
     /** Legacy migration or dismantling: paid base heat gets exactly 1x, without another fluid refund. */
     public static boolean settleChemicalEscrow(CriticalMachineState state, MTECriticalMachine host) {
-        NBTTagCompound data = state.energyRuntimeData();
+        NBTTagCompound data = state.mutableEnergyRuntimeData();
         if (data.getBoolean("funded") || data.getBoolean("uncertain")) return false;
         if (!hasChemicalEscrow(data)) return true;
         int schema = data.getInteger("chemicalSchema");

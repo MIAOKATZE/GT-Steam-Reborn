@@ -13,6 +13,7 @@ import net.minecraftforge.common.util.FakePlayer;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.value.sync.SyncHandler;
 import com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions;
+import com.miaokatze.gtsr.common.gui.mui2.Mui2SessionGate;
 import com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
@@ -64,11 +65,7 @@ public final class WorkerUiSession extends SyncHandler<WorkerUiSession> {
     }
 
     private boolean active() {
-        return isValid() && !getSyncManager().isClient()
-            && ServerPacketAuthority.isCurrentPlayer(data.getPlayer(), connection)
-            && Mui2TerminalRoutes.remoteWorkerNodes
-            && canUse()
-            && data.getPlayer().openContainer == getSyncManager().getContainer();
+        return Mui2SessionGate.active(this, data, connection) && Mui2TerminalRoutes.remoteWorkerNodes && canUse();
     }
 
     @Override

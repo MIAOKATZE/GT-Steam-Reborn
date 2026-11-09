@@ -41,6 +41,8 @@ import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.compat.gtnl.IndependentSteamSupport;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -150,6 +152,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
     }
 
     private boolean addPressureSteamToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (PipelessSteamSupport.add(this, aTileEntity, aBaseCasingIndex)) return true;
         if (aTileEntity == null) return false;
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte instanceof MTEHatchPressureSteamInput hatch) {
@@ -164,6 +167,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
      * 巨型空气输入仓（MTEMegaAirInputHatch）继承 MTEHatchInput，会被此方法接受。
      */
     public boolean addInputHatchToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (PipelessSteamSupport.add(this, aTileEntity, aBaseCasingIndex)) return true;
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity == null) return false;
@@ -257,8 +261,13 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
         }
 
         @Override
+        public boolean matchesHatch(IMetaTileEntity tile) {
+            return PipelessSteamSupport.matches(tile, mteClasses());
+        }
+
+        @Override
         public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
-            return mteClasses;
+            return PipelessSteamSupport.candidates(mteClasses, this == PressureSteamInput);
         }
 
         @Override
@@ -272,7 +281,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
                 case InputBus -> t.mInputBusses.size() + t.mDualInputHatches.size();
                 case InputHatch -> t.mInputHatches.size();
                 case OutputBus -> t.mOutputBusses.size();
-                case PressureSteamInput -> t.mPressureSteamInputs.size();
+                case PressureSteamInput -> t.mPressureSteamInputs.size() + PipelessSteamSupport.count(t);
             };
         }
 
@@ -338,6 +347,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
                 if (dualHatch != null) dualHatch.updateTexture(textureID);
             }
         }
+        PipelessSteamSupport.updateTextures(this, getCasingTextureID());
     }
 
     @Override
@@ -461,6 +471,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        PipelessSteamSupport.clear(this);
         mMechanicalCasingCount = 0;
         mPressureSteamInputs.clear();
 
@@ -474,7 +485,9 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
 
         // A2：放宽蒸汽来源判定——耐压蒸汽仓、普通输入仓（含 ME 输入仓，经 GTSRHatchFluidAccess 供给超热蒸汽）
         // 任一存在即可；样板仓计入输入判定（与下方 mInputBusses 检查一致）。消耗路径已同时覆盖两类仓。
-        if (this.mPressureSteamInputs.isEmpty() && this.mInputHatches.isEmpty() && this.mDualInputHatches.isEmpty()) {
+        if ((this.mPressureSteamInputs.isEmpty() && PipelessSteamSupport.count(this) == 0)
+            && this.mInputHatches.isEmpty()
+            && this.mDualInputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -574,6 +587,13 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
      * 统一走 GTSRHatchFluidAccess（3 参 drain 模拟→实扣）。
      */
     private boolean consumeSuperheatedSteam(int amount) {
+        if (PipelessSteamSupport.count(this) > 0) {
+            if (amount <= 0) return true;
+            FluidStack steam = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
+            if (IndependentSteamSupport.available(this, mInputHatches, mPressureSteamInputs, steam, amount) < amount)
+                return false;
+            return IndependentSteamSupport.drain(this, mInputHatches, mPressureSteamInputs, steam, amount) == amount;
+        }
         if (amount <= 0) return true;
         Fluid superheated = FluidRegistry.getFluid("ic2superheatedsteam");
         if (superheated == null) return false;
@@ -626,6 +646,12 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
      * v1.10.8：仅探测超热蒸汽可用性（不消耗），供 checkProcessing 放行配方前预检。
      */
     private boolean hasEnoughSuperheatedSteam(int amount) {
+        if (PipelessSteamSupport.count(this) > 0) {
+            FluidStack steam = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
+            return amount <= 0
+                || IndependentSteamSupport.available(this, mInputHatches, mPressureSteamInputs, steam, amount)
+                    >= amount;
+        }
         if (amount <= 0) return true;
         Fluid superheated = FluidRegistry.getFluid("ic2superheatedsteam");
         if (superheated == null) return false;

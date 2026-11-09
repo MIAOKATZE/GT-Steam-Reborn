@@ -19,6 +19,8 @@ public class MTEAmmoniaPlantGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlo
 
     private final MTEAmmoniaPlant ammoniaPlant;
 
+    private IntSyncValue mThermalPaymentSync;
+    private LongSyncValue mGasCreditSync, mSteamCreditSync;
     private IntSyncValue mHeatLevelSync;
     private LongSyncValue mRealtimeSteamCostSync;
     private LongSyncValue mRealtimeSteamOutputSync;
@@ -33,6 +35,12 @@ public class MTEAmmoniaPlantGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlo
 
     @Override
     protected void registerSyncValues(PanelSyncManager syncManager) {
+        mThermalPaymentSync = new IntSyncValue(ammoniaPlant::thermalPaymentStatus);
+        mGasCreditSync = new LongSyncValue(ammoniaPlant::thermalGasCredit);
+        mSteamCreditSync = new LongSyncValue(ammoniaPlant::thermalSteamCredit);
+        syncManager.syncValue("ammoniaPayment", mThermalPaymentSync);
+        syncManager.syncValue("ammoniaGasCredit", mGasCreditSync);
+        syncManager.syncValue("ammoniaSteamCredit", mSteamCreditSync);
         super.registerSyncValues(syncManager);
         mHeatLevelSync = new IntSyncValue(() -> ammoniaPlant.mHeatLevel, val -> ammoniaPlant.mHeatLevel = val);
         mRealtimeSteamCostSync = new LongSyncValue(
@@ -85,10 +93,21 @@ public class MTEAmmoniaPlantGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlo
                     .asWidget()
                     .marginBottom(2)
                     .fullWidth());
+        list.child(
+            IKey.dynamic(
+                () -> StatCollector.translateToLocalFormatted(
+                    "gtsr.ammonia.payment.escrow",
+                    mGasCreditSync.getValue(),
+                    mSteamCreditSync.getValue()))
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth());
         return list;
     }
 
     private String getStatusText() {
+        if (mThermalPaymentSync.getValue() != 0) return StatCollector.translateToLocal(
+            mThermalPaymentSync.getValue() == 2 ? "gtsr.ammonia.payment.uncertain" : "gtsr.ammonia.payment.waiting");
         int heatLevel = mHeatLevelSync.getValue();
         int maxProgress = mMaxProgresstimeSync.getValue();
         if (heatLevel <= 0) return StatCollector.translateToLocal("gtsr.gui.ammonia_plant.cold");
@@ -98,6 +117,7 @@ public class MTEAmmoniaPlantGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlo
     }
 
     private EnumChatFormatting getStatusColor() {
+        if (mThermalPaymentSync.getValue() != 0) return EnumChatFormatting.RED;
         int heatLevel = mHeatLevelSync.getValue();
         int maxProgress = mMaxProgresstimeSync.getValue();
         if (heatLevel <= 0) return EnumChatFormatting.WHITE;

@@ -38,6 +38,7 @@ import com.miaokatze.gtsr.common.terminal.ClusterTerminalData;
 import com.miaokatze.gtsr.common.terminal.TerminalNet;
 import com.miaokatze.gtsr.common.terminal.TerminalUiType;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import gregtech.api.enums.Materials;
@@ -414,7 +415,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         // 5) 输入仓上限校验（终验反馈 FA）：通用输入仓（MTEHatchInput 且非蒸汽类）1..10、
         // 蒸汽仓类（MTESteamInputHatchGeneric + 耐压仓）合计 0..10；只统计重建后的已接受结构段。
         int genericHatchCount = 0;
-        int steamHatchCount = pressureSteamHatches.size();
+        int steamHatchCount = (pressureSteamHatches.size() + PipelessSteamSupport.count(this));
         for (MTEHatch hatch : mInputHatches) {
             if (hatch instanceof MTESteamInputHatchGeneric) steamHatchCount++;
             else if (hatch instanceof MTEHatchInput) genericHatchCount++;
@@ -476,6 +477,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         if (getBaseMetaTileEntity() != null) {
             getBaseMetaTileEntity().issueTileUpdate();
         }
+        PipelessSteamSupport.updateTextures(this, getCasingTextureID());
     }
 
     /** 四族 tier 回滚到未成型态（-1）。 */
@@ -1460,6 +1462,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         List<MTEHatch> hatches = new ArrayList<>(mInputHatches.size() + pressureSteamHatches.size());
         hatches.addAll(mInputHatches);
         hatches.addAll(pressureSteamHatches);
+        hatches.addAll(gtsr$getAdditionalSteamSources());
         return hatches;
     }
 

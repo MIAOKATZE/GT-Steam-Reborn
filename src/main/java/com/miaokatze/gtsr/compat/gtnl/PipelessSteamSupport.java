@@ -16,6 +16,24 @@ public final class PipelessSteamSupport {
 
     private PipelessSteamSupport() {}
 
+    public static List<Class<? extends IMetaTileEntity>> candidates(
+        List<? extends Class<? extends IMetaTileEntity>> nativeClasses, boolean steam) {
+        List<Class<? extends IMetaTileEntity>> result = new ArrayList<>(nativeClasses);
+        if (steam && GTNLMixinSelection.pipelessEnabled()) result.add(hatchClass());
+        return result;
+    }
+
+    public static void clear(Object controller) {
+        if (controller instanceof IAdditionalSteamSourceHolder holder) holder.gtsr$getAdditionalSteamSources()
+            .clear();
+    }
+
+    public static void updateTextures(Object controller, int casing) {
+        if (!GTNLMixinSelection.pipelessEnabled()) return;
+        if (controller instanceof IAdditionalSteamSourceHolder holder)
+            for (MTEHatch hatch : holder.gtsr$getAdditionalSteamSources()) hatch.updateTexture(casing);
+    }
+
     @SuppressWarnings("unchecked")
     public static Class<? extends IMetaTileEntity> hatchClass() {
         try {
@@ -29,6 +47,7 @@ public final class PipelessSteamSupport {
     }
 
     public static boolean add(Object controller, IGregTechTileEntity tile, int casing) {
+        if (!GTNLMixinSelection.pipelessEnabled()) return false;
         if (!(controller instanceof IAdditionalSteamSourceHolder holder) || tile == null) return false;
         if (!(tile.getMetaTileEntity() instanceof MTEHatch hatch) || !hatchClass().isInstance(hatch)
             || hatch.mTier != 0) return false;
@@ -41,17 +60,21 @@ public final class PipelessSteamSupport {
     }
 
     public static boolean matches(IMetaTileEntity tile, List<? extends Class<? extends IMetaTileEntity>> classes) {
+        if (!GTNLMixinSelection.pipelessEnabled()) return classes.stream()
+            .anyMatch(type -> type.isInstance(tile));
         if (hatchClass().isInstance(tile) && ((MTEHatch) tile).mTier != 0) return false;
         return classes.stream()
             .anyMatch(type -> type.isInstance(tile));
     }
 
     public static int count(Object controller) {
+        if (!GTNLMixinSelection.pipelessEnabled()) return 0;
         return controller instanceof IAdditionalSteamSourceHolder holder ? holder.gtsr$getAdditionalSteamSources()
             .size() : 0;
     }
 
     public static List<FluidStack> getStored(Object controller) {
+        if (!GTNLMixinSelection.pipelessEnabled()) return java.util.Collections.emptyList();
         List<FluidStack> result = new ArrayList<>();
         if (controller instanceof IAdditionalSteamSourceHolder holder) {
             for (MTEHatch hatch : holder.gtsr$getAdditionalSteamSources()) {
@@ -68,6 +91,7 @@ public final class PipelessSteamSupport {
     }
 
     public static long drain(Object controller, FluidStack request, long amount, boolean simulate) {
+        if (!GTNLMixinSelection.pipelessEnabled()) return 0;
         if (!(controller instanceof IAdditionalSteamSourceHolder holder) || request == null || amount <= 0) return 0;
         long remaining = amount;
         for (MTEHatch hatch : holder.gtsr$getAdditionalSteamSources()) {

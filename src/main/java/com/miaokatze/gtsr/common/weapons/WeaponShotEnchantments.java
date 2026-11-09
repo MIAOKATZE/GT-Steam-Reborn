@@ -4,6 +4,7 @@ import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.MathHelper;
 
 import io.netty.buffer.ByteBuf;
 
@@ -37,7 +38,7 @@ public final class WeaponShotEnchantments {
     }
 
     private static int clamp(int level, int maximum) {
-        return Math.max(0, Math.min(maximum, level));
+        return MathHelper.clamp_int(level, 0, maximum);
     }
 
     public void write(NBTTagCompound n) {

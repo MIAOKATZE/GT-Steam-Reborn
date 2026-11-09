@@ -5042,3 +5042,6 @@ gtsr.tooltip.kinetic_array.structure_size=8x9x9; three material choices for the 
 gtsr.tooltip.heavy_turbine.generation=§6Generation and exhaust§r
 gtsr.tooltip.heavy_turbine.warmup=§6Steam supply and warm-up§r
 gtsr.tooltip.kinetic_array.structure_channels=casing 1..12 selects LV..UMV standard casings; glass selects glass tier; material selects one matching material set.
+gtsr.ammonia.payment.waiting=Waiting for both refinery gas and steam; paid reserves retained
+gtsr.ammonia.payment.uncertain=Payment result requires review; records retained and progress paused
+gtsr.ammonia.payment.escrow=Reserved: %s L refinery gas / %s L steam

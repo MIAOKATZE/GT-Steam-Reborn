@@ -38,6 +38,7 @@ import com.miaokatze.gtsr.common.event.GTSRSingularityStructCollapseEvent;
 import com.miaokatze.gtsr.common.gui.MTESteamSingularityEntanglerGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -616,6 +617,7 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        PipelessSteamSupport.clear(this);
         mCasingTierA = -1;
         mCasingTierB = -1;
         mCasingTierC = -1;
@@ -637,7 +639,8 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
         }
         mTier = tier;
 
-        if ((mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty()) || mOutputBusses.isEmpty()) {
+        if ((mInputHatches.isEmpty() && (mPressureSteamInputs.isEmpty() && PipelessSteamSupport.count(this) == 0))
+            || mOutputBusses.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

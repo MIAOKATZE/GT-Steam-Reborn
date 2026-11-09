@@ -1,8 +1,5 @@
 package com.miaokatze.gtsr.common.critical;
 
-import static com.miaokatze.gtsr.common.critical.CriticalResourceNbt.journal;
-import static com.miaokatze.gtsr.common.critical.CriticalResourceNbt.readFluids;
-import static com.miaokatze.gtsr.common.critical.CriticalResourceNbt.readItems;
 import static com.miaokatze.gtsr.common.critical.CriticalResourceNbt.writeFluids;
 import static com.miaokatze.gtsr.common.critical.CriticalResourceNbt.writeItems;
 
@@ -167,11 +164,27 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private NBTTagCompound stellarRuntime = new NBTTagCompound(), batchRecipe = new NBTTagCompound();
     private String processingMode = "";
 
+    /** @deprecated Use runtimeSnapshot(); this legacy descriptor now returns detached data. */
+    @Deprecated
     public NBTTagCompound energyRuntimeData() {
+        return CriticalStateCodec.copy(energyRuntime);
+    }
+
+    /** @deprecated Use runtimeSnapshot(); runtime mutation belongs to this package. */
+    @Deprecated
+    public NBTTagCompound getStellarRuntimeData() {
+        return CriticalStateCodec.copy(stellarRuntime);
+    }
+
+    public CriticalRuntimeSnapshot runtimeSnapshot() {
+        return new CriticalRuntimeSnapshot(energyRuntime, stellarRuntime);
+    }
+
+    NBTTagCompound mutableEnergyRuntimeData() {
         return energyRuntime;
     }
 
-    public NBTTagCompound getStellarRuntimeData() {
+    NBTTagCompound stellarRuntimeData() {
         return stellarRuntime;
     }
 
@@ -4327,8 +4340,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             return;
         }
         n.removeTag("resourceNbtQuarantine");
-        n.setTag("criticalStellarRuntime", stellarRuntime);
-        n.setTag("criticalBatchRecipe", batchRecipe);
+        n.setTag("criticalStellarRuntime", CriticalStateCodec.copy(stellarRuntime));
+        n.setTag("criticalBatchRecipe", CriticalStateCodec.copy(batchRecipe));
         n.setBoolean("foundationRequired", foundationRequired);
         n.setBoolean("foundationModern", foundationModern);
         n.setInteger("foundationScheduleVersion", foundationScheduleVersion);
@@ -4358,7 +4371,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         n.setString("jobId", jobId);
         n.setString("batchId", batchId);
         n.setString("processingMode", processingMode);
-        n.setTag("criticalEnergyRuntime", energyRuntime);
+        n.setTag("criticalEnergyRuntime", CriticalStateCodec.copy(energyRuntime));
         n.setString("status", status);
         n.setInteger("state", state);
         n.setInteger("stage", stage);
@@ -4399,8 +4412,12 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public void readFromNBT(NBTTagCompound n) {
         runtimeBlockerKey = "";
-        stellarRuntime = n.getCompoundTag("criticalStellarRuntime");
-        batchRecipe = n.getCompoundTag("criticalBatchRecipe");
+        stellarRuntime = n.hasKey("criticalStellarRuntime", 10)
+            ? CriticalStateCodec.copy(n.getCompoundTag("criticalStellarRuntime"))
+            : new NBTTagCompound();
+        batchRecipe = n.hasKey("criticalBatchRecipe", 10)
+            ? CriticalStateCodec.copy(n.getCompoundTag("criticalBatchRecipe"))
+            : new NBTTagCompound();
         foundationRequired = n.getBoolean("foundationRequired");
         foundationModern = n.getBoolean("foundationModern");
         foundationScheduleVersion = foundationModern ? CriticalFoundationChunk.VERSION : 0;
@@ -4431,13 +4448,15 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         debugSpeed = Math.max(0, Math.min(3, n.getInteger("constructionDebugSpeed")));
         debugIgnoreEnergy = n.getBoolean("constructionDebugIgnoreEnergy");
         if (n.hasKey("visualHostId")) visualHostId = n.getString("visualHostId");
-        config = CriticalConfiguration.read(n.getCompoundTag("config"));
+        config = CriticalConfiguration.read(n.hasKey("config", 10) ? n.getCompoundTag("config") : new NBTTagCompound());
         owner = n.hasKey("ownerUuid", 8) ? n.getString("ownerUuid") : n.getString("owner");
         structureId = n.getString("structureId");
         jobId = n.getString("jobId");
         batchId = n.getString("batchId");
         processingMode = n.getString("processingMode");
-        energyRuntime = n.getCompoundTag("criticalEnergyRuntime");
+        energyRuntime = n.hasKey("criticalEnergyRuntime", 10)
+            ? CriticalStateCodec.copy(n.getCompoundTag("criticalEnergyRuntime"))
+            : new NBTTagCompound();
         status = n.getString("status");
         state = n.getInteger("state");
         stage = n.getInteger("stage");
@@ -4495,20 +4514,18 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             : null;
         try {
             if (resourceNbtQuarantine == null) {
-                uncertainFundingItems = readItems(journal(n, "uncertainFundingItems"), -1);
-                uncertainFundingFluids = readFluids(journal(n, "uncertainFundingFluids"), -1);
-                // These journals are decoded inside the ledger; validate their container types at this boundary.
-                for (String key : new String[] { "constructionStageCosts", "constructionStageFluidCosts",
-                    "constructionPaidFluids", "spent" }) journal(n, key);
+                CriticalStateCodec.Resources resources = CriticalStateCodec.resources(n);
+                uncertainFundingItems = resources.items("uncertainFundingItems");
+                uncertainFundingFluids = resources.fluids("uncertainFundingFluids");
                 constructionLedger.read(n);
-                System.arraycopy(readItems(journal(n, "inventory"), 36), 0, inventory, 0, 36);
-                System.arraycopy(readFluids(journal(n, "tanks"), 16), 0, tanks, 0, 16);
-                escrow = readItems(journal(n, "escrow"), -1);
-                fluidEscrow = readFluids(journal(n, "fluidEscrow"), -1);
-                pendingItems = readItems(journal(n, "pendingItems"), -1);
-                pendingFluids = readFluids(journal(n, "pendingFluids"), -1);
+                System.arraycopy(resources.items("inventory"), 0, inventory, 0, 36);
+                System.arraycopy(resources.fluids("tanks"), 0, tanks, 0, 16);
+                escrow = resources.items("escrow");
+                fluidEscrow = resources.fluids("fluidEscrow");
+                pendingItems = resources.items("pendingItems");
+                pendingFluids = resources.fluids("pendingFluids");
                 constructionLedger.readSpent(n);
-                repairEscrow = readItems(journal(n, "repairEscrow"), -1);
+                repairEscrow = resources.items("repairEscrow");
                 if (constructionLedger.hasIntegrityError()) resourceNbtQuarantine = (NBTTagCompound) n.copy();
             }
         } catch (CriticalResourceNbt.InvalidJournalException invalidJournal) {
@@ -4572,7 +4589,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         n.setString("structureId", structureId);
         n.setString("batchId", batchId);
         n.setString("processingMode", processingMode);
-        n.setTag("criticalEnergyRuntime", energyRuntime);
+        n.setTag("criticalEnergyRuntime", CriticalStateCodec.copy(energyRuntime));
         n.setTag("protection", protectionSnapshot());
         return n;
     }
@@ -4604,7 +4621,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         loomJournalOwner = n.getBoolean("loomJournalOwner");
         loomOwnedMain = n.getBoolean("loomOwnedMain");
         if (n.hasKey("visualHostId")) visualHostId = n.getString("visualHostId");
-        config = CriticalConfiguration.read(n.getCompoundTag("config"));
+        config = CriticalConfiguration.read(n.hasKey("config", 10) ? n.getCompoundTag("config") : new NBTTagCompound());
         state = n.getInteger("state");
         status = n.getString("status");
         cycleTicks = n.getInteger("cycleTicks");
@@ -4619,7 +4636,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         structureId = n.getString("structureId");
         batchId = n.getString("batchId");
         processingMode = n.getString("processingMode");
-        energyRuntime = n.getCompoundTag("criticalEnergyRuntime");
+        energyRuntime = n.hasKey("criticalEnergyRuntime", 10)
+            ? CriticalStateCodec.copy(n.getCompoundTag("criticalEnergyRuntime"))
+            : new NBTTagCompound();
         clientCycleAnchor = worldObj == null ? 0 : worldObj.getTotalWorldTime();
         if (worldObj != null && worldObj.isRemote) CriticalBlockProtection.readClientSnapshot(this, n);
     }

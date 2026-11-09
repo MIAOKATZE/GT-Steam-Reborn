@@ -5038,3 +5038,6 @@ gtsr.tooltip.kinetic_array.structure_size=8×9×9；三档材料机身，锤下�
 gtsr.tooltip.heavy_turbine.generation=§6输出与返流§r
 gtsr.tooltip.heavy_turbine.warmup=§6供汽与升温§r
 gtsr.tooltip.kinetic_array.structure_channels=casing 1..12选择LV..UMV标准机械壳；glass选择玻璃等级；material统一选择三档材料。
+gtsr.ammonia.payment.waiting=等待炼油气与蒸汽共同付足，已付资源保留
+gtsr.ammonia.payment.uncertain=付款结果待核验，已保留凭据并暂停
+gtsr.ammonia.payment.escrow=已托管：炼油气 %s L / 蒸汽 %s L

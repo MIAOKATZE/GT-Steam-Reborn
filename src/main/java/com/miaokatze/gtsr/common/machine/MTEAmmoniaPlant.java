@@ -6,7 +6,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElement
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCasings;
-import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_LARGE_CHEMICAL_REACTOR;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_LARGE_CHEMICAL_REACTOR_ACTIVE;
@@ -41,6 +40,9 @@ import com.miaokatze.gtsr.common.gui.MTEAmmoniaPlantGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.compat.gtnl.IndependentAmmoniaInputElement;
+import com.miaokatze.gtsr.compat.gtnl.IndependentSteamSupport;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -105,8 +107,10 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
     private int mHeatRemainder;
     // Main recipe output/duration and the fixed-load thermal charge must use the same batch profile.
     private long mBatchExtraSteamPerSec = -1L;
-    // Protected thermal overflow is temporary: later paid ticks retry it; it is not persisted across unload.
+    private final AmmoniaThermalPayment thermalPayment = new AmmoniaThermalPayment();
+    // Confirmed converted steam remains owned across unload and controller-item transfer.
     private long gtsr$pendingSuperheatedSteam = 0L;
+    private boolean thermalOutputUncertain;
 
     private int mCasingCount = 0;
     private int mStartUpCheck = 100;
@@ -196,7 +200,8 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTEAmmoniaPlant.class).atLeast(InputHatch, SteamOutputBus, OutputHatch)
+                        buildHatchAdder(MTEAmmoniaPlant.class)
+                            .atLeast(IndependentAmmoniaInputElement.INSTANCE, SteamOutputBus, OutputHatch)
                             .casingIndex(CASING_TEXTURE_ID)
                             .hint(1)
                             .build(),
@@ -208,7 +213,8 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
                 .addElement(
                     'E',
                     ofChain(
-                        buildHatchAdder(MTEAmmoniaPlant.class).atLeast(InputHatch, SteamOutputBus, OutputHatch)
+                        buildHatchAdder(MTEAmmoniaPlant.class)
+                            .atLeast(IndependentAmmoniaInputElement.INSTANCE, SteamOutputBus, OutputHatch)
                             .casingIndex(CASING_TEXTURE_ID)
                             .hint(2)
                             .build(),
@@ -253,6 +259,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        PipelessSteamSupport.clear(this);
         mMechanicalCasingCount = 0;
         mCasingCount = 0;
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
@@ -262,7 +269,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        if (mInputHatches.isEmpty() && mDualInputHatches.isEmpty()) {
+        if ((mInputHatches.isEmpty() && PipelessSteamSupport.count(this) == 0) && mDualInputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -286,6 +293,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
         for (IDualInputHatch dualHatch : mDualInputHatches) {
             if (dualHatch != null) dualHatch.updateTexture(textureID);
         }
+        PipelessSteamSupport.updateTextures(this, CASING_TEXTURE_ID);
     }
 
     private void updateCatalyst() {
@@ -432,6 +440,13 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
     public boolean onRunningTick(ItemStack aStack) {
         if (!getBaseMetaTileEntity().isServerSide()) return true;
 
+        if (mHeatLevel < HEAT_MAX && mMaxProgresstime > 0) {
+            boolean paid = consumeFuelAndSteam(PREHEAT_GAS_PER_TICK, PREHEAT_STEAM_PER_TICK);
+            if (paid) adjustHeat(HEAT_INCREASE_PER_SEC);
+            mRealtimeSteamCost = paid ? PREHEAT_STEAM_PER_SEC : 0;
+            mRealtimeSteamOutput = mRealtimeSteamCost;
+            return false;
+        }
         if (mHeatLevel >= HEAT_MAX && mMaxProgresstime > 0) {
             // Legacy active saves have no batch charge; derive it once from their restored catalyst configuration.
             if (mBatchExtraSteamPerSec < 0) {
@@ -443,7 +458,6 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
             if (!consumeFuelAndSteam(MAINTAIN_GAS_PER_TICK, steamPerTick)) {
                 mRealtimeSteamCost = 0;
                 mRealtimeSteamOutput = 0;
-                stopMachine();
                 return false;
             }
 
@@ -456,9 +470,11 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
 
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        boolean runningAtTickStart = mMaxProgresstime > 0;
         if (aBaseMetaTileEntity.isServerSide()) updateCatalyst();
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
+        if (aTick % 20 == 0) pushSuperheatedSteam(0);
 
         if (mMachine) {
             mStartUpCheck = 100;
@@ -469,11 +485,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
         boolean inGracePeriod = mStartUpCheck > 0;
 
         if (mMachine && aBaseMetaTileEntity.isAllowedToWork()) {
-            if (mHeatLevel < HEAT_MAX && mMaxProgresstime > 0) {
-                stopMachine();
-            }
-
-            if (mMaxProgresstime <= 0) {
+            if (mMaxProgresstime <= 0 && !runningAtTickStart) {
                 boolean consumed = false;
 
                 if (mHeatLevel < HEAT_MAX) {
@@ -517,43 +529,58 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
         mHeatRemainder = heat % 20;
     }
 
-    /**
-     * Require both full inputs before extraction and verify the actual receipts. This is not an atomic AE transaction:
-     * a network change may still cause a partial payment, which must never authorize heat or recipe progress.
-     * Convert only steam actually extracted, including a partial extraction before a failed tick.
-     */
+    /** Both resource deficits prepare first; confirmed partials remain in persistent per-instance escrow. */
     private boolean consumeFuelAndSteam(int gasAmount, int steamAmount) {
-        if (gasAmount > 0 && !hasRefineryGas(gasAmount)) return false;
-        // v1.10.60：窗口外 depleteInput 在 beta-1 + ME 仓会双扣，探测改访问层（getTankInfo 跨仓合计）
-        if (steamAmount > 0
-            && !GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, Materials.Steam.getGas(steamAmount))) {
+        if (thermalOutputUncertain || FluidRegistry.getFluid("ic2superheatedsteam") == null) return false;
+        if (steamAmount < 0 || gasAmount < 0 || gtsr$pendingSuperheatedSteam > Long.MAX_VALUE - steamAmount)
             return false;
-        }
-        if (gasAmount > 0
-            && GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, Materials.Gas.getGas(gasAmount)) < gasAmount) {
+        if (!thermalPayment.pay(gasAmount, steamAmount, thermalPort(false), thermalPort(true), this::markDirty))
             return false;
-        }
-        int paidSteam = steamAmount > 0
-            ? GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, Materials.Steam.getGas(steamAmount))
-            : 0;
-        pushSuperheatedSteam(paidSteam);
-        return paidSteam == steamAmount;
+        // Both confirmed reserves have been consumed together; partial extraction never creates side output.
+        pushSuperheatedSteam(steamAmount);
+        return true;
     }
 
     private boolean hasMaintainInputs() {
-        return hasRefineryGas(MAINTAIN_GAS_PER_TICK)
-            && GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, Materials.Steam.getGas(MAINTAIN_STEAM_PER_TICK));
+        return thermalPayment
+            .available(MAINTAIN_GAS_PER_TICK, MAINTAIN_STEAM_PER_TICK, thermalPort(false), thermalPort(true));
     }
 
-    // v1.9.39 修复：炼油气取流改用 GT5U 原生 depleteInput(FluidStack, boolean)。
-    // 原实现用 MTEHatchInput.getFluid()/2参 drain，对 ME 输入仓（MTEHatchInputME，本地罐恒空）恒返回 null，
-    // 导致预热/维持炼油气永远取不到、整机无法运转。原生 2 参 depleteInput 走 drain(UNKNOWN,...)，
-    // 兼容普通仓 / ME 输入仓 / 限制性输入仓，且支持跨仓合计。
-    // 注（v1.10.8 修正注释）：本类继承 MTEEnhancedMultiBlockBase，1 参 depleteInput 即 GT5U 原生
-    // （= 2 参 false 语义）；MTESteamMultiBaseMixin 仅注入 GT++ MTESteamMultiBlockBase，对本类不生效。
-    private boolean hasRefineryGas(int amount) {
-        // v1.10.60：窗口外 depleteInput 在 beta-1 + ME 仓会双扣，探测改访问层（getTankInfo 跨仓合计）
-        return GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, Materials.Gas.getGas(amount));
+    private AmmoniaThermalPayment.Port thermalPort(boolean steam) {
+        return new AmmoniaThermalPayment.Port() {
+
+            private FluidStack request(int amount) {
+                return steam ? Materials.Steam.getGas(amount) : Materials.Gas.getGas(amount);
+            }
+
+            @Override
+            public boolean available(int amount) {
+                return GTSRHatchFluidAccess.hasEnoughAcross(
+                    IndependentSteamSupport.withAdditional(MTEAmmoniaPlant.this, mInputHatches),
+                    request(amount));
+            }
+
+            @Override
+            public void debit(int amount, java.util.function.IntConsumer confirmed) {
+                GTSRHatchFluidAccess.payWorkingFluid(
+                    IndependentSteamSupport.withAdditional(MTEAmmoniaPlant.this, mInputHatches),
+                    java.util.Collections.emptyList(),
+                    request(amount),
+                    confirmed);
+            }
+        };
+    }
+
+    public int thermalPaymentStatus() {
+        return thermalOutputUncertain ? 2 : thermalPayment.status();
+    }
+
+    public long thermalGasCredit() {
+        return thermalPayment.gasCredit();
+    }
+
+    public long thermalSteamCredit() {
+        return thermalPayment.steamCredit();
     }
 
     /** True only for ports assigned to continuous thermal output, never the unfiltered recipe output fallback. */
@@ -591,14 +618,30 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
 
     /** Keep the full long balance; each call submits only one bounded native transaction. */
     private void pushSuperheatedSteam(int amount) {
-        if (amount <= 0) return;
-        FluidStack superheatedSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", amount);
-        if (superheatedSteam == null) return;
+        if (thermalOutputUncertain || amount < 0 || gtsr$pendingSuperheatedSteam > Long.MAX_VALUE - amount) return;
         long total = gtsr$pendingSuperheatedSteam + amount;
+        if (total == 0) return;
+        gtsr$pendingSuperheatedSteam = total;
         int requested = (int) Math.min(total, Integer.MAX_VALUE);
-        int remaining = fillSuperheatedSteam(superheatedSteam, requested);
-        long delivered = (long) requested - remaining;
-        gtsr$pendingSuperheatedSteam = voidingMode.protectFluid ? total - delivered : 0L;
+        FluidStack superheatedSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", requested);
+        if (superheatedSteam == null) {
+            markDirty();
+            return;
+        }
+        thermalOutputUncertain = true;
+        markDirty();
+        try {
+            int remaining = fillSuperheatedSteam(superheatedSteam, requested);
+            if (remaining < 0 || remaining > requested) return;
+            long delivered = (long) requested - remaining;
+            gtsr$pendingSuperheatedSteam = voidingMode.protectFluid ? total - delivered : 0L;
+            thermalOutputUncertain = false;
+        } catch (RuntimeException failure) {
+            // An external output may have accepted a prefix. Keep the record locked; never replay it blindly.
+            com.miaokatze.gtsr.main.GTSteamReborn.LOG.error("Ammonia thermal output result is uncertain", failure);
+        } finally {
+            markDirty();
+        }
     }
 
     private int fillSuperheatedSteam(FluidStack superheatedSteam, int amount) {
@@ -622,6 +665,9 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
         aNBT.setInteger("mCatalystType", mCatalystType);
         aNBT.setInteger("gtsrHeatRemainder", mHeatRemainder);
         aNBT.setLong("gtsrBatchExtraSteamPerSec", mBatchExtraSteamPerSec);
+        thermalPayment.write(aNBT);
+        aNBT.setLong("gtsrAmmoniaPendingSuperheatedSteam", gtsr$pendingSuperheatedSteam);
+        aNBT.setBoolean("gtsrAmmoniaThermalOutputUncertain", thermalOutputUncertain);
     }
 
     @Override
@@ -632,9 +678,22 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
         mHeatRemainder = Math.max(0, Math.min(19, aNBT.getInteger("gtsrHeatRemainder")));
         mBatchExtraSteamPerSec = aNBT.hasKey("gtsrBatchExtraSteamPerSec") ? aNBT.getLong("gtsrBatchExtraSteamPerSec")
             : -1L;
+        thermalPayment.read(aNBT);
+        gtsr$pendingSuperheatedSteam = Math.max(0L, aNBT.getLong("gtsrAmmoniaPendingSuperheatedSteam"));
+        thermalOutputUncertain = aNBT.getBoolean("gtsrAmmoniaThermalOutputUncertain");
+    }
+
+    @Override
+    public void setItemNBT(NBTTagCompound nbt) {
+        super.setItemNBT(nbt);
+        thermalPayment.write(nbt);
+        nbt.setLong("gtsrAmmoniaPendingSuperheatedSteam", gtsr$pendingSuperheatedSteam);
+        nbt.setBoolean("gtsrAmmoniaThermalOutputUncertain", thermalOutputUncertain);
     }
 
     private String getStatusText() {
+        if (thermalPaymentStatus() != 0) return StatCollector.translateToLocal(
+            thermalPaymentStatus() == 2 ? "gtsr.ammonia.payment.uncertain" : "gtsr.ammonia.payment.waiting");
         if (mHeatLevel <= 0) return StatCollector.translateToLocal("gtsr.gui.ammonia_plant.cold");
         if (mHeatLevel < HEAT_MAX) return StatCollector.translateToLocal("gtsr.gui.ammonia_plant.preheating");
         if (mMaxProgresstime > 0) return StatCollector.translateToLocal("gtsr.gui.ammonia_plant.running");
@@ -642,6 +701,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
     }
 
     private EnumChatFormatting getStatusColor() {
+        if (thermalPaymentStatus() != 0) return EnumChatFormatting.RED;
         if (mHeatLevel <= 0) return EnumChatFormatting.GRAY;
         if (mHeatLevel < HEAT_MAX) return EnumChatFormatting.GOLD;
         if (mMaxProgresstime > 0) return EnumChatFormatting.GREEN;
@@ -727,6 +787,14 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
             EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.type")
                 + EnumChatFormatting.RESET);
 
+        if (thermalPaymentStatus() != 0) {
+            info.add(EnumChatFormatting.RED + getStatusText());
+            info.add(
+                StatCollector.translateToLocalFormatted(
+                    "gtsr.ammonia.payment.escrow",
+                    thermalGasCredit(),
+                    thermalSteamCredit()));
+        }
         if (!mMachine) {
             info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
             return info.toArray(new String[0]);

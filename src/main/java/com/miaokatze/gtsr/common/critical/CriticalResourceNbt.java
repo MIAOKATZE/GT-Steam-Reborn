@@ -75,6 +75,7 @@ final class CriticalResourceNbt {
             NBTTagCompound t = list.getCompoundTagAt(i);
             int slot = t.getInteger("slot");
             ItemStack item = ItemStack.loadItemStackFromNBT(t);
+            if (item == null) throw new InvalidJournalException("Unknown resource item at slot " + slot);
             if (item != null) {
                 item.stackSize = t.hasKey("fullCount") ? t.getInteger("fullCount") : item.stackSize;
                 if (item.stackSize > 0) items[slot] = item;
@@ -101,6 +102,7 @@ final class CriticalResourceNbt {
             NBTTagCompound t = list.getCompoundTagAt(i);
             int slot = t.getInteger("slot");
             fluids[slot] = FluidStack.loadFluidStackFromNBT(t);
+            if (fluids[slot] == null) throw new InvalidJournalException("Unknown resource fluid at slot " + slot);
         }
         return fluids;
     }

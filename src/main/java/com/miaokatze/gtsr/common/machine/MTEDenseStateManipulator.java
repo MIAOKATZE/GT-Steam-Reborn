@@ -37,6 +37,7 @@ import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.gui.MTEDenseStateManipulatorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import bartworks.system.material.Werkstoff;
 import bartworks.system.material.WerkstoffLoader;
@@ -387,6 +388,7 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        PipelessSteamSupport.clear(this);
         mCasingCount = 0;
         mPressureSteamInputs.clear();
         mTier = getRequiredTier();
@@ -397,7 +399,7 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             return;
         }
 
-        if (mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty()) {
+        if (mInputHatches.isEmpty() && (mPressureSteamInputs.isEmpty() && PipelessSteamSupport.count(this) == 0)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

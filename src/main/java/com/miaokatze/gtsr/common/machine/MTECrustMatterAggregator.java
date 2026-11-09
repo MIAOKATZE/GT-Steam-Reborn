@@ -58,6 +58,7 @@ import com.miaokatze.gtsr.common.terminal.AggregatorGuiHandler;
 import com.miaokatze.gtsr.common.util.GTSROutputBusCompat;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.OreCrushedUtil;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import bwcrossmod.galacticgreg.VoidMinerUtility;
@@ -518,6 +519,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        PipelessSteamSupport.clear(this);
         mCasingCount = 0;
         mPressureSteamInputs.clear();
         mTier = getRequiredTier();

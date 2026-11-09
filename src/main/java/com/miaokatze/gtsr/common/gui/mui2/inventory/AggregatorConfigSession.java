@@ -11,6 +11,7 @@ import net.minecraft.tileentity.TileEntity;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.value.sync.SyncHandler;
 import com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions;
+import com.miaokatze.gtsr.common.gui.mui2.Mui2SessionGate;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
 import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 import com.miaokatze.gtsr.common.terminal.AggregatorTerminalData;
@@ -85,9 +86,7 @@ public final class AggregatorConfigSession extends SyncHandler<AggregatorConfigS
     }
 
     private boolean active() {
-        return isValid() && !getSyncManager().isClient()
-            && ServerPacketAuthority.isCurrentPlayer(data.getPlayer(), connection)
-            && data.getPlayer().openContainer == getSyncManager().getContainer()
+        return Mui2SessionGate.active(this, data, connection)
             && (com.miaokatze.gtsr.common.terminal.MachineTerminalHistory.remote(data)
                 || data.getPlayer().worldObj == tile.getWorldObj())
             && data.getTileEntity() == tile

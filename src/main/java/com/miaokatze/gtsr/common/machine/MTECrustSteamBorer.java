@@ -44,6 +44,7 @@ import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import bwcrossmod.galacticgreg.VoidMinerUtility;
 import gregtech.api.GregTechAPI;
@@ -205,6 +206,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
             }
         }
         SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
+        PipelessSteamSupport.updateTextures(this, getCasingTextureID());
     }
 
     @Override
@@ -371,7 +373,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
 
         // 取消双注册后，蒸汽输出总线只在 mSteamOutputs 中，需要合并计数
         // v1.9.40 修复：输出数量 ==1 → >=1（蒸汽输入仓数量由结构 shouldReject 保证，此处仅要求存在）
-        if ((this.mSteamInputFluids.size() < 1 && this.mInputHatches.size() < 1
+        if (((this.mSteamInputFluids.size() + PipelessSteamSupport.count(this)) < 1 && this.mInputHatches.size() < 1
             && !GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches))
             || (this.mOutputBusses.size() + this.mSteamOutputs.size()) < 1) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);

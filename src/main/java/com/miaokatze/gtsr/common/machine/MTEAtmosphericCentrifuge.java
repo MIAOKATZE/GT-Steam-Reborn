@@ -49,6 +49,7 @@ import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
@@ -180,6 +181,7 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
             }
         }
         SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
+        PipelessSteamSupport.updateTextures(this, getCasingTextureID());
     }
 
     @Override
@@ -325,7 +327,7 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
             mSetTier = -1;
             return;
         }
-        if (mSteamInputFluids.isEmpty() && mInputHatches.isEmpty()
+        if ((mSteamInputFluids.isEmpty() && PipelessSteamSupport.count(this) == 0) && mInputHatches.isEmpty()
             && !GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             mSetTier = -1;

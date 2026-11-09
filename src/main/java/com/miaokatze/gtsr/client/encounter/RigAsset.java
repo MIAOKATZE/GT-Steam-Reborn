@@ -25,6 +25,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.miaokatze.gtsr.client.render.ClientDisplayList;
 
 /**
  * 完整资源读取器。直接读取装配后的OBJ/rig/PNG，不依赖宿主GTO的私有ObjModelLoader。
@@ -314,17 +315,15 @@ public final class RigAsset {
                     GL11.glMatrixMode(GL11.GL_MODELVIEW);
                     Integer list = lists.get(group);
                     if (list == null) {
-                        list = GL11.glGenLists(1);
-                        if (list == 0) throw new IllegalStateException("GL display list allocation failed");
-                        GL11.glNewList(list, GL11.GL_COMPILE);
-                        Tessellator tess = Tessellator.instance;
-                        tess.startDrawing(GL11.GL_TRIANGLES);
-                        for (double[] v : part.getValue()) {
-                            tess.setNormal((float) v[5], (float) v[6], (float) v[7]);
-                            tess.addVertexWithUV(v[0], v[1], v[2], v[3], v[4]);
-                        }
-                        tess.draw();
-                        GL11.glEndList();
+                        list = ClientDisplayList.compile(() -> {
+                            Tessellator tess = Tessellator.instance;
+                            tess.startDrawing(GL11.GL_TRIANGLES);
+                            for (double[] v : part.getValue()) {
+                                tess.setNormal((float) v[5], (float) v[6], (float) v[7]);
+                                tess.addVertexWithUV(v[0], v[1], v[2], v[3], v[4]);
+                            }
+                            tess.draw();
+                        });
                         lists.put(group, list);
                     }
                     GL11.glCallList(list);

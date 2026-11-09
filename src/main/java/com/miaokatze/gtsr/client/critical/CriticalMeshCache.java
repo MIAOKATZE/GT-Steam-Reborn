@@ -12,6 +12,7 @@ import net.minecraft.util.IIcon;
 import org.lwjgl.opengl.GL11;
 
 import com.google.gson.JsonObject;
+import com.miaokatze.gtsr.client.render.ClientDisplayList;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry.Voxel;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
@@ -94,58 +95,65 @@ final class CriticalMeshCache {
             }
         }
         List<Mesh> result = new ArrayList<>();
-        for (List<Face> faces : groups.values()) {
-            Face first = faces.get(0);
-            String mode = CriticalMaterials.properties(first.voxel.material)
-                .get("alphaMode")
-                .getAsString();
-            int albedo = compileList(faces, false), emission = compileList(faces, true);
-            result.add(
-                new Mesh(
-                    albedo,
-                    emission,
-                    animations.getAsJsonObject(first.voxel.group),
-                    "blend".equals(mode) ? 2 : "cutout".equals(mode) ? 1 : 0,
-                    (plugins ? first.voxel.model : slug) + ':' + first.voxel.group,
-                    center(faces),
-                    samples(faces)));
+        List<Integer> unpublished = new ArrayList<>();
+        try {
+            for (List<Face> faces : groups.values()) {
+                Face first = faces.get(0);
+                String mode = CriticalMaterials.properties(first.voxel.material)
+                    .get("alphaMode")
+                    .getAsString();
+                int albedo = compileList(faces, false);
+                unpublished.add(albedo);
+                int emission = compileList(faces, true);
+                unpublished.add(emission);
+                result.add(
+                    new Mesh(
+                        albedo,
+                        emission,
+                        animations.getAsJsonObject(first.voxel.group),
+                        "blend".equals(mode) ? 2 : "cutout".equals(mode) ? 1 : 0,
+                        (plugins ? first.voxel.model : slug) + ':' + first.voxel.group,
+                        center(faces),
+                        samples(faces)));
+            }
+            CriticalRenderMetrics.meshCompiles++;
+            return result;
+        } catch (RuntimeException | Error failure) {
+            ClientDisplayList.rollback(unpublished, failure);
+            throw failure;
         }
-        CriticalRenderMetrics.meshCompiles++;
-        return result;
     }
 
     private static int compileList(List<Face> faces, boolean emission) {
-        int list = GL11.glGenLists(1);
-        GL11.glNewList(list, GL11.GL_COMPILE);
-        Tessellator tessellator = Tessellator.instance;
-        tessellator.startDrawingQuads();
-        // Only the designed emission mask bypasses world light; moving albedo uses the same light as static blocks.
-        for (Face face : faces) {
-            IIcon icon = emission ? face.emission : face.color;
-            if (icon == null) continue;
-            int[] n = CriticalMaterialTextures.NORMALS[face.side], u = CriticalMaterialTextures.U[face.side],
-                v = CriticalMaterialTextures.V[face.side];
-            tessellator.setNormal(n[0], n[1], n[2]);
-            float shade = face.side == 0 ? .58F : face.side == 1 ? 1 : face.side < 4 ? .78F : .88F;
-            if (emission) shade = face.emissionStrength;
-            tessellator.setColorOpaque_F(shade, shade, shade);
-            for (double[] corner : CORNERS[face.side]) {
-                double du = .5, dv = .5;
-                for (int axis = 0; axis < 3; axis++) {
-                    du += (corner[axis] - .5) * u[axis];
-                    dv += (corner[axis] - .5) * v[axis];
+        return ClientDisplayList.compile(() -> {
+            Tessellator tessellator = Tessellator.instance;
+            tessellator.startDrawingQuads();
+            // Only the designed emission mask bypasses world light; moving albedo uses the same light as static blocks.
+            for (Face face : faces) {
+                IIcon icon = emission ? face.emission : face.color;
+                if (icon == null) continue;
+                int[] n = CriticalMaterialTextures.NORMALS[face.side], u = CriticalMaterialTextures.U[face.side],
+                    v = CriticalMaterialTextures.V[face.side];
+                tessellator.setNormal(n[0], n[1], n[2]);
+                float shade = face.side == 0 ? .58F : face.side == 1 ? 1 : face.side < 4 ? .78F : .88F;
+                if (emission) shade = face.emissionStrength;
+                tessellator.setColorOpaque_F(shade, shade, shade);
+                for (double[] corner : CORNERS[face.side]) {
+                    double du = .5, dv = .5;
+                    for (int axis = 0; axis < 3; axis++) {
+                        du += (corner[axis] - .5) * u[axis];
+                        dv += (corner[axis] - .5) * v[axis];
+                    }
+                    tessellator.addVertexWithUV(
+                        face.voxel.x + corner[0],
+                        face.voxel.y + corner[1],
+                        face.voxel.z + corner[2],
+                        icon.getInterpolatedU(du * 16),
+                        icon.getInterpolatedV(dv * 16));
                 }
-                tessellator.addVertexWithUV(
-                    face.voxel.x + corner[0],
-                    face.voxel.y + corner[1],
-                    face.voxel.z + corner[2],
-                    icon.getInterpolatedU(du * 16),
-                    icon.getInterpolatedV(dv * 16));
             }
-        }
-        tessellator.draw();
-        GL11.glEndList();
-        return list;
+            tessellator.draw();
+        });
     }
 
     static int mask(Voxel voxel, int side, Map<Long, Voxel> occupied, JsonObject properties) {

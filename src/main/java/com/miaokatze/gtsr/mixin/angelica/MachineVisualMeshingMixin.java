@@ -16,10 +16,11 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.gtnewhorizons.angelica.rendering.celeritas.AngelicaBuiltRenderSectionData;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.miaokatze.gtsr.client.machinevisual.MachineVisualVisibility;
 
 /** Retains the exact per-output mask through both worker and deferred-main-thread block draws. */
@@ -50,20 +51,35 @@ public abstract class MachineVisualMeshingMixin {
             .beginSection(this, world, render.getOriginX(), render.getOriginY(), render.getOriginZ());
     }
 
-    @Inject(method = "drawBlock", at = @At("HEAD"), require = 1)
-    private void gtsr$beginMachineMasks(Block block, int x, int y, int z, int pass, Tessellator tess,
-        RenderBlocks renderer, CallbackInfo callback) {
-        if (!MachineVisualVisibility.mayOwn(x, y, z)) return;
+    @WrapMethod(
+        method = "execute(Lorg/embeddedt/embeddium/impl/render/chunk/compile/ChunkBuildContext;Lorg/embeddedt/embeddium/impl/util/task/CancellationToken;)Lorg/embeddedt/embeddium/impl/render/chunk/compile/ChunkBuildOutput;")
+    private ChunkBuildOutput gtsr$releaseFailedSection(ChunkBuildContext context, CancellationToken cancellation,
+        Operation<ChunkBuildOutput> original) {
+        try {
+            return original.call(context, cancellation);
+        } finally {
+            MachineVisualVisibility.endBuild();
+            // finalizeSection already transferred a successful receipt to its actual output.
+            MachineVisualVisibility.finishBuild(this, null);
+        }
+    }
+
+    @WrapMethod(method = "drawBlock")
+    private void gtsr$drawMachineMasks(Block block, int x, int y, int z, int pass, Tessellator tess,
+        RenderBlocks renderer, Operation<Void> original) {
+        if (!MachineVisualVisibility.mayOwn(x, y, z)) {
+            original.call(block, x, y, z, pass, tess, renderer);
+            return;
+        }
         net.minecraft.world.World world = renderer.blockAccess instanceof MachineVisualWorldSliceAccess slice
             ? slice.gtsr$world()
             : renderer.blockAccess instanceof net.minecraft.world.World real ? real : null;
-        MachineVisualVisibility.beginBuild(this, world);
-    }
-
-    @Inject(method = "drawBlock", at = @At("RETURN"), require = 1)
-    private void gtsr$endMachineMasks(Block block, int x, int y, int z, int pass, Tessellator tess,
-        RenderBlocks renderer, CallbackInfo callback) {
-        MachineVisualVisibility.endBuild();
+        try {
+            MachineVisualVisibility.beginBuild(this, world);
+            original.call(block, x, y, z, pass, tess, renderer);
+        } finally {
+            MachineVisualVisibility.endBuild();
+        }
     }
 
     @Inject(method = "finalizeSection", at = @At("RETURN"), require = 1)

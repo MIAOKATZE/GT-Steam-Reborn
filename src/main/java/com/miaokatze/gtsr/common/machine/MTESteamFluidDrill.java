@@ -47,6 +47,7 @@ import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -195,6 +196,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         // v1.20.23：冷却仓底材纹理按当前等级重刷——冷却仓经 addToMachineList 拦截注册进冷却列表，
         // 注册时被 updateTexture(镀铜砖块) 定格且不在标准仓列表内，缺此调用则等级2仍显示等级1底材。
         SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
+        PipelessSteamSupport.updateTextures(this, getCasingTextureID());
     }
 
     @Override
@@ -331,8 +333,9 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         }
 
         // v1.9.40 修复：输出仓数量 ==1 → >=1（蒸汽输入仓数量由结构 shouldReject 保证，此处仅要求存在）
-        if (this.mOutputHatches.size() < 1 || (this.mSteamInputFluids.size() < 1 && this.mInputHatches.size() < 1
-            && !GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches))) {
+        if (this.mOutputHatches.size() < 1
+            || ((this.mSteamInputFluids.size() + PipelessSteamSupport.count(this)) < 1 && this.mInputHatches.size() < 1
+                && !GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches))) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             mSetTier = -1;
             return;

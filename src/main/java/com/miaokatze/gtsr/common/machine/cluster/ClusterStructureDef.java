@@ -36,6 +36,7 @@ import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTESteamInputHatchGeneric;
 import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.IHatchElement;
@@ -543,7 +544,7 @@ public final class ClusterStructureDef {
 
             @Override
             public long count(MTESteamMineralLogisticsCluster controller) {
-                return controller.pressureSteamHatchCount();
+                return controller.pressureSteamHatchCount() + PipelessSteamSupport.count(controller);
             }
         };
 
@@ -556,8 +557,13 @@ public final class ClusterStructureDef {
         }
 
         @Override
+        public boolean matchesHatch(IMetaTileEntity tile) {
+            return PipelessSteamSupport.matches(tile, mteClasses());
+        }
+
+        @Override
         public List<Class<? extends IMetaTileEntity>> mteClasses() {
-            return classes;
+            return PipelessSteamSupport.candidates(classes, this == PressureSteamInput);
         }
 
         @Override

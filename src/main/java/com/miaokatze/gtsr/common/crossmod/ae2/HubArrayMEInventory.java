@@ -79,26 +79,34 @@ public class HubArrayMEInventory implements IStorageBusMonitor<IAEFluidStack> {
         return null;
     }
 
+    /** AE reports the full native long balance; the FluidStack is only the identity template. */
+    private static IAEFluidStack readStoredAEStack(IHubArray hub) {
+        FluidStack identity = readStoredFluidStack(hub);
+        if (identity == null) return null;
+        long amount = hub instanceof MTESteamHubArray steam ? steam.getStoredFluidAmount()
+            : hub instanceof MTEWaterHubArray water ? water.getStoredFluidAmount() : 0;
+        if (amount <= 0) return null;
+        IAEFluidStack result = AEFluidStack.create(identity);
+        if (result != null) result.setStackSize(amount);
+        return result;
+    }
+
     @Override
     public IItemList<IAEFluidStack> getStorageList() {
         IItemList<IAEFluidStack> fluidList = AEApi.instance()
             .storage()
             .createFluidList();
-        FluidStack stored = readStoredFluidStack(hub());
+        IAEFluidStack stored = readStoredAEStack(hub());
         if (stored != null) {
-            fluidList.add(AEFluidStack.create(stored));
+            fluidList.add(stored);
         }
         return fluidList;
     }
 
     @Override
     public IItemList<IAEFluidStack> getAvailableItems(IItemList<IAEFluidStack> out, int iteration) {
-        FluidStack stored = readStoredFluidStack(hub());
-        if (stored != null) {
-            IAEFluidStack stack = AEFluidStack.create(stored);
-            stack.setStackSize(stored.amount);
-            out.add(stack);
-        }
+        IAEFluidStack stored = readStoredAEStack(hub());
+        if (stored != null) out.add(stored);
         return out;
     }
 
@@ -230,13 +238,14 @@ public class HubArrayMEInventory implements IStorageBusMonitor<IAEFluidStack> {
 
     @Override
     public TickRateModulation onTick() {
-        FluidStack current = readStoredFluidStack(hub());
+        IAEFluidStack current = readStoredAEStack(hub());
         boolean hasContent = current != null;
 
-        if (hasContent != cacheValid || (hasContent && (cachedStack == null || cachedAmount != current.amount
+        if (hasContent != cacheValid || (hasContent && (cachedStack == null || cachedAmount != current.getStackSize()
             || !Objects.equals(
                 cachedFluidName,
-                current.getFluid()
+                current.getFluidStack()
+                    .getFluid()
                     .getName())))) {
             IItemList<IAEFluidStack> changes = AEApi.instance()
                 .storage()
@@ -247,7 +256,7 @@ public class HubArrayMEInventory implements IStorageBusMonitor<IAEFluidStack> {
                 changes.add(removed);
             }
             if (hasContent) {
-                changes.add(AEFluidStack.create(current));
+                changes.add(current.copy());
             }
             for (Iterator<IAEFluidStack> iterator = changes.iterator(); iterator.hasNext();) {
                 if (iterator.next()
@@ -256,10 +265,11 @@ public class HubArrayMEInventory implements IStorageBusMonitor<IAEFluidStack> {
                 }
             }
             cacheValid = hasContent;
-            cachedFluidName = hasContent ? current.getFluid()
+            cachedFluidName = hasContent ? current.getFluidStack()
+                .getFluid()
                 .getName() : null;
-            cachedAmount = hasContent ? current.amount : 0;
-            cachedStack = hasContent ? AEFluidStack.create(current) : null;
+            cachedAmount = hasContent ? current.getStackSize() : 0;
+            cachedStack = hasContent ? current.copy() : null;
             if (!changes.isEmpty()) {
                 notifyListeners(changes);
                 return TickRateModulation.URGENT;
