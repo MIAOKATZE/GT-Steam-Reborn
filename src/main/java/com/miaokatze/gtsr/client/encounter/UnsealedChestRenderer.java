@@ -21,9 +21,13 @@ public final class UnsealedChestRenderer extends TileEntitySpecialRenderer {
         try (GlScope scope = new GlScope()) {
             GL11.glTranslated(x + .5, y, z + .5);
             SealedChestRenderer.faceDirection(tile.getBlockMetadata());
-            bindTexture(TEXTURE);
-            GL11.glColor4f(1, 1, 1, 1);
-            RoyalChestModel.render(angle);
+            renderModel(angle);
         }
+    }
+
+    void renderModel(float angle) {
+        bindTexture(TEXTURE);
+        GL11.glColor4f(1, 1, 1, 1);
+        RoyalChestModel.render(angle);
     }
 }

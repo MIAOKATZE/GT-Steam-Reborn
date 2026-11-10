@@ -30,9 +30,7 @@ public final class SealedChestRenderer extends TileEntitySpecialRenderer {
         try (GlScope scope = new GlScope()) {
             GL11.glTranslated(x + .5, y, z + .5);
             faceDirection(tile.getBlockMetadata());
-            bindTexture(TEXTURE);
-            GL11.glColor4f(1, 1, 1, 1);
-            RoyalChestModel.render(0);
+            renderItemModel();
         }
         try (GlScope scope = new GlScope()) {
             GL11.glTranslated(x + .5, y + .54, z + .5);
@@ -93,6 +91,12 @@ public final class SealedChestRenderer extends TileEntitySpecialRenderer {
             }
             t.draw();
         }
+    }
+
+    void renderItemModel() {
+        bindTexture(TEXTURE);
+        GL11.glColor4f(1, 1, 1, 1);
+        RoyalChestModel.render(0);
     }
 
     private static void color(double r, double g, double b, double a) {

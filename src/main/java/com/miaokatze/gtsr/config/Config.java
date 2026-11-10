@@ -46,9 +46,6 @@ public class Config {
     // 繁荣维度 ProviderType ID（默认 178）。被占用时维度自动禁用（解析记 -1）。
     public static int prosperityProviderId = 178;
 
-    // 已退役破碎之地的旧实际 ID：只供旧玩家撤离及旧锚点拒绝，须保留旧配置且不要复用于新维度。
-    public static int shatteredDimId = 79;
-
     // 繁荣维度群系 ID 段起始（默认 180 = 四名群系的**首选** id 起点；P1 起逐群系独立配槽，
     // 首选槽被外部 mod 占用时向后顺延，允许非连续结果，硬上界见 GTSRBiomeBase.HARD_ID_MAX）。
     public static int prosperityBiomeIdStart = 180;
@@ -366,12 +363,6 @@ public class Config {
             true,
             "自然生成的奇点是否具有破坏方块的能力（默认开；关闭后自然奇点不吸收/破坏方块）");
 
-        // Retired switches cannot reactivate generation. Keep the actual old dimension ID below.
-        for (String key : new String[] { "shatteredSingularityMultiplier", "planDimension.shatteredDimension",
-            "shatteredProviderId", "shatteredBiomeIdStart", "shatteredBiomeMacroBandChunks" })
-            configuration.getCategory(Configuration.CATEGORY_GENERAL)
-                .remove(key);
-
         testLabEnabled = configuration
             .getBoolean("enabled", "testlab", false, "启用独立 OP 机器测试维度（/gtsrtest），默认 false；修改后须重启。ID 冲突自动禁用，不抢占。");
         testLabDimId = configuration.getInt(
@@ -405,14 +396,6 @@ public class Config {
             0,
             1000,
             "繁荣维度 ProviderType ID（默认 178）。被占用时维度自动禁用（记 -1）");
-
-        shatteredDimId = configuration.getInt(
-            "shatteredDimId",
-            Configuration.CATEGORY_GENERAL,
-            shatteredDimId,
-            0,
-            1000,
-            "已退役破碎之地的旧实际维度 ID（原默认 79）。仅用于玩家登录迁出与拒绝旧传送锚；保留旧值，不要复用于新维度。不会注册维度或生成地形。");
 
         prosperityBiomeIdStart = configuration.getInt(
             "prosperityBiomeIdStart",

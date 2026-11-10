@@ -20,7 +20,6 @@ import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.miaokatze.gtsr.common.dimension.framework.RetiredShatteredDimension;
 import com.miaokatze.gtsr.config.Config;
 
 import ic2.api.item.ElectricItem;
@@ -73,10 +72,6 @@ public final class SpacetimeTravel {
 
     public static void mark(EntityPlayerMP p, ItemStack stack) {
         if (!eligible(p)) return;
-        if (RetiredShatteredDimension.isRetiredDimension(p.dimension)) {
-            message(p, "retired_mark");
-            return;
-        }
         NBTTagCompound root = stack.getTagCompound();
         if (root == null) {
             root = new NBTTagCompound();
@@ -107,10 +102,6 @@ public final class SpacetimeTravel {
         }
         NBTTagCompound m = stack.getTagCompound()
             .getCompoundTag("gtsrAnchor");
-        if (m.hasKey("dimension", 3) && RetiredShatteredDimension.isRetiredDimension(m.getInteger("dimension"))) {
-            message(p, "retired");
-            return false;
-        }
         long tick = now();
         if (COOLDOWN.getOrDefault(p.getUniqueID(), 0L) > tick) {
             message(p, "cooldown");

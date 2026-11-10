@@ -55,8 +55,16 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
         RenderingRegistry.registerEntityRenderingHandler(
             com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoCombatProjectile.class,
             new EchoProjectileRenderer());
-        ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySealedChest.class, new SealedChestRenderer());
-        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityUnsealedChest.class, new UnsealedChestRenderer());
+        SealedChestRenderer sealedChest = new SealedChestRenderer();
+        UnsealedChestRenderer unsealedChest = new UnsealedChestRenderer();
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySealedChest.class, sealedChest);
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityUnsealedChest.class, unsealedChest);
+        com.miaokatze.gtsr.client.architecture.BlockModelItemRenderer.register(
+            com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterRegistry.sealedChest,
+            sealedChest::renderItemModel);
+        com.miaokatze.gtsr.client.architecture.BlockModelItemRenderer.register(
+            com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterRegistry.unsealedChest,
+            () -> unsealedChest.renderModel(0));
         CubeRuneParticle cubes = new CubeRuneParticle();
         MinecraftForge.EVENT_BUS.register(cubes);
         FMLCommonHandler.instance()

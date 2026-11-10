@@ -19,7 +19,6 @@ import com.miaokatze.gtsr.common.dimension.framework.DimensionRegistrar;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
-import com.miaokatze.gtsr.common.dimension.framework.RetiredShatteredDimension;
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
 import com.miaokatze.gtsr.common.dimension.framework.structure.PlacementGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
@@ -191,7 +190,6 @@ public class CommonProxy {
         } catch (Throwable t) {
             GTSteamReborn.LOG.error("[GTSR] 维度框架注册过程中发生严重错误", t);
         }
-        RetiredShatteredDimension.register();
 
         Runnable registerRunnable = () -> {
             GTSteamReborn.LOG.info("[1/3] 开始执行机器注册流程...");
@@ -437,8 +435,6 @@ public class CommonProxy {
                 + ", occupant="
                 + occupantOrDash(prosperity)
                 + ")"
-                + " retiredShatteredId="
-                + Config.shatteredDimId
                 + " creatures="
                 + Config.prosperityCreaturesEnabled
                 + " ruins="

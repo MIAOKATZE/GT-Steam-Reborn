@@ -22,6 +22,7 @@ public final class RemasterSpawnerRenderer extends TileEntitySpecialRenderer {
 
     public static void registerRenderer() {
         ClientRegistry.bindTileEntitySpecialRenderer(TileRemasterNode.class, new RemasterSpawnerRenderer());
+        com.miaokatze.gtsr.client.lore.FictionPedestalRenderer.registerItems();
     }
 
     public void renderTileEntityAt(TileEntity tile, double x, double y, double z, float partial) {

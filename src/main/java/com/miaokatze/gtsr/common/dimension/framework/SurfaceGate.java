@@ -137,20 +137,13 @@ public final class SurfaceGate {
 
     /** 便捷维度键别名（与 L1 账本同一词汇，禁止另造字符串）。 */
     public static final String DIM78 = GTSRBiomeAuthority.DIM_KEY_PROSPERITY;
-    /** 便捷维度键别名（同上）。 */
-    public static final String DIM79 = GTSRBiomeAuthority.DIM_KEY_SHATTERED;
 
     /** dim78 成员数（声明即真值；改成员必须同时改本数与 roster 表列，工具会钉住）。 */
     public static final int DIM78_SIZE = 5;
-    /** dim79 成员数（同上）。 */
-    public static final int DIM79_SIZE = 4;
 
     /** dim78 成员名（按声明序；{@code BlocksGTSR} 字段名，供日志与离线断言按名比对）。 */
     static final String[] DIM78_NAMES = { "prosperitySurface", "prosperitySteppeTop", "prosperityForestTop",
         "prosperityWastesTop", "prosperitySwampTop" };
-    /** dim79 成员名（同上）。 */
-    static final String[] DIM79_NAMES = { "shatteredAshTop", "shatteredSlagTop", "shatteredGlassTop",
-        "shatteredTarTop" };
 
     /**
      * dim78 可落地方块集（{@link #DIM78_SIZE} 项）。
@@ -160,8 +153,6 @@ public final class SurfaceGate {
      * 本集合是"两维各自可落地集"的唯一出处。
      */
     private static final Block[] DIM78_TOPS = new Block[DIM78_SIZE];
-    /** dim79 可落地方块集（{@link #DIM79_SIZE} 项；dim79 无 {@code prosperitySurface} 对应物）。 */
-    private static final Block[] DIM79_TOPS = new Block[DIM79_SIZE];
     /** 未知/未注册维度键的返回值：空集 ⇒ 门恒关（fail-closed，不静默放宽）。 */
     private static final Block[] EMPTY = new Block[0];
 
@@ -185,10 +176,6 @@ public final class SurfaceGate {
         DIM78_TOPS[2] = BlocksGTSR.prosperityForestTop;
         DIM78_TOPS[3] = BlocksGTSR.prosperityWastesTop;
         DIM78_TOPS[4] = BlocksGTSR.prosperitySwampTop;
-        DIM79_TOPS[0] = BlocksGTSR.shatteredAshTop;
-        DIM79_TOPS[1] = BlocksGTSR.shatteredSlagTop;
-        DIM79_TOPS[2] = BlocksGTSR.shatteredGlassTop;
-        DIM79_TOPS[3] = BlocksGTSR.shatteredTarTop;
     }
 
     /**
@@ -202,12 +189,6 @@ public final class SurfaceGate {
                 bind();
             }
             return DIM78_TOPS;
-        }
-        if (DIM79.equals(dimKey)) {
-            if (DIM79_TOPS[0] == null) {
-                bind();
-            }
-            return DIM79_TOPS;
         }
         warnUnboundOnce(dimKey);
         return EMPTY;
@@ -248,7 +229,7 @@ public final class SurfaceGate {
 
     /** 成员名的单行摘要（日志与离线断言可读输出用）。 */
     public static String describe(String dimKey) {
-        final String[] names = DIM78.equals(dimKey) ? DIM78_NAMES : DIM79.equals(dimKey) ? DIM79_NAMES : null;
+        final String[] names = DIM78.equals(dimKey) ? DIM78_NAMES : null;
         if (names == null) {
             return "SurfaceGate(" + dimKey + ")=<未申报维度键，门恒关>";
         }

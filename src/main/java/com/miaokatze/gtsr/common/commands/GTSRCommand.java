@@ -161,11 +161,6 @@ public class GTSRCommand extends CommandBase {
             throw new WrongUsageException(
                 getCommandUsage(sender) + "  unknown structure: " + name + " (use Tab completion to list valid names)");
         }
-        if (entry.dimension == StructureRegistry.Dimension.SHATTERED) {
-            sender
-                .addChatMessage(new net.minecraft.util.ChatComponentTranslation("gtsr.dimension.shattered.structure"));
-            return;
-        }
         if (entry.dimension == StructureRegistry.Dimension.PROSPERITY) {
             sender.addChatMessage(new ChatComponentText("旧繁荣结构手动放置已暂停；当前仅开放三类 Boss 标准场景，请使用 locate / tplocate。"));
             return;

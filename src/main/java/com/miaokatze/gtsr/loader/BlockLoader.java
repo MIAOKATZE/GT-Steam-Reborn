@@ -10,6 +10,7 @@ import com.miaokatze.gtsr.common.blocks.BlockRunawaySingularity;
 import com.miaokatze.gtsr.common.blocks.BlockSpacetimeSingularity;
 import com.miaokatze.gtsr.common.blocks.BlockTungstenSteelGearbox;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
+import com.miaokatze.gtsr.common.blocks.ItemBlockAbyssalFluid;
 import com.miaokatze.gtsr.common.blocks.ItemBlockRunawaySingularity;
 import com.miaokatze.gtsr.common.blocks.ItemBlockSpacetimeSingularity;
 import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
@@ -25,12 +26,6 @@ import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityTuft;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockRuinDebris;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockRuinedCasing;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.ItemBlockProsperityMeta;
-import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredAshLog;
-import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredCorestone;
-import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredCrossDecor;
-import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredMonolith;
-import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredSurfaceBase;
-import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredSurfaceTop;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
@@ -259,66 +254,6 @@ public class BlockLoader {
                 + " + v1.20.39 stone=1 (prosperityStone underground wholeBody)"
                 + " + v1.20.43 p22-island-tree trio=3 (zenith log + jade canopy + roost glow light14, all non-top)");
 
-        // dim79 重做（S-B）：破碎之地高硬度方块族（全部独立 Block ID，plan §12 修订 2/3：
-        // hardness ≥1000F、blast 1200、harvest pickaxe 3；分层值登记 dim79-redo-slice-B-report.md，
-        // 全部可调常量。旧 shatteredGrass/ShatteredDirt/RiftStone/ShatteredBlackstone 删除，
-        // 注册名不保留——无 retrogen，存量 chunk≈0 已裁决）。
-        // 必须先于 ShatteredBiomes.init（群系 top/filler 引用 BlocksGTSR.shattered*，
-        // CommonProxy.preInit 顺序：BlockLoader → ShatteredBiomes.init → DimensionRegistrar）。
-        BlocksGTSR.shatteredCorestone = new BlockShatteredCorestone();
-        GameRegistry.registerBlock(BlocksGTSR.shatteredCorestone, "ShatteredCorestone");
-        BlocksGTSR.shatteredMonolith = new BlockShatteredMonolith();
-        GameRegistry.registerBlock(BlocksGTSR.shatteredMonolith, "ShatteredMonolith");
-        BlocksGTSR.shatteredAshTop = new BlockShatteredSurfaceTop(
-            "ShatteredAshTop",
-            "gtsr:prosperity_steppe_top",
-            "gtsr:prosperity_steppe_top_side",
-            "gtsr:prosperity_steppe_base");
-        GameRegistry.registerBlock(BlocksGTSR.shatteredAshTop, "ShatteredAshTop");
-        BlocksGTSR.shatteredAshBase = new BlockShatteredSurfaceBase("ShatteredAshBase", "gtsr:prosperity_steppe_base");
-        GameRegistry.registerBlock(BlocksGTSR.shatteredAshBase, "ShatteredAshBase");
-        BlocksGTSR.shatteredSlagTop = new BlockShatteredSurfaceTop(
-            "ShatteredSlagTop",
-            "gtsr:prosperity_forest_top",
-            "gtsr:prosperity_forest_top_side",
-            "gtsr:prosperity_forest_base");
-        GameRegistry.registerBlock(BlocksGTSR.shatteredSlagTop, "ShatteredSlagTop");
-        BlocksGTSR.shatteredSlagBase = new BlockShatteredSurfaceBase(
-            "ShatteredSlagBase",
-            "gtsr:prosperity_forest_base");
-        GameRegistry.registerBlock(BlocksGTSR.shatteredSlagBase, "ShatteredSlagBase");
-        BlocksGTSR.shatteredGlassTop = new BlockShatteredSurfaceTop(
-            "ShatteredGlassTop",
-            "gtsr:prosperity_wastes_top",
-            "gtsr:prosperity_wastes_top_side",
-            "gtsr:prosperity_wastes_base");
-        GameRegistry.registerBlock(BlocksGTSR.shatteredGlassTop, "ShatteredGlassTop");
-        BlocksGTSR.shatteredGlassBase = new BlockShatteredSurfaceBase(
-            "ShatteredGlassBase",
-            "gtsr:prosperity_wastes_base");
-        GameRegistry.registerBlock(BlocksGTSR.shatteredGlassBase, "ShatteredGlassBase");
-        BlocksGTSR.shatteredTarTop = new BlockShatteredSurfaceTop(
-            "ShatteredTarTop",
-            "gtsr:prosperity_swamp_top",
-            "gtsr:prosperity_swamp_top_side",
-            "gtsr:prosperity_swamp_base");
-        GameRegistry.registerBlock(BlocksGTSR.shatteredTarTop, "ShatteredTarTop");
-        BlocksGTSR.shatteredTarBase = new BlockShatteredSurfaceBase("ShatteredTarBase", "gtsr:prosperity_swamp_base");
-        GameRegistry.registerBlock(BlocksGTSR.shatteredTarBase, "ShatteredTarBase");
-        BlocksGTSR.shatteredSpikeCluster = new BlockShatteredCrossDecor(
-            "ShatteredSpikeCluster",
-            "gtsr:prosperity_tuft_bristle");
-        GameRegistry.registerBlock(BlocksGTSR.shatteredSpikeCluster, "ShatteredSpikeCluster");
-        BlocksGTSR.shatteredAshLog = new BlockShatteredAshLog(
-            "ShatteredAshLog",
-            "gtsr:prosperity_rust_log_side",
-            "gtsr:prosperity_rust_log_top");
-        GameRegistry.registerBlock(BlocksGTSR.shatteredAshLog, "ShatteredAshLog");
-        BlocksGTSR.shatteredAshThorn = new BlockShatteredCrossDecor("ShatteredAshThorn", "gtsr:prosperity_tuft_rust");
-        GameRegistry.registerBlock(BlocksGTSR.shatteredAshThorn, "ShatteredAshThorn");
-        // Legacy registry/meta and physics remain for old chunks; retired materials have no new creative entry.
-        GTSteamReborn.LOG
-            .info("[GTSR] shattered blocks registered: Corestone/Monolith terrain=8 (4x top+base) decor=3");
     }
 
     /**
@@ -348,7 +283,7 @@ public class BlockLoader {
             return;
         }
         BlocksGTSR.abyssalFluid = new BlockAbyssalFluid(fluid);
-        GameRegistry.registerBlock(BlocksGTSR.abyssalFluid, "AbyssalFluid");
+        GameRegistry.registerBlock(BlocksGTSR.abyssalFluid, ItemBlockAbyssalFluid.class, "AbyssalFluid");
         GTSteamReborn.LOG.info("[GTSR] abyssal fluid block registered: AbyssalFluid fluid=abyssal_obsession");
     }
 }

@@ -10,8 +10,7 @@ import java.util.TreeMap;
  * 结构变体注册表（dim1 S4a，plan D1 / §1.2 S4a）：name → 条目（name/dimension 标记/placer 回调）。
  * <p>
  * <ul>
- * <li>dimension 标记（{@link Dimension}）：PROSPERITY/SHATTERED/ANY，跨维度隔离（破碎之地不生成
- * 繁荣古代城，plan §3.4）；S5 /gtsr structure 补全同源 {@link #names()}；</li>
+ * <li>dimension 标记（{@link Dimension}）：PROSPERITY/ANY；S5 /gtsr structure 补全同源 {@link #names()}；</li>
  * <li>placer 回调面向 {@link BlockSink}（本类零 Minecraft 依赖，离线驱动可注册纯预览条目）；</li>
  * <li>注册时机由游戏侧显式调用（如 ProsperityWorldGenerator 构造时登记机型变体）——本类不自持静态
  * 初始化，保证离线驱动加载本类不触发任何游戏类；</li>
@@ -23,7 +22,6 @@ public final class StructureRegistry {
     /** 结构归属维度标记。 */
     public enum Dimension {
         PROSPERITY,
-        SHATTERED,
         ANY
     }
 

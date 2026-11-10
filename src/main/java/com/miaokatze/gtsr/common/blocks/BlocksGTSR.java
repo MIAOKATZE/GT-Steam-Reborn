@@ -28,50 +28,6 @@ public final class BlocksGTSR {
     /** 残缺外壳 3 meta（0 锈蚀/1 积碳/2 碎瓷；S4a/S4b 结构消费）。 */
     public static Block ruinedCasing;
 
-    // ==== dim79 重做（S-B）：破碎之地高硬度方块族（BlockLoader.initBlocks 注册期写入；全部独立
-    // Block ID，plan §12 修订 2；hardness ≥1000F / blast 1200 / harvest pickaxe 3，plan §12 修订 3，
-    // 分层值登记 dim79-redo-slice-B-report.md。旧 shatteredGrass/shatteredDirt/riftStone/
-    // shatteredBlackstone 四方块删除，注册名不保留——无 retrogen，存量 chunk≈0 已裁决）====
-
-    /** 碎核岩（地形主体石：generateTerrain 实心填充至 heightAt，表层之下主体）。 */
-    public static Block shatteredCorestone;
-
-    /** 独碑岩（遗迹平台/地标结构块；WorldGenShatteredRuins 平台消费）。 */
-    public static Block shatteredMonolith;
-
-    /** 灰烬草毡 top（BiomeAshenPrairie 表层）。 */
-    public static Block shatteredAshTop;
-
-    /** 灰烬壤 base（BiomeAshenPrairie filler 段，filler 复用 base）。 */
-    public static Block shatteredAshBase;
-
-    /** 渣木草皮 top（BiomeSlagwoodGrove 表层）。 */
-    public static Block shatteredSlagTop;
-
-    /** 渣木渣 base（BiomeSlagwoodGrove filler 段，filler 复用 base）。 */
-    public static Block shatteredSlagBase;
-
-    /** 琉璃沙 top（BiomeVitreousWaste 表层）。 */
-    public static Block shatteredGlassTop;
-
-    /** 琉璃化岩 base（BiomeVitreousWaste filler 段，filler 复用 base）。 */
-    public static Block shatteredGlassBase;
-
-    /** 焦油壳 top（BiomeTarBasin 表层）。 */
-    public static Block shatteredTarTop;
-
-    /** 焦油砾 base（BiomeTarBasin filler 段，filler 复用 base）。 */
-    public static Block shatteredTarBase;
-
-    /** 石刺簇（十字装饰；ShatteredDecorPlacer 消费）。 */
-    public static Block shatteredSpikeCluster;
-
-    /** 灰烬枯树干（枯树造型由 ShatteredDecorPlacer 拼装）。 */
-    public static Block shatteredAshLog;
-
-    /** 灰烬棘丛（十字装饰；ShatteredDecorPlacer 消费）。 */
-    public static Block shatteredAshThorn;
-
     // ==== dim78 S-A1：四群系自然区方块族（BlockLoader.initBlocks 注册期写入；全部独立 Block ID，
     // plan §12 修订 2；meta 恒 0。既有 prosperitySurface meta0-5 城内语义冻结不动）====
 
@@ -190,13 +146,6 @@ public final class BlocksGTSR {
      * v1.20.44 P24-A2：贴图改 vanilla 全透明 ⇒ 不可见方块本体 + randomDisplayTick 纯光点光效（零自有 PNG/mcmeta）。
      */
     public static Block prosperityRoostGlow;
-
-    /** Retired dimension's exact legacy registry instances; never replace these with softer terrain blocks. */
-    public static Block[] shatteredCompatibilityBlocks() {
-        return new Block[] { shatteredCorestone, shatteredMonolith, shatteredAshTop, shatteredAshBase, shatteredSlagTop,
-            shatteredSlagBase, shatteredGlassTop, shatteredGlassBase, shatteredTarTop, shatteredTarBase,
-            shatteredSpikeCluster, shatteredAshLog, shatteredAshThorn };
-    }
 
     private BlocksGTSR() {}
 }

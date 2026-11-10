@@ -120,6 +120,45 @@ def prepare():
 def light(pixel):
     return max(pixel[:3]) * pixel[3]
 
+def conductor_side(path, source, sampled):
+    """Keep the two reviewed conductor CTMs on one regular 16px bar grid."""
+    import re
+    match = re.search(r'/ctm/(superconducting_contact|magnetic_coil)/side/mask_(\d+)', path)
+    if match is None:
+        return sampled
+    family, mask = match[1], int(match[2])
+    result = sampled.copy()
+    if '_emission' in path:
+        # The original bevel straddles row 31/0. At 16px it must occupy one row,
+        # with the next tile starting on the intervening unlit background row.
+        clear = source.getpixel((0, 1))
+        if mask & 1:
+            for x in range(3, 13): result.putpixel((x, 0), clear)
+        for y in (1, 13, 15):
+            if (y == 1 and mask & 1) or (y > 1 and mask & 4):
+                result.putpixel((11, y), clear)
+        return result
+    # Symmetric rails, no whole-frame rare-colour ranking of random border grain.
+    xs = (0, 2, 5, 7, 9, 11, 13, 15, 16, 18, 20, 22, 24, 26, 29, 31)
+    accent = {'superconducting_contact': (124, 131, 188),
+        'magnetic_coil': (119, 156, 173)}[family]
+    body = source.getpixel((9, 12))
+    for y in range(16):
+        sy = 2 * y + 1
+        if y == 0 and not mask & 1: sy = 0
+        # Collapse the grey highlight + coloured body to the coloured body.
+        if y in (3, 5, 7, 9, 11): sy += 1
+        for x, sx in enumerate(xs):
+            pixel = source.getpixel((sx, sy))
+            if pixel[:3] == accent: pixel = body
+            if sampled.getpixel((x, y))[:3] == accent:
+                pixel = sampled.getpixel((x, y))
+            result.putpixel((x, y), pixel)
+    for y in (1, 13, 15):
+        if (y == 1 and mask & 1) or (y > 1 and mask & 4):
+            for x in range(4, 11): result.putpixel((x, y), body)
+    return result
+
 def convert(path, raw, metadata):
     image, fw, fh, count = animation(path, raw, metadata)
     if fw == 16:
@@ -161,6 +200,7 @@ def convert(path, raw, metadata):
                         sx, sy = max(accents, key=lambda p: sum((pixels[p][c] - selected[c]) ** 2 for c in range(3)))
                         calibrated += 1
                 result.putpixel((x, y), source.getpixel((sx, sy)))
+        result = conductor_side(path, source, result)
         before = list(rgba.getdata()); after = list(result.convert('RGBA').getdata())
         old_alpha = sum(p[3] > 0 for p in before); new_alpha = sum(p[3] > 0 for p in after)
         old_light = sum(light(p) > 0 for p in before); new_light = sum(light(p) > 0 for p in after)
@@ -263,6 +303,21 @@ def repair_ctm(baseline):
     previews(baseline)
     return result['ctm_edge_calibration']
 
+def repair_conductors(baseline):
+    """Only the reviewed contact/coil side masks; leave all timelines untouched."""
+    changed = []
+    for row in baseline['pngs']:
+        if not any('/ctm/' + family + '/side/' in row['path']
+            for family in ('superconducting_contact', 'magnetic_coil')):
+            continue
+        file = TEXTURES / row['path']
+        raw, _, _ = convert(row['path'], source_bytes(baseline, row['path']), row['metadata'])
+        if file.read_bytes() != raw:
+            changed.append(row['path'])
+            file.write_bytes(raw)
+    return dict(changed_pngs=changed, timelines_unchanged=True,
+        policy='Symmetric rails, coloured bars, one-pixel connected bevel, original scan samples')
+
 def verify_ctm(baseline):
     import re
     families=defaultdict(dict)
@@ -281,8 +336,8 @@ def verify_ctm(baseline):
         require(match is not None,'Known CTM mask filename')
         families[(path.parent.as_posix(),match[2])][int(match[1])]=(
             edges(source_bytes(baseline,row['path']),row['frame_width']),edges((TEXTURES/row['path']).read_bytes(),16))
-    checks=main=added=lost=coarsened=0
-    for masks in families.values():
+    checks=main=added=lost=coarsened=reviewed_bevels=0
+    for (directory, suffix), masks in families.items():
         for a,b in combinations(masks.values(),2):
             for side in range(4):
                 checks+=1
@@ -294,11 +349,24 @@ def verify_ctm(baseline):
                 b=masks[mask^bit]
                 if a[0][side]!=b[0][side]:
                     main+=1
-                    if a[1][side]==b[1][side]:lost+=1
+                    if a[1][side]==b[1][side]:
+                        reviewed = (side == 0 and bit == 1 and suffix in ('_emission', '_emission_frozen')
+                            and any(directory.endswith('/ctm/' + family + '/side')
+                                for family in ('superconducting_contact', 'magnetic_coil')))
+                        if reviewed:
+                            # The reviewed 16px cadence deliberately removes only the upper
+                            # emissive half-bevel; the paired albedo must still open the cap.
+                            albedo = families[(directory, suffix.replace('_emission', ''))]
+                            require(albedo[mask][1][side] != albedo[mask ^ bit][1][side],
+                                'Reviewed emission bevel retains its albedo connection opening')
+                            reviewed_bevels += 1
+                        else: lost+=1
     require(checks==10680 and main==1544,'Full reviewed CTM relation and main-bit coverage')
     require(added==0 and lost==0,'No new CTM seams or lost principal connection edges')
+    require(reviewed_bevels==8,'Exactly the eight reviewed conductor emission half-bevels')
     return dict(families=len(families),all_frame_edge_relation_checks=checks,main_connection_bit_checks=main,
-        new_seams=added,lost_main_connections=lost,corner_detail_signatures_coarsened=coarsened)
+        new_seams=added,lost_main_connections=lost,reviewed_emission_half_bevels=reviewed_bevels,
+        corner_detail_signatures_coarsened=coarsened)
 
 def apply(baseline):
     require(sha(ARCHIVE.read_bytes()) == baseline['original_png_archive_sha256'], 'Original archive unchanged')
@@ -347,9 +415,10 @@ def verify(baseline):
     save(OUT/'verify-result.json',result);return result
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['prepare','apply','repair-ctm','verify']);args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['prepare','apply','repair-ctm','repair-conductors','verify']);args=parser.parse_args()
     baseline=prepare()
     if args.action=='prepare':previews(baseline);print(json.dumps({'status':baseline['status'],'blocks':787,'items':39,'out':str(OUT)}))
     elif args.action=='apply':result=apply(baseline);print(json.dumps({k:result[k] for k in ['status','image_count','source_bytes','result_bytes']}))
     elif args.action=='repair-ctm':print(json.dumps(repair_ctm(baseline)))
+    elif args.action=='repair-conductors':print(json.dumps(repair_conductors(baseline)))
     else:result=verify(baseline);print(json.dumps({k:result[k] for k in ['status','verified_pngs','blocks','dimension_items','approved_pruned_pngs']}))

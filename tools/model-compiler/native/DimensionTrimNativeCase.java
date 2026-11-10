@@ -127,38 +127,6 @@ public final class DimensionTrimNativeCase implements FollowupQA.Case {
         }
         String usage=String.valueOf(call(command,"getCommandUsage|func_71518_a",actor));check(!usage.contains("A|B")&&!usage.contains("locate A"),"Native command usage has no dimension selector");
     }
-    private void retiredDimension(Object server,Object world,Object actor)throws Exception{
-        Class<?> retired=type(ROOT+"common.dimension.framework.RetiredShatteredDimension"),config=type(ROOT+"config.Config"),dims=type("net.minecraftforge.common.DimensionManager");
-        int old=integer(get(config,"shatteredDimId")),kept=integer(get(config,"prosperityDimId"));
-        check(old>1&&old!=kept,"Fixed native fixture has distinct configured retired dimension");
-        check((Boolean)call(retired,"isRetiredDimension",old),"Configured legacy dimension recognized");
-        for(int id:new int[]{0,1,kept})check(!(Boolean)call(retired,"isRetiredDimension",id),"Retirement excludes active dimension "+id);
-        check(call(type(ROOT+"common.dimension.framework.DimensionRegistrar"),"defForDimension",old)==null,"No retired GTSR dimension definition registered");
-        check(!(Boolean)call(dims,"isDimensionRegistered",old),"Native Forge does not register retired dimension");
-        Object loadedBefore=call(dims,"getWorld",old);check(loadedBefore==null,"Retired world not opened");
-        // Read a real legacy player NBT into a detached native player before invoking the actual load handler.
-        Object profile=construct("com.mojang.authlib.GameProfile",UUID.nameUUIDFromBytes("owned-retired-dimension-fixture".getBytes(StandardCharsets.US_ASCII)),"TrimFixture");
-        Object manager=construct("net.minecraft.server.management.ItemInWorldManager",world);
-        Object fixture=construct("net.minecraft.entity.player.EntityPlayerMP",server,world,profile,manager);
-        Object saved=nbt();call(fixture,"writeToNBT|func_70109_d",saved);call(saved,"setInteger|func_74768_a","Dimension",old);call(fixture,"readFromNBT|func_70020_e",saved);
-        check(ExtensionSupport.dimension(fixture)==old,"Actual player NBT loads legacy dimension");
-        Object event=construct("net.minecraftforge.event.entity.player.PlayerEvent$LoadFromFile",fixture,run.toFile(),"owned-no-file");
-        Object handler=get(retired,"INSTANCE");call(handler,"onPlayerLoad",event);
-        check(ExtensionSupport.dimension(fixture)==0&&get(fixture,"worldObj|field_70170_p")==world,"Actual LoadFromFile handler evacuates before world selection");
-        check(((Number)get(fixture,"motionX|field_70159_w")).doubleValue()==0&&((Number)get(fixture,"fallDistance|field_70143_R")).floatValue()==0,"Evacuated player fall and velocity reset");
-        @SuppressWarnings("unchecked") Map<Object,Object> pending=(Map<Object,Object>)get(handler,"pending");check(pending.containsKey(fixture),"First-tick repair tracks only migrated player");pending.remove(fixture);
-        // Use the eligible real owned actor, so rejection cannot pass at an unrelated early eligibility guard.
-        Class<?> travel=type(PROSPERITY+"travel.SpacetimeTravel");check((Boolean)call(travel,"eligible",actor),"Native owned player is eligible for anchor recall");
-        Object beacon=construct(ROOT+"common.items.SpacetimeAnchorBeacon"),stack=construct("net.minecraft.item.ItemStack",beacon);
-        Object root=nbt(),mark=nbt();call(root,"setDouble|func_74780_a","charge",1234567D);call(mark,"setInteger|func_74768_a","dimension",old);
-        for(String coordinate:new String[]{"x","y","z"})call(mark,"setDouble|func_74780_a",coordinate,64D);for(String angle:new String[]{"yaw","pitch"})call(mark,"setFloat|func_74776_a",angle,0F);
-        call(root,"setTag|func_74782_a","gtsrAnchor",mark);call(stack,"setTagCompound|func_77982_d",root);Object snapshot=call(root,"copy|func_74737_b");int dimension=ExtensionSupport.dimension(actor);double[] point=ExtensionSupport.position(actor);
-        check(!(Boolean)call(travel,"recall",actor,stack),"Actual recall rejects retired mark");
-        check(snapshot.equals(call(stack,"getTagCompound|func_77978_p")),"Retired recall preserves full anchor NBT and charge");
-        check(dimension==ExtensionSupport.dimension(actor)&&Arrays.equals(point,ExtensionSupport.position(actor)),"Retired recall preserves actual player position");
-        check(call(dims,"getWorld",old)==loadedBefore,"Rejected recall never loads retired world");
-        result.put("retiredDimension",old);result.put("migrationFixture","Detached actual EntityPlayerMP, readFromNBT then actual LoadFromFile handler; no player-file or world-folder writes");
-    }
     private void setBlock(Object world,int x,int y,int z,Object block,int metadata)throws Exception{
         if(call(world,"getBlock|func_147439_a",x,y,z)!=block||integer(call(world,"getBlockMetadata|func_72805_g",x,y,z))!=metadata)
             call(world,"setBlock|func_147465_d",x,y,z,block,metadata,2);
@@ -328,17 +296,13 @@ public final class DimensionTrimNativeCase implements FollowupQA.Case {
         for(Object stack:(List<?>)call(type(ROOT+"register.CreativeTabManager"),"getItemsToAdd"))creativeItems.add(call(stack,"getItem|func_77973_b"));
         Class<?> items=type("net.minecraft.item.Item");
         for(String[] pair:ALIASES){Object old=call(registry,"getObject|func_82594_a","gtsr:Ruins_"+pair[0]),base=call(registry,"getObject|func_82594_a","gtsr:Ruins_"+pair[1]);check(old!=null&&base!=null&&old!=base&&String.valueOf(call(registry,"getNameForObject|func_148750_c",old)).equals("gtsr:Ruins_"+pair[0]),"Old decorative registry identity retained "+pair[0]);check(call(architecture,"get",pair[0])==base,"New block lookup canonical "+pair[0]);check(!creativeItems.contains(call(items,"getItemFromBlock|func_150898_a",old)),"Retired alias hidden from actual creative catalog "+pair[0]);for(int side=0;side<6;side++){Object icon=call(old,"getIcon|func_149691_a",side,0);check(icon==call(base,"getIcon|func_149691_a",side,0),"Legacy alias native atlas icon "+pair[0]+" face "+side);realAtlasIcon(atlas,sprites,icon,"Legacy alias "+pair[0]+" face "+side);}}
-        Class<?> blocks=type(ROOT+"common.blocks.BlocksGTSR");int legacy=0;
-        for(Field field:blocks.getDeclaredFields())if(Modifier.isStatic(field.getModifiers())&&field.getName().startsWith("shattered")){
-            Object block=field.get(null);check(block!=null,"Legacy shattered block held "+field.getName());String name=String.valueOf(call(registry,"getNameForObject|func_148750_c",block));check(name.startsWith("gtsr:"),"Native old block registry retained "+name);check(!creativeItems.contains(call(items,"getItemFromBlock|func_150898_a",block)),"Retired shattered block hidden from actual creative catalog "+name);check(((Number)get(block,"blockHardness|field_149782_v")).floatValue()==(field.getName().equals("shatteredMonolith")?1200F:1000F),"Legacy block physical hardness retained "+name);for(int side=0;side<6;side++){Object icon=call(block,"getIcon|func_149691_a",side,0);String texture=realAtlasIcon(atlas,sprites,icon,"Old block "+name+" face "+side);check(!texture.toLowerCase(Locale.ROOT).contains("shattered"),"Old block reuses retained texture "+name);}legacy++;
-        }
-        check(legacy>0,"Legacy shattered blocks traversed");result.put("blockAtlasSprites",count);result.put("decodedRetainedFrames",frames);result.put("sourcePngFrames",sourceFrames);result.put("staticCpuFramesReleased",staticReleased);result.put("animatedAtlasSprites",animatedSprites);result.put("transparentRetainedFrames",transparent);result.put("emissivePairs",emissive);result.put("legacyShatteredRegistryEntries",legacy);result.put("atlas",rows);
+        result.put("blockAtlasSprites",count);result.put("decodedRetainedFrames",frames);result.put("sourcePngFrames",sourceFrames);result.put("staticCpuFramesReleased",staticReleased);result.put("animatedAtlasSprites",animatedSprites);result.put("transparentRetainedFrames",transparent);result.put("emissivePairs",emissive);result.put("atlas",rows);
     }
     public boolean tick(String phase,Map<String,Object> context)throws Exception{
         if(finished)return true;
         try{
-            if(run==null){run=ExtensionSupport.owned(context);result.put("scope","Native product canonical admissions/NBT, spent ledger, actual command rejection/completion, LoadFromFile migration, anchor guard and stitched atlas; no gameplay travel or reward spawning");}
-            if(phase.equals("server")&&!serverDone){Object server=context.get("server"),world=context.get("world");if(server==null||world==null)return false;Object manager=call(server,"getConfigurationManager|func_71203_ab");List<?> players=(List<?>)get(manager,"playerEntityList|field_72404_b");if(players.isEmpty())return false;Object actor=players.get(0);echoContracts(world);commands(actor);retiredDimension(server,world,actor);spawnClearance(world,actor);serverDone=true;}
+            if(run==null){run=ExtensionSupport.owned(context);result.put("scope","Native product canonical admissions/NBT, spent ledger, actual command rejection/completion, stitched atlas; no gameplay travel or reward spawning");}
+            if(phase.equals("server")&&!serverDone){Object server=context.get("server"),world=context.get("world");if(server==null||world==null)return false;Object manager=call(server,"getConfigurationManager|func_71203_ab");List<?> players=(List<?>)get(manager,"playerEntityList|field_72404_b");if(players.isEmpty())return false;Object actor=players.get(0);echoContracts(world);commands(actor);spawnClearance(world,actor);serverDone=true;}
             if(phase.equals("render")&&!atlasDone){try(java.util.zip.ZipFile archive=new java.util.zip.ZipFile(productJar())){productResources=archive;spriteResourceManager=call(context.get("minecraft"),"getResourceManager|func_110442_L");atlas(context.get("minecraft"));itemAtlas(context.get("minecraft"));}finally{productResources=null;spriteResourceManager=null;}atlasDone=true;}
             if(serverDone&&atlasDone){result.put("status","PASS");result.put("checksPassed",checks.size());result.put("checks",checks);ExtensionSupport.write(run.resolve("client/dimension-trim-native-case.json"),result);finished=true;return true;}return false;
         }catch(Throwable error){result.put("status","FAIL");result.put("failure",error.toString());result.put("checksPassed",checks.size());result.put("checks",checks);if(run!=null)ExtensionSupport.write(run.resolve("client/dimension-trim-native-case.json"),result);if(error instanceof Exception)throw (Exception)error;if(error instanceof Error)throw (Error)error;throw new IllegalStateException(error);}

@@ -213,7 +213,6 @@ public final class GTSRItemOrderCatalog {
         if (block != null && dimensionClass(block.getClass())) return true;
         String path = registryPath(stack).toLowerCase(Locale.ROOT);
         return DIMENSION_PATHS.contains(path) || path.startsWith("prosperity")
-            || path.startsWith("shattered")
             || path.startsWith("ruins_")
             || path.startsWith("royal_")
             || path.startsWith("remaster_");

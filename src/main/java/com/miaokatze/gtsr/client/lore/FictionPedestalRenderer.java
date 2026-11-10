@@ -12,8 +12,11 @@ import org.lwjgl.opengl.GL11;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.miaokatze.gtsr.client.architecture.BlockModelItemRenderer;
 import com.miaokatze.gtsr.client.encounter.GlScope;
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry;
+import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterBlock;
+import com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterBlocks;
 import com.miaokatze.gtsr.common.dimension.prosperity.remaster.TileRemasterNode;
 
 import cpw.mods.fml.relauncher.Side;
@@ -24,6 +27,14 @@ import cpw.mods.fml.relauncher.SideOnly;
 public final class FictionPedestalRenderer {
 
     private FictionPedestalRenderer() {}
+
+    public static void registerItems() {
+        for (boolean starter : new boolean[] { false, true }) {
+            RemasterBlock block = RemasterBlocks
+                .get(starter ? "gtsr:fiction_starter" : "gtsr:fiction_witness_pedestal");
+            BlockModelItemRenderer.register(block, () -> renderBase(block.getIcon(1, 0), starter));
+        }
+    }
 
     public static float itemAlpha(boolean deposited) {
         return deposited ? 1F : .30F;
@@ -45,26 +56,10 @@ public final class FictionPedestalRenderer {
                 .getTotalWorldTime() + partial;
         try (GlScope scope = new GlScope()) {
             GL11.glTranslated(x + .5, y, z + .5);
-            GL11.glEnable(GL11.GL_TEXTURE_2D);
-            Minecraft.getMinecraft()
-                .getTextureManager()
-                .bindTexture(TextureMap.locationBlocksTexture);
             IIcon marble = node.getBlockType()
                 .getIcon(1, 0);
-            GL11.glDisable(GL11.GL_LIGHTING);
-            GL11.glDisable(GL11.GL_CULL_FACE);
-            GL11.glEnable(GL11.GL_DEPTH_TEST);
-            GL11.glDepthMask(true);
-            box(marble, -.375, 0, -.375, .375, .125, .375, .91F, .91F, .91F);
-            box(marble, -.32, .125, -.32, .32, .20, .32, .98F, .98F, .98F);
-            box(marble, -.21, .20, -.21, .21, .80, .21, .92F, .92F, .92F);
-            box(marble, -.30, .80, -.30, .30, .90, .30, .98F, .98F, .98F);
-            box(marble, -.375, .90, -.375, .375, 1, .375, .91F, .91F, .91F);
-            if (starter) {
-                box(marble, -.28, 1, -.28, .28, 1.06, .28, .84F, .84F, .84F);
-                box(marble, -.15, 1.06, -.15, .15, 1.12, .15, .98F, .98F, .98F);
-                return true;
-            }
+            renderBase(marble, starter);
+            if (starter) return true;
             if (!view.has("relicId")) return true;
             Item item = LoreRegistry.RELICS.get(
                 view.get("relicId")
@@ -107,6 +102,26 @@ public final class FictionPedestalRenderer {
             }
         }
         return true;
+    }
+
+    private static void renderBase(IIcon marble, boolean starter) {
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        Minecraft.getMinecraft()
+            .getTextureManager()
+            .bindTexture(TextureMap.locationBlocksTexture);
+        GL11.glDisable(GL11.GL_LIGHTING);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        GL11.glDepthMask(true);
+        box(marble, -.375, 0, -.375, .375, .125, .375, .91F, .91F, .91F);
+        box(marble, -.32, .125, -.32, .32, .20, .32, .98F, .98F, .98F);
+        box(marble, -.21, .20, -.21, .21, .80, .21, .92F, .92F, .92F);
+        box(marble, -.30, .80, -.30, .30, .90, .30, .98F, .98F, .98F);
+        box(marble, -.375, .90, -.375, .375, 1, .375, .91F, .91F, .91F);
+        if (starter) {
+            box(marble, -.28, 1, -.28, .28, 1.06, .28, .84F, .84F, .84F);
+            box(marble, -.15, 1.06, -.15, .15, 1.12, .15, .98F, .98F, .98F);
+        }
     }
 
     private static void box(IIcon icon, double x0, double y0, double z0, double x1, double y1, double z1, float r,
